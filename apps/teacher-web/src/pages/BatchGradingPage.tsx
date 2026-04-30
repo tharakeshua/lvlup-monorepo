@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSubmissions, useExams, useGradeQuestion } from "@levelup/shared-hooks";
+import { useSubmissions, useExams } from "@levelup/shared-hooks";
 import {
   Button,
   Card,
@@ -17,7 +18,6 @@ import {
   AnimatedListItem,
   Badge,
 } from "@levelup/shared-ui";
-import type { Submission } from "@levelup/shared-types";
 import {
   CheckSquare,
   ChevronLeft,
@@ -26,16 +26,16 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Eye,
 } from "lucide-react";
-import { sonnerToast as toast } from "@levelup/shared-ui";
 
-type GradingFilter = "all" | "needs_review" | "auto_graded" | "flagged";
+type GradingFilter = "all" | "needs_review" | "auto_graded" | "in_progress";
 
 const FILTER_OPTIONS: { value: GradingFilter; label: string }[] = [
   { value: "all", label: "All Pending" },
   { value: "needs_review", label: "Needs Review" },
   { value: "auto_graded", label: "Auto-Graded" },
-  { value: "flagged", label: "Flagged" },
+  { value: "in_progress", label: "In Progress" },
 ];
 
 const PAGE_SIZE = 10;
@@ -48,16 +48,33 @@ function getStatusBadge(status: string) {
           Auto-Graded
         </Badge>
       );
-    case "needs_review":
+    case "ready_for_review":
+    case "grading_partial":
       return (
         <Badge variant="outline" className="border-blue-300 text-blue-600">
           Needs Review
         </Badge>
       );
-    case "flagged":
-      return <Badge variant="destructive">Flagged</Badge>;
+    case "manual_review_needed":
+    case "failed":
+      return <Badge variant="destructive">Manual Review</Badge>;
+    case "uploaded":
+    case "scouting":
+    case "scouting_complete":
+    case "grading":
+      return (
+        <Badge variant="outline" className="border-violet-300 text-violet-600">
+          In Progress
+        </Badge>
+      );
+    case "reviewed":
+      return (
+        <Badge variant="outline" className="border-green-300 text-green-600">
+          Reviewed
+        </Badge>
+      );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Badge variant="outline">{status.replace(/_/g, " ")}</Badge>;
   }
 }
 
@@ -67,29 +84,47 @@ export default function BatchGradingPage() {
 
   const { data: submissions, isLoading: subsLoading } = useSubmissions(tenantId);
   const { data: exams } = useExams(tenantId);
-  const gradeQuestion = useGradeQuestion();
 
   const [filter, setFilter] = useState<GradingFilter>("all");
   const [examFilter, setExamFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
 
-  // Pending submissions (not yet reviewed/released)
+  const PIPELINE_PENDING = useMemo(
+    () =>
+      new Set([
+        "uploaded",
+        "scouting",
+        "scouting_complete",
+        "grading",
+        "grading_partial",
+        "grading_complete",
+        "ready_for_review",
+        "manual_review_needed",
+      ]),
+    []
+  );
+
+  // Submissions still requiring teacher action (not yet reviewed/released).
   const pendingSubmissions = useMemo(() => {
-    const pending = (submissions ?? []).filter(
-      (s) =>
-        s.status === "grading_complete" ||
-        s.status === "needs_review" ||
-        s.status === "flagged" ||
-        s.status === "submitted"
-    );
+    const pending = (submissions ?? []).filter((s) => PIPELINE_PENDING.has(s.pipelineStatus));
 
     let filtered = pending;
     if (filter !== "all") {
       filtered = filtered.filter((s) => {
-        if (filter === "auto_graded") return s.status === "grading_complete";
+        if (filter === "auto_graded") return s.pipelineStatus === "grading_complete";
         if (filter === "needs_review")
-          return s.status === "needs_review" || s.status === "submitted";
-        if (filter === "flagged") return s.status === "flagged";
+          return (
+            s.pipelineStatus === "ready_for_review" ||
+            s.pipelineStatus === "grading_partial" ||
+            s.pipelineStatus === "manual_review_needed"
+          );
+        if (filter === "in_progress")
+          return (
+            s.pipelineStatus === "uploaded" ||
+            s.pipelineStatus === "scouting" ||
+            s.pipelineStatus === "scouting_complete" ||
+            s.pipelineStatus === "grading"
+          );
         return true;
       });
     }
@@ -99,7 +134,7 @@ export default function BatchGradingPage() {
     }
 
     return filtered;
-  }, [submissions, filter, examFilter]);
+  }, [submissions, filter, examFilter, PIPELINE_PENDING]);
 
   const totalPages = Math.ceil(pendingSubmissions.length / PAGE_SIZE);
   const currentPageItems = pendingSubmissions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -109,32 +144,13 @@ export default function BatchGradingPage() {
     [exams]
   );
 
-  const handleApprove = useCallback(
-    (sub: Submission) => {
-      if (!tenantId) return;
-      // Mark as reviewed by calling grade with existing scores
-      gradeQuestion.mutate(
-        {
-          tenantId,
-          submissionId: sub.id,
-          status: "reviewed",
-        },
-        {
-          onSuccess: () => toast.success("Submission approved"),
-          onError: () => toast.error("Failed to approve submission"),
-        }
-      );
-    },
-    [tenantId, gradeQuestion]
-  );
-
   const uniqueExams = useMemo(() => {
     const examIds = new Set((submissions ?? []).map((s) => s.examId));
     return (exams ?? []).filter((e) => examIds.has(e.id));
   }, [submissions, exams]);
 
   const reviewed = (submissions ?? []).filter(
-    (s) => s.status === "reviewed" || s.status === "released"
+    (s) => s.pipelineStatus === "reviewed" || s.resultsReleased
   ).length;
 
   return (
@@ -236,35 +252,38 @@ export default function BatchGradingPage() {
                       <p className="truncate text-sm font-medium">
                         {sub.studentName ?? sub.studentId}
                       </p>
-                      {getStatusBadge(sub.status)}
+                      {getStatusBadge(sub.pipelineStatus)}
                     </div>
                     <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
                       <span>{getExamTitle(sub.examId)}</span>
-                      {sub.totalScore !== undefined && (
-                        <span className="font-medium">
-                          Score: {sub.totalScore}/{sub.totalMarks ?? "?"}
-                        </span>
-                      )}
+                      {sub.summary?.totalScore !== undefined &&
+                        sub.summary.maxScore !== undefined && (
+                          <span className="font-medium">
+                            Score: {sub.summary.totalScore}/{sub.summary.maxScore}
+                            {sub.summary.percentage != null
+                              ? ` (${Math.round(sub.summary.percentage)}%)`
+                              : ""}
+                          </span>
+                        )}
                       {sub.createdAt && (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" aria-hidden="true" />
-                          {new Date(sub.createdAt.toDate?.() ?? sub.createdAt).toLocaleDateString()}
+                          {new Date(
+                            (sub.createdAt as { toDate?: () => Date })?.toDate?.() ??
+                              (sub.createdAt as unknown as string)
+                          ).toLocaleDateString()}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="ml-3 flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={() => handleApprove(sub)}
-                      disabled={gradeQuestion.isPending}
-                    >
-                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                      Approve
+                    <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+                      <Link to={`/exams/${sub.examId}/submissions/${sub.id}`}>
+                        <Eye className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        Review &amp; Grade
+                      </Link>
                     </Button>
-                    {sub.status === "flagged" && (
+                    {sub.pipelineStatus === "manual_review_needed" && (
                       <span className="text-destructive" aria-label="Flagged for review">
                         <AlertTriangle className="h-4 w-4" />
                       </span>

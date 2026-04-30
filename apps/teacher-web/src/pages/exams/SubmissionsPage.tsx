@@ -1,12 +1,8 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useCurrentTenantId, useAuthStore } from "@levelup/shared-stores";
-import { useExam, useSubmissions } from "@levelup/shared-hooks";
-import {
-  doc,
-  serverTimestamp,
-  writeBatch,
-} from "firebase/firestore";
+import { useExam, useSubmissions, useStudents, useClasses } from "@levelup/shared-hooks";
+import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 import { getFirebaseServices, callUploadAnswerSheets } from "@levelup/shared-services";
 import type { Submission } from "@levelup/shared-types";
@@ -23,10 +19,10 @@ import {
   BarChart3,
   Users,
   Download,
+  Info,
 } from "lucide-react";
 import {
   Button,
-  Input,
   Label,
   Badge,
   Card,
@@ -37,6 +33,11 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
 } from "@levelup/shared-ui";
 
 const PIPELINE_ICONS: Record<string, React.ElementType> = {
@@ -74,17 +75,49 @@ export default function SubmissionsPage() {
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const { data: exam } = useExam(tenantId, examId ?? null);
   const { data: submissions = [], refetch } = useSubmissions(tenantId, { examId });
+  const { data: allClasses = [] } = useClasses(tenantId);
   const [uploading, setUploading] = useState(false);
-  const [studentName, setStudentName] = useState("");
-  const [rollNumber, setRollNumber] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [classId, setClassId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  // Only show classes assigned to this exam.
+  const examClasses = useMemo(
+    () => allClasses.filter((c) => exam?.classIds?.includes(c.id)),
+    [allClasses, exam?.classIds]
+  );
+  const { data: students = [] } = useStudents(tenantId, classId ? { classId } : undefined);
+
+  // Reset student selection when class changes.
+  useEffect(() => {
+    setStudentId("");
+  }, [classId]);
+
+  // Auto-pick the only class if there's exactly one.
+  useEffect(() => {
+    if (!classId && examClasses.length === 1) {
+      setClassId(examClasses[0].id);
+    }
+  }, [classId, examClasses]);
+
   const handleUploadSubmission = async () => {
     if (!tenantId || !examId || !firebaseUser) return;
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+      setUploadError("Pick at least one file.");
+      return;
+    }
+    if (!classId) {
+      setUploadError("Select a class.");
+      return;
+    }
+    if (!studentId) {
+      setUploadError("Select a student.");
+      return;
+    }
 
+    setUploadError(null);
     setUploading(true);
     try {
       const { storage } = getFirebaseServices();
@@ -99,17 +132,17 @@ export default function SubmissionsPage() {
       await callUploadAnswerSheets({
         tenantId,
         examId,
-        studentId: studentName || "Unknown",
-        classId: classId || "",
+        studentId,
+        classId,
         imageUrls: storagePaths,
       });
 
-      setStudentName("");
-      setRollNumber("");
-      setClassId("");
+      setStudentId("");
       setSelectedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       refetch();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -195,12 +228,15 @@ export default function SubmissionsPage() {
       ["ready_for_review", "manual_review_needed", "grading_partial"].includes(s.pipelineStatus)
     ).length;
     const inProgress = submissions.filter((s) =>
-      ["uploaded", "ocr_processing", "scouting", "scouting_complete", "grading"].includes(s.pipelineStatus)
+      ["uploaded", "ocr_processing", "scouting", "scouting_complete", "grading"].includes(
+        s.pipelineStatus
+      )
     ).length;
     const scores = submissions
       .filter((s) => s.summary?.percentage != null)
       .map((s) => s.summary!.percentage);
-    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+    const avgScore =
+      scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
     return { total, graded, needsReview, inProgress, avgScore };
   }, [submissions]);
 
@@ -210,7 +246,9 @@ export default function SubmissionsPage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild><Link to="/exams">Exams</Link></BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to="/exams">Exams</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -226,12 +264,17 @@ export default function SubmissionsPage() {
       </Breadcrumb>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/exams/${examId}`)} aria-label="Go back">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(`/exams/${examId}`)}
+          aria-label="Go back"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold">Submissions</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {exam?.title} &middot; {submissions.length} submissions
           </p>
         </div>
@@ -243,14 +286,11 @@ export default function SubmissionsPage() {
           )}
           {unreleasedReviewed.length > 0 && (
             <Button
-              onClick={() =>
-                handleReleaseResults(unreleasedReviewed.map((s) => s.id))
-              }
+              onClick={() => handleReleaseResults(unreleasedReviewed.map((s) => s.id))}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              <Send className="h-3.5 w-3.5" /> Release All Results (
-              {unreleasedReviewed.length})
+              <Send className="h-3.5 w-3.5" /> Release All Results ({unreleasedReviewed.length})
             </Button>
           )}
         </div>
@@ -258,40 +298,42 @@ export default function SubmissionsPage() {
 
       {/* Summary Stats */}
       {submissions.length > 0 && (
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Card>
             <CardContent className="p-3 text-center">
-              <Users className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+              <Users className="text-muted-foreground mx-auto mb-1 h-4 w-4" />
               <p className="text-lg font-bold">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p className="text-muted-foreground text-[10px]">Total</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <FileCheck className="h-4 w-4 mx-auto text-green-500 mb-1" />
+              <FileCheck className="mx-auto mb-1 h-4 w-4 text-green-500" />
               <p className="text-lg font-bold">{stats.graded}</p>
-              <p className="text-[10px] text-muted-foreground">Graded</p>
+              <p className="text-muted-foreground text-[10px]">Graded</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <Loader2 className="h-4 w-4 mx-auto text-blue-500 mb-1" />
+              <Loader2 className="mx-auto mb-1 h-4 w-4 text-blue-500" />
               <p className="text-lg font-bold">{stats.inProgress}</p>
-              <p className="text-[10px] text-muted-foreground">In Progress</p>
+              <p className="text-muted-foreground text-[10px]">In Progress</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <Eye className="h-4 w-4 mx-auto text-amber-500 mb-1" />
+              <Eye className="mx-auto mb-1 h-4 w-4 text-amber-500" />
               <p className="text-lg font-bold">{stats.needsReview}</p>
-              <p className="text-[10px] text-muted-foreground">Needs Review</p>
+              <p className="text-muted-foreground text-[10px]">Needs Review</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <BarChart3 className="h-4 w-4 mx-auto text-primary mb-1" />
-              <p className="text-lg font-bold">{stats.avgScore != null ? `${stats.avgScore}%` : "—"}</p>
-              <p className="text-[10px] text-muted-foreground">Avg Score</p>
+              <BarChart3 className="text-primary mx-auto mb-1 h-4 w-4" />
+              <p className="text-lg font-bold">
+                {stats.avgScore != null ? `${stats.avgScore}%` : "—"}
+              </p>
+              <p className="text-muted-foreground text-[10px]">Avg Score</p>
             </CardContent>
           </Card>
         </div>
@@ -299,40 +341,65 @@ export default function SubmissionsPage() {
 
       {/* Upload new submission */}
       <Card>
-        <CardContent className="p-5 space-y-4">
+        <CardContent className="space-y-4 p-5">
           <h3 className="font-medium">Upload Answer Sheet</h3>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs">Student Name</Label>
-              <Input
-                type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="mt-1 h-8"
-              />
+          {examClasses.length === 0 ? (
+            <div className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                This exam has no classes assigned. Add classes on the exam page before uploading
+                submissions.
+              </span>
             </div>
-            <div>
-              <Label className="text-xs">Roll Number</Label>
-              <Input
-                type="text"
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                className="mt-1 h-8"
-              />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs">Class</Label>
+                <Select value={classId} onValueChange={setClassId}>
+                  <SelectTrigger className="mt-1 h-8">
+                    <SelectValue placeholder="Select a class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {examClasses.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Student</Label>
+                <Select value={studentId} onValueChange={setStudentId} disabled={!classId}>
+                  <SelectTrigger className="mt-1 h-8">
+                    <SelectValue
+                      placeholder={
+                        !classId
+                          ? "Pick a class first"
+                          : students.length === 0
+                            ? "No students in this class"
+                            : "Select a student"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.rollNumber ? `${s.rollNumber} — ` : ""}
+                        {`${s.firstName ?? ""} ${s.lastName ?? ""}`.trim() || s.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label className="text-xs">Class ID</Label>
-              <Input
-                type="text"
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-                className="mt-1 h-8"
-              />
-            </div>
-          </div>
+          )}
           <div
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -340,13 +407,11 @@ export default function SubmissionsPage() {
               setSelectedFiles(droppedFiles);
               // Update the file input programmatically isn't possible but track state
             }}
-            className="cursor-pointer rounded-lg border-2 border-dashed p-6 text-center hover:border-primary hover:bg-muted/50 transition-colors"
+            className="hover:border-primary hover:bg-muted/50 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors"
           >
-            <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
-            <p className="mt-1 text-sm font-medium">
-              Click to upload or drag and drop
-            </p>
-            <p className="text-xs text-muted-foreground">PDF or image files</p>
+            <Upload className="text-muted-foreground mx-auto h-6 w-6" />
+            <p className="mt-1 text-sm font-medium">Click to upload or drag and drop</p>
+            <p className="text-muted-foreground text-xs">PDF or image files</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -359,13 +424,27 @@ export default function SubmissionsPage() {
           {selectedFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {selectedFiles.map((f, i) => (
-                <Badge key={i} variant="secondary">{f.name}</Badge>
+                <Badge key={i} variant="secondary">
+                  {f.name}
+                </Badge>
               ))}
+            </div>
+          )}
+          {uploadError && (
+            <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-400">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="break-all">{uploadError}</span>
             </div>
           )}
           <Button
             onClick={handleUploadSubmission}
-            disabled={uploading || selectedFiles.length === 0}
+            disabled={
+              uploading ||
+              selectedFiles.length === 0 ||
+              !classId ||
+              !studentId ||
+              examClasses.length === 0
+            }
             size="sm"
           >
             {uploading ? (
@@ -384,35 +463,33 @@ export default function SubmissionsPage() {
       {/* Submission list */}
       <div className="space-y-2">
         {submissions.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground py-12 text-center text-sm">
             No submissions yet. Upload answer sheets above.
           </p>
         ) : (
           submissions.map((sub: Submission) => {
-            const StatusIcon =
-              PIPELINE_ICONS[sub.pipelineStatus] ?? Clock;
-            const statusColor =
-              PIPELINE_COLORS[sub.pipelineStatus] ?? "text-gray-500";
+            const StatusIcon = PIPELINE_ICONS[sub.pipelineStatus] ?? Clock;
+            const statusColor = PIPELINE_COLORS[sub.pipelineStatus] ?? "text-gray-500";
 
             return (
               <Link
                 key={sub.id}
                 to={`/exams/${examId}/submissions/${sub.id}`}
-                className="block rounded-lg border bg-card hover:shadow-sm transition-shadow overflow-hidden"
+                className="bg-card block overflow-hidden rounded-lg border transition-shadow hover:shadow-sm"
               >
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
                     <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                     <div>
                       <p className="text-sm font-medium">{sub.studentName}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Roll: {sub.rollNumber}
                         {sub.classId && ` | Class: ${sub.classId}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-xs text-muted-foreground capitalize">
+                    <span className="text-muted-foreground text-xs capitalize">
                       {sub.pipelineStatus.replace(/_/g, " ")}
                     </span>
                     <div className="text-right">
@@ -421,38 +498,54 @@ export default function SubmissionsPage() {
                         {sub.summary?.maxScore ?? exam?.totalMarks ?? "-"}
                       </p>
                       {sub.summary?.percentage != null && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {Math.round(sub.summary.percentage)}%{" "}
                           {sub.summary.grade && `(${sub.summary.grade})`}
                         </p>
                       )}
                     </div>
                     {sub.resultsReleased && (
-                      <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-400">
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
                         Released
                       </span>
                     )}
                   </div>
                 </div>
                 {/* Pipeline progress bar for active grading */}
-                {sub.pipelineStatus === "grading" && (sub as Submission & { gradingProgress?: { percentComplete?: number } }).gradingProgress?.percentComplete != null && (
-                  <div className="px-4 pb-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-muted-foreground">Grading in progress</span>
-                      <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
-                        {(sub as Submission & { gradingProgress?: { percentComplete?: number } }).gradingProgress!.percentComplete}%
-                      </span>
+                {sub.pipelineStatus === "grading" &&
+                  (sub as Submission & { gradingProgress?: { percentComplete?: number } })
+                    .gradingProgress?.percentComplete != null && (
+                    <div className="px-4 pb-3">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-muted-foreground text-[10px]">
+                          Grading in progress
+                        </span>
+                        <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                          {
+                            (sub as Submission & { gradingProgress?: { percentComplete?: number } })
+                              .gradingProgress!.percentComplete
+                          }
+                          %
+                        </span>
+                      </div>
+                      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                        <div
+                          className="h-full rounded-full bg-purple-500 transition-all duration-500"
+                          style={{
+                            width: `${(sub as Submission & { gradingProgress?: { percentComplete?: number } }).gradingProgress!.percentComplete}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-purple-500 transition-all duration-500"
-                        style={{ width: `${(sub as Submission & { gradingProgress?: { percentComplete?: number } }).gradingProgress!.percentComplete}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                  )}
                 {/* Pipeline step indicator for non-terminal states */}
-                {["uploaded", "ocr_processing", "scouting", "scouting_complete", "grading"].includes(sub.pipelineStatus) && (
+                {[
+                  "uploaded",
+                  "ocr_processing",
+                  "scouting",
+                  "scouting_complete",
+                  "grading",
+                ].includes(sub.pipelineStatus) && (
                   <div className="px-4 pb-3">
                     <PipelineSteps status={sub.pipelineStatus} />
                   </div>
@@ -490,18 +583,14 @@ function PipelineSteps({ status }: { status: string }) {
         const isComplete = idx < currentIdx;
         const isCurrent = idx === currentIdx;
         return (
-          <div key={step} className="flex items-center gap-1 flex-1">
+          <div key={step} className="flex flex-1 items-center gap-1">
             <div
               className={`h-1 flex-1 rounded-full transition-colors ${
-                isComplete
-                  ? "bg-green-500"
-                  : isCurrent
-                    ? "bg-primary animate-pulse"
-                    : "bg-muted"
+                isComplete ? "bg-green-500" : isCurrent ? "bg-primary animate-pulse" : "bg-muted"
               }`}
             />
             <span
-              className={`text-[9px] whitespace-nowrap ${
+              className={`whitespace-nowrap text-[9px] ${
                 isComplete
                   ? "text-green-600 dark:text-green-400"
                   : isCurrent

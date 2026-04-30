@@ -11,7 +11,12 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { getFirebaseServices, callSaveExam, callGenerateReport, callExtractQuestions } from "@levelup/shared-services";
+import {
+  getFirebaseServices,
+  callSaveExam,
+  callGenerateReport,
+  callExtractQuestions,
+} from "@levelup/shared-services";
 import type { ExamQuestion, UnifiedRubric } from "@levelup/shared-types";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import {
@@ -55,6 +60,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
   Skeleton,
+  MarkdownWithMath,
 } from "@levelup/shared-ui";
 
 export default function ExamDetailPage() {
@@ -70,7 +76,9 @@ export default function ExamDetailPage() {
   const [extracting, setExtracting] = useState(false);
   const [reExtracting, setReExtracting] = useState<string | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<Record<string, { text: string; maxMarks: number }>>({});
+  const [editValues, setEditValues] = useState<Record<string, { text: string; maxMarks: number }>>(
+    {}
+  );
   const { data: allSpaces = [] } = useSpaces(tenantId, { status: "published" });
 
   useEffect(() => {
@@ -80,22 +88,20 @@ export default function ExamDetailPage() {
       const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
       const q = query(colRef, orderBy("order", "asc"));
       const snap = await getDocs(q);
-      setQuestions(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion)
-      );
+      setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
     };
     load();
   }, [tenantId, examId]);
 
   const handlePublish = async () => {
     if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: 'published' } });
+    await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
     refetch();
   };
 
   const handleReleaseResults = async () => {
     if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: 'results_released' } });
+    await callSaveExam({ id: examId, tenantId, data: { status: "results_released" } });
     refetch();
   };
 
@@ -109,9 +115,7 @@ export default function ExamDetailPage() {
       const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
       const q = query(colRef, orderBy("order", "asc"));
       const snap = await getDocs(q);
-      setQuestions(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion)
-      );
+      setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
       refetch();
     } finally {
       setExtracting(false);
@@ -121,13 +125,11 @@ export default function ExamDetailPage() {
   const handleSaveQuestionRubric = async (questionId: string, rubric: UnifiedRubric) => {
     if (!tenantId || !examId) return;
     const { db } = getFirebaseServices();
-    await updateDoc(
-      doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId),
-      { rubric, updatedAt: serverTimestamp() }
-    );
-    setQuestions((prev) =>
-      prev.map((q) => (q.id === questionId ? { ...q, rubric } : q))
-    );
+    await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
+      rubric,
+      updatedAt: serverTimestamp(),
+    });
+    setQuestions((prev) => prev.map((q) => (q.id === questionId ? { ...q, rubric } : q)));
     setEditingRubric(null);
   };
 
@@ -135,7 +137,7 @@ export default function ExamDetailPage() {
     if (!tenantId || !examId) return;
     setReExtracting(questionNumber);
     try {
-      await callExtractQuestions({ tenantId, examId, mode: 'single', questionNumber });
+      await callExtractQuestions({ tenantId, examId, mode: "single", questionNumber });
       // Reload questions
       const { db } = getFirebaseServices();
       const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
@@ -152,12 +154,15 @@ export default function ExamDetailPage() {
     const edits = editValues[questionId];
     if (!edits) return;
     const { db } = getFirebaseServices();
-    await updateDoc(
-      doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId),
-      { text: edits.text, maxMarks: edits.maxMarks, updatedAt: serverTimestamp() }
-    );
+    await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
+      text: edits.text,
+      maxMarks: edits.maxMarks,
+      updatedAt: serverTimestamp(),
+    });
     setQuestions((prev) =>
-      prev.map((q) => (q.id === questionId ? { ...q, text: edits.text, maxMarks: edits.maxMarks } : q))
+      prev.map((q) =>
+        q.id === questionId ? { ...q, text: edits.text, maxMarks: edits.maxMarks } : q
+      )
     );
     setEditingQuestion(null);
     setEditValues((prev) => {
@@ -169,7 +174,7 @@ export default function ExamDetailPage() {
 
   const handleConfirmAndPublish = async () => {
     if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: 'published' } });
+    await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
     refetch();
   };
 
@@ -202,7 +207,7 @@ export default function ExamDetailPage() {
 
   if (!exam) {
     return (
-      <div className="text-center py-24">
+      <div className="py-24 text-center">
         <p className="text-muted-foreground">Exam not found</p>
         <Button variant="link" onClick={() => navigate("/exams")} className="mt-3">
           Back to Exams
@@ -211,9 +216,7 @@ export default function ExamDetailPage() {
     );
   }
 
-  const pendingReview = submissions.filter(
-    (s) => s.pipelineStatus === "ready_for_review"
-  );
+  const pendingReview = submissions.filter((s) => s.pipelineStatus === "ready_for_review");
 
   return (
     <div className="space-y-6">
@@ -221,7 +224,9 @@ export default function ExamDetailPage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink asChild><Link to="/exams">Exams</Link></BreadcrumbLink>
+            <BreadcrumbLink asChild>
+              <Link to="/exams">Exams</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -232,17 +237,21 @@ export default function ExamDetailPage() {
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/exams")} aria-label="Go back">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/exams")}
+            aria-label="Go back"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">{exam.title}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-bold">{exam.title}</h1>
+            <div className="mt-0.5 flex items-center gap-2">
               <StatusBadge status={exam.status} />
-              <span className="text-xs text-muted-foreground">
-                {exam.subject} &middot; {exam.totalMarks} marks &middot;{" "}
-                {exam.duration} min
+              <span className="text-muted-foreground text-xs">
+                {exam.subject} &middot; {exam.totalMarks} marks &middot; {exam.duration} min
               </span>
             </div>
           </div>
@@ -253,7 +262,7 @@ export default function ExamDetailPage() {
               onClick={handleExtractQuestions}
               disabled={extracting}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-purple-600 text-white hover:bg-purple-700"
             >
               {extracting ? (
                 <>
@@ -272,7 +281,7 @@ export default function ExamDetailPage() {
             <Button
               onClick={handlePublish}
               size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 text-white hover:bg-green-700"
             >
               <Globe className="h-3.5 w-3.5" /> Publish
             </Button>
@@ -281,13 +290,13 @@ export default function ExamDetailPage() {
             <Button
               onClick={handleReleaseResults}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 text-white hover:bg-blue-700"
             >
               <Send className="h-3.5 w-3.5" /> Release Results
             </Button>
           )}
           {exam.linkedSpaceId ? (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 text-xs font-medium text-blue-700 dark:text-blue-400">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
               <LinkIcon className="h-3.5 w-3.5" />
               {exam.linkedSpaceTitle || "Linked Space"}
             </span>
@@ -299,7 +308,11 @@ export default function ExamDetailPage() {
           {tenantId && examId && submissions.length > 0 && (
             <DownloadPDFButton
               onGenerate={async () => {
-                const res = await callGenerateReport({ tenantId: tenantId!, type: 'exam-result', examId: examId! });
+                const res = await callGenerateReport({
+                  tenantId: tenantId!,
+                  type: "exam-result",
+                  examId: examId!,
+                });
                 return { downloadUrl: res.pdfUrl };
               }}
               label="Download Results PDF"
@@ -309,7 +322,7 @@ export default function ExamDetailPage() {
             <Link to={`/exams/${examId}/submissions`}>
               <Users className="h-3.5 w-3.5" /> Submissions
               {pendingReview.length > 0 && (
-                <span className="ml-1 rounded-full bg-orange-100 dark:bg-orange-900/30 px-1.5 text-[10px] font-semibold text-orange-700 dark:text-orange-400">
+                <span className="ml-1 rounded-full bg-orange-100 px-1.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                   {pendingReview.length}
                 </span>
               )}
@@ -324,39 +337,37 @@ export default function ExamDetailPage() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{exam.stats.totalSubmissions}</p>
-              <p className="text-xs text-muted-foreground">Submissions</p>
+              <p className="text-muted-foreground text-xs">Submissions</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{exam.stats.gradedSubmissions}</p>
-              <p className="text-xs text-muted-foreground">Graded</p>
+              <p className="text-muted-foreground text-xs">Graded</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {Math.round(exam.stats.avgScore)}%
-              </p>
-              <p className="text-xs text-muted-foreground">Avg Score</p>
+              <p className="text-2xl font-bold">{Math.round(exam.stats.avgScore)}%</p>
+              <p className="text-muted-foreground text-xs">Avg Score</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">
-                {Math.round(exam.stats.passRate)}%
-              </p>
-              <p className="text-xs text-muted-foreground">Pass Rate</p>
+              <p className="text-2xl font-bold">{Math.round(exam.stats.passRate)}%</p>
+              <p className="text-muted-foreground text-xs">Pass Rate</p>
             </CardContent>
           </Card>
           {(exam.stats as Record<string, unknown>).totalGradingCostUsd != null && (
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                <p className="flex items-center justify-center gap-1 text-2xl font-bold">
                   <DollarSign className="h-4 w-4" />
-                  {((exam.stats as Record<string, unknown>).totalGradingCostUsd as number).toFixed(2)}
+                  {((exam.stats as Record<string, unknown>).totalGradingCostUsd as number).toFixed(
+                    2
+                  )}
                 </p>
-                <p className="text-xs text-muted-foreground">AI Grading Cost</p>
+                <p className="text-muted-foreground text-xs">AI Grading Cost</p>
               </CardContent>
             </Card>
           )}
@@ -376,14 +387,15 @@ export default function ExamDetailPage() {
           <div className="space-y-3">
             {/* Confirm & Publish button for extracted questions */}
             {exam.status === "question_paper_extracted" && questions.length > 0 && (
-              <div className="flex items-center justify-between rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
+              <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/30">
                 <p className="text-sm text-blue-700 dark:text-blue-400">
-                  Review the extracted questions below. Edit any inaccuracies, then confirm to publish.
+                  Review the extracted questions below. Edit any inaccuracies, then confirm to
+                  publish.
                 </p>
                 <Button
                   onClick={handleConfirmAndPublish}
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 text-white hover:bg-green-700"
                 >
                   <Check className="h-3.5 w-3.5" /> Confirm & Publish
                 </Button>
@@ -391,8 +403,8 @@ export default function ExamDetailPage() {
             )}
             {questions.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
+                <FileText className="text-muted-foreground h-8 w-8" />
+                <p className="text-muted-foreground mt-2 text-sm">
                   No questions yet. Upload a question paper to extract questions automatically.
                 </p>
               </div>
@@ -400,16 +412,18 @@ export default function ExamDetailPage() {
               questions.map((q) => {
                 const isEditing = editingQuestion === q.id;
                 const edits = editValues[q.id];
-                const confidence = (q as ExamQuestion & { extractionConfidence?: number }).extractionConfidence;
-                const hasReadabilityIssue = (q as ExamQuestion & { readabilityIssue?: boolean }).readabilityIssue;
+                const confidence = (q as ExamQuestion & { extractionConfidence?: number })
+                  .extractionConfidence;
+                const hasReadabilityIssue = (q as ExamQuestion & { readabilityIssue?: boolean })
+                  .readabilityIssue;
 
                 return (
                   <Card key={q.id}>
-                    <CardContent className="p-4 space-y-2">
+                    <CardContent className="space-y-2 p-4">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-muted-foreground">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground text-sm font-bold">
                               Q{q.order}.
                             </span>
                             {/* Confidence badge */}
@@ -427,7 +441,7 @@ export default function ExamDetailPage() {
                               </span>
                             )}
                             {hasReadabilityIssue && (
-                              <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                                 Readability Issue
                               </span>
                             )}
@@ -439,43 +453,55 @@ export default function ExamDetailPage() {
                                 onChange={(e) =>
                                   setEditValues((prev) => ({
                                     ...prev,
-                                    [q.id]: { text: e.target.value, maxMarks: prev[q.id]?.maxMarks ?? q.maxMarks },
+                                    [q.id]: {
+                                      text: e.target.value,
+                                      maxMarks: prev[q.id]?.maxMarks ?? q.maxMarks,
+                                    },
                                   }))
                                 }
-                                className="w-full rounded border bg-background p-2 text-sm min-h-[60px] resize-y"
+                                className="bg-background min-h-[60px] w-full resize-y rounded border p-2 text-sm"
                               />
                               <div className="flex items-center gap-2">
-                                <label className="text-xs text-muted-foreground">Max Marks:</label>
+                                <label className="text-muted-foreground text-xs">Max Marks:</label>
                                 <input
                                   type="number"
                                   value={edits?.maxMarks ?? q.maxMarks}
                                   onChange={(e) =>
                                     setEditValues((prev) => ({
                                       ...prev,
-                                      [q.id]: { text: prev[q.id]?.text ?? q.text, maxMarks: Number(e.target.value) },
+                                      [q.id]: {
+                                        text: prev[q.id]?.text ?? q.text,
+                                        maxMarks: Number(e.target.value),
+                                      },
                                     }))
                                   }
                                   min={1}
-                                  className="w-16 rounded border bg-background px-2 py-1 text-sm h-7"
+                                  className="bg-background h-7 w-16 rounded border px-2 py-1 text-sm"
                                 />
                                 <Button size="sm" onClick={() => handleSaveQuestionEdit(q.id)}>
                                   <Check className="h-3 w-3" /> Save
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => { setEditingQuestion(null); }}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingQuestion(null);
+                                  }}
+                                >
                                   Cancel
                                 </Button>
                               </div>
                             </div>
                           ) : (
                             <>
-                              <span className="text-sm">{q.text}</span>
-                              <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                              <MarkdownWithMath text={q.text} inline className="text-sm" />
+                              <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
                                 <span>{q.maxMarks} marks</span>
-                                {q.questionType && <span className="capitalize">{q.questionType}</span>}
+                                {q.questionType && (
+                                  <span className="capitalize">{q.questionType}</span>
+                                )}
                                 {q.extractedBy && (
-                                  <span className="capitalize">
-                                    Extracted by {q.extractedBy}
-                                  </span>
+                                  <span className="capitalize">Extracted by {q.extractedBy}</span>
                                 )}
                                 <span className="capitalize">
                                   Rubric: {q.rubric?.scoringMode ?? "none"}
@@ -484,7 +510,7 @@ export default function ExamDetailPage() {
                             </>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           {/* Re-extract button for low confidence */}
                           {confidence != null && confidence < 0.7 && (
                             <Button
@@ -528,8 +554,9 @@ export default function ExamDetailPage() {
                       {q.subQuestions && q.subQuestions.length > 0 && (
                         <div className="ml-6 space-y-1">
                           {q.subQuestions.map((sq) => (
-                            <div key={sq.label} className="text-xs text-muted-foreground">
-                              <span className="font-medium">{sq.label}</span>: {sq.text} ({sq.maxMarks} marks)
+                            <div key={sq.label} className="text-muted-foreground text-xs">
+                              <span className="font-medium">{sq.label}</span>:{" "}
+                              <MarkdownWithMath text={sq.text} inline /> ({sq.maxMarks} marks)
                             </div>
                           ))}
                         </div>
@@ -546,28 +573,25 @@ export default function ExamDetailPage() {
         <TabsContent value="submissions" className="mt-4">
           <div className="space-y-3">
             {submissions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No submissions yet
-              </p>
+              <p className="text-muted-foreground py-8 text-center text-sm">No submissions yet</p>
             ) : (
               submissions.slice(0, 10).map((sub) => (
                 <Link
                   key={sub.id}
                   to={`/exams/${examId}/submissions/${sub.id}`}
-                  className="flex items-center justify-between rounded-lg border bg-card p-3 hover:shadow-sm"
+                  className="bg-card flex items-center justify-between rounded-lg border p-3 hover:shadow-sm"
                 >
                   <div>
                     <p className="text-sm font-medium">{sub.studentName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Roll: {sub.rollNumber} &middot;{" "}
-                      {sub.pipelineStatus.replace(/_/g, " ")}
+                    <p className="text-muted-foreground text-xs">
+                      Roll: {sub.rollNumber} &middot; {sub.pipelineStatus.replace(/_/g, " ")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">
                       {sub.summary?.totalScore ?? "-"}/{sub.summary?.maxScore ?? exam.totalMarks}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       {sub.summary?.percentage != null
                         ? `${Math.round(sub.summary.percentage)}%`
                         : "Pending"}
@@ -579,7 +603,7 @@ export default function ExamDetailPage() {
             {submissions.length > 10 && (
               <Link
                 to={`/exams/${examId}/submissions`}
-                className="block text-center text-sm text-primary hover:underline"
+                className="text-primary block text-center text-sm hover:underline"
               >
                 View all {submissions.length} submissions
               </Link>
@@ -590,7 +614,7 @@ export default function ExamDetailPage() {
         {/* Settings Tab */}
         <TabsContent value="settings" className="mt-4">
           <Card className="max-w-xl">
-            <CardContent className="p-5 space-y-4">
+            <CardContent className="space-y-4 p-5">
               <h3 className="font-medium">Grading Configuration</h3>
               <dl className="grid gap-2 text-sm">
                 <div className="flex justify-between">
@@ -611,17 +635,22 @@ export default function ExamDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Auto-release Results</dt>
-                  <dd>
-                    {exam.gradingConfig.releaseResultsAutomatically ? "Yes" : "No"}
-                  </dd>
+                  <dd>{exam.gradingConfig.releaseResultsAutomatically ? "Yes" : "No"}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Linked Space</dt>
                   <dd>
                     {exam.linkedSpaceId ? (
-                      <span className="text-blue-600 dark:text-blue-400">{exam.linkedSpaceTitle || exam.linkedSpaceId}</span>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        {exam.linkedSpaceTitle || exam.linkedSpaceId}
+                      </span>
                     ) : (
-                      <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setShowSpacePicker(true)}>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={() => setShowSpacePicker(true)}
+                      >
                         Link a Space
                       </Button>
                     )}
@@ -639,12 +668,13 @@ export default function ExamDetailPage() {
           <DialogHeader>
             <DialogTitle>Link to a Space</DialogTitle>
             <DialogDescription>
-              Select a published space to link to this exam. Students will see it as a study resource.
+              Select a published space to link to this exam. Students will see it as a study
+              resource.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-64 overflow-y-auto space-y-2">
+          <div className="max-h-64 space-y-2 overflow-y-auto">
             {allSpaces.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="text-muted-foreground py-4 text-center text-sm">
                 No published spaces available.
               </p>
             ) : (
@@ -653,15 +683,15 @@ export default function ExamDetailPage() {
                   key={space.id}
                   onClick={() => handleLinkSpace(space.id)}
                   disabled={linkingSpace}
-                  className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-muted disabled:opacity-50"
+                  className="hover:bg-muted flex w-full items-center gap-3 rounded-md border p-3 text-left disabled:opacity-50"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{space.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{space.title}</p>
                     {space.subject && (
-                      <p className="text-xs text-muted-foreground">{space.subject}</p>
+                      <p className="text-muted-foreground text-xs">{space.subject}</p>
                     )}
                   </div>
-                  <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <LinkIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                 </button>
               ))
             )}
@@ -670,20 +700,25 @@ export default function ExamDetailPage() {
       </Dialog>
 
       {/* Rubric Editor Sheet (Phase 1.3) */}
-      <Sheet open={!!editingRubric} onOpenChange={(open) => {
-        if (!open) setEditingRubric(null);
-      }}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto" aria-describedby={undefined}>
+      <Sheet
+        open={!!editingRubric}
+        onOpenChange={(open) => {
+          if (!open) setEditingRubric(null);
+        }}
+      >
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl" aria-describedby={undefined}>
           <SheetHeader>
-            <SheetTitle>Edit Rubric — Q{questions.find(q => q.id === editingRubric)?.order}</SheetTitle>
+            <SheetTitle>
+              Edit Rubric — Q{questions.find((q) => q.id === editingRubric)?.order}
+            </SheetTitle>
           </SheetHeader>
-          {editingRubric && questions.find(q => q.id === editingRubric) && (
+          {editingRubric && questions.find((q) => q.id === editingRubric) && (
             <div className="mt-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                {questions.find(q => q.id === editingRubric)!.text}
+              <p className="text-muted-foreground mb-4 text-sm">
+                {questions.find((q) => q.id === editingRubric)!.text}
               </p>
               <RubricEditor
-                rubric={questions.find(q => q.id === editingRubric)!.rubric}
+                rubric={questions.find((q) => q.id === editingRubric)!.rubric}
                 onSave={(rubric) => handleSaveQuestionRubric(editingRubric, rubric)}
               />
             </div>

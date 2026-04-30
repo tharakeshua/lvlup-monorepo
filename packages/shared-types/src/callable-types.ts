@@ -8,14 +8,14 @@
  * @module callable-types
  */
 
-import type { SpaceType, SpaceStatus, SpaceAccessType } from './levelup/space';
-import type { StoryPointType, AssessmentConfig, StoryPointSection } from './levelup/story-point';
-import type { ItemType, ItemPayload } from './content/item';
-import type { ItemMetadata, ItemAnalytics } from './content/item-metadata';
-import type { UnifiedRubric } from './content/rubric';
-import type { ExamStatus } from './constants/grades';
-import type { ExamGradingConfig } from './autograde/exam';
-import type { TenantRole, TeacherPermissions } from './identity/membership';
+import type { SpaceType, SpaceStatus, SpaceAccessType } from "./levelup/space";
+import type { StoryPointType, AssessmentConfig, StoryPointSection } from "./levelup/story-point";
+import type { ItemType, ItemPayload } from "./content/item";
+import type { ItemMetadata, ItemAnalytics } from "./content/item-metadata";
+import type { UnifiedRubric } from "./content/rubric";
+import type { ExamStatus } from "./constants/grades";
+import type { ExamGradingConfig } from "./autograde/exam";
+import type { TenantRole, TeacherPermissions } from "./identity/membership";
 import type {
   TenantSubscription,
   TenantFeatures,
@@ -23,10 +23,10 @@ import type {
   TenantAddress,
   TenantBranding,
   TenantStatus,
-} from './identity/tenant';
-import type { StaffPermissions } from './identity/membership';
-import type { StudentProgressSummary, ClassProgressSummary } from './progress/summary';
-import type { FirestoreTimestamp } from './identity/user';
+} from "./identity/tenant";
+import type { StaffPermissions } from "./identity/membership";
+import type { StudentProgressSummary, ClassProgressSummary } from "./progress/summary";
+import type { FirestoreTimestamp } from "./identity/user";
 
 // ─────────────────────────────────────────────────────
 // Generic save pattern
@@ -76,7 +76,7 @@ export interface SaveClassRequest {
     section?: string;
     academicSessionId?: string;
     teacherIds?: string[];
-    status?: 'active' | 'archived' | 'deleted';
+    status?: "active" | "archived" | "deleted";
   };
 }
 
@@ -94,7 +94,7 @@ export interface SaveStudentRequest {
     grade?: string;
     admissionNumber?: string;
     dateOfBirth?: string;
-    status?: 'active' | 'archived';
+    status?: "active" | "archived";
     /** Fields for creating via createOrgUser flow */
     firstName?: string;
     lastName?: string;
@@ -116,7 +116,7 @@ export interface SaveTeacherRequest {
     classIds?: string[];
     /** Update permissions (replaces updateTeacherPermissions) */
     permissions?: TeacherPermissions;
-    status?: 'active' | 'archived';
+    status?: "active" | "archived";
     /** Fields for creating via createOrgUser flow */
     firstName?: string;
     lastName?: string;
@@ -134,7 +134,7 @@ export interface SaveParentRequest {
     uid?: string;
     /** Link/unlink students (replaces linkParentToStudent) */
     childStudentIds?: string[];
-    status?: 'active' | 'archived';
+    status?: "active" | "archived";
     /** Fields for creating via createOrgUser flow */
     firstName?: string;
     lastName?: string;
@@ -153,14 +153,14 @@ export interface SaveAcademicSessionRequest {
     startDate?: string;
     endDate?: string;
     isCurrent?: boolean;
-    status?: 'active' | 'archived';
+    status?: "active" | "archived";
   };
 }
 
 /** manageNotifications — replaces: getNotifications, markNotificationRead */
 export interface ManageNotificationsRequest {
   tenantId: string;
-  action: 'list' | 'markRead';
+  action: "list" | "markRead";
   /** Required for 'list' */
   limit?: number;
   cursor?: string;
@@ -196,7 +196,7 @@ export interface SaveStaffRequest {
     uid?: string;
     department?: string;
     staffPermissions?: StaffPermissions;
-    status?: 'active' | 'archived';
+    status?: "active" | "archived";
     firstName?: string;
     lastName?: string;
     email?: string;
@@ -219,8 +219,8 @@ export interface ReactivateTenantRequest {
 /** exportTenantData — bulk data export for a tenant */
 export interface ExportTenantDataRequest {
   tenantId: string;
-  format: 'json' | 'csv';
-  collections: ('students' | 'teachers' | 'classes' | 'exams' | 'submissions')[];
+  format: "json" | "csv";
+  collections: ("students" | "teachers" | "classes" | "exams" | "submissions")[];
 }
 
 export interface ExportTenantDataResponse {
@@ -254,9 +254,9 @@ export interface BulkImportTeachersResponse {
 
 export interface BulkUpdateStatusRequest {
   tenantId: string;
-  entityType: 'student' | 'teacher' | 'class';
+  entityType: "student" | "teacher" | "class";
   entityIds: string[];
-  newStatus: 'active' | 'archived';
+  newStatus: "active" | "archived";
 }
 
 export interface BulkUpdateStatusResponse {
@@ -344,7 +344,7 @@ export interface SaveStoryPointRequest {
     sections?: StoryPointSection[];
     assessmentConfig?: AssessmentConfig;
     defaultRubric?: UnifiedRubric;
-    difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
+    difficulty?: "easy" | "medium" | "hard" | "expert";
     estimatedTimeMinutes?: number;
     /** Soft-delete */
     deleted?: boolean;
@@ -363,7 +363,7 @@ export interface SaveItemRequest {
     payload?: ItemPayload;
     title?: string;
     content?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
+    difficulty?: "easy" | "medium" | "hard";
     topics?: string[];
     labels?: string[];
     orderIndex?: number;
@@ -376,7 +376,7 @@ export interface SaveItemRequest {
       id: string;
       fileName: string;
       url: string;
-      type: 'image' | 'pdf' | 'audio';
+      type: "image" | "pdf" | "audio";
       size: number;
       mimeType: string;
     }>;
@@ -427,13 +427,14 @@ export interface SaveExamRequest {
 /**
  * gradeQuestion — replaces: manualGradeQuestion, retryFailedQuestions
  *
- * mode: 'manual' → grade a single question
- * mode: 'retry'  → retry failed AI grading
+ * mode: 'manual' → grade a single question with manual override
+ * mode: 'retry'  → retry all failed AI gradings on a partial submission
+ * mode: 'ai'     → run AI grading synchronously on a single question
  */
 export interface GradeQuestionRequest {
   tenantId: string;
-  mode: 'manual' | 'retry';
-  /** Required for mode: 'manual' */
+  mode: "manual" | "retry" | "ai";
+  /** Required for mode: 'manual' and 'ai' */
   submissionId?: string;
   questionId?: string;
   score?: number;
@@ -447,8 +448,10 @@ export interface GradeQuestionRequest {
 
 export interface GradeQuestionResponse {
   success: boolean;
-  /** For mode: 'manual' */
+  /** For mode: 'manual' and 'ai' */
   updatedScore?: number;
+  /** For mode: 'ai' — final per-question grading status */
+  gradingStatus?: string;
   /** For mode: 'retry' */
   retriedCount?: number;
   failedCount?: number;
@@ -488,7 +491,7 @@ export interface HealthSummaryResponse {
  */
 export interface GetSummaryRequest {
   tenantId?: string;
-  scope: 'student' | 'class' | 'platform' | 'health';
+  scope: "student" | "class" | "platform" | "health";
   /** Required when scope = 'student' */
   studentId?: string;
   /** Required when scope = 'class' */
@@ -496,7 +499,7 @@ export interface GetSummaryRequest {
 }
 
 export interface GetSummaryResponse {
-  scope: 'student' | 'class' | 'platform' | 'health';
+  scope: "student" | "class" | "platform" | "health";
   studentSummary?: StudentProgressSummary;
   classSummary?: ClassProgressSummary;
   platformSummary?: PlatformSummaryResponse;
@@ -508,7 +511,7 @@ export interface GetSummaryResponse {
  */
 export interface GenerateReportRequest {
   tenantId: string;
-  type: 'exam-result' | 'progress' | 'class';
+  type: "exam-result" | "progress" | "class";
   /** Required for type: 'exam-result' */
   examId?: string;
   /** Required for type: 'exam-result' and 'progress' */
@@ -533,10 +536,10 @@ export interface SaveAnnouncementRequest {
   data: {
     title?: string;
     body?: string;
-    scope?: 'platform' | 'tenant';
+    scope?: "platform" | "tenant";
     targetRoles?: string[];
     targetClassIds?: string[];
-    status?: 'draft' | 'published' | 'archived';
+    status?: "draft" | "published" | "archived";
     expiresAt?: string;
   };
   delete?: boolean;
@@ -550,8 +553,8 @@ export interface SaveAnnouncementResponse {
 
 export interface ListAnnouncementsRequest {
   tenantId?: string;
-  scope?: 'platform' | 'tenant';
-  status?: 'draft' | 'published' | 'archived';
+  scope?: "platform" | "tenant";
+  status?: "draft" | "published" | "archived";
   limit?: number;
   cursor?: string;
 }
@@ -562,8 +565,8 @@ export interface ListAnnouncementsResponse {
     title: string;
     body: string;
     authorName: string;
-    scope: 'platform' | 'tenant';
-    status: 'draft' | 'published' | 'archived';
+    scope: "platform" | "tenant";
+    status: "draft" | "published" | "archived";
     targetRoles?: string[];
     targetClassIds?: string[];
     publishedAt?: unknown;
@@ -582,7 +585,7 @@ export interface ListAnnouncementsResponse {
 /** uploadTenantAsset — generates a signed upload URL for tenant branding assets */
 export interface UploadTenantAssetRequest {
   tenantId: string;
-  assetType: 'logo' | 'banner' | 'favicon';
+  assetType: "logo" | "banner" | "favicon";
   contentType: string;
 }
 

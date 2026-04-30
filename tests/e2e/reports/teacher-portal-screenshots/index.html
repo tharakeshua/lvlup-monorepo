@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Teacher Portal Tour — Screenshots</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --border: #262a31;
+    --text: #e6e8eb;
+    --muted: #8b929c;
+    --accent: #4f8cff;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f6f7f9; --panel:#fff; --border:#e3e6ea; --text:#0d1117; --muted:#5b6573; --accent:#1f6feb; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 32px 24px 16px; max-width: 1400px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 16px; max-width: 1400px; margin: 0 auto; }
+  nav.toc a {
+    display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
+    text-decoration: none; color: var(--text); font-size: 12px; background: var(--panel);
+  }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+  main { display: grid; gap: 28px; padding: 16px 24px 64px; max-width: 1400px; margin: 0 auto; }
+  figure {
+    margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; scroll-margin-top: 12px;
+  }
+  figcaption {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  figcaption .title { font-weight: 600; font-size: 15px; }
+  figcaption .route {
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px;
+    color: var(--muted);
+  }
+  figcaption .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    background: rgba(79,140,255,.12); color: var(--accent); font-weight: 600;
+  }
+  figcaption .badge.error { background: rgba(255,82,82,.14); color: #ff6868; }
+  img { display: block; width: 100%; height: auto; background: #fff; }
+  .desc { padding: 12px 18px 16px; color: var(--muted); font-size: 13px; }
+  footer { padding: 24px; max-width: 1400px; margin: 0 auto; color: var(--muted); font-size: 12px; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Teacher Portal Tour — Screenshots</h1>
+  <div class="meta">
+    Tenant <code>SUB001</code> · viewport 1440×900 · full-page · 18 of 20 routes captured ·
+    <a href="REPORT.md">REPORT.md</a>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#s01">01 Login</a>
+  <a href="#s02">02 Dashboard</a>
+  <a href="#s03">03 Spaces</a>
+  <a href="#s04">04 Question Bank ⚠</a>
+  <a href="#s05">05 Rubric Presets</a>
+  <a href="#s06">06 Exams</a>
+  <a href="#s07">07 Exam Create</a>
+  <a href="#s08">08 Class Analytics</a>
+  <a href="#s09">09 Exam Analytics</a>
+  <a href="#s10">10 Space Analytics</a>
+  <a href="#s11">11 Class Test Analytics</a>
+  <a href="#s12">12 Assignments</a>
+  <a href="#s13">13 Batch Grading</a>
+  <a href="#s14">14 Students</a>
+  <a href="#s15">15 Settings</a>
+  <a href="#s16">16 Notifications</a>
+  <a href="#s18">18 Space Editor</a>
+  <a href="#s19">19 Exam Detail</a>
+</nav>
+
+<main>
+
+  <figure id="s01">
+    <figcaption>
+      <span class="title">01 — Login</span>
+      <span class="route">/login</span>
+    </figcaption>
+    <img src="01-login.png" alt="Login page — Teacher Portal, school code step" loading="lazy" />
+    <div class="desc">Two-step login. Step 1: enter school code (SUB001). Step 2 (off-screen): email + password.</div>
+  </figure>
+
+  <figure id="s02">
+    <figcaption>
+      <span class="title">02 — Teacher Dashboard</span>
+      <span class="route">/</span>
+    </figcaption>
+    <img src="02-dashboard.png" alt="Dashboard — Teacher home with KPIs and recent spaces/exams" loading="lazy" />
+    <div class="desc">KPIs (Students 6, Active Exams 2, Spaces 12, At-Risk 0) + Recent Spaces and Recent Exams panels.</div>
+  </figure>
+
+  <figure id="s03">
+    <figcaption>
+      <span class="title">03 — Spaces (list)</span>
+      <span class="route">/spaces</span>
+    </figcaption>
+    <img src="03-spaces-list.png" alt="Spaces list — card grid of learning spaces" loading="lazy" />
+    <div class="desc">Card grid of 12+ seeded learning spaces (DSA, LLD, HLD, DDIA, Java, Behavioral, etc.) with status filters and "+ New Space".</div>
+  </figure>
+
+  <figure id="s04">
+    <figcaption>
+      <span class="title">04 — Question Bank</span>
+      <span class="route">/question-bank</span>
+      <span class="badge error">P0 — Crash</span>
+    </figcaption>
+    <img src="04-question-bank.png" alt="Question Bank — RouteErrorBoundary fallback" loading="lazy" />
+    <div class="desc">RouteErrorBoundary fallback: "A &lt;Select.Item /&gt; must have a value prop that is not an empty string." Radix Select misuse — page never renders.</div>
+  </figure>
+
+  <figure id="s05">
+    <figcaption>
+      <span class="title">05 — Rubric Presets</span>
+      <span class="route">/rubric-presets</span>
+    </figcaption>
+    <img src="05-rubric-presets.png" alt="Rubric Presets — empty state" loading="lazy" />
+    <div class="desc">Evaluation Presets list with Category filter and "+ New Preset". Empty for this tenant.</div>
+  </figure>
+
+  <figure id="s06">
+    <figcaption>
+      <span class="title">06 — Exams (list)</span>
+      <span class="route">/exams</span>
+    </figcaption>
+    <img src="06-exams-list.png" alt="Exams list — Math (Published) + jk (Question Paper Uploaded)" loading="lazy" />
+    <div class="desc">Two seeded exams: Math (Published) and jk (Question Paper Uploaded). Status pill filters + "+ New Exam".</div>
+  </figure>
+
+  <figure id="s07">
+    <figcaption>
+      <span class="title">07 — Create Exam</span>
+      <span class="route">/exams/new</span>
+    </figcaption>
+    <img src="07-exams-new.png" alt="Create Exam — 4-step wizard, Step 1 Exam Details" loading="lazy" />
+    <div class="desc">4-step wizard (Exam Details · Upload Question Paper · Review · Publish). Step 1 form shown.</div>
+  </figure>
+
+  <figure id="s08">
+    <figcaption>
+      <span class="title">08 — Class Analytics</span>
+      <span class="route">/analytics/classes</span>
+    </figcaption>
+    <img src="08-analytics-classes.png" alt="Class Analytics — empty state" loading="lazy" />
+    <div class="desc">Empty: "No analytics data yet. Data will appear after exams are graded and spaces are used."</div>
+  </figure>
+
+  <figure id="s09">
+    <figcaption>
+      <span class="title">09 — Exam Analytics</span>
+      <span class="route">/analytics/exams</span>
+    </figcaption>
+    <img src="09-analytics-exams.png" alt="Exam Analytics — empty state" loading="lazy" />
+    <div class="desc">Empty: "No graded exams yet. Analytics appear after exam results are released."</div>
+  </figure>
+
+  <figure id="s10">
+    <figcaption>
+      <span class="title">10 — Space Analytics</span>
+      <span class="route">/analytics/spaces</span>
+    </figcaption>
+    <img src="10-analytics-spaces.png" alt="Space Analytics — empty state" loading="lazy" />
+    <div class="desc">Per-space completion + engagement metrics (Select scopes to a space). Empty: no student progress yet.</div>
+  </figure>
+
+  <figure id="s11">
+    <figcaption>
+      <span class="title">11 — Class Test Analytics</span>
+      <span class="route">/analytics/tests</span>
+    </figcaption>
+    <img src="11-analytics-tests.png" alt="Class Test Analytics — empty state" loading="lazy" />
+    <div class="desc">KPI strip (Total Exams 0, Spaces 0, Avg Pass Rate ‑‑, Avg Score ‑‑) + empty body.</div>
+  </figure>
+
+  <figure id="s12">
+    <figcaption>
+      <span class="title">12 — Assignment Tracker</span>
+      <span class="route">/assignments</span>
+    </figcaption>
+    <img src="12-assignments.png" alt="Assignment Tracker — Math active, 0 submissions" loading="lazy" />
+    <div class="desc">Status tiles (Active 1, Pending 0, In Review 0, Completed 0). One row: Math · 0 submissions.</div>
+  </figure>
+
+  <figure id="s13">
+    <figcaption>
+      <span class="title">13 — Batch Grading</span>
+      <span class="route">/grading</span>
+    </figcaption>
+    <img src="13-grading.png" alt="Batch Grading — no submissions to review" loading="lazy" />
+    <div class="desc">Status + Exam filters. Empty success state ("No submissions to review — Great job!").</div>
+  </figure>
+
+  <figure id="s14">
+    <figcaption>
+      <span class="title">14 — Students</span>
+      <span class="route">/students</span>
+    </figcaption>
+    <img src="14-students.png" alt="Students table — 6 enrolled" loading="lazy" />
+    <div class="desc">6 enrolled students table (Name / Roll / Admission / Grade / Section / Status). Rows are not clickable — no drill-down to /students/:id/report.</div>
+  </figure>
+
+  <figure id="s15">
+    <figcaption>
+      <span class="title">15 — Settings</span>
+      <span class="route">/settings</span>
+    </figcaption>
+    <img src="15-settings.png" alt="Settings — Evaluation defaults" loading="lazy" />
+    <div class="desc">Evaluation Settings: Auto Grade on, Require Override Reason on, Auto-release off, AI Strictness = Moderate.</div>
+  </figure>
+
+  <figure id="s16">
+    <figcaption>
+      <span class="title">16 — Notifications</span>
+      <span class="route">/notifications</span>
+    </figcaption>
+    <img src="16-notifications.png" alt="Notifications — empty inbox" loading="lazy" />
+    <div class="desc">All / Unread tabs + "Mark all as read". Empty inbox.</div>
+  </figure>
+
+  <figure id="s18">
+    <figcaption>
+      <span class="title">18 — Space Editor</span>
+      <span class="route">/spaces/:spaceId/edit</span>
+    </figcaption>
+    <img src="18-space-edit.png" alt="Space Editor — System Design Interview Prep V2 (HLD)" loading="lazy" />
+    <div class="desc">Settings tab open. Tabs: Settings · Content · Rubric · Agent Config · History. Includes thumbnail upload, assessment defaults, store-listing toggle.</div>
+  </figure>
+
+  <figure id="s19">
+    <figcaption>
+      <span class="title">19 — Exam Detail (Math Test)</span>
+      <span class="route">/exams/:examId</span>
+    </figcaption>
+    <img src="19-exam-detail.png" alt="Exam detail — Math Test, AI-extracted questions" loading="lazy" />
+    <div class="desc">Questions tab with ~30 AI-extracted questions awaiting confirmation. "Confirm &amp; Publish" CTA. Submissions / Settings tabs alongside.</div>
+  </figure>
+
+</main>
+
+<footer>
+  Skipped: <code>17 /classes/:classId</code> (no UI drill-down from /analytics/classes) ·
+  <code>20 /students/:studentId/report</code> (Students table rows not clickable). See REPORT.md for full details.
+</footer>
+
+</body>
+</html>

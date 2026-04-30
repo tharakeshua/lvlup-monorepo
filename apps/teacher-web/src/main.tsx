@@ -7,6 +7,7 @@ import { ErrorBoundary, SonnerToaster } from "@levelup/shared-ui";
 import { reportWebVitals } from "@levelup/shared-utils/web-vitals";
 import App from "./App";
 import "./index.css";
+import "katex/dist/katex.min.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,24 +45,27 @@ createRoot(document.getElementById("root")!).render(
 reportWebVitals();
 
 // Register service worker for PWA support
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
-      setInterval(() => registration.update(), 60 * 60 * 1000);
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            window.dispatchEvent(new CustomEvent('sw-update-available'));
-          }
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        setInterval(() => registration.update(), 60 * 60 * 1000);
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              window.dispatchEvent(new CustomEvent("sw-update-available"));
+            }
+          });
         });
+      })
+      .catch(() => {
+        // SW registration failed silently
       });
-    }).catch(() => {
-      // SW registration failed silently
-    });
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
     window.location.reload();
   });
 }

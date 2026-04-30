@@ -625,7 +625,7 @@ export const SaveExamRequestSchema = z.object({
 
 export const GradeQuestionRequestSchema = z.object({
   tenantId: firestoreId,
-  mode: z.enum(["manual", "retry"]),
+  mode: z.enum(["manual", "retry", "ai"]),
   submissionId: firestoreId.optional(),
   questionId: firestoreId.optional(),
   score: z.number().optional(),
@@ -649,7 +649,9 @@ export const UploadAnswerSheetsRequestSchema = z.object({
   examId: firestoreId,
   studentId: firestoreId,
   classId: firestoreId,
-  imageUrls: z.array(z.string().url()).min(1, "At least one image is required").max(50),
+  // Storage paths under tenants/{tenantId}/... — the backend reads them via
+  // bucket.file(path), not as HTTPS URLs. The "Urls" name is historical.
+  imageUrls: z.array(z.string().min(1).max(500)).min(1, "At least one image is required").max(50),
 });
 
 // ── Question Bank ─────────────────────────────────────────────────────────
