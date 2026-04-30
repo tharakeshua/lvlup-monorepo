@@ -1,7 +1,11 @@
-import type { TestSubmission, UnifiedItem, UnifiedEvaluationResult } from '../types';
-import type { AnswerKey } from '@levelup/shared-types';
+import type { TestSubmission, UnifiedItem, UnifiedEvaluationResult } from "../types";
+import type { AnswerKey } from "@levelup/shared-types";
 /**
  * Auto-evaluate a submission for deterministic question types.
  * Returns null if the question type requires AI evaluation.
  */
-export declare function autoEvaluateSubmission(item: UnifiedItem, submission: TestSubmission, answerKey?: AnswerKey | undefined): UnifiedEvaluationResult | null;
+export declare function autoEvaluateSubmission(
+  item: UnifiedItem,
+  submission: TestSubmission,
+  answerKey?: AnswerKey | undefined
+): UnifiedEvaluationResult | null;

@@ -17,6 +17,7 @@ import {
 import {
   collection,
   getDocs,
+  getCountFromServer,
   query,
   orderBy,
   where,
@@ -189,6 +190,7 @@ function SortableStoryPoint({
   onDelete,
   onEdit,
   onPreview,
+  liveItemCount,
 }: {
   sp: StoryPoint;
   isExpanded: boolean;
@@ -196,6 +198,7 @@ function SortableStoryPoint({
   onDelete: () => void;
   onEdit: () => void;
   onPreview?: () => void;
+  liveItemCount?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sp.id });
 
@@ -227,7 +230,7 @@ function SortableStoryPoint({
           <span className="text-muted-foreground ml-2 text-xs capitalize">{sp.type}</span>
         </button>
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>{sp.stats?.totalItems ?? 0} items</span>
+          <span>{liveItemCount ?? sp.stats?.totalItems ?? 0} items</span>
           {sp.stats?.totalQuestions != null && sp.stats.totalQuestions > 0 && (
             <span>{sp.stats.totalQuestions} Q</span>
           )}
@@ -297,6 +300,11 @@ export default function SpaceEditorPage() {
   const [expandedSP, setExpandedSP] = useState<string | null>(null);
   const [editingSP, setEditingSP] = useState<StoryPoint | null>(null);
   const [items, setItems] = useState<Record<string, UnifiedItem[]>>({});
+  const [itemPaths, setItemPaths] = useState<Record<string, "nested" | "flat">>({});
+  // Live item counts per story point. Authoritative — sp.stats.totalItems is
+  // stale for seeded data because the seed bypasses the stats-incrementing
+  // saveItem callable.
+  const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
   const [editingItem, setEditingItem] = useState<UnifiedItem | null>(null);
   const [editingItemSPId, setEditingItemSPId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -339,23 +347,36 @@ export default function SpaceEditorPage() {
     load();
   }, [tenantId, spaceId, handleError]);
 
-  // Load items for expanded story point
+  // Items live at the canonical nested path
+  // (storyPoints/{id}/items); legacy installs may still have them at the
+  // flat /items path. Try nested first, fall back to flat, and remember
+  // which path was used per story point so subsequent writes (reorder)
+  // target the correct location.
   const loadItems = useCallback(
     async (storyPointId: string) => {
       if (!tenantId || !spaceId) return;
       try {
         const { db } = getFirebaseServices();
-        const colRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
-        const q = query(
-          colRef,
-          where("storyPointId", "==", storyPointId),
-          orderBy("orderIndex", "asc")
+        const nestedRef = collection(
+          db,
+          `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
         );
-        const snap = await getDocs(q);
-        setItems((prev) => ({
-          ...prev,
-          [storyPointId]: snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem),
-        }));
+        let snap = await getDocs(query(nestedRef, orderBy("orderIndex", "asc")));
+        let pathKind: "nested" | "flat" = "nested";
+        if (snap.empty) {
+          const flatRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
+          const flatSnap = await getDocs(
+            query(flatRef, where("storyPointId", "==", storyPointId), orderBy("orderIndex", "asc"))
+          );
+          if (!flatSnap.empty) {
+            snap = flatSnap;
+            pathKind = "flat";
+          }
+        }
+        const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
+        setItems((prev) => ({ ...prev, [storyPointId]: loaded }));
+        setItemPaths((prev) => ({ ...prev, [storyPointId]: pathKind }));
+        setLiveCounts((prev) => ({ ...prev, [storyPointId]: loaded.length }));
       } catch (err) {
         handleError(err, "Failed to load items");
       }
@@ -366,6 +387,49 @@ export default function SpaceEditorPage() {
   useEffect(() => {
     if (expandedSP) loadItems(expandedSP);
   }, [expandedSP, loadItems]);
+
+  // Fetch live item counts for each story point. Tries the canonical nested
+  // path first; if empty, falls back to a count on the legacy flat path
+  // filtered by storyPointId. Runs whenever the story-point list changes.
+  useEffect(() => {
+    if (!tenantId || !spaceId || storyPoints.length === 0) return;
+    let cancelled = false;
+    const { db } = getFirebaseServices();
+
+    (async () => {
+      const results = await Promise.all(
+        storyPoints.map(async (sp) => {
+          try {
+            const nestedRef = collection(
+              db,
+              `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${sp.id}/items`
+            );
+            const nestedCount = await getCountFromServer(nestedRef);
+            const n = nestedCount.data().count;
+            if (n > 0) return [sp.id, n] as const;
+
+            const flatRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
+            const flatCount = await getCountFromServer(
+              query(flatRef, where("storyPointId", "==", sp.id))
+            );
+            return [sp.id, flatCount.data().count] as const;
+          } catch {
+            return [sp.id, 0] as const;
+          }
+        })
+      );
+      if (cancelled) return;
+      setLiveCounts((prev) => {
+        const next = { ...prev };
+        for (const [id, n] of results) next[id] = n;
+        return next;
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, spaceId, storyPoints]);
 
   // Load versions when tab is active
   useEffect(() => {
@@ -604,8 +668,13 @@ export default function SpaceEditorPage() {
     try {
       const { db } = getFirebaseServices();
       const batch = writeBatch(db);
+      const pathKind = itemPaths[storyPointId] ?? "nested";
+      const itemsCollectionPath =
+        pathKind === "nested"
+          ? `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
+          : `tenants/${tenantId}/spaces/${spaceId}/items`;
       reordered.forEach((item, idx) => {
-        batch.update(doc(db, `tenants/${tenantId}/spaces/${spaceId}/items`, item.id), {
+        batch.update(doc(db, itemsCollectionPath, item.id), {
           orderIndex: idx,
           updatedAt: serverTimestamp(),
         });
@@ -621,29 +690,35 @@ export default function SpaceEditorPage() {
     if (!tenantId || !spaceId) return;
     try {
       const currentItems = items[storyPointId] ?? [];
+      const orderIndex = currentItems.length;
+      const payload =
+        type === "question"
+          ? { questionType: "mcq", content: "", questionData: { options: [] } }
+          : { materialType: "text", content: "" };
+      const title = type === "question" ? "New Question" : "New Material";
+
       const result = await createItem.mutateAsync({
         tenantId,
         spaceId,
         storyPointId,
-        data: {
-          type,
-          title: type === "question" ? "New Question" : "New Material",
-          orderIndex: currentItems.length,
-          payload:
-            type === "question"
-              ? { questionType: "mcq", content: "", questionData: { options: [] } }
-              : { materialType: "text", content: "" },
-        },
+        data: { type, title, orderIndex, payload },
       });
-      // Reload items for this story point
+
       await loadItems(storyPointId);
-      // Find and open the newly created item
-      const newItems = items[storyPointId] ?? [];
-      const newItem = newItems.find((i) => i.id === result.id);
-      if (newItem) {
-        setEditingItem(newItem);
-        setEditingItemSPId(storyPointId);
-      }
+      const newItem = {
+        id: result.id,
+        spaceId,
+        storyPointId,
+        tenantId,
+        type,
+        payload,
+        title,
+        orderIndex,
+        topics: [],
+        labels: [],
+      } as unknown as UnifiedItem;
+      setEditingItem(newItem);
+      setEditingItemSPId(storyPointId);
     } catch (err) {
       handleError(err, "Failed to add item");
     }
@@ -938,43 +1013,106 @@ export default function SpaceEditorPage() {
                           onPreview={() =>
                             navigate(`/spaces/${spaceId}/story-points/${sp.id}/preview`)
                           }
+                          liveItemCount={liveCounts[sp.id]}
                         />
 
-                        {/* Expanded: show items */}
+                        {/* Expanded: show items grouped by section */}
                         {expandedSP === sp.id && (
                           <div className="ml-8 mt-2 space-y-2 pb-2">
-                            <DndContext
-                              sensors={sensors}
-                              collisionDetection={closestCenter}
-                              onDragEnd={(e) => handleItemDragEnd(sp.id, e)}
-                            >
-                              <SortableContext
-                                items={(items[sp.id] ?? []).map((i) => i.id)}
-                                strategy={verticalListSortingStrategy}
-                              >
-                                {(items[sp.id] ?? []).map((item) => (
-                                  <SortableItem
-                                    key={item.id}
-                                    item={item}
-                                    storyPointId={sp.id}
-                                    onEdit={() => {
-                                      setEditingItem(item);
-                                      setEditingItemSPId(sp.id);
-                                    }}
-                                    onDelete={() => handleDeleteItem(sp.id, item.id)}
-                                    selected={selectedItems.has(item.id)}
-                                    onToggleSelect={() => {
-                                      setSelectedItems((prev) => {
-                                        const next = new Set(prev);
-                                        if (next.has(item.id)) next.delete(item.id);
-                                        else next.add(item.id);
-                                        return next;
-                                      });
-                                    }}
-                                  />
-                                ))}
-                              </SortableContext>
-                            </DndContext>
+                            {(() => {
+                              const allItems = items[sp.id] ?? [];
+                              const sortedSections = (sp.sections ?? [])
+                                .slice()
+                                .sort((a, b) => a.orderIndex - b.orderIndex);
+                              const definedSectionIds = new Set(sortedSections.map((s) => s.id));
+                              const unsectioned = allItems.filter(
+                                (it) => !it.sectionId || !definedSectionIds.has(it.sectionId)
+                              );
+
+                              const renderItem = (item: UnifiedItem) => (
+                                <SortableItem
+                                  key={item.id}
+                                  item={item}
+                                  storyPointId={sp.id}
+                                  onEdit={() => {
+                                    setEditingItem(item);
+                                    setEditingItemSPId(sp.id);
+                                  }}
+                                  onDelete={() => handleDeleteItem(sp.id, item.id)}
+                                  selected={selectedItems.has(item.id)}
+                                  onToggleSelect={() => {
+                                    setSelectedItems((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(item.id)) next.delete(item.id);
+                                      else next.add(item.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              );
+
+                              return (
+                                <DndContext
+                                  sensors={sensors}
+                                  collisionDetection={closestCenter}
+                                  onDragEnd={(e) => handleItemDragEnd(sp.id, e)}
+                                >
+                                  <SortableContext
+                                    items={allItems.map((i) => i.id)}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    <div className="space-y-3">
+                                      {sortedSections.map((section) => {
+                                        const sectionItems = allItems.filter(
+                                          (it) => it.sectionId === section.id
+                                        );
+                                        return (
+                                          <div key={section.id} className="space-y-1.5">
+                                            <div className="flex items-baseline justify-between border-b pb-1">
+                                              <h4 className="text-foreground text-xs font-semibold uppercase tracking-wide">
+                                                {section.title}
+                                              </h4>
+                                              <span className="text-muted-foreground text-[10px]">
+                                                {sectionItems.length}{" "}
+                                                {sectionItems.length === 1 ? "item" : "items"}
+                                              </span>
+                                            </div>
+                                            {sectionItems.length > 0 ? (
+                                              <div className="space-y-1.5">
+                                                {sectionItems.map(renderItem)}
+                                              </div>
+                                            ) : (
+                                              <p className="text-muted-foreground py-1 pl-1 text-xs italic">
+                                                No items in this section yet.
+                                              </p>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+
+                                      {unsectioned.length > 0 && (
+                                        <div className="space-y-1.5">
+                                          {sortedSections.length > 0 && (
+                                            <div className="flex items-baseline justify-between border-b pb-1">
+                                              <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+                                                Unsectioned
+                                              </h4>
+                                              <span className="text-muted-foreground text-[10px]">
+                                                {unsectioned.length}{" "}
+                                                {unsectioned.length === 1 ? "item" : "items"}
+                                              </span>
+                                            </div>
+                                          )}
+                                          <div className="space-y-1.5">
+                                            {unsectioned.map(renderItem)}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </SortableContext>
+                                </DndContext>
+                              );
+                            })()}
 
                             {/* Bulk actions */}
                             {selectedItems.size > 0 &&
