@@ -18,9 +18,9 @@
     "firebase-functions": "^6.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
     "@google/generative-ai": "^0.21.0",
-    "@levelup/shared-services": "file:.local-deps/shared-services",
-    "@levelup/functions-shared": "file:.local-deps/shared",
-    "@levelup/shared-types": "file:.local-deps/shared-types",
+    "@levelup/shared-services": "workspace:*",
+    "@levelup/functions-shared": "workspace:*",
+    "@levelup/shared-types": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

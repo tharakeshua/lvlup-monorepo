@@ -17,8 +17,8 @@
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
-    "@levelup/shared-types": "file:.local-deps/shared-types",
-    "@levelup/functions-shared": "file:.local-deps/shared"
+    "@levelup/shared-types": "workspace:*",
+    "@levelup/functions-shared": "workspace:*"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.0.0",

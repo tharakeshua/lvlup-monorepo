@@ -40,6 +40,45 @@ const FUNCTIONS_WORKSPACE_PACKAGES: Record<string, string> = {
 const ALL_CODEBASES = ["identity", "autograde", "levelup", "analytics"];
 
 // ---------------------------------------------------------------------------
+// Interruption safety
+//
+// Once a codebase's package.json has been rewritten to file:.local-deps refs,
+// it is in a state that must NEVER be left behind (let alone committed). Track
+// every in-flight codebase and restore it from its .bak on ANY abnormal exit
+// (Ctrl-C, kill, uncaught error) so the working tree is always returned to its
+// committed workspace:* state.
+// ---------------------------------------------------------------------------
+
+const IN_FLIGHT = new Set<string>();
+let restoring = false;
+
+function restoreInFlight(): void {
+  if (restoring) return;
+  restoring = true;
+  for (const cb of IN_FLIGHT) {
+    try {
+      cleanupFunction(cb);
+    } catch (err) {
+      console.error(`  Failed to restore ${cb} on exit:`, err);
+    }
+  }
+  IN_FLIGHT.clear();
+}
+
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+  process.on(sig, () => {
+    console.error(`\n!!! Received ${sig} — restoring package.json files...`);
+    restoreInFlight();
+    process.exit(1);
+  });
+}
+process.on("uncaughtException", (err) => {
+  console.error("\n!!! Uncaught exception — restoring package.json files...", err);
+  restoreInFlight();
+  process.exit(1);
+});
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -106,10 +145,13 @@ function prepareFunction(codebase: string): void {
   }
   fs.mkdirSync(localDepsDir, { recursive: true });
 
-  // 3. Read the original package.json and back it up
+  // 3. Read the original package.json and back it up. From the moment a .bak
+  //    exists this codebase is "in flight" — if the process dies before cleanup,
+  //    the signal/exception handlers restore it from the .bak.
   const pkgRaw = fs.readFileSync(pkgPath, "utf-8");
   const pkg = JSON.parse(pkgRaw);
   fs.writeFileSync(bakPath, pkgRaw);
+  IN_FLIGHT.add(codebase);
 
   // 4. Copy each needed workspace package's dist + patched package.json
   for (const [pkgName, dirName] of Object.entries(WORKSPACE_PACKAGES)) {
@@ -123,16 +165,12 @@ function prepareFunction(codebase: string): void {
     // Copy dist/
     const srcDist = path.join(srcDir, "dist");
     if (!fs.existsSync(srcDist)) {
-      throw new Error(
-        `${pkgName} dist not found at ${srcDist}. Build shared packages first.`
-      );
+      throw new Error(`${pkgName} dist not found at ${srcDist}. Build shared packages first.`);
     }
     copyDirSync(srcDist, path.join(destDir, "dist"));
 
     // Copy & patch the shared package's own package.json
-    const sharedPkg = JSON.parse(
-      fs.readFileSync(path.join(srcDir, "package.json"), "utf-8")
-    );
+    const sharedPkg = JSON.parse(fs.readFileSync(path.join(srcDir, "package.json"), "utf-8"));
     for (const section of ["dependencies", "devDependencies"] as const) {
       if (!sharedPkg[section]) continue;
       for (const [dep, ver] of Object.entries(sharedPkg[section])) {
@@ -143,10 +181,7 @@ function prepareFunction(codebase: string): void {
     }
     // Remove peerDependencies not needed in Cloud Functions
     delete sharedPkg.peerDependencies;
-    fs.writeFileSync(
-      path.join(destDir, "package.json"),
-      JSON.stringify(sharedPkg, null, 2)
-    );
+    fs.writeFileSync(path.join(destDir, "package.json"), JSON.stringify(sharedPkg, null, 2));
 
     console.log(`  Bundled ${pkgName}`);
   }
@@ -172,9 +207,7 @@ function prepareFunction(codebase: string): void {
     }
 
     // Copy & patch the package's own package.json
-    const sharedPkg = JSON.parse(
-      fs.readFileSync(path.join(srcDir, "package.json"), "utf-8")
-    );
+    const sharedPkg = JSON.parse(fs.readFileSync(path.join(srcDir, "package.json"), "utf-8"));
     // Remove workspace refs from the shared function package too
     for (const section of ["dependencies", "devDependencies"] as const) {
       if (!sharedPkg[section]) continue;
@@ -189,10 +222,7 @@ function prepareFunction(codebase: string): void {
       }
     }
     delete sharedPkg.peerDependencies;
-    fs.writeFileSync(
-      path.join(destDir, "package.json"),
-      JSON.stringify(sharedPkg, null, 2)
-    );
+    fs.writeFileSync(path.join(destDir, "package.json"), JSON.stringify(sharedPkg, null, 2));
 
     console.log(`  Bundled ${pkgName}`);
   }
@@ -234,6 +264,7 @@ function cleanupFunction(codebase: string): void {
     fs.rmSync(localDepsDir, { recursive: true });
   }
 
+  IN_FLIGHT.delete(codebase);
   console.log(`  ${codebase} cleaned up`);
 }
 
@@ -242,8 +273,7 @@ function cleanupFunction(codebase: string): void {
 // ---------------------------------------------------------------------------
 
 const [action = "prepare", ...codebaseArgs] = process.argv.slice(2);
-const codebases =
-  codebaseArgs.length > 0 ? codebaseArgs : ALL_CODEBASES;
+const codebases = codebaseArgs.length > 0 ? codebaseArgs : ALL_CODEBASES;
 
 switch (action) {
   case "prepare":
