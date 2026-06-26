@@ -16,6 +16,7 @@ import {
   SelectValue,
   Badge,
 } from "@levelup/shared-ui";
+import ClassMultiSelect from "../../components/exam/ClassMultiSelect";
 
 type WizardStep = "metadata" | "upload" | "review" | "publish";
 
@@ -41,7 +42,7 @@ export default function ExamCreatePage() {
   const [totalMarks, setTotalMarks] = useState(100);
   const [passingMarks, setPassingMarks] = useState(40);
   const [duration, setDuration] = useState(60);
-  const [classIds, setClassIds] = useState("");
+  const [classIds, setClassIds] = useState<string[]>([]);
 
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,6 +68,7 @@ export default function ExamCreatePage() {
     if (passingMarks < 0) newErrors.passingMarks = "Passing marks cannot be negative";
     if (passingMarks > totalMarks) newErrors.passingMarks = "Passing marks cannot exceed total marks";
     if (duration <= 0) newErrors.duration = "Duration must be greater than 0";
+    if (classIds.length === 0) newErrors.classIds = "Select at least one class";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -106,7 +108,7 @@ export default function ExamCreatePage() {
           title,
           subject,
           topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
-          classIds: classIds.split(",").map((c) => c.trim()).filter(Boolean),
+          classIds,
           totalMarks,
           passingMarks,
           duration,
@@ -246,14 +248,18 @@ export default function ExamCreatePage() {
             </div>
           </div>
           <div>
-            <Label>Class IDs (comma-separated)</Label>
-            <Input
-              type="text"
-              value={classIds}
-              onChange={(e) => setClassIds(e.target.value)}
-              placeholder="class_10a, class_10b"
-              className="mt-1"
-            />
+            <Label>Classes</Label>
+            <div className="mt-1">
+              <ClassMultiSelect
+                tenantId={tenantId}
+                value={classIds}
+                onChange={setClassIds}
+                placeholder="Select one or more classes..."
+              />
+            </div>
+            {errors.classIds && (
+              <p className="text-destructive mt-1 text-xs">{errors.classIds}</p>
+            )}
           </div>
           <div>
             <Label className="flex items-center gap-1.5">

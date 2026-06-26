@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useExam, useSubmissions } from "@levelup/shared-hooks";
+import { useExam, useSubmissions, useClasses, useApiError } from "@levelup/shared-hooks";
+import { toast } from "sonner";
 import {
   collection,
   getDocs,
@@ -11,6 +12,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import {
   getFirebaseServices,
   callSaveExam,
@@ -19,6 +21,8 @@ import {
 } from "@levelup/shared-services";
 import type { ExamQuestion, UnifiedRubric } from "@levelup/shared-types";
 import RubricEditor from "../../components/spaces/RubricEditor";
+import ExamMetadataEditDialog from "../../components/exam/ExamMetadataEditDialog";
+import ClassMultiSelect from "../../components/exam/ClassMultiSelect";
 import {
   ArrowLeft,
   FileText,
@@ -32,6 +36,8 @@ import {
   RotateCcw,
   Check,
   DollarSign,
+  ClipboardCheck,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useSpaces } from "@levelup/shared-hooks";
 import {
@@ -61,7 +67,223 @@ import {
   BreadcrumbSeparator,
   Skeleton,
   MarkdownWithMath,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@levelup/shared-ui";
+
+function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
+  if (!rubric) {
+    return (
+      <div className="text-muted-foreground mt-3 rounded-md border border-dashed px-3 py-2 text-xs italic">
+        No rubric set. Click "Rubric" to define grading criteria.
+      </div>
+    );
+  }
+
+  const {
+    scoringMode,
+    criteria,
+    dimensions,
+    holisticGuidance,
+    holisticMaxScore,
+    passingPercentage,
+    modelAnswer,
+    showModelAnswer,
+    evaluatorGuidance,
+  } = rubric;
+
+  const totalPoints =
+    (scoringMode === "criteria_based" || scoringMode === "hybrid") && criteria
+      ? criteria.reduce((sum, c) => sum + (c.maxPoints || 0), 0)
+      : null;
+
+  const showCriteriaTable =
+    (scoringMode === "criteria_based" || scoringMode === "hybrid") && criteria && criteria.length > 0;
+  const showDimensionsTable = scoringMode === "dimension_based" && dimensions && dimensions.length > 0;
+  const showHolistic = (scoringMode === "holistic" || scoringMode === "hybrid") && holisticGuidance;
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-lg border border-purple-200 bg-gradient-to-b from-purple-50/40 to-transparent dark:border-purple-900/40 dark:from-purple-950/20">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 bg-purple-50 px-3 py-2 dark:border-purple-900/40 dark:bg-purple-950/30">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+          <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
+            Rubric &amp; Marking
+          </span>
+          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 capitalize dark:bg-purple-900/40 dark:text-purple-300">
+            {scoringMode.replace(/_/g, " ")}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-purple-700 dark:text-purple-300">
+          {totalPoints != null && (
+            <span>
+              <span className="font-semibold">{totalPoints}</span> total pts
+            </span>
+          )}
+          {passingPercentage != null && (
+            <span>
+              Pass <span className="font-semibold">{passingPercentage}%</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-3">
+        {showCriteriaTable && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12 text-xs">#</TableHead>
+                <TableHead className="text-xs">Criterion</TableHead>
+                <TableHead className="text-xs">Description / Levels</TableHead>
+                <TableHead className="w-24 text-right text-xs">Marks</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {criteria!.map((c, idx) => (
+                <TableRow key={c.id}>
+                  <TableCell className="text-muted-foreground text-xs font-medium">
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium">
+                    <MarkdownWithMath text={c.name} inline />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {c.description && <MarkdownWithMath text={c.description} inline />}
+                    {c.levels && c.levels.length > 0 && (
+                      <ul className="mt-1 space-y-0.5">
+                        {c.levels.map((lv, i) => (
+                          <li key={i} className="flex items-baseline gap-2">
+                            <span className="bg-muted rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+                              {lv.score}
+                            </span>
+                            <span className="font-medium">
+                              <MarkdownWithMath text={lv.label} inline />
+                            </span>
+                            {lv.description && (
+                              <span>
+                                — <MarkdownWithMath text={lv.description} inline />
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {!c.description && (!c.levels || c.levels.length === 0) && (
+                      <span className="italic">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                    {c.maxPoints}
+                    {c.weight != null && (
+                      <span className="text-muted-foreground ml-1 text-[10px] font-normal">
+                        ×{c.weight}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {showDimensionsTable && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12 text-xs">#</TableHead>
+                <TableHead className="text-xs">Dimension</TableHead>
+                <TableHead className="text-xs">Description</TableHead>
+                <TableHead className="w-20 text-xs">Priority</TableHead>
+                <TableHead className="w-16 text-right text-xs">Weight</TableHead>
+                <TableHead className="w-16 text-right text-xs">Scale</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {dimensions!.map((d, idx) => (
+                <TableRow key={d.id} className={!d.enabled ? "opacity-50" : ""}>
+                  <TableCell className="text-muted-foreground text-xs font-medium">
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium">
+                    <MarkdownWithMath text={d.name} inline />
+                    {!d.enabled && (
+                      <span className="text-muted-foreground ml-1 text-[10px]">(off)</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {d.description ? (
+                      <MarkdownWithMath text={d.description} inline />
+                    ) : (
+                      <span className="italic">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        d.priority === "HIGH"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : d.priority === "MEDIUM"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {d.priority}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                    {d.weight}
+                  </TableCell>
+                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                    {d.scoringScale}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {showHolistic && (
+          <div className="rounded-md border bg-white/60 p-3 text-xs dark:bg-slate-900/40">
+            <div className="text-muted-foreground mb-1 flex items-center justify-between">
+              <span className="font-semibold">Holistic guidance</span>
+              {holisticMaxScore != null && (
+                <span>
+                  Max <span className="text-foreground font-semibold">{holisticMaxScore}</span>
+                </span>
+              )}
+            </div>
+            <MarkdownWithMath text={holisticGuidance} />
+          </div>
+        )}
+
+        {evaluatorGuidance && (
+          <div className="mt-3 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-xs dark:border-blue-900/40 dark:bg-blue-950/20">
+            <p className="mb-1 font-semibold text-blue-800 dark:text-blue-300">Evaluator guidance</p>
+            <div className="text-blue-900/90 dark:text-blue-200/90">
+              <MarkdownWithMath text={evaluatorGuidance} />
+            </div>
+          </div>
+        )}
+
+        {showModelAnswer && modelAnswer && (
+          <details className="group mt-3 rounded-md border bg-white/60 dark:bg-slate-900/40">
+            <summary className="hover:bg-muted/50 cursor-pointer rounded-md px-3 py-2 text-xs font-semibold">
+              Model answer
+            </summary>
+            <div className="border-t px-3 py-2 text-xs">
+              <MarkdownWithMath text={modelAnswer} />
+            </div>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ExamDetailPage() {
   const { examId } = useParams<{ examId: string }>();
@@ -80,6 +302,47 @@ export default function ExamDetailPage() {
     {}
   );
   const { data: allSpaces = [] } = useSpaces(tenantId, { status: "published" });
+  const { data: tenantClasses = [] } = useClasses(tenantId);
+  const { handleError } = useApiError();
+  const [showEditMeta, setShowEditMeta] = useState(false);
+  const [showEditClasses, setShowEditClasses] = useState(false);
+  const [savingClasses, setSavingClasses] = useState(false);
+  const [draftClassIds, setDraftClassIds] = useState<string[]>([]);
+  const [questionPaperUrls, setQuestionPaperUrls] = useState<Record<string, string>>({});
+
+  const editLocked = exam?.status === "results_released";
+
+  // Question paper images are stored in Firestore as Cloud Storage paths.
+  // Resolve them to HTTPS download URLs so <img> can render them.
+  useEffect(() => {
+    const paths = exam?.questionPaper?.images ?? [];
+    if (paths.length === 0) return;
+    const { storage } = getFirebaseServices();
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        paths.map(async (p) => {
+          if (!p || questionPaperUrls[p] !== undefined) return;
+          if (/^https?:\/\//.test(p)) {
+            updates[p] = p;
+            return;
+          }
+          try {
+            updates[p] = await getDownloadURL(storageRef(storage, p));
+          } catch {
+            updates[p] = "";
+          }
+        })
+      );
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setQuestionPaperUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [exam?.questionPaper?.images, questionPaperUrls]);
 
   useEffect(() => {
     if (!tenantId || !examId) return;
@@ -124,13 +387,20 @@ export default function ExamDetailPage() {
 
   const handleSaveQuestionRubric = async (questionId: string, rubric: UnifiedRubric) => {
     if (!tenantId || !examId) return;
-    const { db } = getFirebaseServices();
-    await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
-      rubric,
-      updatedAt: serverTimestamp(),
-    });
+    const prevQuestions = questions;
     setQuestions((prev) => prev.map((q) => (q.id === questionId ? { ...q, rubric } : q)));
-    setEditingRubric(null);
+    const { db } = getFirebaseServices();
+    try {
+      await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
+        rubric,
+        updatedAt: serverTimestamp(),
+      });
+      setEditingRubric(null);
+      toast.success("Rubric saved");
+    } catch (err) {
+      setQuestions(prevQuestions);
+      handleError(err, "Failed to save rubric");
+    }
   };
 
   const handleReExtractQuestion = async (questionNumber: string) => {
@@ -153,29 +423,61 @@ export default function ExamDetailPage() {
     if (!tenantId || !examId) return;
     const edits = editValues[questionId];
     if (!edits) return;
-    const { db } = getFirebaseServices();
-    await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
-      text: edits.text,
-      maxMarks: edits.maxMarks,
-      updatedAt: serverTimestamp(),
-    });
+    const prevQuestions = questions;
     setQuestions((prev) =>
       prev.map((q) =>
         q.id === questionId ? { ...q, text: edits.text, maxMarks: edits.maxMarks } : q
       )
     );
-    setEditingQuestion(null);
-    setEditValues((prev) => {
-      const next = { ...prev };
-      delete next[questionId];
-      return next;
-    });
+    const { db } = getFirebaseServices();
+    try {
+      await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
+        text: edits.text,
+        maxMarks: edits.maxMarks,
+        updatedAt: serverTimestamp(),
+      });
+      setEditingQuestion(null);
+      setEditValues((prev) => {
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+      toast.success("Question saved");
+    } catch (err) {
+      setQuestions(prevQuestions);
+      handleError(err, "Failed to save question");
+    }
   };
 
   const handleConfirmAndPublish = async () => {
     if (!tenantId || !examId) return;
     await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
     refetch();
+  };
+
+  const handleSaveClassIds = async (next: string[]) => {
+    if (!tenantId || !examId) return;
+    setSavingClasses(true);
+    try {
+      await callSaveExam({ id: examId, tenantId, data: { classIds: next } });
+      toast.success("Exam classes updated");
+      setShowEditClasses(false);
+      refetch();
+    } catch (err) {
+      handleError(err, "Failed to update classes");
+    } finally {
+      setSavingClasses(false);
+    }
+  };
+
+  const openEditClasses = () => {
+    setDraftClassIds(exam?.classIds ?? []);
+    setShowEditClasses(true);
+  };
+
+  const cancelEditClasses = () => {
+    setShowEditClasses(false);
+    setDraftClassIds([]);
   };
 
   const handleLinkSpace = async (spaceId: string) => {
@@ -257,6 +559,15 @@ export default function ExamDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEditMeta(true)}
+            disabled={editLocked}
+            title={editLocked ? "Editing locked after results release" : undefined}
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
           {exam.status === "question_paper_uploaded" && (
             <Button
               onClick={handleExtractQuestions}
@@ -385,6 +696,58 @@ export default function ExamDetailPage() {
         {/* Questions Tab */}
         <TabsContent value="questions" className="mt-4">
           <div className="space-y-3">
+            {/* Uploaded Question Paper preview */}
+            {(exam.questionPaper?.images?.length ?? 0) > 0 && (
+              <Card>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="text-muted-foreground h-4 w-4" />
+                      <h3 className="text-sm font-medium">Question Paper</h3>
+                      <span className="text-muted-foreground text-xs">
+                        {exam.questionPaper!.images.length} page
+                        {exam.questionPaper!.images.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {exam.questionPaper!.images.map((path, idx) => {
+                      const url = questionPaperUrls[path];
+                      const resolved = url === undefined ? null : url;
+                      return (
+                        <a
+                          key={path}
+                          href={resolved || undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-muted group relative block aspect-[3/4] overflow-hidden rounded-md border"
+                          aria-label={`Question paper page ${idx + 1}`}
+                        >
+                          {resolved === null ? (
+                            <Skeleton className="h-full w-full" />
+                          ) : resolved === "" ? (
+                            <div className="text-muted-foreground flex h-full w-full items-center justify-center text-[11px]">
+                              Failed to load
+                            </div>
+                          ) : (
+                            <img
+                              src={resolved}
+                              alt={`Question paper page ${idx + 1}`}
+                              loading="lazy"
+                              className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
+                            />
+                          )}
+                          <span className="bg-background/80 absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                            {idx + 1}
+                          </span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Confirm & Publish button for extracted questions */}
             {exam.status === "question_paper_extracted" && questions.length > 0 && (
               <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/30">
@@ -504,7 +867,7 @@ export default function ExamDetailPage() {
                                   <span className="capitalize">Extracted by {q.extractedBy}</span>
                                 )}
                                 <span className="capitalize">
-                                  Rubric: {q.rubric?.scoringMode ?? "none"}
+                                  Rubric: {q.rubric?.scoringMode?.replace(/_/g, " ") ?? "none"}
                                 </span>
                               </div>
                             </>
@@ -561,6 +924,7 @@ export default function ExamDetailPage() {
                           ))}
                         </div>
                       )}
+                      {!isEditing && <RubricSummary rubric={q.rubric} />}
                     </CardContent>
                   </Card>
                 );
@@ -612,7 +976,72 @@ export default function ExamDetailPage() {
         </TabsContent>
 
         {/* Settings Tab */}
-        <TabsContent value="settings" className="mt-4">
+        <TabsContent value="settings" className="mt-4 space-y-4">
+          <Card className="max-w-xl">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Classes</h3>
+                {!editLocked && !showEditClasses && (
+                  <Button variant="outline" size="sm" onClick={openEditClasses}>
+                    <Pencil className="h-3.5 w-3.5" /> Manage
+                  </Button>
+                )}
+              </div>
+              {editLocked ? (
+                <p className="text-muted-foreground text-xs">
+                  Editing is locked once results are released.
+                </p>
+              ) : showEditClasses ? (
+                tenantId && (
+                  <div className="space-y-3">
+                    <ClassMultiSelect
+                      tenantId={tenantId}
+                      value={draftClassIds}
+                      onChange={setDraftClassIds}
+                      disabled={savingClasses}
+                      placeholder="Add classes..."
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={cancelEditClasses}
+                        disabled={savingClasses}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveClassIds(draftClassIds)}
+                        disabled={savingClasses}
+                      >
+                        {savingClasses ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              ) : (exam.classIds ?? []).length === 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  No classes assigned.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {(exam.classIds ?? []).map((cid) => {
+                    const cls = tenantClasses.find((c) => c.id === cid);
+                    return (
+                      <span
+                        key={cid}
+                        className="bg-muted inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+                      >
+                        {cls?.name ?? cid}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="max-w-xl">
             <CardContent className="space-y-4 p-5">
               <h3 className="font-medium">Grading Configuration</h3>
@@ -725,6 +1154,16 @@ export default function ExamDetailPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {tenantId && exam && (
+        <ExamMetadataEditDialog
+          open={showEditMeta}
+          onOpenChange={setShowEditMeta}
+          tenantId={tenantId}
+          exam={exam}
+          onSaved={() => refetch()}
+        />
+      )}
     </div>
   );
 }

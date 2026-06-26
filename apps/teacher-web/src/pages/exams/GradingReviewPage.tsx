@@ -8,7 +8,6 @@ import {
   collection,
   query,
   orderBy,
-  updateDoc,
   serverTimestamp,
   writeBatch,
   onSnapshot,
@@ -72,6 +71,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@levelup/shared-ui";
+import { toast } from "sonner";
 
 export default function GradingReviewPage() {
   const { examId, submissionId } = useParams<{
@@ -226,8 +226,11 @@ export default function GradingReviewPage() {
         delete next[questionSubId];
         return next;
       });
+      toast.success("Override saved");
     } catch (err) {
-      setGradeError(err instanceof Error ? err.message : "Override failed");
+      const message = err instanceof Error ? err.message : "Override failed";
+      setGradeError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -292,18 +295,38 @@ export default function GradingReviewPage() {
 
   const handleBulkApprove = async () => {
     if (!tenantId || !submissionId || !firebaseUser) return;
+    const prevSubs = questionSubs;
+    const prevSubmission = submission;
     setSaving(true);
     try {
       const { db } = getFirebaseServices();
       const batch = writeBatch(db);
+      let approvedCount = 0;
 
       for (const qs of questionSubs) {
-        if (qs.gradingStatus === "graded") {
-          batch.update(
-            doc(db, `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`, qs.id),
-            { gradingStatus: "manual", updatedAt: serverTimestamp() }
-          );
+        if (qs.gradingStatus !== "graded") continue;
+        const question = questions.find((q) => q.id === qs.questionId);
+        const maxMarks = question?.maxMarks ?? 0;
+        const aiScore = qs.evaluation?.score ?? 0;
+        if (aiScore < 0 || aiScore > maxMarks) {
+          toast.warning(`Skipped Q${question?.order ?? qs.questionId}: score ${aiScore} out of [0, ${maxMarks}]`);
+          continue;
         }
+        batch.update(
+          doc(db, `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`, qs.id),
+          {
+            gradingStatus: "manual",
+            manualOverride: {
+              score: aiScore,
+              reason: "Bulk approved",
+              overriddenBy: firebaseUser.uid,
+              overriddenAt: serverTimestamp(),
+              originalScore: aiScore,
+            },
+            updatedAt: serverTimestamp(),
+          }
+        );
+        approvedCount += 1;
       }
 
       batch.update(doc(db, `tenants/${tenantId}/submissions`, submissionId), {
@@ -323,6 +346,11 @@ export default function GradingReviewPage() {
             : q
         )
       );
+      toast.success(`Approved ${approvedCount} questions`);
+    } catch (err) {
+      setQuestionSubs(prevSubs);
+      setSubmission(prevSubmission);
+      toast.error(err instanceof Error ? err.message : "Bulk approve failed");
     } finally {
       setSaving(false);
     }
@@ -331,27 +359,32 @@ export default function GradingReviewPage() {
   const handleAcceptGrade = useCallback(
     async (questionSubId: string) => {
       if (!tenantId || !submissionId || !firebaseUser) return;
+      const qs = questionSubs.find((q) => q.id === questionSubId);
+      const score = qs?.evaluation?.score;
+      if (!qs || score === undefined) {
+        toast.error("No AI grade to accept");
+        return;
+      }
+      const feedback = qs.evaluation?.feedback ?? "Accepted AI grade";
       setSaving(true);
       try {
-        const { db } = getFirebaseServices();
-        await updateDoc(
-          doc(
-            db,
-            `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`,
-            questionSubId
-          ),
-          { gradingStatus: "manual", reviewSuggested: false, updatedAt: serverTimestamp() }
-        );
-        setQuestionSubs((prev) =>
-          prev.map((q) =>
-            q.id === questionSubId ? { ...q, gradingStatus: "manual" as QuestionGradingStatus } : q
-          )
-        );
+        await callGradeQuestion({
+          tenantId,
+          submissionId,
+          examId: examId ?? undefined,
+          questionId: qs.questionId,
+          score,
+          feedback,
+          mode: "manual",
+        });
+        toast.success("AI grade accepted");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to accept grade");
       } finally {
         setSaving(false);
       }
     },
-    [tenantId, submissionId, firebaseUser]
+    [tenantId, submissionId, firebaseUser, questionSubs, examId]
   );
 
   // Filter and sort questions based on review filter — prioritize review-needing items
@@ -492,7 +525,7 @@ export default function GradingReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       {/* Breadcrumbs */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -689,24 +722,24 @@ export default function GradingReviewPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <h2 className="text-lg font-semibold">Per-Question Review</h2>
             <button
               onClick={() => setShowKeyboardHints((prev) => !prev)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground shrink-0"
               title="Keyboard shortcuts (?)"
             >
               <Keyboard className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {needsReviewCount > 0 && (
               <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                 {needsReviewCount} need{needsReviewCount === 1 ? "s" : ""} review
               </span>
             )}
-            <div className="flex items-center gap-0.5 rounded-lg border p-0.5">
+            <div className="flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5">
               <button
                 onClick={() => setReviewFilter("all")}
                 className={`rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "all" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
@@ -746,17 +779,17 @@ export default function GradingReviewPage() {
             <Card key={q.id}>
               <button
                 onClick={() => setExpandedQ((prev) => (prev === q.id ? null : q.id))}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left"
                 aria-label="Toggle details"
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4 shrink-0" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 shrink-0" />
                 )}
-                <span className="text-muted-foreground text-sm font-bold">Q{q.order}</span>
-                <span className="flex-1 truncate text-sm">{q.text}</span>
-                <div className="flex items-center gap-2">
+                <span className="text-muted-foreground shrink-0 text-sm font-bold">Q{q.order}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{q.text}</span>
+                <div className="flex shrink-0 items-center gap-2">
                   {/* Confidence badge */}
                   {confidence != null && (
                     <span
@@ -1029,10 +1062,12 @@ export default function GradingReviewPage() {
                                 {eval_.rubricBreakdown.map((rb, idx) => (
                                   <div
                                     key={idx}
-                                    className="flex items-center justify-between text-xs"
+                                    className="flex items-start justify-between gap-3 text-xs"
                                   >
-                                    <span>{rb.criterion}</span>
-                                    <span className="font-medium">
+                                    <span className="min-w-0 flex-1 break-words">
+                                      {rb.criterion}
+                                    </span>
+                                    <span className="shrink-0 font-medium">
                                       {rb.awarded}/{rb.max}
                                     </span>
                                   </div>

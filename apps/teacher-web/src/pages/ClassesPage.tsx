@@ -1,60 +1,69 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useStudents, useApiError } from "@levelup/shared-hooks";
-import { callSaveStudent } from "@levelup/shared-services";
+import { useClasses, useApiError } from "@levelup/shared-hooks";
+import { callSaveClass } from "@levelup/shared-services";
 import { toast } from "sonner";
-import { Archive, ArchiveRestore, Pencil, Plus, Search, Users } from "lucide-react";
 import {
   Button,
-  ConfirmDialog,
   Input,
-  Skeleton,
   StatusBadge,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableBody,
+  TableHead,
   TableRow,
+  TableCell,
+  Skeleton,
+  Switch,
+  Label,
+  ConfirmDialog,
 } from "@levelup/shared-ui";
-import type { Student } from "@levelup/shared-types";
-import StudentFormDialog from "../components/student/StudentFormDialog";
+import { Plus, Search, Pencil, Archive, ArchiveRestore, BookOpen } from "lucide-react";
+import type { Class } from "@levelup/shared-types";
+import ClassFormDialog from "../components/class/ClassFormDialog";
 
-export default function StudentsPage() {
+export default function ClassesPage() {
   const tenantId = useCurrentTenantId();
-  const { data: students = [], isLoading, error } = useStudents(tenantId);
+  const { data: classes = [], isLoading, error } = useClasses(tenantId);
   const queryClient = useQueryClient();
   const { handleError } = useApiError();
-  const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Student | null>(null);
-  const [archiveTarget, setArchiveTarget] = useState<Student | null>(null);
 
-  const filtered = students.filter(
-    (s) =>
-      (s.displayName ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      s.uid.toLowerCase().includes(search.toLowerCase()) ||
-      (s.rollNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.admissionNumber ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Class | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Class | null>(null);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return classes
+      .filter((c) => (showArchived ? true : c.status !== "archived"))
+      .filter((c) => {
+        if (!term) return true;
+        return (
+          c.name.toLowerCase().includes(term) ||
+          (c.grade ?? "").toLowerCase().includes(term) ||
+          (c.section ?? "").toLowerCase().includes(term)
+        );
+      });
+  }, [classes, search, showArchived]);
 
   const archiveMutation = useMutation({
-    mutationFn: async (params: { student: Student; status: "active" | "archived" }) => {
+    mutationFn: async (params: { classId: string; status: "active" | "archived" }) => {
       if (!tenantId) throw new Error("No tenant");
-      return callSaveStudent({
-        id: params.student.id,
+      return callSaveClass({
+        id: params.classId,
         tenantId,
         data: { status: params.status },
       });
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "students"] });
-      toast.success(
-        variables.status === "archived" ? "Student archived" : "Student restored",
-      );
+      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
+      toast.success(variables.status === "archived" ? "Class archived" : "Class restored");
     },
-    onError: (err) => handleError(err, "Failed to update student"),
+    onError: (err) => handleError(err, "Failed to update class status"),
   });
 
   const openCreate = () => {
@@ -62,8 +71,8 @@ export default function StudentsPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (student: Student) => {
-    setEditing(student);
+  const openEdit = (cls: Class) => {
+    setEditing(cls);
     setDialogOpen(true);
   };
 
@@ -71,31 +80,43 @@ export default function StudentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Students</h1>
+          <h1 className="text-2xl font-bold">Classes</h1>
           <p className="text-muted-foreground text-sm">
-            Students enrolled in your classes ({students.length} total)
+            Manage classes, enrolment and roster ({classes.length} total)
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Create Student
+          <Plus className="h-4 w-4" /> Create Class
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-        <Input
-          type="text"
-          placeholder="Search by name, roll number, or admission number..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-sm flex-1">
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Input
+            type="text"
+            placeholder="Search by name, grade, or section..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="show-archived"
+            checked={showArchived}
+            onCheckedChange={setShowArchived}
+          />
+          <Label htmlFor="show-archived" className="text-sm">
+            Show archived
+          </Label>
+        </div>
       </div>
 
       {error ? (
         <div className="border-destructive/50 bg-destructive/10 flex flex-col items-center justify-center rounded-lg border py-16">
           <p className="text-destructive text-sm">
-            Failed to load students. Please try again later.
+            Failed to load classes. Please try again later.
           </p>
         </div>
       ) : isLoading ? (
@@ -106,13 +127,13 @@ export default function StudentsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-          <Users className="text-muted-foreground h-10 w-10" />
+          <BookOpen className="text-muted-foreground h-10 w-10" />
           <p className="text-muted-foreground mt-3 text-sm">
-            {search ? "No students match your search" : "No students yet"}
+            {search || showArchived ? "No classes match your filter" : "No classes yet"}
           </p>
           {!search && (
             <Button className="mt-4" onClick={openCreate}>
-              <Plus className="h-4 w-4" /> Create your first student
+              <Plus className="h-4 w-4" /> Create your first class
             </Button>
           )}
         </div>
@@ -122,57 +143,56 @@ export default function StudentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Roll Number</TableHead>
-                <TableHead>Admission No.</TableHead>
                 <TableHead>Grade</TableHead>
                 <TableHead>Section</TableHead>
+                <TableHead>Students</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((student) => (
+              {filtered.map((cls) => (
                 <TableRow
-                  key={student.id}
-                  className={student.status === "archived" ? "opacity-60" : undefined}
+                  key={cls.id}
+                  className={cls.status === "archived" ? "opacity-60" : undefined}
                 >
                   <TableCell className="font-medium">
-                    {student.displayName ?? student.uid}
+                    <Link
+                      to={`/classes/${cls.id}`}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {cls.name}
+                    </Link>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {student.rollNumber ?? "—"}
+                  <TableCell className="text-muted-foreground">{cls.grade}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {cls.section ?? "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {student.admissionNumber ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.grade ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.section ?? "—"}
+                    {cls.studentCount ?? 0}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={student.status} />
+                    <StatusBadge status={cls.status} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEdit(student)}
-                        aria-label={`Edit ${student.displayName ?? student.uid}`}
+                        onClick={() => openEdit(cls)}
+                        aria-label={`Edit ${cls.name}`}
                       >
                         <Pencil className="h-3.5 w-3.5" /> Edit
                       </Button>
-                      {student.status === "archived" ? (
+                      {cls.status === "archived" ? (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            archiveMutation.mutate({ student, status: "active" })
+                            archiveMutation.mutate({ classId: cls.id, status: "active" })
                           }
                           disabled={archiveMutation.isPending}
-                          aria-label={`Restore ${student.displayName ?? student.uid}`}
+                          aria-label={`Restore ${cls.name}`}
                         >
                           <ArchiveRestore className="h-3.5 w-3.5" /> Restore
                         </Button>
@@ -180,8 +200,8 @@ export default function StudentsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setArchiveTarget(student)}
-                          aria-label={`Archive ${student.displayName ?? student.uid}`}
+                          onClick={() => setArchiveTarget(cls)}
+                          aria-label={`Archive ${cls.name}`}
                         >
                           <Archive className="h-3.5 w-3.5" /> Archive
                         </Button>
@@ -196,7 +216,7 @@ export default function StudentsPage() {
       )}
 
       {tenantId && (
-        <StudentFormDialog
+        <ClassFormDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           tenantId={tenantId}
@@ -209,17 +229,20 @@ export default function StudentsPage() {
         onOpenChange={(open) => {
           if (!open) setArchiveTarget(null);
         }}
-        title="Archive student?"
+        title="Archive class?"
         description={
           archiveTarget
-            ? `${archiveTarget.displayName ?? archiveTarget.uid} will be hidden from default views. Existing submissions and class enrolments are preserved.`
+            ? `"${archiveTarget.name}" will be hidden from default views. Existing exams and submissions are preserved. You can restore it later.`
             : ""
         }
         confirmLabel="Archive"
         variant="danger"
         onConfirm={() => {
           if (archiveTarget) {
-            archiveMutation.mutate({ student: archiveTarget, status: "archived" });
+            archiveMutation.mutate({
+              classId: archiveTarget.id,
+              status: "archived",
+            });
             setArchiveTarget(null);
           }
         }}

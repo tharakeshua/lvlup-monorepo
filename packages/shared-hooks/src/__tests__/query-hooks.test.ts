@@ -31,6 +31,7 @@ const mockLimit = vi.fn();
 const mockStartAfter = vi.fn();
 const mockUpdateDoc = vi.fn();
 const mockServerTimestamp = vi.fn();
+const mockOnSnapshot = vi.fn();
 
 vi.mock('firebase/firestore', () => ({
   getDocs: (...args: unknown[]) => mockGetDocs(...args),
@@ -44,6 +45,8 @@ vi.mock('firebase/firestore', () => ({
   startAfter: (...args: unknown[]) => mockStartAfter(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   serverTimestamp: () => mockServerTimestamp(),
+  onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
+  FirestoreError: class FirestoreError extends Error {},
 }));
 
 // Mock firebase/functions
@@ -236,12 +239,15 @@ describe('useExams', () => {
 
 describe('useExam', () => {
   it('should fetch a single exam', async () => {
-    mockGetDoc.mockResolvedValue(fakeDocSnap('exam-1', { title: 'Quiz 1' }));
+    mockOnSnapshot.mockImplementationOnce((_ref, onNext) => {
+      onNext(fakeDocSnap('exam-1', { title: 'Quiz 1' }));
+      return () => {};
+    });
 
     const { wrapper } = createTestWrapper();
     const { result } = renderHook(() => useExam('t1', 'exam-1'), { wrapper });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.data).toEqual({ id: 'exam-1', title: 'Quiz 1' });
   });
@@ -250,7 +256,9 @@ describe('useExam', () => {
     const { wrapper } = createTestWrapper();
     const { result } = renderHook(() => useExam('t1', null), { wrapper });
 
-    expect(result.current.fetchStatus).toBe('idle');
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toBeNull();
+    expect(mockOnSnapshot).not.toHaveBeenCalled();
   });
 });
 
@@ -322,14 +330,15 @@ describe('useStudents', () => {
 
 describe('useSubmissions', () => {
   it('should fetch submissions', async () => {
-    mockGetDocs.mockResolvedValue(
-      fakeQuerySnap([{ id: 'sub1', data: { examId: 'e1', status: 'completed' } }]),
-    );
+    mockOnSnapshot.mockImplementationOnce((_q, onNext) => {
+      onNext(fakeQuerySnap([{ id: 'sub1', data: { examId: 'e1', status: 'completed' } }]));
+      return () => {};
+    });
 
     const { wrapper } = createTestWrapper();
     const { result } = renderHook(() => useSubmissions('t1'), { wrapper });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.data?.[0]).toEqual({ id: 'sub1', examId: 'e1', status: 'completed' });
   });

@@ -22,6 +22,7 @@ const ExamAnalyticsPage = lazy(() => import("./pages/ExamAnalyticsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
+const ClassesPage = lazy(() => import("./pages/ClassesPage"));
 const SpaceAnalyticsPage = lazy(() => import("./pages/SpaceAnalyticsPage"));
 const QuestionBankPage = lazy(() => import("./pages/spaces/QuestionBankPage"));
 const AssignmentTrackerPage = lazy(() => import("./pages/AssignmentTrackerPage"));
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/exams/:examId/submissions" element={<RouteErrorBoundary><SubmissionsPage /></RouteErrorBoundary>} />
             <Route path="/exams/:examId/submissions/:submissionId" element={<RouteErrorBoundary><GradingReviewPage /></RouteErrorBoundary>} />
             {/* Classes */}
+            <Route path="/classes" element={<RouteErrorBoundary><ClassesPage /></RouteErrorBoundary>} />
             <Route path="/classes/:classId" element={<RouteErrorBoundary><ClassDetailPage /></RouteErrorBoundary>} />
             {/* Analytics */}
             <Route path="/analytics/classes" element={<RouteErrorBoundary><ClassAnalyticsPage /></RouteErrorBoundary>} />

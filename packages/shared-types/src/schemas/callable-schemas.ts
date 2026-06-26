@@ -603,9 +603,9 @@ export const SaveExamRequestSchema = z.object({
       })
       .passthrough()
       .optional(),
-    linkedSpaceId: z.string().optional(),
-    linkedSpaceTitle: z.string().optional(),
-    linkedStoryPointId: z.string().optional(),
+    linkedSpaceId: z.string().nullish(),
+    linkedSpaceTitle: z.string().nullish(),
+    linkedStoryPointId: z.string().nullish(),
     status: z
       .enum([
         "draft",
@@ -619,7 +619,9 @@ export const SaveExamRequestSchema = z.object({
       ])
       .optional(),
     evaluationSettingsId: z.string().optional(),
-    questionPaperImages: z.array(z.string().url()).max(50).optional(),
+    // Storage paths under tenants/{tenantId}/... — read server-side via
+    // bucket.file(path), not HTTPS URLs. Historical name kept.
+    questionPaperImages: z.array(z.string().min(1).max(500)).max(50).nullish(),
   }),
 });
 

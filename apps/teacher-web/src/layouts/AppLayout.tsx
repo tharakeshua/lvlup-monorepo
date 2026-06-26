@@ -34,6 +34,7 @@ const TEACHER_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
   "/spaces": () => import("../pages/spaces/SpaceListPage"),
   "/exams": () => import("../pages/exams/ExamListPage"),
   "/students": () => import("../pages/StudentsPage"),
+  "/classes": () => import("../pages/ClassesPage"),
   "/settings": () => import("../pages/SettingsPage"),
   "/analytics/classes": () => import("../pages/ClassAnalyticsPage"),
   "/analytics/exams": () => import("../pages/ExamAnalyticsPage"),
@@ -57,6 +58,7 @@ import {
   ListChecks,
   Library,
   Ruler,
+  GraduationCap,
 } from "lucide-react";
 
 export default function AppLayout() {
@@ -158,6 +160,14 @@ export default function AppLayout() {
     {
       label: "People",
       items: [
+        {
+          title: "Classes",
+          url: "/classes",
+          icon: GraduationCap,
+          isActive:
+            location.pathname === "/classes" ||
+            location.pathname.startsWith("/classes/"),
+        },
         {
           title: "Students",
           url: "/students",

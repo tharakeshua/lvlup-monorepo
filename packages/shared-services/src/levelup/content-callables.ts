@@ -171,3 +171,27 @@ export async function callListVersions(
   const result = await fn(data);
   return result.data;
 }
+
+export interface GetItemForEditRequest {
+  tenantId: string;
+  spaceId: string;
+  storyPointId: string;
+  itemId: string;
+}
+
+export interface GetItemForEditResponse {
+  item: import('@levelup/shared-types').UnifiedItem;
+}
+
+/**
+ * Returns the full UnifiedItem with answer-key data merged back into the
+ * payload. Use this for editing timed_test items so teachers don't accidentally
+ * overwrite the answer key with the stripped server payload.
+ */
+export async function callGetItemForEdit(
+  data: GetItemForEditRequest,
+): Promise<GetItemForEditResponse> {
+  const fn = getCallable<GetItemForEditRequest, GetItemForEditResponse>('getItemForEdit');
+  const result = await fn(data);
+  return result.data;
+}

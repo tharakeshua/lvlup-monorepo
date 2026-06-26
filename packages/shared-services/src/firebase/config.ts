@@ -1,7 +1,7 @@
 import { initializeApp, FirebaseApp, getApps } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
 import { getDatabase, Database } from 'firebase/database';
 import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions';
 import { connectFirestoreEmulator } from 'firebase/firestore';
@@ -108,7 +108,8 @@ export function initializeFirebase(config?: FirebaseConfig): FirebaseServices {
       connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
       connectFirestoreEmulator(db, '127.0.0.1', 8080);
       connectFunctionsEmulator(functions, '127.0.0.1', 5001);
-      console.log('[Firebase] Connected to emulators (auth:9099, firestore:8080, functions:5001)');
+      connectStorageEmulator(storage, '127.0.0.1', 9199);
+      console.log('[Firebase] Connected to emulators (auth:9099, firestore:8080, functions:5001, storage:9199)');
     } catch {
       // Already connected — ignore
     }

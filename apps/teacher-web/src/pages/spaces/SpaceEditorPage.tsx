@@ -86,10 +86,12 @@ import {
   History,
   Clock,
   Eye,
+  Pencil,
 } from "lucide-react";
 import SpaceSettingsPanel from "../../components/spaces/SpaceSettingsPanel";
 import StoryPointEditor from "../../components/spaces/StoryPointEditor";
 import ItemEditor from "../../components/spaces/ItemEditor";
+import ItemPreview from "../../components/spaces/ItemPreview";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import AgentConfigPanel from "../../components/spaces/AgentConfigPanel";
 import QuestionBankImportDialog from "../../components/spaces/QuestionBankImportDialog";
@@ -120,6 +122,8 @@ function SortableItem({
   onDelete,
   selected,
   onToggleSelect,
+  expanded,
+  onToggleExpand,
 }: {
   item: UnifiedItem;
   storyPointId: string;
@@ -127,6 +131,8 @@ function SortableItem({
   onDelete: () => void;
   selected?: boolean;
   onToggleSelect?: () => void;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
 
@@ -136,49 +142,86 @@ function SortableItem({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="bg-background flex items-center gap-2 rounded-md border px-3 py-2"
-    >
-      {onToggleSelect && (
-        <Checkbox
-          checked={selected}
-          onCheckedChange={onToggleSelect}
-          aria-label={`Select ${item.title || "item"}`}
-          className="h-4 w-4"
-        />
-      )}
-      <button
-        {...attributes}
-        {...listeners}
-        className="text-muted-foreground hover:text-foreground cursor-grab"
-        aria-label="Drag to reorder"
+    <div ref={setNodeRef} style={style} className="bg-background overflow-hidden rounded-md border">
+      <div className="flex items-center gap-2 px-3 py-2">
+        {onToggleSelect && (
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            aria-label={`Select ${item.title || "item"}`}
+            className="h-4 w-4"
+          />
+        )}
+        <button
+          {...attributes}
+          {...listeners}
+          className="text-muted-foreground hover:text-foreground cursor-grab"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className="text-muted-foreground hover:text-foreground"
+          aria-label={expanded ? "Collapse preview" : "Expand preview"}
+          aria-expanded={!!expanded}
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+        {item.type === "question" ? (
+          <HelpCircle className="h-4 w-4 text-blue-500" />
+        ) : (
+          <FileText className="h-4 w-4 text-green-500" />
+        )}
+        <button
+          onClick={onToggleExpand ?? onEdit}
+          className="hover:text-primary flex-1 text-left text-sm"
+        >
+          {item.title || "Untitled"}
+          <span className="text-muted-foreground ml-2 text-xs capitalize">
+            {item.type === "question"
+              ? (item.payload as QuestionPayload).questionType
+              : (item.payload as MaterialPayload).materialType}
+          </span>
+        </button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hover:text-primary h-7 w-7"
+          onClick={onEdit}
+          aria-label="Edit"
+          title="Edit"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hover:bg-destructive/10 hover:text-destructive h-7 w-7"
+          onClick={onDelete}
+          aria-label="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
       >
-        <GripVertical className="h-3.5 w-3.5" />
-      </button>
-      {item.type === "question" ? (
-        <HelpCircle className="h-4 w-4 text-blue-500" />
-      ) : (
-        <FileText className="h-4 w-4 text-green-500" />
-      )}
-      <button onClick={onEdit} className="hover:text-primary flex-1 text-left text-sm">
-        {item.title || "Untitled"}
-        <span className="text-muted-foreground ml-2 text-xs capitalize">
-          {item.type === "question"
-            ? (item.payload as QuestionPayload).questionType
-            : (item.payload as MaterialPayload).materialType}
-        </span>
-      </button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="hover:bg-destructive/10 hover:text-destructive h-7 w-7"
-        onClick={onDelete}
-        aria-label="Delete"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+        <div className="overflow-hidden">
+          {expanded && (
+            <div className="border-t px-4 py-3">
+              <ItemPreview item={item} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -190,6 +233,7 @@ function SortableStoryPoint({
   onDelete,
   onEdit,
   onPreview,
+  onAddSection,
   liveItemCount,
 }: {
   sp: StoryPoint;
@@ -198,6 +242,7 @@ function SortableStoryPoint({
   onDelete: () => void;
   onEdit: () => void;
   onPreview?: () => void;
+  onAddSection?: () => void;
   liveItemCount?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sp.id });
@@ -252,6 +297,20 @@ function SortableStoryPoint({
             title="Preview as Student"
           >
             <Eye className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {onAddSection && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddSection();
+            }}
+            title="Add section"
+          >
+            <Plus className="h-3 w-3" /> Section
           </Button>
         )}
         <Button
@@ -314,6 +373,7 @@ export default function SpaceEditorPage() {
   const versionsLoaded = useRef(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [_bulkSelectSP, _setBulkSelectSP] = useState<string | null>(null);
 
   // Confirmation dialog state
@@ -449,21 +509,14 @@ export default function SpaceEditorPage() {
     loadVersions();
   }, [activeTab, tenantId, spaceId, handleError]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (P0-3: Cmd+Enter is handled INSIDE ItemEditor and saves;
+  // here we only handle non-editor shortcuts).
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod) return;
-
-      // Ctrl/Cmd+Enter: Close editor sheet
-      if (e.key === "Enter" && editingItem) {
-        e.preventDefault();
-        setEditingItem(null);
-        setEditingItemSPId(null);
-      }
 
       // Ctrl/Cmd+N: Add new story point (when no editor open)
-      if (e.key === "n" && !editingItem && !editingSP) {
+      if (isMod && e.key === "n" && !editingItem && !editingSP) {
         e.preventDefault();
         handleAddStoryPoint();
       }
@@ -568,7 +621,9 @@ export default function SpaceEditorPage() {
     }
   };
 
-  const handleAddStoryPoint = async () => {
+  const handleAddStoryPoint = async (
+    spType: StoryPoint["type"] = "standard"
+  ) => {
     if (!tenantId || !spaceId) return;
     try {
       await createStoryPoint.mutateAsync({
@@ -577,7 +632,7 @@ export default function SpaceEditorPage() {
         data: {
           title: `Story Point ${storyPoints.length + 1}`,
           orderIndex: storyPoints.length,
-          type: "standard",
+          type: spType,
         },
       });
       // Reload story points to get server-computed data
@@ -589,6 +644,33 @@ export default function SpaceEditorPage() {
       sonnerToast.success("Story point added");
     } catch (err) {
       handleError(err, "Failed to add story point");
+    }
+  };
+
+  const handleAddSection = async (storyPointId: string) => {
+    if (!tenantId || !spaceId) return;
+    const sp = storyPoints.find((s) => s.id === storyPointId);
+    if (!sp) return;
+    const existing = sp.sections ?? [];
+    const newSection = {
+      id: `section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      title: `Section ${existing.length + 1}`,
+      orderIndex: existing.length,
+    };
+    const nextSections = [...existing, newSection];
+    try {
+      await updateStoryPoint.mutateAsync({
+        id: storyPointId,
+        tenantId,
+        spaceId,
+        data: { sections: nextSections },
+      });
+      setStoryPoints((prev) =>
+        prev.map((s) => (s.id === storyPointId ? { ...s, sections: nextSections } : s))
+      );
+      sonnerToast.success("Section added");
+    } catch (err) {
+      handleError(err, "Failed to add section");
     }
   };
 
@@ -686,39 +768,52 @@ export default function SpaceEditorPage() {
     }
   };
 
-  const handleAddItem = async (storyPointId: string, type: "question" | "material") => {
+  const handleAddItem = async (
+    storyPointId: string,
+    type: "question" | "material",
+    sectionId?: string
+  ) => {
     if (!tenantId || !spaceId) return;
     try {
       const currentItems = items[storyPointId] ?? [];
       const orderIndex = currentItems.length;
+      // Use defaults that mirror ItemEditor.defaultQuestionData (P0-18).
       const payload =
         type === "question"
-          ? { questionType: "mcq", content: "", questionData: { options: [] } }
-          : { materialType: "text", content: "" };
+          ? {
+              questionType: "mcq" as const,
+              content: "",
+              questionData: { options: [], shuffleOptions: false },
+            }
+          : { materialType: "text" as const, content: "" };
       const title = type === "question" ? "New Question" : "New Material";
 
       const result = await createItem.mutateAsync({
         tenantId,
         spaceId,
         storyPointId,
-        data: { type, title, orderIndex, payload },
+        data: { type, title, orderIndex, payload, sectionId },
       });
 
-      await loadItems(storyPointId);
-      const newItem = {
-        id: result.id,
-        spaceId,
-        storyPointId,
-        tenantId,
-        type,
-        payload,
-        title,
-        orderIndex,
-        topics: [],
-        labels: [],
-      } as unknown as UnifiedItem;
-      setEditingItem(newItem);
-      setEditingItemSPId(storyPointId);
+      // Reload from server and pick up the freshly-created item — avoids
+      // fabricating a local UnifiedItem missing audit fields and possibly
+      // disagreeing with the server-stored payload (P0-18).
+      const { db } = getFirebaseServices();
+      const nestedRef = collection(
+        db,
+        `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
+      );
+      const snap = await getDocs(query(nestedRef, orderBy("orderIndex", "asc")));
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
+      setItems((prev) => ({ ...prev, [storyPointId]: loaded }));
+      setItemPaths((prev) => ({ ...prev, [storyPointId]: "nested" }));
+      setLiveCounts((prev) => ({ ...prev, [storyPointId]: loaded.length }));
+
+      const created = loaded.find((i) => i.id === result.id);
+      if (created) {
+        setEditingItem(created);
+        setEditingItemSPId(storyPointId);
+      }
     } catch (err) {
       handleError(err, "Failed to add item");
     }
@@ -756,37 +851,55 @@ export default function SpaceEditorPage() {
     });
   };
 
+  /**
+   * Persist an item edit. P0-2: split into manual save (closes the sheet) and
+   * auto-save (keeps the sheet open).
+   */
+  const persistItem = async (item: UnifiedItem) => {
+    // Prefer the item's own storyPointId so we don't accidentally write to a
+    // stale React-state SP id (P1-38).
+    const targetSP = item.storyPointId || editingItemSPId;
+    if (!tenantId || !spaceId || !targetSP) return;
+    await updateItem.mutateAsync({
+      id: item.id,
+      tenantId,
+      spaceId,
+      storyPointId: targetSP,
+      data: {
+        payload: item.payload,
+        title: item.title,
+        content: item.content,
+        difficulty: item.difficulty,
+        topics: item.topics,
+        labels: item.labels,
+        orderIndex: item.orderIndex,
+        rubric: item.rubric,
+        sectionId: item.sectionId,
+        attachments: item.attachments,
+        meta: item.meta,
+      },
+    });
+    setItems((prev) => ({
+      ...prev,
+      [targetSP]: (prev[targetSP] ?? []).map((i) => (i.id === item.id ? item : i)),
+    }));
+  };
+
   const handleSaveItem = async (item: UnifiedItem) => {
-    if (!tenantId || !spaceId || !editingItemSPId) return;
     try {
-      await updateItem.mutateAsync({
-        id: item.id,
-        tenantId,
-        spaceId,
-        storyPointId: editingItemSPId,
-        data: {
-          payload: item.payload,
-          title: item.title,
-          content: item.content,
-          difficulty: item.difficulty,
-          topics: item.topics,
-          labels: item.labels,
-          orderIndex: item.orderIndex,
-          rubric: item.rubric,
-          sectionId: item.sectionId,
-          attachments: item.attachments,
-        },
-      });
-      setItems((prev) => ({
-        ...prev,
-        [editingItemSPId]: (prev[editingItemSPId] ?? []).map((i) => (i.id === item.id ? item : i)),
-      }));
+      await persistItem(item);
       setEditingItem(null);
       setEditingItemSPId(null);
       sonnerToast.success("Item saved");
     } catch (err) {
       handleError(err, "Failed to save item");
     }
+  };
+
+  const handleAutoSaveItem = async (item: UnifiedItem) => {
+    // P0-2: auto-save MUST NOT close the sheet. Errors are reported by
+    // ItemEditor itself; we just propagate them.
+    await persistItem(item);
   };
 
   const handleSaveStoryPoint = async (sp: StoryPoint) => {
@@ -973,21 +1086,35 @@ export default function SpaceEditorPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Story Points ({storyPoints.length})</h2>
-              <Button
-                onClick={handleAddStoryPoint}
-                size="sm"
-                disabled={createStoryPoint.isPending}
-                title="Add Story Point (Ctrl+N)"
-              >
-                <Plus className="h-3.5 w-3.5" /> Add Story Point
-              </Button>
+              <div className="flex items-center gap-2">
+                <Select onValueChange={(v) => handleAddStoryPoint(v as StoryPoint["type"])}>
+                  <SelectTrigger className="w-44 h-9" aria-label="Add story point of type">
+                    <SelectValue placeholder="+ Add as type…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="practice">Practice</SelectItem>
+                    <SelectItem value="quiz">Quiz</SelectItem>
+                    <SelectItem value="test">Test</SelectItem>
+                    <SelectItem value="timed_test">Timed Test</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={() => handleAddStoryPoint("standard")}
+                  size="sm"
+                  disabled={createStoryPoint.isPending}
+                  title="Add Story Point (Ctrl+N)"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add
+                </Button>
+              </div>
             </div>
 
             {storyPoints.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
                 <List className="text-muted-foreground h-8 w-8" />
                 <p className="text-muted-foreground mt-2 text-sm">No story points yet</p>
-                <Button onClick={handleAddStoryPoint} size="sm" className="mt-3">
+                <Button onClick={() => handleAddStoryPoint("standard")} size="sm" className="mt-3">
                   <Plus className="h-3 w-3" /> Add Story Point
                 </Button>
               </div>
@@ -1013,6 +1140,7 @@ export default function SpaceEditorPage() {
                           onPreview={() =>
                             navigate(`/spaces/${spaceId}/story-points/${sp.id}/preview`)
                           }
+                          onAddSection={() => handleAddSection(sp.id)}
                           liveItemCount={liveCounts[sp.id]}
                         />
 
@@ -1048,6 +1176,15 @@ export default function SpaceEditorPage() {
                                       return next;
                                     });
                                   }}
+                                  expanded={expandedItems.has(item.id)}
+                                  onToggleExpand={() => {
+                                    setExpandedItems((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(item.id)) next.delete(item.id);
+                                      else next.add(item.id);
+                                      return next;
+                                    });
+                                  }}
                                 />
                               );
 
@@ -1068,14 +1205,40 @@ export default function SpaceEditorPage() {
                                         );
                                         return (
                                           <div key={section.id} className="space-y-1.5">
-                                            <div className="flex items-baseline justify-between border-b pb-1">
-                                              <h4 className="text-foreground text-xs font-semibold uppercase tracking-wide">
-                                                {section.title}
-                                              </h4>
-                                              <span className="text-muted-foreground text-[10px]">
-                                                {sectionItems.length}{" "}
-                                                {sectionItems.length === 1 ? "item" : "items"}
-                                              </span>
+                                            <div className="flex items-center justify-between gap-2 border-b pb-1">
+                                              <div className="flex items-baseline gap-2">
+                                                <h4 className="text-foreground text-xs font-semibold uppercase tracking-wide">
+                                                  {section.title}
+                                                </h4>
+                                                <span className="text-muted-foreground text-[10px]">
+                                                  {sectionItems.length}{" "}
+                                                  {sectionItems.length === 1 ? "item" : "items"}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 gap-1 px-2 text-[11px]"
+                                                  onClick={() =>
+                                                    handleAddItem(sp.id, "question", section.id)
+                                                  }
+                                                  title="Add question to this section"
+                                                >
+                                                  <HelpCircle className="h-3 w-3" /> Question
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 gap-1 px-2 text-[11px]"
+                                                  onClick={() =>
+                                                    handleAddItem(sp.id, "material", section.id)
+                                                  }
+                                                  title="Add material to this section"
+                                                >
+                                                  <FileText className="h-3 w-3" /> Material
+                                                </Button>
+                                              </div>
                                             </div>
                                             {sectionItems.length > 0 ? (
                                               <div className="space-y-1.5">
@@ -1090,19 +1253,39 @@ export default function SpaceEditorPage() {
                                         );
                                       })}
 
-                                      {unsectioned.length > 0 && (
+                                      {(unsectioned.length > 0 || sortedSections.length === 0) && (
                                         <div className="space-y-1.5">
-                                          {sortedSections.length > 0 && (
-                                            <div className="flex items-baseline justify-between border-b pb-1">
+                                          <div className="flex items-center justify-between gap-2 border-b pb-1">
+                                            <div className="flex items-baseline gap-2">
                                               <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
-                                                Unsectioned
+                                                {sortedSections.length === 0 ? "Items" : "Unsectioned"}
                                               </h4>
                                               <span className="text-muted-foreground text-[10px]">
                                                 {unsectioned.length}{" "}
                                                 {unsectioned.length === 1 ? "item" : "items"}
                                               </span>
                                             </div>
-                                          )}
+                                            <div className="flex items-center gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 gap-1 px-2 text-[11px]"
+                                                onClick={() => handleAddItem(sp.id, "question")}
+                                                title="Add question"
+                                              >
+                                                <HelpCircle className="h-3 w-3" /> Question
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 gap-1 px-2 text-[11px]"
+                                                onClick={() => handleAddItem(sp.id, "material")}
+                                                title="Add material"
+                                              >
+                                                <FileText className="h-3 w-3" /> Material
+                                              </Button>
+                                            </div>
+                                          </div>
                                           <div className="space-y-1.5">
                                             {unsectioned.map(renderItem)}
                                           </div>
@@ -1235,22 +1418,6 @@ export default function SpaceEditorPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-dashed"
-                                onClick={() => handleAddItem(sp.id, "question")}
-                              >
-                                <HelpCircle className="h-3 w-3" /> Add Question
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-dashed"
-                                onClick={() => handleAddItem(sp.id, "material")}
-                              >
-                                <FileText className="h-3 w-3" /> Add Material
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
                                 className="border-primary/40 text-primary border-dashed"
                                 onClick={() => setImportBankSPId(sp.id)}
                               >
@@ -1354,10 +1521,18 @@ export default function SpaceEditorPage() {
           {editingItem && editingItemSPId && (
             <div className="mt-4">
               <ItemEditor
+                key={editingItem.id}
                 item={editingItem}
                 tenantId={tenantId ?? undefined}
                 spaceId={spaceId}
+                sections={
+                  storyPoints.find((s) => s.id === editingItemSPId)?.sections ?? []
+                }
+                storyPointType={
+                  storyPoints.find((s) => s.id === editingItemSPId)?.type
+                }
                 onSave={handleSaveItem}
+                onAutoSave={handleAutoSaveItem}
                 onCancel={() => {
                   setEditingItem(null);
                   setEditingItemSPId(null);

@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentTenantId } from "@levelup/shared-stores";
 import {
   useClasses,
@@ -6,7 +8,10 @@ import {
   useExams,
   useStudents,
   useClassProgressSummary,
+  useApiError,
 } from "@levelup/shared-hooks";
+import { callSaveStudent } from "@levelup/shared-services";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Users,
@@ -14,6 +19,9 @@ import {
   ClipboardList,
   BarChart3,
   Trophy,
+  Pencil,
+  UserPlus,
+  UserMinus,
 } from "lucide-react";
 import {
   Tabs,
@@ -38,9 +46,12 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  ConfirmDialog,
 } from "@levelup/shared-ui";
-import type { Space } from "@levelup/shared-types";
+import type { Space, Student } from "@levelup/shared-types";
 import type { Exam } from "@levelup/shared-types";
+import ClassFormDialog from "../components/class/ClassFormDialog";
+import EnrollStudentDialog from "../components/class/EnrollStudentDialog";
 
 export default function ClassDetailPage() {
   const { classId } = useParams<{ classId: string }>();
@@ -66,6 +77,30 @@ export default function ClassDetailPage() {
 
   const { data: classSummary, isLoading: analyticsLoading } =
     useClassProgressSummary(tenantId, classId ?? null);
+
+  const queryClient = useQueryClient();
+  const { handleError } = useApiError();
+  const [editClassOpen, setEditClassOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<Student | null>(null);
+
+  const removeMutation = useMutation({
+    mutationFn: async (student: Student) => {
+      if (!tenantId || !classId) throw new Error("Missing tenant or class");
+      const nextClassIds = (student.classIds ?? []).filter((id) => id !== classId);
+      return callSaveStudent({
+        id: student.id,
+        tenantId,
+        data: { classIds: nextClassIds },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "students"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
+      toast.success("Student removed from class");
+    },
+    onError: (err) => handleError(err, "Failed to remove student from class"),
+  });
 
   if (!classData) {
     return (
@@ -106,10 +141,17 @@ export default function ClassDetailPage() {
             <StatusBadge status={classData.status} />
           </div>
         </div>
-        <div className="flex gap-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center gap-3">
+          <span className="text-muted-foreground flex items-center gap-1 text-sm">
             <Users className="h-4 w-4" /> {classData.studentCount} students
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditClassOpen(true)}
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit class
+          </Button>
         </div>
       </div>
 
@@ -313,7 +355,12 @@ export default function ClassDetailPage() {
         </TabsContent>
 
         {/* Students Tab */}
-        <TabsContent value="students" className="mt-4">
+        <TabsContent value="students" className="mt-4 space-y-3">
+          <div className="flex items-center justify-end">
+            <Button size="sm" onClick={() => setEnrollOpen(true)}>
+              <UserPlus className="h-3.5 w-3.5" /> Add Student
+            </Button>
+          </div>
           {studentsLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
@@ -326,6 +373,13 @@ export default function ClassDetailPage() {
               <p className="mt-2 text-sm text-muted-foreground">
                 No students in this class
               </p>
+              <Button
+                size="sm"
+                className="mt-4"
+                onClick={() => setEnrollOpen(true)}
+              >
+                <UserPlus className="h-3.5 w-3.5" /> Enroll students
+              </Button>
             </div>
           ) : (
             <div className="rounded-lg border overflow-x-auto">
@@ -338,6 +392,7 @@ export default function ClassDetailPage() {
                     <TableHead>Grade</TableHead>
                     <TableHead>Section</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -354,6 +409,17 @@ export default function ClassDetailPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={student.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRemoveTarget(student)}
+                          disabled={removeMutation.isPending}
+                          aria-label={`Remove ${student.displayName ?? student.uid} from class`}
+                        >
+                          <UserMinus className="h-3.5 w-3.5" /> Remove
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -495,6 +561,46 @@ export default function ClassDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {tenantId && (
+        <ClassFormDialog
+          open={editClassOpen}
+          onOpenChange={setEditClassOpen}
+          tenantId={tenantId}
+          editing={classData}
+        />
+      )}
+
+      {tenantId && classId && (
+        <EnrollStudentDialog
+          open={enrollOpen}
+          onOpenChange={setEnrollOpen}
+          tenantId={tenantId}
+          classId={classId}
+          className={classData.name}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null);
+        }}
+        title="Remove student from class?"
+        description={
+          removeTarget
+            ? `${removeTarget.displayName ?? removeTarget.uid} will be unenrolled from ${classData.name}. The student record itself is not deleted.`
+            : ""
+        }
+        confirmLabel="Remove"
+        variant="danger"
+        onConfirm={() => {
+          if (removeTarget) {
+            removeMutation.mutate(removeTarget);
+            setRemoveTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -23,7 +23,9 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom'],
   },
   define: {
-    "process.env": "{}",
+    "process.env": JSON.stringify({
+      VITE_USE_EMULATORS: process.env['VITE_USE_EMULATORS'] ?? '',
+    }),
   },
   build: {
     target: 'es2020',
