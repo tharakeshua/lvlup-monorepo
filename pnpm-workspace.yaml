@@ -3,5 +3,4 @@ packages:
   - "packages/*"
   - "functions/*"
   - "scripts"
-  - "website"
   - "tests/sdk"
