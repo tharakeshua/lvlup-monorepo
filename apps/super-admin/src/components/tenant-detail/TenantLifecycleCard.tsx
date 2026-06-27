@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError, useDeactivateTenant, useReactivateTenant } from "@levelup/query";
 import { sonnerToast as toast } from "@levelup/shared-ui";
-import type { Tenant } from "@levelup/shared-types";
+import type { Tenant } from "@levelup/domain";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -18,7 +17,6 @@ import {
   CardContent,
 } from "@levelup/shared-ui";
 import { Power, PowerOff } from "lucide-react";
-import { callDeactivateTenant, callReactivateTenant } from "@levelup/shared-services/auth";
 
 interface Props {
   tenant: Tenant;
@@ -26,29 +24,38 @@ interface Props {
 }
 
 export function TenantLifecycleCard({ tenant, tenantId }: Props) {
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
   const [deactivateOpen, setDeactivateOpen] = useState(false);
 
-  const deactivate = useMutation({
-    mutationFn: async () => callDeactivateTenant({ tenantId }),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenant", tenantId] });
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenants"] });
-      toast.success(`Tenant deactivated (${result?.membershipsSuspended ?? 0} memberships suspended)`);
-    },
-    onError: (err: unknown) => handleError(err, "Failed to deactivate tenant"),
-  });
+  // Lifecycle hooks auto-invalidate tenant + membership queries on settle.
+  // GAP: the deactivate/reactivate contract responds { tenantId, status } — it
+  // does NOT return a suspended/reactivated membership count, so the toast no
+  // longer reports one.
+  const deactivate = useDeactivateTenant();
+  const reactivate = useReactivateTenant();
 
-  const reactivate = useMutation({
-    mutationFn: async () => callReactivateTenant({ tenantId }),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenant", tenantId] });
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenants"] });
-      toast.success(`Tenant reactivated (${result?.membershipsReactivated ?? 0} memberships restored)`);
-    },
-    onError: (err: unknown) => handleError(err, "Failed to reactivate tenant"),
-  });
+  const handleDeactivate = (onDone?: () => void) => {
+    deactivate.mutate(
+      { tenantOverride: tenantId },
+      {
+        onSuccess: () => {
+          toast.success("Tenant deactivated");
+          onDone?.();
+        },
+        onError: (err: unknown) => handleError(err, "Failed to deactivate tenant"),
+      }
+    );
+  };
+
+  const handleReactivate = () => {
+    reactivate.mutate(
+      { tenantOverride: tenantId },
+      {
+        onSuccess: () => toast.success("Tenant reactivated"),
+        onError: (err: unknown) => handleError(err, "Failed to reactivate tenant"),
+      }
+    );
+  };
 
   return (
     <>
@@ -57,18 +64,28 @@ export function TenantLifecycleCard({ tenant, tenantId }: Props) {
           <CardTitle className="text-base">Tenant Lifecycle</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {tenant.status === "deactivated"
               ? "Reactivating will restore all suspended memberships."
               : "Deactivating will suspend all user memberships. Data is preserved."}
           </p>
           {tenant.status === "deactivated" ? (
-            <Button variant="outline" onClick={() => reactivate.mutate()} disabled={reactivate.isPending} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleReactivate}
+              disabled={reactivate.isPending}
+              className="gap-2"
+            >
               <Power className="h-4 w-4" />
               {reactivate.isPending ? "Reactivating..." : "Reactivate Tenant"}
             </Button>
           ) : (
-            <Button variant="destructive" onClick={() => setDeactivateOpen(true)} disabled={deactivate.isPending || tenant.status === "deactivated"} className="gap-2">
+            <Button
+              variant="destructive"
+              onClick={() => setDeactivateOpen(true)}
+              disabled={deactivate.isPending || tenant.status === "deactivated"}
+              className="gap-2"
+            >
               <PowerOff className="h-4 w-4" />
               {deactivate.isPending ? "Deactivating..." : "Deactivate Tenant"}
             </Button>
@@ -81,15 +98,19 @@ export function TenantLifecycleCard({ tenant, tenantId }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Deactivate Tenant?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will suspend all user memberships for <strong>{tenant.name}</strong>.
-              Users will lose access until the tenant is reactivated. Data will be preserved.
+              This will suspend all user memberships for <strong>{tenant.name}</strong>. Users will
+              lose access until the tenant is reactivated. Data will be preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button variant="destructive" disabled={deactivate.isPending} onClick={() => {
-              deactivate.mutate(undefined, { onSuccess: () => setDeactivateOpen(false) });
-            }}>
+            <Button
+              variant="destructive"
+              disabled={deactivate.isPending}
+              onClick={() => {
+                handleDeactivate(() => setDeactivateOpen(false));
+              }}
+            >
               {deactivate.isPending ? "Deactivating..." : "Confirm Deactivation"}
             </Button>
           </AlertDialogFooter>

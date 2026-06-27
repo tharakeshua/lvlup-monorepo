@@ -1,10 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useStudentProgressSummary,
-  useStudentAchievements,
-  useStudentLevel,
-} from "@levelup/shared-hooks";
+import { useStudentSummary, useStudentAchievements, useStudentLevel } from "@levelup/query";
+import type { UserId } from "@levelup/domain";
 import { LevelBadge, StreakWidget, Card, CardContent, Skeleton, FadeIn } from "@levelup/shared-ui";
 import { sonnerToast as toast } from "@levelup/shared-ui";
 import { User, Award, Star, School, Camera, IdCard } from "lucide-react";
@@ -109,15 +106,23 @@ export default function ProfilePage() {
   const tenantId = useCurrentTenantId();
   const tenantName = useTenantStore((s) => s.tenant?.name);
 
-  const { data: summary, isLoading: summaryLoading } = useStudentProgressSummary(
-    tenantId,
-    user?.uid ?? null
+  const userId = (user?.uid ?? undefined) as UserId | undefined;
+
+  const { data: summaryRaw, isLoading: summaryLoading } = useStudentSummary(
+    (user?.uid ?? "") as UserId
   );
-  const { data: achievements, isLoading: achievementsLoading } = useStudentAchievements(
-    tenantId,
-    user?.uid ?? null
-  );
-  const { data: levelData, isLoading: levelLoading } = useStudentLevel(tenantId, user?.uid ?? null);
+  const summary = summaryRaw as
+    | { levelup: { streakDays: number; totalPointsEarned: number }; overallScore: number }
+    | undefined;
+
+  const { data: achievementsRaw, isLoading: achievementsLoading } = useStudentAchievements({
+    userId,
+  });
+  const achievementsPages =
+    (achievementsRaw as { pages?: Array<{ items?: unknown[] }> } | undefined)?.pages ?? [];
+  const achievements = achievementsPages.flatMap((p) => p.items ?? []);
+
+  const { data: levelData, isLoading: levelLoading } = useStudentLevel(userId);
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

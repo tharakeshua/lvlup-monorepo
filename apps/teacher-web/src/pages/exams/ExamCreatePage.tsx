@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentTenantId, useAuthStore } from "@levelup/shared-stores";
-import { useSpaces, useApiError } from "@levelup/shared-hooks";
+import { useSpaces, useApiError } from "@levelup/query";
+import { useAuthSession } from "../../sdk/session";
 import { getFirebaseServices, callSaveExam } from "@levelup/shared-services";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { ArrowLeft, ArrowRight, Upload, Check, Loader2, LinkIcon } from "lucide-react";
@@ -27,10 +27,29 @@ const STEPS: { value: WizardStep; label: string }[] = [
   { value: "publish", label: "Publish" },
 ];
 
+interface SpaceRow {
+  id: string;
+  title: string;
+  subject?: string;
+}
+
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
 export default function ExamCreatePage() {
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const firebaseUser = useAuthStore((s) => s.firebaseUser);
+  // currentTenantId is retained because the kept shared-services callSaveExam
+  // and the Storage upload path both still need the tenant id.
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const firebaseUser = useAuthSession((s) => s.firebaseUser);
   const [step, setStep] = useState<WizardStep>("metadata");
   const [saving, setSaving] = useState(false);
   const { handleError } = useApiError();
@@ -47,9 +66,10 @@ export default function ExamCreatePage() {
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Linked Space (optional)
+  // Linked Space (optional) — query hooks are claims-scoped (no tenantId arg).
   const [linkedSpaceId, setLinkedSpaceId] = useState("");
-  const { data: publishedSpaces = [] } = useSpaces(tenantId, { status: "published" });
+  const { data: spacesData } = useSpaces({ status: "published" });
+  const publishedSpaces = useMemo(() => asArray<SpaceRow>(spacesData), [spacesData]);
 
   // Upload
   const [files, setFiles] = useState<File[]>([]);
@@ -66,7 +86,8 @@ export default function ExamCreatePage() {
     if (!subject.trim()) newErrors.subject = "Subject is required";
     if (totalMarks <= 0) newErrors.totalMarks = "Total marks must be greater than 0";
     if (passingMarks < 0) newErrors.passingMarks = "Passing marks cannot be negative";
-    if (passingMarks > totalMarks) newErrors.passingMarks = "Passing marks cannot exceed total marks";
+    if (passingMarks > totalMarks)
+      newErrors.passingMarks = "Passing marks cannot exceed total marks";
     if (duration <= 0) newErrors.duration = "Duration must be greater than 0";
     if (classIds.length === 0) newErrors.classIds = "Select at least one class";
     setErrors(newErrors);
@@ -107,7 +128,10 @@ export default function ExamCreatePage() {
         data: {
           title,
           subject,
-          topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
+          topics: topics
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
           classIds,
           totalMarks,
           passingMarks,
@@ -142,28 +166,26 @@ export default function ExamCreatePage() {
       {/* Stepper */}
       <div className="flex items-center gap-2 overflow-x-auto">
         {STEPS.map((s, idx) => (
-          <div key={s.value} className="flex items-center gap-2 shrink-0">
+          <div key={s.value} className="flex shrink-0 items-center gap-2">
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
                 idx < stepIndex
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                   : idx === stepIndex
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {idx < stepIndex ? <Check className="h-4 w-4" /> : idx + 1}
             </div>
             <span
-              className={`text-sm hidden sm:inline ${
+              className={`hidden text-sm sm:inline ${
                 idx === stepIndex ? "font-medium" : "text-muted-foreground"
               }`}
             >
               {s.label}
             </span>
-            {idx < STEPS.length - 1 && (
-              <div className="mx-2 h-px w-8 bg-border" />
-            )}
+            {idx < STEPS.length - 1 && <div className="bg-border mx-2 h-px w-8" />}
           </div>
         ))}
       </div>
@@ -180,9 +202,7 @@ export default function ExamCreatePage() {
               placeholder="e.g. Mid-Term Mathematics"
               className="mt-1"
             />
-            {errors.title && (
-              <p className="text-xs text-destructive mt-1">{errors.title}</p>
-            )}
+            {errors.title && <p className="text-destructive mt-1 text-xs">{errors.title}</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -194,9 +214,7 @@ export default function ExamCreatePage() {
                 placeholder="Mathematics"
                 className="mt-1"
               />
-              {errors.subject && (
-                <p className="text-xs text-destructive mt-1">{errors.subject}</p>
-              )}
+              {errors.subject && <p className="text-destructive mt-1 text-xs">{errors.subject}</p>}
             </div>
             <div>
               <Label>Topics (comma-separated)</Label>
@@ -219,7 +237,7 @@ export default function ExamCreatePage() {
                 className="mt-1"
               />
               {errors.totalMarks && (
-                <p className="text-xs text-destructive mt-1">{errors.totalMarks}</p>
+                <p className="text-destructive mt-1 text-xs">{errors.totalMarks}</p>
               )}
             </div>
             <div>
@@ -231,7 +249,7 @@ export default function ExamCreatePage() {
                 className="mt-1"
               />
               {errors.passingMarks && (
-                <p className="text-xs text-destructive mt-1">{errors.passingMarks}</p>
+                <p className="text-destructive mt-1 text-xs">{errors.passingMarks}</p>
               )}
             </div>
             <div>
@@ -243,7 +261,7 @@ export default function ExamCreatePage() {
                 className="mt-1"
               />
               {errors.duration && (
-                <p className="text-xs text-destructive mt-1">{errors.duration}</p>
+                <p className="text-destructive mt-1 text-xs">{errors.duration}</p>
               )}
             </div>
           </div>
@@ -257,9 +275,7 @@ export default function ExamCreatePage() {
                 placeholder="Select one or more classes..."
               />
             </div>
-            {errors.classIds && (
-              <p className="text-destructive mt-1 text-xs">{errors.classIds}</p>
-            )}
+            {errors.classIds && <p className="text-destructive mt-1 text-xs">{errors.classIds}</p>}
           </div>
           <div>
             <Label className="flex items-center gap-1.5">
@@ -276,7 +292,8 @@ export default function ExamCreatePage() {
                 <SelectItem value="__none__">None</SelectItem>
                 {publishedSpaces.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.title}{s.subject ? ` (${s.subject})` : ""}
+                    {s.title}
+                    {s.subject ? ` (${s.subject})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -299,24 +316,28 @@ export default function ExamCreatePage() {
             role="button"
             tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
               const droppedFiles = Array.from(e.dataTransfer.files);
               setFiles(droppedFiles);
             }}
-            className="cursor-pointer rounded-lg border-2 border-dashed p-8 text-center hover:border-primary hover:bg-muted/50 transition-colors"
+            className="hover:border-primary hover:bg-muted/50 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors"
             aria-label="Upload question paper files"
           >
-            <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 text-sm font-medium">
-              Click to upload or drag and drop
-            </p>
-            <p className="text-xs text-muted-foreground">
-              PDF or image files
-            </p>
+            <Upload className="text-muted-foreground mx-auto h-8 w-8" />
+            <p className="mt-2 text-sm font-medium">Click to upload or drag and drop</p>
+            <p className="text-muted-foreground text-xs">PDF or image files</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -329,7 +350,9 @@ export default function ExamCreatePage() {
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {files.map((f, i) => (
-                <Badge key={i} variant="secondary">{f.name}</Badge>
+                <Badge key={i} variant="secondary">
+                  {f.name}
+                </Badge>
               ))}
             </div>
           )}
@@ -361,7 +384,7 @@ export default function ExamCreatePage() {
       {/* Step: Review */}
       {step === "review" && (
         <div className="max-w-xl space-y-4">
-          <div className="rounded-lg border bg-card p-5 space-y-3">
+          <div className="bg-card space-y-3 rounded-lg border p-5">
             <h3 className="font-medium">Review Exam Details</h3>
             <dl className="grid gap-2 text-sm">
               <div className="flex justify-between">
@@ -387,16 +410,14 @@ export default function ExamCreatePage() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Question Paper</dt>
                 <dd>
-                  {uploadedUrls.length > 0
-                    ? `${uploadedUrls.length} image(s) uploaded`
-                    : "None"}
+                  {uploadedUrls.length > 0 ? `${uploadedUrls.length} image(s) uploaded` : "None"}
                 </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Linked Space</dt>
                 <dd>
                   {linkedSpaceId
-                    ? publishedSpaces.find((s) => s.id === linkedSpaceId)?.title ?? linkedSpaceId
+                    ? (publishedSpaces.find((s) => s.id === linkedSpaceId)?.title ?? linkedSpaceId)
                     : "None"}
                 </dd>
               </div>
@@ -416,12 +437,12 @@ export default function ExamCreatePage() {
       {/* Step: Publish */}
       {step === "publish" && (
         <div className="max-w-xl space-y-4">
-          <div className="rounded-lg border bg-green-50 dark:bg-green-950/30 p-5">
+          <div className="rounded-lg border bg-green-50 p-5 dark:bg-green-950/30">
             <h3 className="font-medium text-green-800 dark:text-green-300">Ready to Create</h3>
             <p className="mt-1 text-sm text-green-700 dark:text-green-400">
               The exam will be created as a{" "}
-              {uploadedUrls.length > 0 ? '"question paper uploaded"' : '"draft"'}{" "}
-              exam. You can add questions, edit rubrics, and publish it later.
+              {uploadedUrls.length > 0 ? '"question paper uploaded"' : '"draft"'} exam. You can add
+              questions, edit rubrics, and publish it later.
             </p>
           </div>
           <div className="flex gap-3">
@@ -431,7 +452,7 @@ export default function ExamCreatePage() {
             <Button
               onClick={handlePublish}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 text-white hover:bg-green-700"
             >
               {saving ? (
                 <>

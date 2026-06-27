@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import type { UnifiedUser, UserMembership, Tenant, TenantRole } from "@levelup/shared-types";
 
 const db = () => admin.firestore();
@@ -43,7 +44,7 @@ export async function updateTenantStats(
   await db()
     .doc(`tenants/${tenantId}`)
     .update({
-      [field]: admin.firestore.FieldValue.increment(delta),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      [field]: FieldValue.increment(delta),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 }

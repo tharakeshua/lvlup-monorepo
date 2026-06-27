@@ -3,14 +3,15 @@
  * triggers submission finalization.
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
-export const onQuestionSubmissionUpdated = onDocumentUpdated(
+export const onQuestionSubmissionUpdatedV2 = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/submissions/{submissionId}/questionSubmissions/{questionId}',
-    region: 'asia-south1',
-    memory: '256MiB',
+    document: "tenants/{tenantId}/submissions/{submissionId}/questionSubmissions/{questionId}",
+    region: "asia-south1",
+    memory: "256MiB",
   },
   async (event) => {
     const before = event.data?.before?.data();
@@ -24,7 +25,7 @@ export const onQuestionSubmissionUpdated = onDocumentUpdated(
     // Only act when a question finishes grading
     if (prevStatus === newStatus) return;
 
-    const terminalStatuses = ['graded', 'manual', 'overridden', 'failed'];
+    const terminalStatuses = ["graded", "manual", "overridden", "needs_review", "failed"];
     if (!terminalStatuses.includes(newStatus)) return;
 
     const db = admin.firestore();
@@ -39,16 +40,24 @@ export const onQuestionSubmissionUpdated = onDocumentUpdated(
     let gradedCount = 0;
     let failedCount = 0;
     let pendingCount = 0;
+    let needsReviewCount = 0;
 
     for (const doc of allQsSnap.docs) {
       const qs = doc.data();
       switch (qs.gradingStatus) {
-        case 'graded':
-        case 'manual':
-        case 'overridden':
+        case "graded":
+        case "manual":
+        case "overridden":
           gradedCount++;
           break;
-        case 'failed':
+        case "needs_review":
+          // Counts as graded for pipeline progress; teacher review is the
+          // gate, not the pipeline. Matches the inline transaction in
+          // processAnswerGrading.
+          needsReviewCount++;
+          gradedCount++;
+          break;
+        case "failed":
           failedCount++;
           break;
         default:
@@ -58,7 +67,7 @@ export const onQuestionSubmissionUpdated = onDocumentUpdated(
     }
 
     const totalQuestions = allQsSnap.size;
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
     const subRef = db.doc(`tenants/${tenantId}/submissions/${submissionId}`);
 
     if (pendingCount > 0) {
@@ -69,23 +78,24 @@ export const onQuestionSubmissionUpdated = onDocumentUpdated(
     if (failedCount > 0 && gradedCount > 0) {
       // Partial grading
       await subRef.update({
-        pipelineStatus: 'grading_partial',
-        'summary.questionsGraded': gradedCount,
-        'summary.totalQuestions': totalQuestions,
+        pipelineStatus: "grading_partial",
+        "summary.questionsGraded": gradedCount,
+        "summary.totalQuestions": totalQuestions,
         updatedAt: now,
       });
     } else if (failedCount > 0 && gradedCount === 0) {
       // All failed
       await subRef.update({
-        pipelineStatus: 'manual_review_needed',
+        pipelineStatus: "manual_review_needed",
         updatedAt: now,
       });
     } else if (gradedCount === totalQuestions) {
       // All graded — trigger finalization
       await subRef.update({
-        pipelineStatus: 'grading_complete',
+        pipelineStatus: "grading_complete",
+        "summary.needsReviewCount": needsReviewCount,
         updatedAt: now,
       });
     }
-  },
+  }
 );

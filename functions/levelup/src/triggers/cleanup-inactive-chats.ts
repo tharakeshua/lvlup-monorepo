@@ -1,6 +1,7 @@
-import * as admin from 'firebase-admin';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { logger } from "firebase-functions/v2";
 
 /**
  * Scheduled function: deactivate inactive chat sessions (7-day threshold).
@@ -15,29 +16,27 @@ import { logger } from 'firebase-functions/v2';
  */
 export const cleanupInactiveChats = onSchedule(
   {
-    schedule: 'every day 03:00',
-    region: 'asia-south1',
+    schedule: "every day 03:00",
+    region: "asia-south1",
     timeoutSeconds: 120,
   },
   async () => {
     const db = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
 
     // 7 days ago
-    const inactiveThreshold = admin.firestore.Timestamp.fromMillis(
-      now.toMillis() - 7 * 24 * 60 * 60 * 1000,
-    );
+    const inactiveThreshold = Timestamp.fromMillis(now.toMillis() - 7 * 24 * 60 * 60 * 1000);
 
     // Query across all tenants using collectionGroup
     const inactiveSessions = await db
-      .collectionGroup('chatSessions')
-      .where('isActive', '==', true)
-      .where('updatedAt', '<', inactiveThreshold)
+      .collectionGroup("chatSessions")
+      .where("isActive", "==", true)
+      .where("updatedAt", "<", inactiveThreshold)
       .limit(500)
       .get();
 
     if (inactiveSessions.empty) {
-      logger.info('No inactive chat sessions (7d) found');
+      logger.info("No inactive chat sessions (7d) found");
       return;
     }
 
@@ -55,7 +54,7 @@ export const cleanupInactiveChats = onSchedule(
         batch.update(sessionDoc.ref, {
           isActive: false,
           deactivatedAt: now,
-          deactivatedReason: 'inactive_7d',
+          deactivatedReason: "inactive_7d",
           updatedAt: now,
         });
       }
@@ -65,5 +64,5 @@ export const cleanupInactiveChats = onSchedule(
     }
 
     logger.info(`Deactivated ${totalDeactivated} inactive chat sessions`);
-  },
+  }
 );

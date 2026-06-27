@@ -1,0 +1,285 @@
+/**
+ * Identity SHARED reads (services/shared topology) — role-scoped, tenant-resolved.
+ * `getMe` assembles the caller's user + memberships + claims + active tenant;
+ * the list/get readers are paginated and tenant-scoped. These are client-safe
+ * (no ⚷ fields) but still server-resolve `tenantId` from `ctx`.
+ */
+import type { ReqOf, ResOf } from "@levelup/api-contract";
+import {
+  StudentSchema,
+  TeacherSchema,
+  ParentSchema,
+  StaffSchema,
+  ClassSchema,
+  AcademicSessionSchema,
+} from "@levelup/domain";
+import { authorize } from "@levelup/access";
+import type { AuthContext } from "../shared/context.js";
+import { requireTenant, fail } from "../shared/context.js";
+import type { EntityRepo, ListOptions } from "../repo-admin/types.js";
+import { xrepos } from "../shared/extended-repos.js";
+
+type Doc = Record<string, unknown>;
+
+/**
+ * Defensive role-entity projection (DRIFT KILLER — same intent as `projectSpace`
+ * in levelup/content.ts). The strict domain schemas (`.strict()`) reject any
+ * stored/legacy key that isn't canonical (e.g. `archivedAt`, `schedule`,
+ * `isAdmin`), and require the nullable audit fields (`lastLogin`) to be present.
+ * Synthetic DEMO01 rosters carry such legacy keys; migrated tenant_subhang data is
+ * already canonical (and sparse). This whitelists EXACTLY the schema's canonical
+ * keys — derived from the Zod shape so it can never drift from the contract —
+ * drops null-valued optionals (a callable turns `undefined`→`null` over the wire,
+ * which `.optional()` then rejects), and coerces each `nullableRequired` field to
+ * `null` when absent so a strict `.nullable()` required field still validates.
+ */
+function projectEntity(
+  doc: Doc,
+  allowed: readonly string[],
+  nullableRequired: readonly string[] = []
+): Doc {
+  const out: Doc = {};
+  for (const k of allowed) {
+    const v = doc[k];
+    if (v !== undefined && v !== null) out[k] = v;
+  }
+  for (const k of nullableRequired) if (out[k] === undefined) out[k] = null;
+  // Canonical `zEntityStatus` is exactly {active, archived}. Synthetic rosters carry
+  // legacy lifecycle values ('invited', 'suspended', …); coerce any non-`archived`
+  // status to the non-terminal 'active' so the strict enum validates (archived is
+  // the only terminal/soft-deleted state the canonical vocabulary models).
+  if ("status" in out && out["status"] !== "archived") out["status"] = "active";
+  return out;
+}
+
+const STUDENT_KEYS = Object.keys(StudentSchema.shape);
+const TEACHER_KEYS = Object.keys(TeacherSchema.shape);
+const PARENT_KEYS = Object.keys(ParentSchema.shape);
+const STAFF_KEYS = Object.keys(StaffSchema.shape);
+const CLASS_KEYS = Object.keys(ClassSchema.shape);
+const SESSION_KEYS = Object.keys(AcademicSessionSchema.shape);
+
+/** Permission keys recognized by the domain `PlatformClaims` (drop legacy/unknown). */
+const TEACHER_PERMISSION_KEYS = new Set([
+  "canManageSpaces",
+  "canManageStudents",
+  "canManageClasses",
+  "canCreateExams",
+  "canGradeExams",
+  "canViewAnalytics",
+  "canManageContent",
+  "canReleaseResults",
+]);
+const STAFF_PERMISSION_KEYS = new Set([
+  "canManageUsers",
+  "canManageClasses",
+  "canImportData",
+  "canExportData",
+  "canViewAnalytics",
+  "canManageAnnouncements",
+]);
+
+function filterPermRecord(v: unknown, allow: Set<string>): Record<string, boolean> | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const out: Record<string, boolean> = {};
+  for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+    if (allow.has(k) && typeof val === "boolean") out[k] = val;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Project a raw custom-claims JWT blob into a strict-domain `PlatformClaims`.
+ * The JWT carries harness/runtime keys (`activeTenantId`, `_role`, …) and may carry
+ * legacy permission keys; this whitelists exactly the `PlatformClaims` fields and
+ * drops unrecognized permission keys so getMe validates against the domain schema.
+ */
+function projectPlatformClaims(raw: Doc): Doc {
+  const out: Doc = {};
+  const passThrough = [
+    "role",
+    "tenantId",
+    "tenantCode",
+    "teacherId",
+    "studentId",
+    "parentId",
+    "scannerId",
+    "staffId",
+    "classIds",
+    "classIdsOverflow",
+    "studentIds",
+    "isSuperAdmin",
+  ];
+  for (const k of passThrough) if (raw[k] !== undefined && raw[k] !== null) out[k] = raw[k];
+  const perms = filterPermRecord(raw["permissions"], TEACHER_PERMISSION_KEYS);
+  if (perms) out["permissions"] = perms;
+  const staffPerms = filterPermRecord(raw["staffPermissions"], STAFF_PERMISSION_KEYS);
+  if (staffPerms) out["staffPermissions"] = staffPerms;
+  return out;
+}
+
+/**
+ * Project a stored `/users/{uid}` doc into a strict-domain `UnifiedUser`. The repo
+ * injects `id: snap.id` (UnifiedUser is keyed by `uid`, not `id`); legacy writers
+ * persist optional string fields as `null` (the domain treats them as `.optional()`,
+ * i.e. absent) and may omit the `createdBy`/`updatedBy` audit pair. Normalize:
+ * drop `id`, drop null-valued optional strings, and default the audit actor to uid.
+ */
+function projectUnifiedUser(user: Doc, uid: string): Doc {
+  const { id: _id, ...rest } = user as Doc;
+  const NULLABLE_OPTIONAL = [
+    "email",
+    "phone",
+    "firstName",
+    "lastName",
+    "photoURL",
+    "country",
+    "grade",
+  ];
+  for (const k of NULLABLE_OPTIONAL) if (rest[k] === null) delete rest[k];
+  return {
+    ...rest,
+    createdBy: (rest["createdBy"] as string | undefined) ?? uid,
+    updatedBy: (rest["updatedBy"] as string | undefined) ?? uid,
+  };
+}
+
+/** Shared paginated-list reader over a tenant-scoped entity collection. */
+async function listEntity(
+  ctx: AuthContext,
+  repo: EntityRepo,
+  page: { cursor?: string; limit?: number },
+  where?: Record<string, unknown>
+): Promise<{ items: Doc[]; nextCursor: string | null }> {
+  const tenantId = requireTenant(ctx);
+  const opts: ListOptions = { cursor: page.cursor, limit: page.limit ?? 20, where };
+  const res = await repo.list(tenantId, opts);
+  return { items: res.items, nextCursor: res.nextCursor };
+}
+
+// ── getMe ─────────────────────────────────────────────────────────────────────
+export async function getMeService(
+  _input: ReqOf<"v1.identity.getMe">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.getMe">> {
+  void _input;
+  const user = await xrepos(ctx).users.get(ctx.uid);
+  if (!user) fail("NOT_FOUND", "user not found");
+  const memberships = await xrepos(ctx).memberships.listForUser(ctx.uid);
+  const rawClaims = (await ctx.repos.claims.get(ctx.uid)) ?? {};
+  const activeTenant = ctx.tenantId
+    ? await ctx.repos.tenants.get(ctx.tenantId, ctx.tenantId)
+    : undefined;
+  return {
+    user: projectUnifiedUser(user, ctx.uid),
+    memberships,
+    claims: projectPlatformClaims(rawClaims),
+    activeTenant: activeTenant ?? undefined,
+  } as unknown as ResOf<"v1.identity.getMe">;
+}
+
+// ── list/get students ─────────────────────────────────────────────────────────
+export async function listStudentsService(
+  input: ReqOf<"v1.identity.listStudents">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listStudents">> {
+  authorize(ctx, "roster.read", { tenantId: ctx.tenantId ?? undefined });
+  const where: Record<string, unknown> = {};
+  const classId = (input as { classId?: string }).classId;
+  if (classId) where["classIds"] = classId;
+  const res = await listEntity(ctx, ctx.repos.students, input, where);
+  res.items = res.items.map((d) => projectEntity(d, STUDENT_KEYS));
+  return res as unknown as ResOf<"v1.identity.listStudents">;
+}
+
+export async function getStudentService(
+  input: ReqOf<"v1.identity.getStudent">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.getStudent">> {
+  const tenantId = requireTenant(ctx);
+  const student = await ctx.repos.students.get(tenantId, (input as { id: string }).id);
+  if (!student) fail("NOT_FOUND", "student not found");
+  return student as unknown as ResOf<"v1.identity.getStudent">;
+}
+
+// ── list/get teachers ─────────────────────────────────────────────────────────
+export async function listTeachersService(
+  input: ReqOf<"v1.identity.listTeachers">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listTeachers">> {
+  const res = await listEntity(ctx, ctx.repos.teachers, input);
+  res.items = res.items.map((d) => projectEntity(d, TEACHER_KEYS, ["lastLogin"]));
+  return res as unknown as ResOf<"v1.identity.listTeachers">;
+}
+
+export async function getTeacherService(
+  input: ReqOf<"v1.identity.getTeacher">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.getTeacher">> {
+  const tenantId = requireTenant(ctx);
+  const teacher = await ctx.repos.teachers.get(tenantId, (input as { id: string }).id);
+  if (!teacher) fail("NOT_FOUND", "teacher not found");
+  return teacher as unknown as ResOf<"v1.identity.getTeacher">;
+}
+
+// ── list parents / staff / classes / sessions ─────────────────────────────────
+export async function listParentsService(
+  input: ReqOf<"v1.identity.listParents">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listParents">> {
+  const res = await listEntity(ctx, xrepos(ctx).parents, input);
+  res.items = res.items.map((d) => projectEntity(d, PARENT_KEYS, ["lastLogin"]));
+  return res as unknown as ResOf<"v1.identity.listParents">;
+}
+
+export async function listStaffService(
+  input: ReqOf<"v1.identity.listStaff">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listStaff">> {
+  const res = await listEntity(ctx, xrepos(ctx).staff, input);
+  res.items = res.items.map((d) => projectEntity(d, STAFF_KEYS));
+  return res as unknown as ResOf<"v1.identity.listStaff">;
+}
+
+export async function listClassesService(
+  input: ReqOf<"v1.identity.listClasses">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listClasses">> {
+  const res = await listEntity(ctx, ctx.repos.classes, input);
+  // ClassSchema (list view) deliberately omits `schedule` (it lives on the detail
+  // view / save payload) — the whitelist drops it plus any legacy `archivedAt`.
+  res.items = res.items.map((d) => projectEntity(d, CLASS_KEYS));
+  return res as unknown as ResOf<"v1.identity.listClasses">;
+}
+
+export async function getClassService(
+  input: ReqOf<"v1.identity.getClass">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.getClass">> {
+  const tenantId = requireTenant(ctx);
+  const klass = await ctx.repos.classes.get(tenantId, (input as { id: string }).id);
+  if (!klass) fail("NOT_FOUND", "class not found");
+  // getClass returns counts + first roster page (the rest pages via listStudents).
+  const roster = await ctx.repos.students.list(tenantId, {
+    where: { classIds: (input as { id: string }).id },
+    limit: 20,
+  });
+  return {
+    ...klass,
+    roster: roster.items,
+    rosterNextCursor: roster.nextCursor,
+  } as unknown as ResOf<"v1.identity.getClass">;
+}
+
+export async function listAcademicSessionsService(
+  input: ReqOf<"v1.identity.listAcademicSessions">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.identity.listAcademicSessions">> {
+  const res = await listEntity(ctx, xrepos(ctx).academicSessions, input);
+  res.items = res.items.map((d) => {
+    const s = projectEntity(d, SESSION_KEYS);
+    if (typeof s["isCurrent"] !== "boolean") s["isCurrent"] = false; // required, non-nullable
+    return s;
+  });
+  return res as unknown as ResOf<"v1.identity.listAcademicSessions">;
+}

@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCurrentTenantId } from "@levelup/shared-stores";
 import {
   useClasses,
-  useCreateClass,
-  useUpdateClass,
-  useDeleteClass,
+  useSaveClass,
   useTeachers,
   useStudents,
-  useUpdateStudent,
-} from "@levelup/shared-hooks/queries";
-import { callBulkUpdateStatus } from "@levelup/shared-services/auth";
+  useSaveStudent,
+  useBulkUpdateStatus,
+} from "@levelup/query";
 import type { Class, Teacher, Student } from "@levelup/shared-types";
 import {
   Dialog,
@@ -49,15 +46,12 @@ import {
 } from "@levelup/shared-ui";
 import type { EntityPickerItem } from "@levelup/shared-ui";
 import { Plus, Search, Pencil, Archive, Users, GraduationCap, RotateCcw } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TableSkeleton } from "../components/skeletons/TableSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import { useSort } from "../hooks/useSort";
 
-const GRADES = [
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
-];
+const GRADES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 
 const SECTIONS = ["A", "B", "C", "D", "E", "F"];
 
@@ -68,15 +62,14 @@ interface ClassFormData {
 }
 
 export default function ClassesPage() {
-  const tenantId = useCurrentTenantId();
-  const queryClient = useQueryClient();
-  const { data: classes, isLoading } = useClasses(tenantId);
-  const { data: teachers } = useTeachers(tenantId);
-  const { data: students } = useStudents(tenantId);
-  const createClass = useCreateClass();
-  const updateClass = useUpdateClass();
-  const deleteClass = useDeleteClass();
-  const updateStudent = useUpdateStudent();
+  const classesQuery = useClasses({});
+  const classes = (classesQuery.data ?? []) as Class[];
+  const isLoading = classesQuery.isLoading;
+  const teachers = (useTeachers({}).data ?? []) as Teacher[];
+  const students = (useStudents({}).data ?? []) as Student[];
+  const saveClass = useSaveClass();
+  const saveStudent = useSaveStudent();
+  const bulkUpdateStatus = useBulkUpdateStatus();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
@@ -110,7 +103,11 @@ export default function ClassesPage() {
 
   const teacherItems: EntityPickerItem[] = (teachers ?? []).map((t: Teacher) => ({
     id: t.id,
-    label: [t.firstName, t.lastName].filter(Boolean).join(" ") || t.displayName || t.email || t.uid.slice(0, 12),
+    label:
+      [t.firstName, t.lastName].filter(Boolean).join(" ") ||
+      t.displayName ||
+      t.email ||
+      t.uid.slice(0, 12),
     description: t.subjects?.join(", ") || t.designation || undefined,
   }));
 
@@ -120,12 +117,15 @@ export default function ClassesPage() {
 
   const studentItems: EntityPickerItem[] = (students ?? []).map((s: Student) => ({
     id: s.id,
-    label: [s.firstName, s.lastName].filter(Boolean).join(" ") || s.rollNumber || s.uid.slice(0, 12),
-    description: s.grade ? `Grade ${s.grade}${s.rollNumber ? ` - ${s.rollNumber}` : ""}` : undefined,
+    label:
+      [s.firstName, s.lastName].filter(Boolean).join(" ") || s.rollNumber || s.uid.slice(0, 12),
+    description: s.grade
+      ? `Grade ${s.grade}${s.rollNumber ? ` - ${s.rollNumber}` : ""}`
+      : undefined,
   }));
 
-  const allOnPageSelected = paginatedItems.length > 0 &&
-    paginatedItems.every((cls) => selectedClassIds.has(cls.id));
+  const allOnPageSelected =
+    paginatedItems.length > 0 && paginatedItems.every((cls) => selectedClassIds.has(cls.id));
 
   const handleToggleClass = (id: string) => {
     setSelectedClassIds((prev) => {
@@ -150,27 +150,32 @@ export default function ClassesPage() {
   };
 
   const handleBulkStatusUpdate = async () => {
-    if (!tenantId) return;
     setBulkStatusProcessing(true);
     try {
       const entityIds = Array.from(selectedClassIds);
-      await callBulkUpdateStatus({ tenantId, entityType: "class", entityIds, newStatus: bulkStatusAction });
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId] });
+      await bulkUpdateStatus.mutateAsync({
+        entityType: "class",
+        entityIds,
+        newStatus: bulkStatusAction,
+      });
       setSelectedClassIds(new Set());
       setBulkStatusConfirmOpen(false);
-      toast.success(`${entityIds.length} class(es) ${bulkStatusAction === "archived" ? "archived" : "activated"}`);
+      toast.success(
+        `${entityIds.length} class(es) ${bulkStatusAction === "archived" ? "archived" : "activated"}`
+      );
     } catch (err) {
-      toast.error("Failed to update status", { description: err instanceof Error ? err.message : "Please try again" });
+      toast.error("Failed to update status", {
+        description: err instanceof Error ? err.message : "Please try again",
+      });
     } finally {
       setBulkStatusProcessing(false);
     }
   };
 
   const handleCreate = async () => {
-    if (!tenantId || !formData.name || !formData.grade) return;
+    if (!formData.name || !formData.grade) return;
     try {
-      await createClass.mutateAsync({
-        tenantId,
+      await saveClass.mutateAsync({
         name: formData.name,
         grade: formData.grade,
         section: formData.section || undefined,
@@ -186,10 +191,9 @@ export default function ClassesPage() {
   };
 
   const handleEdit = async () => {
-    if (!tenantId || !selectedClass) return;
+    if (!selectedClass) return;
     try {
-      await updateClass.mutateAsync({
-        tenantId,
+      await saveClass.mutateAsync({
         classId: selectedClass.id,
         name: formData.name || undefined,
         grade: formData.grade || undefined,
@@ -206,9 +210,9 @@ export default function ClassesPage() {
   };
 
   const handleArchive = async () => {
-    if (!tenantId || !selectedClass) return;
+    if (!selectedClass) return;
     try {
-      await deleteClass.mutateAsync({ tenantId, classId: selectedClass.id });
+      await saveClass.mutateAsync({ classId: selectedClass.id, status: "archived" });
       setArchiveOpen(false);
       setSelectedClass(null);
       toast.success("Class archived");
@@ -220,10 +224,9 @@ export default function ClassesPage() {
   };
 
   const handleAssignTeachers = async () => {
-    if (!tenantId || !selectedClass) return;
+    if (!selectedClass) return;
     try {
-      await updateClass.mutateAsync({
-        tenantId,
+      await saveClass.mutateAsync({
         classId: selectedClass.id,
         teacherIds: selectedTeacherIds,
       });
@@ -238,13 +241,13 @@ export default function ClassesPage() {
   };
 
   const handleAssignStudents = async () => {
-    if (!tenantId || !selectedClass) return;
+    if (!selectedClass) return;
     try {
       const classId = selectedClass.id;
 
       // Find students currently in this class and compute additions/removals
-      const currentStudentsInClass = (students ?? []).filter(
-        (s: Student) => s.classIds?.includes(classId),
+      const currentStudentsInClass = (students ?? []).filter((s: Student) =>
+        s.classIds?.includes(classId)
       );
       const currentIds = new Set(currentStudentsInClass.map((s: Student) => s.id));
       const selectedSet = new Set(selectedStudentIds);
@@ -261,17 +264,13 @@ export default function ClassesPage() {
       for (const studentId of toAdd) {
         const student = (students ?? []).find((s: Student) => s.id === studentId);
         const newClassIds = [...(student?.classIds ?? []), classId];
-        updates.push(
-          updateStudent.mutateAsync({ tenantId, studentId, classIds: newClassIds }),
-        );
+        updates.push(saveStudent.mutateAsync({ studentId, classIds: newClassIds }));
       }
 
       for (const studentId of toRemove) {
         const student = (students ?? []).find((s: Student) => s.id === studentId);
         const newClassIds = (student?.classIds ?? []).filter((id) => id !== classId);
-        updates.push(
-          updateStudent.mutateAsync({ tenantId, studentId, classIds: newClassIds }),
-        );
+        updates.push(saveStudent.mutateAsync({ studentId, classIds: newClassIds }));
       }
 
       await Promise.all(updates);
@@ -317,11 +316,14 @@ export default function ClassesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Classes & Sections</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your school's classes and sections
-          </p>
+          <p className="text-muted-foreground text-sm">Manage your school's classes and sections</p>
         </div>
-        <Button onClick={() => { setFormData({ name: "", grade: "", section: "" }); setCreateOpen(true); }}>
+        <Button
+          onClick={() => {
+            setFormData({ name: "", grade: "", section: "" });
+            setCreateOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Class
         </Button>
@@ -329,7 +331,7 @@ export default function ClassesPage() {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder="Search classes..."
             value={searchQuery}
@@ -344,7 +346,9 @@ export default function ClassesPage() {
           <SelectContent>
             <SelectItem value="all">All Grades</SelectItem>
             {GRADES.map((g) => (
-              <SelectItem key={g} value={g}>Grade {g}</SelectItem>
+              <SelectItem key={g} value={g}>
+                Grade {g}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -355,7 +359,7 @@ export default function ClassesPage() {
       ) : !filtered?.length ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <h3 className="text-lg font-semibold">No classes yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Create your first class to get started
           </p>
         </div>
@@ -372,9 +376,19 @@ export default function ClassesPage() {
                       aria-label="Select all classes on page"
                     />
                   </TableHead>
-                  <SortableTableHead sortKey="name" currentSort={currentSort} onSort={handleSort}>Name</SortableTableHead>
-                  <SortableTableHead sortKey="grade" currentSort={currentSort} onSort={handleSort}>Grade</SortableTableHead>
-                  <SortableTableHead sortKey="section" currentSort={currentSort} onSort={handleSort}>Section</SortableTableHead>
+                  <SortableTableHead sortKey="name" currentSort={currentSort} onSort={handleSort}>
+                    Name
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="grade" currentSort={currentSort} onSort={handleSort}>
+                    Grade
+                  </SortableTableHead>
+                  <SortableTableHead
+                    sortKey="section"
+                    currentSort={currentSort}
+                    onSort={handleSort}
+                  >
+                    Section
+                  </SortableTableHead>
                   <TableHead>Teachers</TableHead>
                   <TableHead>Students</TableHead>
                   <TableHead>Status</TableHead>
@@ -383,7 +397,10 @@ export default function ClassesPage() {
               </TableHeader>
               <TableBody>
                 {paginatedItems.map((cls) => (
-                  <TableRow key={cls.id} className={selectedClassIds.has(cls.id) ? "bg-muted/50" : undefined}>
+                  <TableRow
+                    key={cls.id}
+                    className={selectedClassIds.has(cls.id) ? "bg-muted/50" : undefined}
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedClassIds.has(cls.id)}
@@ -392,7 +409,10 @@ export default function ClassesPage() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">
-                      <Link to={`/classes/${cls.id}`} className="hover:text-primary hover:underline">
+                      <Link
+                        to={`/classes/${cls.id}`}
+                        className="hover:text-primary hover:underline"
+                      >
                         {cls.name}
                       </Link>
                     </TableCell>
@@ -401,7 +421,7 @@ export default function ClassesPage() {
                     <TableCell>
                       <button
                         onClick={() => openAssignTeachers(cls)}
-                        className="inline-flex items-center gap-1 text-sm hover:text-primary"
+                        className="hover:text-primary inline-flex items-center gap-1 text-sm"
                         aria-label={`Assign teachers to ${cls.name}`}
                       >
                         <GraduationCap className="h-3.5 w-3.5" />
@@ -411,7 +431,7 @@ export default function ClassesPage() {
                     <TableCell>
                       <button
                         onClick={() => openAssignStudents(cls)}
-                        className="inline-flex items-center gap-1 text-sm hover:text-primary"
+                        className="hover:text-primary inline-flex items-center gap-1 text-sm"
                         aria-label={`Assign students to ${cls.name}`}
                       >
                         <Users className="h-3.5 w-3.5" />
@@ -451,9 +471,13 @@ export default function ClassesPage() {
       {/* Floating Bulk Action Bar */}
       {selectedClassIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+          <div className="bg-background flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lg">
             <span className="text-sm font-medium">{selectedClassIds.size} selected</span>
-            <Button size="sm" variant="destructive" onClick={() => openBulkStatusConfirm("archived")}>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => openBulkStatusConfirm("archived")}
+            >
               <Archive className="mr-2 h-3.5 w-3.5" /> Archive Selected
             </Button>
             <Button size="sm" variant="outline" onClick={() => openBulkStatusConfirm("active")}>
@@ -468,17 +492,25 @@ export default function ClassesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {bulkStatusAction === "archived" ? "Archive" : "Activate"} {selectedClassIds.size} class(es)?
+              {bulkStatusAction === "archived" ? "Archive" : "Activate"} {selectedClassIds.size}{" "}
+              class(es)?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will {bulkStatusAction === "archived" ? "archive" : "activate"} the selected classes.
-              {bulkStatusAction === "archived" ? " Archived classes will be hidden from active views." : " Activated classes will appear in active views."}
+              This will {bulkStatusAction === "archived" ? "archive" : "activate"} the selected
+              classes.
+              {bulkStatusAction === "archived"
+                ? " Archived classes will be hidden from active views."
+                : " Activated classes will appear in active views."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={bulkStatusProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleBulkStatusUpdate} disabled={bulkStatusProcessing}>
-              {bulkStatusProcessing ? "Processing..." : bulkStatusAction === "archived" ? "Archive" : "Activate"}
+              {bulkStatusProcessing
+                ? "Processing..."
+                : bulkStatusAction === "archived"
+                  ? "Archive"
+                  : "Activate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -504,26 +536,36 @@ export default function ClassesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Grade</Label>
-                <Select value={formData.grade} onValueChange={(v) => setFormData((p) => ({ ...p, grade: v }))}>
+                <Select
+                  value={formData.grade}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, grade: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select grade" />
                   </SelectTrigger>
                   <SelectContent>
                     {GRADES.map((g) => (
-                      <SelectItem key={g} value={g}>Grade {g}</SelectItem>
+                      <SelectItem key={g} value={g}>
+                        Grade {g}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Section</Label>
-                <Select value={formData.section} onValueChange={(v) => setFormData((p) => ({ ...p, section: v }))}>
+                <Select
+                  value={formData.section}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, section: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select section" />
                   </SelectTrigger>
                   <SelectContent>
                     {SECTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>Section {s}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        Section {s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -531,12 +573,14 @@ export default function ClassesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button
               onClick={handleCreate}
-              disabled={createClass.isPending || !formData.name || !formData.grade}
+              disabled={saveClass.isPending || !formData.name || !formData.grade}
             >
-              {createClass.isPending ? "Creating..." : "Create"}
+              {saveClass.isPending ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -561,26 +605,36 @@ export default function ClassesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Grade</Label>
-                <Select value={formData.grade} onValueChange={(v) => setFormData((p) => ({ ...p, grade: v }))}>
+                <Select
+                  value={formData.grade}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, grade: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select grade" />
                   </SelectTrigger>
                   <SelectContent>
                     {GRADES.map((g) => (
-                      <SelectItem key={g} value={g}>Grade {g}</SelectItem>
+                      <SelectItem key={g} value={g}>
+                        Grade {g}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Section</Label>
-                <Select value={formData.section} onValueChange={(v) => setFormData((p) => ({ ...p, section: v }))}>
+                <Select
+                  value={formData.section}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, section: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select section" />
                   </SelectTrigger>
                   <SelectContent>
                     {SECTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>Section {s}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        Section {s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -588,9 +642,11 @@ export default function ClassesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEdit} disabled={updateClass.isPending}>
-              {updateClass.isPending ? "Saving..." : "Save Changes"}
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEdit} disabled={saveClass.isPending}>
+              {saveClass.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -602,13 +658,14 @@ export default function ClassesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Archive Class</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to archive &quot;{selectedClass?.name}&quot;? This will hide the class from active views.
+              Are you sure you want to archive &quot;{selectedClass?.name}&quot;? This will hide the
+              class from active views.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchive} disabled={deleteClass.isPending}>
-              {deleteClass.isPending ? "Archiving..." : "Archive"}
+            <AlertDialogAction onClick={handleArchive} disabled={saveClass.isPending}>
+              {saveClass.isPending ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -632,9 +689,11 @@ export default function ClassesPage() {
             emptyText="No teachers found."
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignTeachersOpen(false)}>Cancel</Button>
-            <Button onClick={handleAssignTeachers} disabled={updateClass.isPending}>
-              {updateClass.isPending ? "Saving..." : "Save"}
+            <Button variant="outline" onClick={() => setAssignTeachersOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignTeachers} disabled={saveClass.isPending}>
+              {saveClass.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -658,9 +717,11 @@ export default function ClassesPage() {
             emptyText="No students found."
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignStudentsOpen(false)}>Cancel</Button>
-            <Button onClick={handleAssignStudents} disabled={updateClass.isPending}>
-              {updateClass.isPending ? "Saving..." : "Save"}
+            <Button variant="outline" onClick={() => setAssignStudentsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignStudents} disabled={saveStudent.isPending}>
+              {saveStudent.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

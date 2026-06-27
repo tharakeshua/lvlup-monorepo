@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useExams, useClasses } from "@levelup/shared-hooks";
-import { callGenerateReport } from "@levelup/shared-services";
+import { useCurrentTenantId } from "@/sdk/identity";
+import { useExams, useClasses, useGenerateReport } from "@levelup/query";
+import type { Exam, Class } from "@levelup/shared-types";
+import type { ExamId, ClassId } from "@levelup/domain";
 import {
   DownloadPDFButton,
   Tabs,
@@ -15,22 +16,20 @@ import { FileText, Users } from "lucide-react";
 
 export default function ReportsPage() {
   const tenantId = useCurrentTenantId();
-  const { data: exams = [] } = useExams(tenantId);
-  const { data: classes = [] } = useClasses(tenantId);
+  const exams = (useExams({}).data ?? []) as Exam[];
+  const classes = (useClasses({}).data ?? []) as Class[];
+  const generateReport = useGenerateReport();
   const [activeTab, setActiveTab] = useState<"exams" | "classes">("exams");
 
   const publishedExams = exams.filter(
-    (e) =>
-      e.status === "grading" ||
-      e.status === "completed" ||
-      e.status === "results_released",
+    (e) => e.status === "grading" || e.status === "completed" || e.status === "results_released"
   );
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Reports</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Generate and download PDF reports for exams and classes
         </p>
       </div>
@@ -45,8 +44,8 @@ export default function ReportsPage() {
           <div className="space-y-3">
             {publishedExams.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
+                <FileText className="text-muted-foreground h-8 w-8" />
+                <p className="text-muted-foreground mt-2 text-sm">
                   No exams with results available yet
                 </p>
               </div>
@@ -56,7 +55,7 @@ export default function ReportsPage() {
                   <CardContent className="flex items-center justify-between p-4">
                     <div>
                       <h3 className="font-medium">{exam.title}</h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {exam.subject} &middot; {exam.totalMarks} marks &middot;{" "}
                         {exam.status.replace(/_/g, " ")}
                       </p>
@@ -65,10 +64,9 @@ export default function ReportsPage() {
                       {tenantId && (
                         <DownloadPDFButton
                           onGenerate={async () => {
-                            const res = await callGenerateReport({
-                              tenantId: tenantId!,
-                              type: 'exam-result',
-                              examId: exam.id,
+                            const res = await generateReport.mutateAsync({
+                              kind: "exam",
+                              examId: exam.id as ExamId,
                             });
                             return { downloadUrl: res.pdfUrl };
                           }}
@@ -87,10 +85,8 @@ export default function ReportsPage() {
           <div className="space-y-3">
             {classes.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <Users className="h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No classes found
-                </p>
+                <Users className="text-muted-foreground h-8 w-8" />
+                <p className="text-muted-foreground mt-2 text-sm">No classes found</p>
               </div>
             ) : (
               classes.map((cls) => (
@@ -98,19 +94,17 @@ export default function ReportsPage() {
                   <CardContent className="flex items-center justify-between p-4">
                     <div>
                       <h3 className="font-medium">{cls.name}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {[cls.grade, cls.section].filter(Boolean).join(" - ") ||
-                          cls.id}
+                      <p className="text-muted-foreground text-xs">
+                        {[cls.grade, cls.section].filter(Boolean).join(" - ") || cls.id}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {tenantId && (
                         <DownloadPDFButton
                           onGenerate={async () => {
-                            const res = await callGenerateReport({
-                              tenantId: tenantId!,
-                              type: 'class',
-                              classId: cls.id,
+                            const res = await generateReport.mutateAsync({
+                              kind: "class",
+                              classId: cls.id as ClassId,
                             });
                             return { downloadUrl: res.pdfUrl };
                           }}

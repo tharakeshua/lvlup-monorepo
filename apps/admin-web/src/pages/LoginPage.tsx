@@ -1,14 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import { lookupTenantByCode } from "@levelup/shared-services";
+import { useLookupTenantByCode } from "@levelup/query";
 import { Input, Button } from "@levelup/shared-ui";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useSession } from "@/sdk/identity";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithSchoolCode, loading, error, clearError } = useAuthStore();
+  const { login, error, clearError } = useSession();
+  const lookupTenant = useLookupTenantByCode();
+  const [loading, setLoading] = useState(false);
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
   const [step, setStep] = useState<"school-code" | "credentials">("school-code");
   const [schoolCode, setSchoolCode] = useState("");
@@ -31,7 +33,10 @@ export default function LoginPage() {
         return;
       }
 
-      const tenant = await lookupTenantByCode(code);
+      const tenant = (await lookupTenant.mutateAsync(code)) as {
+        name?: string;
+        status?: string;
+      } | null;
       if (!tenant) {
         setCodeError("Invalid school code. Please try again.");
         return;
@@ -41,7 +46,7 @@ export default function LoginPage() {
         return;
       }
 
-      setSchoolName(tenant.name);
+      setSchoolName(tenant.name ?? code);
       setStep("credentials");
     } catch {
       setCodeError("Failed to look up school code. Please try again.");
@@ -54,11 +59,14 @@ export default function LoginPage() {
     e.preventDefault();
     clearError();
 
+    setLoading(true);
     try {
-      await loginWithSchoolCode(schoolCode.trim(), email, password);
+      await login(email, password);
       navigate(from, { replace: true });
     } catch {
-      // Error is already set in the store
+      // Error is already set in the session context
+    } finally {
+      setLoading(false);
     }
   };
 

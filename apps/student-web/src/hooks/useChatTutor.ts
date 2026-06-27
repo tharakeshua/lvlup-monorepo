@@ -1,94 +1,98 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
-import { getFirebaseServices, callSendChatMessage } from '@levelup/shared-services';
-import type { ChatSession } from '@levelup/shared-types';
+import {
+  useChatSession as useSdkChatSession,
+  useChatSessions as useSdkChatSessions,
+  useSendChatMessage as useSdkSendChatMessage,
+} from "@levelup/query";
+import type { ChatSession } from "@levelup/shared-types";
 
-/** Fetch the most recent active chat session for an item */
+/** Paginated list envelope returned by the SDK chat-session list hook. */
+interface ChatSessionPage {
+  items?: ChatSession[];
+  nextCursor?: string | null;
+}
+
+/**
+ * Fetch the most recent active chat session for an item (or a specific session
+ * by id). Tenant/user scope is implicit in the SDK auth context; the legacy
+ * `tenantId`/`userId` params are preserved for call-site compatibility and gate
+ * enablement.
+ */
 export function useChatSession(
   tenantId: string | null,
   userId: string | null,
   itemId: string | null,
-  sessionId?: string | null,
+  sessionId?: string | null
 ) {
-  return useQuery<ChatSession | null>({
-    queryKey: ['tenants', tenantId, 'chatSessions', userId, itemId, sessionId ?? 'latest'],
-    queryFn: async () => {
-      if (!tenantId || !userId || !itemId) return null;
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/chatSessions`);
+  const ready = !!tenantId && !!userId && !!itemId;
 
-      // If a specific session ID is provided, fetch it directly
-      if (sessionId) {
-        const { doc, getDoc } = await import('firebase/firestore');
-        const snap = await getDoc(doc(db, `tenants/${tenantId}/chatSessions`, sessionId));
-        if (!snap.exists()) return null;
-        return { id: snap.id, ...snap.data() } as ChatSession;
-      }
-
-      // Otherwise fetch the most recent active session for this item
-      const q = query(
-        colRef,
-        where('userId', '==', userId),
-        where('itemId', '==', itemId),
-        where('isActive', '==', true),
-        orderBy('updatedAt', 'desc'),
-        limit(1),
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) return null;
-      const d = snap.docs[0]!;
-      return { id: d.id, ...d.data() } as ChatSession;
-    },
-    enabled: !!tenantId && !!userId && !!itemId,
-    staleTime: 10 * 1000,
+  const detail = useSdkChatSession<ChatSession | null>(sessionId ?? "", {
+    enabled: ready && !!sessionId,
   });
+  const list = useSdkChatSessions<ChatSessionPage>(
+    { itemId: itemId ?? undefined },
+    { enabled: ready && !sessionId }
+  );
+
+  if (sessionId) {
+    return { ...detail, data: (detail.data ?? null) as ChatSession | null };
+  }
+  return {
+    ...list,
+    data: (list.data?.items?.[0] ?? null) as ChatSession | null,
+  };
 }
 
-/** Fetch all chat sessions for an item (one item -> many sessions) */
+/** Fetch all chat sessions for an item (one item -> many sessions). */
 export function useItemChatSessions(
   tenantId: string | null,
   userId: string | null,
-  itemId: string | null,
+  itemId: string | null
 ) {
-  return useQuery<ChatSession[]>({
-    queryKey: ['tenants', tenantId, 'chatSessions', userId, itemId, 'all'],
-    queryFn: async () => {
-      if (!tenantId || !userId || !itemId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/chatSessions`);
-      const q = query(
-        colRef,
-        where('userId', '==', userId),
-        where('itemId', '==', itemId),
-        orderBy('updatedAt', 'desc'),
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() } as ChatSession));
-    },
-    enabled: !!tenantId && !!userId && !!itemId,
-    staleTime: 30 * 1000,
-  });
+  const ready = !!tenantId && !!userId && !!itemId;
+  const query = useSdkChatSessions<ChatSessionPage>(
+    { itemId: itemId ?? undefined },
+    { enabled: ready }
+  );
+  return {
+    ...query,
+    data: (query.data?.items ?? []) as ChatSession[],
+  };
 }
 
-export function useSendChatMessage() {
-  const queryClient = useQueryClient();
+interface SendChatMessageVars {
+  tenantId: string;
+  spaceId: string;
+  storyPointId: string;
+  itemId: string;
+  message: string;
+  sessionId?: string;
+  language?: string;
+}
 
-  return useMutation({
-    mutationFn: async (params: {
-      tenantId: string;
-      spaceId: string;
-      storyPointId: string;
-      itemId: string;
-      message: string;
-      sessionId?: string;
-      language?: string;
-    }) => {
-      return callSendChatMessage(params);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'chatSessions'],
-      });
-    },
-  });
+/** Maps the legacy mutate payload onto the SDK `sendChatMessage` contract. */
+function toSdkVars(params: SendChatMessageVars) {
+  const { spaceId, storyPointId, itemId, message, sessionId, language } = params;
+  return { spaceId, storyPointId, itemId, text: message, sessionId, language };
+}
+
+/**
+ * Send a chat message to the AI tutor. Preserves the legacy mutate/mutateAsync
+ * payload (`{ tenantId, ..., message }`) and the `{ reply }` result shape that
+ * existing callers depend on, mapping to/from the SDK contract.
+ */
+export function useSendChatMessage() {
+  const mutation = useSdkSendChatMessage();
+
+  const mutate = (params: SendChatMessageVars, options?: Parameters<typeof mutation.mutate>[1]) =>
+    mutation.mutate(toSdkVars(params) as never, options);
+
+  const mutateAsync = async (params: SendChatMessageVars) => {
+    const res = (await mutation.mutateAsync(toSdkVars(params) as never)) as {
+      reply?: string;
+      message?: { text?: string };
+    };
+    return { ...res, reply: res.reply ?? res.message?.text ?? "" };
+  };
+
+  return { ...mutation, mutate, mutateAsync };
 }

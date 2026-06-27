@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions/v2";
 
@@ -84,8 +85,8 @@ export const onSpaceDeleted = onDocumentDeleted(
 
     // Update tenant stats
     await db.doc(`tenants/${tenantId}`).update({
-      "stats.totalSpaces": admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalSpaces": FieldValue.increment(-1),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     logger.info(`Cascade delete complete for space ${spaceId}`);

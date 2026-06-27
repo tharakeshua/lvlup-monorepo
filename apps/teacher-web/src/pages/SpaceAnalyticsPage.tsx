@@ -1,9 +1,5 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useSpaces } from "@levelup/shared-hooks";
-import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useSpaces } from "@levelup/query";
 import { BookOpen, Users, BarChart3 } from "lucide-react";
 import {
   ScoreCard,
@@ -16,51 +12,24 @@ import {
 } from "@levelup/shared-ui";
 import type { Space } from "@levelup/shared-types";
 
-interface SpaceAnalytics {
-  totalStudents: number;
-  completedStudents: number;
-  avgCompletion: number;
-  avgEngagementMinutes: number;
-}
-
-function useSpaceAnalytics(tenantId: string | null, spaceId: string | null) {
-  return useQuery<SpaceAnalytics | null>({
-    queryKey: ["tenants", tenantId, "spaces", spaceId, "analytics"],
-    queryFn: async () => {
-      if (!tenantId || !spaceId) return null;
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/progress`);
-      const snap = await getDocs(query(colRef));
-      if (snap.empty) return null;
-
-      const progresses = snap.docs.map((d) => d.data());
-      const totalStudents = progresses.length;
-      const completedStudents = progresses.filter((p) => p.completionPercentage >= 100).length;
-      const avgCompletion =
-        progresses.reduce((sum, p) => sum + (p.completionPercentage ?? 0), 0) / totalStudents;
-      const avgEngagementMinutes =
-        progresses.reduce((sum, p) => sum + (p.totalTimeMinutes ?? 0), 0) / totalStudents;
-
-      return {
-        totalStudents,
-        completedStudents,
-        avgCompletion,
-        avgEngagementMinutes,
-      };
-    },
-    enabled: !!tenantId && !!spaceId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 export default function SpaceAnalyticsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: spaces = [] } = useSpaces(tenantId, { status: "published" });
+  // @levelup/query hooks are tenant-scoped server-side; result is a `{ items }` page.
+  const { data: spacesPage } = useSpaces<{ items: Space[] }>({ status: "published" });
+  const spaces = spacesPage?.items ?? [];
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
 
   const activeSpaceId = selectedSpaceId || spaces[0]?.id || null;
   const activeSpace = spaces.find((s: Space) => s.id === activeSpaceId);
-  const { data: analytics, isLoading } = useSpaceAnalytics(tenantId, activeSpaceId);
+
+  // PARITY GAP (flagged to Frontend-Lead): the legacy page aggregated the raw
+  // per-space `progress` subcollection across ALL students (completion +
+  // engagement). @levelup/query has no space-wide progress aggregation —
+  // `getSpaceProgress` returns only the CURRENT user's progress. Until a backend
+  // "space progress summary" callable exists, we surface the space's own
+  // server-maintained `stats` and degrade gracefully.
+  const stats = activeSpace?.stats;
+  const totalStudents = stats?.totalStudents ?? 0;
+  const avgCompletion = stats?.avgCompletionRate ?? 0;
 
   return (
     <div className="space-y-6">
@@ -93,34 +62,22 @@ export default function SpaceAnalyticsPage() {
         </Select>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
-          ))}
-        </div>
-      ) : !analytics ? (
+      {!activeSpace ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <BarChart3 className="text-muted-foreground mx-auto h-10 w-10" />
           <p className="text-muted-foreground mt-3 text-sm">
-            {spaces.length === 0
-              ? "No published spaces yet. Publish a space to see analytics."
-              : "No student progress data yet. Data will appear as students use this space."}
+            No published spaces yet. Publish a space to see analytics.
           </p>
         </div>
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">
-            <ScoreCard label="Total Students" value={analytics.totalStudents} icon={Users} />
-            <ScoreCard label="Completed" value={analytics.completedStudents} icon={Users} />
+            <ScoreCard label="Total Students" value={totalStudents} icon={Users} />
+            <ScoreCard label="Story Points" value={stats?.totalStoryPoints ?? 0} icon={BookOpen} />
+            <ScoreCard label="Items" value={stats?.totalItems ?? 0} icon={BookOpen} />
             <ScoreCard
               label="Avg Completion"
-              value={`${Math.round(analytics.avgCompletion)}%`}
-              icon={BookOpen}
-            />
-            <ScoreCard
-              label="Avg Engagement"
-              value={`${Math.round(analytics.avgEngagementMinutes)} min`}
+              value={`${Math.round(avgCompletion)}%`}
               icon={BarChart3}
             />
           </div>
@@ -129,22 +86,22 @@ export default function SpaceAnalyticsPage() {
             <div className="bg-card space-y-4 rounded-lg border p-5">
               <h2 className="font-semibold">Completion Overview</h2>
               <div className="flex items-center gap-6">
-                <ProgressRing value={analytics.avgCompletion} label="Avg Completion" />
+                <ProgressRing value={avgCompletion} label="Avg Completion" />
                 <div className="space-y-2 text-sm">
                   <p>
-                    Space: <span className="font-medium">{activeSpace?.title}</span>
+                    Space: <span className="font-medium">{activeSpace.title}</span>
                   </p>
                   <p>
-                    Type: <span className="font-medium capitalize">{activeSpace?.type}</span>
+                    Type: <span className="font-medium capitalize">{activeSpace.type}</span>
                   </p>
-                  {activeSpace?.subject && (
+                  {activeSpace.subject && (
                     <p>
                       Subject: <span className="font-medium">{activeSpace.subject}</span>
                     </p>
                   )}
                   <p>
                     Story Points:{" "}
-                    <span className="font-medium">{activeSpace?.stats?.totalStoryPoints ?? 0}</span>
+                    <span className="font-medium">{stats?.totalStoryPoints ?? 0}</span>
                   </p>
                 </div>
               </div>
@@ -152,29 +109,14 @@ export default function SpaceAnalyticsPage() {
 
             <div className="bg-card space-y-4 rounded-lg border p-5">
               <h2 className="font-semibold">Engagement Metrics</h2>
-              <div className="flex items-center gap-6">
-                <ProgressRing
-                  value={Math.min(
-                    (analytics.completedStudents / analytics.totalStudents) * 100,
-                    100
-                  )}
-                  label="Completion Rate"
-                />
-                <div className="space-y-2 text-sm">
-                  <p>
-                    Students Started: <span className="font-medium">{analytics.totalStudents}</span>
-                  </p>
-                  <p>
-                    Students Completed:{" "}
-                    <span className="font-medium">{analytics.completedStudents}</span>
-                  </p>
-                  <p>
-                    Avg Time Spent:{" "}
-                    <span className="font-medium">
-                      {Math.round(analytics.avgEngagementMinutes)} min
-                    </span>
-                  </p>
-                </div>
+              <p className="text-muted-foreground text-sm">
+                Detailed per-student completion and engagement metrics are not yet available via the
+                SDK. They require a backend space-progress summary endpoint.
+              </p>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Enrolled Students: <span className="font-medium">{totalStudents}</span>
+                </p>
               </div>
             </div>
           </div>

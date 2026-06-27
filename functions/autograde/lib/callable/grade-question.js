@@ -63,6 +63,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.gradeQuestion = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const shared_types_1 = require("@levelup/shared-types");
 const assertions_1 = require("../utils/assertions");
 const firestore_helpers_1 = require("../utils/firestore-helpers");
@@ -130,7 +131,7 @@ async function handleManualGrade(caller, data) {
     `tenants/${data.tenantId}/submissions/${data.submissionId}/questionSubmissions/${data.questionId}`
   );
   const qsDoc = await qsRef.get();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = firestore_1.FieldValue.serverTimestamp();
   if (!qsDoc.exists) {
     // Create a new question submission for manual grading
     await qsRef.set({
@@ -186,8 +187,8 @@ async function handleManualGrade(caller, data) {
   // Increment AI usage counter for manual grading that involved AI evaluation
   const aiDb = admin.firestore();
   await aiDb.doc(`tenants/${data.tenantId}`).update({
-    "usage.aiCallsThisMonth": admin.firestore.FieldValue.increment(1),
-    "usage.lastUpdated": admin.firestore.FieldValue.serverTimestamp(),
+    "usage.aiCallsThisMonth": firestore_1.FieldValue.increment(1),
+    "usage.lastUpdated": firestore_1.FieldValue.serverTimestamp(),
   });
   return { success: true, updatedScore: data.score };
 }
@@ -220,7 +221,7 @@ async function handleRetry(caller, data) {
   }
   const db = admin.firestore();
   const batch = db.batch();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = firestore_1.FieldValue.serverTimestamp();
   // Reset failed questions to pending
   for (const qs of failedQs) {
     const qsRef = db.doc(
@@ -228,7 +229,7 @@ async function handleRetry(caller, data) {
     );
     batch.update(qsRef, {
       gradingStatus: "pending",
-      gradingError: admin.firestore.FieldValue.delete(),
+      gradingError: firestore_1.FieldValue.delete(),
       updatedAt: now,
     });
   }
@@ -271,12 +272,12 @@ async function handleAiGrade(data) {
       "No answer-sheet pages mapped to this question. Cannot grade — re-run scouting first."
     );
   }
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = firestore_1.FieldValue.serverTimestamp();
   // Reset to pending so processAnswerGrading picks it up; clear stale errors.
   await qsRef.update({
     gradingStatus: "pending",
     gradingRetryCount: 0,
-    gradingError: admin.firestore.FieldValue.delete(),
+    gradingError: firestore_1.FieldValue.delete(),
     updatedAt: now,
   });
   // Set submission to grading; the trigger may fire but processAnswerGrading

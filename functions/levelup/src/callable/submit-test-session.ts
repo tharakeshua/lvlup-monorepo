@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTenantMember } from "../utils/auth";
@@ -67,7 +68,7 @@ export const submitTestSession = onCall(
     }
 
     // Validate timing for timed tests
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
     if (session.sessionType === "timed_test" && session.serverDeadline) {
       const deadlineMs = session.serverDeadline.toMillis();
       if (now.toMillis() > deadlineMs + GRACE_PERIOD_MS) {
@@ -199,7 +200,7 @@ export const submitTestSession = onCall(
       submittedAt: now,
       endedAt: now,
       autoSubmitted: data.autoSubmitted ?? false,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     // P1-6: Flag session if there are pending AI evaluations

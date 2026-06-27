@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { listTenantAuditLog, type TenantAuditLogEntry } from "../../sdk/reads-tenant";
 import {
   Card,
   CardContent,
@@ -17,16 +16,6 @@ import {
 } from "@levelup/shared-ui";
 import { ScrollText } from "lucide-react";
 
-interface AuditLogEntry {
-  id: string;
-  action: string;
-  actorEmail: string;
-  actorUid: string;
-  tenantId: string;
-  metadata: Record<string, unknown>;
-  createdAt: { seconds?: number; toDate?: () => Date };
-}
-
 const PAGE_SIZE = 20;
 
 const ACTION_LABELS: Record<string, string> = {
@@ -38,7 +27,7 @@ const ACTION_LABELS: Record<string, string> = {
   users_bulk_imported: "Users Bulk Imported",
 };
 
-function formatTimestamp(ts: AuditLogEntry["createdAt"]): string {
+function formatTimestamp(ts: TenantAuditLogEntry["createdAt"]): string {
   if (!ts) return "—";
   const d = ts.toDate?.() ?? (ts.seconds ? new Date(ts.seconds * 1000) : null);
   if (!d) return "—";
@@ -57,35 +46,7 @@ export function TenantAuditLogCard({ tenantId }: { tenantId: string }) {
 
   const { data, isLoading } = useQuery({
     queryKey: ["platform", "tenantAuditLog", tenantId, actionFilter, page],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      let q = query(
-        collection(db, "platformActivityLog"),
-        where("tenantId", "==", tenantId),
-        orderBy("createdAt", "desc")
-      );
-
-      if (actionFilter !== "all") {
-        q = query(
-          collection(db, "platformActivityLog"),
-          where("tenantId", "==", tenantId),
-          where("action", "==", actionFilter),
-          orderBy("createdAt", "desc")
-        );
-      }
-
-      q = query(q, limit(PAGE_SIZE + 1));
-
-      // For pagination beyond first page, we'd need cursors.
-      // For simplicity, fetch with offset via skip count
-      const snap = await getDocs(q);
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AuditLogEntry);
-      const hasMore = docs.length > PAGE_SIZE;
-      return {
-        entries: docs.slice(0, PAGE_SIZE),
-        hasMore,
-      };
-    },
+    queryFn: () => listTenantAuditLog(tenantId, actionFilter, PAGE_SIZE),
     staleTime: 30 * 1000,
   });
 

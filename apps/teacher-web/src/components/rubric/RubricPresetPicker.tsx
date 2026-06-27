@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useAuthStore } from "@levelup/shared-stores";
-import { getFirebaseServices, callSaveRubricPreset } from "@levelup/shared-services";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { useRubricPresets, useSaveRubricPreset } from "@levelup/query";
 import {
   Button,
   Dialog,
@@ -20,7 +18,6 @@ import {
 } from "@levelup/shared-ui";
 import { Sparkles, BookOpen, Save } from "lucide-react";
 import type { RubricPreset, UnifiedRubric, RubricPresetCategory } from "@levelup/shared-types";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface RubricPresetPickerProps {
   /** Current rubric value (for "Save as Preset") */
@@ -46,9 +43,6 @@ export default function RubricPresetPicker({
   onApply,
   filterCategory,
 }: RubricPresetPickerProps) {
-  const { currentTenantId } = useAuthStore();
-  const queryClient = useQueryClient();
-
   const [open, setOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>(filterCategory ?? "");
@@ -56,46 +50,34 @@ export default function RubricPresetPicker({
   const [saveName, setSaveName] = useState("");
   const [saveCategory, setSaveCategory] = useState<string>("custom");
 
-  // Load presets
-  const { data: presets, isLoading } = useQuery({
-    queryKey: ["rubricPresets", currentTenantId],
-    queryFn: async () => {
-      if (!currentTenantId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${currentTenantId}/rubricPresets`);
-      const q = query(colRef, orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      return snap.docs.map((doc) => doc.data() as RubricPreset);
-    },
-    enabled: !!currentTenantId && open,
-  });
+  // Load presets (tenant-scoped server-side; only fetch while the picker is open).
+  const { data: presetsPage, isLoading } = useRubricPresets<{ items: RubricPreset[] }>(
+    {},
+    { enabled: open }
+  );
+  const presets = presetsPage?.items ?? [];
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentRubric || !saveName.trim() || !currentTenantId) return;
-      await callSaveRubricPreset({
-        tenantId: currentTenantId,
+  const saveMutation = useSaveRubricPreset();
+
+  const handleSavePreset = async () => {
+    if (!currentRubric || !saveName.trim()) return;
+    try {
+      await saveMutation.mutateAsync({
         data: {
           name: saveName.trim(),
           rubric: currentRubric,
-          category: saveCategory,
+          category: saveCategory as RubricPresetCategory,
         },
       });
-    },
-    onSuccess: () => {
       toast.success("Rubric preset saved");
-      queryClient.invalidateQueries({ queryKey: ["rubricPresets"] });
       setSaveOpen(false);
       setSaveName("");
-    },
-    onError: () => {
+    } catch {
       toast.error("Failed to save preset");
-    },
-  });
+    }
+  };
 
-  const filteredPresets = (presets ?? []).filter(
-    (p) => !categoryFilter || p.category === categoryFilter
-  );
+  const filteredPresets = presets.filter((p) => !categoryFilter || p.category === categoryFilter);
 
   const handleApply = () => {
     if (selectedPreset) {
@@ -238,7 +220,7 @@ export default function RubricPresetPicker({
               Cancel
             </Button>
             <Button
-              onClick={() => saveMutation.mutate()}
+              onClick={handleSavePreset}
               disabled={!saveName.trim() || saveMutation.isPending}
             >
               {saveMutation.isPending ? "Saving..." : "Save Preset"}

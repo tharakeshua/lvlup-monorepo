@@ -1,10 +1,6 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useAcademicSessions,
-  useCreateAcademicSession,
-  useUpdateAcademicSession,
-} from "@levelup/shared-hooks/queries";
+import { useCurrentTenantId } from "@/sdk/identity";
+import { useAcademicSessions, useSaveAcademicSession } from "@levelup/query";
 import type { AcademicSession } from "@levelup/shared-types";
 import {
   Button,
@@ -43,18 +39,33 @@ function formatDate(timestamp: unknown): string {
   return String(timestamp);
 }
 
+/** Convert a timestamp-like value (ISO string at rest, or Firestore Timestamp) to a YYYY-MM-DD string. */
+function toISODate(timestamp: unknown): string {
+  if (!timestamp) return "";
+  if (typeof timestamp === "string") return timestamp.split("T")[0];
+  const ts = timestamp as { seconds?: number; toDate?: () => Date };
+  if (ts.toDate) return ts.toDate().toISOString().split("T")[0];
+  if (ts.seconds) return new Date(ts.seconds * 1000).toISOString().split("T")[0];
+  return "";
+}
+
 export default function AcademicSessionPage() {
   const tenantId = useCurrentTenantId();
-  const { data: sessions, isLoading } = useAcademicSessions(tenantId);
-  const createSession = useCreateAcademicSession();
-  const updateSession = useUpdateAcademicSession();
+  const { data, isLoading } = useAcademicSessions({});
+  const sessions = (data as { items?: AcademicSession[] } | undefined)?.items;
+  const saveSession = useSaveAcademicSession();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [rolloverOpen, setRolloverOpen] = useState(false);
   const [rolloverSession, setRolloverSession] = useState<AcademicSession | null>(null);
   const [selectedSession, setSelectedSession] = useState<AcademicSession | null>(null);
-  const [formData, setFormData] = useState({ name: "", startDate: "", endDate: "", isCurrent: false });
+  const [formData, setFormData] = useState({
+    name: "",
+    startDate: "",
+    endDate: "",
+    isCurrent: false,
+  });
 
   const currentSession = sessions?.find((s) => s.isCurrent);
 
@@ -65,12 +76,13 @@ export default function AcademicSessionPage() {
       return;
     }
     try {
-      await createSession.mutateAsync({
-        tenantId,
-        name: formData.name,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        isCurrent: formData.isCurrent,
+      await saveSession.mutateAsync({
+        data: {
+          name: formData.name,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          isCurrent: formData.isCurrent,
+        },
       });
       setCreateOpen(false);
       setFormData({ name: "", startDate: "", endDate: "", isCurrent: false });
@@ -84,18 +96,23 @@ export default function AcademicSessionPage() {
 
   const handleEdit = async () => {
     if (!tenantId || !selectedSession) return;
-    if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      new Date(formData.endDate) <= new Date(formData.startDate)
+    ) {
       toast.error("End date must be after start date");
       return;
     }
     try {
-      await updateSession.mutateAsync({
-        tenantId,
-        sessionId: selectedSession.id,
-        name: formData.name || undefined,
-        startDate: formData.startDate || undefined,
-        endDate: formData.endDate || undefined,
-        isCurrent: formData.isCurrent,
+      await saveSession.mutateAsync({
+        id: selectedSession.id,
+        data: {
+          name: formData.name || selectedSession.name,
+          startDate: formData.startDate || toISODate(selectedSession.startDate),
+          endDate: formData.endDate || toISODate(selectedSession.endDate),
+          isCurrent: formData.isCurrent,
+        },
       });
       setEditOpen(false);
       setSelectedSession(null);
@@ -110,10 +127,14 @@ export default function AcademicSessionPage() {
   const handleSetCurrent = async (session: AcademicSession) => {
     if (!tenantId) return;
     try {
-      await updateSession.mutateAsync({
-        tenantId,
-        sessionId: session.id,
-        isCurrent: true,
+      await saveSession.mutateAsync({
+        id: session.id,
+        data: {
+          name: session.name,
+          startDate: toISODate(session.startDate),
+          endDate: toISODate(session.endDate),
+          isCurrent: true,
+        },
       });
       toast.success("Session set as current");
     } catch (err) {
@@ -146,11 +167,14 @@ export default function AcademicSessionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Academic Sessions</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage academic years and sessions
-          </p>
+          <p className="text-muted-foreground text-sm">Manage academic years and sessions</p>
         </div>
-        <Button onClick={() => { setFormData({ name: "", startDate: "", endDate: "", isCurrent: false }); setCreateOpen(true); }}>
+        <Button
+          onClick={() => {
+            setFormData({ name: "", startDate: "", endDate: "", isCurrent: false });
+            setCreateOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Session
         </Button>
@@ -170,7 +194,7 @@ export default function AcademicSessionPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold">{currentSession.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {formatDate(currentSession.startDate)} — {formatDate(currentSession.endDate)}
                 </p>
               </div>
@@ -186,7 +210,7 @@ export default function AcademicSessionPage() {
       ) : !sessions?.length ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <h3 className="text-lg font-semibold">No academic sessions</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Create your first academic session to organize your school year
           </p>
         </div>
@@ -204,50 +228,53 @@ export default function AcademicSessionPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-            <TableBody>
-              {sessions.map((session) => (
-                <TableRow key={session.id}>
-                  <TableCell className="font-medium">{session.name}</TableCell>
-                  <TableCell>{formatDate(session.startDate)}</TableCell>
-                  <TableCell>{formatDate(session.endDate)}</TableCell>
-                  <TableCell>
-                    {session.isCurrent ? (
-                      <Badge variant="default">Current</Badge>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => handleSetCurrent(session)}
-                        disabled={updateSession.isPending}
-                      >
-                        Set as current
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={session.status === "active" ? "default" : "secondary"}>
-                      {session.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setRolloverSession(session); setRolloverOpen(true); }}
-                        title="Rollover session"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(session)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+              <TableBody>
+                {sessions.map((session) => (
+                  <TableRow key={session.id}>
+                    <TableCell className="font-medium">{session.name}</TableCell>
+                    <TableCell>{formatDate(session.startDate)}</TableCell>
+                    <TableCell>{formatDate(session.endDate)}</TableCell>
+                    <TableCell>
+                      {session.isCurrent ? (
+                        <Badge variant="default">Current</Badge>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => handleSetCurrent(session)}
+                          disabled={saveSession.isPending}
+                        >
+                          Set as current
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={session.status === "active" ? "default" : "secondary"}>
+                        {session.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setRolloverSession(session);
+                            setRolloverOpen(true);
+                          }}
+                          title="Rollover session"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(session)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           </div>
         </div>
@@ -296,12 +323,16 @@ export default function AcademicSessionPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button
               onClick={handleCreate}
-              disabled={createSession.isPending || !formData.name || !formData.startDate || !formData.endDate}
+              disabled={
+                saveSession.isPending || !formData.name || !formData.startDate || !formData.endDate
+              }
             >
-              {createSession.isPending ? "Creating..." : "Create"}
+              {saveSession.isPending ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -359,9 +390,11 @@ export default function AcademicSessionPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEdit} disabled={updateSession.isPending}>
-              {updateSession.isPending ? "Saving..." : "Save Changes"}
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEdit} disabled={saveSession.isPending}>
+              {saveSession.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

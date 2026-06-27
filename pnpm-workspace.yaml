@@ -4,3 +4,4 @@ packages:
   - "functions/*"
   - "scripts"
   - "website"
+  - "tests/sdk"

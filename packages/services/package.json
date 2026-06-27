@@ -1,0 +1,53 @@
+{
+  "name": "@levelup/services",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Server brain: fn(input, ctx) per capability; never imports firebase-functions",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./repo-admin": {
+      "types": "./dist/repo-admin/index.d.ts",
+      "import": "./dist/repo-admin/index.js",
+      "require": "./dist/repo-admin/index.cjs"
+    },
+    "./repo-admin/testing": {
+      "types": "./dist/repo-admin/testing/index.d.ts",
+      "import": "./dist/repo-admin/testing/index.js",
+      "require": "./dist/repo-admin/testing/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@levelup/access": "workspace:*",
+    "@levelup/ai": "workspace:*",
+    "@levelup/api-contract": "workspace:*",
+    "@levelup/domain": "workspace:*",
+    "firebase-admin": "^12.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
+  }
+}

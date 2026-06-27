@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { Tenant, DailyCostSummary } from "@levelup/shared-types";
+import { getPlatformLlmUsage } from "../sdk/reads-platform";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   StatCard,
@@ -55,129 +53,18 @@ function getMonthRange(offset: number) {
   };
 }
 
-interface TenantCostData {
-  tenantId: string;
-  tenantName: string;
-  tenantCode: string;
-  status: string;
-  totalCost: number;
-  totalCalls: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  budgetLimitUsd?: number;
-  budgetUsedPercent?: number;
-}
-
+/**
+ * Cross-tenant platform LLM usage. SDK GAP: useCostSummary() is claim-tenant-
+ * scoped (caller's tenant only) and exposes no per-tenant platform roll-up, so the
+ * cross-tenant aggregation lives in `sdk/reads-platform.ts` and is consumed here
+ * via a plain TanStack useQuery.
+ */
 function usePlatformLLMUsage(monthOffset: number) {
   const range = getMonthRange(monthOffset);
 
   return useQuery({
     queryKey: ["platform", "llmUsage", range.label],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-
-      const tenantsSnap = await getDocs(collection(db, "tenants"));
-      const tenants = tenantsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Tenant);
-
-      const tenantCostResults = await Promise.all(
-        tenants.map(async (tenant) => {
-          const colRef = collection(db, `tenants/${tenant.id}/dailyCostSummaries`);
-          const q = query(
-            colRef,
-            where("date", ">=", range.start),
-            where("date", "<=", range.end),
-            orderBy("date", "desc")
-          );
-          const snap = await getDocs(q);
-          const days = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DailyCostSummary);
-          return { tenant, days };
-        })
-      );
-
-      const tenantCosts: TenantCostData[] = [];
-      const allDailyCosts: DailyCostSummary[] = [];
-      const byPurposeAgg: Record<string, { calls: number; costUsd: number }> = {};
-
-      for (const { tenant, days } of tenantCostResults) {
-        const totalCost = days.reduce((s, d) => s + d.totalCostUsd, 0);
-        const totalCalls = days.reduce((s, d) => s + d.totalCalls, 0);
-        const totalInputTokens = days.reduce((s, d) => s + d.totalInputTokens, 0);
-        const totalOutputTokens = days.reduce((s, d) => s + d.totalOutputTokens, 0);
-
-        for (const day of days) {
-          if (day.byPurpose) {
-            for (const [purpose, data] of Object.entries(day.byPurpose)) {
-              if (!byPurposeAgg[purpose]) {
-                byPurposeAgg[purpose] = { calls: 0, costUsd: 0 };
-              }
-              byPurposeAgg[purpose].calls += data.calls;
-              byPurposeAgg[purpose].costUsd += data.costUsd;
-            }
-          }
-        }
-
-        allDailyCosts.push(...days);
-
-        if (totalCost > 0 || totalCalls > 0) {
-          const budgetLimit = days[0]?.budgetLimitUsd;
-          tenantCosts.push({
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-            tenantCode: tenant.tenantCode,
-            status: tenant.status,
-            totalCost,
-            totalCalls,
-            totalInputTokens,
-            totalOutputTokens,
-            budgetLimitUsd: budgetLimit,
-            budgetUsedPercent: budgetLimit
-              ? Math.round((totalCost / budgetLimit) * 100)
-              : undefined,
-          });
-        }
-      }
-
-      tenantCosts.sort((a, b) => b.totalCost - a.totalCost);
-
-      const dailyMap = new Map<string, { date: string; cost: number; calls: number }>();
-      for (const d of allDailyCosts) {
-        const existing = dailyMap.get(d.date);
-        if (existing) {
-          existing.cost += d.totalCostUsd;
-          existing.calls += d.totalCalls;
-        } else {
-          dailyMap.set(d.date, { date: d.date, cost: d.totalCostUsd, calls: d.totalCalls });
-        }
-      }
-      const dailyTrend = Array.from(dailyMap.values())
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map((d) => ({
-          ...d,
-          label: d.date.slice(5),
-          cost: Math.round(d.cost * 100) / 100,
-        }));
-
-      const platformTotalCost = tenantCosts.reduce((s, t) => s + t.totalCost, 0);
-      const platformTotalCalls = tenantCosts.reduce((s, t) => s + t.totalCalls, 0);
-      const platformTotalInput = tenantCosts.reduce((s, t) => s + t.totalInputTokens, 0);
-      const platformTotalOutput = tenantCosts.reduce((s, t) => s + t.totalOutputTokens, 0);
-
-      const byPurpose = Object.entries(byPurposeAgg)
-        .map(([name, data]) => ({ name, ...data, costUsd: Math.round(data.costUsd * 100) / 100 }))
-        .sort((a, b) => b.costUsd - a.costUsd);
-
-      return {
-        month: range.label,
-        platformTotalCost,
-        platformTotalCalls,
-        platformTotalInput,
-        platformTotalOutput,
-        tenantCosts,
-        dailyTrend,
-        byPurpose,
-        activeTenants: tenantCosts.length,
-      };
-    },
+    queryFn: () => getPlatformLlmUsage({ label: range.label, start: range.start, end: range.end }),
     staleTime: 5 * 60 * 1000,
   });
 }

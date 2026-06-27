@@ -1,11 +1,24 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useTenants, usePlatformSummary } from "@levelup/query";
 import { useAuthStore, useCurrentUser } from "@levelup/shared-stores";
-import type { Tenant, PlatformActivityLog } from "@levelup/shared-types";
-import { Building2, Users, ClipboardList, BookOpen, AlertCircle, Plus, Activity, Settings, ArrowRight, TrendingUp, TrendingDown, UserCheck, Zap } from "lucide-react";
+import { listPlatformActivity, getPlatformExtraStats } from "../sdk/reads-platform";
+import {
+  Building2,
+  Users,
+  ClipboardList,
+  BookOpen,
+  AlertCircle,
+  Plus,
+  Activity,
+  Settings,
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
+  UserCheck,
+  Zap,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -53,91 +66,37 @@ const ACTION_LABELS: Record<string, string> = {
   users_bulk_imported: "Users bulk imported",
 };
 
-function usePlatformStats() {
-  return useQuery({
-    queryKey: ["platform", "stats"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const tenantsSnap = await getDocs(collection(db, "tenants"));
-      const tenants = tenantsSnap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as Tenant,
-      );
-
-      let totalUsers = 0;
-      let totalExams = 0;
-      let totalSpaces = 0;
-      for (const t of tenants) {
-        totalUsers +=
-          (t.stats?.totalStudents ?? 0) + (t.stats?.totalTeachers ?? 0);
-        totalExams += t.stats?.totalExams ?? 0;
-        totalSpaces += t.stats?.totalSpaces ?? 0;
-      }
-
-      // Growth metrics
-      const now = new Date();
-      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const thisWeekStart = new Date(now);
-      thisWeekStart.setDate(now.getDate() - 7);
-
-      let newTenantsThisMonth = 0;
-      let newTenantsLastMonth = 0;
-
-      for (const t of tenants) {
-        const createdAt = t.createdAt as unknown as { seconds?: number; toDate?: () => Date };
-        const createdDate = createdAt?.toDate?.() ?? (createdAt?.seconds ? new Date(createdAt.seconds * 1000) : null);
-        if (createdDate) {
-          if (createdDate >= thisMonthStart) newTenantsThisMonth++;
-          else if (createdDate >= lastMonthStart && createdDate < thisMonthStart) newTenantsLastMonth++;
-        }
-      }
-
-      // Active users (last 7 days) — count users with recent lastLoginAt
-      let activeUsers7d = 0;
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      try {
-        const usersSnap = await getDocs(
-          query(
-            collection(db, "users"),
-            where("lastLoginAt", ">=", sevenDaysAgo),
-          ),
-        );
-        activeUsers7d = usersSnap.size;
-      } catch {
-        // lastLoginAt index may not exist yet
-      }
-
-      return {
-        totalTenants: tenants.length,
-        activeTenants: tenants.filter((t) => t.status === "active").length,
-        trialTenants: tenants.filter((t) => t.status === "trial").length,
-        totalUsers,
-        totalExams,
-        totalSpaces,
-        tenants,
-        newTenantsThisMonth,
-        newTenantsLastMonth,
-        activeUsers7d,
-      };
-    },
-    staleTime: 60 * 1000,
-  });
+/**
+ * Super-admin tenant list row (the @levelup/query `useTenants()` projection —
+ * api-contract `TenantSummarySchema`). `slug` stands in for the legacy
+ * `tenantCode`; the projection carries no `contactEmail`/nested stats/`totalExams`.
+ */
+interface TenantSummaryRow {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan?: string;
+  totalStudents: number;
+  totalTeachers: number;
+  createdAt: string;
 }
 
+/** `useTenants()` returns a PageBag — read `.items`, defensively. */
+function readTenantItems(data: unknown): TenantSummaryRow[] {
+  const bag = data as { items?: unknown } | undefined;
+  return Array.isArray(bag?.items) ? (bag!.items as TenantSummaryRow[]) : [];
+}
+
+function tenantUsers(t: TenantSummaryRow): number {
+  return (t.totalStudents ?? 0) + (t.totalTeachers ?? 0);
+}
+
+/** Activity feed — global `platformActivityLog` (SDK GAP: no callable). */
 function useActivityFeed() {
   return useQuery({
     queryKey: ["platform", "activityFeed"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const snap = await getDocs(
-        query(
-          collection(db, "platformActivityLog"),
-          orderBy("createdAt", "desc"),
-          limit(10),
-        ),
-      );
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PlatformActivityLog);
-    },
+    queryFn: () => listPlatformActivity(10),
     staleTime: 30 * 1000,
   });
 }
@@ -147,7 +106,12 @@ function formatTimestamp(ts: unknown): string {
   if (!t) return "";
   const d = t.toDate?.() ?? (t.seconds ? new Date(t.seconds * 1000) : null);
   if (!d) return "";
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function GrowthIndicator({ current, previous }: { current: number; previous: number }) {
@@ -155,9 +119,12 @@ function GrowthIndicator({ current, previous }: { current: number; previous: num
   const pct = previous === 0 ? 100 : Math.round(((current - previous) / previous) * 100);
   const isUp = pct >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
+    >
       {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {isUp ? "+" : ""}{pct}%
+      {isUp ? "+" : ""}
+      {pct}%
     </span>
   );
 }
@@ -165,33 +132,73 @@ function GrowthIndicator({ current, previous }: { current: number; previous: num
 export default function DashboardPage() {
   const { logout } = useAuthStore();
   const user = useCurrentUser();
-  const { data: stats, isLoading, isError, error, refetch } = usePlatformStats();
+
+  // Tenant list is the per-tenant source (useTenants projection); usePlatformSummary
+  // supplies examCount (not in the tenant projection); reads-platform supplies the
+  // SDK-GAP totals (totalSpaces, activeUsers7d) + the activity feed.
+  const tenantsQ = useTenants({ limit: 100 });
+  const summaryQ = usePlatformSummary();
+  const extraQ = useQuery({
+    queryKey: ["platform", "extraStats"],
+    queryFn: getPlatformExtraStats,
+    staleTime: 60 * 1000,
+  });
   const { data: activityFeed, isLoading: feedLoading } = useActivityFeed();
 
+  const isLoading = tenantsQ.isLoading;
+  const isError = tenantsQ.isError;
+  const error = tenantsQ.error;
+  const refetch = tenantsQ.refetch;
+
+  const tenants = useMemo(() => readTenantItems(tenantsQ.data), [tenantsQ.data]);
+  const examCount = (summaryQ.data as { kpis?: { examCount?: number } } | undefined)?.kpis
+    ?.examCount;
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    let newTenantsThisMonth = 0;
+    let newTenantsLastMonth = 0;
+    for (const t of tenants) {
+      const d = t.createdAt ? new Date(t.createdAt) : null;
+      if (d && !Number.isNaN(d.getTime())) {
+        if (d >= thisMonthStart) newTenantsThisMonth++;
+        else if (d >= lastMonthStart && d < thisMonthStart) newTenantsLastMonth++;
+      }
+    }
+    return {
+      totalTenants: tenants.length,
+      activeTenants: tenants.filter((t) => t.status === "active").length,
+      trialTenants: tenants.filter((t) => t.status === "trial").length,
+      totalUsers: tenants.reduce((s, t) => s + tenantUsers(t), 0),
+      totalExams: examCount ?? 0,
+      totalSpaces: extraQ.data?.totalSpaces ?? 0,
+      activeUsers7d: extraQ.data?.activeUsers7d ?? 0,
+      tenants,
+      newTenantsThisMonth,
+      newTenantsLastMonth,
+    };
+  }, [tenants, examCount, extraQ.data]);
+
   const planData = useMemo(() => {
-    if (!stats?.tenants) return [];
     const plans: Record<string, number> = {};
-    for (const t of stats.tenants) {
-      const plan = t.subscription?.plan ?? "none";
-      plans[plan] = (plans[plan] ?? 0) + (t.stats?.totalStudents ?? 0) + (t.stats?.totalTeachers ?? 0);
+    for (const t of tenants) {
+      const plan = t.plan ?? "none";
+      plans[plan] = (plans[plan] ?? 0) + tenantUsers(t);
     }
     return Object.entries(plans).map(([name, value]) => ({ name, value }));
-  }, [stats]);
+  }, [tenants]);
 
   const topTenants = useMemo(() => {
-    if (!stats?.tenants) return [];
-    return [...stats.tenants]
-      .sort((a, b) => {
-        const aUsers = (a.stats?.totalStudents ?? 0) + (a.stats?.totalTeachers ?? 0);
-        const bUsers = (b.stats?.totalStudents ?? 0) + (b.stats?.totalTeachers ?? 0);
-        return bUsers - aUsers;
-      })
+    return [...tenants]
+      .sort((a, b) => tenantUsers(b) - tenantUsers(a))
       .slice(0, 8)
       .map((t) => ({
         name: t.name.length > 15 ? t.name.slice(0, 15) + "..." : t.name,
-        users: (t.stats?.totalStudents ?? 0) + (t.stats?.totalTeachers ?? 0),
+        users: tenantUsers(t),
       }));
-  }, [stats]);
+  }, [tenants]);
 
   const statCards = [
     {
@@ -228,7 +235,7 @@ export default function DashboardPage() {
         actions={
           <LogoutButton
             onLogout={logout}
-            className="inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium hover:bg-accent transition-colors"
+            className="hover:bg-accent inline-flex h-9 items-center rounded-md border px-4 text-sm font-medium transition-colors"
           >
             Sign Out
           </LogoutButton>
@@ -253,7 +260,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <Card key={i}>
-                <CardContent className="pb-4 pt-4 px-4 space-y-2">
+                <CardContent className="space-y-2 px-4 pb-4 pt-4">
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-8 w-16" />
                   <Skeleton className="h-3 w-32" />
@@ -264,7 +271,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i}>
-                <CardContent className="p-5 space-y-2">
+                <CardContent className="space-y-2 p-5">
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-8 w-16" />
                   <Skeleton className="h-3 w-32" />
@@ -276,7 +283,7 @@ export default function DashboardPage() {
             {Array.from({ length: 2 }).map((_, i) => (
               <Card key={i}>
                 <CardContent className="p-6">
-                  <Skeleton className="h-5 w-32 mb-4" />
+                  <Skeleton className="mb-4 h-5 w-32" />
                   <Skeleton className="h-[200px] w-full rounded-md" />
                 </CardContent>
               </Card>
@@ -303,34 +310,39 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">New Tenants</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                    <TrendingUp className="h-4 w-4 text-primary" />
+                  <p className="text-muted-foreground text-sm">New Tenants</p>
+                  <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                    <TrendingUp className="text-primary h-4 w-4" />
                   </div>
                 </div>
-                <p className="mt-2 text-2xl font-bold tabular-nums">{stats?.newTenantsThisMonth ?? 0}</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">
+                  {stats?.newTenantsThisMonth ?? 0}
+                </p>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">this month</span>
-                  <GrowthIndicator current={stats?.newTenantsThisMonth ?? 0} previous={stats?.newTenantsLastMonth ?? 0} />
+                  <span className="text-muted-foreground text-xs">this month</span>
+                  <GrowthIndicator
+                    current={stats?.newTenantsThisMonth ?? 0}
+                    previous={stats?.newTenantsLastMonth ?? 0}
+                  />
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Active Users (7d)</p>
+                  <p className="text-muted-foreground text-sm">Active Users (7d)</p>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                     <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
                 <p className="mt-2 text-2xl font-bold tabular-nums">{stats?.activeUsers7d ?? 0}</p>
-                <p className="mt-1 text-xs text-muted-foreground">logged in within 7 days</p>
+                <p className="text-muted-foreground mt-1 text-xs">logged in within 7 days</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Engagement Rate</p>
+                  <p className="text-muted-foreground text-sm">Engagement Rate</p>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
                     <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
@@ -340,7 +352,7 @@ export default function DashboardPage() {
                     ? `${Math.round(((stats.activeUsers7d ?? 0) / stats.totalUsers) * 100)}%`
                     : "—"}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">active / total users</p>
+                <p className="text-muted-foreground mt-1 text-xs">active / total users</p>
               </CardContent>
             </Card>
           </div>
@@ -355,7 +367,11 @@ export default function DashboardPage() {
                 <CardContent className="pt-0">
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={topTenants} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-border"
+                        vertical={false}
+                      />
                       <XAxis
                         dataKey="name"
                         className="text-xs"
@@ -371,11 +387,21 @@ export default function DashboardPage() {
                       />
                       <Tooltip
                         cursor={{ fill: "hsl(var(--muted))", radius: 4 }}
-                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--card-foreground))" }}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--card-foreground))",
+                        }}
                         labelStyle={{ color: "hsl(var(--card-foreground))" }}
                         itemStyle={{ color: "hsl(var(--card-foreground))" }}
                       />
-                      <Bar dataKey="users" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                      <Bar
+                        dataKey="users"
+                        fill="hsl(var(--primary))"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={48}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -384,7 +410,7 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-semibold">Users by Plan</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0 flex justify-center">
+                <CardContent className="flex justify-center pt-0">
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie
@@ -402,7 +428,12 @@ export default function DashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--card-foreground))" }}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--card-foreground))",
+                        }}
                         labelStyle={{ color: "hsl(var(--card-foreground))" }}
                         itemStyle={{ color: "hsl(var(--card-foreground))" }}
                       />
@@ -410,7 +441,7 @@ export default function DashboardPage() {
                         iconType="circle"
                         iconSize={8}
                         formatter={(value: string) => (
-                          <span className="text-xs text-muted-foreground capitalize">{value}</span>
+                          <span className="text-muted-foreground text-xs capitalize">{value}</span>
                         )}
                       />
                     </PieChart>
@@ -441,22 +472,29 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : !activityFeed?.length ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No recent activity</p>
+                  <p className="text-muted-foreground py-4 text-center text-sm">
+                    No recent activity
+                  </p>
                 ) : (
-                  <div className="space-y-0 divide-y divide-border">
+                  <div className="divide-border space-y-0 divide-y">
                     {activityFeed.map((entry) => (
-                      <div key={entry.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      <div
+                        key={entry.id}
+                        className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <span className="bg-primary mt-1.5 h-2 w-2 shrink-0 rounded-full" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">
                             {ACTION_LABELS[entry.action] ?? entry.action}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-muted-foreground truncate text-xs">
                             {entry.actorEmail}
                             {entry.metadata?.tenantName ? ` — ${entry.metadata.tenantName}` : ""}
                             {entry.metadata?.displayName ? ` — ${entry.metadata.displayName}` : ""}
                           </p>
-                          <p className="text-xs text-muted-foreground">{formatTimestamp(entry.createdAt)}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {formatTimestamp(entry.createdAt)}
+                          </p>
                         </div>
                         <Badge variant="secondary" className="shrink-0 text-[10px]">
                           {entry.action.split("_")[0]}
@@ -482,26 +520,31 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="divide-y divide-border rounded-lg border">
+                  <div className="divide-border divide-y rounded-lg border">
                     {stats.tenants.slice(0, 5).map((tenant) => (
                       <Link
                         key={tenant.id}
                         to={`/tenants/${tenant.id}`}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                        className="hover:bg-muted/50 flex items-center justify-between px-4 py-3 transition-colors first:rounded-t-lg last:rounded-b-lg"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{tenant.name}</p>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {tenant.tenantCode} &middot; {tenant.contactEmail}
-                          </p>
+                          <p className="truncate font-medium">{tenant.name}</p>
+                          <p className="text-muted-foreground truncate text-sm">{tenant.slug}</p>
                         </div>
-                        <div className="flex items-center gap-3 ml-4 shrink-0">
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {(tenant.stats?.totalStudents ?? 0) +
-                              (tenant.stats?.totalTeachers ?? 0)}{" "}
-                            users
+                        <div className="ml-4 flex shrink-0 items-center gap-3">
+                          <span className="text-muted-foreground text-sm tabular-nums">
+                            {tenantUsers(tenant)} users
                           </span>
-                          <StatusBadge status={tenant.status as "active" | "trial" | "suspended" | "expired" | "deactivated"}>
+                          <StatusBadge
+                            status={
+                              tenant.status as
+                                | "active"
+                                | "trial"
+                                | "suspended"
+                                | "expired"
+                                | "deactivated"
+                            }
+                          >
                             {tenant.status}
                           </StatusBadge>
                         </div>
@@ -516,23 +559,33 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { to: "/tenants", icon: Plus, title: "Create Tenant", desc: "Add a new organization" },
+              {
+                to: "/tenants",
+                icon: Plus,
+                title: "Create Tenant",
+                desc: "Add a new organization",
+              },
               { to: "/system", icon: Activity, title: "System Health", desc: "Monitor services" },
-              { to: "/settings", icon: Settings, title: "Settings", desc: "Platform configuration" },
+              {
+                to: "/settings",
+                icon: Settings,
+                title: "Settings",
+                desc: "Platform configuration",
+              },
             ].map((action) => (
               <Button
                 key={action.to}
                 variant="outline"
-                className="h-auto py-4 justify-start gap-3 hover:bg-muted/50 transition-colors"
+                className="hover:bg-muted/50 h-auto justify-start gap-3 py-4 transition-colors"
                 asChild
               >
                 <Link to={action.to}>
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
                     <action.icon className="h-4 w-4" />
                   </div>
                   <div className="text-left">
                     <p className="font-medium">{action.title}</p>
-                    <p className="text-xs text-muted-foreground font-normal">{action.desc}</p>
+                    <p className="text-muted-foreground text-xs font-normal">{action.desc}</p>
                   </div>
                 </Link>
               </Button>

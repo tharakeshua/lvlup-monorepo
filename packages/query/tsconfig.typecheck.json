@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "..",
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@levelup/api-contract": ["../api-contract/src/index.ts"],
+      "@levelup/domain": ["../domain/src/index.ts"],
+      "@levelup/repositories": ["../repositories/src/index.ts"],
+      "@levelup/realtime": ["../realtime/src/index.ts"],
+      "@levelup/offline": ["../offline/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "comment": "Tests (src/__tests__) are validated by vitest, not tsc: they intentionally import optional dev-only deps (@testing-library/react) and the cross-package tests/sdk fakes, both resolved at test time. The library SOURCE is what typecheck guards.",
+  "exclude": ["src/__tests__/**", "node_modules", "dist"]
+}

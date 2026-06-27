@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useClasses } from "@levelup/shared-hooks/queries";
-import { callSaveAnnouncement, callListAnnouncements } from "@levelup/shared-services/auth";
-import type { SaveAnnouncementRequest, ListAnnouncementsResponse } from "@levelup/shared-types";
+import { useCurrentTenantId } from "@/sdk/identity";
+import { useClasses, useAnnouncements, useSaveAnnouncement } from "@levelup/query";
+import type { Class } from "@levelup/shared-types";
 import {
   Button,
   Input,
@@ -42,7 +40,19 @@ import { usePagination } from "../hooks/usePagination";
 type AnnouncementStatus = "draft" | "published" | "archived";
 type StatusTab = "all" | AnnouncementStatus;
 
-type Announcement = ListAnnouncementsResponse["announcements"][number];
+interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  scope: string;
+  status: AnnouncementStatus;
+  authorName: string;
+  publishedAt?: string | null;
+  expiresAt?: string | null;
+  createdAt?: unknown;
+  targetRoles?: string[];
+  targetClassIds?: string[];
+}
 
 const AVAILABLE_ROLES = ["teacher", "student", "parent"] as const;
 
@@ -64,6 +74,7 @@ const emptyForm: AnnouncementFormData = {
 
 function formatTimestamp(ts: unknown): string {
   if (!ts) return "--";
+  if (typeof ts === "string") return new Date(ts).toLocaleDateString();
   const record = ts as { seconds?: number };
   if (typeof record.seconds === "number") {
     return new Date(record.seconds * 1000).toLocaleDateString();
@@ -84,8 +95,9 @@ function statusBadgeVariant(status: AnnouncementStatus) {
 
 export default function AnnouncementsPage() {
   const tenantId = useCurrentTenantId();
-  const queryClient = useQueryClient();
-  const { data: classes } = useClasses(tenantId);
+  const { data: classesData } = useClasses({});
+  const classes = (classesData as { items?: Class[] } | undefined)?.items;
+  const saveAnnouncement = useSaveAnnouncement();
   const [statusFilter, setStatusFilter] = useState<StatusTab>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,34 +105,25 @@ export default function AnnouncementsPage() {
   const [saving, setSaving] = useState(false);
 
   // Platform announcements (read-only)
-  const { data: platformData, isLoading: platformLoading } = useQuery({
-    queryKey: ["platform", "announcements", "published"],
-    queryFn: () =>
-      callListAnnouncements({ scope: "platform", status: "published" }),
-    staleTime: 60_000,
+  const { data: platformData, isLoading: platformLoading } = useAnnouncements({
+    scope: "platform",
+    status: "published",
   });
 
   // Tenant announcements
-  const { data: tenantData, isLoading: tenantLoading } = useQuery({
-    queryKey: ["tenant", tenantId, "announcements", statusFilter],
-    queryFn: () =>
-      callListAnnouncements({
-        tenantId: tenantId ?? undefined,
-        scope: "tenant",
-        status: statusFilter === "all" ? undefined : statusFilter,
-      }),
-    enabled: !!tenantId,
-    staleTime: 30_000,
+  const { data: tenantData, isLoading: tenantLoading } = useAnnouncements({
+    scope: "tenant",
+    status: statusFilter === "all" ? undefined : statusFilter,
   });
 
   const platformAnnouncements = useMemo(
-    () => platformData?.announcements ?? [],
-    [platformData],
+    () => (platformData as { items?: Announcement[] } | undefined)?.items ?? [],
+    [platformData]
   );
 
   const tenantAnnouncements = useMemo(
-    () => tenantData?.announcements ?? [],
-    [tenantData],
+    () => (tenantData as { items?: Announcement[] } | undefined)?.items ?? [],
+    [tenantData]
   );
 
   const { paginatedItems, currentPage, pageSize, totalItems, setCurrentPage, setPageSize } =
@@ -137,11 +140,8 @@ export default function AnnouncementsPage() {
     setFormData({
       title: a.title,
       body: a.body,
-      expiresAt: a.expiresAt
-        ? new Date((a.expiresAt as { seconds: number }).seconds * 1000)
-            .toISOString()
-            .split("T")[0]
-        : "",
+      expiresAt:
+        typeof a.expiresAt === "string" ? new Date(a.expiresAt).toISOString().split("T")[0] : "",
       targetRoles: a.targetRoles ?? [],
       targetClassIds: a.targetClassIds ?? [],
     });
@@ -156,42 +156,29 @@ export default function AnnouncementsPage() {
     }
     setSaving(true);
     try {
-      const request: SaveAnnouncementRequest = editingId
+      const request = editingId
         ? {
             id: editingId,
-            tenantId,
             data: {
               title: formData.title.trim(),
               body: formData.body.trim(),
-              targetRoles: formData.targetRoles.length
-                ? formData.targetRoles
-                : undefined,
-              targetClassIds: formData.targetClassIds.length
-                ? formData.targetClassIds
-                : undefined,
+              targetRoles: formData.targetRoles.length ? formData.targetRoles : undefined,
+              targetClassIds: formData.targetClassIds.length ? formData.targetClassIds : undefined,
               expiresAt: formData.expiresAt || undefined,
             },
           }
         : {
-            tenantId,
             data: {
               title: formData.title.trim(),
               body: formData.body.trim(),
               scope: "tenant",
               status: "draft",
-              targetRoles: formData.targetRoles.length
-                ? formData.targetRoles
-                : undefined,
-              targetClassIds: formData.targetClassIds.length
-                ? formData.targetClassIds
-                : undefined,
+              targetRoles: formData.targetRoles.length ? formData.targetRoles : undefined,
+              targetClassIds: formData.targetClassIds.length ? formData.targetClassIds : undefined,
               expiresAt: formData.expiresAt || undefined,
             },
           };
-      await callSaveAnnouncement(request);
-      queryClient.invalidateQueries({
-        queryKey: ["tenant", tenantId, "announcements"],
-      });
+      await saveAnnouncement.mutateAsync(request);
       setDialogOpen(false);
       setEditingId(null);
       setFormData(emptyForm);
@@ -208,15 +195,8 @@ export default function AnnouncementsPage() {
   const handleStatusChange = async (id: string, newStatus: AnnouncementStatus) => {
     if (!tenantId) return;
     try {
-      await callSaveAnnouncement({ id, tenantId, data: { status: newStatus } });
-      queryClient.invalidateQueries({
-        queryKey: ["tenant", tenantId, "announcements"],
-      });
-      toast.success(
-        newStatus === "published"
-          ? "Announcement published"
-          : "Announcement archived",
-      );
+      await saveAnnouncement.mutateAsync({ id, data: { status: newStatus } });
+      toast.success(newStatus === "published" ? "Announcement published" : "Announcement archived");
     } catch (err) {
       toast.error("Failed to update status", {
         description: err instanceof Error ? err.message : "Please try again",
@@ -260,7 +240,7 @@ export default function AnnouncementsPage() {
       {/* Platform Notices */}
       {(platformLoading || platformAnnouncements.length > 0) && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
             <Info className="h-4 w-4" />
             Platform Notices
           </div>
@@ -286,15 +266,13 @@ export default function AnnouncementsPage() {
                   className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30"
                 >
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {a.title}
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium">{a.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
+                    <p className="text-muted-foreground line-clamp-3 whitespace-pre-line text-sm">
                       {a.body}
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-2 text-xs">
                       {formatTimestamp(a.createdAt)} &middot; {a.authorName}
                     </p>
                   </CardContent>
@@ -306,10 +284,7 @@ export default function AnnouncementsPage() {
       )}
 
       {/* Tenant Announcements */}
-      <Tabs
-        value={statusFilter}
-        onValueChange={(v) => setStatusFilter(v as StatusTab)}
-      >
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusTab)}>
         <TabsList>
           {statusTabs.map((tab) => (
             <TabsTrigger key={tab} value={tab} className="capitalize">
@@ -320,7 +295,7 @@ export default function AnnouncementsPage() {
 
         {statusTabs.map((tab) => (
           <TabsContent key={tab} value={tab}>
-            <div className="rounded-lg border bg-card">
+            <div className="bg-card rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -361,13 +336,11 @@ export default function AnnouncementsPage() {
                     <TableRow>
                       <TableCell colSpan={6} className="h-48">
                         <div className="flex flex-col items-center justify-center text-center">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                            <Megaphone className="h-6 w-6 text-muted-foreground" />
+                          <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+                            <Megaphone className="text-muted-foreground h-6 w-6" />
                           </div>
-                          <h3 className="mt-3 text-sm font-semibold">
-                            No announcements found
-                          </h3>
-                          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                          <h3 className="mt-3 text-sm font-semibold">No announcements found</h3>
+                          <p className="text-muted-foreground mt-1 max-w-sm text-xs">
                             {statusFilter !== "all"
                               ? "No announcements match this status filter."
                               : "Create your first announcement to get started."}
@@ -381,32 +354,22 @@ export default function AnnouncementsPage() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{a.title}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {a.body}
-                            </p>
+                            <p className="text-muted-foreground line-clamp-1 text-xs">{a.body}</p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusBadgeVariant(a.status)}>
-                            {a.status}
-                          </Badge>
+                          <Badge variant={statusBadgeVariant(a.status)}>{a.status}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {a.targetRoles?.length ? (
                               a.targetRoles.map((r) => (
-                                <Badge
-                                  key={r}
-                                  variant="outline"
-                                  className="text-xs capitalize"
-                                >
+                                <Badge key={r} variant="outline" className="text-xs capitalize">
                                   {r}
                                 </Badge>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                Everyone
-                              </span>
+                              <span className="text-muted-foreground text-xs">Everyone</span>
                             )}
                           </div>
                         </TableCell>
@@ -435,9 +398,7 @@ export default function AnnouncementsPage() {
                                   variant="ghost"
                                   size="sm"
                                   className="h-7 px-2 text-green-600 hover:text-green-700"
-                                  onClick={() =>
-                                    handleStatusChange(a.id, "published")
-                                  }
+                                  onClick={() => handleStatusChange(a.id, "published")}
                                 >
                                   <Send className="mr-1 h-3 w-3" />
                                   Publish
@@ -449,9 +410,7 @@ export default function AnnouncementsPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 px-2 text-amber-600 hover:text-amber-700"
-                                onClick={() =>
-                                  handleStatusChange(a.id, "archived")
-                                }
+                                onClick={() => handleStatusChange(a.id, "archived")}
                               >
                                 <Archive className="mr-1 h-3 w-3" />
                                 Archive
@@ -487,11 +446,9 @@ export default function AnnouncementsPage() {
           }
         }}
       >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingId ? "Edit Announcement" : "New Announcement"}
-            </DialogTitle>
+            <DialogTitle>{editingId ? "Edit Announcement" : "New Announcement"}</DialogTitle>
             <DialogDescription>
               {editingId
                 ? "Update the announcement details."
@@ -505,9 +462,7 @@ export default function AnnouncementsPage() {
                 id="ann-title"
                 placeholder="Announcement title"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, title: e.target.value }))
-                }
+                onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
                 maxLength={200}
               />
             </div>
@@ -517,9 +472,7 @@ export default function AnnouncementsPage() {
                 id="ann-body"
                 placeholder="Write the announcement body..."
                 value={formData.body}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, body: e.target.value }))
-                }
+                onChange={(e) => setFormData((p) => ({ ...p, body: e.target.value }))}
                 rows={5}
                 maxLength={5000}
               />
@@ -530,21 +483,17 @@ export default function AnnouncementsPage() {
                 id="ann-expires"
                 type="date"
                 value={formData.expiresAt}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, expiresAt: e.target.value }))
-                }
+                onChange={(e) => setFormData((p) => ({ ...p, expiresAt: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
               <Label>Target Roles (optional)</Label>
-              <p className="text-xs text-muted-foreground">
-                Leave unchecked to send to everyone.
-              </p>
+              <p className="text-muted-foreground text-xs">Leave unchecked to send to everyone.</p>
               <div className="flex flex-wrap gap-4 pt-1">
                 {AVAILABLE_ROLES.map((role) => (
                   <label
                     key={role}
-                    className="flex items-center gap-2 text-sm capitalize cursor-pointer"
+                    className="flex cursor-pointer items-center gap-2 text-sm capitalize"
                   >
                     <Checkbox
                       checked={formData.targetRoles.includes(role)}
@@ -557,15 +506,15 @@ export default function AnnouncementsPage() {
             </div>
             <div className="space-y-2">
               <Label>Target Classes (optional)</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Leave unchecked to send to all classes.
               </p>
-              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
                 {classes?.length ? (
                   classes.map((c) => (
                     <label
                       key={c.id}
-                      className="flex items-center gap-2 text-sm cursor-pointer rounded px-1 py-0.5 hover:bg-muted"
+                      className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm"
                     >
                       <Checkbox
                         checked={formData.targetClassIds.includes(c.id)}
@@ -573,7 +522,7 @@ export default function AnnouncementsPage() {
                       />
                       {c.name}
                       {c.grade && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           Grade {c.grade}
                           {c.section ? ` - ${c.section}` : ""}
                         </span>
@@ -581,7 +530,7 @@ export default function AnnouncementsPage() {
                     </label>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground py-2 text-center">
+                  <p className="text-muted-foreground py-2 text-center text-xs">
                     No classes available
                   </p>
                 )}
@@ -604,11 +553,7 @@ export default function AnnouncementsPage() {
               onClick={handleSave}
               disabled={saving || !formData.title.trim() || !formData.body.trim()}
             >
-              {saving
-                ? "Saving..."
-                : editingId
-                  ? "Update"
-                  : "Create Draft"}
+              {saving ? "Saving..." : editingId ? "Update" : "Create Draft"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -66,6 +66,7 @@ exports.recalculateAndWriteProgress = recalculateAndWriteProgress;
  * happen in one transactional write.
  */
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
 /** Maximum number of attempts to keep per item in the progress document. */
 const MAX_ATTEMPTS = 20;
@@ -273,7 +274,7 @@ async function recalculateAndWriteProgress(params) {
             }
             if (completedSPCount >= totalStoryPoints) {
               spaceStatus = "completed";
-              spaceCompletedAt = admin.firestore.FieldValue.serverTimestamp();
+              spaceCompletedAt = firestore_1.FieldValue.serverTimestamp();
             }
           }
         }
@@ -292,8 +293,8 @@ async function recalculateAndWriteProgress(params) {
       totalPoints: totalPointsAvailable,
       percentage: overallPercentage,
       storyPoints: mergedStoryPoints,
-      startedAt: existingSpaceData.startedAt ?? admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      startedAt: existingSpaceData.startedAt ?? firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     };
     if (spaceCompletedAt) {
       spaceProgressUpdate.completedAt = spaceCompletedAt;

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpace, useRealtimeDB, useRecordItemAttempt, useApiError } from "@levelup/shared-hooks";
-import { realtimeDBService } from "@levelup/shared-services";
+import { useSpace, useRecordItemAttempt, useApiError } from "@levelup/query";
+import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import { useEvaluateAnswer } from "../hooks/useEvaluateAnswer";
@@ -24,17 +24,11 @@ import {
   BreadcrumbSeparator,
 } from "@levelup/shared-ui";
 
-interface PracticeProgressData {
-  evaluations: Record<string, UnifiedEvaluationResult>;
-  updatedAt: number;
-}
-
 export default function PracticeModePage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
-  const { currentTenantId, user } = useAuthStore();
-  const userId = user?.uid ?? null;
+  const { currentTenantId } = useAuthStore();
 
-  const { data: space } = useSpace(currentTenantId, spaceId ?? null);
+  const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
   const { data: storyPoints } = useStoryPoints(currentTenantId, spaceId ?? null);
   const { data: items, isLoading } = useStoryPointItems(
     currentTenantId,
@@ -42,7 +36,7 @@ export default function PracticeModePage() {
     storyPointId ?? null
   );
   const evaluateAnswer = useEvaluateAnswer();
-  const recordAttempt = useRecordItemAttempt(userId);
+  const recordAttempt = useRecordItemAttempt();
   const { handleError } = useApiError();
 
   const storyPoint = storyPoints?.find((sp) => sp.id === storyPointId);
@@ -52,7 +46,6 @@ export default function PracticeModePage() {
   const [evaluations, setEvaluations] = useState<Record<string, UnifiedEvaluationResult>>({});
   const [chatItemId, setChatItemId] = useState<string | null>(null);
   const [difficultyFilter, setDifficultyFilter] = useState<string | null>(null);
-  const [rtdbLoaded, setRtdbLoaded] = useState(false);
 
   // Warn before leaving with unsaved progress
   useEffect(() => {
@@ -64,42 +57,6 @@ export default function PracticeModePage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [evaluations]);
-
-  // Load persisted practice progress from RTDB
-  const rtdbPath = userId && spaceId ? `practice/${userId}/${spaceId}` : null;
-
-  const { data: persistedProgress } = useRealtimeDB<PracticeProgressData>(
-    currentTenantId ?? "",
-    rtdbPath ?? "",
-    { disabled: !currentTenantId || !rtdbPath }
-  );
-
-  // Restore evaluations from RTDB on initial load
-  useEffect(() => {
-    if (persistedProgress?.evaluations && !rtdbLoaded) {
-      setEvaluations(persistedProgress.evaluations);
-      setRtdbLoaded(true);
-    } else if (persistedProgress === null && !rtdbLoaded) {
-      setRtdbLoaded(true);
-    }
-  }, [persistedProgress, rtdbLoaded]);
-
-  // Persist evaluations to RTDB on change
-  const persistToRTDB = useCallback(
-    (newEvaluations: Record<string, UnifiedEvaluationResult>) => {
-      if (!currentTenantId || !userId || !spaceId) return;
-      const path = `practice/${userId}/${spaceId}`;
-      realtimeDBService
-        .setData(currentTenantId, path, {
-          evaluations: newEvaluations,
-          updatedAt: Date.now(),
-        })
-        .catch((err: unknown) => {
-          handleError(err, "Failed to save practice progress");
-        });
-    },
-    [currentTenantId, userId, spaceId]
-  );
 
   // Reset currentIndex when difficulty filter changes
   useEffect(() => {
@@ -137,31 +94,13 @@ export default function PracticeModePage() {
       const newEvaluations = { ...evaluations, [item.id]: evaluationResult };
       setEvaluations(newEvaluations);
 
-      // Persist to RTDB as fast session cache
-      persistToRTDB(newEvaluations);
-
-      // Persist to Firestore via recordItemAttempt for durable progress tracking
+      // Persist durable progress via recordItemAttempt. Per CD13 the client
+      // sends only the raw answer — the server scores authoritatively.
       recordAttempt.mutate({
-        tenantId: currentTenantId,
-        spaceId,
-        storyPointId,
-        itemId: item.id,
-        itemType: "question",
-        score: evaluationResult.score,
-        maxScore: evaluationResult.maxScore,
-        correct: evaluationResult.correctness >= 1,
+        spaceId: asSpaceId(spaceId),
+        storyPointId: asStoryPointId(storyPointId),
+        itemId: asItemId(item.id),
         answer,
-        evaluationData: {
-          score: evaluationResult.score,
-          maxScore: evaluationResult.maxScore,
-          correctness: evaluationResult.correctness,
-          percentage: evaluationResult.percentage,
-          strengths: evaluationResult.strengths ?? [],
-          weaknesses: evaluationResult.weaknesses ?? [],
-          missingConcepts: evaluationResult.missingConcepts ?? [],
-          summary: evaluationResult.summary,
-          mistakeClassification: evaluationResult.mistakeClassification,
-        },
       });
     } catch (err) {
       handleError(err, "Failed to evaluate answer");

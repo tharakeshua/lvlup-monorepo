@@ -2,12 +2,13 @@ import { Link } from "react-router-dom";
 import { useCurrentUser, useCurrentMembership, useCurrentTenantId } from "@levelup/shared-stores";
 import {
   useSpaces,
-  useAllSpaceProgress,
-  useStudentProgressSummary,
+  useSpaceProgress,
+  useStudentSummary,
   useExams,
   useStudentAchievements,
   useStudentLevel,
-} from "@levelup/shared-hooks";
+} from "@levelup/query";
+import type { UserId, StudentProgressSummary, StudentAchievement } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
 import RecommendationsSection from "../components/dashboard/RecommendationsSection";
 import {
@@ -22,7 +23,9 @@ import {
   CountUp,
   EmptyState,
 } from "@levelup/shared-ui";
-import type { Space, Exam } from "@levelup/shared-types";
+import type { Space, SpaceProgress } from "@levelup/shared-types";
+
+type ExamLike = { id: string; title: string; examDate?: unknown };
 import {
   BookOpen,
   Clock,
@@ -41,24 +44,41 @@ export default function DashboardPage() {
   const tenantId = useCurrentTenantId();
 
   const classIds = membership?.permissions?.managedClassIds;
-  const { data: spaces, isLoading: spacesLoading } = useSpaces(tenantId, {
+  const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
     classIds,
   });
-  const { data: summary, isLoading: summaryLoading } = useStudentProgressSummary(
-    tenantId,
-    user?.uid ?? null
+  const spaces = spacesPage?.items;
+  const { data: summaryData, isLoading: summaryLoading } = useStudentSummary(
+    (user?.uid ?? "") as UserId
   );
+  const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
+    ?.studentSummary;
 
-  const { data: allProgress } = useAllSpaceProgress(tenantId, user?.uid ?? null);
-  const { data: exams } = useExams(tenantId, { status: "published" });
-  const { data: recentAchievements } = useStudentAchievements(tenantId, user?.uid ?? null);
-  const { data: level } = useStudentLevel(tenantId, user?.uid ?? null);
+  const { data: examsData } = useExams({ status: "published" });
+  const exams = (
+    examsData as { pages?: Array<{ items?: ExamLike[] }> } | undefined
+  )?.pages?.flatMap((p) => p.items ?? []);
+  const { data: achData } = useStudentAchievements();
+  const recentAchievements = (
+    achData as { pages?: Array<{ items?: StudentAchievement[] }> } | undefined
+  )?.pages?.flatMap((p) => p.items ?? []);
+  const { data: level } = useStudentLevel();
 
-  // Helper to safely extract timestamp from exam
-  function getExamTimestamp(exam: Exam): number | null {
+  // Helper to safely extract a timestamp (ms) from an exam's date (ISO string at
+  // rest; legacy {seconds} shape tolerated).
+  function getExamTimestamp(exam: ExamLike): number | null {
     const ts = exam.examDate;
-    return ts?.seconds ? ts.seconds * 1000 : null;
+    if (!ts) return null;
+    if (typeof ts === "string") {
+      const ms = Date.parse(ts);
+      return Number.isNaN(ms) ? null : ms;
+    }
+    if (typeof ts === "object" && "seconds" in ts) {
+      const s = (ts as { seconds?: number }).seconds;
+      return s ? s * 1000 : null;
+    }
+    return null;
   }
 
   // Filter upcoming exams (scheduled in the future)
@@ -361,7 +381,7 @@ export default function DashboardPage() {
       )}
 
       {/* Recommendations */}
-      {tenantId && user?.uid && <RecommendationsSection tenantId={tenantId} studentId={user.uid} />}
+      {tenantId && user?.uid && <RecommendationsSection studentId={user.uid} />}
 
       {/* My Spaces */}
       <FadeIn delay={0.4}>
@@ -391,11 +411,7 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {recentSpaces.map((space) => (
-                <DashboardSpaceCard
-                  key={space.id}
-                  space={space}
-                  percentage={allProgress?.[space.id]?.percentage ?? 0}
-                />
+                <DashboardSpaceCard key={space.id} space={space} />
               ))}
             </div>
           )}
@@ -405,7 +421,9 @@ export default function DashboardPage() {
   );
 }
 
-function DashboardSpaceCard({ space, percentage }: { space: Space; percentage: number }) {
+function DashboardSpaceCard({ space }: { space: Space }) {
+  const { data } = useSpaceProgress(space.id);
+  const percentage = (data as SpaceProgress | null)?.percentage ?? 0;
   return (
     <AnimatedCard>
       <Link

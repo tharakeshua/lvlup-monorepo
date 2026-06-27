@@ -1,13 +1,14 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export interface NotificationPayload {
   tenantId: string;
   recipientId: string;
-  recipientRole: 'teacher' | 'student' | 'parent' | 'tenantAdmin';
+  recipientRole: "teacher" | "student" | "parent" | "tenantAdmin";
   type: string;
   title: string;
   body: string;
-  entityType?: 'exam' | 'space' | 'submission' | 'student' | 'class';
+  entityType?: "exam" | "space" | "submission" | "student" | "class";
   entityId?: string;
   actionUrl?: string;
 }
@@ -16,7 +17,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
   const db = admin.firestore();
   const rtdb = admin.database();
   const notifRef = db.collection(`tenants/${payload.tenantId}/notifications`).doc();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   await notifRef.set({
     id: notifRef.id,
@@ -34,7 +35,9 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
   });
 
   const rtdbPath = `notifications/${payload.tenantId}/${payload.recipientId}`;
-  await rtdb.ref(`${rtdbPath}/unreadCount`).transaction((current: number | null) => (current ?? 0) + 1);
+  await rtdb
+    .ref(`${rtdbPath}/unreadCount`)
+    .transaction((current: number | null) => (current ?? 0) + 1);
   await rtdb.ref(`${rtdbPath}/latest`).set({
     id: notifRef.id,
     title: payload.title,
@@ -47,13 +50,13 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
 
 export async function sendBulkNotifications(
   recipientIds: string[],
-  basePayload: Omit<NotificationPayload, 'recipientId'>,
+  basePayload: Omit<NotificationPayload, "recipientId">
 ): Promise<number> {
   if (recipientIds.length === 0) return 0;
 
   const db = admin.firestore();
   const rtdb = admin.database();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
   const BATCH_SIZE = 450;
   let sent = 0;
 
@@ -94,8 +97,9 @@ export async function sendBulkNotifications(
     await rtdb.ref().update(rtdbUpdates);
 
     const incrementPromises = chunk.map((recipientId) =>
-      rtdb.ref(`notifications/${basePayload.tenantId}/${recipientId}/unreadCount`)
-        .transaction((current: number | null) => (current ?? 0) + 1),
+      rtdb
+        .ref(`notifications/${basePayload.tenantId}/${recipientId}/unreadCount`)
+        .transaction((current: number | null) => (current ?? 0) + 1)
     );
     await Promise.all(incrementPromises);
   }

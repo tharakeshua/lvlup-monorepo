@@ -1,5 +1,6 @@
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "firebase-functions/v2";
 
 /**
  * Log an administrative action to the tenant's audit log.
@@ -9,7 +10,7 @@ export async function logTenantAction(
   tenantId: string,
   callerUid: string,
   action: string,
-  details?: Record<string, unknown>,
+  details?: Record<string, unknown>
 ): Promise<void> {
   try {
     await admin
@@ -19,7 +20,7 @@ export async function logTenantAction(
         action,
         callerUid,
         details: details ?? null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
   } catch (err) {
     // Audit logging should never block the main operation

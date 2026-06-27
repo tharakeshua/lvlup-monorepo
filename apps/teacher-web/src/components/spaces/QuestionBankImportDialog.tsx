@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { getFirebaseServices, callImportFromBank } from "@levelup/shared-services";
+import { useState } from "react";
+import { useQuestionBank, useImportFromBank } from "@levelup/query";
 import type { QuestionBankItem } from "@levelup/shared-types";
 import {
   Dialog,
@@ -18,7 +17,6 @@ import { Search, Check, Library, AlertCircle } from "lucide-react";
 interface QuestionBankImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tenantId: string;
   spaceId: string;
   storyPointId: string;
   onImported: () => void;
@@ -27,41 +25,23 @@ interface QuestionBankImportDialogProps {
 export default function QuestionBankImportDialog({
   open,
   onOpenChange,
-  tenantId,
   spaceId,
   storyPointId,
   onImported,
 }: QuestionBankImportDialogProps) {
-  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Load question bank items
-  useEffect(() => {
-    if (!open || !tenantId) return;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { db } = getFirebaseServices();
-        const q = query(
-          collection(db, `tenants/${tenantId}/questionBank`),
-          orderBy("createdAt", "desc"),
-          limit(100)
-        );
-        const snap = await getDocs(q);
-        setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as QuestionBankItem));
-      } catch (err) {
-        setError("Failed to load question bank");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [open, tenantId]);
+  // Load question bank items (tenant-scoped server-side; only fetch while open).
+  const {
+    data,
+    isLoading: loading,
+    isError: loadError,
+  } = useQuestionBank<{ items: QuestionBankItem[] }>({ limit: 100 }, { enabled: open });
+  const questions = data?.items ?? [];
+  const importFromBank = useImportFromBank();
 
   const filtered = questions.filter((q) => {
     if (!search.trim()) return true;
@@ -88,11 +68,10 @@ export default function QuestionBankImportDialog({
     setImporting(true);
     setError(null);
     try {
-      await callImportFromBank({
-        tenantId,
+      await importFromBank.mutateAsync({
         spaceId,
         storyPointId,
-        questionBankItemIds: Array.from(selected),
+        bankItemIds: Array.from(selected),
       });
       setSelected(new Set());
       onImported();
@@ -125,10 +104,10 @@ export default function QuestionBankImportDialog({
           />
         </div>
 
-        {error && (
+        {(error || loadError) && (
           <div className="text-destructive flex items-center gap-2 text-sm">
             <AlertCircle className="h-4 w-4" />
-            {error}
+            {error ?? "Failed to load question bank"}
           </div>
         )}
 

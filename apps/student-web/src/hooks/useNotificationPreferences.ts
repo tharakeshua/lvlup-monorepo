@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { doc, getDoc } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useNotificationPreferences as useSdkNotificationPreferences } from "@levelup/query";
 
 export interface NotificationPreferences {
   emailNotifs: boolean;
@@ -20,20 +18,20 @@ export const DEFAULT_PREFS: NotificationPreferences = {
   streakReminders: true,
 };
 
+/**
+ * Read the caller's notification preferences via the SDK. Tenant/user scope is
+ * implicit in the SDK auth context, so the legacy `tenantId`/`userId` params are
+ * preserved for call-site compatibility but only gate enablement.
+ */
 export function useNotificationPreferences(tenantId: string | null, userId: string | null) {
-  return useQuery<NotificationPreferences>({
-    queryKey: ["tenants", tenantId, "notificationPreferences", userId],
-    queryFn: async () => {
-      if (!tenantId || !userId) return DEFAULT_PREFS;
-      const { db } = getFirebaseServices();
-      const ref = doc(db, `tenants/${tenantId}/notificationPreferences`, userId);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        return { ...DEFAULT_PREFS, ...snap.data() } as NotificationPreferences;
-      }
-      return DEFAULT_PREFS;
-    },
-    enabled: !!tenantId && !!userId,
-    staleTime: 5 * 60 * 1000,
-  });
+  const ready = !!tenantId && !!userId;
+  const query = useSdkNotificationPreferences();
+  const merged: NotificationPreferences = {
+    ...DEFAULT_PREFS,
+    ...((query.data as Partial<NotificationPreferences> | undefined) ?? {}),
+  };
+  return {
+    ...query,
+    data: ready ? merged : DEFAULT_PREFS,
+  };
 }

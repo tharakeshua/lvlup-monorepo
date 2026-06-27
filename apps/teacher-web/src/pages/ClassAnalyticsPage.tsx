@@ -1,16 +1,7 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useClasses,
-  useClassProgressSummary,
-} from "@levelup/shared-hooks";
-import {
-  BarChart3,
-  Users,
-  BookOpen,
-  ClipboardList,
-  Trophy,
-} from "lucide-react";
+import { useClasses, useClassSummary } from "@levelup/query";
+import type { Class, ClassProgressSummary } from "@levelup/shared-types";
+import { BarChart3, Users, BookOpen, ClipboardList, Trophy } from "lucide-react";
 import {
   ScoreCard,
   ProgressRing,
@@ -21,23 +12,66 @@ import {
   SelectValue,
 } from "@levelup/shared-ui";
 
+// The @levelup/query class summary (domain `ClassProgressSummary`) has a leaner
+// shape than the legacy denormalized summary this page renders: it exposes
+// `autograde.{averageScore,averagePercentage,passRate}` /
+// `levelup.{averageCompletion,activeStudents}` but NOT the top/bottom-performer or
+// top-point-earner lists, nor an explicit completion-rate. We adapt to the legacy
+// shape, mapping what exists and defaulting the dropped lists to [] so the UI
+// degrades gracefully. (PARITY GAP — flagged to Frontend-Lead.)
+function adaptClassSummary(raw: unknown): ClassProgressSummary | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as {
+    id?: string;
+    tenantId?: string;
+    classId?: string;
+    className?: string;
+    studentCount?: number;
+    atRiskCount?: number;
+    atRiskStudentIds?: string[];
+    lastUpdatedAt?: unknown;
+    autograde?: { averageScore?: number; averagePercentage?: number; passRate?: number };
+    levelup?: { averageCompletion?: number; activeStudents?: number };
+  };
+  const studentCount = s.studentCount ?? 0;
+  return {
+    id: s.id ?? s.classId ?? "",
+    tenantId: s.tenantId ?? "",
+    classId: s.classId ?? "",
+    className: s.className ?? "",
+    studentCount,
+    autograde: {
+      averageClassScore: (s.autograde?.averagePercentage ?? 0) / 100,
+      examCompletionRate: s.autograde?.passRate ?? 0,
+      topPerformers: [],
+      bottomPerformers: [],
+    },
+    levelup: {
+      averageClassCompletion: s.levelup?.averageCompletion ?? 0,
+      activeStudentRate: studentCount > 0 ? (s.levelup?.activeStudents ?? 0) / studentCount : 0,
+      topPointEarners: [],
+    },
+    atRiskStudentIds: s.atRiskStudentIds ?? [],
+    atRiskCount: s.atRiskCount ?? 0,
+    lastUpdatedAt: s.lastUpdatedAt as ClassProgressSummary["lastUpdatedAt"],
+  };
+}
+
 export default function ClassAnalyticsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: classes = [] } = useClasses(tenantId);
+  const { data: classData } = useClasses();
+  const classes = ((classData as { items?: Class[] } | undefined)?.items ?? []) as Class[];
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const activeClassId = selectedClassId || classes[0]?.id || null;
-  const { data: classSummary, isLoading } = useClassProgressSummary(
-    tenantId,
-    activeClassId,
-  );
+  const { data: rawSummary, isLoading } = useClassSummary((activeClassId ?? "") as never);
+  const classSummary = adaptClassSummary(rawSummary);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Class Analytics</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Cross-system performance overview per class
           </p>
         </div>
@@ -50,7 +84,9 @@ export default function ClassAnalyticsPage() {
           </SelectTrigger>
           <SelectContent>
             {classes.length === 0 && (
-              <SelectItem value="__none__" disabled>No classes</SelectItem>
+              <SelectItem value="__none__" disabled>
+                No classes
+              </SelectItem>
             )}
             {classes.map((c) => (
               <SelectItem key={c.id} value={c.id}>
@@ -64,16 +100,13 @@ export default function ClassAnalyticsPage() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-lg border bg-muted"
-            />
+            <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
           ))}
         </div>
       ) : !classSummary ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
-          <BarChart3 className="h-10 w-10 mx-auto text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">
+          <BarChart3 className="text-muted-foreground mx-auto h-10 w-10" />
+          <p className="text-muted-foreground mt-3 text-sm">
             {classes.length === 0
               ? "No classes created yet."
               : "No analytics data yet. Data will appear after exams are graded and spaces are used."}
@@ -83,11 +116,7 @@ export default function ClassAnalyticsPage() {
         <>
           {/* Overview Cards */}
           <div className="grid gap-4 md:grid-cols-4">
-            <ScoreCard
-              label="Students"
-              value={classSummary.studentCount}
-              icon={Users}
-            />
+            <ScoreCard label="Students" value={classSummary.studentCount} icon={Users} />
             <ScoreCard
               label="Avg Exam Score"
               value={`${Math.round(classSummary.autograde.averageClassScore * 100)}%`}
@@ -103,18 +132,14 @@ export default function ClassAnalyticsPage() {
               value={classSummary.atRiskCount}
               icon={Users}
               trend={classSummary.atRiskCount > 0 ? "down" : "neutral"}
-              trendValue={
-                classSummary.atRiskCount > 0
-                  ? "Needs attention"
-                  : "All on track"
-              }
+              trendValue={classSummary.atRiskCount > 0 ? "Needs attention" : "All on track"}
             />
           </div>
 
           {/* AutoGrade + LevelUp side by side */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* AutoGrade Section */}
-            <div className="rounded-lg border bg-card p-5 space-y-4">
+            <div className="bg-card space-y-4 rounded-lg border p-5">
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-blue-500" />
                 <h2 className="font-semibold">AutoGrade</h2>
@@ -124,7 +149,7 @@ export default function ClassAnalyticsPage() {
                   value={classSummary.autograde.averageClassScore * 100}
                   label="Avg Score"
                 />
-                <div className="text-sm space-y-1">
+                <div className="space-y-1 text-sm">
                   <p>
                     Completion Rate:{" "}
                     <span className="font-medium">
@@ -137,19 +162,14 @@ export default function ClassAnalyticsPage() {
               {/* Top Performers */}
               {classSummary.autograde.topPerformers.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
                     <Trophy className="h-3 w-3" /> Top Performers
                   </p>
                   <div className="space-y-1">
                     {classSummary.autograde.topPerformers.slice(0, 3).map((s) => (
-                      <div
-                        key={s.studentId}
-                        className="flex items-center justify-between text-sm"
-                      >
+                      <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
-                        <span className="font-medium">
-                          {Math.round(s.avgScore * 100)}%
-                        </span>
+                        <span className="font-medium">{Math.round(s.avgScore * 100)}%</span>
                       </div>
                     ))}
                   </div>
@@ -159,15 +179,12 @@ export default function ClassAnalyticsPage() {
               {/* Bottom Performers */}
               {classSummary.autograde.bottomPerformers.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                  <p className="text-muted-foreground mb-2 text-xs font-medium">
                     Needs Improvement
                   </p>
                   <div className="space-y-1">
                     {classSummary.autograde.bottomPerformers.slice(0, 3).map((s) => (
-                      <div
-                        key={s.studentId}
-                        className="flex items-center justify-between text-sm"
-                      >
+                      <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
                         <span className="font-medium text-red-600">
                           {Math.round(s.avgScore * 100)}%
@@ -180,7 +197,7 @@ export default function ClassAnalyticsPage() {
             </div>
 
             {/* LevelUp Section */}
-            <div className="rounded-lg border bg-card p-5 space-y-4">
+            <div className="bg-card space-y-4 rounded-lg border p-5">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-green-500" />
                 <h2 className="font-semibold">LevelUp</h2>
@@ -190,7 +207,7 @@ export default function ClassAnalyticsPage() {
                   value={classSummary.levelup.averageClassCompletion}
                   label="Avg Completion"
                 />
-                <div className="text-sm space-y-1">
+                <div className="space-y-1 text-sm">
                   <p>
                     Active Rate:{" "}
                     <span className="font-medium">
@@ -203,15 +220,12 @@ export default function ClassAnalyticsPage() {
               {/* Top Point Earners */}
               {classSummary.levelup.topPointEarners.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
                     <Trophy className="h-3 w-3" /> Top Point Earners
                   </p>
                   <div className="space-y-1">
                     {classSummary.levelup.topPointEarners.slice(0, 5).map((s) => (
-                      <div
-                        key={s.studentId}
-                        className="flex items-center justify-between text-sm"
-                      >
+                      <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
                         <span className="font-medium">{s.points} pts</span>
                       </div>

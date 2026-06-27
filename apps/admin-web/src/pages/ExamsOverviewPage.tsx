@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { useExams, useTeachers } from "@levelup/shared-hooks";
-import { useCurrentTenantId } from "@levelup/shared-stores";
+import { useExams, useTeachers } from "@levelup/query";
+import type { Exam, Teacher } from "@levelup/shared-types";
 import {
   Input,
   Button,
@@ -21,14 +21,15 @@ import { useSort } from "../hooks/useSort";
 import { STATUS_VARIANT } from "../lib/constants";
 
 export default function ExamsOverviewPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: exams, isLoading } = useExams(tenantId);
-  const { data: teachers = [] } = useTeachers(tenantId);
+  const examsQuery = useExams({});
+  const exams = (examsQuery.data ?? []) as Exam[];
+  const { isLoading, isError, refetch } = examsQuery;
+  const teachers = (useTeachers({}).data ?? []) as Teacher[];
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const teacherMap = useMemo(
-    () => new Map(teachers.map(t => [t.uid, t.displayName ?? t.email ?? t.uid.slice(0, 8)])),
+    () => new Map(teachers.map((t) => [t.uid, t.displayName ?? t.email ?? t.uid.slice(0, 8)])),
     [teachers]
   );
 
@@ -38,10 +39,7 @@ export default function ExamsOverviewPage() {
     if (statusFilter !== "all" && exam.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return (
-      exam.title.toLowerCase().includes(q) ||
-      exam.subject?.toLowerCase().includes(q)
-    );
+    return exam.title.toLowerCase().includes(q) || exam.subject?.toLowerCase().includes(q);
   });
 
   const { sortedItems, currentSort, handleSort } = useSort(filtered ?? []);
@@ -52,14 +50,12 @@ export default function ExamsOverviewPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Exams Overview</h1>
-        <p className="text-sm text-muted-foreground">
-          All exams across teachers
-        </p>
+        <p className="text-muted-foreground text-sm">All exams across teachers</p>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="text"
             placeholder="Search exams..."
@@ -75,7 +71,7 @@ export default function ExamsOverviewPage() {
               variant={statusFilter === s ? "default" : "secondary"}
               size="sm"
               onClick={() => setStatusFilter(s)}
-              className="capitalize shrink-0"
+              className="shrink-0 capitalize"
             >
               {s}
             </Button>
@@ -84,21 +80,44 @@ export default function ExamsOverviewPage() {
       </div>
 
       <div className="rounded-lg border">
-        {isLoading ? (
+        {isError ? (
+          <div className="px-4 py-8 text-center">
+            <p className="text-muted-foreground text-sm">Failed to load exams.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : isLoading ? (
           <TableSkeleton columns={5} />
         ) : !filtered?.length ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No exams found
-          </div>
+          <div className="text-muted-foreground px-4 py-8 text-center text-sm">No exams found</div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <SortableTableHead sortKey="title" currentSort={currentSort} onSort={handleSort}>Title</SortableTableHead>
-                    <SortableTableHead sortKey="subject" currentSort={currentSort} onSort={handleSort}>Subject</SortableTableHead>
-                    <SortableTableHead sortKey="totalMarks" currentSort={currentSort} onSort={handleSort}>Total Marks</SortableTableHead>
+                    <SortableTableHead
+                      sortKey="title"
+                      currentSort={currentSort}
+                      onSort={handleSort}
+                    >
+                      Title
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="subject"
+                      currentSort={currentSort}
+                      onSort={handleSort}
+                    >
+                      Subject
+                    </SortableTableHead>
+                    <SortableTableHead
+                      sortKey="totalMarks"
+                      currentSort={currentSort}
+                      onSort={handleSort}
+                    >
+                      Total Marks
+                    </SortableTableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created By</TableHead>
                   </TableRow>
@@ -112,12 +131,17 @@ export default function ExamsOverviewPage() {
                       </TableCell>
                       <TableCell>{exam.totalMarks}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[exam.status] ?? "secondary"} className="capitalize">
+                        <Badge
+                          variant={STATUS_VARIANT[exam.status] ?? "secondary"}
+                          className="capitalize"
+                        >
                           {exam.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {exam.createdBy ? (teacherMap.get(exam.createdBy) ?? exam.createdBy.slice(0, 8)) : "--"}
+                        {exam.createdBy
+                          ? (teacherMap.get(exam.createdBy) ?? exam.createdBy.slice(0, 8))
+                          : "--"}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -11,16 +11,17 @@
  * 2. Recalculates LevelUp metrics on the student's progress summary
  */
 
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { computeOverallScore, identifyStrengthsAndWeaknesses } from '../utils/aggregation-helpers';
-import type { StoryPointProgress } from '@levelup/shared-types';
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { computeOverallScore, identifyStrengthsAndWeaknesses } from "../utils/aggregation-helpers";
+import type { StoryPointProgress } from "@levelup/shared-types";
 
 export const onUserStoryPointProgressWrite = onDocumentWritten(
   {
-    document: 'tenants/{tenantId}/spaceProgress/{progressId}',
-    region: 'asia-south1',
-    memory: '256MiB',
+    document: "tenants/{tenantId}/spaceProgress/{progressId}",
+    region: "asia-south1",
+    memory: "256MiB",
   },
   async (event) => {
     const beforeData = event.data?.before.data();
@@ -41,10 +42,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
 
     for (const [spId, afterSp] of Object.entries(afterStoryPoints)) {
       const beforeSp = beforeStoryPoints[spId];
-      if (
-        afterSp.status === 'completed' &&
-        (!beforeSp || beforeSp.status !== 'completed')
-      ) {
+      if (afterSp.status === "completed" && (!beforeSp || beforeSp.status !== "completed")) {
         newlyCompleted.push({ storyPointId: spId, progress: afterSp });
       }
     }
@@ -63,7 +61,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
     for (const sp of Object.values(afterStoryPoints)) {
       totalPointsEarned += sp.pointsEarned ?? 0;
       totalPointsAvailable += sp.totalPoints ?? 0;
-      if (sp.status === 'completed') completedCount++;
+      if (sp.status === "completed") completedCount++;
     }
 
     // Update RTDB leaderboard for each newly completed story point
@@ -79,7 +77,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
       };
 
       console.log(
-        `Story point ${storyPointId} completed by ${userId}: ${progress.pointsEarned}/${progress.totalPoints} points`,
+        `Story point ${storyPointId} completed by ${userId}: ${progress.pointsEarned}/${progress.totalPoints} points`
       );
     }
 
@@ -90,9 +88,8 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
       totalPoints: totalPointsAvailable,
       completedStoryPoints: completedCount,
       totalStoryPoints,
-      percentage: totalPointsAvailable > 0
-        ? Math.round((totalPointsEarned / totalPointsAvailable) * 100)
-        : 0,
+      percentage:
+        totalPointsAvailable > 0 ? Math.round((totalPointsEarned / totalPointsAvailable) * 100) : 0,
       updatedAt: admin.database.ServerValue.TIMESTAMP,
     };
 
@@ -101,9 +98,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
 
     // Update student progress summary with fresh LevelUp metrics
     // (Reuse the same aggregation logic from on-space-progress-updated)
-    const summaryRef = db.doc(
-      `tenants/${tenantId}/studentProgressSummaries/${userId}`,
-    );
+    const summaryRef = db.doc(`tenants/${tenantId}/studentProgressSummaries/${userId}`);
 
     await db.runTransaction(async (transaction) => {
       const existingSummary = (await transaction.get(summaryRef)).data();
@@ -118,7 +113,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
 
       const { strengths, weaknesses } = identifyStrengthsAndWeaknesses(
         autogradeBreakdown,
-        levelupBreakdown,
+        levelupBreakdown
       );
 
       const overallScore = computeOverallScore(autogradeAvgScore, levelupAvgCompletion);
@@ -132,14 +127,14 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdatedAt: FieldValue.serverTimestamp(),
         },
-        { merge: true },
+        { merge: true }
       );
     });
 
     console.log(
-      `Updated leaderboard and summary for ${userId}: ${newlyCompleted.length} story points completed in space ${spaceId}`,
+      `Updated leaderboard and summary for ${userId}: ${newlyCompleted.length} story points completed in space ${spaceId}`
     );
-  },
+  }
 );

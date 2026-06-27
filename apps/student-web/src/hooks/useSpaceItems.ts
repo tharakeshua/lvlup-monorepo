@@ -1,67 +1,44 @@
-import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { UnifiedItem } from '@levelup/shared-types';
+import { useItems } from "@levelup/query";
+import type { UnifiedItem } from "@levelup/shared-types";
 
+/**
+ * App-local wrappers over `@levelup/query`'s `useItems` (answer-stripped list).
+ * Preserve the legacy signatures + `UnifiedItem[]` return shape so existing
+ * consumers keep working. `tenantId` is now resolved inside the SDK (auth
+ * context), so the first arg is accepted but ignored.
+ */
 export function useStoryPointItems(
-  tenantId: string | null,
+  _tenantId: string | null,
   spaceId: string | null,
-  storyPointId: string | null,
+  storyPointId: string | null
 ) {
-  return useQuery<UnifiedItem[]>({
-    queryKey: ['tenants', tenantId, 'spaces', spaceId, 'storyPoints', storyPointId, 'items'],
-    queryFn: async () => {
-      if (!tenantId || !spaceId || !storyPointId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(
-        db,
-        `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`,
-      );
-      const q = query(colRef, orderBy('orderIndex', 'asc'));
-      try {
-        const snap = await getDocs(q);
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
-      } catch (err) {
-        throw new Error(
-          `Failed to load items for story point ${storyPointId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    },
-    enabled: !!tenantId && !!spaceId && !!storyPointId,
+  const result = useItems<{ items: UnifiedItem[] }>(spaceId ?? "", storyPointId ?? "", undefined, {
+    enabled: !!spaceId && !!storyPointId,
     staleTime: 5 * 60 * 1000,
   });
+  return {
+    ...result,
+    data: (result.data?.items ?? undefined) as UnifiedItem[] | undefined,
+  };
 }
 
 export function useSectionItems(
-  tenantId: string | null,
+  _tenantId: string | null,
   spaceId: string | null,
   storyPointId: string | null,
-  sectionId: string | null,
+  sectionId: string | null
 ) {
-  return useQuery<UnifiedItem[]>({
-    queryKey: ['tenants', tenantId, 'spaces', spaceId, 'storyPoints', storyPointId, 'sections', sectionId, 'items'],
-    queryFn: async () => {
-      if (!tenantId || !spaceId || !storyPointId || !sectionId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(
-        db,
-        `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`,
-      );
-      const q = query(
-        colRef,
-        where('sectionId', '==', sectionId),
-        orderBy('orderIndex', 'asc'),
-      );
-      try {
-        const snap = await getDocs(q);
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
-      } catch (err) {
-        throw new Error(
-          `Failed to load section items for ${sectionId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    },
-    enabled: !!tenantId && !!spaceId && !!storyPointId && !!sectionId,
-    staleTime: 5 * 60 * 1000,
-  });
+  const result = useItems<{ items: UnifiedItem[] }>(
+    spaceId ?? "",
+    storyPointId ?? "",
+    sectionId ? { sectionId } : {},
+    {
+      enabled: !!spaceId && !!storyPointId && !!sectionId,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+  return {
+    ...result,
+    data: (result.data?.items ?? undefined) as UnifiedItem[] | undefined,
+  };
 }

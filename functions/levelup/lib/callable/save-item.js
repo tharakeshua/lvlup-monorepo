@@ -54,10 +54,11 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveItem = void 0;
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
-const firestore_1 = require("../utils/firestore");
+const firestore_2 = require("../utils/firestore");
 const create_item_1 = require("./create-item");
 const shared_types_1 = require("@levelup/shared-types");
 const utils_1 = require("../utils");
@@ -98,7 +99,7 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
   }
   await (0, auth_1.assertTeacherOrAdmin)(callerUid, tenantId);
   await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 30);
-  await (0, firestore_1.loadSpace)(tenantId, spaceId);
+  await (0, firestore_2.loadSpace)(tenantId, spaceId);
   const db = admin.firestore();
   // Canonical nested path; legacy flat path retained for fallback resolution.
   const nestedItemsPath = `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`;
@@ -112,7 +113,7 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
   };
   // ── DELETE (soft-delete flag) ───────────────────────
   if (!isCreate && data.deleted) {
-    const item = await (0, firestore_1.loadItem)(tenantId, spaceId, id, storyPointId);
+    const item = await (0, firestore_2.loadItem)(tenantId, spaceId, id, storyPointId);
     const itemPath = await resolveItemPath(id);
     // Delete answer keys subcollection
     const akSnap = await db.collection(`${itemPath}/answerKeys`).get();
@@ -127,26 +128,24 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
     await db.doc(itemPath).delete();
     // Update storyPoint stats
     const statsUpdate = {
-      "stats.totalItems": admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalItems": firestore_1.FieldValue.increment(-1),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     };
     if (item.type === "question") {
-      statsUpdate["stats.totalQuestions"] = admin.firestore.FieldValue.increment(-1);
+      statsUpdate["stats.totalQuestions"] = firestore_1.FieldValue.increment(-1);
       if (item.meta?.totalPoints) {
-        statsUpdate["stats.totalPoints"] = admin.firestore.FieldValue.increment(
-          -item.meta.totalPoints
-        );
+        statsUpdate["stats.totalPoints"] = firestore_1.FieldValue.increment(-item.meta.totalPoints);
       }
     } else if (item.type === "material") {
-      statsUpdate["stats.totalMaterials"] = admin.firestore.FieldValue.increment(-1);
+      statsUpdate["stats.totalMaterials"] = firestore_1.FieldValue.increment(-1);
     }
     await db
       .doc(`tenants/${tenantId}/spaces/${spaceId}/storyPoints/${item.storyPointId}`)
       .update(statsUpdate);
     // Update space stats
     await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
-      "stats.totalItems": admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalItems": firestore_1.FieldValue.increment(-1),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     });
     v2_1.logger.info(`Deleted item ${id} from space ${spaceId}`);
     return { id, created: false };
@@ -159,7 +158,7 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
         "type and payload are required for creation"
       );
     }
-    const storyPoint = await (0, firestore_1.loadStoryPoint)(tenantId, spaceId, storyPointId);
+    const storyPoint = await (0, firestore_2.loadStoryPoint)(tenantId, spaceId, storyPointId);
     // Determine next orderIndex from canonical nested path.
     const lastItem = await db
       .collection(nestedItemsPath)
@@ -181,8 +180,8 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
           itemId: itemRef.id,
           questionType: payloadToStore.questionType,
           ...answerKeyData,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
         payloadToStore = (0, create_item_1.stripAnswerFromPayload)(payloadToStore);
       }
@@ -205,32 +204,40 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
       analytics: null,
       rubric: data.rubric ?? null,
       createdBy: callerUid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     };
     await itemRef.set(itemDoc);
     // Update storyPoint stats
     const statsUpdate = {
-      "stats.totalItems": admin.firestore.FieldValue.increment(1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalItems": firestore_1.FieldValue.increment(1),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     };
     if (data.type === "question") {
-      statsUpdate["stats.totalQuestions"] = admin.firestore.FieldValue.increment(1);
-      if (data.meta?.totalPoints && typeof data.meta.totalPoints === "number") {
-        statsUpdate["stats.totalPoints"] = admin.firestore.FieldValue.increment(
-          data.meta.totalPoints
-        );
+      statsUpdate["stats.totalQuestions"] = firestore_1.FieldValue.increment(1);
+      // P0-6: prefer payload.basePoints (the editable field), fall back to
+      // legacy meta.totalPoints. Mirror the chosen value so downstream readers
+      // see a consistent number.
+      const payloadPoints = data.payload?.basePoints;
+      const points =
+        typeof payloadPoints === "number"
+          ? payloadPoints
+          : typeof data.meta?.totalPoints === "number"
+            ? data.meta.totalPoints
+            : 0;
+      if (points > 0) {
+        statsUpdate["stats.totalPoints"] = firestore_1.FieldValue.increment(points);
       }
     } else if (data.type === "material") {
-      statsUpdate["stats.totalMaterials"] = admin.firestore.FieldValue.increment(1);
+      statsUpdate["stats.totalMaterials"] = firestore_1.FieldValue.increment(1);
     }
     await db
       .doc(`tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}`)
       .update(statsUpdate);
     // Update space stats
     await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
-      "stats.totalItems": admin.firestore.FieldValue.increment(1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalItems": firestore_1.FieldValue.increment(1),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     });
     (0, content_version_1.writeContentVersion)(db, tenantId, spaceId, {
       entityType: "item",
@@ -243,7 +250,7 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
     return { id: itemRef.id, created: true };
   }
   // ── UPDATE ──────────────────────────────────────────
-  await (0, firestore_1.loadItem)(tenantId, spaceId, id, storyPointId);
+  const existingItem = await (0, firestore_2.loadItem)(tenantId, spaceId, id, storyPointId);
   const sanitized = {};
   for (const [key, value] of Object.entries(data)) {
     if (UPDATABLE_FIELDS.has(key) && value !== undefined) {
@@ -253,9 +260,25 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
   if (Object.keys(sanitized).length === 0) {
     throw new https_1.HttpsError("invalid-argument", "No valid fields to update");
   }
-  sanitized.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  sanitized.updatedAt = firestore_1.FieldValue.serverTimestamp();
   const itemPath = await resolveItemPath(id);
   await db.doc(itemPath).update(sanitized);
+  // P0-6: if basePoints changed, adjust stats.totalPoints by the delta.
+  if (sanitized.payload && existingItem.type === "question") {
+    const newPayload = sanitized.payload;
+    const oldPayload = existingItem.payload;
+    const newPts = typeof newPayload.basePoints === "number" ? newPayload.basePoints : 0;
+    const oldPts = typeof oldPayload.basePoints === "number" ? oldPayload.basePoints : 0;
+    const delta = newPts - oldPts;
+    if (delta !== 0) {
+      await db
+        .doc(`tenants/${tenantId}/spaces/${spaceId}/storyPoints/${existingItem.storyPointId}`)
+        .update({
+          "stats.totalPoints": firestore_1.FieldValue.increment(delta),
+          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+    }
+  }
   // If payload was updated and this is a timed test item, also update answer key
   if (sanitized.payload) {
     const payloadRecord = sanitized.payload;
@@ -266,7 +289,7 @@ exports.saveItem = (0, https_1.onCall)({ region: "asia-south1", cors: true }, as
         const akDoc = akSnap.docs[0];
         await akDoc.ref.update({
           ...answerKeyData,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
         const strippedPayload = (0, create_item_1.stripAnswerFromPayload)(payloadRecord);
         await db.doc(itemPath).update({ payload: strippedPayload });

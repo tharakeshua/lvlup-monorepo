@@ -1,13 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import {
-  useSpace,
-  useProgress,
-  useStoryPointProgress,
-  useRecordItemAttempt,
-  useApiError,
-} from "@levelup/shared-hooks";
+import { useSpace, useStoryPointProgress, useRecordItemAttempt, useApiError } from "@levelup/query";
+import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import { useEvaluateAnswer } from "../hooks/useEvaluateAnswer";
@@ -238,23 +233,22 @@ export default function StoryPointViewerPage() {
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
-  const { data: space } = useSpace(currentTenantId, spaceId ?? null);
-  const { data: storyPoints } = useStoryPoints(currentTenantId, spaceId ?? null);
+  const { data: spaceData } = useSpace<{ space: { title?: string } }>(spaceId ?? "");
+  const space = spaceData?.space;
+  const { data: storyPoints } = useStoryPoints(null, spaceId ?? null);
   const {
     data: items,
     isLoading,
     error: itemsError,
     isError: itemsHasError,
-  } = useStoryPointItems(currentTenantId, spaceId ?? null, storyPointId ?? null);
-  const { data: progress } = useProgress(currentTenantId, userId, spaceId);
-  const { data: spProgress } = useStoryPointProgress(
-    currentTenantId,
-    userId,
-    spaceId ?? null,
-    storyPointId ?? null
+  } = useStoryPointItems(null, spaceId ?? null, storyPointId ?? null);
+  const { data: spProgressData } = useStoryPointProgress(
+    asSpaceId(spaceId ?? ""),
+    asStoryPointId(storyPointId ?? "")
   );
+  const spProgress = (spProgressData ?? null) as StoryPointProgressDoc | null;
   const evaluateAnswer = useEvaluateAnswer();
-  const recordAttempt = useRecordItemAttempt(userId);
+  const recordAttempt = useRecordItemAttempt();
   const { handleError } = useApiError();
 
   const [chatItemId, setChatItemId] = useState<string | null>(null);
@@ -338,17 +332,15 @@ export default function StoryPointViewerPage() {
 
       setEvaluations((prev) => ({ ...prev, [item.id]: evaluationResult }));
 
+      // recordItemAttempt is now server-authoritative (A11/CD13): the client no
+      // longer sends score/correct/evaluationData — the server recomputes from
+      // the submitted answer. The in-memory `evaluationResult` above still drives
+      // the immediate UI feedback.
       recordAttempt.mutate({
-        tenantId: currentTenantId,
-        spaceId,
-        storyPointId,
-        itemId: item.id,
-        itemType: "question",
-        score: evaluationResult.score,
-        maxScore: evaluationResult.maxScore,
-        correct: evaluationResult.correctness >= 1,
+        spaceId: asSpaceId(spaceId),
+        storyPointId: asStoryPointId(storyPointId),
+        itemId: asItemId(item.id),
         answer,
-        evaluationData: evaluationToStored(evaluationResult),
       });
     } catch (err) {
       handleError(err, "Failed to evaluate answer");
@@ -357,15 +349,13 @@ export default function StoryPointViewerPage() {
 
   const handleCompleteMaterial = (itemId: string) => {
     if (!currentTenantId || !spaceId || !storyPointId) return;
+    // Material completion: server marks the material item complete from the
+    // attempt (no answer payload for materials).
     recordAttempt.mutate({
-      tenantId: currentTenantId,
-      spaceId,
-      storyPointId,
-      itemId,
-      itemType: "material",
-      score: 1,
-      maxScore: 1,
-      correct: true,
+      spaceId: asSpaceId(spaceId),
+      storyPointId: asStoryPointId(storyPointId),
+      itemId: asItemId(itemId),
+      answer: null,
     });
   };
 

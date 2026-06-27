@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import {
@@ -27,21 +26,14 @@ import {
   type TenantOption,
   type MobileNavItem,
 } from "@levelup/shared-ui";
-import { useNotifications, useUnreadCount, useMarkRead, useMarkAllRead, useTenantBranding, usePrefetch } from "@levelup/shared-hooks";
-
-/** Route prefetch map — triggers lazy imports on link hover */
-const STUDENT_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
-  '/': () => import('../pages/DashboardPage'),
-  '/spaces': () => import('../pages/SpacesListPage'),
-  '/tests': () => import('../pages/TestsPage'),
-  '/leaderboard': () => import('../pages/LeaderboardPage'),
-  '/profile': () => import('../pages/ProfilePage'),
-  '/settings': () => import('../pages/SettingsPage'),
-  '/notifications': () => import('../pages/NotificationsPage'),
-};
+import {
+  useNotifications,
+  useNotificationBadgeQuery,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@levelup/query";
+import { useTenantBranding } from "../hooks/useTenantBranding";
 // Theme managed by shared ThemeToggle component
-import { getFirebaseServices } from "@levelup/shared-services";
-import { doc, getDoc } from "firebase/firestore";
 import {
   LayoutDashboard,
   BookOpen,
@@ -55,22 +47,18 @@ import {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser, logout } =
-    useAuthStore();
+  const { allMemberships, currentTenantId, switchTenant, user, logout } = useAuthStore();
 
   // Apply tenant branding (colors + CSS custom properties)
   useTenantBranding();
 
-  // Prefetch routes on link hover for near-instant navigation
-  usePrefetch(STUDENT_PREFETCH_MAP);
-
-  const { data: notifData, isLoading: notifsLoading } = useNotifications(
-    currentTenantId,
-    firebaseUser?.uid ?? null,
-  );
-  const unreadCount = useUnreadCount(currentTenantId, firebaseUser?.uid ?? null);
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  const notifQuery = useNotifications();
+  const notifData = notifQuery.data as { items?: unknown[] } | undefined;
+  const notifsLoading = notifQuery.isLoading;
+  const badgeQuery = useNotificationBadgeQuery();
+  const unreadCount = (badgeQuery.data as { unreadCount?: number } | undefined)?.unreadCount ?? 0;
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   const navGroups: NavGroup[] = [
     {
@@ -117,33 +105,19 @@ export default function AppLayout() {
   ];
 
   const currentTenantName = useTenantStore((s) => s.tenant?.name);
-  const [tenantNames, setTenantNames] = useState<Record<string, string>>({});
 
   const studentMemberships = allMemberships.filter((m) => m.role === "student");
 
-  useEffect(() => {
-    const otherTenantIds = studentMemberships
-      .map((m) => m.tenantId)
-      .filter((id) => id !== currentTenantId);
-    if (otherTenantIds.length === 0) return;
-
-    const { db } = getFirebaseServices();
-    Promise.all(
-      otherTenantIds.map(async (id) => {
-        const snap = await getDoc(doc(db, "tenants", id));
-        return [id, snap.exists() ? (snap.data() as { name?: string }).name ?? id : id] as const;
-      }),
-    ).then((entries) => {
-      setTenantNames(Object.fromEntries(entries));
-    });
-  }, [studentMemberships.length, currentTenantId]);
-
+  // PARITY NOTE: the legacy direct-Firestore lookup of other tenants' display
+  // names is dropped — there is no batch tenant-name query hook a member may call
+  // (useTenants is super-admin scope). Inactive tenants fall back to their tenant
+  // code; the active tenant uses the loaded tenant name.
   const tenantOptions: TenantOption[] = studentMemberships.map((m) => ({
     tenantId: m.tenantId,
     tenantName:
       m.tenantId === currentTenantId
-        ? currentTenantName ?? m.tenantId
-        : tenantNames[m.tenantId] ?? m.tenantId,
+        ? (currentTenantName ?? m.tenantCode ?? m.tenantId)
+        : (m.tenantCode ?? m.tenantId),
     role: m.role,
   }));
 
@@ -175,7 +149,7 @@ export default function AppLayout() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium">{user?.displayName ?? "Student"}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+              <p className="text-muted-foreground text-xs">{user?.email}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -183,7 +157,12 @@ export default function AppLayout() {
             <Settings className="mr-2 h-4 w-4" /> Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => { logout(); navigate("/login"); }}>
+          <DropdownMenuItem
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+          >
             <LogOut className="mr-2 h-4 w-4" /> Sign Out
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -205,29 +184,49 @@ export default function AppLayout() {
     <div className="flex items-center gap-2">
       <ThemeToggle />
       <NotificationBell
-      notifications={notifData?.notifications ?? []}
-      unreadCount={unreadCount}
-      isLoading={notifsLoading}
-      onNotificationClick={(notif) => {
-        if (!notif.isRead && currentTenantId) {
-          markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
-        }
-        if (notif.actionUrl) navigate(notif.actionUrl);
-      }}
-      onMarkAllRead={() => {
-        if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
-      }}
-      onViewAll={() => navigate("/notifications")}
-    />
+        notifications={(notifData?.items ?? []) as never}
+        unreadCount={unreadCount}
+        isLoading={notifsLoading}
+        onNotificationClick={(notif) => {
+          if (!notif.isRead) {
+            markRead.mutate({ notificationId: notif.id });
+          }
+          if (notif.actionUrl) navigate(notif.actionUrl);
+        }}
+        onMarkAllRead={() => {
+          markAllRead.mutate();
+        }}
+        onViewAll={() => navigate("/notifications")}
+      />
     </div>
   );
 
   const mobileNavItems: MobileNavItem[] = [
     { icon: LayoutDashboard, label: "Home", to: "/", isActive: location.pathname === "/" },
-    { icon: BookOpen, label: "Spaces", to: "/spaces", isActive: location.pathname.startsWith("/spaces") },
-    { icon: ClipboardList, label: "Tests", to: "/tests", isActive: location.pathname.startsWith("/tests") },
-    { icon: Trophy, label: "Rank", to: "/leaderboard", isActive: location.pathname.startsWith("/leaderboard") },
-    { icon: UserCircle, label: "Profile", to: "/profile", isActive: location.pathname === "/profile" },
+    {
+      icon: BookOpen,
+      label: "Spaces",
+      to: "/spaces",
+      isActive: location.pathname.startsWith("/spaces"),
+    },
+    {
+      icon: ClipboardList,
+      label: "Tests",
+      to: "/tests",
+      isActive: location.pathname.startsWith("/tests"),
+    },
+    {
+      icon: Trophy,
+      label: "Rank",
+      to: "/leaderboard",
+      isActive: location.pathname.startsWith("/leaderboard"),
+    },
+    {
+      icon: UserCircle,
+      label: "Profile",
+      to: "/profile",
+      isActive: location.pathname === "/profile",
+    },
   ];
 
   return (

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore, useCurrentUser } from "@levelup/shared-stores";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { getPlatformConfig, savePlatformConfig, type PlatformConfig } from "../sdk/reads-config";
 import { sonnerToast as toast } from "@levelup/shared-ui";
 import {
   Button,
@@ -30,44 +29,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@levelup/shared-ui";
-import {
-  Shield,
-  Bell,
-  LogOut,
-  Globe,
-  ToggleLeft,
-  Save,
-  AlertCircle,
-} from "lucide-react";
-
-interface PlatformConfig {
-  defaultFeatures?: Record<string, boolean>;
-  announcement?: string;
-  maintenanceMode?: boolean;
-  defaultPlan?: string;
-  maxTenantsAllowed?: number;
-}
+import { Shield, Bell, LogOut, Globe, ToggleLeft, Save, AlertCircle } from "lucide-react";
 
 function usePlatformConfig() {
   return useQuery<PlatformConfig>({
     queryKey: ["platform", "config"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const snap = await getDoc(doc(db, "platform", "config"));
-      if (!snap.exists()) return {};
-      return snap.data() as PlatformConfig;
-    },
+    queryFn: getPlatformConfig,
     staleTime: 60 * 1000,
   });
 }
 
 const DEFAULT_FEATURE_FLAGS: { key: string; label: string; description: string }[] = [
-  { key: "autoGradeEnabled", label: "Auto Grade", description: "Enable exam creation and auto-grading" },
-  { key: "levelUpEnabled", label: "Learning Spaces", description: "Enable learning spaces and activities" },
+  {
+    key: "autoGradeEnabled",
+    label: "Auto Grade",
+    description: "Enable exam creation and auto-grading",
+  },
+  {
+    key: "levelUpEnabled",
+    label: "Learning Spaces",
+    description: "Enable learning spaces and activities",
+  },
   { key: "aiGradingEnabled", label: "AI Grading", description: "Enable AI-powered auto-grading" },
   { key: "aiChatEnabled", label: "AI Chat / Tutoring", description: "Enable AI tutoring chat" },
-  { key: "analyticsEnabled", label: "Analytics", description: "Enable analytics and report generation" },
-  { key: "parentPortalEnabled", label: "Parent Portal", description: "Enable parent access portal" },
+  {
+    key: "analyticsEnabled",
+    label: "Analytics",
+    description: "Enable analytics and report generation",
+  },
+  {
+    key: "parentPortalEnabled",
+    label: "Parent Portal",
+    description: "Enable parent access portal",
+  },
   { key: "bulkImportEnabled", label: "Bulk Import", description: "Enable bulk student import" },
 ];
 
@@ -93,20 +87,14 @@ export default function SettingsPage() {
   }, [config]);
 
   const saveConfig = useMutation({
-    mutationFn: async () => {
-      const { db } = getFirebaseServices();
-      await setDoc(
-        doc(db, "platform", "config"),
-        {
-          announcement: announcement || null,
-          maintenanceMode,
-          defaultFeatures,
-          defaultPlan: config?.defaultPlan ?? "trial",
-          maxTenantsAllowed: config?.maxTenantsAllowed ?? null,
-        },
-        { merge: true },
-      );
-    },
+    mutationFn: () =>
+      savePlatformConfig({
+        announcement: announcement || null,
+        maintenanceMode,
+        defaultFeatures,
+        defaultPlan: config?.defaultPlan ?? "trial",
+        maxTenantsAllowed: config?.maxTenantsAllowed ?? null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platform", "config"] });
       setIsDirty(false);
@@ -193,14 +181,12 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Bell className="h-4 w-4 text-primary" />
+                <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                  <Bell className="text-primary h-4 w-4" />
                 </div>
                 <div>
                   <CardTitle className="text-base">Platform Announcement</CardTitle>
-                  <CardDescription>
-                    Broadcast a message to all tenants
-                  </CardDescription>
+                  <CardDescription>Broadcast a message to all tenants</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -212,7 +198,7 @@ export default function SettingsPage() {
                 rows={3}
                 className="resize-none"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {announcement
                   ? "Announcement will be visible to all tenant admins."
                   : "No active announcement."}
@@ -224,8 +210,8 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <ToggleLeft className="h-4 w-4 text-primary" />
+                <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                  <ToggleLeft className="text-primary h-4 w-4" />
                 </div>
                 <div>
                   <CardTitle className="text-base">Default Features for New Tenants</CardTitle>
@@ -236,7 +222,7 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="divide-y divide-border">
+              <div className="divide-border divide-y">
                 {DEFAULT_FEATURE_FLAGS.map((flag) => (
                   <div
                     key={flag.key}
@@ -244,9 +230,7 @@ export default function SettingsPage() {
                   >
                     <div>
                       <p className="text-sm font-medium">{flag.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {flag.description}
-                      </p>
+                      <p className="text-muted-foreground text-xs">{flag.description}</p>
                     </div>
                     <Switch
                       checked={defaultFeatures[flag.key] ?? true}
@@ -262,14 +246,12 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Globe className="h-4 w-4 text-primary" />
+                <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                  <Globe className="text-primary h-4 w-4" />
                 </div>
                 <div>
                   <CardTitle className="text-base">System Configuration</CardTitle>
-                  <CardDescription>
-                    Global platform settings
-                  </CardDescription>
+                  <CardDescription>Global platform settings</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -277,23 +259,16 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
                   <p className="text-sm font-medium">Maintenance Mode</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     When enabled, non-admin users will see a maintenance page
                   </p>
                 </div>
-                <Switch
-                  checked={maintenanceMode}
-                  onCheckedChange={handleMaintenanceModeChange}
-                />
+                <Switch checked={maintenanceMode} onCheckedChange={handleMaintenanceModeChange} />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm">Default Plan</Label>
-                  <Input
-                    value={config?.defaultPlan ?? "trial"}
-                    readOnly
-                    className="bg-muted/50"
-                  />
+                  <Input value={config?.defaultPlan ?? "trial"} readOnly className="bg-muted/50" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">Max Tenants Allowed</Label>
@@ -311,8 +286,8 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <Shield className="h-4 w-4 text-primary" />
+                <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                  <Shield className="text-primary h-4 w-4" />
                 </div>
                 <CardTitle className="text-base">Admin Account</CardTitle>
               </div>
@@ -320,21 +295,17 @@ export default function SettingsPage() {
             <CardContent>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                  <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold">
                     {(user?.displayName || user?.email || "A").charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">
-                      {user?.displayName || "Super Admin"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {user?.email}
-                    </p>
+                    <p className="text-sm font-medium">{user?.displayName || "Super Admin"}</p>
+                    <p className="text-muted-foreground text-xs">{user?.email}</p>
                   </div>
                 </div>
                 <LogoutButton
                   onLogout={logout}
-                  className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                  className="hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out
@@ -350,13 +321,19 @@ export default function SettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Enable Maintenance Mode?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will prevent all non-admin users from accessing the platform.
-              They will see a maintenance page instead.
+              This will prevent all non-admin users from accessing the platform. They will see a
+              maintenance page instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setMaintenanceMode(true); setIsDirty(true); setMaintenanceConfirmOpen(false); }}>
+            <AlertDialogAction
+              onClick={() => {
+                setMaintenanceMode(true);
+                setIsDirty(true);
+                setMaintenanceConfirmOpen(false);
+              }}
+            >
               Enable Maintenance Mode
             </AlertDialogAction>
           </AlertDialogFooter>

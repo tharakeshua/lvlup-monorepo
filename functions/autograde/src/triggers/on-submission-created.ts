@@ -5,15 +5,16 @@
  * works seamlessly with the Firebase emulator.
  */
 
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { processAnswerMapping } from '../pipeline/process-answer-mapping';
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { processAnswerMapping } from "../pipeline/process-answer-mapping";
 
 export const onSubmissionCreated = onDocumentCreated(
   {
-    document: 'tenants/{tenantId}/submissions/{submissionId}',
-    region: 'asia-south1',
-    memory: '4GiB',
+    document: "tenants/{tenantId}/submissions/{submissionId}",
+    region: "asia-south1",
+    memory: "4GiB",
     timeoutSeconds: 540,
   },
   async (event) => {
@@ -29,31 +30,33 @@ export const onSubmissionCreated = onDocumentCreated(
       return;
     }
 
-    if (data.pipelineStatus !== 'uploaded') {
+    if (data.pipelineStatus !== "uploaded") {
       console.warn(`Submission ${submissionId} is not in 'uploaded' status. Skipping.`);
       return;
     }
 
     const db = admin.firestore();
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
 
     // Transition to scouting and run answer mapping directly
     await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-      pipelineStatus: 'scouting',
+      pipelineStatus: "scouting",
       updatedAt: now,
     });
 
     try {
       await processAnswerMapping(tenantId, submissionId);
-      console.log(`Pipeline started for submission ${submissionId}: uploaded → scouting → mapping complete`);
+      console.log(
+        `Pipeline started for submission ${submissionId}: uploaded → scouting → mapping complete`
+      );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Pipeline scouting failed for submission ${submissionId}:`, errorMsg);
       await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-        pipelineStatus: 'scouting_failed',
+        pipelineStatus: "scouting_failed",
         pipelineError: errorMsg,
         updatedAt: now,
       });
     }
-  },
+  }
 );

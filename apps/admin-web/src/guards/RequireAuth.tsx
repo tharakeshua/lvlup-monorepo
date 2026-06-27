@@ -1,33 +1,35 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
 import { Skeleton } from "@levelup/shared-ui";
 import type { TenantRole } from "@levelup/shared-types";
+import { useSession, useCurrentMembership, useCurrentTenantId } from "@/sdk/identity";
 
 interface RequireAuthProps {
   allowedRoles?: TenantRole[];
 }
 
 export default function RequireAuth({ allowedRoles }: RequireAuthProps) {
-  const { firebaseUser, currentMembership, currentTenantId, loading } = useAuthStore();
+  const { user: firebaseUser, loading } = useSession();
+  const currentMembership = useCurrentMembership();
+  const currentTenantId = useCurrentTenantId();
   const location = useLocation();
 
   if (loading) {
     return (
       <div className="flex h-screen">
         {/* Sidebar skeleton */}
-        <div className="hidden md:block w-64 border-r bg-sidebar p-4 space-y-4">
+        <div className="bg-sidebar hidden w-64 space-y-4 border-r p-4 md:block">
           <Skeleton className="h-8 w-32" />
-          <div className="space-y-2 mt-6">
+          <div className="mt-6 space-y-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-8 w-full" />
             ))}
           </div>
         </div>
         {/* Content skeleton */}
-        <div className="flex-1 p-6 space-y-4">
+        <div className="flex-1 space-y-4 p-6">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-32" />
-          <div className="grid gap-4 grid-cols-3 mt-6">
+          <div className="mt-6 grid grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-24 rounded-lg" />
             ))}
@@ -44,14 +46,14 @@ export default function RequireAuth({ allowedRoles }: RequireAuthProps) {
   if (
     allowedRoles &&
     (!currentMembership ||
-      !allowedRoles.includes(currentMembership.role) ||
+      !allowedRoles.includes(currentMembership.role as TenantRole) ||
       currentMembership.tenantId !== currentTenantId)
   ) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-semibold">Access Denied</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             You don&apos;t have permission to access this page.
           </p>
         </div>

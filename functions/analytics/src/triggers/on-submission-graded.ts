@@ -6,22 +6,23 @@
  * Condition: status changes to 'graded' or 'results_released'
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import {
   computeOverallScore,
   identifyStrengthsAndWeaknesses,
   topN,
-} from '../utils/aggregation-helpers';
-import type { StudentAutogradeMetrics, RecentExamEntry } from '@levelup/shared-types';
+} from "../utils/aggregation-helpers";
+import type { StudentAutogradeMetrics, RecentExamEntry } from "@levelup/shared-types";
 
-const GRADED_STATUSES = new Set(['graded', 'grading_complete', 'results_released']);
+const GRADED_STATUSES = new Set(["graded", "grading_complete", "results_released"]);
 
 export const onSubmissionGraded = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/submissions/{submissionId}',
-    region: 'asia-south1',
-    memory: '512MiB',
+    document: "tenants/{tenantId}/submissions/{submissionId}",
+    region: "asia-south1",
+    memory: "512MiB",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -29,10 +30,7 @@ export const onSubmissionGraded = onDocumentUpdated(
     if (!before || !after) return;
 
     // Only process when pipeline status transitions to a graded state
-    if (
-      GRADED_STATUSES.has(before.pipelineStatus) ||
-      !GRADED_STATUSES.has(after.pipelineStatus)
-    ) {
+    if (GRADED_STATUSES.has(before.pipelineStatus) || !GRADED_STATUSES.has(after.pipelineStatus)) {
       return;
     }
 
@@ -44,8 +42,8 @@ export const onSubmissionGraded = onDocumentUpdated(
     // Fetch all graded submissions for this student in this tenant
     const submissionsSnap = await db
       .collection(`tenants/${tenantId}/submissions`)
-      .where('studentId', '==', studentId)
-      .where('pipelineStatus', 'in', [...GRADED_STATUSES])
+      .where("studentId", "==", studentId)
+      .where("pipelineStatus", "in", [...GRADED_STATUSES])
       .get();
 
     // Build exam lookup for titles and subjects
@@ -57,7 +55,7 @@ export const onSubmissionGraded = onDocumentUpdated(
       const batch = examIds.slice(i, i + 30);
       const examsSnap = await db
         .collection(`tenants/${tenantId}/exams`)
-        .where(admin.firestore.FieldPath.documentId(), 'in', batch)
+        .where(admin.firestore.FieldPath.documentId(), "in", batch)
         .get();
       for (const doc of examsSnap.docs) {
         const e = doc.data();
@@ -115,9 +113,7 @@ export const onSubmissionGraded = onDocumentUpdated(
     }
 
     // Sort recent exams by date descending, keep top 10
-    const sortedRecent = topN(recentExams, 10, (e) =>
-      e.date?.toMillis ? e.date.toMillis() : 0,
-    );
+    const sortedRecent = topN(recentExams, 10, (e) => (e.date?.toMillis ? e.date.toMillis() : 0));
 
     const autograde: StudentAutogradeMetrics = {
       totalExams: examIds.length,
@@ -131,9 +127,7 @@ export const onSubmissionGraded = onDocumentUpdated(
     };
 
     // Use a transaction for atomic read-modify-write to prevent concurrent overwrites
-    const summaryRef = db.doc(
-      `tenants/${tenantId}/studentProgressSummaries/${studentId}`,
-    );
+    const summaryRef = db.doc(`tenants/${tenantId}/studentProgressSummaries/${studentId}`);
 
     await db.runTransaction(async (transaction) => {
       const existingSummary = (await transaction.get(summaryRef)).data();
@@ -141,7 +135,7 @@ export const onSubmissionGraded = onDocumentUpdated(
       const levelupBreakdown = existingSummary?.levelup?.subjectBreakdown ?? {};
       const { strengths, weaknesses } = identifyStrengthsAndWeaknesses(
         subjectBreakdown,
-        levelupBreakdown,
+        levelupBreakdown
       );
 
       const levelupAvgCompletion = existingSummary?.levelup?.averageCompletion ?? 0;
@@ -157,14 +151,14 @@ export const onSubmissionGraded = onDocumentUpdated(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdatedAt: FieldValue.serverTimestamp(),
         },
-        { merge: true },
+        { merge: true }
       );
     });
 
     console.log(
-      `Updated autograde summary for student ${studentId}: ${completedExams} exams, avg ${(averageScore * 100).toFixed(1)}%`,
+      `Updated autograde summary for student ${studentId}: ${completedExams} exams, avg ${(averageScore * 100).toFixed(1)}%`
     );
-  },
+  }
 );

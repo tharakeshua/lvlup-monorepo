@@ -1,6 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { useCurrentUser, useCurrentTenantId } from '@levelup/shared-stores';
-import { useAchievements, useStudentAchievements, useStudentLevel } from '@levelup/shared-hooks';
+import { useState, useEffect, useRef } from "react";
+import { useCurrentUser } from "@levelup/shared-stores";
+import {
+  useAchievementCatalog,
+  useStudentAchievements,
+  useStudentLevel,
+  useStudentSummary,
+} from "@levelup/query";
+import type {
+  UserId,
+  StudentProgressSummary,
+  StudentAchievement,
+  Achievement,
+} from "@levelup/domain";
 import {
   AchievementCard,
   LevelBadge,
@@ -15,36 +26,42 @@ import {
   AnimatedListItem,
   EmptyState,
   CelebrationBurst,
-} from '@levelup/shared-ui';
-import { useStudentProgressSummary } from '@levelup/shared-hooks';
-import type { AchievementCategory } from '@levelup/shared-types';
-import { Trophy } from 'lucide-react';
+} from "@levelup/shared-ui";
+import type { AchievementCategory } from "@levelup/shared-types";
+import { Trophy } from "lucide-react";
 
-const categories: { value: AchievementCategory | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'learning', label: 'Learning' },
-  { value: 'consistency', label: 'Consistency' },
-  { value: 'excellence', label: 'Excellence' },
-  { value: 'exploration', label: 'Exploration' },
-  { value: 'social', label: 'Social' },
-  { value: 'milestone', label: 'Milestone' },
+const categories: { value: AchievementCategory | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "learning", label: "Learning" },
+  { value: "consistency", label: "Consistency" },
+  { value: "excellence", label: "Excellence" },
+  { value: "exploration", label: "Exploration" },
+  { value: "social", label: "Social" },
+  { value: "milestone", label: "Milestone" },
 ];
 
 export default function AchievementsPage() {
   const user = useCurrentUser();
-  const tenantId = useCurrentTenantId();
-  const [categoryFilter, setCategoryFilter] = useState<AchievementCategory | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<AchievementCategory | "all">("all");
 
-  const { data: allAchievements, isLoading: achievementsLoading } = useAchievements(tenantId);
-  const { data: earned, isLoading: earnedLoading } = useStudentAchievements(tenantId, user?.uid ?? null);
-  const { data: level, isLoading: levelLoading } = useStudentLevel(tenantId, user?.uid ?? null);
-  const { data: summary } = useStudentProgressSummary(tenantId, user?.uid ?? null);
+  const { data: catalogData, isLoading: achievementsLoading } = useAchievementCatalog();
+  const allAchievements = (
+    catalogData as { pages?: Array<{ items?: Achievement[] }> } | undefined
+  )?.pages?.flatMap((p) => p.items ?? []);
+  const { data: earnedData, isLoading: earnedLoading } = useStudentAchievements();
+  const earned = (
+    earnedData as { pages?: Array<{ items?: StudentAchievement[] }> } | undefined
+  )?.pages?.flatMap((p) => p.items ?? []);
+  const { data: level, isLoading: levelLoading } = useStudentLevel();
+  const { data: summaryData } = useStudentSummary((user?.uid ?? "") as UserId);
+  const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
+    ?.studentSummary;
 
   const earnedIds = new Set(earned?.map((e) => e.achievementId) ?? []);
   const earnedMap = new Map(earned?.map((e) => [e.achievementId, e]) ?? []);
 
   const filteredAchievements = (allAchievements ?? []).filter(
-    (a) => categoryFilter === 'all' || a.category === categoryFilter,
+    (a) => categoryFilter === "all" || a.category === categoryFilter
   );
 
   // Sort: earned first, then by tier
@@ -67,7 +84,7 @@ export default function AchievementsPage() {
     celebrationChecked.current = true;
 
     const key = `ach_celebrated_${user?.uid}`;
-    const lastCount = parseInt(sessionStorage.getItem(key) ?? '0', 10);
+    const lastCount = parseInt(sessionStorage.getItem(key) ?? "0", 10);
     if (earned.length > lastCount) {
       setShowCelebration(true);
       sessionStorage.setItem(key, String(earned.length));
@@ -84,11 +101,11 @@ export default function AchievementsPage() {
       />
       <FadeIn>
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-500" aria-hidden="true" />
             Achievements
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             {earned?.length ?? 0} earned out of {allAchievements?.length ?? 0} total
           </p>
         </div>
@@ -104,17 +121,13 @@ export default function AchievementsPage() {
             tier={level.tier}
           />
         )}
-        {summary && (
-          <StreakWidget
-            currentStreak={summary.levelup.streakDays}
-          />
-        )}
+        {summary && <StreakWidget currentStreak={summary.levelup.streakDays} />}
       </div>
 
       {/* Category Filter */}
       <Tabs
         value={categoryFilter}
-        onValueChange={(v) => setCategoryFilter(v as AchievementCategory | 'all')}
+        onValueChange={(v) => setCategoryFilter(v as AchievementCategory | "all")}
       >
         <TabsList className="flex-wrap">
           {categories.map((cat) => (
@@ -160,11 +173,7 @@ export default function AchievementsPage() {
                   pointsReward={achievement.pointsReward}
                   earned={!!studentAch}
                   earnedAt={
-                    studentAch?.earnedAt
-                      ? typeof studentAch.earnedAt === 'object' && 'seconds' in studentAch.earnedAt
-                        ? new Date((studentAch.earnedAt as { seconds: number }).seconds * 1000).toISOString()
-                        : undefined
-                      : undefined
+                    studentAch?.earnedAt ? new Date(studentAch.earnedAt).toISOString() : undefined
                   }
                 />
               </AnimatedListItem>

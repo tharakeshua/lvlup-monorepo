@@ -1,9 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { StaffPermissions } from "@levelup/shared-types";
-import { callSaveStaff } from "@levelup/shared-services/auth";
+import { useStaff, useSaveStaff, useApiError } from "@levelup/query";
 import {
   Button,
   Input,
@@ -19,7 +15,6 @@ import {
   DialogTitle,
 } from "@levelup/shared-ui";
 import { toast } from "sonner";
-import { useApiError } from "@levelup/shared-hooks";
 import { Search, UserCog, Plus, Shield } from "lucide-react";
 import CreateStaffDialog from "./CreateStaffDialog";
 
@@ -31,14 +26,8 @@ interface StaffDoc {
   email?: string;
   department?: string;
   status: string;
-  uid?: string;
-}
-
-interface StaffMembershipDoc {
-  id: string;
-  uid: string;
-  role: string;
-  staffPermissions?: StaffPermissions;
+  authUid?: string;
+  staffPermissions?: Record<string, boolean>;
 }
 
 const STAFF_PERMISSION_LABELS: Record<string, string> = {
@@ -50,51 +39,15 @@ const STAFF_PERMISSION_LABELS: Record<string, string> = {
   canManageBilling: "Manage Billing",
 };
 
-function useStaffList(tenantId: string | null) {
-  return useQuery<StaffDoc[]>({
-    queryKey: ["tenants", tenantId, "staff"],
-    queryFn: async () => {
-      if (!tenantId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/staff`);
-      const q = query(colRef, orderBy("name", "asc"));
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StaffDoc);
-    },
-    enabled: !!tenantId,
-    staleTime: 60_000,
-  });
-}
-
-function useStaffMemberships(tenantId: string | null) {
-  return useQuery<StaffMembershipDoc[]>({
-    queryKey: ["memberships", tenantId, "staff"],
-    queryFn: async () => {
-      if (!tenantId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, "userMemberships");
-      const q = query(
-        colRef,
-        where("tenantId", "==", tenantId),
-        where("role", "==", "staff"),
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StaffMembershipDoc);
-    },
-    enabled: !!tenantId,
-    staleTime: 60_000,
-  });
-}
-
 interface StaffTabProps {
   tenantId: string | null;
 }
 
 export default function StaffTab({ tenantId }: StaffTabProps) {
   const { handleError } = useApiError();
-  const queryClient = useQueryClient();
-  const { data: staffList, isLoading } = useStaffList(tenantId);
-  const { data: memberships } = useStaffMemberships(tenantId);
+  const { data: staffData, isLoading } = useStaff({});
+  const staffList = (staffData as { items?: StaffDoc[] } | undefined)?.items ?? [];
+  const saveStaff = useSaveStaff();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -102,7 +55,7 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
   const [permissionForm, setPermissionForm] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
 
-  const filteredStaff = (staffList ?? []).filter((s) => {
+  const filteredStaff = staffList.filter((s) => {
     const name = s.name ?? `${s.firstName ?? ""} ${s.lastName ?? ""}`;
     return (
       name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -110,14 +63,10 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
     );
   });
 
-  const getMembershipForStaff = (staff: StaffDoc): StaffMembershipDoc | undefined => {
-    if (!staff.uid) return undefined;
-    return memberships?.find((m) => m.uid === staff.uid);
-  };
-
   const openPermissionEditor = (staff: StaffDoc) => {
-    const membership = getMembershipForStaff(staff);
-    const perms = membership?.staffPermissions ?? {};
+    // NOTE: staff permissions live on the membership and are not surfaced by the
+    // @levelup/query staff view — pre-fill with the saved values if present.
+    const perms = staff.staffPermissions ?? {};
     setPermissionForm({
       canManageUsers: perms.canManageUsers ?? false,
       canManageClasses: perms.canManageClasses ?? false,
@@ -133,14 +82,14 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
     if (!tenantId || !editingStaff) return;
     setSaving(true);
     try {
-      await callSaveStaff({
+      await saveStaff.mutateAsync({
         id: editingStaff.id,
-        tenantId,
         data: {
-          staffPermissions: permissionForm as StaffPermissions,
+          firstName: editingStaff.firstName ?? "",
+          lastName: editingStaff.lastName ?? "",
+          staffPermissions: permissionForm,
         },
       });
-      queryClient.invalidateQueries({ queryKey: ["memberships", tenantId, "staff"] });
       setEditingStaff(null);
       toast.success("Staff permissions updated");
     } catch (err) {
@@ -151,23 +100,21 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
   };
 
   const enabledPermCount = (staff: StaffDoc): number => {
-    const membership = getMembershipForStaff(staff);
-    if (!membership?.staffPermissions) return 0;
-    return Object.entries(membership.staffPermissions)
-      .filter(([k, v]) => k.startsWith("can") && v === true)
-      .length;
+    if (!staff.staffPermissions) return 0;
+    return Object.entries(staff.staffPermissions).filter(
+      ([k, v]) => k.startsWith("can") && v === true
+    ).length;
   };
 
   const handleCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "staff"] });
-    queryClient.invalidateQueries({ queryKey: ["memberships", tenantId, "staff"] });
+    // @levelup/query mutations invalidate the staff list automatically.
   };
 
   return (
     <>
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             className="pl-9"
             placeholder="Search staff by name or email..."
@@ -189,9 +136,9 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
         </div>
       ) : filteredStaff.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
-          <UserCog className="mx-auto h-8 w-8 text-muted-foreground" />
+          <UserCog className="text-muted-foreground mx-auto h-8 w-8" />
           <h3 className="mt-2 text-lg font-semibold">No staff members</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Add administrative staff members to help manage your school
           </p>
           <Button className="mt-4" onClick={() => setShowCreateDialog(true)}>
@@ -202,41 +149,30 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
       ) : (
         <div className="space-y-2">
           {filteredStaff.map((staff) => {
-            const name =
-              staff.name ??
-              `${staff.firstName ?? ""} ${staff.lastName ?? ""}`.trim();
+            const name = staff.name ?? `${staff.firstName ?? ""} ${staff.lastName ?? ""}`.trim();
             const permCount = enabledPermCount(staff);
 
             return (
               <div
                 key={staff.id}
-                className="flex items-center justify-between rounded-lg border bg-card p-4 hover:shadow-sm transition-shadow"
+                className="bg-card flex items-center justify-between rounded-lg border p-4 transition-shadow hover:shadow-sm"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{name || "Unnamed"}</p>
-                    <Badge
-                      variant={
-                        staff.status === "active" ? "default" : "secondary"
-                      }
-                    >
+                    <Badge variant={staff.status === "active" ? "default" : "secondary"}>
                       {staff.status}
                     </Badge>
                   </div>
-                  <div className="mt-1 flex gap-4 text-sm text-muted-foreground">
+                  <div className="text-muted-foreground mt-1 flex gap-4 text-sm">
                     {staff.email && <span>{staff.email}</span>}
                     {staff.department && <span>{staff.department}</span>}
                     <span>
-                      {permCount}/{Object.keys(STAFF_PERMISSION_LABELS).length}{" "}
-                      permissions
+                      {permCount}/{Object.keys(STAFF_PERMISSION_LABELS).length} permissions
                     </span>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openPermissionEditor(staff)}
-                >
+                <Button variant="outline" size="sm" onClick={() => openPermissionEditor(staff)}>
                   <Shield className="mr-1 h-4 w-4" />
                   Permissions
                 </Button>
@@ -247,10 +183,7 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
       )}
 
       {/* Permission Editor Dialog */}
-      <Dialog
-        open={!!editingStaff}
-        onOpenChange={(open) => !open && setEditingStaff(null)}
-      >
+      <Dialog open={!!editingStaff} onOpenChange={(open) => !open && setEditingStaff(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -277,10 +210,7 @@ export default function StaffTab({ tenantId }: StaffTabProps) {
             ))}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditingStaff(null)}
-            >
+            <Button variant="outline" onClick={() => setEditingStaff(null)}>
               Cancel
             </Button>
             <Button onClick={handleSavePermissions} disabled={saving}>

@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:4670",
+      "localStorage": [
+        {
+          "name": "firebase:previous_websocket_failure",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

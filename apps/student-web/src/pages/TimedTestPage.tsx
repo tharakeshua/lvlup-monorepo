@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpace, useApiError } from "@levelup/shared-hooks";
-import { ref, onValue } from "firebase/database";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useSpace, useApiError, useServerTime } from "@levelup/query";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import {
@@ -75,32 +73,6 @@ import {
   Lightbulb,
 } from "lucide-react";
 
-/**
- * Hook to get Firebase RTDB server time offset.
- * Returns the difference (local time - server time) in ms.
- * This lets us compute accurate server-side time using: Date.now() - offset.
- */
-function useServerTimeOffset(): number {
-  const [offset, setOffset] = useState(0);
-
-  useEffect(() => {
-    try {
-      const { rtdb } = getFirebaseServices();
-      const offsetRef = ref(rtdb, ".info/serverTimeOffset");
-      const unsub = onValue(offsetRef, (snap) => {
-        if (snap.exists()) {
-          setOffset(-(snap.val() as number));
-        }
-      });
-      return unsub;
-    } catch {
-      return undefined;
-    }
-  }, []);
-
-  return offset;
-}
-
 /** Animate a number counting up from 0 to target */
 function useCountUp(target: number, duration = 1200): number {
   const [value, setValue] = useState(0);
@@ -135,8 +107,8 @@ export default function TimedTestPage() {
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
-  const serverTimeOffset = useServerTimeOffset();
-  const { data: space } = useSpace(currentTenantId, spaceId ?? null);
+  const { offsetMs } = useServerTime();
+  const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
   const { data: storyPoints } = useStoryPoints(currentTenantId, spaceId ?? null);
   const { data: items } = useStoryPointItems(
     currentTenantId,
@@ -846,11 +818,7 @@ export default function TimedTestPage() {
                 </button>
               )}
             </div>
-            <CountdownTimer
-              deadline={deadline}
-              onTimeUp={handleTimeUp}
-              serverOffset={serverTimeOffset}
-            />
+            <CountdownTimer deadline={deadline} onTimeUp={handleTimeUp} serverOffset={-offsetMs} />
           </div>
 
           {currentItem && (

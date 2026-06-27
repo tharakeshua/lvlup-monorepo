@@ -1,10 +1,9 @@
+import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useExam, useSubmissions } from "@levelup/shared-hooks";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { QuestionSubmission } from "@levelup/shared-types";
+import { useExam, useSubmissions, useQuestionSubmissions } from "@levelup/query";
+import { asExamId, asStudentId } from "@levelup/domain";
+import type { QuestionSubmission, Submission } from "@levelup/shared-types";
 import ProgressBar from "../components/common/ProgressBar";
 import {
   Button,
@@ -27,25 +26,6 @@ import {
   ChevronLeft,
   Printer,
 } from "lucide-react";
-
-function useQuestionSubmissions(tenantId: string | null, submissionId: string | null) {
-  return useQuery<QuestionSubmission[]>({
-    queryKey: ["tenants", tenantId, "submissions", submissionId, "questionSubmissions"],
-    queryFn: async () => {
-      if (!tenantId || !submissionId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(
-        db,
-        `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`
-      );
-      const q = query(colRef, orderBy("createdAt", "asc"));
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as QuestionSubmission);
-    },
-    enabled: !!tenantId && !!submissionId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 function GradeBadge({ grade }: { grade: string }) {
   const colorMap: Record<string, string> = {
@@ -127,19 +107,23 @@ export default function ExamResultPage() {
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
-  const { data: exam } = useExam(currentTenantId, examId ?? null);
-  const { data: submissions, isLoading: subsLoading } = useSubmissions(currentTenantId, {
-    examId: examId ?? undefined,
-    studentId: userId ?? undefined,
+  const { data: exam } = useExam(examId ?? "");
+  const { data: submissionPages, isLoading: subsLoading } = useSubmissions({
+    examId: asExamId(examId ?? ""),
+    studentId: userId ? asStudentId(userId) : undefined,
   });
 
-  // Use the most recent submission for this student
-  const submission = submissions?.[0] ?? null;
+  // Flatten the infinite-query pages and use the most recent submission.
+  const submission = useMemo<Submission | null>(() => {
+    const pages =
+      (submissionPages as { pages?: Array<{ items?: unknown[] }> } | undefined)?.pages ?? [];
+    return (pages.flatMap((p) => p.items ?? [])[0] as Submission | undefined) ?? null;
+  }, [submissionPages]);
 
-  const { data: questionSubmissions, isLoading: qsLoading } = useQuestionSubmissions(
-    currentTenantId,
-    submission?.id ?? null
+  const { data: questionSubmissionsRaw, isLoading: qsLoading } = useQuestionSubmissions(
+    submission?.id ?? ""
   );
+  const questionSubmissions = questionSubmissionsRaw as QuestionSubmission[] | undefined;
 
   const isLoading = subsLoading || qsLoading;
   const summary = submission?.summary;

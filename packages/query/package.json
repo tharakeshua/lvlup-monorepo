@@ -1,0 +1,57 @@
+{
+  "name": "@levelup/query",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React Query hooks, key factories, invalidation graph, optimistic recipes, ApiProvider",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@levelup/api-contract": "workspace:*",
+    "@levelup/domain": "workspace:*",
+    "@levelup/offline": "workspace:*",
+    "@levelup/realtime": "workspace:*",
+    "@levelup/repositories": "workspace:*"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.62.8",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.1",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.62.8",
+    "react": "^18.0.0"
+  }
+}

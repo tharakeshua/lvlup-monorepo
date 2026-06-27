@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { useCurrentTenantId, useCurrentMembership } from "@levelup/shared-stores";
-import { callExportTenantData } from "@levelup/shared-services/auth";
+import { useCurrentTenantId, useCurrentMembership } from "@/sdk/identity";
+import { useExportTenantData, useApiError } from "@levelup/query";
 import { Button, Label } from "@levelup/shared-ui";
 import { toast } from "sonner";
-import { useApiError } from "@levelup/shared-hooks";
 import { Download, FileDown, Clock } from "lucide-react";
 
+// Valid export scopes per the @levelup/api-contract `EXPORT_COLLECTIONS` enum.
 const COLLECTIONS = [
   { key: "students", label: "Students" },
   { key: "teachers", label: "Teachers" },
+  { key: "parents", label: "Parents" },
   { key: "classes", label: "Classes" },
   { key: "exams", label: "Exams" },
-  { key: "submissions", label: "Submissions" },
 ] as const;
 
 type ExportFormat = "json" | "csv";
@@ -28,6 +28,7 @@ export default function DataExportPage() {
   const tenantId = useCurrentTenantId();
   const membership = useCurrentMembership();
   const { handleError } = useApiError();
+  const exportTenant = useExportTenantData();
 
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<ExportFormat>("csv");
@@ -58,11 +59,15 @@ export default function DataExportPage() {
     if (!tenantId || selectedCollections.size === 0) return;
     setExporting(true);
     try {
-      const result = await callExportTenantData({
-        tenantId,
-        collections: Array.from(selectedCollections),
-        format,
-      });
+      const collections = Array.from(selectedCollections);
+      // The export contract takes a required single `scope` (+ an optional
+      // `collections` sub-list). NOTE: `format` is no longer part of the
+      // contract — the server emits its default export bundle.
+      const scope = collections.length === 1 ? collections[0] : "all";
+      const result = (await exportTenant.mutateAsync({
+        scope,
+        collections,
+      })) as { downloadUrl: string; expiresAt: string };
 
       const exportResult: ExportResult = {
         downloadUrl: result.downloadUrl,

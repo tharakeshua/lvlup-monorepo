@@ -1,13 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
-import { getFirebaseServices, callSaveTenant } from "@levelup/shared-services";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError, useTenants, useSaveTenant } from "@levelup/query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Tenant } from "@levelup/shared-types";
 import {
   sonnerToast as toast,
   Dialog,
@@ -51,21 +47,28 @@ import { Plus, Building2, AlertCircle, ExternalLink } from "lucide-react";
 import { usePagination } from "../hooks/usePagination";
 import { useSort } from "../hooks/useSort";
 
-function useAllTenants() {
-  return useQuery<Tenant[]>({
-    queryKey: ["platform", "tenants"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const snap = await getDocs(collection(db, "tenants"));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Tenant);
-    },
-    staleTime: 60 * 1000,
-  });
+/**
+ * Slim super-admin list row, mirroring the `listTenants` projection
+ * (TenantSummarySchema). NOTE: the list projection has NO contactEmail and uses
+ * `slug` (not `tenantCode`); counts are flat `totalStudents`/`totalTeachers`
+ * rather than a nested `stats`/`subscription` object.
+ */
+interface TenantSummaryRow {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan?: string;
+  totalStudents?: number;
+  totalTeachers?: number;
+  createdAt?: string;
 }
 
 const createTenantSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
-  tenantCode: z.string().min(1, "Tenant code is required")
+  tenantCode: z
+    .string()
+    .min(1, "Tenant code is required")
     .regex(/^[A-Z0-9-]+$/, "Uppercase letters, numbers, and hyphens only"),
   contactEmail: z.string().email("Valid email address required"),
   contactPerson: z.string().optional(),
@@ -74,9 +77,10 @@ const createTenantSchema = z.object({
 type CreateTenantFormValues = z.infer<typeof createTenantSchema>;
 
 export default function TenantsPage() {
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
-  const { data: tenants, isLoading, isError, error, refetch } = useAllTenants();
+  const { data, isLoading, isError, error, refetch } = useTenants();
+  // useTenants → listTenants (paginated PageBag). Surface the first page's items.
+  const tenants = (data as { items?: TenantSummaryRow[] } | undefined)?.items;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
@@ -86,47 +90,49 @@ export default function TenantsPage() {
     defaultValues: { name: "", tenantCode: "", contactEmail: "", contactPerson: "", plan: "trial" },
   });
 
-  const createTenant = useMutation({
-    mutationFn: async (data: CreateTenantFormValues) => {
-      await callSaveTenant({
+  // useSaveTenant auto-invalidates tenant queries on settle.
+  // GAP: the saveTenant contract `data` does NOT accept `tenantCode`,
+  // `contactPerson`, or a nested `subscription` object — only a flat `plan` plus
+  // name/contactEmail/etc. The code + contact person collected here cannot be
+  // persisted through this callable (provisioning likely needs a dedicated
+  // create-tenant callable). Only name/contactEmail/plan are sent.
+  const createTenant = useSaveTenant();
+
+  const onCreate = (values: CreateTenantFormValues) => {
+    createTenant.mutate(
+      {
         data: {
-          name: data.name,
-          tenantCode: data.tenantCode,
-          contactEmail: data.contactEmail,
-          contactPerson: data.contactPerson || undefined,
-          subscription: { plan: data.plan },
+          name: values.name,
+          contactEmail: values.contactEmail,
+          plan: values.plan,
         },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenants"] });
-      queryClient.invalidateQueries({ queryKey: ["platform", "stats"] });
-      setCreateOpen(false);
-      form.reset();
-      toast.success("Tenant created successfully");
-    },
-    onError: (err: unknown) => {
-      handleError(err, "Failed to create tenant");
-    },
-  });
+      },
+      {
+        onSuccess: () => {
+          setCreateOpen(false);
+          form.reset();
+          toast.success("Tenant created successfully");
+        },
+        onError: (err: unknown) => handleError(err, "Failed to create tenant"),
+      }
+    );
+  };
 
   const statuses = ["all", "active", "trial", "suspended", "expired"];
 
   const filtered = useMemo(() => {
-    return (tenants ?? []).filter((t) => {
-      if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        t.name.toLowerCase().includes(q) ||
-        t.tenantCode.toLowerCase().includes(q) ||
-        t.contactEmail?.toLowerCase().includes(q)
-      );
-    }).map((t) => ({
-      ...t,
-      _userCount: (t.stats?.totalStudents ?? 0) + (t.stats?.totalTeachers ?? 0),
-      _plan: t.subscription?.plan ?? "",
-    }));
+    return (tenants ?? [])
+      .filter((t) => {
+        if (statusFilter !== "all" && t.status !== statusFilter) return false;
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return t.name.toLowerCase().includes(q) || t.slug?.toLowerCase().includes(q);
+      })
+      .map((t) => ({
+        ...t,
+        _userCount: (t.totalStudents ?? 0) + (t.totalTeachers ?? 0),
+        _plan: t.plan ?? "",
+      }));
   }, [tenants, statusFilter, searchQuery]);
 
   const { sortedItems, currentSort, handleSort } = useSort(filtered);
@@ -139,7 +145,12 @@ export default function TenantsPage() {
         title="Tenants"
         description="Manage all registered organizations"
         actions={
-          <Button onClick={() => { form.reset(); setCreateOpen(true); }}>
+          <Button
+            onClick={() => {
+              form.reset();
+              setCreateOpen(true);
+            }}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Tenant
           </Button>
@@ -167,14 +178,14 @@ export default function TenantsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           containerClassName="flex-1"
         />
-        <div className="flex gap-1 rounded-lg border p-1 bg-muted/30">
+        <div className="bg-muted/30 flex gap-1 rounded-lg border p-1">
           {statuses.map((s) => (
             <Button
               key={s}
               variant={statusFilter === s ? "default" : "ghost"}
               size="sm"
               onClick={() => setStatusFilter(s)}
-              className="capitalize h-7 px-3 text-xs"
+              className="h-7 px-3 text-xs capitalize"
             >
               {s}
             </Button>
@@ -183,16 +194,26 @@ export default function TenantsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="bg-card rounded-lg border">
         <Table>
           <TableCaption className="sr-only">List of registered tenants</TableCaption>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <SortableTableHead sortKey="name" currentSort={currentSort} onSort={handleSort}>Name</SortableTableHead>
-              <SortableTableHead sortKey="tenantCode" currentSort={currentSort} onSort={handleSort}>Code</SortableTableHead>
-              <SortableTableHead sortKey="_plan" currentSort={currentSort} onSort={handleSort}>Plan</SortableTableHead>
-              <SortableTableHead sortKey="_userCount" currentSort={currentSort} onSort={handleSort}>Users</SortableTableHead>
-              <SortableTableHead sortKey="status" currentSort={currentSort} onSort={handleSort}>Status</SortableTableHead>
+              <SortableTableHead sortKey="name" currentSort={currentSort} onSort={handleSort}>
+                Name
+              </SortableTableHead>
+              <SortableTableHead sortKey="slug" currentSort={currentSort} onSort={handleSort}>
+                Code
+              </SortableTableHead>
+              <SortableTableHead sortKey="_plan" currentSort={currentSort} onSort={handleSort}>
+                Plan
+              </SortableTableHead>
+              <SortableTableHead sortKey="_userCount" currentSort={currentSort} onSort={handleSort}>
+                Users
+              </SortableTableHead>
+              <SortableTableHead sortKey="status" currentSort={currentSort} onSort={handleSort}>
+                Status
+              </SortableTableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -200,23 +221,36 @@ export default function TenantsPage() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-40" /><Skeleton className="mt-1.5 h-3 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="mt-1.5 h-3 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-10" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-10" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : !paginatedItems.length ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-48">
                   <div className="flex flex-col items-center justify-center text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                    <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+                      <Building2 className="text-muted-foreground h-6 w-6" />
                     </div>
                     <h3 className="mt-3 text-sm font-semibold">No tenants found</h3>
-                    <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                    <p className="text-muted-foreground mt-1 max-w-sm text-xs">
                       {searchQuery || statusFilter !== "all"
                         ? "Try adjusting your search or filter criteria."
                         : "Create your first tenant to get started."}
@@ -230,24 +264,30 @@ export default function TenantsPage() {
                   <TableCell>
                     <div>
                       <p className="font-medium">{tenant.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {tenant.contactEmail}
-                      </p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                      {tenant.tenantCode}
+                    <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
+                      {tenant.slug}
                     </code>
                   </TableCell>
                   <TableCell>
-                    <span className="capitalize text-sm">{tenant.subscription?.plan ?? "--"}</span>
+                    <span className="text-sm capitalize">{tenant.plan ?? "--"}</span>
                   </TableCell>
                   <TableCell>
                     <span className="tabular-nums">{tenant._userCount}</span>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={tenant.status as "active" | "trial" | "suspended" | "expired" | "deactivated"}>
+                    <StatusBadge
+                      status={
+                        tenant.status as
+                          | "active"
+                          | "trial"
+                          | "suspended"
+                          | "expired"
+                          | "deactivated"
+                      }
+                    >
                       {tenant.status}
                     </StatusBadge>
                   </TableCell>
@@ -255,7 +295,7 @@ export default function TenantsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity touch-device:opacity-100 [@media(hover:none)]:opacity-100"
+                      className="touch-device:opacity-100 h-7 px-2 opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
                       asChild
                     >
                       <Link to={`/tenants/${tenant.id}`}>
@@ -282,12 +322,10 @@ export default function TenantsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create Tenant</DialogTitle>
-            <DialogDescription>
-              Add a new organization to the platform
-            </DialogDescription>
+            <DialogDescription>Add a new organization to the platform</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createTenant.mutate(data))} className="space-y-4 py-2">
+            <form onSubmit={form.handleSubmit(onCreate)} className="space-y-4 py-2">
               <FormField
                 control={form.control}
                 name="name"
@@ -311,7 +349,9 @@ export default function TenantsPage() {
                       <Input
                         placeholder="e.g. SPRINGFIELD-HS"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))}
+                        onChange={(e) =>
+                          field.onChange(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))
+                        }
                       />
                     </FormControl>
                     <FormDescription>Uppercase letters, numbers, and hyphens only</FormDescription>
@@ -369,7 +409,12 @@ export default function TenantsPage() {
                 )}
               />
               <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={createTenant.isPending}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                  disabled={createTenant.isPending}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createTenant.isPending}>

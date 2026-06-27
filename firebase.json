@@ -4,12 +4,8 @@
       "source": "functions/identity",
       "codebase": "identity",
       "runtime": "nodejs20",
-      "predeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts prepare identity"
-      ],
-      "postdeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts cleanup identity"
-      ],
+      "predeploy": [],
+      "postdeploy": ["npx tsx scripts/prepare-functions-deploy.ts cleanup identity"],
       "ignore": [
         "node_modules",
         ".git",
@@ -24,12 +20,8 @@
       "source": "functions/autograde",
       "codebase": "autograde",
       "runtime": "nodejs20",
-      "predeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts prepare autograde"
-      ],
-      "postdeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts cleanup autograde"
-      ],
+      "predeploy": [],
+      "postdeploy": ["npx tsx scripts/prepare-functions-deploy.ts cleanup autograde"],
       "ignore": [
         "node_modules",
         ".git",
@@ -44,12 +36,8 @@
       "source": "functions/levelup",
       "codebase": "levelup",
       "runtime": "nodejs20",
-      "predeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts prepare levelup"
-      ],
-      "postdeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts cleanup levelup"
-      ],
+      "predeploy": [],
+      "postdeploy": ["npx tsx scripts/prepare-functions-deploy.ts cleanup levelup"],
       "ignore": [
         "node_modules",
         ".git",
@@ -64,12 +52,8 @@
       "source": "functions/analytics",
       "codebase": "analytics",
       "runtime": "nodejs20",
-      "predeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts prepare analytics"
-      ],
-      "postdeploy": [
-        "npx tsx scripts/prepare-functions-deploy.ts cleanup analytics"
-      ],
+      "predeploy": [],
+      "postdeploy": ["npx tsx scripts/prepare-functions-deploy.ts cleanup analytics"],
       "ignore": [
         "node_modules",
         ".git",
@@ -79,6 +63,25 @@
         "src",
         "package.json.bak"
       ]
+    },
+    {
+      "source": "functions/sdk-v1",
+      "codebase": "sdk-v1",
+      "runtime": "nodejs20",
+      "predeploy": [
+        "pnpm -F @levelup/functions-sdk-v1 build",
+        "node functions/sdk-v1/scripts/prepare-deploy-pkg.mjs"
+      ],
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local",
+        "src",
+        "scripts",
+        "package.json.bak"
+      ]
     }
   ],
   "hosting": [
@@ -86,11 +89,21 @@
       "target": "admin-web",
       "public": "apps/admin-web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     },
@@ -98,11 +111,21 @@
       "target": "parent-web",
       "public": "apps/parent-web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     },
@@ -110,11 +133,21 @@
       "target": "student-web",
       "public": "apps/student-web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     },
@@ -122,11 +155,21 @@
       "target": "super-admin",
       "public": "apps/super-admin/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     },
@@ -134,11 +177,21 @@
       "target": "teacher-web",
       "public": "apps/teacher-web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     },
@@ -149,7 +202,12 @@
       "headers": [
         {
           "source": "**/*.@(js|css|map)",
-          "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
         }
       ]
     }

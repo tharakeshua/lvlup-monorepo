@@ -1,9 +1,10 @@
-import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import { SaveGlobalPresetRequestSchema } from '@levelup/shared-types';
-import { getUser, parseRequest } from '../utils';
-import { enforceRateLimit } from '../utils/rate-limit';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/v2";
+import { SaveGlobalPresetRequestSchema } from "@levelup/shared-types";
+import { getUser, parseRequest } from "../utils";
+import { enforceRateLimit } from "../utils/rate-limit";
 
 /**
  * Consolidated endpoint for global evaluation preset management.
@@ -12,26 +13,30 @@ import { enforceRateLimit } from '../utils/rate-limit';
  * - delete: true → delete preset (SuperAdmin only)
  */
 export const saveGlobalEvaluationPreset = onCall(
-  { region: 'asia-south1', cors: true },
+  { region: "asia-south1", cors: true },
   async (request) => {
     const callerUid = request.auth?.uid;
-    if (!callerUid) throw new HttpsError('unauthenticated', 'Must be logged in');
+    if (!callerUid) throw new HttpsError("unauthenticated", "Must be logged in");
 
     const callerUser = await getUser(callerUid);
     if (!callerUser?.isSuperAdmin) {
-      throw new HttpsError('permission-denied', 'SuperAdmin only');
+      throw new HttpsError("permission-denied", "SuperAdmin only");
     }
 
-    await enforceRateLimit('global', callerUid, 'write', 30);
+    await enforceRateLimit("global", callerUid, "write", 30);
 
-    const { id, data, delete: shouldDelete } = parseRequest(request.data, SaveGlobalPresetRequestSchema);
+    const {
+      id,
+      data,
+      delete: shouldDelete,
+    } = parseRequest(request.data, SaveGlobalPresetRequestSchema);
 
     if (id && shouldDelete) {
       // ── DELETE ──
       const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
       const snap = await presetRef.get();
       if (!snap.exists) {
-        throw new HttpsError('not-found', 'Preset not found');
+        throw new HttpsError("not-found", "Preset not found");
       }
       await presetRef.delete();
       logger.info(`Deleted global preset ${id}`);
@@ -41,10 +46,10 @@ export const saveGlobalEvaluationPreset = onCall(
     if (!id) {
       // ── CREATE ──
       if (!data?.name) {
-        throw new HttpsError('invalid-argument', 'name is required');
+        throw new HttpsError("invalid-argument", "name is required");
       }
 
-      const presetRef = admin.firestore().collection('globalEvaluationPresets').doc();
+      const presetRef = admin.firestore().collection("globalEvaluationPresets").doc();
       await presetRef.set({
         id: presetRef.id,
         name: data.name,
@@ -58,8 +63,8 @@ export const saveGlobalEvaluationPreset = onCall(
           prioritizeByImportance: false,
         },
         createdBy: callerUid,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
 
       logger.info(`Created global preset ${presetRef.id} (${data.name})`);
@@ -69,11 +74,11 @@ export const saveGlobalEvaluationPreset = onCall(
       const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
       const snap = await presetRef.get();
       if (!snap.exists) {
-        throw new HttpsError('not-found', 'Preset not found');
+        throw new HttpsError("not-found", "Preset not found");
       }
 
       const updates: Record<string, unknown> = {
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
       if (data?.name !== undefined) updates.name = data.name;
@@ -88,5 +93,5 @@ export const saveGlobalEvaluationPreset = onCall(
       logger.info(`Updated global preset ${id}`);
       return { id, created: false };
     }
-  },
+  }
 );

@@ -42,6 +42,8 @@
     "@playwright/test": "^1.58.2",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
+    "firebase": "^11.2.0",
+    "firebase-tools": "13.35.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.2.5",
@@ -63,5 +65,11 @@
   },
   "dependencies": {
     "firebase-admin": "^13.6.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "nativewind": "4.1.23",
+      "react-native-css-interop": "0.1.22"
+    }
   }
 }

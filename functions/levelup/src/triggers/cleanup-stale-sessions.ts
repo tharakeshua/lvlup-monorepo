@@ -1,6 +1,7 @@
-import * as admin from 'firebase-admin';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { logger } from "firebase-functions/v2";
 
 /**
  * Scheduled function: cleanup truly stale test sessions (24h threshold).
@@ -17,29 +18,27 @@ import { logger } from 'firebase-functions/v2';
  */
 export const cleanupStaleSessions = onSchedule(
   {
-    schedule: 'every 1 hours',
-    region: 'asia-south1',
+    schedule: "every 1 hours",
+    region: "asia-south1",
     timeoutSeconds: 120,
   },
   async () => {
     const db = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
 
     // 24 hours ago
-    const staleThreshold = admin.firestore.Timestamp.fromMillis(
-      now.toMillis() - 24 * 60 * 60 * 1000,
-    );
+    const staleThreshold = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
 
     // Query across all tenants using collectionGroup
     const staleSessions = await db
-      .collectionGroup('digitalTestSessions')
-      .where('status', '==', 'in_progress')
-      .where('createdAt', '<', staleThreshold)
+      .collectionGroup("digitalTestSessions")
+      .where("status", "==", "in_progress")
+      .where("createdAt", "<", staleThreshold)
       .limit(500)
       .get();
 
     if (staleSessions.empty) {
-      logger.info('No stale test sessions (24h) found');
+      logger.info("No stale test sessions (24h) found");
       return;
     }
 
@@ -51,10 +50,10 @@ export const cleanupStaleSessions = onSchedule(
 
     for (const sessionDoc of staleSessions.docs) {
       batch.update(sessionDoc.ref, {
-        status: 'abandoned',
+        status: "abandoned",
         endedAt: now,
         autoSubmitted: true,
-        abandonedReason: 'stale_24h',
+        abandonedReason: "stale_24h",
         updatedAt: now,
       });
       count++;
@@ -62,5 +61,5 @@ export const cleanupStaleSessions = onSchedule(
 
     await batch.commit();
     logger.info(`Marked ${count} stale test sessions as abandoned`);
-  },
+  }
 );

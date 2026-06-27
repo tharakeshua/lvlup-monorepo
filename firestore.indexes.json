@@ -1,444 +1,891 @@
 {
   "indexes": [
     {
-      "collectionGroup": "userMemberships",
+      "collectionGroup": "academicSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "uid", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "isCurrent",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "userMemberships",
+      "collectionGroup": "academicSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "tenantId", "order": "ASCENDING" },
-        { "fieldPath": "role", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "exams",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startDate",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "exams",
+      "collectionGroup": "chatSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "exams",
+      "collectionGroup": "classes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "createdBy", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "academicSessionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "exams",
+      "collectionGroup": "classes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "examDate", "order": "ASCENDING" }
+        {
+          "fieldPath": "grade",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "exams",
+      "collectionGroup": "classes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "exams",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "classId", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "exams",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "studentId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "resultsReleased", "order": "ASCENDING" },
-        { "fieldPath": "classId", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "spaces",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "spaces",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "spaces",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "createdBy", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "spaces",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "storyPoints",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "order", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "items",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "storyPointId", "order": "ASCENDING" },
-        { "fieldPath": "order", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "items",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "storyPointId", "order": "ASCENDING" },
-        { "fieldPath": "orderIndex", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "items",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "storyPointId", "order": "ASCENDING" },
-        { "fieldPath": "orderIndex", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "items",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "storyPointId", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "testSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "spaceId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "testSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "testSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "digitalTestSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "storyPointId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "digitalTestSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "storyPointId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "digitalTestSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "digitalTestSessions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "serverDeadline", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "spaceProgress",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "spaceId", "order": "ASCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "serverDeadline",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "spaceProgress",
+      "collectionGroup": "digitalTestSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "completionPercentage", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "progress",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "spaceId", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "classes",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "grade", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionGroup": "classes",
+      "collectionGroup": "digitalTestSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "academicSessionId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
-
     {
-      "collectionGroup": "students",
+      "collectionGroup": "digitalTestSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        }
       ]
     },
-    {
-      "collectionGroup": "students",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "grade", "order": "ASCENDING" },
-        { "fieldPath": "section", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
     {
       "collectionGroup": "evaluationSettings",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "scope", "order": "ASCENDING" },
-        { "fieldPath": "scopeId", "order": "ASCENDING" }
+        {
+          "fieldPath": "scope",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scopeId",
+          "order": "ASCENDING"
+        }
       ]
     },
-
-    {
-      "collectionGroup": "llmCallLogs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "taskType", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "chatSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "spaceId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "recipientId", "order": "ASCENDING" },
-        { "fieldPath": "isRead", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "recipientId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "academicSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "startDate", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "academicSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "isCurrent", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "spaceProgress",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "collectionGroup": "spaces",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "accessType", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-
     {
       "collectionGroup": "exams",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "classIds", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "examDate", "order": "DESCENDING" }
+        {
+          "fieldPath": "classId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
-
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "classIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "classIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "examDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "examDate",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderIndex",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderIndex",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "storyPointId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "llmCallLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "taskType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recipientId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recipientId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isRead",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "progress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaceProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "completionPercentage",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaceProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaceProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accessType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "classIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "spaces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "storyPoints",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "classIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "grade",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "section",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
     {
       "collectionGroup": "submissions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "examId", "order": "ASCENDING" },
-        { "fieldPath": "classId", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "classId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "resultsReleased",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "classId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "examId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tenants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "discoverability.isPublic",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "discoverability.memberCount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tenants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "discoverability.isPublic",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "discoverability.tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "discoverability.memberCount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tenants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "platformConfig.isDefault",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "platformConfig.visibility",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "testSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "testSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "spaceId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "testSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userMemberships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "role",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userMemberships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "answerKeys",
+      "fieldPath": "itemId",
+      "ttl": false,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
 }

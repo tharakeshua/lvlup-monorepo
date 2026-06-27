@@ -1,7 +1,8 @@
-import * as admin from 'firebase-admin';
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import { logger } from 'firebase-functions/v2';
-import type { Class } from '@levelup/shared-types';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions/v2";
+import type { Class } from "@levelup/shared-types";
 
 /**
  * Firestore trigger: when a class status changes to 'archived',
@@ -9,8 +10,8 @@ import type { Class } from '@levelup/shared-types';
  */
 export const onClassArchived = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/classes/{classId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}/classes/{classId}",
+    region: "asia-south1",
   },
   async (event) => {
     try {
@@ -20,7 +21,7 @@ export const onClassArchived = onDocumentUpdated(
       if (!before || !after) return;
 
       // Only trigger when status changes to 'archived'
-      if (before.status === 'archived' || after.status !== 'archived') return;
+      if (before.status === "archived" || after.status !== "archived") return;
 
       const tenantId = event.params.tenantId;
       const classId = event.params.classId;
@@ -48,8 +49,8 @@ export const onClassArchived = onDocumentUpdated(
         const batch = db.batch();
         for (const ref of chunk) {
           batch.update(ref, {
-            classIds: admin.firestore.FieldValue.arrayRemove(classId),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            classIds: FieldValue.arrayRemove(classId),
+            updatedAt: FieldValue.serverTimestamp(),
           });
         }
         await batch.commit();
@@ -57,10 +58,10 @@ export const onClassArchived = onDocumentUpdated(
 
       logger.info(
         `Cleaned up references for archived class ${classId} in tenant ${tenantId}: ` +
-          `${after.studentIds?.length ?? 0} students, ${after.teacherIds?.length ?? 0} teachers`,
+          `${after.studentIds?.length ?? 0} students, ${after.teacherIds?.length ?? 0} teachers`
       );
     } catch (error) {
-      logger.error('Failed to clean up archived class references', error);
+      logger.error("Failed to clean up archived class references", error);
     }
-  },
+  }
 );

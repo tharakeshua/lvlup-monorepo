@@ -4,25 +4,26 @@
  * updates the isAtRisk and atRiskReasons fields.
  */
 
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as admin from 'firebase-admin';
-import { evaluateAtRiskRules } from '../utils/at-risk-rules';
-import type { StudentProgressSummary } from '@levelup/shared-types';
-import { StudentProgressSummarySchema } from '@levelup/shared-types';
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { evaluateAtRiskRules } from "../utils/at-risk-rules";
+import type { StudentProgressSummary } from "@levelup/shared-types";
+import { StudentProgressSummarySchema } from "@levelup/shared-types";
 
 export const nightlyAtRiskDetection = onSchedule(
   {
-    schedule: '0 2 * * *', // 2:00 AM daily
-    timeZone: 'UTC',
-    region: 'asia-south1',
-    memory: '1GiB',
+    schedule: "0 2 * * *", // 2:00 AM daily
+    timeZone: "UTC",
+    region: "asia-south1",
+    memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes max
   },
   async () => {
     const db = admin.firestore();
 
     // Get all tenants
-    const tenantsSnap = await db.collection('tenants').get();
+    const tenantsSnap = await db.collection("tenants").get();
 
     let totalProcessed = 0;
     let totalAtRisk = 0;
@@ -60,7 +61,10 @@ export const nightlyAtRiskDetection = onSchedule(
         let batchWrites = 0;
 
         for (const doc of batch.docs) {
-          const summaryResult = StudentProgressSummarySchema.safeParse({ id: doc.id, ...doc.data() });
+          const summaryResult = StudentProgressSummarySchema.safeParse({
+            id: doc.id,
+            ...doc.data(),
+          });
           if (!summaryResult.success) {
             // Skip invalid documents
             totalProcessed++;
@@ -87,7 +91,7 @@ export const nightlyAtRiskDetection = onSchedule(
             writeBatch.update(doc.ref, {
               isAtRisk: result.isAtRisk,
               atRiskReasons: result.reasons,
-              lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              lastUpdatedAt: FieldValue.serverTimestamp(),
             });
             batchWrites++;
 
@@ -96,7 +100,7 @@ export const nightlyAtRiskDetection = onSchedule(
               newlyAtRisk.push({
                 tenantId,
                 studentId: summary.studentId ?? doc.id,
-                studentName: 'A student', // Resolved from student document below
+                studentName: "A student", // Resolved from student document below
                 reasons: result.reasons,
                 teacherUids: [], // Populated below
                 parentUids: [],
@@ -122,12 +126,12 @@ export const nightlyAtRiskDetection = onSchedule(
       try {
         const studentSnap = await db
           .collection(`tenants/${entry.tenantId}/students`)
-          .where('authUid', '!=', null)
+          .where("authUid", "!=", null)
           .limit(1000)
           .get();
         // Find this student's document to get classIds and parentIds
         const studentDoc = studentSnap.docs.find(
-          (d) => d.id === entry.studentId || d.data().authUid === entry.studentId,
+          (d) => d.id === entry.studentId || d.data().authUid === entry.studentId
         );
         if (studentDoc) {
           const sData = studentDoc.data();
@@ -173,7 +177,7 @@ export const nightlyAtRiskDetection = onSchedule(
     // Send notifications for newly flagged at-risk students
     try {
       if (newlyAtRisk.length > 0) {
-        const { sendNotification } = await import('../utils/notification-sender');
+        const { sendNotification } = await import("../utils/notification-sender");
 
         for (const entry of newlyAtRisk) {
           // Notify teachers of the student's classes
@@ -181,11 +185,11 @@ export const nightlyAtRiskDetection = onSchedule(
             await sendNotification({
               tenantId: entry.tenantId,
               recipientId: teacherUid,
-              recipientRole: 'teacher',
-              type: 'student_at_risk',
-              title: 'Student At Risk',
+              recipientRole: "teacher",
+              type: "student_at_risk",
+              title: "Student At Risk",
               body: `${entry.studentName} has been flagged as at-risk: ${entry.reasons[0]}.`,
-              entityType: 'student',
+              entityType: "student",
               entityId: entry.studentId,
               actionUrl: `/students`,
             });
@@ -196,11 +200,11 @@ export const nightlyAtRiskDetection = onSchedule(
             await sendNotification({
               tenantId: entry.tenantId,
               recipientId: parentUid,
-              recipientRole: 'parent',
-              type: 'student_at_risk',
-              title: 'Your Child Needs Attention',
+              recipientRole: "parent",
+              type: "student_at_risk",
+              title: "Your Child Needs Attention",
               body: `${entry.studentName} may need additional support with their studies.`,
-              entityType: 'student',
+              entityType: "student",
               entityId: entry.studentId,
               actionUrl: `/children`,
             });
@@ -208,11 +212,11 @@ export const nightlyAtRiskDetection = onSchedule(
         }
       }
     } catch (err) {
-      console.warn('Failed to send at-risk notifications:', err);
+      console.warn("Failed to send at-risk notifications:", err);
     }
 
     console.log(
-      `At-risk detection complete: ${totalProcessed} students processed, ${totalAtRisk} flagged at-risk`,
+      `At-risk detection complete: ${totalProcessed} students processed, ${totalAtRisk} flagged at-risk`
     );
-  },
+  }
 );

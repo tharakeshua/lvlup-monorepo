@@ -1,26 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
-import { doc, getDoc } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { Tenant } from "@levelup/shared-types";
+import { useRepos } from "@levelup/query";
 
+// Migrated to @levelup/query: resolve each tenant name via the identity
+// tenantRepo.get(id) read. Signature + Record<tenantId,name> shape preserved.
 export function useTenantNames(tenantIds: string[]) {
+  const repos = useRepos();
   return useQuery<Record<string, string>>({
     queryKey: ["tenantNames", tenantIds],
     queryFn: async () => {
       if (!tenantIds.length) return {};
-      const { db } = getFirebaseServices();
       const names: Record<string, string> = {};
       await Promise.all(
         tenantIds.map(async (id) => {
           try {
-            const snap = await getDoc(doc(db, "tenants", id));
-            if (snap.exists()) {
-              names[id] = (snap.data() as Tenant).name;
-            }
+            const tenant = await repos.tenantRepo.get(id);
+            const name = (tenant as { name?: string } | null)?.name;
+            if (name) names[id] = name;
           } catch {
-            // Fallback handled below
+            // Fallback handled by caller
           }
-        }),
+        })
       );
       return names;
     },

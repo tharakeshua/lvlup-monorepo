@@ -312,7 +312,7 @@ describe("saveExam callable", () => {
   });
 
   it("rejects field updates when exam is in non-updatable status", async () => {
-    mockGetExam.mockResolvedValue({ id: "e1", status: "published" });
+    mockGetExam.mockResolvedValue({ id: "e1", status: "grading" });
 
     await expect(
       (saveExam as any)(
@@ -322,7 +322,38 @@ describe("saveExam callable", () => {
           data: { title: "New Title" },
         })
       )
-    ).rejects.toThrow("Cannot update exam in 'published'");
+    ).rejects.toThrow("Cannot update exam in 'grading'");
+  });
+
+  it("allows non-grading field updates after publish", async () => {
+    mockGetExam.mockResolvedValue({ id: "e1", status: "published" });
+
+    const result = await (saveExam as any)(
+      makeRequest({
+        id: "e1",
+        tenantId: "tenant-1",
+        data: { title: "Updated Title", classIds: ["c1", "c2"] },
+      })
+    );
+
+    expect(result).toEqual({ id: "e1", created: false });
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Updated Title", classIds: ["c1", "c2"] })
+    );
+  });
+
+  it("blocks grading-impacting field updates after publish", async () => {
+    mockGetExam.mockResolvedValue({ id: "e1", status: "published" });
+
+    await expect(
+      (saveExam as any)(
+        makeRequest({
+          id: "e1",
+          tenantId: "tenant-1",
+          data: { totalMarks: 50 },
+        })
+      )
+    ).rejects.toThrow("'totalMarks' cannot be changed after the exam is published");
   });
 
   it("updates allowed fields when exam is in draft", async () => {

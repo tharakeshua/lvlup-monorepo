@@ -1,11 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { callSaveTenant } from "@levelup/shared-services";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError, useSaveTenant } from "@levelup/query";
 import { sonnerToast as toast } from "@levelup/shared-ui";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Tenant } from "@levelup/shared-types";
+import type { Tenant } from "@levelup/domain";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +47,6 @@ interface Props {
 }
 
 export function EditTenantDialog({ tenant, tenantId, open, onOpenChange }: Props) {
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
 
   const editForm = useForm<EditTenantFormValues>({
@@ -64,28 +61,33 @@ export function EditTenantDialog({ tenant, tenantId, open, onOpenChange }: Props
     },
   });
 
-  const updateTenant = useMutation({
-    mutationFn: async (data: EditTenantFormValues) => {
-      await callSaveTenant({
+  // useSaveTenant auto-invalidates tenant queries on settle.
+  // GAP: the saveTenant contract `data` only supports
+  // { name, shortName, contactEmail, contactPhone, plan, features, settings,
+  //   branding, geminiApiKey }. `contactPerson`, `website` and `status` are NOT
+  //   persistable here — status changes go through the lifecycle hooks
+  //   (deactivate/reactivate), so those fields are dropped from the payload.
+  const updateTenant = useSaveTenant();
+
+  const onSubmit = (data: EditTenantFormValues) => {
+    updateTenant.mutate(
+      {
         id: tenantId,
         data: {
           name: data.name,
           contactEmail: data.contactEmail,
           contactPhone: data.contactPhone || undefined,
-          contactPerson: data.contactPerson || undefined,
-          website: data.website || undefined,
-          status: data.status,
         },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenant", tenantId] });
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenants"] });
-      onOpenChange(false);
-      toast.success("Tenant updated successfully");
-    },
-    onError: (err: unknown) => handleError(err, "Failed to update tenant"),
-  });
+      },
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+          toast.success("Tenant updated successfully");
+        },
+        onError: (err: unknown) => handleError(err, "Failed to update tenant"),
+      }
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onOpenChange(false)}>
@@ -95,46 +97,117 @@ export function EditTenantDialog({ tenant, tenantId, open, onOpenChange }: Props
           <DialogDescription className="sr-only">Edit tenant details</DialogDescription>
         </DialogHeader>
         <Form {...editForm}>
-          <form onSubmit={editForm.handleSubmit((data) => updateTenant.mutate(data))} className="space-y-4 py-2">
-            <FormField control={editForm.control} name="name" render={({ field }) => (
-              <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={editForm.control} name="contactEmail" render={({ field }) => (
-              <FormItem><FormLabel>Contact Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={editForm.control} name="contactPhone" render={({ field }) => (
-              <FormItem><FormLabel>Contact Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={editForm.control} name="contactPerson" render={({ field }) => (
-              <FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={editForm.control} name="website" render={({ field }) => (
-              <FormItem><FormLabel>Website</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={editForm.control} name="status" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="trial">Trial</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+          <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4 py-2">
+            <FormField
+              control={editForm.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="contactEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="contactPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Phone</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="contactPerson"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Person</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             {updateTenant.isError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{updateTenant.error instanceof Error ? updateTenant.error.message : "Failed to update tenant"}</AlertDescription>
+                <AlertDescription>
+                  {updateTenant.error instanceof Error
+                    ? updateTenant.error.message
+                    : "Failed to update tenant"}
+                </AlertDescription>
               </Alert>
             )}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={updateTenant.isPending}>Cancel</Button>
-              <Button type="submit" disabled={updateTenant.isPending}>{updateTenant.isPending ? "Saving..." : "Save Changes"}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={updateTenant.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateTenant.isPending}>
+                {updateTenant.isPending ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

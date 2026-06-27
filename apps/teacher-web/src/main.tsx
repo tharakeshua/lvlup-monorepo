@@ -1,42 +1,29 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { initializeFirebase } from "@levelup/shared-services";
 import { ErrorBoundary, SonnerToaster } from "@levelup/shared-ui";
 import { reportWebVitals } from "@levelup/shared-utils/web-vitals";
+import { SdkProvider } from "./sdk/SdkProvider";
+import { SessionProvider } from "./sdk/session";
 import App from "./App";
 import "./index.css";
 import "katex/dist/katex.min.css";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-initializeFirebase({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-});
-
+// Firebase init + the QueryClient are now owned by the SDK composition root:
+// `SdkProvider` mounts `@levelup/query`'s `ApiProvider` (which owns the
+// QueryClientProvider), and `SessionProvider` (inside it) replaces the legacy
+// auth/tenant stores.
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-          <SonnerToaster richColors position="top-right" />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <SdkProvider>
+        <SessionProvider>
+          <BrowserRouter>
+            <App />
+            <SonnerToaster richColors position="top-right" />
+          </BrowserRouter>
+        </SessionProvider>
+      </SdkProvider>
     </ThemeProvider>
   </ErrorBoundary>
 );

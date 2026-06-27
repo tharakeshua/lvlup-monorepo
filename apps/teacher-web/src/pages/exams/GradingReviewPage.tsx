@@ -1,20 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useCurrentTenantId, useAuthStore } from "@levelup/shared-stores";
-import { useExam, useSubmissions } from "@levelup/shared-hooks";
 import {
-  doc,
-  getDocs,
-  collection,
-  query,
-  orderBy,
-  serverTimestamp,
-  writeBatch,
-  onSnapshot,
-} from "firebase/firestore";
+  useExam,
+  useSubmissions,
+  useSubmission,
+  useExamQuestions,
+  useQuestionSubmissions,
+  useGradeManual,
+  useAiGradeQuestion,
+} from "@levelup/query";
+import { useAuthSession } from "../../sdk/session";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
-import { getFirebaseServices, callGradeQuestion } from "@levelup/shared-services";
+import { getFirebaseServices } from "@levelup/shared-services";
 import type {
+  Exam,
   Submission,
   QuestionSubmission,
   ExamQuestion,
@@ -73,16 +72,47 @@ import {
 } from "@levelup/shared-ui";
 import { toast } from "sonner";
 
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
 export default function GradingReviewPage() {
   const { examId, submissionId } = useParams<{
     examId: string;
     submissionId: string;
   }>();
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const firebaseUser = useAuthStore((s) => s.firebaseUser);
-  const { data: exam } = useExam(tenantId, examId ?? null);
-  const { data: allSubmissions = [] } = useSubmissions(tenantId, { examId });
+  // firebaseUser is kept only as a signed-in guard; grading mutations carry auth
+  // server-side via claims (no tenantId/uid args).
+  const firebaseUser = useAuthSession((s) => s.firebaseUser);
+  const { data: examData } = useExam(examId ?? "");
+  const exam = examData as Exam | undefined;
+  const { data: allSubmissionsData } = useSubmissions({ examId });
+  const allSubmissions = useMemo(
+    () => asArray<Submission>(allSubmissionsData),
+    [allSubmissionsData]
+  );
+
+  // Reads via @levelup/query (claims-scoped). Local state is seeded from these so
+  // the existing optimistic-update + bulk-approve flows keep working.
+  const {
+    data: submissionData,
+    isLoading: submissionLoading,
+    refetch: refetchSubmission,
+  } = useSubmission(submissionId ?? "");
+  const { data: questionsData } = useExamQuestions(examId ?? "");
+  const { data: questionSubsData, refetch: refetchQuestionSubs } = useQuestionSubmissions(
+    submissionId ?? ""
+  );
+  const gradeManual = useGradeManual();
+  const aiGradeQuestion = useAiGradeQuestion();
 
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -106,50 +136,22 @@ export default function GradingReviewPage() {
   const prevSub = currentIdx > 0 ? allSubmissions[currentIdx - 1] : null;
   const nextSub = currentIdx < allSubmissions.length - 1 ? allSubmissions[currentIdx + 1] : null;
 
-  // Exam questions don't change during grading — fetch once.
+  // Seed local question state from the query (exam questions don't change during grading).
   useEffect(() => {
-    if (!tenantId || !examId) return;
-    const { db } = getFirebaseServices();
-    (async () => {
-      const qSnap = await getDocs(
-        query(
-          collection(db, `tenants/${tenantId}/exams/${examId}/questions`),
-          orderBy("order", "asc")
-        )
-      );
-      setQuestions(qSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
-    })();
-  }, [tenantId, examId]);
+    setQuestions(asArray<ExamQuestion>(questionsData));
+  }, [questionsData]);
 
-  // Live submission listener — pipelineStatus, summary, scoutingResult.
+  // Seed submission from the query read. (Was a Firestore onSnapshot; the SDK read
+  // is invalidated/refetched after each grading mutation below.)
   useEffect(() => {
-    if (!tenantId || !submissionId) return;
-    const { db } = getFirebaseServices();
-    const unsub = onSnapshot(
-      doc(db, `tenants/${tenantId}/submissions`, submissionId),
-      (snap) => {
-        if (snap.exists()) {
-          setSubmission({ id: snap.id, ...snap.data() } as Submission);
-        }
-        setLoading(false);
-      },
-      () => setLoading(false)
-    );
-    return () => unsub();
-  }, [tenantId, submissionId]);
+    if (submissionData) setSubmission(submissionData as Submission);
+    if (!submissionLoading) setLoading(false);
+  }, [submissionData, submissionLoading]);
 
-  // Live questionSubmissions listener — picks up grading progress per question.
+  // Seed per-question grading results from the query read.
   useEffect(() => {
-    if (!tenantId || !submissionId) return;
-    const { db } = getFirebaseServices();
-    const unsub = onSnapshot(
-      collection(db, `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`),
-      (snap) => {
-        setQuestionSubs(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as QuestionSubmission));
-      }
-    );
-    return () => unsub();
-  }, [tenantId, submissionId]);
+    setQuestionSubs(asArray<QuestionSubmission>(questionSubsData));
+  }, [questionSubsData]);
 
   // mapping.imageUrls historically holds Storage paths, not HTTPS URLs.
   // Resolve every unique path once via getDownloadURL so <img> can render them.
@@ -203,7 +205,7 @@ export default function GradingReviewPage() {
 
   const handleOverride = async (questionSubId: string) => {
     const override = overrides[questionSubId];
-    if (!override || !override.reason.trim() || !tenantId || !submissionId || !firebaseUser) return;
+    if (!override || !override.reason.trim() || !submissionId || !firebaseUser) return;
     const qs = questionSubs.find((q) => q.id === questionSubId);
     const question = questions.find((q) => q.id === qs?.questionId);
     const maxMarks = question?.maxMarks ?? 0;
@@ -211,16 +213,15 @@ export default function GradingReviewPage() {
     setSaving(true);
     setGradeError(null);
     try {
-      // Use the callable so the server recomputes submission.summary in a transaction.
-      await callGradeQuestion({
-        tenantId,
+      // useGradeManual → v1.autograde.gradeQuestion(mode:'manual'); the server
+      // recomputes submission.summary, then we refetch the affected reads.
+      await gradeManual.mutateAsync({
         submissionId,
-        examId: examId ?? undefined,
         questionId: qs!.questionId,
         score: override.score,
         feedback: override.reason.trim(),
-        mode: "manual",
       });
+      await Promise.all([refetchSubmission(), refetchQuestionSubs()]);
       setOverrides((prev) => {
         const next = { ...prev };
         delete next[questionSubId];
@@ -238,7 +239,7 @@ export default function GradingReviewPage() {
 
   const handleAiGrade = useCallback(
     async (questionSubId: string) => {
-      if (!tenantId || !submissionId || !examId) return;
+      if (!submissionId) return;
       const qs = questionSubs.find((q) => q.id === questionSubId);
       if (!qs) return;
       if (!qs.mapping?.imageUrls?.length) {
@@ -248,20 +249,15 @@ export default function GradingReviewPage() {
       setGradingQuestionId(questionSubId);
       setGradeError(null);
       try {
-        await callGradeQuestion({
-          tenantId,
-          submissionId,
-          examId,
-          questionId: qs.questionId,
-          mode: "ai",
-        });
+        await aiGradeQuestion.mutateAsync({ submissionId, questionId: qs.questionId });
+        await Promise.all([refetchSubmission(), refetchQuestionSubs()]);
       } catch (err) {
         setGradeError(err instanceof Error ? err.message : "AI grading failed");
       } finally {
         setGradingQuestionId(null);
       }
     },
-    [tenantId, submissionId, examId, questionSubs]
+    [submissionId, questionSubs, aiGradeQuestion, refetchSubmission, refetchQuestionSubs]
   );
 
   const pendingQuestionCount = questionSubs.filter(
@@ -269,7 +265,7 @@ export default function GradingReviewPage() {
   ).length;
 
   const handleGradeAllPending = useCallback(async () => {
-    if (!tenantId || !submissionId || !examId) return;
+    if (!submissionId) return;
     const pending = questionSubs.filter(
       (qs) => qs.gradingStatus === "pending" || qs.gradingStatus === "failed"
     );
@@ -278,64 +274,48 @@ export default function GradingReviewPage() {
     for (const qs of pending) {
       setGradingQuestionId(qs.id);
       try {
-        await callGradeQuestion({
-          tenantId,
-          submissionId,
-          examId,
-          questionId: qs.questionId,
-          mode: "ai",
-        });
+        await aiGradeQuestion.mutateAsync({ submissionId, questionId: qs.questionId });
       } catch (err) {
         setGradeError(err instanceof Error ? err.message : `Grading Q${qs.questionId} failed`);
         break;
       }
     }
+    await Promise.all([refetchSubmission(), refetchQuestionSubs()]);
     setGradingQuestionId(null);
-  }, [tenantId, submissionId, examId, questionSubs]);
+  }, [submissionId, questionSubs, aiGradeQuestion, refetchSubmission, refetchQuestionSubs]);
 
+  // PARITY NOTE: @levelup/query has no single "bulk approve" callable. We compose
+  // it as one authoritative manual-grade (v1.autograde.gradeQuestion mode:'manual')
+  // per graded question — the server then advances the submission's pipeline
+  // status and recomputes the summary. After the batch we refetch the SDK reads.
   const handleBulkApprove = async () => {
-    if (!tenantId || !submissionId || !firebaseUser) return;
+    if (!submissionId || !firebaseUser) return;
     const prevSubs = questionSubs;
     const prevSubmission = submission;
     setSaving(true);
     try {
-      const { db } = getFirebaseServices();
-      const batch = writeBatch(db);
       let approvedCount = 0;
-
       for (const qs of questionSubs) {
         if (qs.gradingStatus !== "graded") continue;
         const question = questions.find((q) => q.id === qs.questionId);
         const maxMarks = question?.maxMarks ?? 0;
         const aiScore = qs.evaluation?.score ?? 0;
         if (aiScore < 0 || aiScore > maxMarks) {
-          toast.warning(`Skipped Q${question?.order ?? qs.questionId}: score ${aiScore} out of [0, ${maxMarks}]`);
+          toast.warning(
+            `Skipped Q${question?.order ?? qs.questionId}: score ${aiScore} out of [0, ${maxMarks}]`
+          );
           continue;
         }
-        batch.update(
-          doc(db, `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions`, qs.id),
-          {
-            gradingStatus: "manual",
-            manualOverride: {
-              score: aiScore,
-              reason: "Bulk approved",
-              overriddenBy: firebaseUser.uid,
-              overriddenAt: serverTimestamp(),
-              originalScore: aiScore,
-            },
-            updatedAt: serverTimestamp(),
-          }
-        );
+        await gradeManual.mutateAsync({
+          submissionId,
+          questionId: qs.questionId,
+          score: aiScore,
+          feedback: "Bulk approved",
+        });
         approvedCount += 1;
       }
 
-      batch.update(doc(db, `tenants/${tenantId}/submissions`, submissionId), {
-        pipelineStatus: "reviewed",
-        updatedAt: serverTimestamp(),
-      });
-
-      await batch.commit();
-
+      // Optimistic local reflection; refetch reconciles with the server.
       setSubmission((prev) =>
         prev ? { ...prev, pipelineStatus: "reviewed" as SubmissionPipelineStatus } : null
       );
@@ -346,6 +326,7 @@ export default function GradingReviewPage() {
             : q
         )
       );
+      await Promise.all([refetchSubmission(), refetchQuestionSubs()]);
       toast.success(`Approved ${approvedCount} questions`);
     } catch (err) {
       setQuestionSubs(prevSubs);
@@ -358,7 +339,7 @@ export default function GradingReviewPage() {
 
   const handleAcceptGrade = useCallback(
     async (questionSubId: string) => {
-      if (!tenantId || !submissionId || !firebaseUser) return;
+      if (!submissionId || !firebaseUser) return;
       const qs = questionSubs.find((q) => q.id === questionSubId);
       const score = qs?.evaluation?.score;
       if (!qs || score === undefined) {
@@ -368,15 +349,13 @@ export default function GradingReviewPage() {
       const feedback = qs.evaluation?.feedback ?? "Accepted AI grade";
       setSaving(true);
       try {
-        await callGradeQuestion({
-          tenantId,
+        await gradeManual.mutateAsync({
           submissionId,
-          examId: examId ?? undefined,
           questionId: qs.questionId,
           score,
           feedback,
-          mode: "manual",
         });
+        await Promise.all([refetchSubmission(), refetchQuestionSubs()]);
         toast.success("AI grade accepted");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to accept grade");
@@ -384,7 +363,7 @@ export default function GradingReviewPage() {
         setSaving(false);
       }
     },
-    [tenantId, submissionId, firebaseUser, questionSubs, examId]
+    [submissionId, firebaseUser, questionSubs, gradeManual, refetchSubmission, refetchQuestionSubs]
   );
 
   // Filter and sort questions based on review filter — prioritize review-needing items

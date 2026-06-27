@@ -1,21 +1,12 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { initializeFirebase } from "@levelup/shared-services";
 import { ErrorBoundary, SonnerToaster } from "@levelup/shared-ui";
 import { reportWebVitals } from "@levelup/shared-utils/web-vitals";
 import App from "./App";
+import { SdkProvider } from "./sdk/SdkProvider";
 import "./index.css";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 initializeFirebase({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -30,12 +21,12 @@ initializeFirebase({
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
+      <SdkProvider>
         <BrowserRouter>
           <App />
           <SonnerToaster richColors position="top-right" />
         </BrowserRouter>
-      </QueryClientProvider>
+      </SdkProvider>
     </ThemeProvider>
   </ErrorBoundary>
 );
@@ -44,24 +35,27 @@ createRoot(document.getElementById("root")!).render(
 reportWebVitals();
 
 // Register service worker for PWA support
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
-      setInterval(() => registration.update(), 60 * 60 * 1000);
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            window.dispatchEvent(new CustomEvent('sw-update-available'));
-          }
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        setInterval(() => registration.update(), 60 * 60 * 1000);
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              window.dispatchEvent(new CustomEvent("sw-update-available"));
+            }
+          });
         });
+      })
+      .catch(() => {
+        // SW registration failed silently
       });
-    }).catch(() => {
-      // SW registration failed silently
-    });
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
     window.location.reload();
   });
 }

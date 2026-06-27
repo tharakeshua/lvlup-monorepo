@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { callSaveClass } from "@levelup/shared-services";
-import { useApiError } from "@levelup/shared-hooks";
+import { useMutation } from "@tanstack/react-query";
+import { useSaveClass, useApiError } from "@levelup/query";
 import { toast } from "sonner";
 import {
   Button,
@@ -35,8 +34,8 @@ export default function ClassFormDialog({
   onSaved,
 }: ClassFormDialogProps) {
   const isEdit = !!editing;
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
+  const saveClass = useSaveClass();
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("");
@@ -56,24 +55,23 @@ export default function ClassFormDialog({
       const trimmedName = name.trim();
       const trimmedGrade = grade.trim();
       const trimmedSection = section.trim();
-      const result = await callSaveClass({
+      // Tenant is applied server-side from claims; useSaveClass auto-invalidates.
+      return saveClass.mutateAsync({
         id: editing?.id,
-        tenantId,
         data: {
           name: trimmedName,
           grade: trimmedGrade,
           section: trimmedSection || undefined,
         },
       });
-      return result;
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
       toast.success(isEdit ? "Class updated" : "Class created");
-      onSaved?.(result.id);
+      onSaved?.((result as { id: string }).id);
       onOpenChange(false);
     },
-    onError: (err) => handleError(err, isEdit ? "Failed to update class" : "Failed to create class"),
+    onError: (err) =>
+      handleError(err, isEdit ? "Failed to update class" : "Failed to create class"),
   });
 
   const validate = () => {
@@ -111,9 +109,7 @@ export default function ClassFormDialog({
               className="mt-1"
               autoFocus
             />
-            {errors.name && (
-              <p className="text-destructive mt-1 text-xs">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-destructive mt-1 text-xs">{errors.name}</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -125,9 +121,7 @@ export default function ClassFormDialog({
                 placeholder="10"
                 className="mt-1"
               />
-              {errors.grade && (
-                <p className="text-destructive mt-1 text-xs">{errors.grade}</p>
-              )}
+              {errors.grade && <p className="text-destructive mt-1 text-xs">{errors.grade}</p>}
             </div>
             <div>
               <Label htmlFor="class-section">Section (optional)</Label>
@@ -152,8 +146,7 @@ export default function ClassFormDialog({
           <Button onClick={handleSubmit} disabled={mutation.isPending}>
             {mutation.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                {isEdit ? "Saving..." : "Creating..."}
+                <Loader2 className="h-4 w-4 animate-spin" /> {isEdit ? "Saving..." : "Creating..."}
               </>
             ) : isEdit ? (
               "Save Changes"

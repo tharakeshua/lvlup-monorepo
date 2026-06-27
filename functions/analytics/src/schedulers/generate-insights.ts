@@ -5,31 +5,32 @@
  * Limits each student to 5 active (non-dismissed) insights.
  */
 
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as admin from 'firebase-admin';
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import {
   generateInsightsForStudent,
   type InsightExamData,
   type InsightSpaceData,
   type SpaceCompletionMap,
   type CorrelationData,
-} from '../utils/insight-rules';
-import type { StudentProgressSummary } from '@levelup/shared-types';
+} from "../utils/insight-rules";
+import type { StudentProgressSummary } from "@levelup/shared-types";
 
 const PAGE_SIZE = 500;
 const MAX_ACTIVE_INSIGHTS = 5;
 
 export const generateInsights = onSchedule(
   {
-    schedule: '30 2 * * *', // 2:30 AM daily (after at-risk at 2:00)
-    timeZone: 'UTC',
-    region: 'asia-south1',
-    memory: '1GiB',
+    schedule: "30 2 * * *", // 2:30 AM daily (after at-risk at 2:00)
+    timeZone: "UTC",
+    region: "asia-south1",
+    memory: "1GiB",
     timeoutSeconds: 540,
   },
   async () => {
     const db = admin.firestore();
-    const tenantsSnap = await db.collection('tenants').get();
+    const tenantsSnap = await db.collection("tenants").get();
 
     let totalInsightsCreated = 0;
 
@@ -39,14 +40,14 @@ export const generateInsights = onSchedule(
       // Load tenant-wide data once
       const [examsSnap, spacesSnap] = await Promise.all([
         db.collection(`tenants/${tenantId}/exams`).get(),
-        db.collection(`tenants/${tenantId}/spaces`).where('status', '==', 'published').get(),
+        db.collection(`tenants/${tenantId}/spaces`).where("status", "==", "published").get(),
       ]);
 
       const exams: InsightExamData[] = examsSnap.docs.map((d) => {
         const data = d.data();
         return {
           id: d.id,
-          title: data.title ?? '',
+          title: data.title ?? "",
           linkedSpaceId: data.linkedSpaceId,
           linkedSpaceTitle: data.linkedSpaceTitle,
           classIds: data.classIds ?? [],
@@ -59,9 +60,9 @@ export const generateInsights = onSchedule(
         const data = d.data();
         return {
           id: d.id,
-          title: data.title ?? '',
+          title: data.title ?? "",
           subject: data.subject,
-          status: data.status ?? 'published',
+          status: data.status ?? "published",
         };
       });
 
@@ -97,7 +98,7 @@ export const generateInsights = onSchedule(
           // Build space completion map for this student
           const spaceProgressSnap = await db
             .collection(`tenants/${tenantId}/spaceProgress`)
-            .where('studentId', '==', studentId)
+            .where("studentId", "==", studentId)
             .get();
 
           const spaceCompletion: SpaceCompletionMap = {};
@@ -120,8 +121,8 @@ export const generateInsights = onSchedule(
           // Get existing active insights for this student
           const existingSnap = await db
             .collection(`tenants/${tenantId}/insights`)
-            .where('studentId', '==', studentId)
-            .where('dismissedAt', '==', null)
+            .where("studentId", "==", studentId)
+            .where("dismissedAt", "==", null)
             .get();
 
           // Delete old insights to stay under the limit
@@ -136,7 +137,7 @@ export const generateInsights = onSchedule(
               const bTime = b.data().createdAt?.toMillis?.() ?? 0;
               return aTime - bTime;
             });
-            const toRemove = (existingCount + toWrite.length) - MAX_ACTIVE_INSIGHTS;
+            const toRemove = existingCount + toWrite.length - MAX_ACTIVE_INSIGHTS;
             const writeBatch = db.batch();
             for (let i = 0; i < Math.min(toRemove, sorted.length); i++) {
               writeBatch.delete(sorted[i].ref);
@@ -159,7 +160,7 @@ export const generateInsights = onSchedule(
               actionType: seed.actionType,
               actionEntityId: seed.actionEntityId ?? null,
               actionEntityTitle: seed.actionEntityTitle ?? null,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdAt: FieldValue.serverTimestamp(),
               dismissedAt: null,
             });
             totalInsightsCreated++;
@@ -173,5 +174,5 @@ export const generateInsights = onSchedule(
     }
 
     console.log(`Insight generation complete: ${totalInsightsCreated} insights created.`);
-  },
+  }
 );

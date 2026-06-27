@@ -2,10 +2,10 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useConsumerStore } from "@levelup/shared-stores";
 import {
   useNotifications,
-  useUnreadCount,
-  useMarkRead,
-  useMarkAllRead,
-} from "@levelup/shared-hooks";
+  useNotificationBadgeQuery,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@levelup/query";
 import {
   AppShell,
   AppSidebar,
@@ -35,18 +35,16 @@ export default function ConsumerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const firebaseUser = useAuthStore((s) => s.firebaseUser);
-  const currentTenantId = useAuthStore((s) => s.currentTenantId);
   const logout = useAuthStore((s) => s.logout);
   const cartCount = useConsumerStore((s) => s.cart.length);
 
-  const { data: notifData, isLoading: notifsLoading } = useNotifications(
-    currentTenantId,
-    firebaseUser?.uid ?? null
-  );
-  const unreadCount = useUnreadCount(currentTenantId, firebaseUser?.uid ?? null);
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  const notifQuery = useNotifications();
+  const notifData = notifQuery.data as { items?: unknown[] } | undefined;
+  const notifsLoading = notifQuery.isLoading;
+  const badgeQuery = useNotificationBadgeQuery();
+  const unreadCount = (badgeQuery.data as { unreadCount?: number } | undefined)?.unreadCount ?? 0;
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   const navGroups: NavGroup[] = [
     {
@@ -137,17 +135,17 @@ export default function ConsumerLayout() {
     <div className="flex items-center gap-2">
       <ThemeToggle />
       <NotificationBell
-        notifications={notifData?.notifications ?? []}
+        notifications={(notifData?.items ?? []) as never}
         unreadCount={unreadCount}
         isLoading={notifsLoading}
         onNotificationClick={(notif) => {
-          if (!notif.isRead && currentTenantId) {
-            markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
+          if (!notif.isRead) {
+            markRead.mutate({ notificationId: notif.id });
           }
           if (notif.actionUrl) navigate(notif.actionUrl);
         }}
         onMarkAllRead={() => {
-          if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
+          markAllRead.mutate();
         }}
         onViewAll={() => navigate("/notifications")}
       />

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@levelup/shared-services";
-import { getApiErrorMessage } from "@levelup/shared-hooks";
+import { getApiErrorMessage } from "../../lib/api-error";
 import { Button, Input } from "@levelup/shared-ui";
 import { Loader2 } from "lucide-react";
 

@@ -54,7 +54,8 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onSpaceDeleted = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-functions/v2/firestore");
+const firestore_1 = require("firebase-admin/firestore");
+const firestore_2 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
 /**
  * Firestore trigger: cascade delete when a space is deleted.
@@ -68,7 +69,7 @@ const v2_1 = require("firebase-functions/v2");
  * - All chatSessions for this space
  * - RTDB leaderboard data
  */
-exports.onSpaceDeleted = (0, firestore_1.onDocumentDeleted)(
+exports.onSpaceDeleted = (0, firestore_2.onDocumentDeleted)(
   {
     document: "tenants/{tenantId}/spaces/{spaceId}",
     region: "asia-south1",
@@ -125,8 +126,8 @@ exports.onSpaceDeleted = (0, firestore_1.onDocumentDeleted)(
     }
     // Update tenant stats
     await db.doc(`tenants/${tenantId}`).update({
-      "stats.totalSpaces": admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalSpaces": firestore_1.FieldValue.increment(-1),
+      updatedAt: firestore_1.FieldValue.serverTimestamp(),
     });
     v2_1.logger.info(`Cascade delete complete for space ${spaceId}`);
   }

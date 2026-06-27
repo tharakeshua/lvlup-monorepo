@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useApiError } from "@levelup/shared-hooks";
-import { collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useApiError, useSaveAgent, useRepos } from "@levelup/query";
 import {
   sonnerToast,
   Button,
@@ -28,48 +25,61 @@ interface AgentConfig {
   enabled: boolean;
 }
 
+/** Loose view over the `@levelup/query` AgentView (fields are `unknown` at the seam). */
+interface AgentView {
+  id: string;
+  type?: "evaluator" | "tutor";
+  name?: string;
+  modelOverride?: string;
+  systemPrompt?: string;
+  isActive?: boolean;
+}
+
+/** SDK AgentView → the panel's local `enabled`/`model` shape. */
+function toConfig(v: AgentView): AgentConfig {
+  return {
+    id: v.id,
+    type: v.type ?? "evaluator",
+    name: v.name ?? "",
+    model: v.modelOverride,
+    systemPrompt: v.systemPrompt,
+    enabled: v.isActive ?? true,
+  };
+}
+
 interface AgentConfigPanelProps {
   spaceId: string;
 }
 
 export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
-  const tenantId = useCurrentTenantId();
   const { handleError } = useApiError();
+  const { agentRepo } = useRepos();
+  const saveAgent = useSaveAgent();
   const [agents, setAgents] = useState<AgentConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenantId || !spaceId) return;
-    const load = async () => {
+    if (!spaceId) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const { db } = getFirebaseServices();
-        const colRef = collection(
-          db,
-          `tenants/${tenantId}/spaces/${spaceId}/agents`
-        );
-        const snap = await getDocs(colRef);
-        setAgents(
-          snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AgentConfig)
-        );
+        const page = (await agentRepo.list({ spaceId })) as { items: AgentView[] };
+        if (!cancelled) setAgents((page?.items ?? []).map(toConfig));
       } catch (err) {
-        handleError(err, "Failed to load agents");
+        if (!cancelled) handleError(err, "Failed to load agents");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    load();
-  }, [tenantId, spaceId, handleError]);
+  }, [spaceId, agentRepo, handleError]);
 
   const handleAddAgent = async (type: "evaluator" | "tutor") => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     try {
-      const { db } = getFirebaseServices();
-      const colRef = collection(
-        db,
-        `tenants/${tenantId}/spaces/${spaceId}/agents`
-      );
-      const newId = `${type}_${Date.now()}`;
       const newAgent: Omit<AgentConfig, "id"> = {
         type,
         name: type === "evaluator" ? "AI Evaluator" : "AI Tutor",
@@ -77,12 +87,17 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
         systemPrompt: "",
         enabled: true,
       };
-      await setDoc(doc(colRef, newId), {
-        ...newAgent,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      setAgents((prev) => [...prev, { id: newId, ...newAgent }]);
+      const res = (await saveAgent.mutateAsync({
+        spaceId,
+        data: {
+          type: newAgent.type,
+          name: newAgent.name,
+          modelOverride: newAgent.model,
+          systemPrompt: newAgent.systemPrompt,
+          isActive: newAgent.enabled,
+        },
+      })) as { id: string };
+      setAgents((prev) => [...prev, { id: res.id, ...newAgent }]);
       sonnerToast.success(`${type === "evaluator" ? "Evaluator" : "Tutor"} agent added`);
     } catch (err) {
       handleError(err, "Failed to add agent");
@@ -90,17 +105,20 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
   };
 
   const handleSaveAgent = async (agent: AgentConfig) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     setSaving(agent.id);
     try {
-      const { db } = getFirebaseServices();
-      const docRef = doc(
-        db,
-        `tenants/${tenantId}/spaces/${spaceId}/agents`,
-        agent.id
-      );
-      const { id: _, ...data } = agent;
-      await setDoc(docRef, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+      await saveAgent.mutateAsync({
+        id: agent.id,
+        spaceId,
+        data: {
+          type: agent.type,
+          name: agent.name,
+          modelOverride: agent.model,
+          systemPrompt: agent.systemPrompt,
+          isActive: agent.enabled,
+        },
+      });
       sonnerToast.success("Agent configuration saved");
     } catch (err) {
       handleError(err, "Failed to save agent");
@@ -110,12 +128,17 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
   };
 
   const handleDeleteAgent = async (agentId: string) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent) return;
     try {
-      const { db } = getFirebaseServices();
-      await deleteDoc(
-        doc(db, `tenants/${tenantId}/spaces/${spaceId}/agents`, agentId)
-      );
+      // Soft-delete via the save callable's `deleted` convention; `type`/`name`
+      // are required by the strict request schema even when deleting.
+      await saveAgent.mutateAsync({
+        id: agentId,
+        spaceId,
+        data: { type: agent.type, name: agent.name, deleted: true },
+      });
       setAgents((prev) => prev.filter((a) => a.id !== agentId));
       sonnerToast.success("Agent removed");
     } catch (err) {
@@ -124,16 +147,14 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
   };
 
   const updateAgent = (id: string, updates: Partial<AgentConfig>) => {
-    setAgents((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
-    );
+    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
   };
 
   if (loading) {
     return (
       <div className="space-y-3">
         {[1, 2].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-lg border bg-muted" />
+          <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
         ))}
       </div>
     );
@@ -144,7 +165,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Agent Configuration</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Configure AI evaluators and tutors for this space
           </p>
         </div>
@@ -160,30 +181,26 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-          <Bot className="h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            No agents configured yet
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <Bot className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground mt-2 text-sm">No agents configured yet</p>
+          <p className="text-muted-foreground mt-1 text-xs">
             Add an evaluator or tutor to enable AI-powered features
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {agents.map((agent) => (
-            <div key={agent.id} className="rounded-lg border bg-card p-4 space-y-3">
+            <div key={agent.id} className="bg-card space-y-3 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-primary" />
+                  <Bot className="text-primary h-4 w-4" />
                   <Badge variant={agent.type === "evaluator" ? "default" : "secondary"}>
                     {agent.type}
                   </Badge>
                   <div className="flex items-center gap-1.5">
                     <Switch
                       checked={agent.enabled}
-                      onCheckedChange={(v) =>
-                        updateAgent(agent.id, { enabled: v })
-                      }
+                      onCheckedChange={(v) => updateAgent(agent.id, { enabled: v })}
                       id={`enabled-${agent.id}`}
                     />
                     <Label htmlFor={`enabled-${agent.id}`} className="cursor-pointer text-xs">
@@ -204,7 +221,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeleteAgent(agent.id)}
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive h-8 w-8"
                     aria-label="Delete agent"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -214,18 +231,16 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Name</Label>
+                  <Label className="text-muted-foreground text-xs">Name</Label>
                   <Input
                     type="text"
                     value={agent.name}
-                    onChange={(e) =>
-                      updateAgent(agent.id, { name: e.target.value })
-                    }
+                    onChange={(e) => updateAgent(agent.id, { name: e.target.value })}
                     className="mt-1 h-8"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Model</Label>
+                  <Label className="text-muted-foreground text-xs">Model</Label>
                   <Select
                     value={agent.model}
                     onValueChange={(v) => updateAgent(agent.id, { model: v })}
@@ -245,12 +260,10 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">System Prompt</Label>
+                <Label className="text-muted-foreground text-xs">System Prompt</Label>
                 <Textarea
                   value={agent.systemPrompt}
-                  onChange={(e) =>
-                    updateAgent(agent.id, { systemPrompt: e.target.value })
-                  }
+                  onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
                   rows={3}
                   placeholder={
                     agent.type === "evaluator"

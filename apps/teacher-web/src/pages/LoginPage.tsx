@@ -1,14 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import { lookupTenantByCode } from "@levelup/shared-services";
+import { useLookupTenantByCode } from "@levelup/query";
+import { useAuthSession } from "../sdk/session";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button, Input, Label, Card, CardContent } from "@levelup/shared-ui";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithSchoolCode, loading, error, clearError } = useAuthStore();
+  const { loginWithSchoolCode, loading, error, clearError } = useAuthSession();
+  const lookupTenant = useLookupTenantByCode();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
   const [step, setStep] = useState<"school-code" | "credentials">("school-code");
   const [schoolCode, setSchoolCode] = useState("");
@@ -31,7 +32,10 @@ export default function LoginPage() {
         return;
       }
 
-      const tenant = await lookupTenantByCode(code);
+      const tenant = (await lookupTenant.mutateAsync(code)) as {
+        name: string;
+        status: string;
+      } | null;
       if (!tenant) {
         setCodeError("Invalid school code. Please try again.");
         return;

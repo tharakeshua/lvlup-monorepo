@@ -9,6 +9,7 @@
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import type {
   GradeQuestionRequest,
   GradeQuestionResponse,
@@ -97,7 +98,7 @@ async function handleManualGrade(
     `tenants/${data.tenantId}/submissions/${data.submissionId}/questionSubmissions/${data.questionId}`
   );
   const qsDoc = await qsRef.get();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   if (!qsDoc.exists) {
     // Create a new question submission for manual grading
@@ -159,8 +160,8 @@ async function handleManualGrade(
   // Increment AI usage counter for manual grading that involved AI evaluation
   const aiDb = admin.firestore();
   await aiDb.doc(`tenants/${data.tenantId}`).update({
-    "usage.aiCallsThisMonth": admin.firestore.FieldValue.increment(1),
-    "usage.lastUpdated": admin.firestore.FieldValue.serverTimestamp(),
+    "usage.aiCallsThisMonth": FieldValue.increment(1),
+    "usage.lastUpdated": FieldValue.serverTimestamp(),
   });
 
   return { success: true, updatedScore: data.score };
@@ -201,7 +202,7 @@ async function handleRetry(
 
   const db = admin.firestore();
   const batch = db.batch();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   // Reset failed questions to pending
   for (const qs of failedQs) {
@@ -210,7 +211,7 @@ async function handleRetry(
     );
     batch.update(qsRef, {
       gradingStatus: "pending",
-      gradingError: admin.firestore.FieldValue.delete(),
+      gradingError: FieldValue.delete(),
       updatedAt: now,
     });
   }
@@ -262,13 +263,13 @@ async function handleAiGrade(data: GradeQuestionRequest): Promise<GradeQuestionR
     );
   }
 
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   // Reset to pending so processAnswerGrading picks it up; clear stale errors.
   await qsRef.update({
     gradingStatus: "pending",
     gradingRetryCount: 0,
-    gradingError: admin.firestore.FieldValue.delete(),
+    gradingError: FieldValue.delete(),
     updatedAt: now,
   });
 

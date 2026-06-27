@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useSpace } from "@levelup/shared-hooks";
+import { useSpace, useRepos } from "@levelup/query";
 import {
   Button,
   Skeleton,
@@ -16,8 +15,6 @@ import {
   Label,
 } from "@levelup/shared-ui";
 import { Clock, Eye, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
-import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
 import type {
   StoryPoint,
   UnifiedItem,
@@ -29,8 +26,8 @@ import { useEffect } from "react";
 export default function TestPreviewPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const { data: space } = useSpace(tenantId, spaceId ?? null);
+  const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
+  const { storyPointRepo, itemRepo } = useRepos();
 
   const [storyPoint, setStoryPoint] = useState<StoryPoint | null>(null);
   const [items, setItems] = useState<UnifiedItem[]>([]);
@@ -40,38 +37,44 @@ export default function TestPreviewPage() {
   const [showAnswers, setShowAnswers] = useState(false);
   const startTime = useRef(Date.now());
 
-  // Load story point and items
+  // Load story point and items. The list read is answer-stripped, so we re-merge
+  // each item via getForEdit (authoring-only) — the teacher preview's "Show
+  // Answers" toggle needs the answer-bearing payloads.
   useEffect(() => {
-    if (!tenantId || !spaceId || !storyPointId) return;
-    const load = async () => {
+    if (!spaceId || !storyPointId) return;
+    let cancelled = false;
+    (async () => {
       try {
-        const { db } = getFirebaseServices();
+        const spPage = (await storyPointRepo.list({ spaceId })) as { items: StoryPoint[] };
+        const sp = (spPage?.items ?? []).find((s) => s.id === storyPointId) ?? null;
 
-        // Load story point
-        const spCol = collection(db, `tenants/${tenantId}/spaces/${spaceId}/storyPoints`);
-        const spSnap = await getDocs(spCol);
-        const sp = spSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as StoryPoint)
-          .find((s) => s.id === storyPointId);
-        setStoryPoint(sp ?? null);
-
-        // Load items
-        const itemsCol = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
-        const itemsQ = query(
-          itemsCol,
-          where("storyPointId", "==", storyPointId),
-          orderBy("orderIndex", "asc")
+        const itemPage = (await itemRepo.list({ spaceId, storyPointId })) as {
+          items: UnifiedItem[];
+        };
+        const stripped = itemPage?.items ?? [];
+        const full = await Promise.all(
+          stripped.map(async (it) => {
+            try {
+              const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId: it.id });
+              return (edit.item ?? it) as UnifiedItem;
+            } catch {
+              return it;
+            }
+          })
         );
-        const itemsSnap = await getDocs(itemsQ);
-        setItems(itemsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem));
+        if (cancelled) return;
+        setStoryPoint(sp);
+        setItems(full);
       } catch {
         // Handled via empty state
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    load();
-  }, [tenantId, spaceId, storyPointId]);
+  }, [spaceId, storyPointId, storyPointRepo, itemRepo]);
 
   const questionItems = useMemo(() => items.filter((i) => i.type === "question"), [items]);
 

@@ -21,26 +21,32 @@ Rules:
 - Return ONLY valid JSON.`;
 
 export function buildPanopticonUserPrompt(questionIds: string[]): string {
+  // Build the example using the actual question IDs to anchor the model on
+  // the real key format. Previously this used "Q1","Q2","Q3" placeholders,
+  // which caused Gemini to prefix every key with `Q` regardless of input.
+  const sampleIds = questionIds.slice(0, Math.min(3, questionIds.length));
+  const routingExample = Object.fromEntries(
+    sampleIds.map((id, i) => [id, i === 2 ? [3, 4] : i === 0 ? [0, 1] : [2]])
+  );
+  const confidenceExample = Object.fromEntries(
+    sampleIds.map((id, i) => [id, [0.95, 0.88, 0.92][i] ?? 0.9])
+  );
+  const notesExample =
+    sampleIds.length >= 2
+      ? { [sampleIds[0]]: "Answer spans 2 pages", [sampleIds[1]]: "Partial answer only" }
+      : {};
+
   return `Map each exam question to the answer sheet page(s) that contain the student's response.
 
 Questions to map: ${JSON.stringify(questionIds)}
 
-Return a JSON object with this exact schema:
+CRITICAL: Use the EXACT question IDs from the list above as the keys in your response. Do NOT add prefixes like "Q" or change the format in any way. If a question ID is "1", the key must be "1", not "Q1".
+
+Return a JSON object with this exact schema (example uses your actual question IDs):
 {
-  "routing_map": {
-    "Q1": [0, 1],
-    "Q2": [2],
-    "Q3": [3, 4]
-  },
-  "confidence": {
-    "Q1": 0.95,
-    "Q2": 0.88,
-    "Q3": 0.92
-  },
-  "notes": {
-    "Q1": "Answer spans 2 pages",
-    "Q2": "Partial answer only"
-  }
+  "routing_map": ${JSON.stringify(routingExample, null, 2)},
+  "confidence": ${JSON.stringify(confidenceExample, null, 2)},
+  "notes": ${JSON.stringify(notesExample, null, 2)}
 }
 
 The images are provided in this order:
@@ -62,14 +68,37 @@ export interface PanopticonResult {
 export function parsePanopticonResponse(
   text: string,
   questionIds: string[],
-  totalAnswerPages: number,
+  totalAnswerPages: number
 ): PanopticonResult {
-  const cleaned = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\n?/m, "")
+    .replace(/\n?```$/m, "")
+    .trim();
   const parsed = JSON.parse(cleaned) as PanopticonResult;
 
   if (!parsed.routing_map) {
-    throw new Error('Missing routing_map in Panopticon response.');
+    throw new Error("Missing routing_map in Panopticon response.");
   }
+
+  // Normalize keys: Gemini sometimes prefixes IDs with "Q" (e.g. returns "Q5"
+  // when the real question id is "5"). Remap any unknown key onto the matching
+  // real id when we can find one via prefix/suffix stripping.
+  const realIds = new Set(questionIds);
+  const remap = (obj: Record<string, unknown> | undefined) => {
+    if (!obj) return;
+    for (const key of Object.keys(obj)) {
+      if (realIds.has(key)) continue;
+      // Try stripping common prefixes
+      const stripped = key.replace(/^[Qq]\.?\s*/, "");
+      if (realIds.has(stripped) && !(stripped in obj)) {
+        obj[stripped] = obj[key];
+        delete obj[key];
+      }
+    }
+  };
+  remap(parsed.routing_map as Record<string, unknown>);
+  remap(parsed.confidence as Record<string, unknown>);
+  remap(parsed.notes as Record<string, unknown> | undefined);
 
   // Apply sandwich rule
   for (const qId of questionIds) {
@@ -81,8 +110,7 @@ export function parsePanopticonResponse(
     for (let i = sorted[0]; i <= sorted[sorted.length - 1]; i++) {
       // Only fill gaps that aren't claimed by another question
       const claimedByOther = questionIds.some(
-        (otherId) =>
-          otherId !== qId && parsed.routing_map[otherId]?.includes(i),
+        (otherId) => otherId !== qId && parsed.routing_map[otherId]?.includes(i)
       );
       if (!claimedByOther) {
         filled.push(i);
@@ -91,15 +119,19 @@ export function parsePanopticonResponse(
     parsed.routing_map[qId] = filled;
   }
 
-  // Validate page indices are in range
+  // Drop out-of-range page indices. The model occasionally hallucinates pages
+  // that don't exist; previously this threw and failed the whole submission.
+  // Now we filter and warn so the rest of the mapping is preserved.
   for (const [qId, pages] of Object.entries(parsed.routing_map)) {
-    for (const p of pages) {
-      if (p < 0 || p >= totalAnswerPages) {
-        throw new Error(
-          `Invalid page index ${p} for question ${qId}. Total answer pages: ${totalAnswerPages}.`,
-        );
-      }
+    const valid = pages.filter((p) => p >= 0 && p < totalAnswerPages);
+    if (valid.length !== pages.length) {
+      const dropped = pages.filter((p) => !valid.includes(p));
+      console.warn(
+        `[panopticon] Dropped out-of-range page indices ${JSON.stringify(dropped)} ` +
+          `for ${qId} (total answer pages: ${totalAnswerPages}).`
+      );
     }
+    parsed.routing_map[qId] = valid;
   }
 
   return parsed;

@@ -3,7 +3,9 @@ import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
 import { useLinkedStudents } from "../hooks/useLinkedStudents";
 import { useStudentNames } from "../hooks/useStudentNames";
 import { useChildSubmissions } from "../hooks/useChildSubmissions";
-import { useStudentProgressSummary } from "@levelup/shared-hooks";
+import { useChildSummary } from "@levelup/query";
+import type { StudentId } from "@levelup/domain";
+import type { StudentProgressSummary } from "@levelup/shared-types";
 import {
   Card,
   CardContent,
@@ -92,7 +94,8 @@ function ChildAlertSection({
     summary?: { percentage?: number; totalScore?: number; maxScore?: number };
   }>;
 }) {
-  const { data: summary } = useStudentProgressSummary(tenantId, studentId);
+  const { data: childSummary } = useChildSummary(studentId as StudentId);
+  const summary = childSummary?.studentSummary as StudentProgressSummary | undefined;
 
   // Derive alerts
   const alerts: Array<{

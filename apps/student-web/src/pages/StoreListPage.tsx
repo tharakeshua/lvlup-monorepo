@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { callListStoreSpaces } from "@levelup/shared-services";
+import { useStoreSpaces } from "@levelup/query";
 import { useConsumerStore, useAuthStore } from "@levelup/shared-stores";
 import {
   BookOpen,
@@ -39,12 +38,6 @@ interface StoreSpace {
   totalStoryPoints: number;
 }
 
-interface _ListStoreResponse {
-  spaces: StoreSpace[];
-  hasMore: boolean;
-  lastId: string | null;
-}
-
 type SortOption = "newest" | "popular" | "price-low" | "price-high";
 
 export default function StoreListPage() {
@@ -58,18 +51,13 @@ export default function StoreListPage() {
   const { addToCart, removeFromCart, isInCart } = useConsumerStore();
   const cartCount = useConsumerStore((s) => s.cart.length);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["store-spaces", subjectFilter],
-    queryFn: async () => {
-      return callListStoreSpaces({
-        subject: subjectFilter || undefined,
-        limit: 50,
-      });
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data, isLoading, isError } = useStoreSpaces<{
+    items: StoreSpace[];
+    nextCursor: string | null;
+  }>({ subject: subjectFilter || undefined, limit: 50 }, { staleTime: 5 * 60 * 1000 });
 
-  const spaces = useMemo(() => data?.spaces ?? [], [data?.spaces]);
+  const spaces = useMemo(() => data?.items ?? [], [data?.items]);
+  const hasMore = !!data?.nextCursor;
 
   // Dynamic subjects derived from data
   const availableSubjects = useMemo(() => {
@@ -206,7 +194,7 @@ export default function StoreListPage() {
           ))}
         </div>
       )}
-      {error && (
+      {isError && (
         <div className="bg-destructive/10 text-destructive rounded-md p-4 text-sm">
           Failed to load store spaces. Please try again.
         </div>
@@ -435,10 +423,10 @@ export default function StoreListPage() {
       </div>
 
       {/* Load More */}
-      {data?.hasMore && (
+      {hasMore && (
         <div className="text-center">
           <Button variant="outline" asChild>
-            <Link to={`/store?after=${data.lastId}`}>Load more spaces</Link>
+            <Link to={`/store?after=${data?.nextCursor}`}>Load more spaces</Link>
           </Button>
         </div>
       )}

@@ -13,17 +13,17 @@
  * for bulk file uploads via GCS or automated scanning pipelines.
  */
 
-import { onObjectFinalized } from 'firebase-functions/v2/storage';
-import * as admin from 'firebase-admin';
+import { onObjectFinalized } from "firebase-functions/v2/storage";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 /** Expected path: tenants/{tenantId}/exams/{examId}/answer-sheets/{studentId}/{filename} */
-const AS_PATH_REGEX =
-  /^tenants\/([^/]+)\/exams\/([^/]+)\/answer-sheets\/([^/]+)\/(.+)$/;
+const AS_PATH_REGEX = /^tenants\/([^/]+)\/exams\/([^/]+)\/answer-sheets\/([^/]+)\/(.+)$/;
 
 export const onAnswerSheetUpload = onObjectFinalized(
   {
-    region: 'asia-south1',
-    memory: '256MiB',
+    region: "asia-south1",
+    memory: "256MiB",
     bucket: undefined, // default bucket
   },
   async (event) => {
@@ -34,10 +34,10 @@ export const onAnswerSheetUpload = onObjectFinalized(
     if (!match) return; // Not an answer sheet upload
 
     const [, tenantId, examId, studentId] = match;
-    const contentType = event.data.contentType ?? '';
+    const contentType = event.data.contentType ?? "";
 
     // Only process image files
-    if (!contentType.startsWith('image/')) {
+    if (!contentType.startsWith("image/")) {
       console.warn(`Ignoring non-image file in answer-sheets path: ${filePath} (${contentType})`);
       return;
     }
@@ -45,7 +45,7 @@ export const onAnswerSheetUpload = onObjectFinalized(
     console.log(`Answer sheet uploaded: ${filePath} for student ${studentId}, exam ${examId}`);
 
     const db = admin.firestore();
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
 
     // Verify exam exists and is in a valid state
     const examDoc = await db.doc(`tenants/${tenantId}/exams/${examId}`).get();
@@ -55,18 +55,16 @@ export const onAnswerSheetUpload = onObjectFinalized(
     }
 
     const exam = examDoc.data()!;
-    if (exam.status !== 'published' && exam.status !== 'grading') {
-      console.warn(
-        `Exam ${examId} is in '${exam.status}' status. Answer sheet upload ignored.`,
-      );
+    if (exam.status !== "published" && exam.status !== "grading") {
+      console.warn(`Exam ${examId} is in '${exam.status}' status. Answer sheet upload ignored.`);
       return;
     }
 
     // Check if a submission already exists for this student + exam
     const existingSnap = await db
       .collection(`tenants/${tenantId}/submissions`)
-      .where('examId', '==', examId)
-      .where('studentId', '==', studentId)
+      .where("examId", "==", examId)
+      .where("studentId", "==", studentId)
       .limit(1)
       .get();
 
@@ -78,7 +76,7 @@ export const onAnswerSheetUpload = onObjectFinalized(
 
       if (!existingImages.includes(filePath)) {
         await existingDoc.ref.update({
-          'answerSheets.images': [...existingImages, filePath],
+          "answerSheets.images": [...existingImages, filePath],
           updatedAt: now,
         });
         console.log(`Appended image to existing submission ${existingDoc.id}`);
@@ -90,10 +88,10 @@ export const onAnswerSheetUpload = onObjectFinalized(
     const studentDoc = await db.doc(`tenants/${tenantId}/students/${studentId}`).get();
     const student = studentDoc.data();
     const studentName = student
-      ? `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim()
+      ? `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim()
       : studentId;
-    const rollNumber = student?.rollNumber ?? '';
-    const classId = student?.classIds?.[0] ?? '';
+    const rollNumber = student?.rollNumber ?? "";
+    const classId = student?.classIds?.[0] ?? "";
 
     // Create a new submission document. This will trigger onSubmissionCreated
     // which starts the grading pipeline.
@@ -109,18 +107,18 @@ export const onAnswerSheetUpload = onObjectFinalized(
       answerSheets: {
         images: [filePath],
         uploadedAt: now,
-        uploadedBy: 'storage-trigger',
-        uploadSource: 'gcs',
+        uploadedBy: "storage-trigger",
+        uploadSource: "gcs",
       },
       summary: {
         totalScore: 0,
         maxScore: exam.totalMarks ?? 0,
         percentage: 0,
-        grade: '',
+        grade: "",
         questionsGraded: 0,
         totalQuestions: exam.questionPaper?.questionCount ?? 0,
       },
-      pipelineStatus: 'uploaded',
+      pipelineStatus: "uploaded",
       retryCount: 0,
       resultsReleased: false,
       createdAt: now,
@@ -130,16 +128,16 @@ export const onAnswerSheetUpload = onObjectFinalized(
     // Update exam stats
     const examRef = db.doc(`tenants/${tenantId}/exams/${examId}`);
     const updateData: Record<string, unknown> = {
-      'stats.totalSubmissions': admin.firestore.FieldValue.increment(1),
+      "stats.totalSubmissions": FieldValue.increment(1),
       updatedAt: now,
     };
 
-    if (exam.status === 'published') {
-      updateData.status = 'grading';
+    if (exam.status === "published") {
+      updateData.status = "grading";
     }
 
     await examRef.update(updateData);
 
     console.log(`Created submission ${subRef.id} from storage upload for student ${studentId}`);
-  },
+  }
 );

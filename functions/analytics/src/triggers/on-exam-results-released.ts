@@ -5,16 +5,17 @@
  * Triggers on: /tenants/{tenantId}/exams/{examId}
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { median, standardDeviation } from '../utils/aggregation-helpers';
-import type { ExamAnalytics } from '@levelup/shared-types';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { median, standardDeviation } from "../utils/aggregation-helpers";
+import type { ExamAnalytics } from "@levelup/shared-types";
 
 export const onExamResultsReleased = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/exams/{examId}',
-    region: 'asia-south1',
-    memory: '512MiB',
+    document: "tenants/{tenantId}/exams/{examId}",
+    region: "asia-south1",
+    memory: "512MiB",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -22,7 +23,7 @@ export const onExamResultsReleased = onDocumentUpdated(
     if (!before || !after) return;
 
     // Only trigger when status changes to results_released
-    if (before.status === 'results_released' || after.status !== 'results_released') {
+    if (before.status === "results_released" || after.status !== "results_released") {
       return;
     }
 
@@ -32,7 +33,7 @@ export const onExamResultsReleased = onDocumentUpdated(
     // Fetch all submissions for this exam
     const submissionsSnap = await db
       .collection(`tenants/${tenantId}/submissions`)
-      .where('examId', '==', examId)
+      .where("examId", "==", examId)
       .get();
 
     const totalSubmissions = submissionsSnap.size;
@@ -55,10 +56,7 @@ export const onExamResultsReleased = onDocumentUpdated(
     const gradeDistribution: Record<string, number> = {};
 
     // Class breakdown
-    const classData: Record<
-      string,
-      { totalScore: number; count: number; passCount: number }
-    > = {};
+    const classData: Record<string, { totalScore: number; count: number; passCount: number }> = {};
 
     // Pre-fetch all question submissions in parallel batches of 10
     const BATCH_SIZE = 10;
@@ -69,10 +67,8 @@ export const onExamResultsReleased = onDocumentUpdated(
       const batch = submissionDocs.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(
         batch.map((d) =>
-          db
-            .collection(`tenants/${tenantId}/submissions/${d.id}/questionSubmissions`)
-            .get(),
-        ),
+          db.collection(`tenants/${tenantId}/submissions/${d.id}/questionSubmissions`).get()
+        )
       );
       qSubmissionResults.push(...batchResults);
     }
@@ -84,7 +80,7 @@ export const onExamResultsReleased = onDocumentUpdated(
       const obtained = sub.summary?.totalMarksObtained ?? 0;
       const percentage = totalMarks > 0 ? (obtained / totalMarks) * 100 : 0;
 
-      if (sub.pipelineStatus === 'grading_complete' || sub.pipelineStatus === 'results_released') {
+      if (sub.pipelineStatus === "grading_complete" || sub.pipelineStatus === "results_released") {
         gradedCount++;
         scores.push(obtained);
         percentages.push(percentage);
@@ -121,7 +117,7 @@ export const onExamResultsReleased = onDocumentUpdated(
           questionData[qId].totalScore += qs.evaluation.score ?? 0;
           questionData[qId].maxScore = Math.max(
             questionData[qId].maxScore,
-            qs.evaluation.maxScore ?? 0,
+            qs.evaluation.maxScore ?? 0
           );
           questionData[qId].attemptCount++;
         }
@@ -133,16 +129,19 @@ export const onExamResultsReleased = onDocumentUpdated(
       percentages.length > 0 ? percentages.reduce((s, v) => s + v, 0) / percentages.length : 0;
 
     // Build question analytics
-    const questionAnalytics: Record<string, {
-      questionId: string;
-      avgScore: number;
-      maxScore: number;
-      avgPercentage: number;
-      difficultyIndex: number;
-      discriminationIndex: number;
-      commonMistakes: string[];
-      commonStrengths: string[];
-    }> = {};
+    const questionAnalytics: Record<
+      string,
+      {
+        questionId: string;
+        avgScore: number;
+        maxScore: number;
+        avgPercentage: number;
+        difficultyIndex: number;
+        discriminationIndex: number;
+        commonMistakes: string[];
+        commonStrengths: string[];
+      }
+    > = {};
 
     for (const [qId, data] of Object.entries(questionData)) {
       const qAvg = data.attemptCount > 0 ? data.totalScore / data.attemptCount : 0;
@@ -162,13 +161,16 @@ export const onExamResultsReleased = onDocumentUpdated(
     }
 
     // Build class breakdown
-    const classBreakdown: Record<string, {
-      classId: string;
-      className: string;
-      avgScore: number;
-      passRate: number;
-      submissionCount: number;
-    }> = {};
+    const classBreakdown: Record<
+      string,
+      {
+        classId: string;
+        className: string;
+        avgScore: number;
+        passRate: number;
+        submissionCount: number;
+      }
+    > = {};
 
     for (const [classId, data] of Object.entries(classData)) {
       classBreakdown[classId] = {
@@ -189,13 +191,14 @@ export const onExamResultsReleased = onDocumentUpdated(
       { min: 80, max: 100, count: 0 },
     ];
     for (const pct of percentages) {
-      const bucket = buckets.find((b) => pct >= b.min && pct < b.max) ?? buckets[buckets.length - 1];
+      const bucket =
+        buckets.find((b) => pct >= b.min && pct < b.max) ?? buckets[buckets.length - 1];
       bucket.count++;
     }
 
-    const analytics: Omit<ExamAnalytics, 'computedAt' | 'lastUpdatedAt'> & {
-      computedAt: admin.firestore.FieldValue;
-      lastUpdatedAt: admin.firestore.FieldValue;
+    const analytics: Omit<ExamAnalytics, "computedAt" | "lastUpdatedAt"> & {
+      computedAt: FieldValue;
+      lastUpdatedAt: FieldValue;
     } = {
       id: examId,
       tenantId,
@@ -210,24 +213,24 @@ export const onExamResultsReleased = onDocumentUpdated(
       questionAnalytics,
       classBreakdown,
       topicPerformance: {}, // populated separately if topic tags exist
-      computedAt: admin.firestore.FieldValue.serverTimestamp(),
-      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      computedAt: FieldValue.serverTimestamp(),
+      lastUpdatedAt: FieldValue.serverTimestamp(),
     };
 
     await db.doc(`tenants/${tenantId}/examAnalytics/${examId}`).set(analytics);
 
     console.log(
-      `Computed exam analytics for ${examId}: ${gradedCount}/${totalSubmissions} graded, avg ${avgPercentage.toFixed(1)}%`,
+      `Computed exam analytics for ${examId}: ${gradedCount}/${totalSubmissions} graded, avg ${avgPercentage.toFixed(1)}%`
     );
-  },
+  }
 );
 
 function getGrade(percentage: number): string {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C';
-  if (percentage >= 40) return 'D';
-  return 'F';
+  if (percentage >= 90) return "A+";
+  if (percentage >= 80) return "A";
+  if (percentage >= 70) return "B+";
+  if (percentage >= 60) return "B";
+  if (percentage >= 50) return "C";
+  if (percentage >= 40) return "D";
+  return "F";
 }

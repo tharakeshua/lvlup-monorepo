@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
-import { useStudentSummaries } from "@levelup/shared-hooks";
+import { useChildSummary } from "@levelup/query";
+import type { StudentId } from "@levelup/domain";
 import {
   ScoreCard,
   SimpleBarChart,
@@ -52,30 +53,20 @@ export default function ChildProgressPage() {
   const tenantId = useCurrentTenantId();
   const [searchParams] = useSearchParams();
   const studentFromUrl = searchParams.get("student");
-  const { data: linkedStudents, isLoading } = useLinkedStudents(
-    tenantId,
-    user?.uid ?? null,
-  );
+  const { data: linkedStudents, isLoading } = useLinkedStudents(tenantId, user?.uid ?? null);
 
   const studentIds = linkedStudents?.map((s) => s.uid) ?? [];
-  const summaryResults = useStudentSummaries(tenantId, studentIds);
-  const summaries = summaryResults
-    .map((r) => r.data)
-    .filter(Boolean) as StudentProgressSummary[];
   const { data: studentNames } = useStudentNames(tenantId, studentIds);
 
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    studentFromUrl,
-  );
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(studentFromUrl);
 
+  // Per-child summary for the active selection (defaults to the first linked child).
+  const activeStudentId = selectedStudentId ?? linkedStudents?.[0]?.uid ?? null;
+  const { data: childSummary } = useChildSummary((activeStudentId ?? "") as StudentId);
   const selectedSummary =
-    selectedStudentId
-      ? summaries.find((s) => s.studentId === selectedStudentId)
-      : summaries[0] ?? null;
+    (childSummary?.studentSummary as StudentProgressSummary | undefined) ?? null;
 
-  const selectedStudent = linkedStudents?.find(
-    (s) => s.uid === (selectedStudentId ?? summaries[0]?.studentId),
-  );
+  const selectedStudent = linkedStudents?.find((s) => s.uid === activeStudentId);
 
   // Subject breakdown chart for exams
   const examSubjectData = selectedSummary
@@ -98,8 +89,6 @@ export default function ChildProgressPage() {
         .sort((a, b) => b.value - a.value)
     : [];
 
-  const activeStudentId = selectedStudentId ?? summaries[0]?.studentId ?? null;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -109,7 +98,7 @@ export default function ChildProgressPage() {
               ? `Progress — ${getStudentDisplayName(studentNames, selectedStudent)}`
               : "Child Progress"}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Detailed progress and performance for each child
           </p>
         </div>
@@ -140,23 +129,25 @@ export default function ChildProgressPage() {
         <>
           {/* Child Selector */}
           {linkedStudents.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Select child">
+            <div
+              className="flex gap-2 overflow-x-auto pb-1"
+              role="tablist"
+              aria-label="Select child"
+            >
               {linkedStudents.map((student, idx) => {
                 const name = getStudentDisplayName(studentNames, student, idx);
-                const isSelected = (selectedStudentId ?? summaries[0]?.studentId) === student.uid;
+                const isSelected = activeStudentId === student.uid;
                 return (
                   <button
                     key={student.id}
                     role="tab"
                     aria-selected={isSelected}
                     onClick={() => setSelectedStudentId(student.uid)}
-                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors flex-shrink-0 ${
-                      isSelected
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "hover:bg-muted"
+                    className={`flex flex-shrink-0 items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      isSelected ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted"
                     }`}
                   >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    <div className="bg-primary/10 text-primary flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold">
                       {getInitials(name)}
                     </div>
                     {name}
@@ -199,14 +190,12 @@ export default function ChildProgressPage() {
 
               {/* At-Risk indicator */}
               {selectedSummary.isAtRisk && (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-4">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    <h3 className="font-semibold text-destructive">
-                      At-Risk Alert
-                    </h3>
+                    <AlertTriangle className="text-destructive h-4 w-4" />
+                    <h3 className="text-destructive font-semibold">At-Risk Alert</h3>
                   </div>
-                  <ul className="mt-2 space-y-1 text-sm text-destructive">
+                  <ul className="text-destructive mt-2 space-y-1 text-sm">
                     {selectedSummary.atRiskReasons.map((reason, i) => (
                       <li key={i}>- {reason}</li>
                     ))}
@@ -217,15 +206,13 @@ export default function ChildProgressPage() {
               {/* Strengths & Weaknesses */}
               <div className="grid gap-4 md:grid-cols-2">
                 {selectedSummary.strengthAreas.length > 0 && (
-                  <div className="rounded-lg border bg-card p-4">
-                    <h3 className="mb-2 font-semibold text-success">
-                      Strengths
-                    </h3>
+                  <div className="bg-card rounded-lg border p-4">
+                    <h3 className="text-success mb-2 font-semibold">Strengths</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedSummary.strengthAreas.map((area) => (
                         <span
                           key={area}
-                          className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success"
+                          className="bg-success/10 text-success rounded-full px-3 py-1 text-xs font-medium"
                         >
                           {area}
                         </span>
@@ -234,15 +221,13 @@ export default function ChildProgressPage() {
                   </div>
                 )}
                 {selectedSummary.weaknessAreas.length > 0 && (
-                  <div className="rounded-lg border bg-card p-4">
-                    <h3 className="mb-2 font-semibold text-warning">
-                      Areas for Improvement
-                    </h3>
+                  <div className="bg-card rounded-lg border p-4">
+                    <h3 className="text-warning mb-2 font-semibold">Areas for Improvement</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedSummary.weaknessAreas.map((area) => (
                         <span
                           key={area}
-                          className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning"
+                          className="bg-warning/10 text-warning rounded-full px-3 py-1 text-xs font-medium"
                         >
                           {area}
                         </span>
@@ -254,20 +239,18 @@ export default function ChildProgressPage() {
 
               {/* Improvement Recommendations */}
               {selectedSummary.weaknessAreas.length > 0 && (
-                <div className="rounded-lg border border-info/20 bg-info/5 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Lightbulb className="h-4 w-4 text-info" />
-                    <h3 className="font-semibold text-info">
-                      Recommendations for Improvement
-                    </h3>
+                <div className="border-info/20 bg-info/5 rounded-lg border p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Lightbulb className="text-info h-4 w-4" />
+                    <h3 className="text-info font-semibold">Recommendations for Improvement</h3>
                   </div>
-                  <ul className="space-y-2 text-sm text-info">
+                  <ul className="text-info space-y-2 text-sm">
                     {selectedSummary.weaknessAreas.map((area) => (
                       <li key={area} className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
-                          Practice more <strong>{area}</strong> topics in the
-                          LevelUp learning spaces to strengthen understanding
+                          Practice more <strong>{area}</strong> topics in the LevelUp learning
+                          spaces to strengthen understanding
                         </span>
                       </li>
                     ))}
@@ -275,8 +258,8 @@ export default function ChildProgressPage() {
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
-                          Consider reviewing foundational concepts before attempting
-                          advanced problems
+                          Consider reviewing foundational concepts before attempting advanced
+                          problems
                         </span>
                       </li>
                     )}
@@ -284,8 +267,7 @@ export default function ChildProgressPage() {
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
-                          Encourage completing more learning spaces to build a
-                          stronger foundation
+                          Encourage completing more learning spaces to build a stronger foundation
                         </span>
                       </li>
                     )}
@@ -293,8 +275,8 @@ export default function ChildProgressPage() {
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
-                          Build a daily learning habit — even 15 minutes a day can
-                          make a big difference
+                          Build a daily learning habit — even 15 minutes a day can make a big
+                          difference
                         </span>
                       </li>
                     )}
@@ -303,18 +285,13 @@ export default function ChildProgressPage() {
               )}
 
               {/* Performance Trends */}
-              <PerformanceTrendsChart
-                tenantId={tenantId}
-                studentId={activeStudentId}
-              />
+              <PerformanceTrendsChart tenantId={tenantId} studentId={activeStudentId} />
 
               {/* Subject Breakdown Charts */}
               <div className="grid gap-6 lg:grid-cols-2">
                 {examSubjectData.length > 0 && (
-                  <div className="rounded-lg border bg-card p-5">
-                    <h3 className="mb-4 font-semibold">
-                      Exam Scores by Subject
-                    </h3>
+                  <div className="bg-card rounded-lg border p-5">
+                    <h3 className="mb-4 font-semibold">Exam Scores by Subject</h3>
                     <SimpleBarChart
                       data={examSubjectData}
                       maxValue={100}
@@ -324,10 +301,8 @@ export default function ChildProgressPage() {
                   </div>
                 )}
                 {spaceSubjectData.length > 0 && (
-                  <div className="rounded-lg border bg-card p-5">
-                    <h3 className="mb-4 font-semibold">
-                      Space Completion by Subject
-                    </h3>
+                  <div className="bg-card rounded-lg border p-5">
+                    <h3 className="mb-4 font-semibold">Space Completion by Subject</h3>
                     <SimpleBarChart
                       data={spaceSubjectData}
                       maxValue={100}
@@ -341,21 +316,19 @@ export default function ChildProgressPage() {
               {/* Exam & Space Details */}
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Recent Exams */}
-                <div className="rounded-lg border bg-card p-5">
+                <div className="bg-card rounded-lg border p-5">
                   <h3 className="mb-3 font-semibold">Recent Exam Results</h3>
                   {selectedSummary.autograde.recentExams.length > 0 ? (
                     <div className="space-y-2">
                       {selectedSummary.autograde.recentExams.map((exam) => (
                         <div
                           key={exam.examId}
-                          className="flex items-center justify-between rounded bg-muted/50 px-3 py-2"
+                          className="bg-muted/50 flex items-center justify-between rounded px-3 py-2"
                         >
-                          <span className="text-sm truncate flex-1">
-                            {exam.examTitle}
-                          </span>
+                          <span className="flex-1 truncate text-sm">{exam.examTitle}</span>
                           <div className="flex items-center gap-2">
                             <div
-                              className="h-1.5 w-16 rounded-full bg-muted"
+                              className="bg-muted h-1.5 w-16 rounded-full"
                               role="progressbar"
                               aria-valuenow={Math.round(exam.percentage)}
                               aria-valuemin={0}
@@ -376,7 +349,7 @@ export default function ChildProgressPage() {
                               />
                             </div>
                             <span
-                              className={`text-sm font-medium min-w-[3rem] text-right ${
+                              className={`min-w-[3rem] text-right text-sm font-medium ${
                                 exam.percentage >= 70
                                   ? "text-success"
                                   : exam.percentage >= 40
@@ -391,50 +364,42 @@ export default function ChildProgressPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No exam results yet
-                    </p>
+                    <p className="text-muted-foreground text-sm">No exam results yet</p>
                   )}
-                  <div className="mt-3 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-3 text-xs">
                     {selectedSummary.autograde.completedExams}/
-                    {selectedSummary.autograde.totalExams} exams completed |
-                    Total marks: {selectedSummary.autograde.totalMarksObtained}/
+                    {selectedSummary.autograde.totalExams} exams completed | Total marks:{" "}
+                    {selectedSummary.autograde.totalMarksObtained}/
                     {selectedSummary.autograde.totalMarksAvailable}
                   </div>
                 </div>
 
                 {/* Recent Space Activity */}
-                <div className="rounded-lg border bg-card p-5">
+                <div className="bg-card rounded-lg border p-5">
                   <h3 className="mb-3 font-semibold">Recent Activity</h3>
                   {selectedSummary.levelup.recentActivity.length > 0 ? (
                     <div className="space-y-2">
-                      {selectedSummary.levelup.recentActivity
-                        .slice(0, 6)
-                        .map((activity, idx) => (
-                          <div
-                            key={`${activity.spaceId}-${idx}`}
-                            className="flex items-center justify-between rounded bg-muted/50 px-3 py-2"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm truncate">
-                                {activity.spaceTitle}
-                              </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {activity.action.replace(/_/g, " ")}
-                              </p>
-                            </div>
+                      {selectedSummary.levelup.recentActivity.slice(0, 6).map((activity, idx) => (
+                        <div
+                          key={`${activity.spaceId}-${idx}`}
+                          className="bg-muted/50 flex items-center justify-between rounded px-3 py-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm">{activity.spaceTitle}</p>
+                            <p className="text-muted-foreground text-xs capitalize">
+                              {activity.action.replace(/_/g, " ")}
+                            </p>
                           </div>
-                        ))}
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No recent activity
-                    </p>
+                    <p className="text-muted-foreground text-sm">No recent activity</p>
                   )}
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    {selectedSummary.levelup.completedSpaces}/
-                    {selectedSummary.levelup.totalSpaces} spaces completed |
-                    Accuracy: {Math.round(selectedSummary.levelup.averageAccuracy * 100)}%
+                  <div className="text-muted-foreground mt-3 text-xs">
+                    {selectedSummary.levelup.completedSpaces}/{selectedSummary.levelup.totalSpaces}{" "}
+                    spaces completed | Accuracy:{" "}
+                    {Math.round(selectedSummary.levelup.averageAccuracy * 100)}%
                   </div>
                 </div>
               </div>

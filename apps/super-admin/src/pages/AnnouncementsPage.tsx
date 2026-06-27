@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { callSaveAnnouncement, callListAnnouncements } from "@levelup/shared-services/auth";
-import type { SaveAnnouncementRequest, ListAnnouncementsResponse } from "@levelup/shared-types";
+import { useAnnouncements, useSaveAnnouncement } from "@levelup/query";
+import type { Announcement as DomainAnnouncement } from "@levelup/domain";
 import {
   Button,
   Input,
@@ -43,7 +42,7 @@ import { usePagination } from "../hooks/usePagination";
 type AnnouncementStatus = "draft" | "published" | "archived";
 type StatusTab = "all" | AnnouncementStatus;
 
-type Announcement = ListAnnouncementsResponse["announcements"][number];
+type Announcement = DomainAnnouncement;
 
 interface AnnouncementFormData {
   title: string;
@@ -59,6 +58,11 @@ const emptyForm: AnnouncementFormData = {
 
 function formatTimestamp(ts: unknown): string {
   if (!ts) return "--";
+  // Domain timestamps are ISO-8601 strings at rest (zTimestamp).
+  if (typeof ts === "string") {
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? "--" : d.toLocaleDateString();
+  }
   const record = ts as { seconds?: number };
   if (typeof record.seconds === "number") {
     return new Date(record.seconds * 1000).toLocaleDateString();
@@ -78,7 +82,7 @@ function statusBadgeVariant(status: AnnouncementStatus) {
 }
 
 export default function AnnouncementsPage() {
-  const queryClient = useQueryClient();
+  const saveAnnouncement = useSaveAnnouncement();
   const [statusFilter, setStatusFilter] = useState<StatusTab>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,17 +91,15 @@ export default function AnnouncementsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["platform", "announcements", statusFilter],
-    queryFn: () =>
-      callListAnnouncements({
-        scope: "platform",
-        status: statusFilter === "all" ? undefined : statusFilter,
-      }),
-    staleTime: 30_000,
+  const { data, isLoading } = useAnnouncements({
+    scope: "platform",
+    status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  const announcements = useMemo(() => data?.announcements ?? [], [data]);
+  const announcements = useMemo(
+    () => (data as { items?: Announcement[] } | undefined)?.items ?? [],
+    [data]
+  );
 
   const { paginatedItems, currentPage, pageSize, totalItems, setCurrentPage, setPageSize } =
     usePagination(announcements, 20);
@@ -113,9 +115,7 @@ export default function AnnouncementsPage() {
     setFormData({
       title: a.title,
       body: a.body,
-      expiresAt: a.expiresAt
-        ? new Date((a.expiresAt as { seconds: number }).seconds * 1000).toISOString().split("T")[0]
-        : "",
+      expiresAt: a.expiresAt ? new Date(a.expiresAt as string).toISOString().split("T")[0] : "",
     });
     setDialogOpen(true);
   };
@@ -127,7 +127,7 @@ export default function AnnouncementsPage() {
     }
     setSaving(true);
     try {
-      const request: SaveAnnouncementRequest = editingId
+      const request = editingId
         ? {
             id: editingId,
             data: {
@@ -140,13 +140,12 @@ export default function AnnouncementsPage() {
             data: {
               title: formData.title.trim(),
               body: formData.body.trim(),
-              scope: "platform",
-              status: "draft",
+              scope: "platform" as const,
+              status: "draft" as const,
               expiresAt: formData.expiresAt || undefined,
             },
           };
-      await callSaveAnnouncement(request);
-      queryClient.invalidateQueries({ queryKey: ["platform", "announcements"] });
+      await saveAnnouncement.mutateAsync(request);
       setDialogOpen(false);
       setEditingId(null);
       setFormData(emptyForm);
@@ -162,8 +161,7 @@ export default function AnnouncementsPage() {
 
   const handleStatusChange = async (id: string, newStatus: AnnouncementStatus) => {
     try {
-      await callSaveAnnouncement({ id, data: { status: newStatus } });
-      queryClient.invalidateQueries({ queryKey: ["platform", "announcements"] });
+      await saveAnnouncement.mutateAsync({ id, data: { status: newStatus } });
       toast.success(newStatus === "published" ? "Announcement published" : "Announcement archived");
     } catch (err) {
       toast.error("Failed to update status", {
@@ -176,8 +174,7 @@ export default function AnnouncementsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await callSaveAnnouncement({ id: deleteTarget.id, delete: true });
-      queryClient.invalidateQueries({ queryKey: ["platform", "announcements"] });
+      await saveAnnouncement.mutateAsync({ id: deleteTarget.id, delete: true });
       setDeleteTarget(null);
       toast.success("Announcement deleted");
     } catch (err) {

@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useMemo, Suspense } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import {
   AppShell,
   AppSidebar,
@@ -28,28 +27,20 @@ import {
   type TenantOption,
   type MobileNavItem,
 } from "@levelup/shared-ui";
-import { useNotifications, useUnreadCount, useMarkRead, useMarkAllRead, usePrefetch } from "@levelup/shared-hooks";
-
-/** Route prefetch map — triggers lazy imports on link hover */
-const ADMIN_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
-  '/': () => import('../pages/DashboardPage'),
-  '/users': () => import('../pages/UsersPage'),
-  '/classes': () => import('../pages/ClassesPage'),
-  '/exams': () => import('../pages/ExamsOverviewPage'),
-  '/spaces': () => import('../pages/SpacesOverviewPage'),
-  '/settings': () => import('../pages/SettingsPage'),
-  '/analytics': () => import('../pages/AnalyticsPage'),
-  '/reports': () => import('../pages/ReportsPage'),
-  '/courses': () => import('../pages/CoursesPage'),
-  '/staff': () => import('../pages/StaffPage'),
-  '/announcements': () => import('../pages/AnnouncementsPage'),
-  '/ai-usage': () => import('../pages/AIUsagePage'),
-  '/notifications': () => import('../pages/NotificationsPage'),
-  '/academic-sessions': () => import('../pages/AcademicSessionPage'),
-  '/data-export': () => import('../pages/DataExportPage'),
-};
-import { getFirebaseServices } from "@levelup/shared-services";
-import { collection, query, where, documentId, getDocs } from "firebase/firestore";
+import {
+  useNotifications,
+  useNotificationBadgeQuery,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useSwitchTenant,
+} from "@levelup/query";
+import {
+  useSession,
+  useCurrentUser,
+  useCurrentTenantId,
+  useCurrentTenant,
+  useAllMemberships,
+} from "@/sdk/identity";
 import {
   LayoutDashboard,
   Users,
@@ -93,19 +84,25 @@ const ADMIN_ROUTE_LABELS: Record<string, string> = {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser, logout } =
-    useAuthStore();
+  const allMemberships = useAllMemberships();
+  const currentTenantId = useCurrentTenantId();
+  const user = useCurrentUser();
+  const { logout } = useSession();
+  const switchTenant = useSwitchTenant();
 
-  // Prefetch routes on link hover for near-instant navigation
-  usePrefetch(ADMIN_PREFETCH_MAP);
+  // Notifications + badge are tenant-implicit (claims-scoped) in the fat-SDK.
+  const notifQ = useNotifications();
+  const notifsLoading = notifQ.isLoading;
+  const badgeQ = useNotificationBadgeQuery();
+  const unreadCount = (badgeQ.data as { unreadCount?: number } | undefined)?.unreadCount ?? 0;
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
-  const { data: notifData, isLoading: notifsLoading } = useNotifications(
-    currentTenantId,
-    firebaseUser?.uid ?? null,
-  );
-  const unreadCount = useUnreadCount(currentTenantId, firebaseUser?.uid ?? null);
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  const notifications = (
+    Array.isArray(notifQ.data)
+      ? notifQ.data
+      : ((notifQ.data as { notifications?: unknown[] } | undefined)?.notifications ?? [])
+  ) as never[];
 
   const navGroups: NavGroup[] = [
     {
@@ -214,36 +211,23 @@ export default function AppLayout() {
     },
   ];
 
-  const currentTenantName = useTenantStore((s) => s.tenant?.name);
-  const [tenantNames, setTenantNames] = useState<Record<string, string>>({});
+  const currentTenant = useCurrentTenant();
+  const currentTenantName = (currentTenant.data as { name?: string } | undefined)?.name;
 
   const adminMemberships = useMemo(
     () => allMemberships.filter((m) => m.role === "tenantAdmin"),
-    [allMemberships],
+    [allMemberships]
   );
 
-  useEffect(() => {
-    const otherTenantIds = adminMemberships
-      .map((m) => m.tenantId)
-      .filter((id) => id !== currentTenantId);
-    if (otherTenantIds.length === 0) return;
-
-    const { db } = getFirebaseServices();
-    // Batch fetch all tenant docs at once
-    const q = query(collection(db, "tenants"), where(documentId(), "in", otherTenantIds));
-    getDocs(q).then((snap) => {
-      const entries = snap.docs.map(d => [d.id, (d.data() as { name?: string }).name ?? d.id] as const);
-      setTenantNames(Object.fromEntries(entries));
-    });
-  }, [adminMemberships, currentTenantId]);
-
+  // Tenant display names come from the `useMe` membership rows (no direct
+  // firestore read). The active tenant's name is refined by `useCurrentTenant()`.
   const tenantOptions: TenantOption[] = adminMemberships.map((m) => ({
     tenantId: m.tenantId,
     tenantName:
       m.tenantId === currentTenantId
-        ? currentTenantName ?? m.tenantId
-        : tenantNames[m.tenantId] ?? m.tenantId,
-    role: m.role,
+        ? (currentTenantName ?? m.tenantName ?? m.tenantId)
+        : (m.tenantName ?? m.tenantId),
+    role: m.role as TenantOption["role"],
   }));
 
   const sidebarFooter = (
@@ -251,7 +235,7 @@ export default function AppLayout() {
       <RoleSwitcher
         currentTenantId={currentTenantId}
         tenants={tenantOptions}
-        onSwitch={switchTenant}
+        onSwitch={(tenantId) => switchTenant.mutate(tenantId)}
       />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -268,7 +252,7 @@ export default function AppLayout() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium">{user?.displayName ?? "Admin"}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+              <p className="text-muted-foreground text-xs">{user?.email}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -276,7 +260,12 @@ export default function AppLayout() {
             <SettingsIcon className="mr-2 h-4 w-4" /> Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => { logout(); navigate("/login"); }}>
+          <DropdownMenuItem
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+          >
             <LogOut className="mr-2 h-4 w-4" /> Sign Out
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -298,18 +287,16 @@ export default function AppLayout() {
     <div className="flex items-center gap-2">
       <ThemeToggle />
       <NotificationBell
-        notifications={notifData?.notifications ?? []}
+        notifications={notifications}
         unreadCount={unreadCount}
         isLoading={notifsLoading}
         onNotificationClick={(notif) => {
-          if (!notif.isRead && currentTenantId) {
-            markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
+          if (!notif.isRead) {
+            markRead.mutate({ notificationId: notif.id });
           }
           if (notif.actionUrl) navigate(notif.actionUrl);
         }}
-        onMarkAllRead={() => {
-          if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
-        }}
+        onMarkAllRead={() => markAllRead.mutate()}
         onViewAll={() => navigate("/notifications")}
       />
     </div>
@@ -328,7 +315,14 @@ export default function AppLayout() {
         <AppBreadcrumb routeLabels={ADMIN_ROUTE_LABELS} />
         <QuotaWarningBanner />
         <div id="main-content">
-          <Suspense fallback={<div className="space-y-4 p-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div>}>
+          <Suspense
+            fallback={
+              <div className="space-y-4 p-4">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            }
+          >
             <PageTransition pageKey={location.pathname}>
               <Outlet />
             </PageTransition>
@@ -348,8 +342,18 @@ function AppMobileBottomNav() {
   const mobileNavItems: MobileNavItem[] = [
     { icon: LayoutDashboard, label: "Home", to: "/", isActive: location.pathname === "/" },
     { icon: Users, label: "Users", to: "/users", isActive: location.pathname.startsWith("/users") },
-    { icon: GraduationCap, label: "Classes", to: "/classes", isActive: location.pathname.startsWith("/classes") },
-    { icon: BarChart3, label: "Analytics", to: "/analytics", isActive: location.pathname.startsWith("/analytics") },
+    {
+      icon: GraduationCap,
+      label: "Classes",
+      to: "/classes",
+      isActive: location.pathname.startsWith("/classes"),
+    },
+    {
+      icon: BarChart3,
+      label: "Analytics",
+      to: "/analytics",
+      isActive: location.pathname.startsWith("/analytics"),
+    },
     { icon: Menu, label: "More", to: "#", isActive: false, onClick: toggleSidebar },
   ];
 

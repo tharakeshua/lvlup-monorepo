@@ -1,15 +1,6 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useRubricPresets,
-  useSaveRubricPreset,
-  useApiError,
-} from "@levelup/shared-hooks";
-import type {
-  RubricPreset,
-  RubricPresetCategory,
-  UnifiedRubric,
-} from "@levelup/shared-types";
+import { useRubricPresets, useSaveRubricPreset, useApiError } from "@levelup/query";
+import type { RubricPreset, RubricPresetCategory, UnifiedRubric } from "@levelup/shared-types";
 import {
   Button,
   Input,
@@ -86,8 +77,9 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function RubricPresetsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: presets, isLoading } = useRubricPresets(tenantId);
+  // @levelup/query is tenant-scoped server-side; result is a `{ items }` page.
+  const { data: presetsPage, isLoading } = useRubricPresets<{ items: RubricPreset[] }>();
+  const presets = presetsPage?.items;
   const savePreset = useSaveRubricPreset();
   const { handleError } = useApiError();
 
@@ -100,9 +92,7 @@ export default function RubricPresetsPage() {
     name: string;
   }>({ open: false, id: "", name: "" });
 
-  const [filterCategory, setFilterCategory] = useState<
-    RubricPresetCategory | "all"
-  >("all");
+  const [filterCategory, setFilterCategory] = useState<RubricPresetCategory | "all">("all");
 
   const filteredPresets = presets?.filter(
     (p) => filterCategory === "all" || p.category === filterCategory
@@ -129,7 +119,7 @@ export default function RubricPresetsPage() {
   };
 
   const handleSave = async () => {
-    if (!tenantId || !form.name.trim()) return;
+    if (!form.name.trim()) return;
 
     const rubric: UnifiedRubric = {
       scoringMode: form.scoringMode,
@@ -141,7 +131,6 @@ export default function RubricPresetsPage() {
     try {
       await savePreset.mutateAsync({
         id: editingId ?? undefined,
-        tenantId,
         data: {
           name: form.name.trim(),
           description: form.description.trim(),
@@ -157,11 +146,10 @@ export default function RubricPresetsPage() {
   };
 
   const handleDelete = async () => {
-    if (!tenantId || !deleteDialog.id) return;
+    if (!deleteDialog.id) return;
     try {
       await savePreset.mutateAsync({
         id: deleteDialog.id,
-        tenantId,
         data: { deleted: true },
       });
       sonnerToast.success("Preset deleted");
@@ -186,9 +174,7 @@ export default function RubricPresetsPage() {
     <div className="space-y-6">
       <ConfirmDialog
         open={deleteDialog.open}
-        onOpenChange={(open) =>
-          setDeleteDialog((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
         title="Delete Preset"
         description={`Are you sure you want to delete "${deleteDialog.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
@@ -207,7 +193,7 @@ export default function RubricPresetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Evaluation Presets</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Reusable rubric templates for consistent grading
           </p>
         </div>
@@ -221,11 +207,9 @@ export default function RubricPresetsPage() {
         <Label className="text-sm">Category:</Label>
         <Select
           value={filterCategory}
-          onValueChange={(v) =>
-            setFilterCategory(v as RubricPresetCategory | "all")
-          }
+          onValueChange={(v) => setFilterCategory(v as RubricPresetCategory | "all")}
         >
-          <SelectTrigger className="w-40 h-8 text-sm">
+          <SelectTrigger className="h-8 w-40 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -242,55 +226,48 @@ export default function RubricPresetsPage() {
       {/* List */}
       {!filteredPresets?.length ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-          <FileText className="h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
+          <FileText className="text-muted-foreground h-8 w-8" />
+          <p className="text-muted-foreground mt-2 text-sm">
             No presets yet. Create one to get started.
           </p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filteredPresets.map((preset) => (
-            <div
-              key={preset.id}
-              className="rounded-lg border bg-card p-4 flex flex-col gap-2"
-            >
+            <div key={preset.id} className="bg-card flex flex-col gap-2 rounded-lg border p-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-md bg-muted p-1.5">
-                    {CATEGORY_ICONS[preset.category]}
-                  </div>
+                  <div className="bg-muted rounded-md p-1.5">{CATEGORY_ICONS[preset.category]}</div>
                   <div>
                     <h3 className="text-sm font-medium">{preset.name}</h3>
-                    <p className="text-xs text-muted-foreground capitalize">
+                    <p className="text-muted-foreground text-xs capitalize">
                       {CATEGORY_LABELS[preset.category]} &middot;{" "}
                       {preset.rubric.scoringMode.replace("_", " ")}
                     </p>
                   </div>
                 </div>
                 {preset.isDefault && (
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                  <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px]">
                     Default
                   </span>
                 )}
               </div>
 
               {preset.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {preset.description}
-                </p>
+                <p className="text-muted-foreground line-clamp-2 text-xs">{preset.description}</p>
               )}
 
               {preset.rubric.passingPercentage != null && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Passing: {preset.rubric.passingPercentage}%
                 </p>
               )}
 
-              <div className="flex items-center gap-2 mt-auto pt-2 border-t">
+              <div className="mt-auto flex items-center gap-2 border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1 h-7 text-xs"
+                  className="h-7 gap-1 text-xs"
                   onClick={() => handleOpenEdit(preset)}
                 >
                   <Pencil className="h-3 w-3" /> Edit
@@ -299,7 +276,7 @@ export default function RubricPresetsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1 h-7 text-xs hover:bg-destructive/10 hover:text-destructive"
+                    className="hover:bg-destructive/10 hover:text-destructive h-7 gap-1 text-xs"
                     onClick={() =>
                       setDeleteDialog({
                         open: true,
@@ -319,20 +296,16 @@ export default function RubricPresetsPage() {
 
       {/* Create/Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>
-              {editingId ? "Edit Preset" : "New Evaluation Preset"}
-            </SheetTitle>
+            <SheetTitle>{editingId ? "Edit Preset" : "New Evaluation Preset"}</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-4">
             <div>
               <Label>Name</Label>
               <Input
                 value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., CBSE Math Grade 10"
                 className="mt-1"
               />
@@ -342,9 +315,7 @@ export default function RubricPresetsPage() {
               <Label>Description</Label>
               <Textarea
                 value={form.description}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, description: e.target.value }))
-                }
+                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="When to use this preset..."
                 rows={2}
                 className="mt-1"
@@ -392,9 +363,7 @@ export default function RubricPresetsPage() {
                 <SelectContent>
                   <SelectItem value="holistic">Holistic</SelectItem>
                   <SelectItem value="criteria_based">Criteria-Based</SelectItem>
-                  <SelectItem value="dimension_based">
-                    Dimension-Based
-                  </SelectItem>
+                  <SelectItem value="dimension_based">Dimension-Based</SelectItem>
                   <SelectItem value="hybrid">Hybrid</SelectItem>
                 </SelectContent>
               </Select>
@@ -450,16 +419,9 @@ export default function RubricPresetsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4 border-t">
-              <Button
-                onClick={handleSave}
-                disabled={savePreset.isPending || !form.name.trim()}
-              >
-                {savePreset.isPending
-                  ? "Saving..."
-                  : editingId
-                    ? "Update"
-                    : "Create"}
+            <div className="flex gap-2 border-t pt-4">
+              <Button onClick={handleSave} disabled={savePreset.isPending || !form.name.trim()}>
+                {savePreset.isPending ? "Saving..." : editingId ? "Update" : "Create"}
               </Button>
               <Button variant="outline" onClick={() => setSheetOpen(false)}>
                 Cancel

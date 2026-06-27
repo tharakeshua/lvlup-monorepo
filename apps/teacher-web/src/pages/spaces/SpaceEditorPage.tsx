@@ -1,35 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useCurrentTenantId } from "@levelup/shared-stores";
 import {
   useSpace,
-  useUpdateSpace,
-  usePublishSpace,
-  useArchiveSpace,
-  useCreateStoryPoint,
-  useUpdateStoryPoint,
-  useCreateItem,
-  useUpdateItem,
-  useDeleteItem,
-  useDeleteStoryPoint,
+  useStoryPoints,
+  useVersions,
+  useSaveSpace,
+  useSaveStoryPoint,
+  useSaveItem,
   useApiError,
-} from "@levelup/shared-hooks";
-import {
-  collection,
-  getDocs,
-  getCountFromServer,
-  query,
-  orderBy,
-  where,
-  writeBatch,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
-import {
-  getFirebaseServices,
-  callListVersions,
-  type ContentVersionEntry,
-} from "@levelup/shared-services";
+  useRepos,
+} from "@levelup/query";
 import {
   sonnerToast,
   Button,
@@ -114,6 +94,30 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 type EditorTab = "settings" | "content" | "rubric" | "agents" | "versions";
+
+/** Loose view over a `@levelup/query` content version (the seam returns `unknown`). */
+interface VersionView {
+  id: string;
+  changeSummary?: string;
+  changeType?: string;
+  entityType?: string;
+  // SDK timestamps are ISO strings at rest; legacy seed data may carry the
+  // Firestore `{_seconds}` shape — handle both.
+  changedAt?: string | number | { _seconds: number } | null;
+}
+
+function formatVersionDate(ts: VersionView["changedAt"]): string {
+  if (ts == null) return "";
+  const ms =
+    typeof ts === "string" ? Date.parse(ts) : typeof ts === "number" ? ts : ts._seconds * 1000;
+  if (Number.isNaN(ms)) return "";
+  return new Date(ms).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function SortableItem({
   item,
@@ -339,27 +343,25 @@ function SortableStoryPoint({
 export default function SpaceEditorPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const { data: space, isLoading, refetch } = useSpace(tenantId, spaceId ?? null);
+  // tenantId kept only for the ItemEditor child prop (tenant is otherwise
+  // implicit in @levelup/query, derived from auth claims server-side).
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const { data: space, isLoading, refetch } = useSpace<Space>(spaceId ?? "");
   const { handleError } = useApiError();
+  const { storyPointRepo, itemRepo } = useRepos();
 
-  // Mutation hooks (use consolidated callables)
-  const updateSpace = useUpdateSpace();
-  const publishSpace = usePublishSpace();
-  const archiveSpace = useArchiveSpace();
-  const createStoryPoint = useCreateStoryPoint();
-  const updateStoryPoint = useUpdateStoryPoint();
-  const createItem = useCreateItem();
-  const updateItem = useUpdateItem();
-  const deleteItem = useDeleteItem();
-  const deleteStoryPoint = useDeleteStoryPoint();
+  // Mutation hooks. saveSpace IS the lifecycle transition verb (publish/archive/
+  // unpublish = a status change in data) — there is no separate publish/archive
+  // callable. Deletes use the `deleted` convention on the relevant save callable.
+  const saveSpace = useSaveSpace();
+  const saveStoryPoint = useSaveStoryPoint();
+  const saveItem = useSaveItem();
 
   const [activeTab, setActiveTab] = useState<EditorTab>("settings");
   const [storyPoints, setStoryPoints] = useState<StoryPoint[]>([]);
   const [expandedSP, setExpandedSP] = useState<string | null>(null);
   const [editingSP, setEditingSP] = useState<StoryPoint | null>(null);
   const [items, setItems] = useState<Record<string, UnifiedItem[]>>({});
-  const [itemPaths, setItemPaths] = useState<Record<string, "nested" | "flat">>({});
   // Live item counts per story point. Authoritative — sp.stats.totalItems is
   // stale for seeded data because the seed bypasses the stats-incrementing
   // saveItem callable.
@@ -368,9 +370,6 @@ export default function SpaceEditorPage() {
   const [editingItemSPId, setEditingItemSPId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [importBankSPId, setImportBankSPId] = useState<string | null>(null);
-  const [versions, setVersions] = useState<ContentVersionEntry[]>([]);
-  const [versionsLoading, setVersionsLoading] = useState(false);
-  const versionsLoaded = useRef(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -390,89 +389,68 @@ export default function SpaceEditorPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Load story points
+  // Story points (tenant-scoped server-side). Synced into local state so the DnD
+  // reorder + inline section edits can mutate optimistically.
+  const storyPointsQuery = useStoryPoints<{ items: StoryPoint[] }>(spaceId ?? "", {
+    enabled: !!spaceId,
+  });
+  const reloadStoryPoints = useCallback(async () => {
+    const res = await storyPointsQuery.refetch();
+    const next = (res.data?.items ?? []) as StoryPoint[];
+    setStoryPoints(next);
+    return next;
+  }, [storyPointsQuery]);
   useEffect(() => {
-    if (!tenantId || !spaceId) return;
-    const load = async () => {
-      try {
-        const { db } = getFirebaseServices();
-        const colRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/storyPoints`);
-        const q = query(colRef, orderBy("orderIndex", "asc"));
-        const snap = await getDocs(q);
-        setStoryPoints(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StoryPoint));
-      } catch (err) {
-        handleError(err, "Failed to load story points");
-      }
-    };
-    load();
-  }, [tenantId, spaceId, handleError]);
+    if (storyPointsQuery.data?.items) {
+      setStoryPoints(storyPointsQuery.data.items as StoryPoint[]);
+    }
+  }, [storyPointsQuery.data]);
+  useEffect(() => {
+    if (storyPointsQuery.isError) {
+      handleError(storyPointsQuery.error, "Failed to load story points");
+    }
+  }, [storyPointsQuery.isError, storyPointsQuery.error, handleError]);
 
-  // Items live at the canonical nested path
-  // (storyPoints/{id}/items); legacy installs may still have them at the
-  // flat /items path. Try nested first, fall back to flat, and remember
-  // which path was used per story point so subsequent writes (reorder)
-  // target the correct location.
+  // Items for a story point. The list read is answer-stripped — fine for the
+  // editor's row display; the answer-bearing payload is fetched on edit-open
+  // (getForEdit) and on duplicate/preview.
   const loadItems = useCallback(
-    async (storyPointId: string) => {
-      if (!tenantId || !spaceId) return;
+    async (storyPointId: string): Promise<UnifiedItem[]> => {
+      if (!spaceId) return [];
       try {
-        const { db } = getFirebaseServices();
-        const nestedRef = collection(
-          db,
-          `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
-        );
-        let snap = await getDocs(query(nestedRef, orderBy("orderIndex", "asc")));
-        let pathKind: "nested" | "flat" = "nested";
-        if (snap.empty) {
-          const flatRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
-          const flatSnap = await getDocs(
-            query(flatRef, where("storyPointId", "==", storyPointId), orderBy("orderIndex", "asc"))
-          );
-          if (!flatSnap.empty) {
-            snap = flatSnap;
-            pathKind = "flat";
-          }
-        }
-        const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
+        const page = (await itemRepo.list({ spaceId, storyPointId })) as {
+          items: UnifiedItem[];
+        };
+        const loaded = page?.items ?? [];
         setItems((prev) => ({ ...prev, [storyPointId]: loaded }));
-        setItemPaths((prev) => ({ ...prev, [storyPointId]: pathKind }));
         setLiveCounts((prev) => ({ ...prev, [storyPointId]: loaded.length }));
+        return loaded;
       } catch (err) {
         handleError(err, "Failed to load items");
+        return [];
       }
     },
-    [tenantId, spaceId, handleError]
+    [spaceId, itemRepo, handleError]
   );
 
   useEffect(() => {
     if (expandedSP) loadItems(expandedSP);
   }, [expandedSP, loadItems]);
 
-  // Fetch live item counts for each story point. Tries the canonical nested
-  // path first; if empty, falls back to a count on the legacy flat path
-  // filtered by storyPointId. Runs whenever the story-point list changes.
+  // Fetch live item counts for each story point by listing items per SP. Runs
+  // whenever the story-point list changes. (NOTE: counts reflect the first page
+  // of the items list; very large story points may undercount.)
   useEffect(() => {
-    if (!tenantId || !spaceId || storyPoints.length === 0) return;
+    if (!spaceId || storyPoints.length === 0) return;
     let cancelled = false;
-    const { db } = getFirebaseServices();
-
     (async () => {
       const results = await Promise.all(
         storyPoints.map(async (sp) => {
           try {
-            const nestedRef = collection(
-              db,
-              `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${sp.id}/items`
-            );
-            const nestedCount = await getCountFromServer(nestedRef);
-            const n = nestedCount.data().count;
-            if (n > 0) return [sp.id, n] as const;
-
-            const flatRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/items`);
-            const flatCount = await getCountFromServer(
-              query(flatRef, where("storyPointId", "==", sp.id))
-            );
-            return [sp.id, flatCount.data().count] as const;
+            const page = (await itemRepo.list({ spaceId, storyPointId: sp.id })) as {
+              items: UnifiedItem[];
+            };
+            return [sp.id, (page?.items ?? []).length] as const;
           } catch {
             return [sp.id, 0] as const;
           }
@@ -489,25 +467,14 @@ export default function SpaceEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [tenantId, spaceId, storyPoints]);
+  }, [spaceId, storyPoints, itemRepo]);
 
-  // Load versions when tab is active
-  useEffect(() => {
-    if (activeTab !== "versions" || !tenantId || !spaceId || versionsLoaded.current) return;
-    const loadVersions = async () => {
-      setVersionsLoading(true);
-      try {
-        const result = await callListVersions({ tenantId, spaceId, limit: 50 });
-        setVersions(result.versions);
-        versionsLoaded.current = true;
-      } catch (err) {
-        handleError(err, "Failed to load version history");
-      } finally {
-        setVersionsLoading(false);
-      }
-    };
-    loadVersions();
-  }, [activeTab, tenantId, spaceId, handleError]);
+  // Version history (only fetched while the History tab is active).
+  const versionsQuery = useVersions<{ items: ContentVersionEntry[] }>(spaceId ?? "", {
+    enabled: activeTab === "versions" && !!spaceId,
+  });
+  const versions = (versionsQuery.data?.items ?? []) as VersionView[];
+  const versionsLoading = versionsQuery.isLoading && activeTab === "versions";
 
   // Keyboard shortcuts (P0-3: Cmd+Enter is handled INSIDE ItemEditor and saves;
   // here we only handle non-editor shortcuts).
@@ -537,15 +504,20 @@ export default function SpaceEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingItem, editingSP]);
 
-  // --- Fixed handlers: all use consolidated callables ---
+  // --- Handlers (all on @levelup/query save callables). NOTE: the contract
+  // request schemas are `.strict()`, so a few legacy fields that have no place
+  // in the SDK schemas are dropped here (flagged in the migration report):
+  //   • space settings: allowRetakes / maxRetakes / defaultTimeLimitMinutes /
+  //     showCorrectAnswers / price / currency (price needs a Money shape).
+  //   • item save: rubric (inline) / attachments — only rubricId is supported.
+  //   • story-point save: defaultRubric (inline) — only defaultRubricId.
 
   const handleSaveSettings = async (data: Partial<Space>) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     setSaving(true);
     try {
-      await updateSpace.mutateAsync({
+      await saveSpace.mutateAsync({
         id: spaceId,
-        tenantId,
         data: {
           title: data.title,
           description: data.description,
@@ -553,14 +525,8 @@ export default function SpaceEditorPage() {
           subject: data.subject,
           labels: data.labels,
           accessType: data.accessType,
-          allowRetakes: data.allowRetakes,
-          maxRetakes: data.maxRetakes,
-          defaultTimeLimitMinutes: data.defaultTimeLimitMinutes,
-          showCorrectAnswers: data.showCorrectAnswers,
           thumbnailUrl: data.thumbnailUrl,
-          // Store listing fields
-          price: data.price,
-          currency: data.currency,
+          // Store listing fields supported by the contract.
           publishedToStore: data.publishedToStore,
           storeDescription: data.storeDescription,
           storeThumbnailUrl: data.storeThumbnailUrl,
@@ -575,10 +541,12 @@ export default function SpaceEditorPage() {
     }
   };
 
+  // saveSpace is the lifecycle transition verb (status change, server-enforced
+  // against ALLOWED_TRANSITIONS) — there is no separate publish/archive callable.
   const handlePublish = async () => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     try {
-      await publishSpace.mutateAsync({ tenantId, spaceId });
+      await saveSpace.mutateAsync({ id: spaceId, data: { status: "published" } });
       await refetch();
       sonnerToast.success("Space published successfully");
     } catch (err) {
@@ -594,9 +562,9 @@ export default function SpaceEditorPage() {
         "Are you sure you want to archive this space? Students will no longer be able to access it.",
       confirmLabel: "Archive",
       onConfirm: async () => {
-        if (!tenantId || !spaceId) return;
+        if (!spaceId) return;
         try {
-          await archiveSpace.mutateAsync({ tenantId, spaceId });
+          await saveSpace.mutateAsync({ id: spaceId, data: { status: "archived" } });
           await refetch();
           sonnerToast.success("Space archived");
         } catch (err) {
@@ -607,13 +575,9 @@ export default function SpaceEditorPage() {
   };
 
   const handleUnpublish = async () => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     try {
-      await updateSpace.mutateAsync({
-        id: spaceId,
-        tenantId,
-        data: { status: "draft" },
-      });
+      await saveSpace.mutateAsync({ id: spaceId, data: { status: "draft" } });
       await refetch();
       sonnerToast.success("Space unpublished");
     } catch (err) {
@@ -621,13 +585,10 @@ export default function SpaceEditorPage() {
     }
   };
 
-  const handleAddStoryPoint = async (
-    spType: StoryPoint["type"] = "standard"
-  ) => {
-    if (!tenantId || !spaceId) return;
+  const handleAddStoryPoint = async (spType: StoryPoint["type"] = "standard") => {
+    if (!spaceId) return;
     try {
-      await createStoryPoint.mutateAsync({
-        tenantId,
+      await saveStoryPoint.mutateAsync({
         spaceId,
         data: {
           title: `Story Point ${storyPoints.length + 1}`,
@@ -635,12 +596,7 @@ export default function SpaceEditorPage() {
           type: spType,
         },
       });
-      // Reload story points to get server-computed data
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/storyPoints`);
-      const q = query(colRef, orderBy("orderIndex", "asc"));
-      const snap = await getDocs(q);
-      setStoryPoints(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StoryPoint));
+      await reloadStoryPoints();
       sonnerToast.success("Story point added");
     } catch (err) {
       handleError(err, "Failed to add story point");
@@ -648,7 +604,7 @@ export default function SpaceEditorPage() {
   };
 
   const handleAddSection = async (storyPointId: string) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     const sp = storyPoints.find((s) => s.id === storyPointId);
     if (!sp) return;
     const existing = sp.sections ?? [];
@@ -659,11 +615,12 @@ export default function SpaceEditorPage() {
     };
     const nextSections = [...existing, newSection];
     try {
-      await updateStoryPoint.mutateAsync({
+      // title + type are required by the strict saveStoryPoint schema even on
+      // a sections-only update.
+      await saveStoryPoint.mutateAsync({
         id: storyPointId,
-        tenantId,
         spaceId,
-        data: { sections: nextSections },
+        data: { title: sp.title, type: sp.type, sections: nextSections },
       });
       setStoryPoints((prev) =>
         prev.map((s) => (s.id === storyPointId ? { ...s, sections: nextSections } : s))
@@ -682,9 +639,13 @@ export default function SpaceEditorPage() {
       description: `Are you sure you want to delete "${sp?.title ?? "this story point"}"? This will also delete all items within it.`,
       confirmLabel: "Delete",
       onConfirm: async () => {
-        if (!tenantId || !spaceId) return;
+        if (!spaceId || !sp) return;
         try {
-          await deleteStoryPoint.mutateAsync({ id: spId, tenantId, spaceId });
+          await saveStoryPoint.mutateAsync({
+            id: spId,
+            spaceId,
+            data: { title: sp.title, type: sp.type, deleted: true },
+          });
           setStoryPoints((prev) => prev.filter((s) => s.id !== spId));
           setItems((prev) => {
             const next = { ...prev };
@@ -702,7 +663,7 @@ export default function SpaceEditorPage() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !tenantId || !spaceId) return;
+    if (!over || active.id === over.id || !spaceId) return;
 
     const oldIndex = storyPoints.findIndex((sp) => sp.id === active.id);
     const newIndex = storyPoints.findIndex((sp) => sp.id === over.id);
@@ -716,15 +677,19 @@ export default function SpaceEditorPage() {
     setStoryPoints(reordered);
 
     try {
-      const { db } = getFirebaseServices();
-      const batch = writeBatch(db);
-      reordered.forEach((sp, idx) => {
-        batch.update(doc(db, `tenants/${tenantId}/spaces/${spaceId}/storyPoints`, sp.id), {
-          orderIndex: idx,
-          updatedAt: serverTimestamp(),
-        });
-      });
-      await batch.commit();
+      // No batch-reorder callable: persist each story point whose index changed
+      // via saveStoryPoint (title + type are required by the strict schema).
+      await Promise.all(
+        reordered.map((sp, idx) =>
+          sp.orderIndex === idx
+            ? Promise.resolve()
+            : saveStoryPoint.mutateAsync({
+                id: sp.id,
+                spaceId,
+                data: { title: sp.title, type: sp.type, orderIndex: idx },
+              })
+        )
+      );
     } catch (err) {
       setStoryPoints(previousOrder);
       handleError(err, "Failed to reorder story points");
@@ -733,7 +698,7 @@ export default function SpaceEditorPage() {
 
   const handleItemDragEnd = async (storyPointId: string, event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !tenantId || !spaceId) return;
+    if (!over || active.id === over.id || !spaceId) return;
 
     const spItems = items[storyPointId] ?? [];
     const oldIndex = spItems.findIndex((i) => i.id === active.id);
@@ -748,20 +713,22 @@ export default function SpaceEditorPage() {
     setItems((prev) => ({ ...prev, [storyPointId]: reordered }));
 
     try {
-      const { db } = getFirebaseServices();
-      const batch = writeBatch(db);
-      const pathKind = itemPaths[storyPointId] ?? "nested";
-      const itemsCollectionPath =
-        pathKind === "nested"
-          ? `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
-          : `tenants/${tenantId}/spaces/${spaceId}/items`;
-      reordered.forEach((item, idx) => {
-        batch.update(doc(db, itemsCollectionPath, item.id), {
-          orderIndex: idx,
-          updatedAt: serverTimestamp(),
-        });
-      });
-      await batch.commit();
+      // saveItem is a full upsert that re-extracts the answer key from `payload`,
+      // so a reorder must send the ANSWER-BEARING payload (getForEdit) to avoid
+      // wiping answers. Only items whose index changed are re-saved.
+      await Promise.all(
+        reordered.map(async (item, idx) => {
+          if (item.orderIndex === idx) return;
+          const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId: item.id });
+          const full = (edit.item ?? item) as UnifiedItem;
+          await saveItem.mutateAsync({
+            id: item.id,
+            spaceId,
+            storyPointId,
+            data: { type: full.type, payload: full.payload, orderIndex: idx },
+          });
+        })
+      );
     } catch (err) {
       setItems((prev) => ({ ...prev, [storyPointId]: previousItems }));
       handleError(err, "Failed to reorder items");
@@ -773,7 +740,7 @@ export default function SpaceEditorPage() {
     type: "question" | "material",
     sectionId?: string
   ) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     try {
       const currentItems = items[storyPointId] ?? [];
       const orderIndex = currentItems.length;
@@ -788,27 +755,14 @@ export default function SpaceEditorPage() {
           : { materialType: "text" as const, content: "" };
       const title = type === "question" ? "New Question" : "New Material";
 
-      const result = await createItem.mutateAsync({
-        tenantId,
+      const result = (await saveItem.mutateAsync({
         spaceId,
         storyPointId,
         data: { type, title, orderIndex, payload, sectionId },
-      });
+      })) as { id: string };
 
-      // Reload from server and pick up the freshly-created item — avoids
-      // fabricating a local UnifiedItem missing audit fields and possibly
-      // disagreeing with the server-stored payload (P0-18).
-      const { db } = getFirebaseServices();
-      const nestedRef = collection(
-        db,
-        `tenants/${tenantId}/spaces/${spaceId}/storyPoints/${storyPointId}/items`
-      );
-      const snap = await getDocs(query(nestedRef, orderBy("orderIndex", "asc")));
-      const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UnifiedItem);
-      setItems((prev) => ({ ...prev, [storyPointId]: loaded }));
-      setItemPaths((prev) => ({ ...prev, [storyPointId]: "nested" }));
-      setLiveCounts((prev) => ({ ...prev, [storyPointId]: loaded.length }));
-
+      // Reload from server and pick up the freshly-created item.
+      const loaded = await loadItems(storyPointId);
       const created = loaded.find((i) => i.id === result.id);
       if (created) {
         setEditingItem(created);
@@ -827,13 +781,17 @@ export default function SpaceEditorPage() {
       description: `Are you sure you want to delete "${item?.title ?? "this item"}"? This action cannot be undone.`,
       confirmLabel: "Delete",
       onConfirm: async () => {
-        if (!tenantId || !spaceId) return;
+        if (!spaceId) return;
         try {
-          await deleteItem.mutateAsync({
+          // saveItem's strict schema requires `type` + `payload` even for a
+          // soft-delete; fetch the answer-bearing item to build a valid payload.
+          const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId });
+          const full = (edit.item ?? item) as UnifiedItem;
+          await saveItem.mutateAsync({
             id: itemId,
-            tenantId,
             spaceId,
             storyPointId,
+            data: { type: full.type, payload: full.payload, deleted: true },
           });
           setItems((prev) => ({
             ...prev,
@@ -851,6 +809,23 @@ export default function SpaceEditorPage() {
     });
   };
 
+  // Open an item in the editor with its ANSWER-BEARING payload (getForEdit);
+  // the list rows themselves are answer-stripped.
+  const openItemForEdit = async (item: UnifiedItem, storyPointId: string) => {
+    setEditingItemSPId(storyPointId);
+    if (!spaceId) {
+      setEditingItem(item);
+      return;
+    }
+    try {
+      const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId: item.id });
+      setEditingItem(((edit.item ?? item) as UnifiedItem) ?? item);
+    } catch (err) {
+      handleError(err, "Failed to open item for editing");
+      setEditingItem(item);
+    }
+  };
+
   /**
    * Persist an item edit. P0-2: split into manual save (closes the sheet) and
    * auto-save (keeps the sheet open).
@@ -859,13 +834,13 @@ export default function SpaceEditorPage() {
     // Prefer the item's own storyPointId so we don't accidentally write to a
     // stale React-state SP id (P1-38).
     const targetSP = item.storyPointId || editingItemSPId;
-    if (!tenantId || !spaceId || !targetSP) return;
-    await updateItem.mutateAsync({
+    if (!spaceId || !targetSP) return;
+    await saveItem.mutateAsync({
       id: item.id,
-      tenantId,
       spaceId,
       storyPointId: targetSP,
       data: {
+        type: item.type,
         payload: item.payload,
         title: item.title,
         content: item.content,
@@ -873,9 +848,7 @@ export default function SpaceEditorPage() {
         topics: item.topics,
         labels: item.labels,
         orderIndex: item.orderIndex,
-        rubric: item.rubric,
         sectionId: item.sectionId,
-        attachments: item.attachments,
         meta: item.meta,
       },
     });
@@ -903,11 +876,10 @@ export default function SpaceEditorPage() {
   };
 
   const handleSaveStoryPoint = async (sp: StoryPoint) => {
-    if (!tenantId || !spaceId) return;
+    if (!spaceId) return;
     try {
-      await updateStoryPoint.mutateAsync({
+      await saveStoryPoint.mutateAsync({
         id: sp.id,
-        tenantId,
         spaceId,
         data: {
           title: sp.title,
@@ -915,7 +887,6 @@ export default function SpaceEditorPage() {
           type: sp.type,
           sections: sp.sections,
           assessmentConfig: sp.assessmentConfig,
-          defaultRubric: sp.defaultRubric,
           difficulty: sp.difficulty,
           estimatedTimeMinutes: sp.estimatedTimeMinutes,
           orderIndex: sp.orderIndex,
@@ -1012,7 +983,7 @@ export default function SpaceEditorPage() {
             <Button
               onClick={handlePublish}
               size="sm"
-              disabled={publishSpace.isPending}
+              disabled={saveSpace.isPending}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               <Globe className="h-3.5 w-3.5" /> Publish
@@ -1024,7 +995,7 @@ export default function SpaceEditorPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleUnpublish}
-                disabled={updateSpace.isPending}
+                disabled={saveSpace.isPending}
               >
                 Unpublish
               </Button>
@@ -1032,7 +1003,7 @@ export default function SpaceEditorPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleArchive}
-                disabled={archiveSpace.isPending}
+                disabled={saveSpace.isPending}
               >
                 <Archive className="h-3.5 w-3.5" /> Archive
               </Button>
@@ -1043,7 +1014,7 @@ export default function SpaceEditorPage() {
               variant="outline"
               size="sm"
               onClick={handleUnpublish}
-              disabled={updateSpace.isPending}
+              disabled={saveSpace.isPending}
             >
               Restore to Draft
             </Button>
@@ -1088,7 +1059,7 @@ export default function SpaceEditorPage() {
               <h2 className="text-lg font-semibold">Story Points ({storyPoints.length})</h2>
               <div className="flex items-center gap-2">
                 <Select onValueChange={(v) => handleAddStoryPoint(v as StoryPoint["type"])}>
-                  <SelectTrigger className="w-44 h-9" aria-label="Add story point of type">
+                  <SelectTrigger className="h-9 w-44" aria-label="Add story point of type">
                     <SelectValue placeholder="+ Add as type…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1102,7 +1073,7 @@ export default function SpaceEditorPage() {
                 <Button
                   onClick={() => handleAddStoryPoint("standard")}
                   size="sm"
-                  disabled={createStoryPoint.isPending}
+                  disabled={saveStoryPoint.isPending}
                   title="Add Story Point (Ctrl+N)"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add
@@ -1162,10 +1133,7 @@ export default function SpaceEditorPage() {
                                   key={item.id}
                                   item={item}
                                   storyPointId={sp.id}
-                                  onEdit={() => {
-                                    setEditingItem(item);
-                                    setEditingItemSPId(sp.id);
-                                  }}
+                                  onEdit={() => openItemForEdit(item, sp.id)}
                                   onDelete={() => handleDeleteItem(sp.id, item.id)}
                                   selected={selectedItems.has(item.id)}
                                   onToggleSelect={() => {
@@ -1258,7 +1226,9 @@ export default function SpaceEditorPage() {
                                           <div className="flex items-center justify-between gap-2 border-b pb-1">
                                             <div className="flex items-baseline gap-2">
                                               <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
-                                                {sortedSections.length === 0 ? "Items" : "Unsectioned"}
+                                                {sortedSections.length === 0
+                                                  ? "Items"
+                                                  : "Unsectioned"}
                                               </h4>
                                               <span className="text-muted-foreground text-[10px]">
                                                 {unsectioned.length}{" "}
@@ -1321,14 +1291,24 @@ export default function SpaceEditorPage() {
                                         description: `Are you sure you want to delete ${toDelete.length} item(s)? This action cannot be undone.`,
                                         confirmLabel: "Delete All",
                                         onConfirm: async () => {
-                                          if (!tenantId || !spaceId) return;
+                                          if (!spaceId) return;
                                           try {
                                             for (const it of toDelete) {
-                                              await deleteItem.mutateAsync({
-                                                id: it.id,
-                                                tenantId,
+                                              const edit = await itemRepo.getForEdit({
                                                 spaceId,
                                                 storyPointId: sp.id,
+                                                itemId: it.id,
+                                              });
+                                              const full = (edit.item ?? it) as UnifiedItem;
+                                              await saveItem.mutateAsync({
+                                                id: it.id,
+                                                spaceId,
+                                                storyPointId: sp.id,
+                                                data: {
+                                                  type: full.type,
+                                                  payload: full.payload,
+                                                  deleted: true,
+                                                },
                                               });
                                             }
                                             setItems((prev) => ({
@@ -1351,31 +1331,42 @@ export default function SpaceEditorPage() {
                                   {storyPoints.length > 1 && (
                                     <Select
                                       onValueChange={async (targetSpId) => {
-                                        if (!tenantId || !spaceId || targetSpId === sp.id) return;
+                                        if (!spaceId || targetSpId === sp.id) return;
                                         const toMove = (items[sp.id] ?? []).filter((i) =>
                                           selectedItems.has(i.id)
                                         );
                                         try {
                                           for (const it of toMove) {
-                                            // Delete from current SP and create in target SP
-                                            await deleteItem.mutateAsync({
-                                              id: it.id,
-                                              tenantId,
+                                            // Move = create answer-bearing copy in
+                                            // the target SP, then soft-delete the
+                                            // source (getForEdit preserves answers).
+                                            const edit = await itemRepo.getForEdit({
                                               spaceId,
                                               storyPointId: sp.id,
+                                              itemId: it.id,
                                             });
-                                            await createItem.mutateAsync({
-                                              tenantId,
+                                            const full = (edit.item ?? it) as UnifiedItem;
+                                            await saveItem.mutateAsync({
                                               spaceId,
                                               storyPointId: targetSpId,
                                               data: {
-                                                type: it.type,
-                                                payload: it.payload,
-                                                title: it.title,
-                                                content: it.content,
-                                                difficulty: it.difficulty,
-                                                topics: it.topics,
-                                                labels: it.labels,
+                                                type: full.type,
+                                                payload: full.payload,
+                                                title: full.title,
+                                                content: full.content,
+                                                difficulty: full.difficulty,
+                                                topics: full.topics,
+                                                labels: full.labels,
+                                              },
+                                            });
+                                            await saveItem.mutateAsync({
+                                              id: it.id,
+                                              spaceId,
+                                              storyPointId: sp.id,
+                                              data: {
+                                                type: full.type,
+                                                payload: full.payload,
+                                                deleted: true,
                                               },
                                             });
                                           }
@@ -1482,15 +1473,10 @@ export default function SpaceEditorPage() {
                           <span className="text-muted-foreground text-xs capitalize">
                             {v.entityType}
                           </span>
-                          {v.changedAt && (
+                          {v.changedAt != null && (
                             <span className="text-muted-foreground flex items-center gap-1 text-xs">
                               <Clock className="h-3 w-3" />
-                              {new Date(v.changedAt._seconds * 1000).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatVersionDate(v.changedAt)}
                             </span>
                           )}
                         </div>
@@ -1525,12 +1511,8 @@ export default function SpaceEditorPage() {
                 item={editingItem}
                 tenantId={tenantId ?? undefined}
                 spaceId={spaceId}
-                sections={
-                  storyPoints.find((s) => s.id === editingItemSPId)?.sections ?? []
-                }
-                storyPointType={
-                  storyPoints.find((s) => s.id === editingItemSPId)?.type
-                }
+                sections={storyPoints.find((s) => s.id === editingItemSPId)?.sections ?? []}
+                storyPointType={storyPoints.find((s) => s.id === editingItemSPId)?.type}
                 onSave={handleSaveItem}
                 onAutoSave={handleAutoSaveItem}
                 onCancel={() => {
@@ -1567,13 +1549,12 @@ export default function SpaceEditorPage() {
       </Sheet>
 
       {/* Question Bank Import Dialog */}
-      {tenantId && spaceId && importBankSPId && (
+      {spaceId && importBankSPId && (
         <QuestionBankImportDialog
           open={!!importBankSPId}
           onOpenChange={(open) => {
             if (!open) setImportBankSPId(null);
           }}
-          tenantId={tenantId}
           spaceId={spaceId}
           storyPointId={importBankSPId}
           onImported={() => {

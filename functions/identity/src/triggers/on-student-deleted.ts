@@ -1,7 +1,8 @@
-import * as admin from 'firebase-admin';
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import { logger } from 'firebase-functions/v2';
-import type { Student } from '@levelup/shared-types';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions/v2";
+import type { Student } from "@levelup/shared-types";
 
 /**
  * Firestore trigger: when a student status changes to 'archived',
@@ -9,8 +10,8 @@ import type { Student } from '@levelup/shared-types';
  */
 export const onStudentArchived = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/students/{studentId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}/students/{studentId}",
+    region: "asia-south1",
   },
   async (event) => {
     try {
@@ -20,7 +21,7 @@ export const onStudentArchived = onDocumentUpdated(
       if (!before || !after) return;
 
       // Only trigger when status changes to 'archived'
-      if (before.status === 'archived' || after.status !== 'archived') return;
+      if (before.status === "archived" || after.status !== "archived") return;
 
       const tenantId = event.params.tenantId;
       const studentId = event.params.studentId;
@@ -35,8 +36,8 @@ export const onStudentArchived = onDocumentUpdated(
           ops.push([
             db.doc(`tenants/${tenantId}/parents/${parentId}`),
             {
-              childStudentIds: admin.firestore.FieldValue.arrayRemove(studentId),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              childStudentIds: FieldValue.arrayRemove(studentId),
+              updatedAt: FieldValue.serverTimestamp(),
             },
           ]);
         }
@@ -47,9 +48,9 @@ export const onStudentArchived = onDocumentUpdated(
           ops.push([
             db.doc(`tenants/${tenantId}/classes/${classId}`),
             {
-              studentIds: admin.firestore.FieldValue.arrayRemove(studentId),
-              studentCount: admin.firestore.FieldValue.increment(-1),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              studentIds: FieldValue.arrayRemove(studentId),
+              studentCount: FieldValue.increment(-1),
+              updatedAt: FieldValue.serverTimestamp(),
             },
           ]);
         }
@@ -67,10 +68,10 @@ export const onStudentArchived = onDocumentUpdated(
 
       logger.info(
         `Cleaned up references for archived student ${studentId} in tenant ${tenantId}: ` +
-          `${after.parentIds?.length ?? 0} parents, ${after.classIds?.length ?? 0} classes`,
+          `${after.parentIds?.length ?? 0} parents, ${after.classIds?.length ?? 0} classes`
       );
     } catch (error) {
-      logger.error('Failed to clean up archived student references', error);
+      logger.error("Failed to clean up archived student references", error);
     }
-  },
+  }
 );

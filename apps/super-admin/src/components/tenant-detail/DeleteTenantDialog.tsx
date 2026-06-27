@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { callDeactivateTenant } from "@levelup/shared-services";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError, useDeactivateTenant } from "@levelup/query";
 import { sonnerToast as toast } from "@levelup/shared-ui";
-import type { Tenant } from "@levelup/shared-types";
+import type { Tenant } from "@levelup/domain";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -28,28 +26,39 @@ interface Props {
 
 export function DeleteTenantDialog({ tenant, tenantId, open, onOpenChange }: Props) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  const deactivateTenant = useMutation({
-    mutationFn: async () => {
-      await callDeactivateTenant({ tenantId, reason: "Deactivated via super-admin panel" });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["platform", "tenants"] });
-      toast.success("Tenant deactivated successfully");
-      navigate("/tenants", { replace: true });
-    },
-    onError: (err: unknown) => handleError(err, "Failed to deactivate tenant"),
-  });
+  // useDeactivateTenant auto-invalidates tenant queries on settle.
+  const deactivateTenant = useDeactivateTenant();
+
+  const handleDeactivate = () => {
+    deactivateTenant.mutate(
+      { tenantOverride: tenantId, reason: "Deactivated via super-admin panel" },
+      {
+        onSuccess: () => {
+          toast.success("Tenant deactivated successfully");
+          navigate("/tenants", { replace: true });
+        },
+        onError: (err: unknown) => handleError(err, "Failed to deactivate tenant"),
+      }
+    );
+  };
 
   return (
-    <AlertDialog open={open} onOpenChange={(o) => { if (!o) { setDeleteConfirmText(""); onOpenChange(false); } }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          setDeleteConfirmText("");
+          onOpenChange(false);
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertTriangle className="text-destructive h-5 w-5" />
             Deactivate Tenant
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -59,13 +68,29 @@ export function DeleteTenantDialog({ tenant, tenantId, open, onOpenChange }: Pro
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-2 py-2">
-          <Label>Type <code className="text-sm font-mono bg-muted px-1 py-0.5 rounded">{tenant.tenantCode}</code> to confirm</Label>
-          <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={tenant.tenantCode} />
+          <Label>
+            Type{" "}
+            <code className="bg-muted rounded px-1 py-0.5 font-mono text-sm">
+              {tenant.tenantCode}
+            </code>{" "}
+            to confirm
+          </Label>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder={tenant.tenantCode}
+          />
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deactivateTenant.isPending}>Cancel</AlertDialogCancel>
-          <Button variant="destructive" disabled={deactivateTenant.isPending || deleteConfirmText !== tenant.tenantCode} onClick={() => deactivateTenant.mutate()}>
-            {deactivateTenant.isPending ? "Deactivating..." : "I understand, deactivate this tenant"}
+          <Button
+            variant="destructive"
+            disabled={deactivateTenant.isPending || deleteConfirmText !== tenant.tenantCode}
+            onClick={handleDeactivate}
+          >
+            {deactivateTenant.isPending
+              ? "Deactivating..."
+              : "I understand, deactivate this tenant"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

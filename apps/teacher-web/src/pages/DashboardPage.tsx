@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
-import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
+import { useQueries } from "@tanstack/react-query";
 import {
   useSpaces,
   useExams,
   useSubmissions,
   useClasses,
   useStudents,
-} from "@levelup/shared-hooks";
-import { useClassSummaries } from "@levelup/shared-hooks";
+  useRepos,
+} from "@levelup/query";
+import { useAuthSession } from "../sdk/session";
 import { BookOpen, ClipboardList, Users, ArrowRight, AlertTriangle, BarChart3 } from "lucide-react";
 import {
   ScoreCard,
@@ -22,23 +23,90 @@ import {
 } from "@levelup/shared-ui";
 import type { Space } from "@levelup/shared-types";
 import type { Exam } from "@levelup/shared-types";
-import type { Submission } from "@levelup/shared-types";
+import type { Submission, Class, ClassProgressSummary } from "@levelup/shared-types";
+
+// The @levelup/query class summary (domain shape) drops the legacy performer
+// lists and renames metric fields; the dashboard only reads atRiskCount,
+// className, classId and the average exam score, which we map here.
+// (PARITY GAP — flagged to Frontend-Lead.)
+function adaptClassSummary(raw: unknown): ClassProgressSummary | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as {
+    id?: string;
+    tenantId?: string;
+    classId?: string;
+    className?: string;
+    studentCount?: number;
+    atRiskCount?: number;
+    atRiskStudentIds?: string[];
+    lastUpdatedAt?: unknown;
+    autograde?: { averagePercentage?: number; passRate?: number };
+    levelup?: { averageCompletion?: number; activeStudents?: number };
+  };
+  const studentCount = s.studentCount ?? 0;
+  return {
+    id: s.id ?? s.classId ?? "",
+    tenantId: s.tenantId ?? "",
+    classId: s.classId ?? "",
+    className: s.className ?? "",
+    studentCount,
+    autograde: {
+      averageClassScore: (s.autograde?.averagePercentage ?? 0) / 100,
+      examCompletionRate: s.autograde?.passRate ?? 0,
+      topPerformers: [],
+      bottomPerformers: [],
+    },
+    levelup: {
+      averageClassCompletion: s.levelup?.averageCompletion ?? 0,
+      activeStudentRate: studentCount > 0 ? (s.levelup?.activeStudents ?? 0) / studentCount : 0,
+      topPointEarners: [],
+    },
+    atRiskStudentIds: s.atRiskStudentIds ?? [],
+    atRiskCount: s.atRiskCount ?? 0,
+    lastUpdatedAt: s.lastUpdatedAt as ClassProgressSummary["lastUpdatedAt"],
+  };
+}
 
 export default function DashboardPage() {
-  const user = useCurrentUser();
-  const tenantId = useCurrentTenantId();
+  const user = useAuthSession((s) => s.user);
 
-  const { data: spaces = [], isLoading: spacesLoading } = useSpaces(tenantId);
-  const { data: exams = [], isLoading: examsLoading } = useExams(tenantId);
-  const { data: submissions = [] } = useSubmissions(tenantId, {
-    status: "ready_for_review",
-  });
-  const { data: classes = [], isLoading: classesLoading } = useClasses(tenantId);
-  const { data: students = [], isLoading: studentsLoading } = useStudents(tenantId);
+  const { data: spacesRaw, isLoading: spacesLoading } = useSpaces();
+  const spaces = ((spacesRaw as { items?: Space[] } | undefined)?.items ?? []) as Space[];
+  const { data: examsRaw, isLoading: examsLoading } = useExams();
+  const exams = ((examsRaw as { pages?: { items?: Exam[] }[] } | undefined)?.pages ?? []).flatMap(
+    (p) => p.items ?? []
+  ) as Exam[];
+  const { data: subsRaw } = useSubmissions({ status: "ready_for_review" });
+  const submissions = (
+    (subsRaw as { pages?: { items?: Submission[] }[] } | undefined)?.pages ?? []
+  ).flatMap((p) => p.items ?? []) as Submission[];
+  const { data: classesRaw, isLoading: classesLoading } = useClasses();
+  const classes = ((classesRaw as { items?: Class[] } | undefined)?.items ?? []) as Class[];
+  const { data: studentsRaw, isLoading: studentsLoading } = useStudents();
+  const students = ((studentsRaw as { items?: { id: string }[] } | undefined)?.items ?? []) as {
+    id: string;
+  }[];
 
+  // Per-class summaries: no batch query hook exists (legacy useClassSummaries was
+  // a useQueries fan-out). Reproduce it via useRepos()+useQueries — a sanctioned
+  // one-off imperative read — then adapt each to the legacy summary shape.
+  const repos = useRepos();
   const classIds = classes.map((c) => c.id);
-  const classSummaryResults = useClassSummaries(tenantId, classIds);
-  const classSummaries = classSummaryResults.map((r) => r.data).filter(Boolean);
+  const classSummaryResults = useQueries({
+    queries: classIds.map((classId) => ({
+      queryKey: ["analytics", "classSummary", classId] as const,
+      queryFn: () =>
+        (
+          repos as unknown as {
+            summaryRepo: { getClass(id: string): Promise<unknown> };
+          }
+        ).summaryRepo.getClass(classId),
+      enabled: Boolean(classId),
+    })),
+  });
+  const classSummaries = classSummaryResults
+    .map((r) => adaptClassSummary(r.data))
+    .filter((cs): cs is ClassProgressSummary => cs != null);
 
   const activeExams = exams.filter((e: Exam) => e.status !== "archived" && e.status !== "draft");
 

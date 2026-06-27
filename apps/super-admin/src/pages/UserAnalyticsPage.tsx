@@ -1,8 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { Tenant } from "@levelup/shared-types";
+import { useTenants } from "@levelup/query";
 import { Users, TrendingUp, Building2, UserPlus, AlertCircle } from "lucide-react";
 import { usePagination } from "../hooks/usePagination";
 import {
@@ -49,54 +46,64 @@ interface PlatformUserStats {
   usersByPlan: Record<string, number>;
 }
 
-function usePlatformUserStats() {
-  return useQuery<PlatformUserStats>({
-    queryKey: ["platform", "userAnalytics"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const snap = await getDocs(collection(db, "tenants"));
-      const tenants = snap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as Tenant,
-      );
+/**
+ * Super-admin tenant list row (the @levelup/query `useTenants()` projection —
+ * api-contract `TenantSummarySchema`). NOTE: `slug` stands in for the legacy
+ * `tenantCode`; the projection carries no `contactEmail` or nested `stats`.
+ */
+interface TenantSummaryRow {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan?: string;
+  totalStudents: number;
+  totalTeachers: number;
+  createdAt: string;
+}
 
-      let totalStudents = 0;
-      let totalTeachers = 0;
-      const usersByPlan: Record<string, number> = {};
+/** `useTenants()` returns a PageBag — read `.items`, defensively. */
+function readTenantItems(data: unknown): TenantSummaryRow[] {
+  const bag = data as { items?: unknown } | undefined;
+  return Array.isArray(bag?.items) ? (bag!.items as TenantSummaryRow[]) : [];
+}
 
-      const tenantStats: TenantUserStats[] = tenants.map((t) => {
-        const students = t.stats?.totalStudents ?? 0;
-        const teachers = t.stats?.totalTeachers ?? 0;
-        totalStudents += students;
-        totalTeachers += teachers;
+function aggregateUserStats(tenants: TenantSummaryRow[]): PlatformUserStats {
+  let totalStudents = 0;
+  let totalTeachers = 0;
+  const usersByPlan: Record<string, number> = {};
 
-        const plan = t.subscription?.plan ?? "none";
-        usersByPlan[plan] = (usersByPlan[plan] ?? 0) + students + teachers;
+  const tenantStats: TenantUserStats[] = tenants.map((t) => {
+    const students = t.totalStudents ?? 0;
+    const teachers = t.totalTeachers ?? 0;
+    totalStudents += students;
+    totalTeachers += teachers;
 
-        return {
-          tenantId: t.id,
-          tenantName: t.name,
-          tenantCode: t.tenantCode,
-          status: t.status,
-          students,
-          teachers,
-          total: students + teachers,
-        };
-      });
+    const plan = t.plan ?? "none";
+    usersByPlan[plan] = (usersByPlan[plan] ?? 0) + students + teachers;
 
-      tenantStats.sort((a, b) => b.total - a.total);
-
-      return {
-        totalUsers: totalStudents + totalTeachers,
-        totalStudents,
-        totalTeachers,
-        activeTenants: tenants.filter((t) => t.status === "active").length,
-        totalTenants: tenants.length,
-        tenantStats,
-        usersByPlan,
-      };
-    },
-    staleTime: 60 * 1000,
+    return {
+      tenantId: t.id,
+      tenantName: t.name,
+      tenantCode: t.slug,
+      status: t.status,
+      students,
+      teachers,
+      total: students + teachers,
+    };
   });
+
+  tenantStats.sort((a, b) => b.total - a.total);
+
+  return {
+    totalUsers: totalStudents + totalTeachers,
+    totalStudents,
+    totalTeachers,
+    activeTenants: tenants.filter((t) => t.status === "active").length,
+    totalTenants: tenants.length,
+    tenantStats,
+    usersByPlan,
+  };
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -108,7 +115,10 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 export default function UserAnalyticsPage() {
-  const { data: stats, isLoading, isError, error, refetch } = usePlatformUserStats();
+  // SDK GAP NOTE: `useTenants()` paginates (limit cap 100) and its projection has
+  // no `contactEmail`/nested stats — `slug` stands in for the legacy tenantCode.
+  const { data, isLoading, isError, error, refetch } = useTenants({ limit: 100 });
+  const stats = useMemo(() => aggregateUserStats(readTenantItems(data)), [data]);
 
   const tenantStatsList = useMemo(() => stats?.tenantStats ?? [], [stats]);
   const { paginatedItems, currentPage, pageSize, totalItems, setCurrentPage, setPageSize } =
@@ -121,7 +131,7 @@ export default function UserAnalyticsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
-              <CardContent className="pb-4 pt-4 px-4 space-y-2">
+              <CardContent className="space-y-2 px-4 pb-4 pt-4">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-16" />
                 <Skeleton className="h-3 w-32" />
@@ -130,7 +140,7 @@ export default function UserAnalyticsPage() {
           ))}
         </div>
         <Card>
-          <CardContent className="p-6 space-y-3">
+          <CardContent className="space-y-3 p-6">
             <Skeleton className="h-5 w-48" />
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="space-y-2">
@@ -220,22 +230,24 @@ export default function UserAnalyticsPage() {
                 .sort(([, a], [, b]) => b - a)
                 .map(([plan, count]) => {
                   const pct =
-                    stats.totalUsers > 0
-                      ? Math.round((count / stats.totalUsers) * 100)
-                      : 0;
+                    stats.totalUsers > 0 ? Math.round((count / stats.totalUsers) * 100) : 0;
                   const colorClass = PLAN_COLORS[plan] ?? "bg-muted-foreground";
                   return (
                     <div key={plan} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span className={`h-2.5 w-2.5 rounded-full ${colorClass}`} />
-                          <span className="capitalize font-medium">{plan}</span>
+                          <span className="font-medium capitalize">{plan}</span>
                         </div>
                         <span className="text-muted-foreground tabular-nums">
                           {count.toLocaleString()} users ({pct}%)
                         </span>
                       </div>
-                      <Progress value={Math.min(pct, 100)} className="h-2" indicatorClassName={colorClass} />
+                      <Progress
+                        value={Math.min(pct, 100)}
+                        className="h-2"
+                        indicatorClassName={colorClass}
+                      />
                     </div>
                   );
                 })}
@@ -250,7 +262,7 @@ export default function UserAnalyticsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Users by Tenant</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 Sorted by total users, descending
               </p>
             </div>
@@ -274,8 +286,8 @@ export default function UserAnalyticsPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="h-48">
                     <div className="flex flex-col items-center justify-center text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                        <Building2 className="h-6 w-6 text-muted-foreground" />
+                      <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+                        <Building2 className="text-muted-foreground h-6 w-6" />
                       </div>
                       <h3 className="mt-3 text-sm font-semibold">No tenants found</h3>
                     </div>
@@ -286,7 +298,7 @@ export default function UserAnalyticsPage() {
                   <TableRow key={ts.tenantId}>
                     <TableCell className="font-medium">{ts.tenantName}</TableCell>
                     <TableCell>
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                      <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
                         {ts.tenantCode}
                       </code>
                     </TableCell>
@@ -300,7 +312,11 @@ export default function UserAnalyticsPage() {
                       {ts.total.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={ts.status as "active" | "trial" | "suspended" | "expired" | "deactivated"}>
+                      <StatusBadge
+                        status={
+                          ts.status as "active" | "trial" | "suspended" | "expired" | "deactivated"
+                        }
+                      >
                         {ts.status}
                       </StatusBadge>
                     </TableCell>

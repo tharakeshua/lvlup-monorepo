@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { callCreateOrgUser } from "@levelup/shared-services/auth";
-import type { StaffPermissions } from "@levelup/shared-types";
+import { useCreateOrgUser, useApiError } from "@levelup/query";
 import {
   Button,
   Input,
@@ -14,9 +13,8 @@ import {
   DialogTitle,
 } from "@levelup/shared-ui";
 import { toast } from "sonner";
-import { useApiError } from "@levelup/shared-hooks";
 
-const STAFF_PERMISSION_LABELS: Record<keyof StaffPermissions, string> = {
+const STAFF_PERMISSION_LABELS: Record<string, string> = {
   canManageUsers: "Manage Users",
   canManageClasses: "Manage Classes",
   canViewAnalytics: "View Analytics",
@@ -39,6 +37,7 @@ export default function CreateStaffDialog({
   onCreated,
 }: CreateStaffDialogProps) {
   const { handleError } = useApiError();
+  const createOrgUser = useCreateOrgUser();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
@@ -75,8 +74,7 @@ export default function CreateStaffDialog({
 
     setSaving(true);
     try {
-      await callCreateOrgUser({
-        tenantId,
+      await createOrgUser.mutateAsync({
         role: "staff",
         firstName: form.firstName,
         lastName: form.lastName,
@@ -95,7 +93,13 @@ export default function CreateStaffDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) resetForm();
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Staff Member</DialogTitle>
@@ -154,16 +158,20 @@ export default function CreateStaffDialog({
                 <Switch
                   id={`perm-${key}`}
                   checked={permissions[key] ?? false}
-                  onCheckedChange={(checked) =>
-                    setPermissions((p) => ({ ...p, [key]: checked }))
-                  }
+                  onCheckedChange={(checked) => setPermissions((p) => ({ ...p, [key]: checked }))}
                 />
               </div>
             ))}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetForm();
+              onOpenChange(false);
+            }}
+          >
             Cancel
           </Button>
           <Button onClick={handleCreate} disabled={saving}>

@@ -4,6 +4,12 @@ node_modules
 .npm
 .yarn
 
+# env / service-account secrets (never commit to staging or any remote)
+functions/sdk-v1/.env.lvlup-ff6fa
+*.env.lvlup-*
+**/serviceAccountKey.json
+**/service-account*.json
+
 # Build outputs
 dist
 build
@@ -78,3 +84,17 @@ hello-interview-extract/
 scripts/seed-configs/hi-*/
 scripts/seed-configs/*-content.ts
 scripts/seed-results/
+
+# transient design render artifacts
+docs/rebuild-spec/design/build/.render/
+
+# v2 seed creds + verify tool (demo passwords / SA path)
+packages/seed/seed-credentials.json
+packages/seed/verify-v2.mjs
+packages/seed/verify-gateb.mjs
+packages/seed/verify-gateb.mjs
+packages/seed/verify-drifts.mjs
+packages/seed/verify-allreads.mjs
+packages/seed/verify-admin-reads.mjs
+packages/seed/verify-real-grading.mjs
+packages/seed/verify-teacher-reads.mjs

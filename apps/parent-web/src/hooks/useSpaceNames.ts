@@ -1,27 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where, documentId } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useRepos } from "@levelup/query";
 import type { Space } from "@levelup/shared-types";
 
+// Migrated to @levelup/query: resolve space titles via the levelup-content
+// spaceRepo.getMany batched read (N+1 collapse — one wire call carrying every
+// id). Signature + Record<spaceId,title> shape preserved.
 export function useSpaceNames(tenantId: string | null, spaceIds: string[]) {
+  const repos = useRepos();
   return useQuery<Record<string, string>>({
     queryKey: ["tenants", tenantId, "spaceNames", spaceIds],
     queryFn: async () => {
       if (!tenantId || !spaceIds.length) return {};
-      const { db } = getFirebaseServices();
       const names: Record<string, string> = {};
-      for (let i = 0; i < spaceIds.length; i += 30) {
-        const batch = spaceIds.slice(i, i + 30);
-        try {
-          const colRef = collection(db, `tenants/${tenantId}/spaces`);
-          const q = query(colRef, where(documentId(), "in", batch));
-          const snap = await getDocs(q);
-          for (const d of snap.docs) {
-            names[d.id] = (d.data() as Space).title;
-          }
-        } catch {
-          // Ignore batch errors
+      try {
+        const spaces = (await repos.spaceRepo.getMany(spaceIds)) as Array<
+          Pick<Space, "id" | "title">
+        >;
+        for (const s of spaces) {
+          if (s?.id) names[s.id] = s.title;
         }
+      } catch {
+        // Ignore batch errors (parity: caller falls back to a sliced id label)
       }
       return names;
     },

@@ -1,40 +1,60 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
         };
-        return ownKeys(o);
+      return ownKeys(o);
     };
     return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
     };
-})();
+  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveGlobalEvaluationPreset = void 0;
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const shared_types_1 = require("@levelup/shared-types");
@@ -46,77 +66,76 @@ const rate_limit_1 = require("../utils/rate-limit");
  * - id present → update existing preset (SuperAdmin only)
  * - delete: true → delete preset (SuperAdmin only)
  */
-exports.saveGlobalEvaluationPreset = (0, https_1.onCall)({ region: 'asia-south1', cors: true }, async (request) => {
+exports.saveGlobalEvaluationPreset = (0, https_1.onCall)(
+  { region: "asia-south1", cors: true },
+  async (request) => {
     const callerUid = request.auth?.uid;
-    if (!callerUid)
-        throw new https_1.HttpsError('unauthenticated', 'Must be logged in');
+    if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
     const callerUser = await (0, utils_1.getUser)(callerUid);
     if (!callerUser?.isSuperAdmin) {
-        throw new https_1.HttpsError('permission-denied', 'SuperAdmin only');
+      throw new https_1.HttpsError("permission-denied", "SuperAdmin only");
     }
-    await (0, rate_limit_1.enforceRateLimit)('global', callerUid, 'write', 30);
-    const { id, data, delete: shouldDelete } = (0, utils_1.parseRequest)(request.data, shared_types_1.SaveGlobalPresetRequestSchema);
+    await (0, rate_limit_1.enforceRateLimit)("global", callerUid, "write", 30);
+    const {
+      id,
+      data,
+      delete: shouldDelete,
+    } = (0, utils_1.parseRequest)(request.data, shared_types_1.SaveGlobalPresetRequestSchema);
     if (id && shouldDelete) {
-        // ── DELETE ──
-        const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
-        const snap = await presetRef.get();
-        if (!snap.exists) {
-            throw new https_1.HttpsError('not-found', 'Preset not found');
-        }
-        await presetRef.delete();
-        v2_1.logger.info(`Deleted global preset ${id}`);
-        return { id, deleted: true };
+      // ── DELETE ──
+      const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
+      const snap = await presetRef.get();
+      if (!snap.exists) {
+        throw new https_1.HttpsError("not-found", "Preset not found");
+      }
+      await presetRef.delete();
+      v2_1.logger.info(`Deleted global preset ${id}`);
+      return { id, deleted: true };
     }
     if (!id) {
-        // ── CREATE ──
-        if (!data?.name) {
-            throw new https_1.HttpsError('invalid-argument', 'name is required');
-        }
-        const presetRef = admin.firestore().collection('globalEvaluationPresets').doc();
-        await presetRef.set({
-            id: presetRef.id,
-            name: data.name,
-            description: data.description ?? null,
-            isDefault: data.isDefault ?? false,
-            isPublic: data.isPublic ?? false,
-            enabledDimensions: data.enabledDimensions ?? [],
-            displaySettings: data.displaySettings ?? {
-                showStrengths: true,
-                showKeyTakeaway: true,
-                prioritizeByImportance: false,
-            },
-            createdBy: callerUid,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        v2_1.logger.info(`Created global preset ${presetRef.id} (${data.name})`);
-        return { id: presetRef.id, created: true };
+      // ── CREATE ──
+      if (!data?.name) {
+        throw new https_1.HttpsError("invalid-argument", "name is required");
+      }
+      const presetRef = admin.firestore().collection("globalEvaluationPresets").doc();
+      await presetRef.set({
+        id: presetRef.id,
+        name: data.name,
+        description: data.description ?? null,
+        isDefault: data.isDefault ?? false,
+        isPublic: data.isPublic ?? false,
+        enabledDimensions: data.enabledDimensions ?? [],
+        displaySettings: data.displaySettings ?? {
+          showStrengths: true,
+          showKeyTakeaway: true,
+          prioritizeByImportance: false,
+        },
+        createdBy: callerUid,
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      });
+      v2_1.logger.info(`Created global preset ${presetRef.id} (${data.name})`);
+      return { id: presetRef.id, created: true };
+    } else {
+      // ── UPDATE ──
+      const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
+      const snap = await presetRef.get();
+      if (!snap.exists) {
+        throw new https_1.HttpsError("not-found", "Preset not found");
+      }
+      const updates = {
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      };
+      if (data?.name !== undefined) updates.name = data.name;
+      if (data?.description !== undefined) updates.description = data.description;
+      if (data?.isDefault !== undefined) updates.isDefault = data.isDefault;
+      if (data?.isPublic !== undefined) updates.isPublic = data.isPublic;
+      if (data?.enabledDimensions !== undefined) updates.enabledDimensions = data.enabledDimensions;
+      if (data?.displaySettings !== undefined) updates.displaySettings = data.displaySettings;
+      await presetRef.update(updates);
+      v2_1.logger.info(`Updated global preset ${id}`);
+      return { id, created: false };
     }
-    else {
-        // ── UPDATE ──
-        const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
-        const snap = await presetRef.get();
-        if (!snap.exists) {
-            throw new https_1.HttpsError('not-found', 'Preset not found');
-        }
-        const updates = {
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
-        if (data?.name !== undefined)
-            updates.name = data.name;
-        if (data?.description !== undefined)
-            updates.description = data.description;
-        if (data?.isDefault !== undefined)
-            updates.isDefault = data.isDefault;
-        if (data?.isPublic !== undefined)
-            updates.isPublic = data.isPublic;
-        if (data?.enabledDimensions !== undefined)
-            updates.enabledDimensions = data.enabledDimensions;
-        if (data?.displaySettings !== undefined)
-            updates.displaySettings = data.displaySettings;
-        await presetRef.update(updates);
-        v2_1.logger.info(`Updated global preset ${id}`);
-        return { id, created: false };
-    }
-});
+  }
+);
 //# sourceMappingURL=save-global-preset.js.map

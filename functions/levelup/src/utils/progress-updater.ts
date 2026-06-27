@@ -11,6 +11,7 @@
  * happen in one transactional write.
  */
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import type {
   ProgressStatus,
@@ -267,7 +268,7 @@ export async function recalculateAndWriteProgress(
 
     // ── Space completion detection ──
     let spaceStatus: ProgressStatus = "in_progress";
-    let spaceCompletedAt: admin.firestore.FieldValue | undefined;
+    let spaceCompletedAt: FieldValue | undefined;
 
     if (storyPointStatus === "completed") {
       try {
@@ -285,7 +286,7 @@ export async function recalculateAndWriteProgress(
             }
             if (completedSPCount >= totalStoryPoints) {
               spaceStatus = "completed";
-              spaceCompletedAt = admin.firestore.FieldValue.serverTimestamp();
+              spaceCompletedAt = FieldValue.serverTimestamp();
             }
           }
         }
@@ -305,8 +306,8 @@ export async function recalculateAndWriteProgress(
       totalPoints: totalPointsAvailable,
       percentage: overallPercentage,
       storyPoints: mergedStoryPoints,
-      startedAt: existingSpaceData.startedAt ?? admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      startedAt: existingSpaceData.startedAt ?? FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     if (spaceCompletedAt) {

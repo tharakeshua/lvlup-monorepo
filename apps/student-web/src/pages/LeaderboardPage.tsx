@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpaces } from "@levelup/shared-hooks";
-import { useRealtimeDB } from "@levelup/shared-hooks";
+import { useSpaces, useLeaderboard, useLeaderboardLive } from "@levelup/query";
+import type { Space } from "@levelup/shared-types";
 import { Trophy } from "lucide-react";
 import {
   Skeleton,
@@ -19,39 +19,34 @@ import {
 } from "../components/leaderboard/LeaderboardTable";
 
 export default function LeaderboardPage() {
-  const { currentTenantId, user, currentMembership } = useAuthStore();
+  const { user, currentMembership } = useAuthStore();
   const userId = user?.uid ?? null;
   const classIds = currentMembership?.permissions?.managedClassIds;
 
-  const { data: spaces, isLoading: spacesLoading } = useSpaces(currentTenantId, {
+  const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
     classIds,
   });
+  const spaces = spacesPage?.items;
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
 
-  // Subscribe to RTDB leaderboard data for the selected space
-  const rtdbPath = selectedSpaceId ? `leaderboards/${selectedSpaceId}` : "leaderboards/overall";
+  // Snapshot leaderboard for the selected scope, kept live via the RTDB-backed
+  // subscription (reconciles into the snapshot cache key).
+  const lbFilter = selectedSpaceId
+    ? { scope: "space" as const, spaceId: selectedSpaceId }
+    : { scope: "tenant" as const };
+  const { data: lbData, isLoading: lbLoading } = useLeaderboard(lbFilter);
+  useLeaderboardLive(lbFilter);
 
-  const { data: leaderboardData, loading: lbLoading } = useRealtimeDB<
-    Record<string, Omit<LeaderboardEntry, "rank">>
-  >(currentTenantId ?? "", rtdbPath, {
-    disabled: !currentTenantId,
-  });
-
-  // Transform RTDB data into ranked entries
-  const entries: LeaderboardEntry[] = leaderboardData
-    ? Object.entries(leaderboardData)
-        .map(([uid, data]) => ({
-          userId: uid,
-          displayName: data.displayName ?? uid,
-          totalPoints: data.totalPoints ?? 0,
-          avatarUrl: data.avatarUrl,
-          rank: 0,
-        }))
-        .sort((a, b) => b.totalPoints - a.totalPoints)
-        .map((entry, idx) => ({ ...entry, rank: idx + 1 }))
-    : [];
+  // Server returns ranked entries; map to the table's entry shape.
+  const entries: LeaderboardEntry[] = (lbData?.entries ?? []).map((e) => ({
+    userId: e.userId,
+    displayName: e.displayName,
+    totalPoints: e.totalPoints,
+    avatarUrl: e.avatarUrl,
+    rank: e.rank,
+  }));
 
   // Find current user's rank
   const currentUserEntry = entries.find((e) => e.userId === userId);

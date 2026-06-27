@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { callSaveStudent } from "@levelup/shared-services";
-import { useApiError, useClasses } from "@levelup/shared-hooks";
+import { useMutation } from "@tanstack/react-query";
+import { useClasses, useSaveStudent, useApiError } from "@levelup/query";
 import { toast } from "sonner";
+import type { Class } from "@levelup/shared-types";
 import {
   Badge,
   Button,
@@ -36,13 +36,11 @@ export default function StudentFormDialog({
   editing,
 }: StudentFormDialogProps) {
   const isEdit = !!editing;
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
-  const { data: allClasses = [] } = useClasses(tenantId);
-  const classes = useMemo(
-    () => allClasses.filter((c) => c.status === "active"),
-    [allClasses],
-  );
+  const saveStudent = useSaveStudent();
+  const { data: classData } = useClasses();
+  const allClasses = ((classData as { items?: Class[] } | undefined)?.items ?? []) as Class[];
+  const classes = useMemo(() => allClasses.filter((c) => c.status === "active"), [allClasses]);
 
   const [uid, setUid] = useState("");
   const [rollNumber, setRollNumber] = useState("");
@@ -68,21 +66,21 @@ export default function StudentFormDialog({
 
   const selectedClasses = useMemo(
     () => classes.filter((c) => classIds.includes(c.id)),
-    [classes, classIds],
+    [classes, classIds]
   );
 
   const toggleClass = (classId: string) => {
     setClassIds((prev) =>
-      prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId],
+      prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId]
     );
   };
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Tenant applied server-side from claims; useSaveStudent auto-invalidates.
       if (isEdit && editing) {
-        return callSaveStudent({
+        return saveStudent.mutateAsync({
           id: editing.id,
-          tenantId,
           data: {
             rollNumber: rollNumber.trim() || undefined,
             admissionNumber: admissionNumber.trim() || undefined,
@@ -93,8 +91,7 @@ export default function StudentFormDialog({
           },
         });
       }
-      return callSaveStudent({
-        tenantId,
+      return saveStudent.mutateAsync({
         data: {
           uid: uid.trim(),
           rollNumber: rollNumber.trim() || undefined,
@@ -107,8 +104,6 @@ export default function StudentFormDialog({
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "students"] });
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
       toast.success(isEdit ? "Student updated" : "Student created");
       onOpenChange(false);
     },
@@ -154,12 +149,10 @@ export default function StudentFormDialog({
                 autoFocus
               />
               <p className="text-muted-foreground mt-1 text-xs">
-                The student must already have a Firebase Auth account. Use Bulk Import to
-                provision new accounts.
+                The student must already have a Firebase Auth account. Use Bulk Import to provision
+                new accounts.
               </p>
-              {errors.uid && (
-                <p className="text-destructive mt-1 text-xs">{errors.uid}</p>
-              )}
+              {errors.uid && <p className="text-destructive mt-1 text-xs">{errors.uid}</p>}
             </div>
           )}
 
@@ -239,7 +232,10 @@ export default function StudentFormDialog({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1" align="start">
+                <PopoverContent
+                  className="w-[var(--radix-popover-trigger-width)] p-1"
+                  align="start"
+                >
                   <div className="max-h-56 overflow-y-auto">
                     {classes.length === 0 ? (
                       <p className="text-muted-foreground py-3 text-center text-xs">
@@ -259,9 +255,7 @@ export default function StudentFormDialog({
                               {isSelected && <Check className="h-3 w-3" />}
                             </span>
                             <span className="flex-1 truncate">{cls.name}</span>
-                            <span className="text-muted-foreground text-xs">
-                              Grade {cls.grade}
-                            </span>
+                            <span className="text-muted-foreground text-xs">Grade {cls.grade}</span>
                           </button>
                         );
                       })
@@ -300,8 +294,7 @@ export default function StudentFormDialog({
           <Button onClick={handleSubmit} disabled={mutation.isPending}>
             {mutation.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                {isEdit ? "Saving..." : "Creating..."}
+                <Loader2 className="h-4 w-4 animate-spin" /> {isEdit ? "Saving..." : "Creating..."}
               </>
             ) : isEdit ? (
               "Save Changes"

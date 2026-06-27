@@ -5,11 +5,12 @@
  * Never uses read-modify-write to avoid stale-data bugs.
  */
 
-import * as admin from 'firebase-admin';
-import type { TenantUsage } from '@levelup/shared-types';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import type { TenantUsage } from "@levelup/shared-types";
 
 /** Fields on TenantUsage that can be atomically incremented. */
-export type UsageField = keyof Omit<TenantUsage, 'lastUpdated' | 'storageBytes'>;
+export type UsageField = keyof Omit<TenantUsage, "lastUpdated" | "storageBytes">;
 
 /**
  * Atomically increment (or decrement) a usage counter on a tenant document.
@@ -21,13 +22,13 @@ export type UsageField = keyof Omit<TenantUsage, 'lastUpdated' | 'storageBytes'>
 export async function incrementUsage(
   tenantId: string,
   field: UsageField,
-  amount = 1,
+  amount = 1
 ): Promise<void> {
   const db = admin.firestore();
   await db.doc(`tenants/${tenantId}`).update({
-    [`usage.${field}`]: admin.firestore.FieldValue.increment(amount),
-    'usage.lastUpdated': admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    [`usage.${field}`]: FieldValue.increment(amount),
+    "usage.lastUpdated": FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 }
 
@@ -36,17 +37,17 @@ export async function incrementUsage(
  */
 export async function incrementUsageMultiple(
   tenantId: string,
-  increments: Partial<Record<UsageField, number>>,
+  increments: Partial<Record<UsageField, number>>
 ): Promise<void> {
   const db = admin.firestore();
   const updates: Record<string, unknown> = {
-    'usage.lastUpdated': admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    "usage.lastUpdated": FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   };
 
   for (const [field, amount] of Object.entries(increments)) {
     if (amount !== undefined && amount !== 0) {
-      updates[`usage.${field}`] = admin.firestore.FieldValue.increment(amount);
+      updates[`usage.${field}`] = FieldValue.increment(amount);
     }
   }
 

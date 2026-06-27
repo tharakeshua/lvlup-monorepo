@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { callSaveExam } from "@levelup/shared-services";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError } from "@levelup/query";
 import { toast } from "sonner";
 import {
   Button,
@@ -105,8 +105,7 @@ export default function ExamMetadataEditDialog({
     if (!subject.trim()) next.subject = "Subject is required";
     if (totalMarks <= 0) next.totalMarks = "Total marks must be greater than 0";
     if (passingMarks < 0) next.passingMarks = "Passing marks cannot be negative";
-    if (passingMarks > totalMarks)
-      next.passingMarks = "Passing marks cannot exceed total marks";
+    if (passingMarks > totalMarks) next.passingMarks = "Passing marks cannot exceed total marks";
     if (duration <= 0) next.duration = "Duration must be greater than 0";
     if (classIds.length === 0) next.classIds = "Select at least one class";
     setErrors(next);
@@ -124,8 +123,8 @@ export default function ExamMetadataEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Exam</DialogTitle>
           <DialogDescription>
-            Update exam metadata. Class changes won't retroactively grade existing
-            submissions for newly added classes.
+            Update exam metadata. Class changes won't retroactively grade existing submissions for
+            newly added classes.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -137,9 +136,7 @@ export default function ExamMetadataEditDialog({
               onChange={(e) => setTitle(e.target.value)}
               className="mt-1"
             />
-            {errors.title && (
-              <p className="text-destructive mt-1 text-xs">{errors.title}</p>
-            )}
+            {errors.title && <p className="text-destructive mt-1 text-xs">{errors.title}</p>}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -151,9 +148,7 @@ export default function ExamMetadataEditDialog({
                 onChange={(e) => setSubject(e.target.value)}
                 className="mt-1"
               />
-              {errors.subject && (
-                <p className="text-destructive mt-1 text-xs">{errors.subject}</p>
-              )}
+              {errors.subject && <p className="text-destructive mt-1 text-xs">{errors.subject}</p>}
             </div>
             <div>
               <Label htmlFor="exam-topics">Topics (comma-separated)</Label>
@@ -230,9 +225,7 @@ export default function ExamMetadataEditDialog({
                 placeholder="Select classes..."
               />
             </div>
-            {errors.classIds && (
-              <p className="text-destructive mt-1 text-xs">{errors.classIds}</p>
-            )}
+            {errors.classIds && <p className="text-destructive mt-1 text-xs">{errors.classIds}</p>}
           </div>
         </div>
         <DialogFooter>

@@ -1,8 +1,9 @@
-import * as admin from 'firebase-admin';
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import { logger } from 'firebase-functions/v2';
-import type { Tenant } from '@levelup/shared-types';
-import { TenantSchema } from '@levelup/shared-types';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions/v2";
+import type { Tenant } from "@levelup/shared-types";
+import { TenantSchema } from "@levelup/shared-types";
 
 /**
  * Firestore trigger: when a tenant status changes to 'suspended' or 'expired',
@@ -13,8 +14,8 @@ import { TenantSchema } from '@levelup/shared-types';
  */
 export const onTenantDeactivated = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}",
+    region: "asia-south1",
   },
   async (event) => {
     try {
@@ -25,7 +26,7 @@ export const onTenantDeactivated = onDocumentUpdated(
       const beforeResult = TenantSchema.safeParse({ id: event.data!.before.id, ...beforeRaw });
       const afterResult = TenantSchema.safeParse({ id: event.data!.after.id, ...afterRaw });
       if (!beforeResult.success || !afterResult.success) {
-        logger.error('Invalid Tenant document in trigger', {
+        logger.error("Invalid Tenant document in trigger", {
           beforeValid: beforeResult.success,
           afterValid: afterResult.success,
         });
@@ -35,7 +36,7 @@ export const onTenantDeactivated = onDocumentUpdated(
       const after = afterResult.data as unknown as Tenant;
 
       // Only trigger when status changes TO suspended or expired
-      const deactivatedStatuses = ['suspended', 'expired'];
+      const deactivatedStatuses = ["suspended", "expired"];
       if (
         deactivatedStatuses.includes(before.status) ||
         !deactivatedStatuses.includes(after.status)
@@ -49,9 +50,9 @@ export const onTenantDeactivated = onDocumentUpdated(
 
       // Find all active memberships for this tenant
       const membershipsSnap = await db
-        .collection('userMemberships')
-        .where('tenantId', '==', tenantId)
-        .where('status', '==', 'active')
+        .collection("userMemberships")
+        .where("tenantId", "==", tenantId)
+        .where("status", "==", "active")
         .get();
 
       if (membershipsSnap.empty) {
@@ -69,9 +70,9 @@ export const onTenantDeactivated = onDocumentUpdated(
 
         for (const doc of chunk) {
           batch.update(doc.ref, {
-            status: 'suspended',
+            status: "suspended",
             suspendedReason: `tenant_${after.status}`,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
           });
         }
 
@@ -80,10 +81,10 @@ export const onTenantDeactivated = onDocumentUpdated(
       }
 
       logger.info(
-        `Suspended ${totalSuspended} memberships for deactivated tenant ${tenantId} (status: ${after.status})`,
+        `Suspended ${totalSuspended} memberships for deactivated tenant ${tenantId} (status: ${after.status})`
       );
     } catch (error) {
-      logger.error('Failed to suspend memberships for deactivated tenant', error);
+      logger.error("Failed to suspend memberships for deactivated tenant", error);
     }
-  },
+  }
 );

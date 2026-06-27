@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { callSearchUsers } from "@levelup/shared-services";
-import type { SearchUsersResponse } from "@levelup/shared-types";
+import { useSearchUsers } from "@levelup/query";
 import {
   PageHeader,
   Card,
@@ -20,7 +18,14 @@ import {
 } from "@levelup/shared-ui";
 import { Search, UserCircle2 } from "lucide-react";
 
-type UserResult = SearchUsersResponse["users"][number];
+interface UserResult {
+  uid: string;
+  email?: string;
+  displayName?: string;
+  isSuperAdmin?: boolean;
+  lastLoginAt?: unknown;
+  memberships: { tenantId: string; tenantCode?: string; role: string }[];
+}
 
 function useDebounce(value: string, delay: number): string {
   const [debounced, setDebounced] = useState(value);
@@ -48,20 +53,9 @@ export default function GlobalUsersPage() {
   const debouncedQuery = useDebounce(searchInput, 300);
   const navigate = useNavigate();
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isError,
-  } = useQuery<SearchUsersResponse>({
-    queryKey: ["platform", "globalUserSearch", debouncedQuery],
-    queryFn: () => callSearchUsers({ query: debouncedQuery, limit: 20 }),
-    enabled: debouncedQuery.length >= 1,
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data, isLoading, isFetching, isError } = useSearchUsers(debouncedQuery);
 
-  const users = data?.users ?? [];
+  const users = (data as { items?: UserResult[] } | undefined)?.items ?? [];
   const showSkeleton = isLoading && debouncedQuery.length >= 1;
   const showEmpty = !isLoading && !isFetching && debouncedQuery.length >= 1 && users.length === 0;
   const showInitial = debouncedQuery.length < 1;
@@ -74,21 +68,18 @@ export default function GlobalUsersPage() {
         navigate(`/tenants/${firstTenant.tenantId}`);
       }
     },
-    [navigate],
+    [navigate]
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Users"
-        description="Search and manage users across all tenants"
-      />
+      <PageHeader title="Users" description="Search and manage users across all tenants" />
 
       {/* Search Input */}
       <Card>
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <Input
               type="text"
               placeholder="Search by email or name..."
@@ -105,7 +96,7 @@ export default function GlobalUsersPage() {
       <Card>
         <CardContent className="p-0">
           {showInitial && (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-16">
               <UserCircle2 className="mb-3 h-12 w-12 opacity-40" />
               <p className="text-sm">Type a name or email to search users</p>
             </div>
@@ -116,7 +107,7 @@ export default function GlobalUsersPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="space-y-1.5 flex-1">
+                  <div className="flex-1 space-y-1.5">
                     <Skeleton className="h-4 w-40" />
                     <Skeleton className="h-3 w-56" />
                   </div>
@@ -127,13 +118,13 @@ export default function GlobalUsersPage() {
           )}
 
           {isError && (
-            <div className="flex flex-col items-center justify-center py-16 text-destructive">
+            <div className="text-destructive flex flex-col items-center justify-center py-16">
               <p className="text-sm">Failed to search users. Please try again.</p>
             </div>
           )}
 
           {showEmpty && (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-16">
               <UserCircle2 className="mb-3 h-12 w-12 opacity-40" />
               <p className="text-sm">No users found for "{debouncedQuery}"</p>
             </div>
@@ -155,22 +146,18 @@ export default function GlobalUsersPage() {
                 {users.map((user) => (
                   <TableRow
                     key={user.uid}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleRowClick(user)}
                   >
-                    <TableCell className="font-medium">
-                      {user.displayName ?? "--"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.email ?? "--"}
-                    </TableCell>
+                    <TableCell className="font-medium">{user.displayName ?? "--"}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email ?? "--"}</TableCell>
                     <TableCell>
                       {user.memberships.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {user.memberships.map((m) => (
                             <span
                               key={`${m.tenantId}-${m.role}`}
-                              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                              className="text-muted-foreground inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
                             >
                               {m.role}
                               {m.tenantCode ? ` @ ${m.tenantCode}` : ""}
@@ -178,17 +165,17 @@ export default function GlobalUsersPage() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">No memberships</span>
+                        <span className="text-muted-foreground text-xs">No memberships</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground tabular-nums">
+                    <TableCell className="text-muted-foreground text-sm tabular-nums">
                       {formatTimestamp(user.lastLoginAt)}
                     </TableCell>
                     <TableCell className="text-center">
                       {user.isSuperAdmin ? (
                         <StatusBadge status="active" label="Yes" />
                       ) : (
-                        <span className="text-xs text-muted-foreground">No</span>
+                        <span className="text-muted-foreground text-xs">No</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -201,7 +188,7 @@ export default function GlobalUsersPage() {
 
       {/* Result count */}
       {!showInitial && !showSkeleton && users.length > 0 && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-muted-foreground text-center text-xs">
           Showing {users.length} result{users.length !== 1 ? "s" : ""}
           {isFetching ? " (updating...)" : ""}
         </p>

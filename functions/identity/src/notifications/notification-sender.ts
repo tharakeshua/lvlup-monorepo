@@ -1,14 +1,15 @@
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "firebase-functions/v2";
 
 export interface NotificationPayload {
   tenantId: string;
   recipientId: string;
-  recipientRole: 'teacher' | 'student' | 'parent' | 'tenantAdmin';
+  recipientRole: "teacher" | "student" | "parent" | "tenantAdmin";
   type: string;
   title: string;
   body: string;
-  entityType?: 'exam' | 'space' | 'submission' | 'student' | 'class';
+  entityType?: "exam" | "space" | "submission" | "student" | "class";
   entityId?: string;
   actionUrl?: string;
 }
@@ -21,7 +22,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
   const rtdb = admin.database();
 
   const notifRef = db.collection(`tenants/${payload.tenantId}/notifications`).doc();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   await notifRef.set({
     id: notifRef.id,
@@ -60,14 +61,14 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
  */
 export async function sendBulkNotifications(
   recipientIds: string[],
-  basePayload: Omit<NotificationPayload, 'recipientId'>,
-  recipientRoleOverrides?: Record<string, 'teacher' | 'student' | 'parent' | 'tenantAdmin'>,
+  basePayload: Omit<NotificationPayload, "recipientId">,
+  recipientRoleOverrides?: Record<string, "teacher" | "student" | "parent" | "tenantAdmin">
 ): Promise<number> {
   if (recipientIds.length === 0) return 0;
 
   const db = admin.firestore();
   const rtdb = admin.database();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
   const BATCH_SIZE = 450;
 
   let sent = 0;

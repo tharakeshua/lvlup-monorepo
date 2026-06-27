@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useDailyCostSummaries, useTenantSettings } from "@levelup/shared-hooks";
+import { useMemo, useState } from "react";
+import { useCostSummary, useTenant, useDeadLetterEntries } from "@levelup/query";
+import type { DailyCostSummary, Tenant } from "@levelup/shared-types";
 import {
   ScoreCard,
   SimpleBarChart,
@@ -24,8 +24,6 @@ import {
   Skull,
 } from "lucide-react";
 import { usePagination } from "../hooks/usePagination";
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
 
 function getMonthRange(monthOffset: number) {
   const d = new Date();
@@ -41,16 +39,16 @@ function getMonthRange(monthOffset: number) {
 }
 
 export default function AIUsagePage() {
-  const tenantId = useCurrentTenantId();
   const [monthOffset, setMonthOffset] = useState(0);
   const range = getMonthRange(monthOffset);
 
-  const { data: dailyCosts = [], isLoading } = useDailyCostSummaries(
-    tenantId,
-    { start: range.start, end: range.end },
-  );
+  const { data: dailyCostsData = [], isLoading } = useCostSummary("daily", {
+    range: { from: range.start, to: range.end },
+  });
+  const dailyCosts = dailyCostsData as unknown as DailyCostSummary[];
 
-  const { data: tenantSettings } = useTenantSettings(tenantId);
+  const tenant = useTenant().data as Tenant | undefined;
+  const tenantSettings = tenant?.settings;
 
   // Dead letter queue (failed grading attempts)
   interface DLQEntry {
@@ -60,33 +58,10 @@ export default function AIUsagePage() {
     pipelineStep: string;
     error: string;
     attempts: number;
-    lastAttemptAt: { toDate?: () => Date } | null;
+    lastAttemptAt: string | { toDate?: () => Date } | null;
   }
-  const [dlqEntries, setDlqEntries] = useState<DLQEntry[]>([]);
-  const [dlqLoading, setDlqLoading] = useState(false);
-
-  useEffect(() => {
-    if (!tenantId) return;
-    const fetchDLQ = async () => {
-      setDlqLoading(true);
-      try {
-        const { db } = getFirebaseServices();
-        const dlqQuery = query(
-          collection(db, `tenants/${tenantId}/gradingDeadLetter`),
-          orderBy("lastAttemptAt", "desc"),
-          limit(50),
-        );
-        const snap = await getDocs(dlqQuery);
-        setDlqEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DLQEntry));
-      } catch {
-        // Collection may not exist yet
-        setDlqEntries([]);
-      } finally {
-        setDlqLoading(false);
-      }
-    };
-    fetchDLQ();
-  }, [tenantId]);
+  const { data: dlqData, isLoading: dlqLoading } = useDeadLetterEntries();
+  const dlqEntries = (dlqData?.pages.flatMap((p) => p.items) ?? []) as unknown as DLQEntry[];
   const usageQuota = tenantSettings?.usageQuota as
     | { monthlyBudgetUsd: number; dailyCallLimit: number; warningThresholdPercent: number }
     | undefined;
@@ -94,14 +69,8 @@ export default function AIUsagePage() {
   const monthlySummary = useMemo(() => {
     const totalCost = dailyCosts.reduce((s, d) => s + d.totalCostUsd, 0);
     const totalCalls = dailyCosts.reduce((s, d) => s + d.totalCalls, 0);
-    const totalInput = dailyCosts.reduce(
-      (s, d) => s + d.totalInputTokens,
-      0,
-    );
-    const totalOutput = dailyCosts.reduce(
-      (s, d) => s + d.totalOutputTokens,
-      0,
-    );
+    const totalInput = dailyCosts.reduce((s, d) => s + d.totalInputTokens, 0);
+    const totalOutput = dailyCosts.reduce((s, d) => s + d.totalOutputTokens, 0);
 
     // Aggregate by purpose
     const byPurpose: Record<string, { calls: number; costUsd: number }> = {};
@@ -122,7 +91,8 @@ export default function AIUsagePage() {
   const quotaPercent = usageQuota?.monthlyBudgetUsd
     ? Math.min(100, Math.round((monthlySummary.totalCost / usageQuota.monthlyBudgetUsd) * 100))
     : null;
-  const isApproachingQuota = quotaPercent != null && quotaPercent >= (usageQuota?.warningThresholdPercent ?? 80);
+  const isApproachingQuota =
+    quotaPercent != null && quotaPercent >= (usageQuota?.warningThresholdPercent ?? 80);
   const isOverQuota = quotaPercent != null && quotaPercent >= 100;
 
   // Cost projection: estimate month-end cost based on current daily average
@@ -165,7 +135,7 @@ export default function AIUsagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">AI Usage & Costs</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Monitor AI API usage and costs for your tenant
           </p>
         </div>
@@ -178,9 +148,7 @@ export default function AIUsagePage() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium w-20 text-center">
-            {range.label}
-          </span>
+          <span className="w-20 text-center text-sm font-medium">{range.label}</span>
           <Button
             variant="outline"
             size="icon"
@@ -227,27 +195,30 @@ export default function AIUsagePage() {
 
       {/* Quota Warning Banner */}
       {isOverQuota && (
-        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 p-4">
-          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
           <div>
             <p className="text-sm font-medium text-red-800 dark:text-red-300">
               Monthly AI quota exceeded
             </p>
             <p className="text-xs text-red-600 dark:text-red-400">
-              Spending: ${monthlySummary.totalCost.toFixed(2)} / ${usageQuota?.monthlyBudgetUsd?.toFixed(2)}. AI grading is paused. Increase the quota in Settings.
+              Spending: ${monthlySummary.totalCost.toFixed(2)} / $
+              {usageQuota?.monthlyBudgetUsd?.toFixed(2)}. AI grading is paused. Increase the quota
+              in Settings.
             </p>
           </div>
         </div>
       )}
       {isApproachingQuota && !isOverQuota && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-4">
-          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
               Approaching monthly AI quota
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-400">
-              {quotaPercent}% used (${monthlySummary.totalCost.toFixed(2)} / ${usageQuota?.monthlyBudgetUsd?.toFixed(2)})
+              {quotaPercent}% used (${monthlySummary.totalCost.toFixed(2)} / $
+              {usageQuota?.monthlyBudgetUsd?.toFixed(2)})
             </p>
           </div>
         </div>
@@ -255,26 +226,22 @@ export default function AIUsagePage() {
 
       {/* Quota Progress Bar */}
       {usageQuota?.monthlyBudgetUsd != null && usageQuota.monthlyBudgetUsd > 0 && (
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-card rounded-lg border p-4">
+          <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium">Monthly Budget Usage</span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               ${monthlySummary.totalCost.toFixed(2)} / ${usageQuota.monthlyBudgetUsd.toFixed(2)}
             </span>
           </div>
-          <div className="h-3 rounded-full bg-muted overflow-hidden">
+          <div className="bg-muted h-3 overflow-hidden rounded-full">
             <div
               className={`h-full rounded-full transition-all ${
-                isOverQuota
-                  ? "bg-red-500"
-                  : isApproachingQuota
-                    ? "bg-amber-500"
-                    : "bg-green-500"
+                isOverQuota ? "bg-red-500" : isApproachingQuota ? "bg-amber-500" : "bg-green-500"
               }`}
               style={{ width: `${Math.min(100, quotaPercent ?? 0)}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs">
             {quotaPercent}% of monthly budget used
           </p>
         </div>
@@ -282,27 +249,33 @@ export default function AIUsagePage() {
 
       {/* Cost Projection */}
       {projectedCost && (
-        <div className="rounded-lg border bg-card p-4">
+        <div className="bg-card rounded-lg border p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Month-End Projection</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Based on ${projectedCost.avgDailyCost.toFixed(2)}/day avg over {projectedCost.daysElapsed} days
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Based on ${projectedCost.avgDailyCost.toFixed(2)}/day avg over{" "}
+                {projectedCost.daysElapsed} days
               </p>
             </div>
             <div className="text-right">
-              <p className={`text-xl font-bold ${
-                usageQuota?.monthlyBudgetUsd && projectedCost.projected > usageQuota.monthlyBudgetUsd
-                  ? 'text-destructive'
-                  : 'text-foreground'
-              }`}>
+              <p
+                className={`text-xl font-bold ${
+                  usageQuota?.monthlyBudgetUsd &&
+                  projectedCost.projected > usageQuota.monthlyBudgetUsd
+                    ? "text-destructive"
+                    : "text-foreground"
+                }`}
+              >
                 ${projectedCost.projected.toFixed(2)}
               </p>
-              {usageQuota?.monthlyBudgetUsd && projectedCost.projected > usageQuota.monthlyBudgetUsd && (
-                <p className="text-xs text-destructive">
-                  Exceeds budget by ${(projectedCost.projected - usageQuota.monthlyBudgetUsd).toFixed(2)}
-                </p>
-              )}
+              {usageQuota?.monthlyBudgetUsd &&
+                projectedCost.projected > usageQuota.monthlyBudgetUsd && (
+                  <p className="text-destructive text-xs">
+                    Exceeds budget by $
+                    {(projectedCost.projected - usageQuota.monthlyBudgetUsd).toFixed(2)}
+                  </p>
+                )}
             </div>
           </div>
         </div>
@@ -310,7 +283,7 @@ export default function AIUsagePage() {
 
       {/* Operation Breakdown */}
       {Object.keys(monthlySummary.byPurpose).length > 0 && (
-        <div className="rounded-lg border bg-card">
+        <div className="bg-card rounded-lg border">
           <div className="border-b px-5 py-3">
             <h2 className="font-semibold">Operations Breakdown</h2>
           </div>
@@ -346,19 +319,17 @@ export default function AIUsagePage() {
       )}
 
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-lg border bg-muted" />
+        <div className="bg-muted h-48 animate-pulse rounded-lg border" />
       ) : dailyCosts.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
-          <DollarSign className="h-10 w-10 mx-auto text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">
-            No AI usage data for {range.label}.
-          </p>
+          <DollarSign className="text-muted-foreground mx-auto h-10 w-10" />
+          <p className="text-muted-foreground mt-3 text-sm">No AI usage data for {range.label}.</p>
         </div>
       ) : (
         <>
           {/* Daily Cost Chart */}
-          <div className="rounded-lg border bg-card p-5">
-            <h2 className="font-semibold mb-4">Daily Cost Trend</h2>
+          <div className="bg-card rounded-lg border p-5">
+            <h2 className="mb-4 font-semibold">Daily Cost Trend</h2>
             <div role="img" aria-label="Bar chart showing daily AI costs for the selected month">
               <SimpleBarChart
                 data={dailyChartData}
@@ -370,8 +341,8 @@ export default function AIUsagePage() {
 
           {/* Cost by Purpose */}
           {purposeChartData.length > 0 && (
-            <div className="rounded-lg border bg-card p-5">
-              <h2 className="font-semibold mb-4">Cost by Task Type</h2>
+            <div className="bg-card rounded-lg border p-5">
+              <h2 className="mb-4 font-semibold">Cost by Task Type</h2>
               <div role="img" aria-label="Bar chart showing AI costs broken down by task type">
                 <SimpleBarChart
                   data={purposeChartData}
@@ -389,11 +360,13 @@ export default function AIUsagePage() {
 
       {/* Dead Letter Queue — Failed Grading Attempts */}
       {dlqEntries.length > 0 && (
-        <div className="rounded-lg border bg-card">
-          <div className="border-b px-5 py-3 flex items-center gap-2">
+        <div className="bg-card rounded-lg border">
+          <div className="flex items-center gap-2 border-b px-5 py-3">
             <Skull className="h-4 w-4 text-red-500" />
             <h2 className="font-semibold">Failed Grading Attempts</h2>
-            <span className="ml-auto text-xs text-muted-foreground">{dlqEntries.length} entries</span>
+            <span className="text-muted-foreground ml-auto text-xs">
+              {dlqEntries.length} entries
+            </span>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -410,25 +383,25 @@ export default function AIUsagePage() {
               <TableBody>
                 {dlqEntries.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell className="font-mono text-xs truncate max-w-[120px]">
+                    <TableCell className="max-w-[120px] truncate font-mono text-xs">
                       {entry.submissionId?.slice(0, 8)}...
                     </TableCell>
-                    <TableCell className="font-mono text-xs truncate max-w-[120px]">
+                    <TableCell className="max-w-[120px] truncate font-mono text-xs">
                       {entry.questionSubmissionId?.slice(0, 8)}...
                     </TableCell>
-                    <TableCell className="text-xs capitalize">
-                      {entry.pipelineStep}
-                    </TableCell>
-                    <TableCell className="text-xs text-red-600 dark:text-red-400 max-w-[250px] truncate">
+                    <TableCell className="text-xs capitalize">{entry.pipelineStep}</TableCell>
+                    <TableCell className="max-w-[250px] truncate text-xs text-red-600 dark:text-red-400">
                       {entry.error}
                     </TableCell>
-                    <TableCell className="text-xs font-medium">
-                      {entry.attempts}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {entry.lastAttemptAt && typeof entry.lastAttemptAt === 'object' && entry.lastAttemptAt.toDate
-                        ? entry.lastAttemptAt.toDate().toLocaleDateString()
-                        : '—'}
+                    <TableCell className="text-xs font-medium">{entry.attempts}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {typeof entry.lastAttemptAt === "string"
+                        ? new Date(entry.lastAttemptAt).toLocaleDateString()
+                        : entry.lastAttemptAt &&
+                            typeof entry.lastAttemptAt === "object" &&
+                            entry.lastAttemptAt.toDate
+                          ? entry.lastAttemptAt.toDate().toLocaleDateString()
+                          : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -437,20 +410,31 @@ export default function AIUsagePage() {
           </div>
         </div>
       )}
-      {dlqLoading && (
-        <div className="h-24 animate-pulse rounded-lg border bg-muted" />
-      )}
+      {dlqLoading && <div className="bg-muted h-24 animate-pulse rounded-lg border" />}
     </div>
   );
 }
 
-function DailyBreakdownTable({ dailyCosts }: { dailyCosts: { date: string; totalCalls: number; totalInputTokens: number; totalOutputTokens: number; totalCostUsd: number }[] }) {
-  const sorted = useMemo(() => [...dailyCosts].sort((a, b) => b.date.localeCompare(a.date)), [dailyCosts]);
+function DailyBreakdownTable({
+  dailyCosts,
+}: {
+  dailyCosts: {
+    date: string;
+    totalCalls: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalCostUsd: number;
+  }[];
+}) {
+  const sorted = useMemo(
+    () => [...dailyCosts].sort((a, b) => b.date.localeCompare(a.date)),
+    [dailyCosts]
+  );
   const { paginatedItems, currentPage, pageSize, totalItems, setCurrentPage, setPageSize } =
     usePagination(sorted, 25);
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="bg-card rounded-lg border">
       <div className="border-b px-5 py-3">
         <h2 className="font-semibold">Daily Breakdown</h2>
       </div>
@@ -468,21 +452,15 @@ function DailyBreakdownTable({ dailyCosts }: { dailyCosts: { date: string; total
           <TableBody>
             {paginatedItems.map((day) => (
               <TableRow key={day.date}>
-                <TableCell className="font-mono text-xs">
-                  {day.date}
-                </TableCell>
-                <TableCell>
-                  {day.totalCalls.toLocaleString()}
-                </TableCell>
+                <TableCell className="font-mono text-xs">{day.date}</TableCell>
+                <TableCell>{day.totalCalls.toLocaleString()}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {day.totalInputTokens.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {day.totalOutputTokens.toLocaleString()}
                 </TableCell>
-                <TableCell className="font-medium">
-                  ${day.totalCostUsd.toFixed(2)}
-                </TableCell>
+                <TableCell className="font-medium">${day.totalCostUsd.toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

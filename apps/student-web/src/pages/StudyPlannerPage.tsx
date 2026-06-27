@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
-import { useStudyGoals, useStudentProgressSummary, useSpaces } from "@levelup/shared-hooks";
+import { useCurrentUser } from "@levelup/shared-stores";
+import { useStudyGoals, useStudentSummary, useSaveStudyGoal } from "@levelup/query";
+import type { UserId, StudentProgressSummary, StudyGoal } from "@levelup/domain";
 import {
   StudyGoalCard,
   Card,
@@ -26,8 +27,6 @@ import {
   AnimatedListItem,
   EmptyState,
 } from "@levelup/shared-ui";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
 import {
   Target,
   Plus,
@@ -116,12 +115,16 @@ export default function StudyPlannerPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const {
-    data: goals,
+    data: goalsData,
     isLoading: goalsLoading,
     refetch,
-  } = useStudyGoals(tenantId, user?.uid ?? null);
-  const { data: summary } = useStudentProgressSummary(tenantId, user?.uid ?? null);
-  const { data: _spaces } = useSpaces(tenantId, { status: "published" });
+  } = useStudyGoals({ includeCompleted: true });
+  const goals = (
+    goalsData as { pages?: Array<{ items?: StudyGoal[] }> } | undefined
+  )?.pages?.flatMap((p) => p.items ?? []);
+  const { data: summaryData } = useStudentSummary((user?.uid ?? "") as UserId);
+  const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
+    ?.studentSummary;
 
   const activeGoals = goals?.filter((g) => !g.completed) ?? [];
   const completedGoals = goals?.filter((g) => g.completed) ?? [];
@@ -162,8 +165,6 @@ export default function StudyPlannerPage() {
                 <DialogTitle>Create Study Goal</DialogTitle>
               </DialogHeader>
               <NewGoalForm
-                tenantId={tenantId}
-                userId={user?.uid ?? ""}
                 onCreated={() => {
                   setDialogOpen(false);
                   refetch();
@@ -326,27 +327,19 @@ export default function StudyPlannerPage() {
   );
 }
 
-function NewGoalForm({
-  tenantId,
-  userId,
-  onCreated,
-}: {
-  tenantId: string | null;
-  userId: string;
-  onCreated: () => void;
-}) {
+function NewGoalForm({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState("");
   const [targetType, setTargetType] = useState("spaces");
   const [targetCount, setTargetCount] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [saving, setSaving] = useState(false);
   const [dateError, setDateError] = useState("");
+  const { mutateAsync: saveGoal, isPending: saving } = useSaveStudyGoal();
 
   const today = new Date().toISOString().split("T")[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !title || !targetCount || !endDate) return;
+    if (!title || !targetCount || !endDate) return;
 
     // Validate end date is after today
     if (endDate <= today) {
@@ -355,26 +348,17 @@ function NewGoalForm({
     }
     setDateError("");
 
-    setSaving(true);
-    try {
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/studyGoals`);
-      await addDoc(colRef, {
-        tenantId,
-        userId,
+    // Server derives tenant/user from auth and computes currentCount/completed.
+    await saveGoal({
+      data: {
         title,
         targetType,
         targetCount: parseInt(targetCount, 10),
-        currentCount: 0,
         startDate: new Date().toISOString().split("T")[0],
         endDate,
-        completed: false,
-        createdAt: serverTimestamp(),
-      });
-      onCreated();
-    } finally {
-      setSaving(false);
-    }
+      },
+    });
+    onCreated();
   };
 
   return (

@@ -1,28 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { doc, getDoc } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import type { UnifiedUser } from "@levelup/shared-types";
+import { useRepos } from "@levelup/query";
 
+// Migrated to @levelup/query: child display names come from the analytics
+// parentRepo's listChildren rows (already name-resolved server-side), keyed by
+// the canonical studentId (== the uid the consumers pass in). Signature + the
+// Record<uid,string> return shape are preserved.
 export function useStudentNames(tenantId: string | null, studentIds: string[]) {
+  const repos = useRepos();
   return useQuery<Record<string, string>>({
     queryKey: ["tenants", tenantId, "studentNames", studentIds],
     queryFn: async () => {
       if (!studentIds.length) return {};
-      const { db } = getFirebaseServices();
+      const page = await repos.parentRepo.listChildren();
+      const byId: Record<string, string> = {};
+      for (const row of page.items) {
+        byId[row.studentId] = row.name;
+      }
+      // Only surface the requested ids (parity with the old per-uid lookup).
       const names: Record<string, string> = {};
-      await Promise.all(
-        studentIds.map(async (uid) => {
-          try {
-            const snap = await getDoc(doc(db, "users", uid));
-            if (snap.exists()) {
-              const u = snap.data() as UnifiedUser;
-              names[uid] = u.displayName || u.email || uid.slice(0, 8);
-            }
-          } catch {
-            // fallback handled by caller
-          }
-        }),
-      );
+      for (const uid of studentIds) {
+        if (byId[uid]) names[uid] = byId[uid];
+      }
       return names;
     },
     enabled: studentIds.length > 0,

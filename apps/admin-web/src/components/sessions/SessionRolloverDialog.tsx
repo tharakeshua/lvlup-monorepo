@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AcademicSession } from "@levelup/shared-types";
-import { callRolloverSession } from "@levelup/shared-services/auth";
+import { useRolloverSession } from "@levelup/query";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,6 @@ import {
   Badge,
 } from "@levelup/shared-ui";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 
 function formatSessionDate(timestamp: unknown): string {
   if (!timestamp) return "\u2014";
@@ -36,9 +35,8 @@ export function SessionRolloverDialog({
   open,
   onOpenChange,
   sourceSession,
-  tenantId,
 }: SessionRolloverDialogProps) {
-  const queryClient = useQueryClient();
+  const rolloverSession = useRolloverSession();
   const [formData, setFormData] = useState({
     name: "",
     startDate: "",
@@ -59,8 +57,8 @@ export function SessionRolloverDialog({
 
     setProcessing(true);
     try {
-      const result = await callRolloverSession({
-        tenantId,
+      // Tenant-implicit (claims-scoped); the mutation handles cache invalidation.
+      const result = (await rolloverSession.mutateAsync({
         sourceSessionId: sourceSession.id,
         newSession: {
           name: formData.name,
@@ -70,15 +68,22 @@ export function SessionRolloverDialog({
         copyClasses,
         copyTeacherAssignments,
         promoteStudents,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId] });
+      })) as {
+        classesCreated?: number;
+        teacherAssignments?: number;
+        studentsPromoted?: number;
+        studentsUnassigned?: number;
+      };
 
       const summaryParts: string[] = [];
-      if (result.classesCreated > 0) summaryParts.push(`${result.classesCreated} classes copied`);
-      if (result.teacherAssignments > 0) summaryParts.push(`${result.teacherAssignments} teacher assignments`);
-      if (result.studentsPromoted > 0) summaryParts.push(`${result.studentsPromoted} students promoted`);
-      if (result.studentsUnassigned > 0) summaryParts.push(`${result.studentsUnassigned} students unassigned`);
+      if ((result.classesCreated ?? 0) > 0)
+        summaryParts.push(`${result.classesCreated} classes copied`);
+      if ((result.teacherAssignments ?? 0) > 0)
+        summaryParts.push(`${result.teacherAssignments} teacher assignments`);
+      if ((result.studentsPromoted ?? 0) > 0)
+        summaryParts.push(`${result.studentsPromoted} students promoted`);
+      if ((result.studentsUnassigned ?? 0) > 0)
+        summaryParts.push(`${result.studentsUnassigned} students unassigned`);
 
       toast.success("Session rollover complete", {
         description: summaryParts.length > 0 ? summaryParts.join(", ") : "New session created",
@@ -107,16 +112,19 @@ export function SessionRolloverDialog({
 
         <div className="space-y-5">
           {/* Source Session Info */}
-          <div className="rounded-lg border bg-muted/50 p-3">
-            <p className="text-xs font-medium text-muted-foreground">Source Session</p>
+          <div className="bg-muted/50 rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs font-medium">Source Session</p>
             <div className="mt-1 flex items-center gap-2">
               <span className="font-semibold">{sourceSession.name}</span>
               {sourceSession.isCurrent && (
-                <Badge variant="default" className="text-xs">Current</Badge>
+                <Badge variant="default" className="text-xs">
+                  Current
+                </Badge>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {formatSessionDate(sourceSession.startDate)} &mdash; {formatSessionDate(sourceSession.endDate)}
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {formatSessionDate(sourceSession.startDate)} &mdash;{" "}
+              {formatSessionDate(sourceSession.endDate)}
             </p>
           </div>
 
@@ -194,13 +202,20 @@ export function SessionRolloverDialog({
           </div>
 
           {/* Preview Summary */}
-          <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <div className="bg-muted/30 rounded-lg border p-3 text-sm">
             <p className="font-medium">What will happen:</p>
-            <ul className="mt-1 list-inside list-disc space-y-0.5 text-muted-foreground">
-              <li>A new session &quot;{formData.name || "..."}&quot; will be created and set as current</li>
+            <ul className="text-muted-foreground mt-1 list-inside list-disc space-y-0.5">
+              <li>
+                A new session &quot;{formData.name || "..."}&quot; will be created and set as
+                current
+              </li>
               {copyClasses && <li>Active classes from the source session will be duplicated</li>}
-              {copyTeacherAssignments && <li>Teacher assignments will be preserved in new classes</li>}
-              {promoteStudents && <li>Students will be promoted to the next grade and reassigned</li>}
+              {copyTeacherAssignments && (
+                <li>Teacher assignments will be preserved in new classes</li>
+              )}
+              {promoteStudents && (
+                <li>Students will be promoted to the next grade and reassigned</li>
+              )}
               {!copyClasses && <li>No classes will be copied</li>}
             </ul>
           </div>

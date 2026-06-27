@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import { useExams, useSubmissions, useClasses } from "@levelup/shared-hooks";
+import { useExams, useSubmissions, useClasses } from "@levelup/query";
+import type { Exam, Submission, Class } from "@levelup/shared-types";
 import {
   Card,
   CardContent,
@@ -28,12 +28,18 @@ interface AssignmentSummary {
 }
 
 export default function AssignmentTrackerPage() {
-  const { currentTenantId } = useAuthStore();
-  const tenantId = currentTenantId;
-
-  const { data: exams, isLoading: examsLoading } = useExams(tenantId);
-  const { data: submissions } = useSubmissions(tenantId);
-  const { data: classes } = useClasses(tenantId);
+  // Exams + submissions are infinite (paginated) queries; classes is a PageBag.
+  // Tenant scoping is server-side via claims (no tenantId arg).
+  const { data: examsRaw, isLoading: examsLoading } = useExams();
+  const exams = ((examsRaw as { pages?: { items?: Exam[] }[] } | undefined)?.pages ?? []).flatMap(
+    (p) => p.items ?? []
+  ) as Exam[];
+  const { data: subsRaw } = useSubmissions({});
+  const submissions = (
+    (subsRaw as { pages?: { items?: Submission[] }[] } | undefined)?.pages ?? []
+  ).flatMap((p) => p.items ?? []) as Submission[];
+  const { data: classesRaw } = useClasses();
+  const classes = ((classesRaw as { items?: Class[] } | undefined)?.items ?? []) as Class[];
 
   const assignments = useMemo<AssignmentSummary[]>(() => {
     if (!exams) return [];

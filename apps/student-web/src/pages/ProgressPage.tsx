@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpaces, useAllSpaceProgress, useStudentProgressSummary } from "@levelup/shared-hooks";
+import { useSpaces, useSpaceProgress, useStudentSummary } from "@levelup/query";
+import type { UserId, StudentProgressSummary } from "@levelup/domain";
 import { Link } from "react-router-dom";
 import ProgressBar from "../components/common/ProgressBar";
 import {
@@ -19,17 +20,22 @@ import {
   TableRow,
 } from "@levelup/shared-ui";
 import { BarChart3, BookOpen, Award, ClipboardList, Target } from "lucide-react";
-import type { Space } from "@levelup/shared-types";
+import type { Space, SpaceProgress } from "@levelup/shared-types";
 
 type TabId = "overall" | "exams" | "spaces";
 
 export default function ProgressPage() {
-  const { currentTenantId, user, currentMembership } = useAuthStore();
-  const userId = user?.uid ?? null;
+  const { user, currentMembership } = useAuthStore();
+  const userId = user?.uid ?? "";
   const classIds = currentMembership?.permissions?.managedClassIds;
-  const { data: spaces, isLoading } = useSpaces(currentTenantId, { status: "published", classIds });
-  const { data: allProgress } = useAllSpaceProgress(currentTenantId, userId);
-  const { data: summary } = useStudentProgressSummary(currentTenantId, userId);
+  const { data: spacesPage, isLoading } = useSpaces<{ items: Space[] }>({
+    status: "published",
+    classIds,
+  });
+  const spaces = spacesPage?.items;
+  const { data: summaryData } = useStudentSummary(userId as UserId);
+  const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
+    ?.studentSummary;
   const [activeTab, setActiveTab] = useState<TabId>("overall");
 
   if (isLoading) {
@@ -162,13 +168,7 @@ export default function ProgressPage() {
             {!spaces?.length ? (
               <p className="text-muted-foreground">No spaces to track.</p>
             ) : (
-              spaces.map((space) => (
-                <SpaceProgressCard
-                  key={space.id}
-                  space={space}
-                  progress={allProgress?.[space.id] ?? null}
-                />
-              ))
+              spaces.map((space) => <SpaceProgressCard key={space.id} space={space} />)
             )}
           </div>
         </TabsContent>
@@ -177,13 +177,9 @@ export default function ProgressPage() {
   );
 }
 
-function SpaceProgressCard({
-  space,
-  progress,
-}: {
-  space: Space;
-  progress: import("@levelup/shared-types").SpaceProgress | null;
-}) {
+function SpaceProgressCard({ space }: { space: Space }) {
+  const { data } = useSpaceProgress(space.id);
+  const progress = data as SpaceProgress | null;
   const percentage = progress?.percentage ?? 0;
   const pointsEarned = progress?.pointsEarned ?? 0;
   const totalPoints = progress?.totalPoints ?? 0;

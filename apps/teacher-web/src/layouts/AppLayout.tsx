@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import {
   AppShell,
   AppSidebar,
@@ -20,33 +18,11 @@ import {
   type MobileNavItem,
 } from "@levelup/shared-ui";
 import {
-  useNotifications,
-  useUnreadCount,
-  useMarkRead,
-  useMarkAllRead,
-  useTenantBranding,
-  usePrefetch,
-} from "@levelup/shared-hooks";
-
-/** Route prefetch map — triggers lazy imports on link hover */
-const TEACHER_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
-  "/": () => import("../pages/DashboardPage"),
-  "/spaces": () => import("../pages/spaces/SpaceListPage"),
-  "/exams": () => import("../pages/exams/ExamListPage"),
-  "/students": () => import("../pages/StudentsPage"),
-  "/classes": () => import("../pages/ClassesPage"),
-  "/settings": () => import("../pages/SettingsPage"),
-  "/analytics/classes": () => import("../pages/ClassAnalyticsPage"),
-  "/analytics/exams": () => import("../pages/ExamAnalyticsPage"),
-  "/analytics/spaces": () => import("../pages/SpaceAnalyticsPage"),
-  "/question-bank": () => import("../pages/spaces/QuestionBankPage"),
-  "/assignments": () => import("../pages/AssignmentTrackerPage"),
-  "/grading": () => import("../pages/BatchGradingPage"),
-  "/rubric-presets": () => import("../pages/RubricPresetsPage"),
-  "/notifications": () => import("../pages/NotificationsPage"),
-};
-import { getFirebaseServices } from "@levelup/shared-services";
-import { doc, getDoc } from "firebase/firestore";
+  useNotificationCenter,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@levelup/query";
+import { useAuthSession } from "../sdk/session";
 import {
   LayoutDashboard,
   BookOpen,
@@ -64,22 +40,17 @@ import {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser, logout } =
-    useAuthStore();
+  const { allMemberships, currentTenantId, switchTenant, user, currentTenantName, logout } =
+    useAuthSession();
 
-  // Apply tenant branding (colors + CSS custom properties)
-  useTenantBranding();
-
-  // Prefetch routes on link hover for near-instant navigation
-  usePrefetch(TEACHER_PREFETCH_MAP);
-
-  const { data: notifData, isLoading: notifsLoading } = useNotifications(
-    currentTenantId,
-    firebaseUser?.uid ?? null
-  );
-  const unreadCount = useUnreadCount(currentTenantId, firebaseUser?.uid ?? null);
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  // Notification center (bell dropdown): merged feed + announcements + unreadCount,
+  // all tenant/user-scoped server-side from claims (no tenantId/uid args).
+  const { data: notifInbox, isLoading: notifsLoading } = useNotificationCenter();
+  const notifications =
+    (notifInbox as { notifications?: unknown[] } | undefined)?.notifications ?? [];
+  const unreadCount = (notifInbox as { unreadCount?: number } | undefined)?.unreadCount ?? 0;
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   const navGroups: NavGroup[] = [
     {
@@ -164,9 +135,7 @@ export default function AppLayout() {
           title: "Classes",
           url: "/classes",
           icon: GraduationCap,
-          isActive:
-            location.pathname === "/classes" ||
-            location.pathname.startsWith("/classes/"),
+          isActive: location.pathname === "/classes" || location.pathname.startsWith("/classes/"),
         },
         {
           title: "Students",
@@ -189,36 +158,19 @@ export default function AppLayout() {
     },
   ];
 
-  const currentTenantName = useTenantStore((s) => s.tenant?.name);
-  const [tenantNames, setTenantNames] = useState<Record<string, string>>({});
-
   const teacherMemberships = allMemberships.filter(
     (m) => m.role === "teacher" || m.role === "tenantAdmin"
   );
 
-  useEffect(() => {
-    const otherTenantIds = teacherMemberships
-      .map((m) => m.tenantId)
-      .filter((id) => id !== currentTenantId);
-    if (otherTenantIds.length === 0) return;
-
-    const { db } = getFirebaseServices();
-    Promise.all(
-      otherTenantIds.map(async (id) => {
-        const snap = await getDoc(doc(db, "tenants", id));
-        return [id, snap.exists() ? ((snap.data() as { name?: string }).name ?? id) : id] as const;
-      })
-    ).then((entries) => {
-      setTenantNames(Object.fromEntries(entries));
-    });
-  }, [teacherMemberships.length, currentTenantId]);
-
+  // The active tenant's name comes from the `getMe` bootstrap (currentTenantName);
+  // other memberships fall back to their tenantCode (the old per-tenant Firestore
+  // name lookup is dropped — see PARITY note in the migration report).
   const tenantOptions: TenantOption[] = teacherMemberships.map((m) => ({
     tenantId: m.tenantId,
     tenantName:
       m.tenantId === currentTenantId
-        ? (currentTenantName ?? m.tenantId)
-        : (tenantNames[m.tenantId] ?? m.tenantId),
+        ? (currentTenantName ?? m.tenantCode ?? m.tenantId)
+        : (m.tenantCode ?? m.tenantId),
     role: m.role,
   }));
 
@@ -257,17 +209,17 @@ export default function AppLayout() {
     <div className="flex items-center gap-2">
       <ThemeToggle />
       <NotificationBell
-        notifications={notifData?.notifications ?? []}
+        notifications={notifications as never}
         unreadCount={unreadCount}
         isLoading={notifsLoading}
         onNotificationClick={(notif) => {
-          if (!notif.isRead && currentTenantId) {
-            markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
+          if (!notif.isRead) {
+            markRead.mutate({ notificationId: notif.id });
           }
           if (notif.actionUrl) navigate(notif.actionUrl);
         }}
         onMarkAllRead={() => {
-          if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
+          markAllRead.mutate();
         }}
         onViewAll={() => navigate("/notifications")}
       />

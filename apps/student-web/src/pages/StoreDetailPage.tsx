@@ -1,29 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getFirebaseServices, callPurchaseSpace } from "@levelup/shared-services";
+import { useStoreSpace, usePurchaseSpace } from "@levelup/query";
 import { useAuthStore, useConsumerStore } from "@levelup/shared-stores";
 import { Skeleton, Button } from "@levelup/shared-ui";
 import type { Space } from "@levelup/shared-types";
-import {
-  ArrowLeft,
-  BookOpen,
-  Users,
-  CheckCircle2,
-  ShoppingCart,
-  Tag,
-  Clock,
-  Star,
-  ListOrdered,
-} from "lucide-react";
-
-const PLATFORM_PUBLIC_TENANT_ID = "platform_public";
+import { ArrowLeft, BookOpen, Users, CheckCircle2, ShoppingCart, Tag, Star } from "lucide-react";
 
 export default function StoreDetailPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const { addToCart, removeFromCart, isInCart } = useConsumerStore();
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
@@ -31,59 +16,33 @@ export default function StoreDetailPage() {
   const enrolled = user?.consumerProfile?.enrolledSpaceIds?.includes(spaceId ?? "") ?? false;
   const inCart = isInCart(spaceId ?? "");
 
-  // Fetch space details
-  const { data: space, isLoading, error } = useQuery({
-    queryKey: ["store-space", spaceId],
-    queryFn: async () => {
-      const { db: firestore } = getFirebaseServices();
-      const ref = doc(firestore, `tenants/${PLATFORM_PUBLIC_TENANT_ID}/spaces/${spaceId}`);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) throw new Error("Space not found");
-      return { id: snap.id, ...snap.data() } as Space;
-    },
-    enabled: !!spaceId,
-    staleTime: 30 * 1000,
-  });
+  // Fetch store listing (B2C projection). NOTE: StoreSpaceListing is a lean
+  // projection — labels/subject/stats/content-preview are not part of it, so the
+  // story-point content preview that the legacy firestore read provided is no
+  // longer available here (flagged as a parity gap).
+  const { data, isLoading, error } = useStoreSpace<{ listing: Space }>(spaceId ?? "");
+  const space = data?.listing;
 
-  // Fetch story points (content preview)
-  const { data: storyPoints } = useQuery({
-    queryKey: ["store-space-content", spaceId],
-    queryFn: async () => {
-      const { db: firestore } = getFirebaseServices();
-      const ref = collection(
-        firestore,
-        `tenants/${PLATFORM_PUBLIC_TENANT_ID}/spaces/${spaceId}/storyPoints`,
-      );
-      const q = query(ref, orderBy("orderIndex", "asc"));
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({
-        id: d.id,
-        title: d.data().title ?? "Untitled",
-        type: d.data().type ?? "lesson",
-        estimatedMinutes: d.data().estimatedMinutes ?? null,
-      }));
-    },
-    enabled: !!spaceId,
-    staleTime: 60 * 1000,
-  });
+  const purchase = usePurchaseSpace();
 
-  const purchase = useMutation({
-    mutationFn: async () => {
-      return callPurchaseSpace({ spaceId: spaceId! });
-    },
-    onSuccess: () => {
-      setPurchaseSuccess(true);
-      queryClient.invalidateQueries({ queryKey: ["store-spaces"] });
-      useConsumerStore.getState().markPurchased([spaceId!]);
-    },
-  });
+  const handlePurchase = () => {
+    purchase.mutate(
+      { spaceId: spaceId! },
+      {
+        onSuccess: () => {
+          setPurchaseSuccess(true);
+          useConsumerStore.getState().markPurchased([spaceId!]);
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-hidden rounded-lg border">
           <Skeleton className="h-56 w-full" />
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 p-6">
             <Skeleton className="h-8 w-2/3" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
@@ -97,10 +56,13 @@ export default function StoreDetailPage() {
   if (error || !space) {
     return (
       <div className="space-y-4">
-        <Link to="/store" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+        <Link
+          to="/store"
+          className="text-primary inline-flex items-center gap-1 text-sm hover:underline"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Store
         </Link>
-        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="bg-destructive/10 text-destructive rounded-md p-4 text-sm">
           Space not found or failed to load.
         </div>
       </div>
@@ -113,12 +75,15 @@ export default function StoreDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/store" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+      <Link
+        to="/store"
+        className="text-primary inline-flex items-center gap-1 text-sm hover:underline"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to Store
       </Link>
 
       {/* Hero */}
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="bg-card overflow-hidden rounded-lg border">
         {space.storeThumbnailUrl || space.thumbnailUrl ? (
           <img
             src={space.storeThumbnailUrl || space.thumbnailUrl}
@@ -128,24 +93,24 @@ export default function StoreDetailPage() {
             className="h-56 w-full object-cover"
           />
         ) : (
-          <div className="flex h-56 items-center justify-center bg-muted">
-            <BookOpen className="h-16 w-16 text-muted-foreground" />
+          <div className="bg-muted flex h-56 items-center justify-center">
+            <BookOpen className="text-muted-foreground h-16 w-16" />
           </div>
         )}
 
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 p-6">
           <div>
             <h1 className="text-2xl font-bold">{space.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {space.subject && (
-                <span className="inline-block rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">
+                <span className="bg-primary/10 text-primary inline-block rounded-full px-3 py-0.5 text-xs font-medium">
                   {space.subject}
                 </span>
               )}
               {labels.map((label: string) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2.5 py-0.5 text-xs"
+                  className="bg-muted inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-xs"
                 >
                   <Tag className="h-2.5 w-2.5" />
                   {label}
@@ -158,10 +123,10 @@ export default function StoreDetailPage() {
             {space.storeDescription || space.description || "No description available."}
           </p>
 
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-6 text-sm">
             <span className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              {space.stats?.totalStoryPoints ?? storyPoints?.length ?? 0} lessons
+              {space.stats?.totalStoryPoints ?? 0} lessons
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />
@@ -191,15 +156,8 @@ export default function StoreDetailPage() {
               </Button>
             ) : (
               <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => purchase.mutate()}
-                  disabled={purchase.isPending}
-                >
-                  {purchase.isPending
-                    ? "Enrolling..."
-                    : price === 0
-                      ? "Enroll Free"
-                      : "Enroll Now"}
+                <Button onClick={handlePurchase} disabled={purchase.isPending}>
+                  {purchase.isPending ? "Enrolling..." : price === 0 ? "Enroll Free" : "Enroll Now"}
                 </Button>
                 {!inCart && price > 0 && (
                   <Button
@@ -234,7 +192,7 @@ export default function StoreDetailPage() {
           </div>
 
           {purchase.isError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
               {(purchase.error as Error)?.message || "Failed to enroll. Please try again."}
             </div>
           )}
@@ -246,42 +204,6 @@ export default function StoreDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Content Preview */}
-      {storyPoints && storyPoints.length > 0 && (
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-center gap-2 border-b px-6 py-4">
-            <ListOrdered className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold">
-              Course Content ({storyPoints.length} lessons)
-            </h2>
-          </div>
-          <div className="divide-y">
-            {storyPoints.map((sp, index) => (
-              <div
-                key={sp.id}
-                className="flex items-center gap-3 px-6 py-3"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                  {index + 1}
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{sp.title}</p>
-                  <p className="text-xs capitalize text-muted-foreground">
-                    {sp.type}
-                  </p>
-                </div>
-                {sp.estimatedMinutes && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {sp.estimatedMinutes} min
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

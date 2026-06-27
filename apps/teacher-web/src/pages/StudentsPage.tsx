@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useStudents, useApiError } from "@levelup/shared-hooks";
-import { callSaveStudent } from "@levelup/shared-services";
+import { useMutation } from "@tanstack/react-query";
+import { useStudents, useSaveStudent, useApiError } from "@levelup/query";
+import { useAuthSession } from "../sdk/session";
 import { toast } from "sonner";
 import { Archive, ArchiveRestore, Pencil, Plus, Search, Users } from "lucide-react";
 import {
@@ -22,9 +21,10 @@ import type { Student } from "@levelup/shared-types";
 import StudentFormDialog from "../components/student/StudentFormDialog";
 
 export default function StudentsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: students = [], isLoading, error } = useStudents(tenantId);
-  const queryClient = useQueryClient();
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const { data: studentData, isLoading, error } = useStudents();
+  const students = ((studentData as { items?: Student[] } | undefined)?.items ?? []) as Student[];
+  const saveStudent = useSaveStudent();
   const { handleError } = useApiError();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,23 +36,16 @@ export default function StudentsPage() {
       (s.displayName ?? "").toLowerCase().includes(search.toLowerCase()) ||
       s.uid.toLowerCase().includes(search.toLowerCase()) ||
       (s.rollNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.admissionNumber ?? "").toLowerCase().includes(search.toLowerCase()),
+      (s.admissionNumber ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // Tenant scoping is server-side via claims; useSaveStudent auto-invalidates the
+  // student list on settle.
   const archiveMutation = useMutation({
-    mutationFn: async (params: { student: Student; status: "active" | "archived" }) => {
-      if (!tenantId) throw new Error("No tenant");
-      return callSaveStudent({
-        id: params.student.id,
-        tenantId,
-        data: { status: params.status },
-      });
-    },
+    mutationFn: (params: { student: Student; status: "active" | "archived" }) =>
+      saveStudent.mutateAsync({ id: params.student.id, data: { status: params.status } }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "students"] });
-      toast.success(
-        variables.status === "archived" ? "Student archived" : "Student restored",
-      );
+      toast.success(variables.status === "archived" ? "Student archived" : "Student restored");
     },
     onError: (err) => handleError(err, "Failed to update student"),
   });
@@ -82,7 +75,7 @@ export default function StudentsPage() {
       </div>
 
       <div className="relative max-w-sm">
-        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+        <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
         <Input
           type="text"
           placeholder="Search by name, roll number, or admission number..."
@@ -139,18 +132,12 @@ export default function StudentsPage() {
                   <TableCell className="font-medium">
                     {student.displayName ?? student.uid}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {student.rollNumber ?? "—"}
-                  </TableCell>
+                  <TableCell className="font-mono text-xs">{student.rollNumber ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {student.admissionNumber ?? "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.grade ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.section ?? "—"}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{student.grade ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{student.section ?? "—"}</TableCell>
                   <TableCell>
                     <StatusBadge status={student.status} />
                   </TableCell>
@@ -168,9 +155,7 @@ export default function StudentsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() =>
-                            archiveMutation.mutate({ student, status: "active" })
-                          }
+                          onClick={() => archiveMutation.mutate({ student, status: "active" })}
                           disabled={archiveMutation.isPending}
                           aria-label={`Restore ${student.displayName ?? student.uid}`}
                         >

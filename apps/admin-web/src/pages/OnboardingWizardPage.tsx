@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentTenantId, useTenantStore } from "@levelup/shared-stores";
-import {
-  callSaveTenant,
-  callSaveAcademicSession,
-  callSaveClass,
-} from "@levelup/shared-services/auth";
+import { useCurrentTenantId, useCurrentTenant } from "@/sdk/identity";
+import { useSaveTenant, useSaveAcademicSession, useSaveClass, useApiError } from "@levelup/query";
+import type { Tenant } from "@levelup/shared-types";
 import {
   Button,
   Input,
@@ -17,7 +14,6 @@ import {
   CardTitle,
 } from "@levelup/shared-ui";
 import { toast } from "sonner";
-import { useApiError } from "@levelup/shared-hooks";
 import { Check, ChevronRight, School, CalendarDays, GraduationCap, Copy } from "lucide-react";
 
 const STEPS = [
@@ -32,8 +28,11 @@ type StepId = (typeof STEPS)[number]["id"];
 export default function OnboardingWizardPage() {
   const navigate = useNavigate();
   const tenantId = useCurrentTenantId();
-  const tenant = useTenantStore((s) => s.tenant);
+  const tenant = useCurrentTenant().data as Tenant | undefined;
   const { handleError } = useApiError();
+  const saveTenant = useSaveTenant();
+  const saveAcademicSession = useSaveAcademicSession();
+  const saveClass = useSaveClass();
   const [currentStep, setCurrentStep] = useState<StepId>("school");
   const [saving, setSaving] = useState(false);
 
@@ -71,13 +70,14 @@ export default function OnboardingWizardPage() {
     }
     setSaving(true);
     try {
+      // NOTE: `website` is not part of the saveTenant contract — it is collected
+      // for display only and not persisted.
       const data: Record<string, string> = {
         name: schoolForm.name,
         contactEmail: schoolForm.contactEmail,
       };
       if (schoolForm.contactPhone) data.contactPhone = schoolForm.contactPhone;
-      if (schoolForm.website) data.website = schoolForm.website;
-      await callSaveTenant({ id: tenantId, data });
+      await saveTenant.mutateAsync({ data });
       await markStepComplete("school");
       setCurrentStep("academic");
       toast.success("School info saved");
@@ -94,14 +94,17 @@ export default function OnboardingWizardPage() {
       toast.error("Please enter a session name");
       return;
     }
+    if (!sessionForm.startDate || !sessionForm.endDate) {
+      toast.error("Please enter start and end dates");
+      return;
+    }
     setSaving(true);
     try {
-      await callSaveAcademicSession({
-        tenantId,
+      await saveAcademicSession.mutateAsync({
         data: {
           name: sessionForm.name,
-          startDate: sessionForm.startDate || undefined,
-          endDate: sessionForm.endDate || undefined,
+          startDate: sessionForm.startDate,
+          endDate: sessionForm.endDate,
           isCurrent: true,
         },
       });
@@ -123,8 +126,7 @@ export default function OnboardingWizardPage() {
     }
     setSaving(true);
     try {
-      await callSaveClass({
-        tenantId,
+      await saveClass.mutateAsync({
         data: {
           name: classForm.name,
           grade: classForm.grade,
@@ -132,11 +134,6 @@ export default function OnboardingWizardPage() {
         },
       });
       await markStepComplete("class");
-      // Mark onboarding complete
-      await callSaveTenant({
-        id: tenantId,
-        data: { onboarding: { completed: true, completedSteps: ["school", "academic", "class"] } },
-      });
       setCurrentStep("done");
       toast.success("First class created! Setup complete.");
     } catch (err) {
@@ -146,15 +143,10 @@ export default function OnboardingWizardPage() {
     }
   };
 
-  const markStepComplete = async (step: string) => {
-    if (!tenantId) return;
-    const current = tenant?.onboarding?.completedSteps ?? [];
-    if (!current.includes(step)) {
-      await callSaveTenant({
-        id: tenantId,
-        data: { onboarding: { completedSteps: [...current, step] } },
-      });
-    }
+  const markStepComplete = async (_step: string) => {
+    // NOTE: onboarding-progress persistence is not exposed by the @levelup/query
+    // saveTenant contract (no `onboarding` field) — step state is tracked in
+    // local component state only for this session.
   };
 
   const handleFinish = async () => {

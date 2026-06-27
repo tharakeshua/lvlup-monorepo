@@ -7,7 +7,7 @@
  * @module progress/summary
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 // ── AutoGrade metrics (exam-based) ──────────────────────────────────────────
 
@@ -84,16 +84,16 @@ export interface StudentProgressSummary {
 // ── Class Progress Summary ──────────────────────────────────────────────────
 
 export interface ClassAutogradeMetrics {
-  averageClassScore: number;
-  examCompletionRate: number;
-  topPerformers: Array<{ studentId: string; name: string; avgScore: number }>;
+  averageClassScore: number; // percentage 0–100 (stored as-is; UI renders raw, no ×100)
+  examCompletionRate: number; // percentage 0–100 (stored as-is; UI renders raw, no ×100)
+  topPerformers: Array<{ studentId: string; name: string; avgScore: number }>; // avgScore: percentage 0–100
   bottomPerformers: Array<{ studentId: string; name: string; avgScore: number }>;
 }
 
 export interface ClassLevelupMetrics {
-  averageClassCompletion: number;
-  activeStudentRate: number;
-  topPointEarners: Array<{ studentId: string; name: string; points: number }>;
+  averageClassCompletion: number; // percentage 0–100 (stored as-is; UI renders raw, no ×100)
+  activeStudentRate: number; // percentage 0–100 (stored as-is; UI renders raw, no ×100)
+  topPointEarners: Array<{ studentId: string; name: string; points: number }>; // points: raw integer
 }
 
 export interface ClassProgressSummary {

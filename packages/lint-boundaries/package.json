@@ -1,0 +1,16 @@
+{
+  "name": "@levelup/lint-boundaries",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Boundary lint gates as vitest tests: the §2 R1-R14 import-graph + manifest assertions for the SDK rebuild",
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
+  }
+}

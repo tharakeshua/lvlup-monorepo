@@ -1,0 +1,57 @@
+{
+  "name": "@levelup/seed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Config-driven, idempotent Firebase Admin-SDK seeding engine for Auto-LevelUp (BatchWriter, ensureAuthUser, custom claims, ensure-semantics, verify)",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "import": "./dist/engine/index.js",
+      "require": "./dist/engine/index.cjs"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js",
+      "require": "./dist/config/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "levelup-seed": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "seed": "tsx src/cli.ts",
+    "seed:emulator": "FIRESTORE_EMULATOR_HOST=${FIRESTORE_EMULATOR_HOST:-localhost:8080} FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_AUTH_EMULATOR_HOST:-localhost:9099} tsx src/cli.ts",
+    "seed:verify": "tsx src/cli.ts --verify-only"
+  },
+  "dependencies": {
+    "@levelup/domain": "workspace:*",
+    "firebase-admin": "^12.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
+  }
+}

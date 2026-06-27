@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { getFirebaseServices, callSaveGlobalEvaluationPreset } from "@levelup/shared-services";
+import { useMemo, useState } from "react";
+import { useEvaluationSettings, useSaveEvaluationSettings } from "@levelup/query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { EvaluationSettings, EvaluationDimension } from "@levelup/shared-types";
+import type { EvaluationSettings, EvaluationDimension } from "@levelup/domain";
 import {
   Dialog,
   DialogContent,
@@ -189,23 +187,14 @@ function formToEnabledDimensions(formValues: PresetFormValues): EvaluationDimens
   })) as EvaluationDimension[];
 }
 
-function useGlobalPresets() {
-  return useQuery<EvaluationSettings[]>({
-    queryKey: ["platform", "globalPresets"],
-    queryFn: async () => {
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, "evaluationSettings");
-      const q = query(colRef, orderBy("name", "asc"));
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as EvaluationSettings);
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 export default function GlobalPresetsPage() {
-  const queryClient = useQueryClient();
-  const { data: presets, isLoading, isError, error, refetch } = useGlobalPresets();
+  const { data, isLoading, isError, error, refetch } = useEvaluationSettings(true);
+  const savePreset = useSaveEvaluationSettings();
+  // `useEvaluationSettings` returns the list unordered; preserve the prior name-asc UX.
+  const presets = useMemo(() => {
+    const list = (data as EvaluationSettings[] | undefined) ?? [];
+    return [...list].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+  }, [data]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -236,18 +225,17 @@ export default function GlobalPresetsPage() {
     setIsPending(true);
     setSubmitError(null);
     try {
-      await callSaveGlobalEvaluationPreset({
+      await savePreset.mutateAsync({
         id: editOpen ? selectedPreset?.id : undefined,
         data: {
           name: values.name,
-          description: values.description || null,
+          description: values.description || undefined,
           isDefault: values.isDefault,
           isPublic: values.isPublic,
           displaySettings: values.displaySettings,
           enabledDimensions: formToEnabledDimensions(values),
         },
-      });
-      await queryClient.invalidateQueries({ queryKey: ["platform", "globalPresets"] });
+      } as Parameters<typeof savePreset.mutateAsync>[0]);
       setCreateOpen(false);
       setEditOpen(false);
     } catch (err: unknown) {
@@ -261,8 +249,10 @@ export default function GlobalPresetsPage() {
   async function handleDelete(preset: EvaluationSettings) {
     setIsPending(true);
     try {
-      await callSaveGlobalEvaluationPreset({ id: preset.id, delete: true });
-      await queryClient.invalidateQueries({ queryKey: ["platform", "globalPresets"] });
+      await savePreset.mutateAsync({
+        id: preset.id,
+        delete: true,
+      } as Parameters<typeof savePreset.mutateAsync>[0]);
       setDeleteTarget(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";

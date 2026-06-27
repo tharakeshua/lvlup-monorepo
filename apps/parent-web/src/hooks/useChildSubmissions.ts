@@ -1,75 +1,66 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  doc,
-  getDoc,
-  documentId,
-} from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useRepos } from "@levelup/query";
 import type { Submission, Exam } from "@levelup/shared-types";
 
-export function useChildSubmissions(
-  tenantId: string | null,
-  studentIds: string[] | undefined,
-) {
+// Migrated to @levelup/query.
+//
+// PARITY GAP (flagged to Frontend-Lead): the autograde submissionRepo.list
+// REQUIRES an examId — there is NO studentId-only "submissions across all exams"
+// read like the old `where('studentId','in',batch)` query. So we best-effort
+// enumerate the tenant's exams (examRepo, which also yields title/subject for
+// enrichment) and, per exam, list released submissions and keep the ones for the
+// linked children. Heavier read pattern (bounded by exam count) but functionally
+// equivalent. Signature + (Submission & {examTitle?;examSubject?})[] shape preserved.
+export function useChildSubmissions(tenantId: string | null, studentIds: string[] | undefined) {
+  const repos = useRepos();
   return useQuery<(Submission & { examTitle?: string; examSubject?: string })[]>({
     queryKey: ["tenants", tenantId, "childSubmissions", studentIds],
     queryFn: async () => {
       if (!tenantId || !studentIds?.length) return [];
-      const { db } = getFirebaseServices();
-      const allSubmissions: Submission[] = [];
+      const idSet = new Set(studentIds);
 
-      for (let i = 0; i < studentIds.length; i += 30) {
-        const batch = studentIds.slice(i, i + 30);
-        const colRef = collection(db, `tenants/${tenantId}/submissions`);
-        const q = query(
-          colRef,
-          where("studentId", "in", batch),
-          where("resultsReleased", "==", true),
-          orderBy("createdAt", "desc"),
-        );
-        const snap = await getDocs(q);
-        allSubmissions.push(
-          ...snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Submission),
-        );
-      }
-
-      const uniqueExamIds = [...new Set(allSubmissions.map((s) => s.examId).filter(Boolean))];
+      // 1. Enumerate all exams (drain pages) + build the title/subject cache.
       const examCache: Record<string, { title: string; subject: string }> = {};
-
-      for (let i = 0; i < uniqueExamIds.length; i += 30) {
-        const batch = uniqueExamIds.slice(i, i + 30);
-        try {
-          const colRef = collection(db, `tenants/${tenantId}/exams`);
-          const q = query(colRef, where(documentId(), "in", batch));
-          const snap = await getDocs(q);
-          for (const d of snap.docs) {
-            const examData = d.data() as Exam;
-            examCache[d.id] = { title: examData.title, subject: examData.subject };
-          }
-        } catch {
-          await Promise.all(
-            batch.map(async (examId) => {
-              if (examCache[examId]) return;
-              try {
-                const examDoc = await getDoc(doc(db, `tenants/${tenantId}/exams`, examId));
-                if (examDoc.exists()) {
-                  const examData = examDoc.data() as Exam;
-                  examCache[examId] = { title: examData.title, subject: examData.subject };
-                }
-              } catch {
-                // Ignore individual fetch errors
-              }
-            }),
-          );
+      const examIds: string[] = [];
+      let examBag = await repos.examRepo.paginate();
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        for (const raw of examBag.items as unknown as Exam[]) {
+          if (!raw?.id) continue;
+          examCache[raw.id] = { title: raw.title, subject: raw.subject };
+          examIds.push(raw.id);
         }
+        if (!examBag.fetchNextPage) break;
+        examBag = await examBag.fetchNextPage();
       }
 
-      return allSubmissions.map((sub) => ({
+      // 2. Per exam, list released submissions and keep the linked children's.
+      const all: Submission[] = [];
+      await Promise.all(
+        examIds.map(async (examId) => {
+          try {
+            let bag = await repos.submissionRepo.paginate({
+              examId: examId as never,
+              resultsReleasedOnly: true,
+            });
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+              for (const s of bag.items as unknown as Submission[]) {
+                if (idSet.has(s.studentId)) all.push(s);
+              }
+              if (!bag.fetchNextPage) break;
+              bag = await bag.fetchNextPage();
+            }
+          } catch {
+            // Ignore per-exam errors
+          }
+        })
+      );
+
+      // 3. Sort newest-first (parity with the old orderBy('createdAt','desc')).
+      all.sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+
+      return all.map((sub) => ({
         ...sub,
         examTitle: examCache[sub.examId]?.title,
         examSubject: examCache[sub.examId]?.subject,

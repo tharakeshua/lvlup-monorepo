@@ -1,13 +1,6 @@
 import { useMemo, useState } from "react";
-import { useClasses } from "@levelup/shared-hooks";
-import {
-  Badge,
-  Button,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@levelup/shared-ui";
+import { useClasses } from "@levelup/query";
+import { Badge, Button, Input, Popover, PopoverContent, PopoverTrigger } from "@levelup/shared-ui";
 import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import ClassFormDialog from "../class/ClassFormDialog";
 
@@ -19,6 +12,25 @@ interface ClassMultiSelectProps {
   placeholder?: string;
 }
 
+interface ClassRow {
+  id: string;
+  name: string;
+  status?: string;
+  grade?: string;
+  section?: string;
+}
+
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
 export default function ClassMultiSelect({
   tenantId,
   value,
@@ -26,18 +38,17 @@ export default function ClassMultiSelect({
   disabled,
   placeholder = "Select classes...",
 }: ClassMultiSelectProps) {
-  const { data: allClasses = [], isLoading } = useClasses(tenantId);
-  const classes = useMemo(
-    () => allClasses.filter((c) => c.status === "active"),
-    [allClasses],
-  );
+  // Query hooks are claims-scoped server-side — no tenantId arg.
+  const { data, isLoading } = useClasses();
+  const allClasses = useMemo(() => asArray<ClassRow>(data), [data]);
+  const classes = useMemo(() => allClasses.filter((c) => c.status === "active"), [allClasses]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
   const selectedClasses = useMemo(
     () => classes.filter((c) => value.includes(c.id)),
-    [classes, value],
+    [classes, value]
   );
 
   const filtered = useMemo(() => {
@@ -47,7 +58,7 @@ export default function ClassMultiSelect({
       (c) =>
         c.name.toLowerCase().includes(term) ||
         (c.grade ?? "").toLowerCase().includes(term) ||
-        (c.section ?? "").toLowerCase().includes(term),
+        (c.section ?? "").toLowerCase().includes(term)
     );
   }, [classes, search]);
 

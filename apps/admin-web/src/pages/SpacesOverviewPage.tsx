@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useSpaces } from "@levelup/shared-hooks";
-import { useCurrentTenantId } from "@levelup/shared-stores";
+import { useSpaces } from "@levelup/query";
+import type { Space } from "@levelup/shared-types";
 import {
   Input,
   Button,
@@ -16,8 +16,9 @@ import { CardGridSkeleton } from "../components/skeletons/CardGridSkeleton";
 import { STATUS_VARIANT, TYPE_VARIANT } from "../lib/constants";
 
 export default function SpacesOverviewPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: spaces, isLoading } = useSpaces(tenantId);
+  const spacesQuery = useSpaces({});
+  const spaces = (spacesQuery.data ?? []) as Space[];
+  const { isLoading, isError, refetch } = spacesQuery;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -27,24 +28,19 @@ export default function SpacesOverviewPage() {
     if (statusFilter !== "all" && space.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return (
-      space.title.toLowerCase().includes(q) ||
-      space.subject?.toLowerCase().includes(q)
-    );
+    return space.title.toLowerCase().includes(q) || space.subject?.toLowerCase().includes(q);
   });
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Spaces Overview</h1>
-        <p className="text-sm text-muted-foreground">
-          All learning spaces across teachers
-        </p>
+        <p className="text-muted-foreground text-sm">All learning spaces across teachers</p>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="text"
             placeholder="Search spaces..."
@@ -68,30 +64,41 @@ export default function SpacesOverviewPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="border-destructive/50 rounded-lg border p-12 text-center">
+          <h3 className="text-lg font-semibold">Failed to load spaces</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Something went wrong while loading spaces.
+          </p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : isLoading ? (
         <CardGridSkeleton count={6} />
       ) : !filtered?.length ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <h3 className="text-lg font-semibold">No spaces found</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Teachers can create spaces from the Teacher Portal
           </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((space) => (
-            <Card key={space.id} className="hover:shadow-sm transition-shadow">
+            <Card key={space.id} className="transition-shadow hover:shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base">{space.title}</CardTitle>
-                  <Badge variant={STATUS_VARIANT[space.status] ?? "secondary"} className="capitalize">
+                  <Badge
+                    variant={STATUS_VARIANT[space.status] ?? "secondary"}
+                    className="capitalize"
+                  >
                     {space.status}
                   </Badge>
                 </div>
                 {space.description && (
-                  <CardDescription className="line-clamp-2">
-                    {space.description}
-                  </CardDescription>
+                  <CardDescription className="line-clamp-2">{space.description}</CardDescription>
                 )}
               </CardHeader>
               <CardContent>
@@ -105,7 +112,7 @@ export default function SpacesOverviewPage() {
                     </Badge>
                   )}
                 </div>
-                <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+                <div className="text-muted-foreground mt-3 flex gap-4 text-xs">
                   <span>{space.classIds?.length ?? 0} classes</span>
                   <span>{space.teacherIds?.length ?? 0} teachers</span>
                 </div>

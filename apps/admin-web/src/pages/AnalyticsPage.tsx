@@ -1,54 +1,52 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useClasses,
-  useStudents,
-  useClassSummaries,
-} from "@levelup/shared-hooks/queries";
-import {
-  ScoreCard,
-  SimpleBarChart,
-  ProgressRing,
-} from "@levelup/shared-ui";
-import {
-  BarChart3,
-  Users,
-  AlertTriangle,
-  TrendingUp,
-  GraduationCap,
-} from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
+import { useClasses, useStudents, useApi, analyticsQueryKeys } from "@levelup/query";
+import type { Class, Student, ClassProgressSummary } from "@levelup/shared-types";
+import { ScoreCard, SimpleBarChart, ProgressRing } from "@levelup/shared-ui";
+import { BarChart3, Users, AlertTriangle, TrendingUp, GraduationCap } from "lucide-react";
+
+/**
+ * Per-class progress summaries via the query SDK (tenant-implicit / claims-scoped).
+ * `useClassSummary` is single-class; this fans it out over the class ids with
+ * `useQueries` (rules-of-hooks-safe for a dynamic list), mirroring the legacy
+ * `useClassSummaries`.
+ */
+function useClassSummaries(classIds: string[]) {
+  const { repos } = useApi();
+  const summaryRepo = (
+    repos as unknown as {
+      summaryRepo: { getClass(classId: string): Promise<ClassProgressSummary> };
+    }
+  ).summaryRepo;
+  return useQueries({
+    queries: classIds.map((classId) => ({
+      queryKey: analyticsQueryKeys.classSummary(classId),
+      queryFn: () => summaryRepo.getClass(classId),
+    })),
+  });
+}
 
 export default function AnalyticsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: classes = [] } = useClasses(tenantId);
-  const { data: students = [] } = useStudents(tenantId);
+  const classes = (useClasses({}).data ?? []) as Class[];
+  const students = (useStudents({}).data ?? []) as Student[];
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const classIds = classes.map((c) => c.id);
-  const classSummaryResults = useClassSummaries(tenantId, classIds);
-  const classSummaries = classSummaryResults
-    .map((r) => r.data)
-    .filter(Boolean);
+  const classSummaryResults = useClassSummaries(classIds);
+  const classSummaries = classSummaryResults.map((r) => r.data).filter(Boolean);
 
-  const totalAtRisk = classSummaries.reduce(
-    (sum, cs) => sum + (cs?.atRiskCount ?? 0),
-    0,
-  );
+  const totalAtRisk = classSummaries.reduce((sum, cs) => sum + (cs?.atRiskCount ?? 0), 0);
 
   const avgClassScore =
     classSummaries.length > 0
-      ? classSummaries.reduce(
-          (sum, cs) => sum + (cs?.autograde.averageClassScore ?? 0),
-          0,
-        ) / classSummaries.length
+      ? classSummaries.reduce((sum, cs) => sum + (cs?.autograde.averageClassScore ?? 0), 0) /
+        classSummaries.length
       : 0;
 
   const avgCompletion =
     classSummaries.length > 0
-      ? classSummaries.reduce(
-          (sum, cs) => sum + (cs?.levelup.averageClassCompletion ?? 0),
-          0,
-        ) / classSummaries.length
+      ? classSummaries.reduce((sum, cs) => sum + (cs?.levelup.averageClassCompletion ?? 0), 0) /
+        classSummaries.length
       : 0;
 
   // Class performance comparison chart
@@ -88,7 +86,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Student performance, class comparisons, and at-risk indicators
         </p>
       </div>
@@ -112,20 +110,16 @@ export default function AnalyticsPage() {
           trend={totalAtRisk > 0 ? "down" : "neutral"}
           trendValue={totalAtRisk > 0 ? "Needs attention" : "All good"}
         />
-        <ScoreCard
-          label="Total Students"
-          value={students.length}
-          icon={Users}
-        />
+        <ScoreCard label="Total Students" value={students.length} icon={Users} />
       </div>
 
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Exam Performance by Class */}
         {classPerformanceData.length > 0 && (
-          <div className="rounded-lg border bg-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <div className="bg-card rounded-lg border p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <BarChart3 className="text-muted-foreground h-4 w-4" />
               <h2 className="font-semibold">Exam Performance by Class</h2>
             </div>
             <div role="img" aria-label="Bar chart comparing exam performance across classes">
@@ -141,9 +135,9 @@ export default function AnalyticsPage() {
 
         {/* Space Completion by Class */}
         {classCompletionData.length > 0 && (
-          <div className="rounded-lg border bg-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <div className="bg-card rounded-lg border p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <TrendingUp className="text-muted-foreground h-4 w-4" />
               <h2 className="font-semibold">Space Completion by Class</h2>
             </div>
             <div role="img" aria-label="Bar chart comparing space completion rates across classes">
@@ -160,9 +154,9 @@ export default function AnalyticsPage() {
 
       {/* At-Risk Distribution */}
       {atRiskByClass.length > 0 && (
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+        <div className="bg-card rounded-lg border p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <AlertTriangle className="text-destructive h-4 w-4" />
             <h2 className="font-semibold">At-Risk Students by Class</h2>
           </div>
           <div role="img" aria-label="Bar chart showing at-risk student counts by class">
@@ -172,22 +166,18 @@ export default function AnalyticsPage() {
       )}
 
       {/* Class Drill-Down */}
-      <div className="rounded-lg border bg-card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+      <div className="bg-card rounded-lg border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <GraduationCap className="text-muted-foreground h-4 w-4" />
           <h2 className="font-semibold">Class Detail</h2>
         </div>
 
         {/* Class selector */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           {classes.map((cls) => (
             <button
               key={cls.id}
-              onClick={() =>
-                setSelectedClassId(
-                  selectedClassId === cls.id ? null : cls.id,
-                )
-              }
+              onClick={() => setSelectedClassId(selectedClassId === cls.id ? null : cls.id)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 selectedClassId === cls.id
                   ? "bg-primary text-primary-foreground"
@@ -202,37 +192,31 @@ export default function AnalyticsPage() {
         {selectedSummary ? (
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-4">
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <div role="img" aria-label={`Exam average score: ${Math.round((selectedSummary.autograde.averageClassScore ?? 0) * 100)}%`}>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <div
+                  role="img"
+                  aria-label={`Exam average score: ${Math.round((selectedSummary.autograde.averageClassScore ?? 0) * 100)}%`}
+                >
                   <ProgressRing
-                    value={
-                      (selectedSummary.autograde.averageClassScore ?? 0) * 100
-                    }
+                    value={(selectedSummary.autograde.averageClassScore ?? 0) * 100}
                     size={64}
                     strokeWidth={6}
                     label="Exam Avg"
                   />
                 </div>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-sm text-muted-foreground">Students</p>
-                <p className="text-2xl font-bold">
-                  {selectedSummary.studentCount}
-                </p>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-muted-foreground text-sm">Students</p>
+                <p className="text-2xl font-bold">{selectedSummary.studentCount}</p>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-sm text-muted-foreground">At-Risk</p>
-                <p className="text-2xl font-bold text-destructive">
-                  {selectedSummary.atRiskCount}
-                </p>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-muted-foreground text-sm">At-Risk</p>
+                <p className="text-destructive text-2xl font-bold">{selectedSummary.atRiskCount}</p>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-muted-foreground text-sm">Completion Rate</p>
                 <p className="text-2xl font-bold">
-                  {Math.round(
-                    selectedSummary.autograde.examCompletionRate * 100,
-                  )}
-                  %
+                  {Math.round(selectedSummary.autograde.examCompletionRate * 100)}%
                 </p>
               </div>
             </div>
@@ -241,52 +225,44 @@ export default function AnalyticsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {selectedSummary.autograde.topPerformers.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2 text-primary">
-                    Top Performers
-                  </h4>
+                  <h4 className="text-primary mb-2 text-sm font-medium">Top Performers</h4>
                   <div className="space-y-1">
-                    {selectedSummary.autograde.topPerformers
-                      .slice(0, 5)
-                      .map((p) => (
-                        <div
-                          key={p.studentId}
-                          className="flex items-center justify-between rounded bg-primary/10 px-3 py-1.5 text-sm"
-                        >
-                          <span>{p.name || p.studentId.slice(0, 10)}</span>
-                          <span className="font-medium text-primary">
-                            {Math.round(p.avgScore * 100)}%
-                          </span>
-                        </div>
-                      ))}
+                    {selectedSummary.autograde.topPerformers.slice(0, 5).map((p) => (
+                      <div
+                        key={p.studentId}
+                        className="bg-primary/10 flex items-center justify-between rounded px-3 py-1.5 text-sm"
+                      >
+                        <span>{p.name || p.studentId.slice(0, 10)}</span>
+                        <span className="text-primary font-medium">
+                          {Math.round(p.avgScore * 100)}%
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
               {selectedSummary.autograde.bottomPerformers.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2 text-destructive">
-                    Needs Improvement
-                  </h4>
+                  <h4 className="text-destructive mb-2 text-sm font-medium">Needs Improvement</h4>
                   <div className="space-y-1">
-                    {selectedSummary.autograde.bottomPerformers
-                      .slice(0, 5)
-                      .map((p) => (
-                        <div
-                          key={p.studentId}
-                          className="flex items-center justify-between rounded bg-destructive/10 px-3 py-1.5 text-sm"
-                        >
-                          <span>{p.name || p.studentId.slice(0, 10)}</span>
-                          <span className="font-medium text-destructive">
-                            {Math.round(p.avgScore * 100)}%
-                          </span>
-                        </div>
-                      ))}
+                    {selectedSummary.autograde.bottomPerformers.slice(0, 5).map((p) => (
+                      <div
+                        key={p.studentId}
+                        className="bg-destructive/10 flex items-center justify-between rounded px-3 py-1.5 text-sm"
+                      >
+                        <span>{p.name || p.studentId.slice(0, 10)}</span>
+                        <span className="text-destructive font-medium">
+                          {Math.round(p.avgScore * 100)}%
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground py-8 text-center text-sm">
             {classes.length > 0
               ? "Select a class above to view detailed analytics"
               : "No classes available"}

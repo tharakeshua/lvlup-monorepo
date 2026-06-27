@@ -1,17 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useExams } from "@levelup/shared-hooks";
-import {
-  Plus,
-  Search,
-  ClipboardList,
-} from "lucide-react";
-import {
-  Button,
-  Input,
-  StatusBadge,
-} from "@levelup/shared-ui";
+import { useExams } from "@levelup/query";
+import { Plus, Search, ClipboardList } from "lucide-react";
+import { Button, Input, StatusBadge } from "@levelup/shared-ui";
 import type { Exam, ExamStatus } from "@levelup/shared-types";
 
 const STATUS_TABS: { label: string; value: ExamStatus | "all" }[] = [
@@ -23,26 +14,34 @@ const STATUS_TABS: { label: string; value: ExamStatus | "all" }[] = [
   { label: "Archived", value: "archived" },
 ];
 
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
 export default function ExamListPage() {
-  const tenantId = useCurrentTenantId();
   const [activeTab, setActiveTab] = useState<ExamStatus | "all">("all");
   const [search, setSearch] = useState("");
 
+  // Query hooks are claims-scoped server-side — no tenantId arg.
   const statusFilter = activeTab === "all" ? undefined : activeTab;
-  const { data: exams = [], isLoading } = useExams(tenantId, {
-    status: statusFilter,
-  });
+  const { data, isLoading } = useExams({ status: statusFilter });
+  const exams = useMemo(() => asArray<Exam>(data), [data]);
 
-  const filtered = exams.filter((e: Exam) =>
-    e.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = exams.filter((e: Exam) => e.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Exams</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Create and manage exams, grade submissions
           </p>
         </div>
@@ -56,8 +55,8 @@ export default function ExamListPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="text"
             placeholder="Search exams..."
@@ -66,7 +65,7 @@ export default function ExamListPage() {
             className="pl-9"
           />
         </div>
-        <div className="flex rounded-lg border p-0.5 overflow-x-auto">
+        <div className="flex overflow-x-auto rounded-lg border p-0.5">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -87,13 +86,13 @@ export default function ExamListPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg border bg-muted" />
+            <div key={i} className="bg-muted h-20 animate-pulse rounded-lg border" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-          <ClipboardList className="h-10 w-10 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">
+          <ClipboardList className="text-muted-foreground h-10 w-10" />
+          <p className="text-muted-foreground mt-3 text-sm">
             {search ? "No exams match your search" : "No exams yet"}
           </p>
           {!search && (
@@ -110,39 +109,35 @@ export default function ExamListPage() {
             <Link
               key={exam.id}
               to={`/exams/${exam.id}`}
-              className="flex items-center justify-between rounded-lg border bg-card p-4 hover:shadow-sm transition-shadow"
+              className="bg-card flex items-center justify-between rounded-lg border p-4 transition-shadow hover:shadow-sm"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">{exam.title}</h3>
                   <StatusBadge status={exam.status} />
                 </div>
-                <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="text-muted-foreground mt-1 flex items-center gap-4 text-xs">
                   <span>{exam.subject}</span>
                   <span>{exam.totalMarks} marks</span>
                   <span>{exam.duration} min</span>
-                  {exam.topics?.length > 0 && (
-                    <span>{exam.topics.slice(0, 2).join(", ")}</span>
-                  )}
+                  {exam.topics?.length > 0 && <span>{exam.topics.slice(0, 2).join(", ")}</span>}
                 </div>
               </div>
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <div className="text-muted-foreground flex items-center gap-6 text-sm">
                 {exam.stats && (
                   <>
                     <div className="text-center">
-                      <p className="font-semibold text-foreground">
-                        {exam.stats.totalSubmissions}
-                      </p>
+                      <p className="text-foreground font-semibold">{exam.stats.totalSubmissions}</p>
                       <p className="text-xs">Submissions</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-foreground">
+                      <p className="text-foreground font-semibold">
                         {exam.stats.gradedSubmissions}
                       </p>
                       <p className="text-xs">Graded</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-foreground">
+                      <p className="text-foreground font-semibold">
                         {Math.round(exam.stats.avgScore)}%
                       </p>
                       <p className="text-xs">Avg Score</p>

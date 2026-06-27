@@ -6,20 +6,21 @@
  * progressId format: {userId}_{spaceId}
  */
 
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import {
   computeOverallScore,
   identifyStrengthsAndWeaknesses,
   topN,
-} from '../utils/aggregation-helpers';
-import type { StudentLevelupMetrics, RecentActivityEntry } from '@levelup/shared-types';
+} from "../utils/aggregation-helpers";
+import type { StudentLevelupMetrics, RecentActivityEntry } from "@levelup/shared-types";
 
 export const onSpaceProgressUpdated = onDocumentWritten(
   {
-    document: 'tenants/{tenantId}/spaceProgress/{progressId}',
-    region: 'asia-south1',
-    memory: '512MiB',
+    document: "tenants/{tenantId}/spaceProgress/{progressId}",
+    region: "asia-south1",
+    memory: "512MiB",
   },
   async (event) => {
     const after = event.data?.after.data();
@@ -33,7 +34,7 @@ export const onSpaceProgressUpdated = onDocumentWritten(
     // Fetch all space progress records for this student
     const progressSnap = await db
       .collection(`tenants/${tenantId}/spaceProgress`)
-      .where('userId', '==', userId)
+      .where("userId", "==", userId)
       .get();
 
     // Build space lookup for titles and subjects
@@ -44,11 +45,11 @@ export const onSpaceProgressUpdated = onDocumentWritten(
       const batch = spaceIds.slice(i, i + 30);
       const spacesSnap = await db
         .collection(`tenants/${tenantId}/spaces`)
-        .where(admin.firestore.FieldPath.documentId(), 'in', batch)
+        .where(admin.firestore.FieldPath.documentId(), "in", batch)
         .get();
       for (const doc of spacesSnap.docs) {
         const s = doc.data();
-        spaceMap.set(doc.id, { title: s.title, subject: s.subject ?? 'General' });
+        spaceMap.set(doc.id, { title: s.title, subject: s.subject ?? "General" });
       }
     }
 
@@ -68,9 +69,9 @@ export const onSpaceProgressUpdated = onDocumentWritten(
       totalPointsAvailable += prog.totalPoints ?? 0;
       totalPercentage += prog.percentage ?? 0;
 
-      if (prog.status === 'completed') completedSpaces++;
+      if (prog.status === "completed") completedSpaces++;
 
-      const subject = space?.subject ?? 'General';
+      const subject = space?.subject ?? "General";
       if (!subjectData[subject]) {
         subjectData[subject] = { totalCompletion: 0, count: 0 };
       }
@@ -80,16 +81,14 @@ export const onSpaceProgressUpdated = onDocumentWritten(
       recentActivity.push({
         spaceId: prog.spaceId,
         spaceTitle: space?.title ?? prog.spaceId,
-        action: prog.status === 'completed' ? 'completed' : 'in_progress',
+        action: prog.status === "completed" ? "completed" : "in_progress",
         date: prog.updatedAt,
       });
     }
 
     const totalSpaces = progressSnap.size;
     const averageCompletion = totalSpaces > 0 ? totalPercentage / totalSpaces : 0;
-    const averageAccuracy = totalPointsAvailable > 0
-      ? totalPointsEarned / totalPointsAvailable
-      : 0;
+    const averageAccuracy = totalPointsAvailable > 0 ? totalPointsEarned / totalPointsAvailable : 0;
 
     const subjectBreakdown: Record<string, { avgCompletion: number; spaceCount: number }> = {};
     for (const [subject, data] of Object.entries(subjectData)) {
@@ -100,7 +99,7 @@ export const onSpaceProgressUpdated = onDocumentWritten(
     }
 
     const sortedRecent = topN(recentActivity, 10, (e) =>
-      e.date?.toMillis ? e.date.toMillis() : 0,
+      e.date?.toMillis ? e.date.toMillis() : 0
     );
 
     const levelup: StudentLevelupMetrics = {
@@ -116,9 +115,7 @@ export const onSpaceProgressUpdated = onDocumentWritten(
     };
 
     // Use a transaction for atomic read-modify-write to prevent concurrent overwrites
-    const summaryRef = db.doc(
-      `tenants/${tenantId}/studentProgressSummaries/${userId}`,
-    );
+    const summaryRef = db.doc(`tenants/${tenantId}/studentProgressSummaries/${userId}`);
 
     await db.runTransaction(async (transaction) => {
       const existingSummary = (await transaction.get(summaryRef)).data();
@@ -126,7 +123,7 @@ export const onSpaceProgressUpdated = onDocumentWritten(
       const autogradeBreakdown = existingSummary?.autograde?.subjectBreakdown ?? {};
       const { strengths, weaknesses } = identifyStrengthsAndWeaknesses(
         autogradeBreakdown,
-        subjectBreakdown,
+        subjectBreakdown
       );
 
       const autogradeAvgScore = existingSummary?.autograde?.averageScore ?? 0;
@@ -142,14 +139,14 @@ export const onSpaceProgressUpdated = onDocumentWritten(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdatedAt: FieldValue.serverTimestamp(),
         },
-        { merge: true },
+        { merge: true }
       );
     });
 
     console.log(
-      `Updated levelup summary for student ${userId}: ${totalSpaces} spaces, ${averageCompletion.toFixed(1)}% avg completion`,
+      `Updated levelup summary for student ${userId}: ${totalSpaces} spaces, ${averageCompletion.toFixed(1)}% avg completion`
     );
-  },
+  }
 );

@@ -1,0 +1,79 @@
+/**
+ * `requestUploadUrlService` (SDK-LAYERS-PLAN §3.7 Storage seam C1). Validates the
+ * caller may upload to the requested kind/exam and returns a tenant-scoped storage
+ * PATH + a signed-PUT URL grant. The PATH is always under
+ * `tenants/{ctx.tenantId}/...` (⚷ path-scope enforcement, REVIEW §6.13) so a
+ * later `uploadAnswerSheets({imageUrls})` call passes its tenant-scope check.
+ * The actual signing is done by the Storage adapter the ctx carries; here we
+ * compute the deterministic scoped path + delegate signing through a ctx hook.
+ */
+import type { ReqOf, ResOf } from "@levelup/api-contract";
+import { authorize } from "@levelup/access";
+import type { AuthContext } from "../shared/context.js";
+import { requireTenant, fail } from "../shared/context.js";
+
+type Req = ReqOf<"v1.autograde.requestUploadUrl">;
+type Res = ResOf<"v1.autograde.requestUploadUrl">;
+
+/** Default signed-URL TTL (15 min) for an upload grant. */
+const UPLOAD_URL_TTL_MS = 15 * 60 * 1000;
+
+interface SignUploadHook {
+  signUploadUrl(path: string, contentType: string, ttlMs: number): Promise<string>;
+}
+
+export async function requestUploadUrlService(input: Req, ctx: AuthContext): Promise<Res> {
+  const tenantId = requireTenant(ctx);
+
+  // Authorize per kind: answer-sheets allow scanner; question-paper is authoring.
+  if (input.kind === "answer-sheet") {
+    authorize(ctx, "answerSheets.upload", {
+      examId: input.examId,
+      classId: input.classId,
+      tenantId,
+    });
+    // Ownership scope (§6.13): a SCANNER may only request a URL for a class it is
+    // assigned to. Teacher/admin (full authoring authority) are not class-bound.
+    if (
+      ctx.role === "scanner" &&
+      input.classId &&
+      !ctx.classIds.map(String).includes(String(input.classId))
+    ) {
+      fail("PERMISSION_DENIED", `class ${input.classId} is outside the scanner's scope`);
+    }
+  } else {
+    authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
+  }
+
+  const path = buildScopedPath(tenantId, input);
+
+  const hook = (ctx as unknown as { storage?: SignUploadHook }).storage;
+  const expiresAtMs = Date.parse(ctx.now()) + UPLOAD_URL_TTL_MS;
+  const expiresAt = new Date(
+    Number.isNaN(expiresAtMs) ? Date.now() + UPLOAD_URL_TTL_MS : expiresAtMs
+  ).toISOString();
+  const uploadUrl = hook
+    ? await hook.signUploadUrl(path, input.contentType, UPLOAD_URL_TTL_MS)
+    : `https://storage.local/${path}`; // emulator/test fallback
+
+  return { uploadUrl, path, expiresAt } as Res;
+}
+
+/** Deterministic tenant-scoped storage path for an upload grant. */
+export function buildScopedPath(tenantId: string, input: Req): string {
+  const ext = extFor(input.contentType);
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  if (input.kind === "question-paper") {
+    return `tenants/${tenantId}/exams/${input.examId}/question-paper/${stamp}-${rand}.${ext}`;
+  }
+  if (!input.studentId) fail("INVALID_ARGUMENT", "studentId required for answer-sheet upload");
+  return `tenants/${tenantId}/exams/${input.examId}/answer-sheets/${input.studentId}/${stamp}-${rand}.${ext}`;
+}
+
+function extFor(contentType: string): string {
+  if (contentType.includes("png")) return "png";
+  if (contentType.includes("pdf")) return "pdf";
+  if (contentType.includes("webp")) return "webp";
+  return "jpg";
+}

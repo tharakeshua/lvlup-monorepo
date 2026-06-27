@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import { useSpace, useProgress } from "@levelup/shared-hooks";
+import { useSpace, useSpaceProgress } from "@levelup/query";
+import { asSpaceId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import ProgressBar from "../components/common/ProgressBar";
 import {
@@ -38,26 +38,23 @@ import {
   BarChart3,
   Brain,
 } from "lucide-react";
-import type { StoryPoint, StoryPointProgress } from "@levelup/shared-types";
+import type { Space, StoryPoint, StoryPointProgress, SpaceProgress } from "@levelup/shared-types";
 import SpaceReviewSection from "../components/spaces/SpaceReviewSection";
 
 export default function SpaceViewerPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
-  const { currentTenantId, user } = useAuthStore();
-  const userId = user?.uid ?? null;
 
   const {
-    data: space,
+    data: spaceData,
     isLoading: spaceLoading,
     isError: spaceError,
     refetch: refetchSpace,
-  } = useSpace(currentTenantId, spaceId ?? null);
-  const { data: storyPoints, isLoading: spLoading } = useStoryPoints(
-    currentTenantId,
-    spaceId ?? null
-  );
-  const { data: progress } = useProgress(currentTenantId, userId, spaceId);
+  } = useSpace<{ space: Space }>(spaceId ?? "");
+  const space = spaceData?.space;
+  const { data: storyPoints, isLoading: spLoading } = useStoryPoints(null, spaceId ?? null);
+  const { data: progressData } = useSpaceProgress(asSpaceId(spaceId ?? ""));
+  const progress = (progressData ?? null) as SpaceProgress | null;
 
   const overallPercentage = progress?.percentage ?? 0;
   const pointsEarned = progress?.pointsEarned ?? 0;
@@ -220,13 +217,7 @@ export default function SpaceViewerPage() {
       </Tabs>
 
       {/* Reviews */}
-      {currentTenantId && spaceId && (
-        <SpaceReviewSection
-          tenantId={currentTenantId}
-          spaceId={spaceId}
-          ratingAggregate={space.ratingAggregate}
-        />
-      )}
+      {spaceId && <SpaceReviewSection spaceId={spaceId} ratingAggregate={space.ratingAggregate} />}
     </div>
   );
 }
@@ -361,7 +352,7 @@ function ModuleOverview({
   progress,
 }: {
   storyPoints: StoryPoint[];
-  progress: ReturnType<typeof useProgress>["data"];
+  progress: SpaceProgress | null;
 }) {
   const typeCounts = useMemo(() => {
     const counts: Record<string, { total: number; completed: number }> = {};
@@ -474,7 +465,7 @@ function AIAnalyticsSection({
   overallPercentage,
 }: {
   storyPoints: StoryPoint[];
-  progress: ReturnType<typeof useProgress>["data"];
+  progress: SpaceProgress | null;
   overallPercentage: number;
 }) {
   const insights = useMemo(() => {

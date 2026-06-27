@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApiError } from "@levelup/shared-hooks";
+import { useApiError, useExportTenantData } from "@levelup/query";
 import { sonnerToast as toast } from "@levelup/shared-ui";
 import {
   Button,
@@ -14,9 +14,17 @@ import {
   SelectItem,
 } from "@levelup/shared-ui";
 import { Download, Check } from "lucide-react";
-import { callExportTenantData } from "@levelup/shared-services/auth";
 
-const EXPORT_COLLECTIONS = ["students", "teachers", "classes", "exams", "submissions"] as const;
+// Aligned to the exportTenantData contract enum (zExportCollection). The legacy
+// "submissions" scope is not part of the contract; "parents"/"analytics" are.
+const EXPORT_COLLECTIONS = [
+  "students",
+  "teachers",
+  "parents",
+  "classes",
+  "exams",
+  "analytics",
+] as const;
 
 interface Props {
   tenantId: string;
@@ -24,27 +32,34 @@ interface Props {
 
 export function TenantDataExportCard({ tenantId }: Props) {
   const { handleError } = useApiError();
+  // GAP: the exportTenantData contract takes no `format` field, so the JSON/CSV
+  // selector below is informational only and is not sent to the server.
   const [exportFormat, setExportFormat] = useState<"json" | "csv">("csv");
-  const [exportCollections, setExportCollections] = useState<string[]>(["students", "teachers", "classes"]);
-  const [exporting, setExporting] = useState(false);
+  const [exportCollections, setExportCollections] = useState<string[]>([
+    "students",
+    "teachers",
+    "classes",
+  ]);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+
+  const exportMut = useExportTenantData();
+  const exporting = exportMut.isPending;
 
   const handleExport = async () => {
     if (exportCollections.length === 0) return;
-    setExporting(true);
     setExportUrl(null);
     try {
-      const result = await callExportTenantData({
-        tenantId,
-        format: exportFormat,
-        collections: exportCollections as (typeof EXPORT_COLLECTIONS[number])[],
-      });
+      // The contract requires a single `scope`; we export the union via "all"
+      // and pass the chosen collections as the per-collection filter.
+      const result = (await exportMut.mutateAsync({
+        tenantOverride: tenantId,
+        scope: "all",
+        collections: exportCollections,
+      })) as { downloadUrl: string; expiresAt: string };
       setExportUrl(result.downloadUrl);
-      toast.success(`Export ready: ${result.recordCount} records`);
+      toast.success("Export ready");
     } catch (err) {
       handleError(err, "Failed to export data");
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -64,10 +79,10 @@ export function TenantDataExportCard({ tenantId }: Props) {
                 size="sm"
                 onClick={() =>
                   setExportCollections((prev) =>
-                    prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col],
+                    prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
                   )
                 }
-                className="capitalize h-7 text-xs gap-1"
+                className="h-7 gap-1 text-xs capitalize"
               >
                 {isSelected && <Check className="h-3 w-3" />}
                 {col}
@@ -77,13 +92,20 @@ export function TenantDataExportCard({ tenantId }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "json" | "csv")}>
-            <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-24">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="csv">CSV</SelectItem>
               <SelectItem value="json">JSON</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleExport} disabled={exporting || exportCollections.length === 0} size="sm" className="gap-1.5">
+          <Button
+            onClick={handleExport}
+            disabled={exporting || exportCollections.length === 0}
+            size="sm"
+            className="gap-1.5"
+          >
             <Download className="h-3.5 w-3.5" />
             {exporting ? "Exporting..." : "Export"}
           </Button>
@@ -93,7 +115,7 @@ export function TenantDataExportCard({ tenantId }: Props) {
             href={exportUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
+            className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             Download export (expires in 1 hour)

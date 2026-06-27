@@ -1,11 +1,16 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useCurrentTenantId, useAuthStore } from "@levelup/shared-stores";
-import { useExam, useSubmissions, useStudents, useClasses } from "@levelup/shared-hooks";
-import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
+import {
+  useExam,
+  useSubmissions,
+  useStudents,
+  useClasses,
+  useReleaseResults,
+} from "@levelup/query";
+import { useAuthSession } from "../../sdk/session";
 import { ref, uploadBytes } from "firebase/storage";
 import { getFirebaseServices, callUploadAnswerSheets } from "@levelup/shared-services";
-import type { Submission } from "@levelup/shared-types";
+import type { Exam, Submission } from "@levelup/shared-types";
 import {
   ArrowLeft,
   Upload,
@@ -68,14 +73,36 @@ const PIPELINE_COLORS: Record<string, string> = {
   manual_review_needed: "text-red-500",
 };
 
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
+interface ClassRow {
+  id: string;
+  name: string;
+}
+
 export default function SubmissionsPage() {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const firebaseUser = useAuthStore((s) => s.firebaseUser);
-  const { data: exam } = useExam(tenantId, examId ?? null);
-  const { data: submissions = [], refetch } = useSubmissions(tenantId, { examId });
-  const { data: allClasses = [] } = useClasses(tenantId);
+  // currentTenantId is retained: the kept shared-services callUploadAnswerSheets
+  // and the Storage upload path still need it.
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const firebaseUser = useAuthSession((s) => s.firebaseUser);
+  const { data: examData } = useExam(examId ?? "");
+  const exam = examData as Exam | undefined;
+  const { data: submissionsData, refetch } = useSubmissions({ examId });
+  const submissions = useMemo(() => asArray<Submission>(submissionsData), [submissionsData]);
+  const { data: classesData } = useClasses();
+  const allClasses = useMemo(() => asArray<ClassRow>(classesData), [classesData]);
+  const releaseResults = useReleaseResults();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [classId, setClassId] = useState("");
@@ -88,7 +115,14 @@ export default function SubmissionsPage() {
     () => allClasses.filter((c) => exam?.classIds?.includes(c.id)),
     [allClasses, exam?.classIds]
   );
-  const { data: students = [] } = useStudents(tenantId, classId ? { classId } : undefined);
+  const { data: studentsData } = useStudents(classId ? { classId } : undefined);
+  const students = useMemo(
+    () =>
+      asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
+        studentsData
+      ),
+    [studentsData]
+  );
 
   // Reset student selection when class changes.
   useEffect(() => {
@@ -148,20 +182,18 @@ export default function SubmissionsPage() {
     }
   };
 
-  const handleReleaseResults = async (submissionIds: string[]) => {
-    if (!tenantId) return;
-    const { db } = getFirebaseServices();
-    const batch = writeBatch(db);
-    for (const id of submissionIds) {
-      batch.update(doc(db, `tenants/${tenantId}/submissions`, id), {
-        resultsReleased: true,
-        resultsReleasedAt: serverTimestamp(),
-        resultsReleasedBy: firebaseUser?.uid,
-        updatedAt: serverTimestamp(),
-      });
+  // The legacy code flipped `resultsReleased` per-submission via a Firestore batch;
+  // the SDK's authoritative verb is the exam-level `releaseResults` callable
+  // (v1.autograde.releaseResults). It releases this exam's reviewed results
+  // server-side (the per-submission flag is set by the callable).
+  const handleReleaseResults = async () => {
+    if (!examId) return;
+    try {
+      await releaseResults.mutateAsync({ examId });
+      refetch();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Failed to release results");
     }
-    await batch.commit();
-    refetch();
   };
 
   const handleExportCSV = () => {
@@ -286,7 +318,8 @@ export default function SubmissionsPage() {
           )}
           {unreleasedReviewed.length > 0 && (
             <Button
-              onClick={() => handleReleaseResults(unreleasedReviewed.map((s) => s.id))}
+              onClick={() => handleReleaseResults()}
+              disabled={releaseResults.isPending}
               size="sm"
               className="bg-blue-600 text-white hover:bg-blue-700"
             >

@@ -54,13 +54,14 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.importFromBank = void 0;
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
 const shared_types_1 = require("@levelup/shared-types");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
-const firestore_1 = require("../utils/firestore");
+const firestore_2 = require("../utils/firestore");
 const shared_types_2 = require("@levelup/shared-types");
 /**
  * Import questions from the question bank into a story point.
@@ -95,7 +96,7 @@ exports.importFromBank = (0, https_1.onCall)(
     await (0, rate_limit_1.enforceRateLimit)(data.tenantId, callerUid, "write", 30);
     const db = admin.firestore();
     // Verify story point exists
-    await (0, firestore_1.loadStoryPoint)(data.tenantId, data.spaceId, data.storyPointId);
+    await (0, firestore_2.loadStoryPoint)(data.tenantId, data.spaceId, data.storyPointId);
     // Load bank items
     const bankItemRefs = data.questionBankItemIds.map((id) =>
       db.doc(`tenants/${data.tenantId}/questionBank/${id}`)
@@ -161,13 +162,13 @@ exports.importFromBank = (0, https_1.onCall)(
         orderIndex,
         linkedQuestionId: null,
         createdBy: callerUid,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
       });
       // Update usage count on bank item
       batch.update(doc.ref, {
-        usageCount: admin.firestore.FieldValue.increment(1),
-        lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+        usageCount: firestore_1.FieldValue.increment(1),
+        lastUsedAt: firestore_1.FieldValue.serverTimestamp(),
       });
       createdIds.push(itemRef.id);
       orderIndex++;

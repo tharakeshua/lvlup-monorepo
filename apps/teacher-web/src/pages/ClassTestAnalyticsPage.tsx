@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useClasses, useSpaces, useExams, useExamAnalytics } from "@levelup/shared-hooks";
+import { useClasses, useSpaces, useExams, useExamAnalytics } from "@levelup/query";
 import { BarChart3, Users, Target, TrendingUp, AlertTriangle, BookOpen } from "lucide-react";
 import {
   ScoreCard,
@@ -18,13 +17,17 @@ import {
   TableRow,
   Skeleton,
 } from "@levelup/shared-ui";
-import type { Exam, Space } from "@levelup/shared-types";
+import type { Exam, Space, ExamAnalytics, Class } from "@levelup/shared-types";
 
 export default function ClassTestAnalyticsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: classes = [] } = useClasses(tenantId);
-  const { data: exams = [] } = useExams(tenantId);
-  const { data: spaces = [] } = useSpaces(tenantId, {});
+  const { data: classesRaw } = useClasses();
+  const classes = ((classesRaw as { items?: Class[] } | undefined)?.items ?? []) as Class[];
+  const { data: examsRaw } = useExams();
+  const exams = ((examsRaw as { pages?: { items?: Exam[] }[] } | undefined)?.pages ?? []).flatMap(
+    (p) => p.items ?? []
+  ) as Exam[];
+  const { data: spacesRaw } = useSpaces({});
+  const spaces = ((spacesRaw as { items?: Space[] } | undefined)?.items ?? []) as Space[];
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const activeClassId = selectedClassId || classes[0]?.id || null;
@@ -52,7 +55,10 @@ export default function ClassTestAnalyticsPage() {
   // Exam analytics for the first graded exam (to show aggregate)
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const activeExamId = selectedExamId || gradedExams[0]?.id || null;
-  const { data: analytics, isLoading: analyticsLoading } = useExamAnalytics(tenantId, activeExamId);
+  const { data: analyticsRaw, isLoading: analyticsLoading } = useExamAnalytics(
+    (activeExamId ?? "") as never
+  );
+  const analytics = (analyticsRaw ?? null) as ExamAnalytics | null;
 
   // Compute class aggregate stats
   const classStats = useMemo(() => {

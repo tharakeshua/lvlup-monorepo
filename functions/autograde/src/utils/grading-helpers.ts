@@ -1,23 +1,23 @@
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from "firebase-admin/firestore";
 import {
   UnifiedRubric,
   QuestionSubmission,
   ExamQuestion,
   EvaluationFeedbackRubric,
   EvaluationDimension,
-} from '../types';
+} from "../types";
 
 /**
  * Calculate letter grade from percentage.
  */
 export function calculateGrade(percentage: number): string {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C';
-  if (percentage >= 40) return 'D';
-  return 'F';
+  if (percentage >= 90) return "A+";
+  if (percentage >= 80) return "A";
+  if (percentage >= 70) return "B+";
+  if (percentage >= 60) return "B";
+  if (percentage >= 50) return "C";
+  if (percentage >= 40) return "D";
+  return "F";
 }
 
 /**
@@ -26,7 +26,7 @@ export function calculateGrade(percentage: number): string {
 export function resolveRubric(
   question: ExamQuestion,
   examEvalSettings?: EvaluationFeedbackRubric | null,
-  tenantDefaultSettings?: EvaluationFeedbackRubric | null,
+  tenantDefaultSettings?: EvaluationFeedbackRubric | null
 ): { rubric: UnifiedRubric; dimensions: EvaluationDimension[] } {
   const rubric = question.rubric;
 
@@ -42,7 +42,7 @@ export function resolveRubric(
  */
 export function calculateSubmissionSummary(
   questionSubmissions: QuestionSubmission[],
-  totalQuestions: number,
+  totalQuestions: number
 ): {
   totalScore: number;
   maxScore: number;
@@ -57,18 +57,21 @@ export function calculateSubmissionSummary(
 
   for (const qs of questionSubmissions) {
     const isGraded =
-      qs.gradingStatus === 'graded' ||
-      qs.gradingStatus === 'manual' ||
-      qs.gradingStatus === 'overridden';
+      qs.gradingStatus === "graded" ||
+      qs.gradingStatus === "manual" ||
+      qs.gradingStatus === "overridden" ||
+      qs.gradingStatus === "needs_review";
 
     if (!isGraded) continue;
 
     questionsGraded++;
 
-    if (qs.manualOverride && (qs.gradingStatus === 'overridden' || qs.gradingStatus === 'manual')) {
+    if (qs.manualOverride && (qs.gradingStatus === "overridden" || qs.gradingStatus === "manual")) {
       totalScore += qs.manualOverride.score;
       maxScore += qs.evaluation?.maxScore ?? qs.manualOverride.score;
     } else if (qs.evaluation) {
+      // needs_review questions carry a tentative AI score; include it. The
+      // teacher's final review will overwrite via the manual override path.
       totalScore += qs.evaluation.score;
       maxScore += qs.evaluation.maxScore;
     }

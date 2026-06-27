@@ -1,20 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { StoryPoint } from '@levelup/shared-types';
+import { useStoryPoints as useQueryStoryPoints } from "@levelup/query";
+import type { StoryPoint } from "@levelup/shared-types";
 
-export function useStoryPoints(tenantId: string | null, spaceId: string | null) {
-  return useQuery<StoryPoint[]>({
-    queryKey: ['tenants', tenantId, 'spaces', spaceId, 'storyPoints'],
-    queryFn: async () => {
-      if (!tenantId || !spaceId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/spaces/${spaceId}/storyPoints`);
-      const q = query(colRef, orderBy('orderIndex', 'asc'));
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StoryPoint);
-    },
-    enabled: !!tenantId && !!spaceId,
+/**
+ * App-local wrapper over `@levelup/query`'s `useStoryPoints`.
+ * Preserves the legacy `(tenantId, spaceId)` signature + `StoryPoint[]` return
+ * shape so existing consumers keep working. `tenantId` is now resolved inside
+ * the SDK (auth context), so the first arg is accepted but ignored.
+ */
+export function useStoryPoints(_tenantId: string | null, spaceId: string | null) {
+  const result = useQueryStoryPoints<{ items: StoryPoint[] }>(spaceId ?? "", {
+    enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
   });
+  return {
+    ...result,
+    data: (result.data?.items ?? undefined) as StoryPoint[] | undefined,
+  };
 }

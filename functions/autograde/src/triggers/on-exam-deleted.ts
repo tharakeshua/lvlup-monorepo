@@ -1,6 +1,7 @@
-import * as admin from 'firebase-admin';
-import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onDocumentDeleted } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions/v2";
 
 /**
  * Firestore trigger: cascade delete when an exam is deleted.
@@ -13,8 +14,8 @@ import { logger } from 'firebase-functions/v2';
  */
 export const onExamDeleted = onDocumentDeleted(
   {
-    document: 'tenants/{tenantId}/exams/{examId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}/exams/{examId}",
+    region: "asia-south1",
   },
   async (event) => {
     const { tenantId, examId } = event.params;
@@ -28,7 +29,7 @@ export const onExamDeleted = onDocumentDeleted(
     // Delete all submissions and their questionSubmissions
     const submissionsSnap = await db
       .collection(`tenants/${tenantId}/submissions`)
-      .where('examId', '==', examId)
+      .where("examId", "==", examId)
       .get();
 
     for (const submissionDoc of submissionsSnap.docs) {
@@ -46,23 +47,20 @@ export const onExamDeleted = onDocumentDeleted(
 
     // Update tenant stats
     await db.doc(`tenants/${tenantId}`).update({
-      'stats.totalExams': admin.firestore.FieldValue.increment(-1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      "stats.totalExams": FieldValue.increment(-1),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     logger.info(
-      `Cascade delete complete for exam ${examId}: ${submissionsSnap.size} submissions deleted`,
+      `Cascade delete complete for exam ${examId}: ${submissionsSnap.size} submissions deleted`
     );
-  },
+  }
 );
 
 /**
  * Delete all documents in a collection using chunked batches (max 450 per batch).
  */
-async function deleteCollection(
-  db: admin.firestore.Firestore,
-  path: string,
-): Promise<void> {
+async function deleteCollection(db: admin.firestore.Firestore, path: string): Promise<void> {
   const snapshot = await db.collection(path).limit(450).get();
   if (snapshot.empty) return;
 

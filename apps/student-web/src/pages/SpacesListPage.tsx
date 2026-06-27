@@ -1,21 +1,22 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpaces, useAllSpaceProgress } from "@levelup/shared-hooks";
+import { useSpaces, useSpaceProgress } from "@levelup/query";
+import { asSpaceId } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
 import { BookOpen, AlertCircle, RefreshCw, Star } from "lucide-react";
 import { Skeleton, Button } from "@levelup/shared-ui";
-import type { Space } from "@levelup/shared-types";
+import type { Space, SpaceProgress } from "@levelup/shared-types";
 
 export default function SpacesListPage() {
-  const { currentTenantId, user, currentMembership } = useAuthStore();
+  const { currentMembership } = useAuthStore();
   const classIds = currentMembership?.permissions?.managedClassIds;
   const {
-    data: spaces,
+    data: spacesPage,
     isLoading,
     isError,
     refetch,
-  } = useSpaces(currentTenantId, { status: "published", classIds });
-  const { data: allProgress } = useAllSpaceProgress(currentTenantId, user?.uid ?? null);
+  } = useSpaces<{ items: Space[] }>({ status: "published", classIds });
+  const spaces = spacesPage?.items;
 
   if (isLoading) {
     return (
@@ -58,11 +59,7 @@ export default function SpacesListPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {spaces.map((space) => (
-            <SpaceCard
-              key={space.id}
-              space={space}
-              percentage={allProgress?.[space.id]?.percentage ?? 0}
-            />
+            <SpaceCard key={space.id} space={space} />
           ))}
         </div>
       )}
@@ -70,7 +67,9 @@ export default function SpacesListPage() {
   );
 }
 
-function SpaceCard({ space, percentage }: { space: Space; percentage: number }) {
+function SpaceCard({ space }: { space: Space }) {
+  const { data: progress } = useSpaceProgress(asSpaceId(space.id));
+  const percentage = (progress as SpaceProgress | null)?.percentage ?? 0;
   return (
     <Link
       to={`/spaces/${space.id}`}

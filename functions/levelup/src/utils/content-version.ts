@@ -1,10 +1,11 @@
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "firebase-functions/v2";
 
 interface WriteVersionParams {
-  entityType: 'space' | 'storyPoint' | 'item';
+  entityType: "space" | "storyPoint" | "item";
   entityId: string;
-  changeType: 'created' | 'updated' | 'published' | 'archived';
+  changeType: "created" | "updated" | "published" | "archived";
   changeSummary: string;
   changedBy: string;
 }
@@ -17,16 +18,16 @@ export async function writeContentVersion(
   db: admin.firestore.Firestore,
   tenantId: string,
   spaceId: string,
-  params: WriteVersionParams,
+  params: WriteVersionParams
 ): Promise<string> {
   const versionsPath = `tenants/${tenantId}/spaces/${spaceId}/versions`;
 
   // Get next version number
   const lastVersion = await db
     .collection(versionsPath)
-    .where('entityType', '==', params.entityType)
-    .where('entityId', '==', params.entityId)
-    .orderBy('version', 'desc')
+    .where("entityType", "==", params.entityType)
+    .where("entityId", "==", params.entityId)
+    .orderBy("version", "desc")
     .limit(1)
     .get();
 
@@ -41,7 +42,7 @@ export async function writeContentVersion(
     changeType: params.changeType,
     changeSummary: params.changeSummary,
     changedBy: params.changedBy,
-    changedAt: admin.firestore.FieldValue.serverTimestamp(),
+    changedAt: FieldValue.serverTimestamp(),
   });
 
   logger.info(`Wrote version ${nextVersion} for ${params.entityType}:${params.entityId}`);

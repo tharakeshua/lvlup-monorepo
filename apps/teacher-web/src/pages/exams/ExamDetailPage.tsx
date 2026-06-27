@@ -1,17 +1,15 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useExam, useSubmissions, useClasses, useApiError } from "@levelup/shared-hooks";
-import { toast } from "sonner";
 import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+  useExam,
+  useSubmissions,
+  useClasses,
+  useApiError,
+  useExamQuestions,
+  useSpaces,
+} from "@levelup/query";
+import { useAuthSession } from "../../sdk/session";
+import { toast } from "sonner";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import {
   getFirebaseServices,
@@ -19,7 +17,7 @@ import {
   callGenerateReport,
   callExtractQuestions,
 } from "@levelup/shared-services";
-import type { ExamQuestion, UnifiedRubric } from "@levelup/shared-types";
+import type { Exam, Submission, ExamQuestion, UnifiedRubric } from "@levelup/shared-types";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import ExamMetadataEditDialog from "../../components/exam/ExamMetadataEditDialog";
 import ClassMultiSelect from "../../components/exam/ClassMultiSelect";
@@ -39,7 +37,6 @@ import {
   ClipboardCheck,
   Image as ImageIcon,
 } from "lucide-react";
-import { useSpaces } from "@levelup/shared-hooks";
 import {
   DownloadPDFButton,
   Button,
@@ -75,6 +72,23 @@ import {
   TableRow,
 } from "@levelup/shared-ui";
 
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
+interface SpaceRow {
+  id: string;
+  title: string;
+  subject?: string;
+}
+
 function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
   if (!rubric) {
     return (
@@ -102,8 +116,11 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
       : null;
 
   const showCriteriaTable =
-    (scoringMode === "criteria_based" || scoringMode === "hybrid") && criteria && criteria.length > 0;
-  const showDimensionsTable = scoringMode === "dimension_based" && dimensions && dimensions.length > 0;
+    (scoringMode === "criteria_based" || scoringMode === "hybrid") &&
+    criteria &&
+    criteria.length > 0;
+  const showDimensionsTable =
+    scoringMode === "dimension_based" && dimensions && dimensions.length > 0;
   const showHolistic = (scoringMode === "holistic" || scoringMode === "hybrid") && holisticGuidance;
 
   return (
@@ -114,7 +131,7 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
           <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
             Rubric &amp; Marking
           </span>
-          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 capitalize dark:bg-purple-900/40 dark:text-purple-300">
+          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium capitalize text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
             {scoringMode.replace(/_/g, " ")}
           </span>
         </div>
@@ -263,7 +280,9 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
 
         {evaluatorGuidance && (
           <div className="mt-3 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-xs dark:border-blue-900/40 dark:bg-blue-950/20">
-            <p className="mb-1 font-semibold text-blue-800 dark:text-blue-300">Evaluator guidance</p>
+            <p className="mb-1 font-semibold text-blue-800 dark:text-blue-300">
+              Evaluator guidance
+            </p>
             <div className="text-blue-900/90 dark:text-blue-200/90">
               <MarkdownWithMath text={evaluatorGuidance} />
             </div>
@@ -288,10 +307,19 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
 export default function ExamDetailPage() {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const tenantId = useCurrentTenantId();
-  const { data: exam, isLoading, refetch } = useExam(tenantId, examId ?? null);
-  const { data: submissions = [] } = useSubmissions(tenantId, { examId });
+  // currentTenantId is retained: the kept shared-services callables (callSaveExam,
+  // callGenerateReport, callExtractQuestions) and the Storage path still need it.
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const { data: examData, isLoading, refetch } = useExam(examId ?? "");
+  const exam = examData as Exam | undefined;
+  const { data: submissionsData } = useSubmissions({ examId });
+  const submissions = useMemo(() => asArray<Submission>(submissionsData), [submissionsData]);
+  const { data: questionsData, refetch: refetchQuestions } = useExamQuestions(examId ?? "");
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  // Seed local question state from the query (kept local for in-session edits).
+  useEffect(() => {
+    setQuestions(asArray<ExamQuestion>(questionsData));
+  }, [questionsData]);
   const [editingRubric, setEditingRubric] = useState<string | null>(null);
   const [showSpacePicker, setShowSpacePicker] = useState(false);
   const [linkingSpace, setLinkingSpace] = useState(false);
@@ -301,8 +329,14 @@ export default function ExamDetailPage() {
   const [editValues, setEditValues] = useState<Record<string, { text: string; maxMarks: number }>>(
     {}
   );
-  const { data: allSpaces = [] } = useSpaces(tenantId, { status: "published" });
-  const { data: tenantClasses = [] } = useClasses(tenantId);
+  // Query hooks are claims-scoped server-side — no tenantId arg.
+  const { data: spacesData } = useSpaces({ status: "published" });
+  const allSpaces = useMemo(() => asArray<SpaceRow>(spacesData), [spacesData]);
+  const { data: classesData } = useClasses();
+  const tenantClasses = useMemo(
+    () => asArray<{ id: string; name: string }>(classesData),
+    [classesData]
+  );
   const { handleError } = useApiError();
   const [showEditMeta, setShowEditMeta] = useState(false);
   const [showEditClasses, setShowEditClasses] = useState(false);
@@ -344,18 +378,6 @@ export default function ExamDetailPage() {
     };
   }, [exam?.questionPaper?.images, questionPaperUrls]);
 
-  useEffect(() => {
-    if (!tenantId || !examId) return;
-    const load = async () => {
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
-      const q = query(colRef, orderBy("order", "asc"));
-      const snap = await getDocs(q);
-      setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
-    };
-    load();
-  }, [tenantId, examId]);
-
   const handlePublish = async () => {
     if (!tenantId || !examId) return;
     await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
@@ -373,34 +395,23 @@ export default function ExamDetailPage() {
     setExtracting(true);
     try {
       await callExtractQuestions({ tenantId, examId });
-      // Reload questions
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
-      const q = query(colRef, orderBy("order", "asc"));
-      const snap = await getDocs(q);
-      setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
+      await refetchQuestions();
       refetch();
     } finally {
       setExtracting(false);
     }
   };
 
+  // PARITY GAP: @levelup/query has no saveExamQuestion callable (no
+  // v1.autograde.* verb for editing a question's rubric/text/marks — the autograde
+  // domain only exposes list + (re)extract + grade). Until a backend callable
+  // exists, question edits are applied to local session state only and flagged.
   const handleSaveQuestionRubric = async (questionId: string, rubric: UnifiedRubric) => {
-    if (!tenantId || !examId) return;
-    const prevQuestions = questions;
     setQuestions((prev) => prev.map((q) => (q.id === questionId ? { ...q, rubric } : q)));
-    const { db } = getFirebaseServices();
-    try {
-      await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
-        rubric,
-        updatedAt: serverTimestamp(),
-      });
-      setEditingRubric(null);
-      toast.success("Rubric saved");
-    } catch (err) {
-      setQuestions(prevQuestions);
-      handleError(err, "Failed to save rubric");
-    }
+    setEditingRubric(null);
+    toast.warning(
+      "Rubric updated for this session only — persisting question rubric edits needs a backend callable (reported to the team)."
+    );
   };
 
   const handleReExtractQuestion = async (questionNumber: string) => {
@@ -408,45 +419,30 @@ export default function ExamDetailPage() {
     setReExtracting(questionNumber);
     try {
       await callExtractQuestions({ tenantId, examId, mode: "single", questionNumber });
-      // Reload questions
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/exams/${examId}/questions`);
-      const q = query(colRef, orderBy("order", "asc"));
-      const snap = await getDocs(q);
-      setQuestions(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExamQuestion));
+      await refetchQuestions();
     } finally {
       setReExtracting(null);
     }
   };
 
+  // PARITY GAP (see handleSaveQuestionRubric): no saveExamQuestion callable.
   const handleSaveQuestionEdit = async (questionId: string) => {
-    if (!tenantId || !examId) return;
     const edits = editValues[questionId];
     if (!edits) return;
-    const prevQuestions = questions;
     setQuestions((prev) =>
       prev.map((q) =>
         q.id === questionId ? { ...q, text: edits.text, maxMarks: edits.maxMarks } : q
       )
     );
-    const { db } = getFirebaseServices();
-    try {
-      await updateDoc(doc(db, `tenants/${tenantId}/exams/${examId}/questions`, questionId), {
-        text: edits.text,
-        maxMarks: edits.maxMarks,
-        updatedAt: serverTimestamp(),
-      });
-      setEditingQuestion(null);
-      setEditValues((prev) => {
-        const next = { ...prev };
-        delete next[questionId];
-        return next;
-      });
-      toast.success("Question saved");
-    } catch (err) {
-      setQuestions(prevQuestions);
-      handleError(err, "Failed to save question");
-    }
+    setEditingQuestion(null);
+    setEditValues((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+    toast.warning(
+      "Question updated for this session only — persisting question edits needs a backend callable (reported to the team)."
+    );
   };
 
   const handleConfirmAndPublish = async () => {
@@ -1021,9 +1017,7 @@ export default function ExamDetailPage() {
                   </div>
                 )
               ) : (exam.classIds ?? []).length === 0 ? (
-                <p className="text-muted-foreground text-xs">
-                  No classes assigned.
-                </p>
+                <p className="text-muted-foreground text-xs">No classes assigned.</p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {(exam.classIds ?? []).map((cid) => {

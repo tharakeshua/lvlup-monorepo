@@ -1,7 +1,11 @@
-import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import { DEFAULT_TEACHER_PERMISSIONS, BulkImportStudentsRequestSchema } from '@levelup/shared-types';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/v2";
+import {
+  DEFAULT_TEACHER_PERMISSIONS,
+  BulkImportStudentsRequestSchema,
+} from "@levelup/shared-types";
 import {
   assertTenantAdminOrSuperAdmin,
   getTenant,
@@ -14,10 +18,10 @@ import {
   assertFeatureEnabled,
   logTenantAction,
   writePlatformActivity,
-} from '../utils';
-import { enforceRateLimit } from '../utils/rate-limit';
-import { incrementUsage } from '../utils/usage';
-import type { UserMembership } from '@levelup/shared-types';
+} from "../utils";
+import { enforceRateLimit } from "../utils/rate-limit";
+import { incrementUsage } from "../utils/usage";
+import type { UserMembership } from "@levelup/shared-types";
 
 interface StudentImportRow {
   firstName: string;
@@ -63,9 +67,9 @@ interface BulkImportResult {
  */
 export const bulkImportStudents = onCall(
   {
-    region: 'asia-south1',
+    region: "asia-south1",
     timeoutSeconds: 540,
-    memory: '1GiB',
+    memory: "1GiB",
     cors: true,
   },
   async (request) => {
@@ -74,18 +78,18 @@ export const bulkImportStudents = onCall(
 
     await assertTenantAdminOrSuperAdmin(callerUid, data.tenantId);
 
-    await enforceRateLimit(data.tenantId, callerUid!, 'write', 5);
+    await enforceRateLimit(data.tenantId, callerUid!, "write", 5);
 
     // Check that bulk import feature is enabled for this tenant
-    await assertFeatureEnabled(data.tenantId, 'bulkImportEnabled');
+    await assertFeatureEnabled(data.tenantId, "bulkImportEnabled");
 
     const tenant = await getTenant(data.tenantId);
-    if (!tenant || tenant.status !== 'active') {
-      throw new HttpsError('not-found', 'Tenant not found or inactive');
+    if (!tenant || tenant.status !== "active") {
+      throw new HttpsError("not-found", "Tenant not found or inactive");
     }
 
     if (data.students.length > 500) {
-      throw new HttpsError('invalid-argument', 'Maximum 500 rows per import');
+      throw new HttpsError("invalid-argument", "Maximum 500 rows per import");
     }
 
     // Validate all rows
@@ -96,15 +100,23 @@ export const bulkImportStudents = onCall(
       const row = data.students[i];
 
       if (!row.firstName || !row.lastName) {
-        errors.push({ rowIndex: i, rollNumber: row.rollNumber ?? '', error: 'firstName and lastName required' });
+        errors.push({
+          rowIndex: i,
+          rollNumber: row.rollNumber ?? "",
+          error: "firstName and lastName required",
+        });
         continue;
       }
       if (!row.rollNumber) {
-        errors.push({ rowIndex: i, rollNumber: '', error: 'rollNumber required' });
+        errors.push({ rowIndex: i, rollNumber: "", error: "rollNumber required" });
         continue;
       }
       if (seenRollNumbers.has(row.rollNumber.toLowerCase())) {
-        errors.push({ rowIndex: i, rollNumber: row.rollNumber, error: 'Duplicate rollNumber in batch' });
+        errors.push({
+          rowIndex: i,
+          rollNumber: row.rollNumber,
+          error: "Duplicate rollNumber in batch",
+        });
         continue;
       }
       seenRollNumbers.add(row.rollNumber.toLowerCase());
@@ -113,7 +125,7 @@ export const bulkImportStudents = onCall(
     // Check subscription limit using centralized quota enforcement
     const validRowCount = data.students.length - errors.length;
     if (validRowCount > 0) {
-      await assertQuota(data.tenantId, 'student', validRowCount);
+      await assertQuota(data.tenantId, "student", validRowCount);
     }
 
     if (data.dryRun) {
@@ -143,8 +155,7 @@ export const bulkImportStudents = onCall(
         try {
           const password = generateTempPassword();
           const email =
-            row.email ??
-            `${sanitizeRollNumber(row.rollNumber)}@${data.tenantId}.levelup.internal`;
+            row.email ?? `${sanitizeRollNumber(row.rollNumber)}@${data.tenantId}.levelup.internal`;
 
           // Create Auth account
           let userRecord: admin.auth.UserRecord;
@@ -156,7 +167,7 @@ export const bulkImportStudents = onCall(
             });
           } catch (err: unknown) {
             const firebaseErr = err as { code?: string };
-            if (firebaseErr.code === 'auth/email-already-exists') {
+            if (firebaseErr.code === "auth/email-already-exists") {
               userRecord = await admin.auth().getUserByEmail(email);
             } else {
               throw err;
@@ -181,31 +192,45 @@ export const bulkImportStudents = onCall(
             rollNumber: row.rollNumber,
             classIds: row.classId ? [row.classId] : [],
             sectionIds: row.section ? [row.section] : [],
-            status: 'active',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: "active",
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
           });
 
           // Create membership
           const membershipId = `${userRecord.uid}_${data.tenantId}`;
-          const membership: Omit<UserMembership, 'createdAt' | 'updatedAt'> &
+          const membership: Omit<UserMembership, "createdAt" | "updatedAt"> &
             Record<string, unknown> = {
             id: membershipId,
             uid: userRecord.uid,
             tenantId: data.tenantId,
             tenantCode: tenant.tenantCode,
-            role: 'student',
-            status: 'active',
-            joinSource: 'bulk_import',
+            role: "student",
+            status: "active",
+            joinSource: "bulk_import",
             studentId: studentRef.id,
             permissions: {
               managedClassIds: row.classId ? [row.classId] : [],
             },
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
           };
 
           await admin.firestore().doc(`userMemberships/${membershipId}`).set(membership);
+
+          // Keep the class document's denormalized roster in sync. saveStudent
+          // does this too; bulk-import previously skipped it, which caused
+          // class.studentCount to diverge from useStudents({ classId }).
+          if (row.classId) {
+            await admin
+              .firestore()
+              .doc(`tenants/${data.tenantId}/classes/${row.classId}`)
+              .update({
+                studentIds: FieldValue.arrayUnion(studentRef.id),
+                studentCount: FieldValue.increment(1),
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+          }
 
           // Set claims
           const claims = buildClaimsForMembership(membership);
@@ -219,12 +244,7 @@ export const bulkImportStudents = onCall(
 
           // Handle parent if provided
           if (row.parentEmail) {
-            await createParentForStudent(
-              data.tenantId,
-              tenant.tenantCode,
-              studentRef.id,
-              row,
-            );
+            await createParentForStudent(data.tenantId, tenant.tenantCode, studentRef.id, row);
           }
         } catch (err: unknown) {
           const errorMsg = err instanceof Error ? err.message : String(err);
@@ -239,42 +259,47 @@ export const bulkImportStudents = onCall(
         .firestore()
         .doc(`tenants/${data.tenantId}`)
         .update({
-          'stats.totalStudents': admin.firestore.FieldValue.increment(created),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          "stats.totalStudents": FieldValue.increment(created),
+          updatedAt: FieldValue.serverTimestamp(),
         });
-      await incrementUsage(data.tenantId, 'currentStudents', created);
+      await incrementUsage(data.tenantId, "currentStudents", created);
     }
 
     logger.info(
-      `Bulk import for tenant ${data.tenantId}: ${created} created, ${errors.length} errors`,
+      `Bulk import for tenant ${data.tenantId}: ${created} created, ${errors.length} errors`
     );
 
-    await logTenantAction(data.tenantId, callerUid!, 'bulkImportStudents', {
+    await logTenantAction(data.tenantId, callerUid!, "bulkImportStudents", {
       totalRows: data.students.length,
       created,
       errors: errors.length,
     });
 
-    await writePlatformActivity('users_bulk_imported', callerUid!, {
-      totalRows: data.students.length,
-      created,
-      errors: errors.length,
-    }, data.tenantId);
+    await writePlatformActivity(
+      "users_bulk_imported",
+      callerUid!,
+      {
+        totalRows: data.students.length,
+        created,
+        errors: errors.length,
+      },
+      data.tenantId
+    );
 
     // Send notification to the admin who triggered the import
     try {
-      const { sendNotification } = await import('../notifications/notification-sender');
+      const { sendNotification } = await import("../notifications/notification-sender");
       await sendNotification({
         tenantId: data.tenantId,
         recipientId: callerUid!,
-        recipientRole: 'tenantAdmin',
-        type: 'bulk_import_complete',
-        title: 'Bulk Import Complete',
-        body: `Imported ${created} students successfully${errors.length > 0 ? ` with ${errors.length} errors` : ''}.`,
-        actionUrl: '/users',
+        recipientRole: "tenantAdmin",
+        type: "bulk_import_complete",
+        title: "Bulk Import Complete",
+        body: `Imported ${created} students successfully${errors.length > 0 ? ` with ${errors.length} errors` : ""}.`,
+        actionUrl: "/users",
       });
     } catch (err) {
-      logger.warn('Failed to send bulk import notification:', err);
+      logger.warn("Failed to send bulk import notification:", err);
     }
 
     // Upload credentials to Cloud Storage with a short-lived signed URL
@@ -290,13 +315,13 @@ export const bulkImportStudents = onCall(
         const file = bucket.file(filePath);
 
         // Build CSV content
-        const csvHeader = 'rollNumber,password\n';
-        const csvRows = credentials.map((c) => `${c.rollNumber},${c.password}`).join('\n');
+        const csvHeader = "rollNumber,password\n";
+        const csvRows = credentials.map((c) => `${c.rollNumber},${c.password}`).join("\n");
         const deleteAfter = new Date(Date.now() + 10 * 60 * 1000).toISOString();
         await file.save(csvHeader + csvRows, {
-          contentType: 'text/csv',
+          contentType: "text/csv",
           metadata: {
-            cacheControl: 'no-store',
+            cacheControl: "no-store",
             metadata: { deleteAfter },
           },
         });
@@ -304,7 +329,7 @@ export const bulkImportStudents = onCall(
         // Generate signed URL that expires in 5 minutes
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
         const [signedUrl] = await file.getSignedUrl({
-          action: 'read',
+          action: "read",
           expires: expiresAt,
         });
 
@@ -312,10 +337,10 @@ export const bulkImportStudents = onCall(
         credentialsExpiresAt = expiresAt.toISOString();
 
         logger.info(
-          `Bulk import credentials for tenant ${data.tenantId} uploaded to Cloud Storage (${credentials.length} entries, expires ${expiresAt.toISOString()})`,
+          `Bulk import credentials for tenant ${data.tenantId} uploaded to Cloud Storage (${credentials.length} entries, expires ${expiresAt.toISOString()})`
         );
       } catch (storageErr) {
-        logger.error('Failed to upload credentials to Cloud Storage:', storageErr);
+        logger.error("Failed to upload credentials to Cloud Storage:", storageErr);
         // Fallback: warn but don't fail the import
       }
     }
@@ -328,14 +353,14 @@ export const bulkImportStudents = onCall(
       credentialsUrl,
       credentialsExpiresAt,
     } satisfies BulkImportResult;
-  },
+  }
 );
 
 async function createParentForStudent(
   tenantId: string,
   tenantCode: string,
   studentId: string,
-  row: StudentImportRow,
+  row: StudentImportRow
 ): Promise<void> {
   if (!row.parentEmail) return;
 
@@ -346,7 +371,7 @@ async function createParentForStudent(
   } catch {
     parentRecord = await admin.auth().createUser({
       email: row.parentEmail,
-      displayName: `${row.parentFirstName ?? ''} ${row.parentLastName ?? ''}`.trim(),
+      displayName: `${row.parentFirstName ?? ""} ${row.parentLastName ?? ""}`.trim(),
     });
   }
 
@@ -360,46 +385,46 @@ async function createParentForStudent(
   if (existingMembership.exists) {
     // Add student to existing parent's linked students
     await existingMembership.ref.update({
-      parentLinkedStudentIds: admin.firestore.FieldValue.arrayUnion(studentId),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      parentLinkedStudentIds: FieldValue.arrayUnion(studentId),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     return;
   }
 
   // Create parent entity
-  const parentRef = admin
-    .firestore()
-    .collection(`tenants/${tenantId}/parents`)
-    .doc();
+  const parentRef = admin.firestore().collection(`tenants/${tenantId}/parents`).doc();
 
   await parentRef.set({
     id: parentRef.id,
     tenantId,
     authUid: parentRecord.uid,
-    firstName: row.parentFirstName ?? '',
-    lastName: row.parentLastName ?? '',
+    firstName: row.parentFirstName ?? "",
+    lastName: row.parentLastName ?? "",
     email: row.parentEmail,
     phone: row.parentPhone ?? null,
     linkedStudentIds: [studentId],
-    status: 'active',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    status: "active",
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 
   // Create parent membership
-  await admin.firestore().doc(`userMemberships/${parentMembershipId}`).set({
-    id: parentMembershipId,
-    uid: parentRecord.uid,
-    tenantId,
-    tenantCode,
-    role: 'parent',
-    status: 'active',
-    joinSource: 'bulk_import',
-    parentId: parentRef.id,
-    parentLinkedStudentIds: [studentId],
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  await admin
+    .firestore()
+    .doc(`userMemberships/${parentMembershipId}`)
+    .set({
+      id: parentMembershipId,
+      uid: parentRecord.uid,
+      tenantId,
+      tenantCode,
+      role: "parent",
+      status: "active",
+      joinSource: "bulk_import",
+      parentId: parentRef.id,
+      parentLinkedStudentIds: [studentId],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
-  await updateTenantStats(tenantId, 'parent', 'increment');
+  await updateTenantStats(tenantId, "parent", "increment");
 }

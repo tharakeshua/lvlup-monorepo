@@ -1,0 +1,42 @@
+{
+  "name": "@levelup/ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LLM provider seam, per-tenant Secret Manager keys, cost/quota/circuit-breaker",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^5.6.0",
+    "@google/generative-ai": "^0.21.0",
+    "@levelup/api-contract": "workspace:*",
+    "@levelup/domain": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
+  }
+}

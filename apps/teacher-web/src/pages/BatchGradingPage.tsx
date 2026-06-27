@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import { useSubmissions, useExams } from "@levelup/shared-hooks";
+import { useSubmissions, useExams } from "@levelup/query";
 import {
   Button,
   Card,
@@ -78,12 +77,38 @@ function getStatusBadge(status: string) {
   }
 }
 
-export default function BatchGradingPage() {
-  const { currentTenantId } = useAuthStore();
-  const tenantId = currentTenantId;
+interface SubRow {
+  id: string;
+  examId: string;
+  studentId?: string;
+  studentName?: string;
+  pipelineStatus: string;
+  resultsReleased?: boolean;
+  summary?: { totalScore?: number; maxScore?: number; percentage?: number | null };
+  createdAt?: unknown;
+}
+interface ExamRow {
+  id: string;
+  title: string;
+}
 
-  const { data: submissions, isLoading: subsLoading } = useSubmissions(tenantId);
-  const { data: exams } = useExams(tenantId);
+/** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
+function asArray<T>(d: unknown): T[] {
+  if (Array.isArray(d)) return d as T[];
+  if (d && typeof d === "object") {
+    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    if (Array.isArray(o.items)) return o.items;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+  }
+  return [];
+}
+
+export default function BatchGradingPage() {
+  // Query hooks are claims-scoped server-side — no tenantId arg.
+  const { data: submissionsData, isLoading: subsLoading } = useSubmissions({});
+  const { data: examsData } = useExams();
+  const submissions = useMemo(() => asArray<SubRow>(submissionsData), [submissionsData]);
+  const exams = useMemo(() => asArray<ExamRow>(examsData), [examsData]);
 
   const [filter, setFilter] = useState<GradingFilter>("all");
   const [examFilter, setExamFilter] = useState<string>("all");

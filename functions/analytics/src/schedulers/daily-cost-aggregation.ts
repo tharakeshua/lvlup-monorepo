@@ -4,19 +4,20 @@
  * document and checks budget limits.
  */
 
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as admin from 'firebase-admin';
-import type { DailyCostSummary } from '@levelup/shared-types';
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as admin from "firebase-admin";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import type { DailyCostSummary } from "@levelup/shared-types";
 
 const BUDGET_WARNING_THRESHOLD = 0.8; // 80%
 const BUDGET_EXCEEDED_THRESHOLD = 1.0; // 100%
 
 export const dailyCostAggregation = onSchedule(
   {
-    schedule: '5 0 * * *', // 00:05 AM daily (UTC)
-    timeZone: 'UTC',
-    region: 'asia-south1',
-    memory: '512MiB',
+    schedule: "5 0 * * *", // 00:05 AM daily (UTC)
+    timeZone: "UTC",
+    region: "asia-south1",
+    memory: "512MiB",
     timeoutSeconds: 300,
   },
   async () => {
@@ -26,16 +27,16 @@ export const dailyCostAggregation = onSchedule(
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const dateStr = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateStr = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
     const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
-    const startTimestamp = admin.firestore.Timestamp.fromDate(startOfDay);
-    const endTimestamp = admin.firestore.Timestamp.fromDate(endOfDay);
+    const startTimestamp = Timestamp.fromDate(startOfDay);
+    const endTimestamp = Timestamp.fromDate(endOfDay);
 
     // Get all tenants
-    const tenantsSnap = await db.collection('tenants').get();
+    const tenantsSnap = await db.collection("tenants").get();
 
     for (const tenantDoc of tenantsSnap.docs) {
       const tenantId = tenantDoc.id;
@@ -43,8 +44,8 @@ export const dailyCostAggregation = onSchedule(
       // Query LLM call logs for yesterday
       const logsSnap = await db
         .collection(`tenants/${tenantId}/llmCallLogs`)
-        .where('createdAt', '>=', startTimestamp)
-        .where('createdAt', '<=', endTimestamp)
+        .where("createdAt", ">=", startTimestamp)
+        .where("createdAt", "<=", endTimestamp)
         .get();
 
       if (logsSnap.empty) continue;
@@ -77,7 +78,7 @@ export const dailyCostAggregation = onSchedule(
         totalCostUsd += cost;
 
         // By purpose
-        const purpose = (log.purpose as string) ?? 'unknown';
+        const purpose = (log.purpose as string) ?? "unknown";
         if (!byPurpose[purpose]) {
           byPurpose[purpose] = { calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
         }
@@ -87,7 +88,7 @@ export const dailyCostAggregation = onSchedule(
         byPurpose[purpose].costUsd += cost;
 
         // By model
-        const model = (log.model as string) ?? 'unknown';
+        const model = (log.model as string) ?? "unknown";
         if (!byModel[model]) {
           byModel[model] = { calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
         }
@@ -117,16 +118,20 @@ export const dailyCostAggregation = onSchedule(
         budgetUsedPercent = (monthTotal / budgetLimitUsd) * 100;
 
         if (budgetUsedPercent >= BUDGET_EXCEEDED_THRESHOLD * 100) {
-          console.warn(`BUDGET EXCEEDED for tenant ${tenantId}: ${budgetUsedPercent.toFixed(1)}% used`);
+          console.warn(
+            `BUDGET EXCEEDED for tenant ${tenantId}: ${budgetUsedPercent.toFixed(1)}% used`
+          );
           budgetAlertSent = true;
         } else if (budgetUsedPercent >= BUDGET_WARNING_THRESHOLD * 100) {
-          console.warn(`BUDGET WARNING for tenant ${tenantId}: ${budgetUsedPercent.toFixed(1)}% used`);
+          console.warn(
+            `BUDGET WARNING for tenant ${tenantId}: ${budgetUsedPercent.toFixed(1)}% used`
+          );
           budgetAlertSent = true;
         }
       }
 
-      const costSummary: Omit<DailyCostSummary, 'computedAt'> & {
-        computedAt: admin.firestore.FieldValue;
+      const costSummary: Omit<DailyCostSummary, "computedAt"> & {
+        computedAt: FieldValue;
       } = {
         id: dateStr,
         tenantId,
@@ -140,7 +145,7 @@ export const dailyCostAggregation = onSchedule(
         budgetLimitUsd,
         budgetUsedPercent,
         budgetAlertSent,
-        computedAt: admin.firestore.FieldValue.serverTimestamp(),
+        computedAt: FieldValue.serverTimestamp(),
       };
 
       const dailyDocRef = db.doc(`tenants/${tenantId}/costSummaries/daily/${dateStr}`);
@@ -149,10 +154,18 @@ export const dailyCostAggregation = onSchedule(
 
       // Check if daily doc already exists (idempotency guard for monthly increment)
       const existingDailySnap = await dailyDocRef.get();
-      const previousDailyCost = existingDailySnap.exists ? existingDailySnap.data()?.totalCostUsd ?? 0 : 0;
-      const previousDailyCalls = existingDailySnap.exists ? existingDailySnap.data()?.totalCalls ?? 0 : 0;
-      const previousDailyInput = existingDailySnap.exists ? existingDailySnap.data()?.totalInputTokens ?? 0 : 0;
-      const previousDailyOutput = existingDailySnap.exists ? existingDailySnap.data()?.totalOutputTokens ?? 0 : 0;
+      const previousDailyCost = existingDailySnap.exists
+        ? (existingDailySnap.data()?.totalCostUsd ?? 0)
+        : 0;
+      const previousDailyCalls = existingDailySnap.exists
+        ? (existingDailySnap.data()?.totalCalls ?? 0)
+        : 0;
+      const previousDailyInput = existingDailySnap.exists
+        ? (existingDailySnap.data()?.totalInputTokens ?? 0)
+        : 0;
+      const previousDailyOutput = existingDailySnap.exists
+        ? (existingDailySnap.data()?.totalOutputTokens ?? 0)
+        : 0;
 
       await dailyDocRef.set(costSummary);
 
@@ -164,18 +177,18 @@ export const dailyCostAggregation = onSchedule(
 
       await monthlyDocRef.set(
         {
-          totalCostUsd: admin.firestore.FieldValue.increment(deltaCost),
-          totalCalls: admin.firestore.FieldValue.increment(deltaCalls),
-          totalInputTokens: admin.firestore.FieldValue.increment(deltaInput),
-          totalOutputTokens: admin.firestore.FieldValue.increment(deltaOutput),
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          totalCostUsd: FieldValue.increment(deltaCost),
+          totalCalls: FieldValue.increment(deltaCalls),
+          totalInputTokens: FieldValue.increment(deltaInput),
+          totalOutputTokens: FieldValue.increment(deltaOutput),
+          lastUpdatedAt: FieldValue.serverTimestamp(),
         },
-        { merge: true },
+        { merge: true }
       );
 
       console.log(
-        `Cost summary for tenant ${tenantId} on ${dateStr}: ${totalCalls} calls, $${totalCostUsd.toFixed(4)}`,
+        `Cost summary for tenant ${tenantId} on ${dateStr}: ${totalCalls} calls, $${totalCostUsd.toFixed(4)}`
       );
     }
-  },
+  }
 );

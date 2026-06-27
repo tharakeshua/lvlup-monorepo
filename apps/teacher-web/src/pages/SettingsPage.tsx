@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useEvaluationSettings, useApiError } from "@levelup/shared-hooks";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { useEvaluationSettings, useSaveEvaluationSettings, useApiError } from "@levelup/query";
 import type { EvaluationSettings } from "@levelup/shared-types";
 import { Save, Settings } from "lucide-react";
 import {
@@ -27,19 +24,19 @@ interface EvaluationSettingsWithFields extends EvaluationSettings {
 }
 
 export default function SettingsPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: settingsData, refetch } = useEvaluationSettings(tenantId);
+  // Evaluation settings are tenant-scoped server-side via claims; the query hook
+  // returns the tenant's preset list (no tenantId arg).
+  const { data: settingsData } = useEvaluationSettings();
+  const saveSettings = useSaveEvaluationSettings();
   const [saving, setSaving] = useState(false);
   const { handleError } = useApiError();
 
-  const settings: EvaluationSettingsWithFields | null = Array.isArray(settingsData)
-    ? settingsData[0] ?? null
-    : settingsData;
+  const settings: EvaluationSettingsWithFields | null =
+    (settingsData as EvaluationSettingsWithFields[] | undefined)?.[0] ?? null;
 
   const [autoGrade, setAutoGrade] = useState(true);
   const [requireOverrideReason, setRequireOverrideReason] = useState(true);
-  const [releaseResultsAutomatically, setReleaseResultsAutomatically] =
-    useState(false);
+  const [releaseResultsAutomatically, setReleaseResultsAutomatically] = useState(false);
   const [defaultStrictness, setDefaultStrictness] = useState("moderate");
 
   useEffect(() => {
@@ -52,21 +49,23 @@ export default function SettingsPage() {
   }, [settings]);
 
   const handleSave = async () => {
-    if (!tenantId || !settings?.id) return;
+    if (!settings?.id) return;
     setSaving(true);
     try {
-      const { db } = getFirebaseServices();
-      await updateDoc(
-        doc(db, `tenants/${tenantId}/evaluationSettings`, settings.id),
-        {
-          autoGrade,
-          requireOverrideReason,
-          releaseResultsAutomatically,
-          defaultStrictness,
-          updatedAt: serverTimestamp(),
-        }
-      );
-      await refetch();
+      // PARITY GAP: the new EvaluationSettings contract (saveEvaluationSettings)
+      // does NOT model these teacher-web-specific toggles (autoGrade,
+      // requireOverrideReason, releaseResultsAutomatically, defaultStrictness).
+      // We send them best-effort with the preset id; the server may drop fields
+      // outside its schema. Flagged to Frontend-Lead — needs a contract field or
+      // a dedicated callable to persist these reliably. useSaveEvaluationSettings
+      // auto-invalidates the settings list on settle.
+      await saveSettings.mutateAsync({
+        id: settings.id,
+        autoGrade,
+        requireOverrideReason,
+        releaseResultsAutomatically,
+        defaultStrictness,
+      } as never);
       sonnerToast.success("Settings saved successfully");
     } catch (err) {
       handleError(err, "Failed to save settings");
@@ -79,23 +78,21 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Evaluation and grading configuration
-        </p>
+        <p className="text-muted-foreground text-sm">Evaluation and grading configuration</p>
       </div>
 
       <div className="max-w-xl space-y-6">
         <Card>
-          <CardContent className="p-5 space-y-4">
+          <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-muted-foreground" />
+              <Settings className="text-muted-foreground h-5 w-5" />
               <h2 className="font-semibold">Evaluation Settings</h2>
             </div>
 
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Auto Grade</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Automatically grade submissions using AI
                 </p>
               </div>
@@ -105,7 +102,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Require Override Reason</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Mandate a reason when manually overriding AI grades
                 </p>
               </div>
@@ -114,14 +111,15 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">
-                  Auto-release Results
-                </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium">Auto-release Results</p>
+                <p className="text-muted-foreground text-xs">
                   Release results automatically after grading completes
                 </p>
               </div>
-              <Switch checked={releaseResultsAutomatically} onCheckedChange={setReleaseResultsAutomatically} />
+              <Switch
+                checked={releaseResultsAutomatically}
+                onCheckedChange={setReleaseResultsAutomatically}
+              />
             </div>
 
             <div>
@@ -141,7 +139,7 @@ export default function SettingsPage() {
         </Card>
 
         {!settings && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             No evaluation settings configured for this tenant yet.
           </p>
         )}

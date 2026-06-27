@@ -1,0 +1,13 @@
+{
+  "questions": {},
+  "crossCutting": {
+    "section-grouping": {
+      "status": "PARTIAL",
+      "note": "Sections can be created via story point editor, but ItemEditor has no field to assign item.sectionId"
+    },
+    "drag-to-reorder": {
+      "status": "PARTIAL",
+      "note": "dnd-kit drag executed; cannot reliably verify order change without inspecting DB"
+    }
+  }
+}

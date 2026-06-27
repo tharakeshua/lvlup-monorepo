@@ -2,40 +2,48 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
 import { NotificationsPage as NotificationsPageUI } from "@levelup/shared-ui";
-import { useNotifications, useMarkRead, useMarkAllRead } from "@levelup/shared-hooks";
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@levelup/query";
+import type { Notification } from "@levelup/shared-types";
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const currentTenantId = useCurrentTenantId();
-  const user = useCurrentUser();
+  // tenant/user are claim-derived inside the SDK hooks; kept here only for parity.
+  useCurrentTenantId();
+  useCurrentUser();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const { data, isLoading } = useNotifications(
-    currentTenantId,
-    user?.uid ?? null,
-    { unreadOnly: filter === "unread", limit: 50 },
-  );
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  const { data, isLoading } = useNotifications({
+    unreadOnly: filter === "unread",
+    limit: 50,
+  });
+  const notifications = ((data as { items?: Notification[] } | undefined)?.items ??
+    []) as Notification[];
+  const hasMore = Boolean((data as { nextCursor?: string | null } | undefined)?.nextCursor);
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   return (
     <NotificationsPageUI
-      notifications={data?.notifications ?? []}
+      notifications={notifications}
       isLoading={isLoading}
-      hasMore={data?.hasMore}
+      hasMore={hasMore}
       filter={filter}
       onFilterChange={setFilter}
       onNotificationClick={(notif) => {
-        if (!notif.isRead && currentTenantId) {
-          markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
+        if (!notif.isRead) {
+          markRead.mutate({ notificationId: notif.id });
         }
         if (notif.actionUrl) navigate(notif.actionUrl);
       }}
       onMarkRead={(id) => {
-        if (currentTenantId) markRead.mutate({ tenantId: currentTenantId, notificationId: id });
+        markRead.mutate({ notificationId: id });
       }}
       onMarkAllRead={() => {
-        if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
+        markAllRead.mutate();
       }}
     />
   );

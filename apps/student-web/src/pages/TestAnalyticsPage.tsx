@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { useSpace } from "@levelup/shared-hooks";
+import { useSpace } from "@levelup/query";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useTestSessions } from "../hooks/useTestSession";
 import ProgressBar from "../components/common/ProgressBar";
@@ -34,7 +34,7 @@ export default function TestAnalyticsPage() {
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
-  const { data: space } = useSpace(currentTenantId, spaceId ?? null);
+  const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
   const { data: storyPoints } = useStoryPoints(currentTenantId, spaceId ?? null);
   const { data: sessions, isLoading } = useTestSessions(
     currentTenantId,

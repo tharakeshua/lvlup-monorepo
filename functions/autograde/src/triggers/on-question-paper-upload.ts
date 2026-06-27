@@ -8,16 +8,17 @@
  * status from 'draft' to 'question_paper_uploaded'.
  */
 
-import { onObjectFinalized } from 'firebase-functions/v2/storage';
-import * as admin from 'firebase-admin';
+import { onObjectFinalized } from "firebase-functions/v2/storage";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 /** Expected path pattern: tenants/{tenantId}/exams/{examId}/question-paper/{filename} */
 const QP_PATH_REGEX = /^tenants\/([^/]+)\/exams\/([^/]+)\/question-paper\/(.+)$/;
 
 export const onQuestionPaperUpload = onObjectFinalized(
   {
-    region: 'asia-south1',
-    memory: '256MiB',
+    region: "asia-south1",
+    memory: "256MiB",
     bucket: undefined, // default bucket
   },
   async (event) => {
@@ -28,10 +29,10 @@ export const onQuestionPaperUpload = onObjectFinalized(
     if (!match) return; // Not a question paper upload
 
     const [, tenantId, examId] = match;
-    const contentType = event.data.contentType ?? '';
+    const contentType = event.data.contentType ?? "";
 
     // Only process image files
-    if (!contentType.startsWith('image/')) {
+    if (!contentType.startsWith("image/")) {
       console.warn(`Ignoring non-image file in question-paper path: ${filePath} (${contentType})`);
       return;
     }
@@ -40,7 +41,7 @@ export const onQuestionPaperUpload = onObjectFinalized(
 
     const db = admin.firestore();
     const examRef = db.doc(`tenants/${tenantId}/exams/${examId}`);
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
 
     await db.runTransaction(async (txn) => {
       const examDoc = await txn.get(examRef);
@@ -52,9 +53,9 @@ export const onQuestionPaperUpload = onObjectFinalized(
       const exam = examDoc.data()!;
 
       // Only process if exam is in draft or question_paper_uploaded status
-      if (exam.status !== 'draft' && exam.status !== 'question_paper_uploaded') {
+      if (exam.status !== "draft" && exam.status !== "question_paper_uploaded") {
         console.warn(
-          `Exam ${examId} is in '${exam.status}' status. Ignoring question paper upload.`,
+          `Exam ${examId} is in '${exam.status}' status. Ignoring question paper upload.`
         );
         return;
       }
@@ -69,12 +70,12 @@ export const onQuestionPaperUpload = onObjectFinalized(
       const updatedImages = [...existingImages, filePath];
 
       txn.update(examRef, {
-        'questionPaper.images': updatedImages,
-        status: 'question_paper_uploaded',
+        "questionPaper.images": updatedImages,
+        status: "question_paper_uploaded",
         updatedAt: now,
       });
     });
 
     console.log(`Exam ${examId} updated with question paper image: ${filePath}`);
-  },
+  }
 );

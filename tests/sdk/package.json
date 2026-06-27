@@ -1,0 +1,28 @@
+{
+  "name": "@levelup/sdk-tests",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@levelup/access": "workspace:*",
+    "@levelup/ai": "workspace:*",
+    "@levelup/api-client": "workspace:*",
+    "@levelup/api-contract": "workspace:*",
+    "@levelup/domain": "workspace:*",
+    "@levelup/offline": "workspace:*",
+    "@levelup/query": "workspace:*",
+    "@levelup/realtime": "workspace:*",
+    "@levelup/repositories": "workspace:*",
+    "@levelup/seed": "workspace:*",
+    "@levelup/services": "workspace:*",
+    "@levelup/transport-firebase": "workspace:*",
+    "@levelup/transport-http": "workspace:*"
+  },
+  "devDependencies": {
+    "firebase": "^11.2.0",
+    "firebase-admin": "^13.6.1",
+    "vitest": "^4.0.18",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0"
+  }
+}

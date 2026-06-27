@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { usePerformanceTrends, type TrendDataPoint } from "@levelup/shared-hooks";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Skeleton,
-  Button,
-} from "@levelup/shared-ui";
+import { usePerformanceTrends } from "@levelup/query";
+import type { StudentId } from "@levelup/domain";
+import { Card, CardContent, CardHeader, CardTitle, Skeleton, Button } from "@levelup/shared-ui";
 import { TrendingUp } from "lucide-react";
 
 type TimeRange = "7d" | "30d" | "90d" | "all";
+
+/** Local chart-point shape the SVG renderer consumes (adapted from the SDK point). */
+interface ChartPoint {
+  date: string;
+  score: number;
+  subject: string;
+}
 
 const RANGE_LABELS: Record<TimeRange, string> = {
   "7d": "7 Days",
@@ -19,10 +20,24 @@ const RANGE_LABELS: Record<TimeRange, string> = {
   all: "All Time",
 };
 
-function MiniLineChart({ data }: { data: TrendDataPoint[] }) {
+const RANGE_DAYS: Record<TimeRange, number> = {
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+  all: 3650,
+};
+
+const RANGE_GRANULARITY: Record<TimeRange, "week" | "month" | "term"> = {
+  "7d": "week",
+  "30d": "month",
+  "90d": "month",
+  all: "term",
+};
+
+function MiniLineChart({ data }: { data: ChartPoint[] }) {
   if (data.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-8">
+      <p className="text-muted-foreground py-8 text-center text-sm">
         No data available for this time range
       </p>
     );
@@ -47,7 +62,7 @@ function MiniLineChart({ data }: { data: TrendDataPoint[] }) {
     <div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-48"
+        className="h-48 w-full"
         preserveAspectRatio="none"
         role="img"
         aria-label={`Performance trend chart showing ${data.length} data points`}
@@ -82,20 +97,14 @@ function MiniLineChart({ data }: { data: TrendDataPoint[] }) {
           const x = padding + (i / Math.max(data.length - 1, 1)) * chartW;
           const y = padding + chartH - (d.score / maxScore) * chartH;
           return (
-            <circle
-              key={i}
-              cx={x}
-              cy={y}
-              r="0.6"
-              fill="hsl(var(--primary))"
-            >
+            <circle key={i} cx={x} cy={y} r="0.6" fill="hsl(var(--primary))">
               <title>{`${d.date}: ${d.score}% (${d.subject})`}</title>
             </circle>
           );
         })}
       </svg>
       {/* X-axis labels */}
-      <div className="flex justify-between text-xs text-muted-foreground px-1 mt-1">
+      <div className="text-muted-foreground mt-1 flex justify-between px-1 text-xs">
         <span>{data[0]?.date ?? ""}</span>
         <span>{data[data.length - 1]?.date ?? ""}</span>
       </div>
@@ -104,20 +113,36 @@ function MiniLineChart({ data }: { data: TrendDataPoint[] }) {
 }
 
 export function PerformanceTrendsChart({
-  tenantId,
   studentId,
 }: {
+  // tenantId kept for caller parity; the SDK derives tenant from the auth claim.
   tenantId: string | null;
   studentId: string | null;
 }) {
   const [range, setRange] = useState<TimeRange>("30d");
-  const { data: trendData, isLoading } = usePerformanceTrends(tenantId, studentId, range);
+  const now = new Date();
+  const to = now.toISOString();
+  const from = new Date(now.getTime() - RANGE_DAYS[range] * 86_400_000).toISOString();
+  const { data: rawTrends, isLoading } = usePerformanceTrends({
+    studentId: (studentId ?? "") as StudentId,
+    granularity: RANGE_GRANULARITY[range],
+    range: { from, to },
+  });
+
+  // Read defensively: the SDK point shape differs from the legacy chart shape.
+  const trendData: ChartPoint[] = ((rawTrends ?? []) as Array<Record<string, unknown>>).map(
+    (p) => ({
+      date: String(p.date ?? p.periodStart ?? p.periodEnd ?? ""),
+      score: Number(p.value ?? p.avgPercentage ?? p.overallScore ?? 0),
+      subject: String(p.subject ?? p.subjectId ?? ""),
+    })
+  );
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
             <TrendingUp className="h-4 w-4" aria-hidden="true" />
             Performance Trends
           </CardTitle>

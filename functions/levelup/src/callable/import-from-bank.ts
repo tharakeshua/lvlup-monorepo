@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
@@ -104,14 +105,14 @@ export const importFromBank = onCall({ region: "asia-south1", cors: true }, asyn
       orderIndex,
       linkedQuestionId: null,
       createdBy: callerUid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     // Update usage count on bank item
     batch.update(doc.ref, {
-      usageCount: admin.firestore.FieldValue.increment(1),
-      lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      usageCount: FieldValue.increment(1),
+      lastUsedAt: FieldValue.serverTimestamp(),
     });
 
     createdIds.push(itemRef.id);

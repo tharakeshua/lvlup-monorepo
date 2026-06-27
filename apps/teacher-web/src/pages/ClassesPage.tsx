@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import { useClasses, useApiError } from "@levelup/shared-hooks";
-import { callSaveClass } from "@levelup/shared-services";
+import { useMutation } from "@tanstack/react-query";
+import { useClasses, useSaveClass, useApiError } from "@levelup/query";
+import { useAuthSession } from "../sdk/session";
 import { toast } from "sonner";
 import {
   Button,
@@ -25,9 +24,10 @@ import type { Class } from "@levelup/shared-types";
 import ClassFormDialog from "../components/class/ClassFormDialog";
 
 export default function ClassesPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: classes = [], isLoading, error } = useClasses(tenantId);
-  const queryClient = useQueryClient();
+  const tenantId = useAuthSession((s) => s.currentTenantId);
+  const { data: classData, isLoading, error } = useClasses();
+  const classes = ((classData as { items?: Class[] } | undefined)?.items ?? []) as Class[];
+  const saveClass = useSaveClass();
   const { handleError } = useApiError();
 
   const [search, setSearch] = useState("");
@@ -50,17 +50,12 @@ export default function ClassesPage() {
       });
   }, [classes, search, showArchived]);
 
+  // Tenant scoping is server-side via claims; useSaveClass auto-invalidates the
+  // class list on settle (no manual queryClient invalidation needed).
   const archiveMutation = useMutation({
-    mutationFn: async (params: { classId: string; status: "active" | "archived" }) => {
-      if (!tenantId) throw new Error("No tenant");
-      return callSaveClass({
-        id: params.classId,
-        tenantId,
-        data: { status: params.status },
-      });
-    },
+    mutationFn: (params: { classId: string; status: "active" | "archived" }) =>
+      saveClass.mutateAsync({ id: params.classId, data: { status: params.status } }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
       toast.success(variables.status === "archived" ? "Class archived" : "Class restored");
     },
     onError: (err) => handleError(err, "Failed to update class status"),
@@ -92,7 +87,7 @@ export default function ClassesPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative max-w-sm flex-1">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="text"
             placeholder="Search by name, grade, or section..."
@@ -102,11 +97,7 @@ export default function ClassesPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Switch
-            id="show-archived"
-            checked={showArchived}
-            onCheckedChange={setShowArchived}
-          />
+          <Switch id="show-archived" checked={showArchived} onCheckedChange={setShowArchived} />
           <Label htmlFor="show-archived" className="text-sm">
             Show archived
           </Label>
@@ -157,20 +148,13 @@ export default function ClassesPage() {
                   className={cls.status === "archived" ? "opacity-60" : undefined}
                 >
                   <TableCell className="font-medium">
-                    <Link
-                      to={`/classes/${cls.id}`}
-                      className="hover:text-primary hover:underline"
-                    >
+                    <Link to={`/classes/${cls.id}`} className="hover:text-primary hover:underline">
                       {cls.name}
                     </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{cls.grade}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {cls.section ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {cls.studentCount ?? 0}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{cls.section ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{cls.studentCount ?? 0}</TableCell>
                   <TableCell>
                     <StatusBadge status={cls.status} />
                   </TableCell>

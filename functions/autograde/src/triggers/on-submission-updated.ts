@@ -4,19 +4,20 @@
  * Watches for pipelineStatus changes and triggers the next pipeline step.
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { processAnswerMapping } from '../pipeline/process-answer-mapping';
-import { processAnswerGrading } from '../pipeline/process-answer-grading';
-import { finalizeSubmission } from '../pipeline/finalize-submission';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { processAnswerMapping } from "../pipeline/process-answer-mapping";
+import { processAnswerGrading } from "../pipeline/process-answer-grading";
+import { finalizeSubmission } from "../pipeline/finalize-submission";
 
 const MAX_RETRIES = 3;
 
 export const onSubmissionUpdated = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/submissions/{submissionId}',
-    region: 'asia-south1',
-    memory: '4GiB',
+    document: "tenants/{tenantId}/submissions/{submissionId}",
+    region: "asia-south1",
+    memory: "4GiB",
     timeoutSeconds: 540,
   },
   async (event) => {
@@ -34,54 +35,60 @@ export const onSubmissionUpdated = onDocumentUpdated(
     console.log(`Submission ${submissionId}: ${prevStatus} → ${newStatus}`);
 
     const db = admin.firestore();
-    const now = admin.firestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
 
     try {
       switch (newStatus) {
-        case 'scouting': {
+        case "scouting": {
           // Run Panopticon scouting
           await processAnswerMapping(tenantId, submissionId);
           break;
         }
 
-        case 'scouting_failed': {
+        case "scouting_failed": {
           // Retry scouting if retries left
           const retryCount = after.retryCount ?? 0;
           if (retryCount < MAX_RETRIES) {
             console.log(`Retrying scouting for ${submissionId} (attempt ${retryCount + 1})`);
             await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-              pipelineStatus: 'scouting',
+              pipelineStatus: "scouting",
               retryCount: retryCount + 1,
               updatedAt: now,
             });
           } else {
             console.error(`Scouting failed permanently for ${submissionId}`);
             await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-              pipelineStatus: 'manual_review_needed',
+              pipelineStatus: "manual_review_needed",
               updatedAt: now,
             });
             // Create DLQ entry
-            await createDeadLetterEntry(db, tenantId, submissionId, 'scouting', after.pipelineError ?? 'Max retries exceeded');
+            await createDeadLetterEntry(
+              db,
+              tenantId,
+              submissionId,
+              "scouting",
+              after.pipelineError ?? "Max retries exceeded"
+            );
           }
           break;
         }
 
-        case 'scouting_complete': {
+        case "scouting_complete": {
           // Start grading phase
           await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-            pipelineStatus: 'grading',
+            pipelineStatus: "grading",
             updatedAt: now,
           });
           break;
         }
 
-        case 'grading': {
+        case "grading": {
           // Run RELMS grading for all pending questions
           await processAnswerGrading(tenantId, submissionId);
           break;
         }
 
-        case 'grading_complete': {
+        case "grading_complete": {
           // Finalize submission
           await finalizeSubmission(tenantId, submissionId);
           break;
@@ -96,37 +103,37 @@ export const onSubmissionUpdated = onDocumentUpdated(
       console.error(`Pipeline error for ${submissionId} at ${newStatus}:`, errorMsg);
 
       // Handle errors by status
-      if (newStatus === 'scouting') {
+      if (newStatus === "scouting") {
         await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-          pipelineStatus: 'scouting_failed',
+          pipelineStatus: "scouting_failed",
           pipelineError: errorMsg,
           updatedAt: now,
         });
-      } else if (newStatus === 'grading') {
+      } else if (newStatus === "grading") {
         await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-          pipelineStatus: 'grading_failed',
+          pipelineStatus: "grading_failed",
           pipelineError: errorMsg,
           updatedAt: now,
         });
-        await createDeadLetterEntry(db, tenantId, submissionId, 'grading', errorMsg);
-      } else if (newStatus === 'grading_complete') {
+        await createDeadLetterEntry(db, tenantId, submissionId, "grading", errorMsg);
+      } else if (newStatus === "grading_complete") {
         await db.doc(`tenants/${tenantId}/submissions/${submissionId}`).update({
-          pipelineStatus: 'finalization_failed',
+          pipelineStatus: "finalization_failed",
           pipelineError: errorMsg,
           updatedAt: now,
         });
-        await createDeadLetterEntry(db, tenantId, submissionId, 'grading', errorMsg);
+        await createDeadLetterEntry(db, tenantId, submissionId, "grading", errorMsg);
       }
     }
-  },
+  }
 );
 
 async function createDeadLetterEntry(
   db: admin.firestore.Firestore,
   tenantId: string,
   submissionId: string,
-  step: 'ocr' | 'scouting' | 'grading',
-  error: string,
+  step: "ocr" | "scouting" | "grading",
+  error: string
 ): Promise<void> {
   const dlqRef = db.collection(`tenants/${tenantId}/gradingDeadLetter`).doc();
   await dlqRef.set({
@@ -135,7 +142,7 @@ async function createDeadLetterEntry(
     pipelineStep: step,
     error,
     attempts: MAX_RETRIES,
-    lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    lastAttemptAt: FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 }

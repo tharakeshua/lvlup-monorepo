@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { useCurrentTenantId } from "@levelup/shared-stores";
-import {
-  useSpaces,
-  useClasses,
-} from "@levelup/shared-hooks/queries";
-import type { Space } from "@levelup/shared-types";
+import { useSpaces, useClasses } from "@levelup/query";
+import type { Space, Class } from "@levelup/shared-types";
 import {
   Badge,
+  Button,
   Input,
   Select,
   SelectContent,
@@ -18,9 +15,11 @@ import { Search, BookOpen, GraduationCap } from "lucide-react";
 import { STATUS_VARIANT, TYPE_VARIANT } from "../lib/constants";
 
 export default function CoursesPage() {
-  const tenantId = useCurrentTenantId();
-  const { data: spaces, isLoading: spacesLoading } = useSpaces(tenantId);
-  const { data: classes = [] } = useClasses(tenantId);
+  const spacesQuery = useSpaces({});
+  const spaces = (spacesQuery.data ?? []) as Space[];
+  const spacesLoading = spacesQuery.isLoading;
+  const spacesError = spacesQuery.isError;
+  const classes = (useClasses({}).data ?? []) as Class[];
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -54,7 +53,7 @@ export default function CoursesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Courses & Spaces</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           View learning spaces assigned to classes and monitor progress
         </p>
       </div>
@@ -65,19 +64,14 @@ export default function CoursesPage() {
           {Object.entries(subjectGroups)
             .sort((a, b) => b[1].length - a[1].length)
             .map(([subject, subjectSpaces]) => {
-              const published = subjectSpaces.filter(
-                (s) => s.status === "published",
-              ).length;
+              const published = subjectSpaces.filter((s) => s.status === "published").length;
               return (
-                <div
-                  key={subject}
-                  className="rounded-lg border bg-card p-3"
-                >
+                <div key={subject} className="bg-card rounded-lg border p-3">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <p className="font-medium text-sm">{subject}</p>
+                    <BookOpen className="text-muted-foreground h-4 w-4" />
+                    <p className="text-sm font-medium">{subject}</p>
                   </div>
-                  <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-2 flex gap-3 text-xs">
                     <span>{subjectSpaces.length} total</span>
                     <span>{published} published</span>
                   </div>
@@ -90,7 +84,7 @@ export default function CoursesPage() {
       {/* Filters */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder="Search courses..."
             value={searchQuery}
@@ -125,15 +119,29 @@ export default function CoursesPage() {
       </div>
 
       {/* Course Cards */}
-      {spacesLoading ? (
-        <div className="py-12 text-center text-sm text-muted-foreground">
-          Loading courses...
+      {spacesError ? (
+        <div className="border-destructive/50 rounded-lg border p-12 text-center">
+          <BookOpen className="text-muted-foreground mx-auto h-10 w-10" />
+          <h3 className="mt-3 text-lg font-semibold">Failed to load courses</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Something went wrong while loading spaces.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => spacesQuery.refetch()}
+          >
+            Retry
+          </Button>
         </div>
+      ) : spacesLoading ? (
+        <div className="text-muted-foreground py-12 text-center text-sm">Loading courses...</div>
       ) : !filtered?.length ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
-          <BookOpen className="h-10 w-10 mx-auto text-muted-foreground" />
+          <BookOpen className="text-muted-foreground mx-auto h-10 w-10" />
           <h3 className="mt-3 text-lg font-semibold">No courses found</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Teachers create learning spaces from the Teacher Portal
           </p>
         </div>
@@ -142,13 +150,16 @@ export default function CoursesPage() {
           {filtered.map((space) => (
             <div
               key={space.id}
-              className="rounded-lg border bg-card p-4 hover:shadow-sm transition-shadow"
+              className="bg-card rounded-lg border p-4 transition-shadow hover:shadow-sm"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">{space.title}</h3>
-                    <Badge variant={STATUS_VARIANT[space.status] ?? "secondary"} className="capitalize">
+                    <Badge
+                      variant={STATUS_VARIANT[space.status] ?? "secondary"}
+                      className="capitalize"
+                    >
                       {space.status}
                     </Badge>
                     <Badge variant={TYPE_VARIANT[space.type] ?? "secondary"} className="capitalize">
@@ -156,7 +167,7 @@ export default function CoursesPage() {
                     </Badge>
                   </div>
                   {space.description && (
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
+                    <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
                       {space.description}
                     </p>
                   )}
@@ -170,8 +181,8 @@ export default function CoursesPage() {
 
               {/* Assigned Classes */}
               <div className="mt-3 flex items-center gap-2">
-                <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Classes:</span>
+                <GraduationCap className="text-muted-foreground h-3.5 w-3.5" />
+                <span className="text-muted-foreground text-xs">Classes:</span>
                 {space.classIds?.length ? (
                   <div className="flex flex-wrap gap-1">
                     {space.classIds.map((cId) => (
@@ -181,23 +192,15 @@ export default function CoursesPage() {
                     ))}
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
-                    No classes assigned
-                  </span>
+                  <span className="text-muted-foreground text-xs">No classes assigned</span>
                 )}
               </div>
 
               {/* Metadata row */}
-              <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+              <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
                 <span>{space.teacherIds?.length ?? 0} teacher(s)</span>
-                {space.totalItems != null && (
-                  <span>{space.totalItems} items</span>
-                )}
-                {space.createdBy && (
-                  <span>
-                    Created by: {space.createdBy.slice(0, 10)}
-                  </span>
-                )}
+                {space.totalItems != null && <span>{space.totalItems} items</span>}
+                {space.createdBy && <span>Created by: {space.createdBy.slice(0, 10)}</span>}
               </div>
             </div>
           ))}

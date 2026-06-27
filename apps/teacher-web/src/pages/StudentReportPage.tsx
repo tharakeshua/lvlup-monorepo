@@ -1,11 +1,7 @@
 import { useParams } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
-import {
-  useStudent,
-  useStudentProgressSummary,
-  useExams,
-  useSubmissions,
-} from "@levelup/shared-hooks";
+import { useQuery } from "@tanstack/react-query";
+import { useStudent, useExams, useSubmissions, useGenerateReport, useRepos } from "@levelup/query";
+import type { Exam, Submission, Student, StudentProgressSummary } from "@levelup/shared-types";
 import {
   Card,
   CardContent,
@@ -19,22 +15,39 @@ import {
   FadeIn,
   DownloadPDFButton,
 } from "@levelup/shared-ui";
-import { callGenerateReport } from "@levelup/shared-services";
 import type { BarChartItem } from "@levelup/shared-ui";
 import { User, Target, ClipboardList, BookOpen, Flame, TrendingUp, Award } from "lucide-react";
 
 export default function StudentReportPage() {
   const { studentId } = useParams<{ studentId: string }>();
-  const { currentTenantId } = useAuthStore();
-  const tenantId = currentTenantId;
 
-  const { data: student, isLoading: studentLoading } = useStudent(tenantId, studentId ?? null);
-  const { data: summary, isLoading: summaryLoading } = useStudentProgressSummary(
-    tenantId,
-    studentId ?? null
-  );
-  const { data: submissions } = useSubmissions(tenantId);
-  const { data: exams } = useExams(tenantId);
+  // Entity + summary reads are tenant-scoped server-side via claims. The student
+  // progress summary has no batch query hook, so read the analytics summaryRepo
+  // imperatively via useRepos() (same pattern as the dashboard class summaries).
+  const { data: studentRaw, isLoading: studentLoading } = useStudent(studentId ?? "");
+  const student = (studentRaw ?? null) as Student | null;
+
+  const repos = useRepos();
+  const { data: summaryRaw, isLoading: summaryLoading } = useQuery({
+    queryKey: ["analytics", "studentSummary", studentId ?? ""],
+    queryFn: () =>
+      (
+        repos as unknown as { summaryRepo: { getStudent(id: string): Promise<unknown> } }
+      ).summaryRepo.getStudent(studentId ?? ""),
+    enabled: Boolean(studentId),
+  });
+  const summary = (summaryRaw ?? null) as StudentProgressSummary | null;
+
+  const generateReport = useGenerateReport();
+
+  const { data: subsRaw } = useSubmissions({});
+  const submissions = (
+    (subsRaw as { pages?: { items?: Submission[] }[] } | undefined)?.pages ?? []
+  ).flatMap((p) => p.items ?? []) as Submission[];
+  const { data: examsRaw } = useExams();
+  const exams = ((examsRaw as { pages?: { items?: Exam[] }[] } | undefined)?.pages ?? []).flatMap(
+    (p) => p.items ?? []
+  ) as Exam[];
 
   const studentSubmissions = submissions?.filter((s) => s.studentId === studentId) ?? [];
   const gradedSubmissions = studentSubmissions.filter(
@@ -87,15 +100,14 @@ export default function StudentReportPage() {
               <h1 className="text-2xl font-bold">
                 {student?.displayName ?? student?.name ?? "Student Report"}
               </h1>
-              {tenantId && studentId && (
+              {studentId && (
                 <DownloadPDFButton
                   onGenerate={async () => {
-                    const res = await callGenerateReport({
-                      tenantId: tenantId!,
-                      type: "student-report",
-                      studentId: studentId!,
+                    const res = await generateReport.mutateAsync({
+                      kind: "progress",
+                      studentId: studentId as never,
                     });
-                    return { downloadUrl: res.pdfUrl };
+                    return { downloadUrl: (res as { pdfUrl: string }).pdfUrl };
                   }}
                   label="Download PDF"
                 />

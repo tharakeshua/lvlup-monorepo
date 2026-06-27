@@ -5,21 +5,19 @@
  * Creates QuestionSubmission documents for each mapped question.
  */
 
-import * as admin from 'firebase-admin';
-import { getExam, getExamQuestions, getSubmission } from '../utils/firestore-helpers';
-import { LLMWrapper, getGeminiApiKey } from '../utils/llm';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { getExam, getExamQuestions, getSubmission } from "../utils/firestore-helpers";
+import { LLMWrapper, getGeminiApiKey } from "../utils/llm";
 import {
   PANOPTICON_SYSTEM_PROMPT,
   buildPanopticonUserPrompt,
   parsePanopticonResponse,
-} from '../prompts/panopticon';
+} from "../prompts/panopticon";
 
-export async function processAnswerMapping(
-  tenantId: string,
-  submissionId: string,
-): Promise<void> {
+export async function processAnswerMapping(tenantId: string, submissionId: string): Promise<void> {
   const db = admin.firestore();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
 
   const submission = await getSubmission(tenantId, submissionId);
   if (!submission) throw new Error(`Submission ${submissionId} not found.`);
@@ -28,7 +26,7 @@ export async function processAnswerMapping(
   if (!exam) throw new Error(`Exam ${submission.examId} not found.`);
 
   const questions = await getExamQuestions(tenantId, submission.examId);
-  if (questions.length === 0) throw new Error('No questions found for exam.');
+  if (questions.length === 0) throw new Error("No questions found for exam.");
 
   const questionIds = questions.map((q) => q.id);
 
@@ -43,8 +41,8 @@ export async function processAnswerMapping(
       const [buffer] = await file.download();
       const [metadata] = await file.getMetadata();
       images.push({
-        base64: buffer.toString('base64'),
-        mimeType: (metadata.contentType as string) || 'image/jpeg',
+        base64: buffer.toString("base64"),
+        mimeType: (metadata.contentType as string) || "image/jpeg",
       });
     }
   }
@@ -56,8 +54,8 @@ export async function processAnswerMapping(
     const [buffer] = await file.download();
     const [metadata] = await file.getMetadata();
     const img = {
-      base64: buffer.toString('base64'),
-      mimeType: (metadata.contentType as string) || 'image/jpeg',
+      base64: buffer.toString("base64"),
+      mimeType: (metadata.contentType as string) || "image/jpeg",
     };
     images.push(img);
     answerImages.push(img);
@@ -66,35 +64,42 @@ export async function processAnswerMapping(
   // Call Gemini
   const apiKey = await getGeminiApiKey(tenantId);
   const llm = new LLMWrapper({
-    provider: 'gemini',
+    provider: "gemini",
     apiKey,
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: "gemini-2.5-flash",
     enableLogging: true,
   });
 
   const userPrompt = buildPanopticonUserPrompt(questionIds);
 
-  const result = await llm.call(userPrompt, {
-    clientId: tenantId,
-    userId: 'system',
-    userRole: 'system',
-    purpose: 'answer_mapping',
-    operation: 'panopticonScouting',
-    resourceType: 'submission',
-    resourceId: submissionId,
-    temperature: 0.1,
-    maxTokens: 4096,
-  }, {
-    images,
-    systemPrompt: PANOPTICON_SYSTEM_PROMPT,
-    responseMimeType: 'application/json',
-  });
+  const result = await llm.call(
+    userPrompt,
+    {
+      clientId: tenantId,
+      userId: "system",
+      userRole: "system",
+      purpose: "answer_mapping",
+      operation: "panopticonScouting",
+      resourceType: "submission",
+      resourceId: submissionId,
+      temperature: 0.1,
+      // Gemini 2.5 Flash spends thinking tokens against this budget. With many
+      // questions + answer pages, 4096 truncates the response (observed empirically:
+      // ~320-char outputs hitting MAX_TOKENS). Bump well above the worst case.
+      maxTokens: 16384,
+    },
+    {
+      images,
+      systemPrompt: PANOPTICON_SYSTEM_PROMPT,
+      responseMimeType: "application/json",
+    }
+  );
 
   // Parse and validate
   const scouting = parsePanopticonResponse(
     result.text,
     questionIds,
-    submission.answerSheets.images.length,
+    submission.answerSheets.images.length
   );
 
   // Create QuestionSubmission documents (chunked at 450 to stay under Firestore 500-op limit)
@@ -114,7 +119,7 @@ export async function processAnswerMapping(
     const mappedImageUrls = pageIndices.map((idx) => submission.answerSheets.images[idx]);
 
     const qsRef = db.doc(
-      `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions/${question.id}`,
+      `tenants/${tenantId}/submissions/${submissionId}/questionSubmissions/${question.id}`
     );
 
     currentBatch.set(qsRef, {
@@ -127,7 +132,7 @@ export async function processAnswerMapping(
         imageUrls: mappedImageUrls,
         scoutedAt: now,
       },
-      gradingStatus: 'pending',
+      gradingStatus: "pending",
       gradingRetryCount: 0,
       createdAt: now,
       updatedAt: now,
@@ -143,7 +148,7 @@ export async function processAnswerMapping(
       confidence: scouting.confidence ?? {},
       completedAt: now,
     },
-    pipelineStatus: 'scouting_complete',
+    pipelineStatus: "scouting_complete",
     updatedAt: now,
   });
   batches.push(currentBatch);

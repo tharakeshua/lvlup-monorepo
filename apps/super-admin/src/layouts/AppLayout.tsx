@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { usePrefetch } from "@levelup/shared-hooks";
+import { useRoutePrefetch } from "../hooks/useRoutePrefetch";
 import {
   AppShell,
   AppSidebar,
@@ -43,25 +43,22 @@ const SA_ROUTE_LABELS: Record<string, string> = {
 
 /** Route prefetch map — triggers lazy imports on link hover */
 const SA_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
-  '/': () => import('../pages/DashboardPage'),
-  '/tenants': () => import('../pages/TenantsPage'),
-  '/analytics': () => import('../pages/UserAnalyticsPage'),
-  '/feature-flags': () => import('../pages/FeatureFlagsPage'),
-  '/presets': () => import('../pages/GlobalPresetsPage'),
-  '/llm-usage': () => import('../pages/LLMUsagePage'),
-  '/system': () => import('../pages/SystemHealthPage'),
-  '/settings': () => import('../pages/SettingsPage'),
-  '/announcements': () => import('../pages/AnnouncementsPage'),
-  '/users': () => import('../pages/GlobalUsersPage'),
+  "/": () => import("../pages/DashboardPage"),
+  "/tenants": () => import("../pages/TenantsPage"),
+  "/analytics": () => import("../pages/UserAnalyticsPage"),
+  "/feature-flags": () => import("../pages/FeatureFlagsPage"),
+  "/presets": () => import("../pages/GlobalPresetsPage"),
+  "/llm-usage": () => import("../pages/LLMUsagePage"),
+  "/system": () => import("../pages/SystemHealthPage"),
+  "/settings": () => import("../pages/SettingsPage"),
+  "/announcements": () => import("../pages/AnnouncementsPage"),
+  "/users": () => import("../pages/GlobalUsersPage"),
 };
 
 const SA_SEGMENT_RESOLVERS: BreadcrumbSegmentResolver[] = [
   {
     pattern: /^\/tenants\/[^/]+$/,
-    resolve: () => [
-      { label: "Tenants", to: "/tenants" },
-      { label: "Tenant Details" },
-    ],
+    resolve: () => [{ label: "Tenants", to: "/tenants" }, { label: "Tenant Details" }],
   },
 ];
 
@@ -70,7 +67,7 @@ export default function AppLayout() {
   const { user } = useAuthStore();
 
   // Prefetch routes on link hover for near-instant navigation
-  usePrefetch(SA_PREFETCH_MAP);
+  useRoutePrefetch(SA_PREFETCH_MAP);
 
   const navGroups: NavGroup[] = [
     {
@@ -151,7 +148,7 @@ export default function AppLayout() {
   ];
 
   const sidebarFooter = (
-    <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
+    <div className="text-muted-foreground flex items-center gap-2 px-2 py-1 text-xs">
       <span className="truncate">{user?.displayName ?? user?.email}</span>
     </div>
   );
@@ -166,15 +163,28 @@ export default function AppLayout() {
     />
   );
 
-  const headerRight = (
-    <ThemeToggle />
-  );
+  const headerRight = <ThemeToggle />;
 
   const mobileNavItems: MobileNavItem[] = [
     { icon: LayoutDashboard, label: "Home", to: "/", isActive: location.pathname === "/" },
-    { icon: Building2, label: "Tenants", to: "/tenants", isActive: location.pathname.startsWith("/tenants") },
-    { icon: Activity, label: "Health", to: "/system", isActive: location.pathname.startsWith("/system") },
-    { icon: Settings, label: "Settings", to: "/settings", isActive: location.pathname.startsWith("/settings") },
+    {
+      icon: Building2,
+      label: "Tenants",
+      to: "/tenants",
+      isActive: location.pathname.startsWith("/tenants"),
+    },
+    {
+      icon: Activity,
+      label: "Health",
+      to: "/system",
+      isActive: location.pathname.startsWith("/system"),
+    },
+    {
+      icon: Settings,
+      label: "Settings",
+      to: "/settings",
+      isActive: location.pathname.startsWith("/settings"),
+    },
   ];
 
   return (

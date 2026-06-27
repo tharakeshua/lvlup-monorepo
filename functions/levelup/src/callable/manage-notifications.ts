@@ -1,9 +1,13 @@
-import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { ManageNotificationsRequestSchema } from '@levelup/shared-types';
-import type { ManageNotificationsRequest, ManageNotificationsResponse } from '@levelup/shared-types';
-import { parseRequest } from '../utils';
-import { enforceRateLimit } from '../utils/rate-limit';
+import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { ManageNotificationsRequestSchema } from "@levelup/shared-types";
+import type {
+  ManageNotificationsRequest,
+  ManageNotificationsResponse,
+} from "@levelup/shared-types";
+import { parseRequest } from "../utils";
+import { enforceRateLimit } from "../utils/rate-limit";
 
 /**
  * Consolidated endpoint: replaces getNotifications + markNotificationRead.
@@ -11,31 +15,31 @@ import { enforceRateLimit } from '../utils/rate-limit';
  * - action: 'markRead' = mark single or all notifications as read
  */
 export const manageNotifications = onCall(
-  { region: 'asia-south1', cors: true },
+  { region: "asia-south1", cors: true },
   async (request) => {
     if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Must be logged in');
+      throw new HttpsError("unauthenticated", "Must be logged in");
     }
 
     const uid = request.auth.uid;
     const reqData = parseRequest(request.data, ManageNotificationsRequestSchema);
 
     if (!reqData.tenantId) {
-      throw new HttpsError('invalid-argument', 'tenantId is required');
+      throw new HttpsError("invalid-argument", "tenantId is required");
     }
 
-    await enforceRateLimit(reqData.tenantId, uid, 'read', 60);
+    await enforceRateLimit(reqData.tenantId, uid, "read", 60);
 
     const db = admin.firestore();
 
-    if (reqData.action === 'list') {
+    if (reqData.action === "list") {
       // ── LIST NOTIFICATIONS ──
       const pageSize = Math.min(reqData.limit ?? 20, 50);
 
       let query = db
         .collection(`tenants/${reqData.tenantId}/notifications`)
-        .where('recipientId', '==', uid)
-        .orderBy('createdAt', 'desc')
+        .where("recipientId", "==", uid)
+        .orderBy("createdAt", "desc")
         .limit(pageSize);
 
       if (reqData.cursor) {
@@ -69,24 +73,24 @@ export const manageNotifications = onCall(
         notifications,
         nextCursor: snap.size === pageSize ? lastDoc?.id : undefined,
       } satisfies ManageNotificationsResponse;
-    } else if (reqData.action === 'markRead') {
+    } else if (reqData.action === "markRead") {
       // ── MARK READ ──
       const rtdb = admin.database();
-      const now = admin.firestore.FieldValue.serverTimestamp();
+      const now = FieldValue.serverTimestamp();
 
       if (reqData.notificationId && !reqData.markAllRead) {
         // Mark single notification as read
         const notifRef = db.doc(
-          `tenants/${reqData.tenantId}/notifications/${reqData.notificationId}`,
+          `tenants/${reqData.tenantId}/notifications/${reqData.notificationId}`
         );
         const notifSnap = await notifRef.get();
 
         if (!notifSnap.exists) {
-          throw new HttpsError('not-found', 'Notification not found');
+          throw new HttpsError("not-found", "Notification not found");
         }
 
         if (notifSnap.data()?.recipientId !== uid) {
-          throw new HttpsError('permission-denied', 'Not your notification');
+          throw new HttpsError("permission-denied", "Not your notification");
         }
 
         if (!notifSnap.data()?.isRead) {
@@ -104,8 +108,8 @@ export const manageNotifications = onCall(
         // Mark all unread notifications as read
         const unreadSnap = await db
           .collection(`tenants/${reqData.tenantId}/notifications`)
-          .where('recipientId', '==', uid)
-          .where('isRead', '==', false)
+          .where("recipientId", "==", uid)
+          .where("isRead", "==", false)
           .get();
 
         if (!unreadSnap.empty) {
@@ -126,7 +130,7 @@ export const manageNotifications = onCall(
         return { success: true } satisfies ManageNotificationsResponse;
       }
     } else {
-      throw new HttpsError('invalid-argument', 'action must be "list" or "markRead"');
+      throw new HttpsError("invalid-argument", 'action must be "list" or "markRead"');
     }
-  },
+  }
 );

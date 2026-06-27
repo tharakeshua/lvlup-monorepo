@@ -1,13 +1,7 @@
 import { useState } from "react";
-import {
-  useTenantStore,
-  useCurrentTenantId,
-} from "@levelup/shared-stores";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
-import { callSaveTenant } from "@levelup/shared-services/auth";
-import type { EvaluationSettings } from "@levelup/shared-types";
+import { useCurrentTenantId, useCurrentTenant } from "@/sdk/identity";
+import { useEvaluationSettings, useSaveEvaluationSettings, useSaveTenant } from "@levelup/query";
+import type { EvaluationSettings, Tenant } from "@levelup/shared-types";
 import {
   Input,
   Button,
@@ -25,31 +19,14 @@ import LogoUploader from "../components/settings/LogoUploader";
 
 type SettingsTab = "tenant" | "evaluation" | "api" | "branding";
 
-function useEvalSettingsList(tenantId: string | null) {
-  return useQuery<EvaluationSettings[]>({
-    queryKey: ["tenants", tenantId, "evaluationSettings"],
-    queryFn: async () => {
-      if (!tenantId) return [];
-      const { db } = getFirebaseServices();
-      const colRef = collection(db, `tenants/${tenantId}/evaluationSettings`);
-      const q = query(colRef, orderBy("name", "asc"));
-      const snap = await getDocs(q);
-      return snap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as EvaluationSettings,
-      );
-    },
-    enabled: !!tenantId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 export default function SettingsPage() {
   const tenantId = useCurrentTenantId();
-  const tenant = useTenantStore((s) => s.tenant);
-  const queryClient = useQueryClient();
+  const tenant = useCurrentTenant().data as Tenant | undefined;
   const [activeTab, setActiveTab] = useState<SettingsTab>("tenant");
-  const { data: evalSettings, isLoading: evalLoading } =
-    useEvalSettingsList(tenantId);
+  const { data: evalData, isLoading: evalLoading } = useEvaluationSettings();
+  const evalSettings = evalData as EvaluationSettings[] | undefined;
+  const saveTenant = useSaveTenant();
+  const saveEvaluationSettings = useSaveEvaluationSettings();
 
   // School info editing state
   const [isEditingSchool, setIsEditingSchool] = useState(false);
@@ -113,8 +90,7 @@ export default function SettingsPage() {
 
     setSavingSchool(true);
     try {
-      await callSaveTenant({
-        id: tenantId,
+      await saveTenant.mutateAsync({
         data: {
           name: schoolForm.name || undefined,
           contactEmail: schoolForm.contactEmail || undefined,
@@ -145,18 +121,17 @@ export default function SettingsPage() {
     if (!tenantId || !editingEvalId) return;
     setSavingEval(true);
     try {
-      const { db } = getFirebaseServices();
-      const { doc: docRef, updateDoc } = await import("firebase/firestore");
-      await updateDoc(
-        docRef(db, `tenants/${tenantId}/evaluationSettings`, editingEvalId),
-        {
+      const current = evalSettings?.find((s) => s.id === editingEvalId);
+      await saveEvaluationSettings.mutateAsync({
+        id: editingEvalId,
+        data: {
           enabledDimensions: evalForm.enabledDimensions,
-          "displaySettings.showStrengths": evalForm.showStrengths,
-          "displaySettings.showKeyTakeaway": evalForm.showKeyTakeaway,
+          displaySettings: {
+            showStrengths: evalForm.showStrengths,
+            showKeyTakeaway: evalForm.showKeyTakeaway,
+            prioritizeByImportance: current?.displaySettings?.prioritizeByImportance ?? false,
+          },
         },
-      );
-      queryClient.invalidateQueries({
-        queryKey: ["tenants", tenantId, "evaluationSettings"],
       });
       setEditingEvalId(null);
       toast.success("Evaluation settings saved");
@@ -173,8 +148,7 @@ export default function SettingsPage() {
     if (!tenantId || !apiKeyValue.trim()) return;
     setSavingApiKey(true);
     try {
-      await callSaveTenant({
-        id: tenantId,
+      await saveTenant.mutateAsync({
         data: { geminiApiKey: apiKeyValue.trim() },
       });
       setApiKeyValue("");
@@ -193,8 +167,7 @@ export default function SettingsPage() {
     if (!tenantId) return;
     setRemovingApiKey(true);
     try {
-      await callSaveTenant({
-        id: tenantId,
+      await saveTenant.mutateAsync({
         data: { geminiApiKey: "" },
       });
       toast.success("API key removed");
@@ -230,8 +203,7 @@ export default function SettingsPage() {
     }
     setSavingBranding(true);
     try {
-      await callSaveTenant({
-        id: tenantId,
+      await saveTenant.mutateAsync({
         data: {
           branding: {
             primaryColor: brandingForm.primaryColor || undefined,
@@ -255,9 +227,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your school's configuration
-        </p>
+        <p className="text-muted-foreground text-sm">Manage your school's configuration</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SettingsTab)}>
@@ -270,7 +240,7 @@ export default function SettingsPage() {
 
         <TabsContent value="tenant">
           <div className="space-y-4">
-            <div className="rounded-lg border bg-card p-6">
+            <div className="bg-card rounded-lg border p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">School Information</h3>
                 {!isEditingSchool ? (
@@ -294,9 +264,7 @@ export default function SettingsPage() {
                   <Input
                     type="text"
                     value={isEditingSchool ? schoolForm.name : (tenant?.name ?? "")}
-                    onChange={(e) =>
-                      setSchoolForm((p) => ({ ...p, name: e.target.value }))
-                    }
+                    onChange={(e) => setSchoolForm((p) => ({ ...p, name: e.target.value }))}
                     readOnly={!isEditingSchool}
                   />
                 </div>
@@ -328,14 +296,8 @@ export default function SettingsPage() {
                   <Label>Contact Email</Label>
                   <Input
                     type="email"
-                    value={
-                      isEditingSchool
-                        ? schoolForm.contactEmail
-                        : (tenant?.contactEmail ?? "")
-                    }
-                    onChange={(e) =>
-                      setSchoolForm((p) => ({ ...p, contactEmail: e.target.value }))
-                    }
+                    value={isEditingSchool ? schoolForm.contactEmail : (tenant?.contactEmail ?? "")}
+                    onChange={(e) => setSchoolForm((p) => ({ ...p, contactEmail: e.target.value }))}
                     readOnly={!isEditingSchool}
                   />
                 </div>
@@ -343,23 +305,17 @@ export default function SettingsPage() {
                   <Label>Contact Phone</Label>
                   <Input
                     type="text"
-                    value={
-                      isEditingSchool
-                        ? schoolForm.contactPhone
-                        : (tenant?.contactPhone ?? "")
-                    }
-                    onChange={(e) =>
-                      setSchoolForm((p) => ({ ...p, contactPhone: e.target.value }))
-                    }
+                    value={isEditingSchool ? schoolForm.contactPhone : (tenant?.contactPhone ?? "")}
+                    onChange={(e) => setSchoolForm((p) => ({ ...p, contactPhone: e.target.value }))}
                     readOnly={!isEditingSchool}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg border bg-card p-6">
+            <div className="bg-card rounded-lg border p-6">
               <h3 className="mb-4 font-semibold">Subscription</h3>
-              <dl className="grid gap-4 md:grid-cols-3 text-sm">
+              <dl className="grid gap-4 text-sm md:grid-cols-3">
                 <div>
                   <dt className="text-muted-foreground">Plan</dt>
                   <dd className="mt-1 font-semibold capitalize">
@@ -386,7 +342,7 @@ export default function SettingsPage() {
         <TabsContent value="evaluation">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Configure evaluation feedback rubrics and dimension settings
               </p>
             </div>
@@ -395,10 +351,8 @@ export default function SettingsPage() {
               <Skeleton className="h-40 w-full" />
             ) : !evalSettings?.length ? (
               <div className="rounded-lg border border-dashed p-12 text-center">
-                <h3 className="text-lg font-semibold">
-                  No evaluation settings configured
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h3 className="text-lg font-semibold">No evaluation settings configured</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
                   A default configuration will be created automatically
                 </p>
               </div>
@@ -407,20 +361,20 @@ export default function SettingsPage() {
                 {evalSettings.map((setting) => (
                   <div
                     key={setting.id}
-                    className="rounded-lg border bg-card p-4 hover:shadow-sm transition-shadow"
+                    className="bg-card rounded-lg border p-4 transition-shadow hover:shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold">{setting.name}</h3>
                           {setting.isDefault && (
-                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            <span className="bg-primary/10 text-primary inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
                               Default
                             </span>
                           )}
                         </div>
                         {setting.description && (
-                          <p className="mt-1 text-sm text-muted-foreground">
+                          <p className="text-muted-foreground mt-1 text-sm">
                             {setting.description}
                           </p>
                         )}
@@ -503,14 +457,12 @@ export default function SettingsPage() {
                             </span>
                           ))}
                         </div>
-                        <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
                           <span>
-                            Show strengths:{" "}
-                            {setting.displaySettings?.showStrengths ? "Yes" : "No"}
+                            Show strengths: {setting.displaySettings?.showStrengths ? "Yes" : "No"}
                           </span>
                           <span>
-                            Show takeaway:{" "}
-                            {setting.displaySettings?.showKeyTakeaway ? "Yes" : "No"}
+                            Show takeaway: {setting.displaySettings?.showKeyTakeaway ? "Yes" : "No"}
                           </span>
                         </div>
                       </>
@@ -524,7 +476,7 @@ export default function SettingsPage() {
 
         <TabsContent value="branding">
           <div className="space-y-4">
-            <div className="rounded-lg border bg-card p-6">
+            <div className="bg-card rounded-lg border p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">School Branding</h3>
                 {!isEditingBranding ? (
@@ -552,18 +504,19 @@ export default function SettingsPage() {
                         setBrandingForm((p) => ({ ...p, logoUrl: url }));
                         if (!isEditingBranding) {
                           // Auto-save logo URL when uploaded outside edit mode
-                          callSaveTenant({
-                            id: tenantId,
-                            data: {
-                              branding: {
-                                primaryColor: tenant?.branding?.primaryColor || undefined,
-                                accentColor: tenant?.branding?.accentColor || undefined,
-                                logoUrl: url || undefined,
+                          saveTenant
+                            .mutateAsync({
+                              data: {
+                                branding: {
+                                  primaryColor: tenant?.branding?.primaryColor || undefined,
+                                  accentColor: tenant?.branding?.accentColor || undefined,
+                                  logoUrl: url || undefined,
+                                },
                               },
-                            },
-                          }).catch(() => {
-                            // Error handled by upload component
-                          });
+                            })
+                            .catch(() => {
+                              // Error handled by upload component
+                            });
                         }
                       }}
                     />
@@ -585,7 +538,9 @@ export default function SettingsPage() {
                       readOnly={!isEditingBranding}
                       placeholder="#3B82F6"
                     />
-                    {(isEditingBranding ? brandingForm.primaryColor : tenant?.branding?.primaryColor) && (
+                    {(isEditingBranding
+                      ? brandingForm.primaryColor
+                      : tenant?.branding?.primaryColor) && (
                       <div
                         className="h-10 w-10 rounded-md border"
                         style={{
@@ -613,7 +568,9 @@ export default function SettingsPage() {
                       readOnly={!isEditingBranding}
                       placeholder="#10B981"
                     />
-                    {(isEditingBranding ? brandingForm.accentColor : tenant?.branding?.accentColor) && (
+                    {(isEditingBranding
+                      ? brandingForm.accentColor
+                      : tenant?.branding?.accentColor) && (
                       <div
                         className="h-10 w-10 rounded-md border"
                         style={{
@@ -629,21 +586,33 @@ export default function SettingsPage() {
 
               {/* Live Branding Preview */}
               {(() => {
-                const previewPrimary = isEditingBranding ? brandingForm.primaryColor : (tenant?.branding?.primaryColor ?? "");
-                const previewAccent = isEditingBranding ? brandingForm.accentColor : (tenant?.branding?.accentColor ?? "");
-                const previewLogo = isEditingBranding ? brandingForm.logoUrl : (tenant?.branding?.logoUrl ?? tenant?.logoUrl ?? "");
+                const previewPrimary = isEditingBranding
+                  ? brandingForm.primaryColor
+                  : (tenant?.branding?.primaryColor ?? "");
+                const previewAccent = isEditingBranding
+                  ? brandingForm.accentColor
+                  : (tenant?.branding?.accentColor ?? "");
+                const previewLogo = isEditingBranding
+                  ? brandingForm.logoUrl
+                  : (tenant?.branding?.logoUrl ?? tenant?.logoUrl ?? "");
                 if (!previewPrimary && !previewAccent && !previewLogo) return null;
                 return (
-                  <div className="mt-6 rounded-lg border bg-card p-4">
-                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">Preview</h4>
-                    <div className="rounded-lg border overflow-hidden">
+                  <div className="bg-card mt-6 rounded-lg border p-4">
+                    <h4 className="text-muted-foreground mb-3 text-sm font-medium">Preview</h4>
+                    <div className="overflow-hidden rounded-lg border">
                       {/* Mock header */}
                       <div
                         className="flex items-center gap-3 px-4 py-3"
                         style={{ backgroundColor: previewPrimary || "hsl(var(--primary))" }}
                       >
                         {previewLogo ? (
-                          <img src={previewLogo} alt="Logo preview" loading="lazy" decoding="async" className="h-8 w-8 rounded object-cover bg-white/20" />
+                          <img
+                            src={previewLogo}
+                            alt="Logo preview"
+                            loading="lazy"
+                            decoding="async"
+                            className="h-8 w-8 rounded bg-white/20 object-cover"
+                          />
                         ) : (
                           <div className="h-8 w-8 rounded bg-white/20" />
                         )}
@@ -652,13 +621,13 @@ export default function SettingsPage() {
                         </span>
                       </div>
                       {/* Mock content */}
-                      <div className="bg-background p-4 space-y-3">
+                      <div className="bg-background space-y-3 p-4">
                         <div className="flex items-center gap-2">
                           <div
                             className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: previewAccent || "hsl(var(--primary))" }}
                           />
-                          <div className="h-3 w-32 rounded bg-muted" />
+                          <div className="bg-muted h-3 w-32 rounded" />
                         </div>
                         <div className="flex gap-2">
                           <div
@@ -669,15 +638,21 @@ export default function SettingsPage() {
                           </div>
                           <div
                             className="rounded border px-3 py-1.5 text-xs font-medium"
-                            style={{ color: previewAccent || "hsl(var(--primary))", borderColor: previewAccent || "hsl(var(--primary))" }}
+                            style={{
+                              color: previewAccent || "hsl(var(--primary))",
+                              borderColor: previewAccent || "hsl(var(--primary))",
+                            }}
                           >
                             Accent Button
                           </div>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
                           <div
                             className="h-full w-3/5 rounded-full"
-                            style={{ backgroundColor: previewAccent || previewPrimary || "hsl(var(--primary))" }}
+                            style={{
+                              backgroundColor:
+                                previewAccent || previewPrimary || "hsl(var(--primary))",
+                            }}
                           />
                         </div>
                       </div>
@@ -691,11 +666,10 @@ export default function SettingsPage() {
 
         <TabsContent value="api">
           <div className="space-y-4">
-            <div className="rounded-lg border bg-card p-6">
+            <div className="bg-card rounded-lg border p-6">
               <h3 className="mb-4 font-semibold">Gemini API Key</h3>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Configure the Google Gemini API key used for AI grading and chat
-                features.
+              <p className="text-muted-foreground mb-4 text-sm">
+                Configure the Google Gemini API key used for AI grading and chat features.
               </p>
               {apiKeyDialogOpen ? (
                 <div className="space-y-3">
@@ -727,10 +701,8 @@ export default function SettingsPage() {
               ) : (
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                      {tenant?.settings?.geminiKeySet
-                        ? "••••••••••••••••"
-                        : "No key configured"}
+                    <div className="border-input bg-muted text-muted-foreground flex h-10 items-center rounded-md border px-3 text-sm">
+                      {tenant?.settings?.geminiKeySet ? "••••••••••••••••" : "No key configured"}
                     </div>
                   </div>
                   <Button onClick={() => setApiKeyDialogOpen(true)}>

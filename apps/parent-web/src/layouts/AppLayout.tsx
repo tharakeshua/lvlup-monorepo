@@ -17,20 +17,17 @@ import {
   type TenantOption,
   type MobileNavItem,
 } from "@levelup/shared-ui";
-import { useNotifications, useUnreadCount, useMarkRead, useMarkAllRead, useTenantBranding, usePrefetch } from "@levelup/shared-hooks";
-
-/** Route prefetch map — triggers lazy imports on link hover */
-const PARENT_PREFETCH_MAP: Record<string, () => Promise<unknown>> = {
-  '/': () => import('../pages/DashboardPage'),
-  '/children': () => import('../pages/ChildrenPage'),
-  '/results': () => import('../pages/ExamResultsPage'),
-  '/progress': () => import('../pages/SpaceProgressPage'),
-  '/child-progress': () => import('../pages/ChildProgressPage'),
-  '/alerts': () => import('../pages/PerformanceAlertsPage'),
-  '/compare': () => import('../pages/ChildComparisonPage'),
-  '/notifications': () => import('../pages/NotificationsPage'),
-  '/settings': () => import('../pages/SettingsPage'),
-};
+// useTenantBranding has no @levelup/query equivalent yet (documented parity gap),
+// so it stays on the legacy shared-hooks package. Notifications moved to the SDK.
+import { useTenantBranding } from "@levelup/shared-hooks";
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useNotificationBadgeQuery,
+  useNotificationBadge,
+} from "@levelup/query";
+import type { Notification } from "@levelup/shared-types";
 import {
   LayoutDashboard,
   Users,
@@ -47,27 +44,24 @@ import { useTenantNames } from "../hooks/useTenantNames";
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser } =
-    useAuthStore();
+  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser } = useAuthStore();
 
-  const parentTenantIds = allMemberships
-    .filter((m) => m.role === "parent")
-    .map((m) => m.tenantId);
+  const parentTenantIds = allMemberships.filter((m) => m.role === "parent").map((m) => m.tenantId);
   const { data: tenantNames } = useTenantNames(parentTenantIds);
 
   // Apply tenant branding (colors + CSS custom properties)
   useTenantBranding();
 
-  // Prefetch routes on link hover for near-instant navigation
-  usePrefetch(PARENT_PREFETCH_MAP);
-
-  const { data: notifData, isLoading: notifsLoading } = useNotifications(
-    currentTenantId,
-    firebaseUser?.uid ?? null,
-  );
-  const unreadCount = useUnreadCount(currentTenantId, firebaseUser?.uid ?? null);
-  const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
+  const { data: notifResult, isLoading: notifsLoading } = useNotifications();
+  const notifications = ((notifResult as { items?: Notification[] } | undefined)?.items ??
+    []) as Notification[];
+  // One-shot badge read seeds the count; the live subscription keeps it fresh
+  // (both write the same `notificationBadge` cache key).
+  const { data: badgeData } = useNotificationBadgeQuery();
+  useNotificationBadge();
+  const unreadCount = (badgeData as { unreadCount?: number } | undefined)?.unreadCount ?? 0;
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   const navGroups: NavGroup[] = [
     {
@@ -157,7 +151,7 @@ export default function AppLayout() {
         tenants={tenantOptions}
         onSwitch={switchTenant}
       />
-      <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
+      <div className="text-muted-foreground flex items-center gap-2 px-2 py-1 text-xs">
         <span className="truncate">{user?.displayName ?? user?.email}</span>
       </div>
     </div>
@@ -177,17 +171,17 @@ export default function AppLayout() {
     <div className="flex items-center gap-2">
       <ThemeToggle />
       <NotificationBell
-        notifications={notifData?.notifications ?? []}
+        notifications={notifications}
         unreadCount={unreadCount}
         isLoading={notifsLoading}
         onNotificationClick={(notif) => {
-          if (!notif.isRead && currentTenantId) {
-            markRead.mutate({ tenantId: currentTenantId, notificationId: notif.id });
+          if (!notif.isRead) {
+            markRead.mutate({ notificationId: notif.id });
           }
           if (notif.actionUrl) navigate(notif.actionUrl);
         }}
         onMarkAllRead={() => {
-          if (currentTenantId) markAllRead.mutate({ tenantId: currentTenantId });
+          markAllRead.mutate();
         }}
         onViewAll={() => navigate("/notifications")}
       />
@@ -196,9 +190,25 @@ export default function AppLayout() {
 
   const mobileNavItems: MobileNavItem[] = [
     { icon: LayoutDashboard, label: "Home", to: "/", isActive: location.pathname === "/" },
-    { icon: Users, label: "Children", to: "/children", isActive: location.pathname.startsWith("/children") },
-    { icon: ClipboardList, label: "Results", to: "/results", isActive: location.pathname.startsWith("/results") },
-    { icon: Bell, label: "Alerts", to: "/notifications", badge: unreadCount > 0 ? unreadCount : undefined, isActive: location.pathname.startsWith("/notifications") },
+    {
+      icon: Users,
+      label: "Children",
+      to: "/children",
+      isActive: location.pathname.startsWith("/children"),
+    },
+    {
+      icon: ClipboardList,
+      label: "Results",
+      to: "/results",
+      isActive: location.pathname.startsWith("/results"),
+    },
+    {
+      icon: Bell,
+      label: "Alerts",
+      to: "/notifications",
+      badge: unreadCount > 0 ? unreadCount : undefined,
+      isActive: location.pathname.startsWith("/notifications"),
+    },
   ];
 
   return (

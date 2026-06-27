@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useStudents, useApiError } from "@levelup/shared-hooks";
-import { callSaveStudent } from "@levelup/shared-services";
+import { useMutation } from "@tanstack/react-query";
+import { useStudents, useSaveStudent, useApiError } from "@levelup/query";
 import { toast } from "sonner";
 import {
   Badge,
@@ -33,9 +32,11 @@ export default function EnrollStudentDialog({
   classId,
   className,
 }: EnrollStudentDialogProps) {
-  const queryClient = useQueryClient();
   const { handleError } = useApiError();
-  const { data: allStudents = [], isLoading } = useStudents(tenantId);
+  const saveStudent = useSaveStudent();
+  const { data: studentData, isLoading } = useStudents();
+  const allStudents = ((studentData as { items?: Student[] } | undefined)?.items ??
+    []) as Student[];
 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -49,7 +50,7 @@ export default function EnrollStudentDialog({
 
   const eligible = useMemo(() => {
     return allStudents.filter(
-      (s) => !(s.classIds ?? []).includes(classId) && s.status !== "archived",
+      (s) => !(s.classIds ?? []).includes(classId) && s.status !== "archived"
     );
   }, [allStudents, classId]);
 
@@ -60,7 +61,7 @@ export default function EnrollStudentDialog({
       (s) =>
         (s.displayName ?? "").toLowerCase().includes(term) ||
         (s.rollNumber ?? "").toLowerCase().includes(term) ||
-        (s.admissionNumber ?? "").toLowerCase().includes(term),
+        (s.admissionNumber ?? "").toLowerCase().includes(term)
     );
   }, [eligible, search]);
 
@@ -71,23 +72,17 @@ export default function EnrollStudentDialog({
         .filter((s): s is Student => Boolean(s));
 
       for (const student of targets) {
-        const nextClassIds = Array.from(
-          new Set([...(student.classIds ?? []), classId]),
-        );
-        await callSaveStudent({
+        const nextClassIds = Array.from(new Set([...(student.classIds ?? []), classId]));
+        // Tenant applied server-side from claims; useSaveStudent auto-invalidates.
+        await saveStudent.mutateAsync({
           id: student.id,
-          tenantId,
           data: { classIds: nextClassIds },
         });
       }
       return targets.length;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "students"] });
-      queryClient.invalidateQueries({ queryKey: ["tenants", tenantId, "classes"] });
-      toast.success(
-        `Enrolled ${count} student${count === 1 ? "" : "s"} in ${className}`,
-      );
+      toast.success(`Enrolled ${count} student${count === 1 ? "" : "s"} in ${className}`);
       onOpenChange(false);
     },
     onError: (err) => handleError(err, "Failed to enroll students"),
@@ -113,7 +108,7 @@ export default function EnrollStudentDialog({
         </DialogHeader>
 
         <div className="relative mt-2">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="text"
             placeholder="Search by name, roll no., or admission no..."
@@ -173,9 +168,7 @@ export default function EnrollStudentDialog({
                         {isSelected && <Check className="h-3 w-3" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {s.displayName ?? s.uid}
-                        </p>
+                        <p className="truncate text-sm font-medium">{s.displayName ?? s.uid}</p>
                         <p className="text-muted-foreground truncate text-xs">
                           Roll: {s.rollNumber ?? "—"}
                           {s.admissionNumber ? ` · Adm: ${s.admissionNumber}` : ""}
