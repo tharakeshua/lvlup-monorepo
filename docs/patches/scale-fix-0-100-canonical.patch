@@ -1,0 +1,259 @@
+diff --git a/apps/admin-web/src/pages/AnalyticsPage.tsx b/apps/admin-web/src/pages/AnalyticsPage.tsx
+index ae9472c..a996087 100644
+--- a/apps/admin-web/src/pages/AnalyticsPage.tsx
++++ b/apps/admin-web/src/pages/AnalyticsPage.tsx
+@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
+                 <p className="text-sm text-muted-foreground">Completion Rate</p>
+                 <p className="text-2xl font-bold">
+                   {Math.round(
+-                    selectedSummary.autograde.examCompletionRate * 100,
++                    (selectedSummary.autograde.examCompletionRate ?? 0) * 100,
+                   )}
+                   %
+                 </p>
+@@ -239,13 +239,13 @@ export default function AnalyticsPage() {
+ 
+             {/* Top & Bottom Performers */}
+             <div className="grid gap-4 md:grid-cols-2">
+-              {selectedSummary.autograde.topPerformers.length > 0 && (
++              {(selectedSummary.autograde.topPerformers ?? []).length > 0 && (
+                 <div>
+                   <h4 className="text-sm font-medium mb-2 text-primary">
+                     Top Performers
+                   </h4>
+                   <div className="space-y-1">
+-                    {selectedSummary.autograde.topPerformers
++                    {(selectedSummary.autograde.topPerformers ?? [])
+                       .slice(0, 5)
+                       .map((p) => (
+                         <div
+@@ -261,13 +261,13 @@ export default function AnalyticsPage() {
+                   </div>
+                 </div>
+               )}
+-              {selectedSummary.autograde.bottomPerformers.length > 0 && (
++              {(selectedSummary.autograde.bottomPerformers ?? []).length > 0 && (
+                 <div>
+                   <h4 className="text-sm font-medium mb-2 text-destructive">
+                     Needs Improvement
+                   </h4>
+                   <div className="space-y-1">
+-                    {selectedSummary.autograde.bottomPerformers
++                    {(selectedSummary.autograde.bottomPerformers ?? [])
+                       .slice(0, 5)
+                       .map((p) => (
+                         <div
+diff --git a/apps/teacher-web/src/pages/ClassAnalyticsPage.tsx b/apps/teacher-web/src/pages/ClassAnalyticsPage.tsx
+index 24136a9..b27c616 100644
+--- a/apps/teacher-web/src/pages/ClassAnalyticsPage.tsx
++++ b/apps/teacher-web/src/pages/ClassAnalyticsPage.tsx
+@@ -90,12 +90,12 @@ export default function ClassAnalyticsPage() {
+             />
+             <ScoreCard
+               label="Avg Exam Score"
+-              value={`${Math.round(classSummary.autograde.averageClassScore * 100)}%`}
++              value={`${Math.round((classSummary.autograde.averageClassScore ?? 0) * 100)}%`}
+               icon={ClipboardList}
+             />
+             <ScoreCard
+               label="Avg Space Completion"
+-              value={`${Math.round(classSummary.levelup.averageClassCompletion)}%`}
++              value={`${Math.round(classSummary.levelup.averageClassCompletion ?? 0)}%`}
+               icon={BookOpen}
+             />
+             <ScoreCard
+@@ -121,27 +121,27 @@ export default function ClassAnalyticsPage() {
+               </div>
+               <div className="flex items-center gap-6">
+                 <ProgressRing
+-                  value={classSummary.autograde.averageClassScore * 100}
++                  value={(classSummary.autograde.averageClassScore ?? 0) * 100}
+                   label="Avg Score"
+                 />
+                 <div className="text-sm space-y-1">
+                   <p>
+                     Completion Rate:{" "}
+                     <span className="font-medium">
+-                      {Math.round(classSummary.autograde.examCompletionRate * 100)}%
++                      {Math.round((classSummary.autograde.examCompletionRate ?? 0) * 100)}%
+                     </span>
+                   </p>
+                 </div>
+               </div>
+ 
+               {/* Top Performers */}
+-              {classSummary.autograde.topPerformers.length > 0 && (
++              {(classSummary.autograde.topPerformers ?? []).length > 0 && (
+                 <div>
+                   <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                     <Trophy className="h-3 w-3" /> Top Performers
+                   </p>
+                   <div className="space-y-1">
+-                    {classSummary.autograde.topPerformers.slice(0, 3).map((s) => (
++                    {(classSummary.autograde.topPerformers ?? []).slice(0, 3).map((s) => (
+                       <div
+                         key={s.studentId}
+                         className="flex items-center justify-between text-sm"
+@@ -157,13 +157,13 @@ export default function ClassAnalyticsPage() {
+               )}
+ 
+               {/* Bottom Performers */}
+-              {classSummary.autograde.bottomPerformers.length > 0 && (
++              {(classSummary.autograde.bottomPerformers ?? []).length > 0 && (
+                 <div>
+                   <p className="text-xs font-medium text-muted-foreground mb-2">
+                     Needs Improvement
+                   </p>
+                   <div className="space-y-1">
+-                    {classSummary.autograde.bottomPerformers.slice(0, 3).map((s) => (
++                    {(classSummary.autograde.bottomPerformers ?? []).slice(0, 3).map((s) => (
+                       <div
+                         key={s.studentId}
+                         className="flex items-center justify-between text-sm"
+@@ -187,27 +187,27 @@ export default function ClassAnalyticsPage() {
+               </div>
+               <div className="flex items-center gap-6">
+                 <ProgressRing
+-                  value={classSummary.levelup.averageClassCompletion}
++                  value={classSummary.levelup.averageClassCompletion ?? 0}
+                   label="Avg Completion"
+                 />
+                 <div className="text-sm space-y-1">
+                   <p>
+                     Active Rate:{" "}
+                     <span className="font-medium">
+-                      {Math.round(classSummary.levelup.activeStudentRate * 100)}%
++                      {Math.round((classSummary.levelup.activeStudentRate ?? 0) * 100)}%
+                     </span>
+                   </p>
+                 </div>
+               </div>
+ 
+               {/* Top Point Earners */}
+-              {classSummary.levelup.topPointEarners.length > 0 && (
++              {(classSummary.levelup.topPointEarners ?? []).length > 0 && (
+                 <div>
+                   <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                     <Trophy className="h-3 w-3" /> Top Point Earners
+                   </p>
+                   <div className="space-y-1">
+-                    {classSummary.levelup.topPointEarners.slice(0, 5).map((s) => (
++                    {(classSummary.levelup.topPointEarners ?? []).slice(0, 5).map((s) => (
+                       <div
+                         key={s.studentId}
+                         className="flex items-center justify-between text-sm"
+diff --git a/apps/teacher-web/src/pages/ClassDetailPage.tsx b/apps/teacher-web/src/pages/ClassDetailPage.tsx
+index d9b40fd..1ea8598 100644
+--- a/apps/teacher-web/src/pages/ClassDetailPage.tsx
++++ b/apps/teacher-web/src/pages/ClassDetailPage.tsx
+@@ -187,7 +187,7 @@ export default function ClassDetailPage() {
+               label="Analytics"
+               value={
+                 classSummary
+-                  ? `${Math.round(classSummary.autograde.averageClassScore * 100)}%`
++                  ? `${Math.round((classSummary.autograde.averageClassScore ?? 0) * 100)}%`
+                   : "—"
+               }
+               icon={BarChart3}
+@@ -455,12 +455,12 @@ export default function ClassDetailPage() {
+                 />
+                 <ScoreCard
+                   label="Avg Exam Score"
+-                  value={`${Math.round(classSummary.autograde.averageClassScore * 100)}%`}
++                  value={`${Math.round((classSummary.autograde.averageClassScore ?? 0) * 100)}%`}
+                   icon={ClipboardList}
+                 />
+                 <ScoreCard
+                   label="Avg Space Completion"
+-                  value={`${Math.round(classSummary.levelup.averageClassCompletion)}%`}
++                  value={`${Math.round(classSummary.levelup.averageClassCompletion ?? 0)}%`}
+                   icon={BookOpen}
+                 />
+                 <ScoreCard
+@@ -480,25 +480,25 @@ export default function ClassDetailPage() {
+                     </div>
+                     <div className="flex items-center gap-6">
+                       <ProgressRing
+-                        value={classSummary.autograde.averageClassScore * 100}
++                        value={(classSummary.autograde.averageClassScore ?? 0) * 100}
+                         label="Avg Score"
+                       />
+                       <div className="text-sm">
+                         <p>
+                           Completion Rate:{" "}
+                           <span className="font-medium">
+-                            {Math.round(classSummary.autograde.examCompletionRate * 100)}%
++                            {Math.round((classSummary.autograde.examCompletionRate ?? 0) * 100)}%
+                           </span>
+                         </p>
+                       </div>
+                     </div>
+-                    {classSummary.autograde.topPerformers.length > 0 && (
++                    {(classSummary.autograde.topPerformers ?? []).length > 0 && (
+                       <div>
+                         <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                           <Trophy className="h-3 w-3" /> Top Performers
+                         </p>
+                         <div className="space-y-1">
+-                          {classSummary.autograde.topPerformers.slice(0, 3).map((s) => (
++                          {(classSummary.autograde.topPerformers ?? []).slice(0, 3).map((s) => (
+                             <div
+                               key={s.studentId}
+                               className="flex items-center justify-between text-sm"
+@@ -524,25 +524,25 @@ export default function ClassDetailPage() {
+                     </div>
+                     <div className="flex items-center gap-6">
+                       <ProgressRing
+-                        value={classSummary.levelup.averageClassCompletion}
++                        value={classSummary.levelup.averageClassCompletion ?? 0}
+                         label="Avg Completion"
+                       />
+                       <div className="text-sm">
+                         <p>
+                           Active Rate:{" "}
+                           <span className="font-medium">
+-                            {Math.round(classSummary.levelup.activeStudentRate * 100)}%
++                            {Math.round((classSummary.levelup.activeStudentRate ?? 0) * 100)}%
+                           </span>
+                         </p>
+                       </div>
+                     </div>
+-                    {classSummary.levelup.topPointEarners.length > 0 && (
++                    {(classSummary.levelup.topPointEarners ?? []).length > 0 && (
+                       <div>
+                         <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                           <Trophy className="h-3 w-3" /> Top Point Earners
+                         </p>
+                         <div className="space-y-1">
+-                          {classSummary.levelup.topPointEarners.slice(0, 5).map((s) => (
++                          {(classSummary.levelup.topPointEarners ?? []).slice(0, 5).map((s) => (
+                             <div
+                               key={s.studentId}
+                               className="flex items-center justify-between text-sm"
+diff --git a/packages/shared-types/src/progress/summary.ts b/packages/shared-types/src/progress/summary.ts
+index c92b8c2..2972617 100644
+--- a/packages/shared-types/src/progress/summary.ts
++++ b/packages/shared-types/src/progress/summary.ts
+@@ -84,16 +84,16 @@ export interface StudentProgressSummary {
+ // ── Class Progress Summary ──────────────────────────────────────────────────
+ 
+ export interface ClassAutogradeMetrics {
+-  averageClassScore: number;
+-  examCompletionRate: number;
+-  topPerformers: Array<{ studentId: string; name: string; avgScore: number }>;
++  averageClassScore: number;      // ratio 0–1 (UI multiplies ×100 for display)
++  examCompletionRate: number;     // ratio 0–1 (UI multiplies ×100 for display)
++  topPerformers: Array<{ studentId: string; name: string; avgScore: number }>; // avgScore: ratio 0–1
+   bottomPerformers: Array<{ studentId: string; name: string; avgScore: number }>;
+ }
+ 
+ export interface ClassLevelupMetrics {
+-  averageClassCompletion: number;
+-  activeStudentRate: number;
+-  topPointEarners: Array<{ studentId: string; name: string; points: number }>;
++  averageClassCompletion: number; // percentage 0–100 (UI uses raw value, no ×100)
++  activeStudentRate: number;      // ratio 0–1 (UI multiplies ×100 for display)
++  topPointEarners: Array<{ studentId: string; name: string; points: number }>; // points: raw integer
+ }
+ 
+ export interface ClassProgressSummary {

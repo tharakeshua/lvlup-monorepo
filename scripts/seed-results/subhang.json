@@ -1,0 +1,346 @@
+{
+  "tenant": {
+    "id": "tenant_subhang",
+    "code": "SUB001",
+    "name": "Subhang Academy"
+  },
+  "academicSession": {
+    "id": "hCOHNuE19nu9187dK400",
+    "name": "2025-26"
+  },
+  "classes": [
+    {
+      "id": "cls_g10_sysdesign_a",
+      "name": "System Design Class"
+    },
+    {
+      "id": "cls_g10_dsa_a",
+      "name": "DSA Class"
+    },
+    {
+      "id": "cls_g10_lld_a",
+      "name": "LLD Class"
+    },
+    {
+      "id": "cls_g10_behavioral_a",
+      "name": "Behavioral Interview Class"
+    }
+  ],
+  "accounts": {
+    "admin": {
+      "uid": "d0ZDQvoNBcTtKIIduaZvF2iiwMc2",
+      "email": "subhang.rocklee@gmail.com",
+      "role": "tenantAdmin",
+      "teacherEntityId": "P9NVQNRESE1Tq3L6LzG8"
+    },
+    "student": {
+      "uid": "lUUkhr5fQMZjrUxvbsIoYmCLrku2",
+      "email": "student.test@subhang.academy",
+      "role": "student",
+      "studentEntityId": "4ETnX1nentEZZiQ4yYXV"
+    },
+    "parent": {
+      "uid": "h1F8ymbn2zfDv8MqjUqt745JdEG2",
+      "email": "parent.test@subhang.academy",
+      "role": "parent",
+      "parentEntityId": "3xBR5ReF1XceVUhDblRV"
+    }
+  },
+  "credentials": {
+    "admin": {
+      "email": "subhang.rocklee@gmail.com",
+      "password": "Test@12345"
+    },
+    "student": {
+      "email": "student.test@subhang.academy",
+      "password": "Test@12345"
+    },
+    "parent": {
+      "email": "parent.test@subhang.academy",
+      "password": "Test@12345"
+    }
+  },
+  "spaces": [
+    {
+      "id": "8rPWlVP4kyDp1xd75SnH",
+      "title": "System Design",
+      "classId": "cls_g10_sysdesign_a",
+      "storyPoints": [
+        {
+          "id": "IUPkK8v17KQ4rFbsJ8ge",
+          "title": "Fundamentals of Scalability",
+          "type": "standard",
+          "itemCount": 8
+        },
+        {
+          "id": "20KKFipTUan5hYBpyXNd",
+          "title": "Database Design & Patterns",
+          "type": "practice",
+          "itemCount": 8
+        },
+        {
+          "id": "6RVBgiRWqjQIUDl7xeek",
+          "title": "Caching & Load Balancing Quiz",
+          "type": "quiz",
+          "itemCount": 8
+        },
+        {
+          "id": "3PYpieQtVUMQYiM9W43i",
+          "title": "System Design Assessment",
+          "type": "timed_test",
+          "itemCount": 8
+        }
+      ]
+    },
+    {
+      "id": "ZikR8xEHkqIaIsugmdQg",
+      "title": "Data Structures & Algorithms",
+      "classId": "cls_g10_dsa_a",
+      "storyPoints": [
+        {
+          "id": "NUDWSZDR9YRnPJX6qoeP",
+          "title": "Arrays & Strings Foundations",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "Zu86i5osXGCbp6Rf70Tm",
+          "title": "Hash Maps & Sets Mastery",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "sgdMKWWF0KpEytqHeTbh",
+          "title": "Linked Lists & Stack/Queue Patterns",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "QmHCyOaM0oexjrWEBVfN",
+          "title": "Binary Trees & BSTs",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "wGH5xwxuPQcOWyL55gFR",
+          "title": "Graphs — BFS, DFS & Topological Sort",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "7VOUVJEiBH77fyYEg4is",
+          "title": "Advanced Graphs — Dijkstra, Union-Find, MST",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "zHs2PGWwj2fnVsQMO8Yu",
+          "title": "Dynamic Programming I — 1D & 2D",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "1pEg2NCNaajNJcTHxbJy",
+          "title": "Dynamic Programming II — Advanced Patterns",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "9H8WbP0KlNvE1moOplD7",
+          "title": "Tries, Segment Trees & Advanced DS",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "Jn9kf9OAeiUlkfqeClpP",
+          "title": "Greedy & Backtracking Patterns",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "DDvMqnfuSGs3btPIYpnK",
+          "title": "DSA Comprehensive Quiz",
+          "type": "quiz",
+          "itemCount": 7
+        },
+        {
+          "id": "7LgnRSSjBcZxj4PFoB1S",
+          "title": "DSA Staff-Level Assessment",
+          "type": "timed_test",
+          "itemCount": 7
+        }
+      ]
+    },
+    {
+      "id": "XTw3bLqiT4dMyvFJkI0g",
+      "title": "Low-Level Design & OOP",
+      "classId": "cls_g10_lld_a",
+      "storyPoints": [
+        {
+          "id": "efDEBIVVuI4GYultzGX8",
+          "title": "OOP Fundamentals & SOLID Principles",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "FU3WlPIdwlvPAo8lB4kG",
+          "title": "Design Patterns — Creational",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "NEeNBrzgEcBPFZmxjvPC",
+          "title": "Design Patterns — Structural",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "Q75RccoNWATUD5WvZXWp",
+          "title": "Design Patterns — Behavioral",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "fhpTejczKkx7lpcy1y17",
+          "title": "Clean Architecture & Dependency Injection",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "LncPDG1zx9eYP6AUhnsp",
+          "title": "LLD — Parking Lot & Elevator System",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "gWTGQp396udInGK0M1zh",
+          "title": "LLD — Library Management & Hotel Booking",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "vhVqSDgrWJ8Oy9YGMUl7",
+          "title": "LLD — Social Media Feed & Notification System",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "baOuwlRTx8gC1mY7MrQb",
+          "title": "LLD — Chess Game & Card Game Engine",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "23j1kbrCu2XrzksO0icc",
+          "title": "CQRS, Event Sourcing & Domain-Driven Design",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "JF7qkA9jOQgMdNP3efFL",
+          "title": "LLD Comprehensive Quiz",
+          "type": "quiz",
+          "itemCount": 7
+        },
+        {
+          "id": "U8zyZhJtJX8MzHmN3NC6",
+          "title": "LLD Staff-Level Assessment",
+          "type": "timed_test",
+          "itemCount": 7
+        }
+      ]
+    },
+    {
+      "id": "1AqFwKSf59FiIrqzaQ7i",
+      "title": "Behavioral Interview Mastery",
+      "classId": "cls_g10_behavioral_a",
+      "storyPoints": [
+        {
+          "id": "m3zlNk1jI2X9akRPg9rF",
+          "title": "STAR Method & Storytelling Framework",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "iwlqmOQ7Bdt8KMumvRqy",
+          "title": "Leadership & Influence",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "RUiidhIOp3UCUzufCqBT",
+          "title": "Conflict Resolution & Difficult Conversations",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "VkxFEpeuQlnhPSse6RWR",
+          "title": "System Ownership & Technical Decision-Making",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "AOvHhunJrCu3HtnMeDWs",
+          "title": "Cross-Functional Collaboration",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "YfGY2GxO6HUPWUPYD94T",
+          "title": "Failure, Recovery & Growth Mindset",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "0VKwtLTt1VydSeI073VB",
+          "title": "Ambiguity & Prioritization",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "QkgpzZUPMWMlOmBYUUDw",
+          "title": "Staff+ Level Questions",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "QmAD88dwzZlGdHOHsPFA",
+          "title": "Company-Specific FAANG Preparation",
+          "type": "standard",
+          "itemCount": 7
+        },
+        {
+          "id": "9GED1Jdhi93kWeepJ2kA",
+          "title": "Mock Interview Practice",
+          "type": "practice",
+          "itemCount": 7
+        },
+        {
+          "id": "jIPacoKFRykWJ3mtQ8Cs",
+          "title": "Behavioral Interview Concepts Quiz",
+          "type": "quiz",
+          "itemCount": 8
+        },
+        {
+          "id": "xBnumc8jTQje26POV6Lq",
+          "title": "Behavioral Interview Timed Assessment",
+          "type": "timed_test",
+          "itemCount": 8
+        }
+      ]
+    }
+  ],
+  "entityCounts": {
+    "tenants": 1,
+    "classes": 4,
+    "authUsers": 3,
+    "teachers": 1,
+    "students": 1,
+    "parents": 1,
+    "memberships": 3,
+    "spaces": 4,
+    "storyPoints": 40,
+    "items": 286
+  },
+  "seededAt": "2026-03-09T15:49:05.975Z"
+}
