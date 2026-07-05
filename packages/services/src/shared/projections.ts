@@ -5,6 +5,7 @@
  * (§6 AI row), and unreleased grades (§6.10). The access result drives which
  * projection a read service picks; these helpers do the actual stripping.
  */
+import { toTimestamp } from "@levelup/domain";
 import type { AuthContext } from "./context.js";
 
 /** Authoring roles see rubric guidance + thresholds; everyone else gets them stripped. */
@@ -18,6 +19,40 @@ export function isTeacherish(ctx: AuthContext): boolean {
 }
 
 type Doc = Record<string, unknown>;
+
+// ── timestamp canonicalization (LVL-1) ────────────────────────────────────────
+// Stored docs carry the timestamp trichotomy (Firestore Timestamp / epoch-millis /
+// ISO w or w/o millis); every strict view schema requires the canonical ISO-ms
+// `zTimestamp`. These are the ONE seam read projections normalize through
+// (domain `toTimestamp()` — AD-4 precedent).
+
+/** Nullable timestamp field: missing/null/unparseable → null (required-nullable views). */
+export function tsOrNull(v: unknown): string | null {
+  if (v == null) return null;
+  try {
+    return toTimestamp(v as never);
+  } catch {
+    return null;
+  }
+}
+
+/** Required timestamp field: first parseable candidate wins (fallback chain). */
+export function tsRequired(...candidates: unknown[]): string {
+  for (const c of candidates) {
+    if (c == null) continue;
+    try {
+      return toTimestamp(c as never);
+    } catch {
+      /* try next */
+    }
+  }
+  throw new RangeError("no parseable timestamp among candidates");
+}
+
+/** Optional timestamp field: missing/unparseable → undefined (compact() drops it). */
+export function tsOrUndefined(v: unknown): string | undefined {
+  return tsOrNull(v) ?? undefined;
+}
 
 /**
  * Strip `modelAnswer`/`evaluatorGuidance` from a rubric and `promptGuidance` from
@@ -75,7 +110,7 @@ export function stripEvaluationCost(evaluation: unknown): unknown {
  * `storyPointId`/`completedAt` or carrying a stray `completed`). Whitelists schema
  * keys (dropping audit fields like `createdBy`/`studentId` that the view omits).
  */
-export function projectSpaceProgress(p: Doc): Doc {
+export function projectSpaceProgress(p: Doc, nowFallback?: string): Doc {
   const spIn = (p["storyPoints"] ?? {}) as Record<string, unknown>;
   const storyPoints: Record<string, Doc> = {};
   for (const [k, v] of Object.entries(spIn)) {
@@ -95,7 +130,7 @@ export function projectSpaceProgress(p: Doc): Doc {
             : 0,
       completedItems: typeof e["completedItems"] === "number" ? (e["completedItems"] as number) : 0,
       totalItems: typeof e["totalItems"] === "number" ? (e["totalItems"] as number) : 0,
-      completedAt: (e["completedAt"] as string | null | undefined) ?? null,
+      completedAt: tsOrNull(e["completedAt"]),
     };
   }
   const percentage =
@@ -121,9 +156,9 @@ export function projectSpaceProgress(p: Doc): Doc {
     totalPoints: typeof p["totalPoints"] === "number" ? (p["totalPoints"] as number) : 0,
     percentage,
     storyPoints,
-    startedAt: (p["startedAt"] as string | null | undefined) ?? null,
-    completedAt: (p["completedAt"] as string | null | undefined) ?? null,
-    updatedAt: p["updatedAt"],
+    startedAt: tsOrNull(p["startedAt"]),
+    completedAt: tsOrNull(p["completedAt"]),
+    updatedAt: tsRequired(p["updatedAt"], p["completedAt"], p["startedAt"], nowFallback),
   };
   if (typeof p["marksEarned"] === "number") out["marksEarned"] = p["marksEarned"];
   if (typeof p["totalMarks"] === "number") out["totalMarks"] = p["totalMarks"];

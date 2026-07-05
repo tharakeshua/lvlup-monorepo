@@ -37,6 +37,9 @@ export {
   getLeaderboardService,
 } from "./reads.js";
 
+// class assignment-tracker matrix (C12)
+export { getAssignmentMatrixService } from "./assignment-matrix.js";
+
 // server-only projection / recompute
 export {
   recomputeStudentSummaryService,

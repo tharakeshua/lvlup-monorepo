@@ -54,7 +54,7 @@ vi.mock("../../utils/at-risk-rules", () => ({
   evaluateAtRiskRules: vi.fn(() => ({ isAtRisk: false, reasons: [] })),
 }));
 
-vi.mock("@levelup/shared-types", () => ({
+vi.mock("../../contracts/legacy-docs", () => ({
   StudentProgressSummarySchema: { safeParse: (data: any) => ({ success: true, data }) },
 }));
 

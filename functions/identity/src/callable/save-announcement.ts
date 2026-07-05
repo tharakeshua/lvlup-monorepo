@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SaveAnnouncementRequestSchema } from "@levelup/shared-types";
-import type { SaveAnnouncementResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveAnnouncementRequestSchema } from "../contracts/wire";
+import type { SaveAnnouncementResponse } from "../contracts/wire";
 import { getUser, assertTenantAdminOrSuperAdmin, parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -55,7 +55,8 @@ export const saveAnnouncement = onCall({ region: "asia-south1", cors: true }, as
     }
 
     const ref = db.collection(collectionPath).doc();
-    const now = FieldValue.serverTimestamp();
+    // B8: timestamps at rest are canonical ISO strings.
+    const now = isoNow();
     const status = data.status ?? "draft";
 
     await ref.set({
@@ -89,7 +90,7 @@ export const saveAnnouncement = onCall({ region: "asia-south1", cors: true }, as
   }
 
   const updates: Record<string, unknown> = {
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: isoNow(),
   };
 
   if (data.title !== undefined) updates.title = data.title;
@@ -102,9 +103,9 @@ export const saveAnnouncement = onCall({ region: "asia-south1", cors: true }, as
   if (data.status !== undefined) {
     updates.status = data.status;
     if (data.status === "published") {
-      updates.publishedAt = FieldValue.serverTimestamp();
+      updates.publishedAt = isoNow();
     } else if (data.status === "archived") {
-      updates.archivedAt = FieldValue.serverTimestamp();
+      updates.archivedAt = isoNow();
     }
   }
 

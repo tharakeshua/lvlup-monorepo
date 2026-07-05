@@ -33,12 +33,16 @@ export type {
   TenantLike,
   MembershipRepo,
   ClaimsRepo,
+  StorageSignerPort,
+  PipelineEnqueuePort,
+  PipelineAdvanceRequest,
 } from "./context/ports.js";
 
 // ---- adapters (the thin shells) ----
 export { makeCallable, type ServiceFn } from "./adapters/on-call.js";
 export {
   makeTrigger,
+  prefixTriggerDocument,
   type TriggerRef,
   type TriggerEvent,
   type TriggerEventType,
@@ -51,8 +55,13 @@ export {
   getRepos,
   getAi,
   getClock,
+  getStorage,
+  getPipelineTasks,
   type RuntimeDeps,
 } from "./adapters/runtime.js";
+export { createAdminStorageSigner } from "./adapters/storage.js";
+export { createRtdbGradingProjections } from "./adapters/grading-projections-rtdb.js";
+export { createRtdbLevelupProjections } from "./adapters/levelup-projections-rtdb.js";
 
 // ---- request / error model ----
 export { parseRequest } from "./request/parse-request.js";
@@ -78,6 +87,7 @@ export {
 export {
   enqueueTask,
   enqueuePipelineAdvance,
+  taskFunctionRef,
   type PipelineStep,
   type EnqueueOpts,
 } from "./outbox/cloud-tasks.js";

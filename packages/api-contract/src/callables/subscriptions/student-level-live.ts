@@ -1,8 +1,9 @@
 /**
  * v1.levelup.studentLevelLive — live level/XP for the calling student (self only).
  *
- * Projection doc `.../students/{uid}/level/current` written by awardAchievements /
- * progressUpdater. `params: {}` — the subject is `auth.currentUser` (resolved by
+ * RTDB projection node `studentLevelLive/{t}/{uid}` written by awardAchievements
+ * via the AD-12 RTDB-projection pattern (U2.6 — the legacy unprefixed Firestore
+ * doc is retired). `params: {}` — the subject is `auth.currentUser` (resolved by
  * the transport `__uid__` placeholder), never a body field. Payload is the domain
  * `StudentLevel` (level / XP slim shape; carries no ⚷).
  *
@@ -18,7 +19,7 @@ export type StudentLevelLiveParams = z.infer<typeof StudentLevelLiveParamsSchema
 export const studentLevelLive = defineSubscription({
   name: "v1.levelup.studentLevelLive",
   module: "levelup",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: StudentLevelLiveParamsSchema,
   payload: StudentLevelSchema,
 });

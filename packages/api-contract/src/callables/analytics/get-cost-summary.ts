@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   zObject,
   zCostSummaryGranularity,
+  zTenantId,
   zIsoDate,
   DailyCostSummarySchema,
   MonthlyCostSummarySchema,
@@ -24,6 +25,8 @@ export const GetCostSummaryRequestSchema = zObject({
     .regex(/^\d{4}-\d{2}$/)
     .optional(),
   range: TimeRangeSchema.optional(),
+  /** Super-admin cross-tenant read (platform LLM-usage roll-up). */
+  tenantOverride: zTenantId.optional(),
 });
 export type GetCostSummaryRequest = z.infer<typeof GetCostSummaryRequestSchema>;
 
@@ -39,4 +42,5 @@ export const getCostSummary = defineCallable({
   responseSchema: GetCostSummaryResponseSchema,
   authMode: "authed",
   rateTier: "read",
+  allowsTenantOverride: true,
 });

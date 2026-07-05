@@ -321,9 +321,14 @@ export interface UnifiedRubricInput {
 export interface AgentConfig {
   key: string;
   name: string;
+  /** Owning space logical key — canonical Agent.spaceId is required (agents are space-scoped). */
+  spaceKey: string;
+  /** Canonical agent type; derived from `purpose` when omitted. */
+  type?: "tutor" | "evaluator";
   purpose?: string;
   systemPrompt?: string; // ⚷
   rules?: string[];
+  /** Written as the canonical `modelOverride`. */
   model?: string;
   isActive?: boolean;
 }
@@ -333,6 +338,9 @@ export interface RubricPresetConfig {
   name: string;
   description?: string;
   rubric: UnifiedRubricInput;
+  /** Canonical RubricPreset.category (default "general"). */
+  category?: "general" | "coding" | "essay" | "math" | "science" | "language" | "custom";
+  isDefault?: boolean;
 }
 
 export interface QuestionBankItemConfig {
@@ -343,6 +351,10 @@ export interface QuestionBankItemConfig {
   points?: number;
   answer: AnswerKeyInput;
   tags?: string[];
+  /** Canonical taxonomy (defaults: "General" / tags / "medium"). */
+  subject?: string;
+  topics?: string[];
+  difficulty?: "easy" | "medium" | "hard";
 }
 
 /**
@@ -440,8 +452,10 @@ export interface EvaluationSettingsConfig {
   key: string;
   name: string;
   confidenceConfig?: { lowThreshold: number; highThreshold: number }; // ⚷
+  /** Not a canonical EvaluationSettings field — kept for authoring context only. */
   autoReleaseThreshold?: number;
   rubricPresetKey?: string;
+  isDefault?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

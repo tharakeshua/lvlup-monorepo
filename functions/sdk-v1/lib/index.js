@@ -195,20 +195,94 @@ var PROGRESS_STATUSES = ["not_started", "in_progress", "completed"];
 var zProgressStatus = zEnum(PROGRESS_STATUSES);
 var QUESTION_PROGRESS_STATUSES = ["pending", "correct", "incorrect", "partial"];
 var zQuestionProgressStatus = zEnum(QUESTION_PROGRESS_STATUSES);
+var ROLE_DESCRIPTORS = [
+  {
+    role: "superAdmin",
+    rank: 6,
+    idField: "",
+    idBrand: z.never(),
+    repoKey: "",
+    scope: "platform",
+    provisionable: false,
+    authoring: false,
+  },
+  {
+    role: "tenantAdmin",
+    rank: 5,
+    idField: "",
+    idBrand: z.never(),
+    repoKey: "",
+    scope: "tenant",
+    provisionable: false,
+    authoring: true,
+  },
+  {
+    role: "teacher",
+    rank: 3,
+    idField: "teacherId",
+    idBrand: zTeacherId,
+    repoKey: "teachers",
+    scope: "tenant",
+    provisionable: true,
+    authoring: true,
+    permissionSet: "teacher",
+  },
+  {
+    role: "student",
+    rank: 0,
+    idField: "studentId",
+    idBrand: zStudentId,
+    repoKey: "students",
+    scope: "tenant",
+    provisionable: true,
+    authoring: false,
+  },
+  {
+    role: "parent",
+    rank: 1,
+    idField: "parentId",
+    idBrand: zParentId,
+    repoKey: "parents",
+    scope: "tenant",
+    provisionable: true,
+    authoring: false,
+  },
+  {
+    role: "scanner",
+    rank: 2,
+    idField: "scannerId",
+    idBrand: zScannerId,
+    repoKey: "scanners",
+    scope: "tenant",
+    provisionable: true,
+    authoring: false,
+  },
+  {
+    role: "staff",
+    rank: 4,
+    idField: "staffId",
+    idBrand: zStaffId,
+    repoKey: "staff",
+    scope: "tenant",
+    provisionable: true,
+    authoring: true,
+    permissionSet: "staff",
+  },
+];
+var ID_ROLES = ROLE_DESCRIPTORS.filter((d) => d.idField !== "");
+var TENANT_ROLES = ROLE_DESCRIPTORS.map((d) => d.role);
+var zTenantRole = z.enum(TENANT_ROLES);
+var ROLE_RANK = Object.fromEntries(ROLE_DESCRIPTORS.map((d) => [d.role, d.rank]));
+var repoKeyForRole = (role) => ROLE_DESCRIPTORS.find((d) => d.role === role)?.repoKey || void 0;
+var idFieldForRole = (role) => {
+  const f = ROLE_DESCRIPTORS.find((d) => d.role === role)?.idField;
+  return f ? f : void 0;
+};
+var roleIdFields = Object.fromEntries(ID_ROLES.map((d) => [d.idField, d.idBrand.optional()]));
 var TENANT_STATUSES = ["active", "suspended", "trial", "expired", "deactivated"];
 var zTenantStatus = zEnum(TENANT_STATUSES);
 var TENANT_PLANS = ["free", "trial", "basic", "premium", "enterprise"];
 var zTenantPlan = zEnum(TENANT_PLANS);
-var TENANT_ROLES = [
-  "superAdmin",
-  "tenantAdmin",
-  "teacher",
-  "student",
-  "parent",
-  "scanner",
-  "staff",
-];
-var zTenantRole = zEnum(TENANT_ROLES);
 var MEMBERSHIP_STATUSES = ["active", "inactive", "suspended"];
 var zMembershipStatus = zEnum(MEMBERSHIP_STATUSES);
 var JOIN_SOURCES = [
@@ -226,6 +300,352 @@ var ENTITY_STATUSES = ["active", "archived"];
 var zEntityStatus = zEnum(ENTITY_STATUSES);
 var CONSUMER_PLANS = ["free", "pro", "premium"];
 var zConsumerPlan = zEnum(CONSUMER_PLANS);
+var McqOptionSchema = zObject({
+  id: z.string(),
+  text: z.string(),
+  imageUrl: z.string().optional(),
+  // ⚷ stripped into AnswerKey server-side for non-authoring reads.
+  isCorrect: z.boolean().optional(),
+});
+var BlankSlotSchema = zObject({
+  id: z.string(),
+  correctAnswer: z.string().optional(),
+  acceptableAnswers: z.array(z.string()).optional(),
+});
+var MatchPairSchema = zObject({ left: z.string(), right: z.string() });
+var GroupOptionItemSchema = zObject({
+  id: z.string(),
+  text: z.string(),
+  group: z.string().optional(),
+});
+var McqPrompt = zObject({
+  questionType: z.literal("mcq"),
+  options: z.array(McqOptionSchema),
+  shuffleOptions: z.boolean().optional(),
+});
+var McaqPrompt = zObject({
+  questionType: z.literal("mcaq"),
+  options: z.array(McqOptionSchema),
+  shuffleOptions: z.boolean().optional(),
+  minSelections: z.number().int().optional(),
+  maxSelections: z.number().int().optional(),
+});
+var TrueFalsePrompt = zObject({
+  questionType: z.literal("true-false"),
+  correctAnswer: z.boolean().optional(),
+});
+var NumericalPrompt = zObject({
+  questionType: z.literal("numerical"),
+  correctAnswer: z.number().optional(),
+  tolerance: z.number().optional(),
+  unit: z.string().optional(),
+});
+var TextPrompt = zObject({
+  questionType: z.literal("text"),
+  maxLength: z.number().int().optional(),
+  modelAnswer: z.string().optional(),
+});
+var ParagraphPrompt = zObject({
+  questionType: z.literal("paragraph"),
+  minWords: z.number().int().optional(),
+  maxWords: z.number().int().optional(),
+  modelAnswer: z.string().optional(),
+});
+var CodePrompt = zObject({
+  questionType: z.literal("code"),
+  language: z.string().optional(),
+  starterCode: z.string().optional(),
+  modelAnswer: z.string().optional(),
+  testCases: z.array(z.object({ input: z.string(), output: z.string() }).strict()).optional(),
+});
+var FillBlanksPrompt = zObject({
+  questionType: z.literal("fill-blanks"),
+  template: z.string(),
+  blanks: z.array(BlankSlotSchema),
+});
+var FillBlanksDdPrompt = zObject({
+  questionType: z.literal("fill-blanks-dd"),
+  template: z.string(),
+  blanks: z.array(BlankSlotSchema),
+  optionPool: z.array(z.string()),
+});
+var MatchingPrompt = zObject({
+  questionType: z.literal("matching"),
+  pairs: z.array(MatchPairSchema),
+  shufflePairs: z.boolean().optional(),
+});
+var JumbledPrompt = zObject({
+  questionType: z.literal("jumbled"),
+  tokens: z.array(z.string()),
+  correctOrder: z.array(z.number().int()).optional(),
+});
+var AudioPrompt = zObject({
+  questionType: z.literal("audio"),
+  promptAudioUrl: z.string().optional(),
+  maxDurationSeconds: z.number().int().optional(),
+  modelAnswer: z.string().optional(),
+});
+var ImageEvaluationPrompt = zObject({
+  questionType: z.literal("image_evaluation"),
+  referenceImageUrls: z.array(z.string()).optional(),
+  modelAnswer: z.string().optional(),
+});
+var GroupOptionsPrompt = zObject({
+  questionType: z.literal("group-options"),
+  groups: z.array(z.string()),
+  items: z.array(GroupOptionItemSchema),
+});
+var ChatAgentQuestionPrompt = zObject({
+  questionType: z.literal("chat_agent_question"),
+  agentInstructions: z.string().optional(),
+  maxTurns: z.number().int().optional(),
+  modelAnswer: z.string().optional(),
+});
+var McqAnswer = zObject({ questionType: z.literal("mcq"), correctOptionIds: z.array(z.string()) });
+var McaqAnswer = zObject({
+  questionType: z.literal("mcaq"),
+  correctOptionIds: z.array(z.string()),
+});
+var TrueFalseAnswer = zObject({
+  questionType: z.literal("true-false"),
+  correctAnswer: z.boolean(),
+});
+var NumericalAnswer = zObject({
+  questionType: z.literal("numerical"),
+  value: z.number(),
+  tolerance: z.number().optional(),
+  unit: z.string().optional(),
+});
+var TextAnswer = zObject({
+  questionType: z.literal("text"),
+  modelAnswer: z.string().optional(),
+  acceptableAnswers: z.array(z.string()).optional(),
+});
+var ParagraphAnswer = zObject({
+  questionType: z.literal("paragraph"),
+  modelAnswer: z.string().optional(),
+});
+var CodeAnswer = zObject({
+  questionType: z.literal("code"),
+  modelAnswer: z.string().optional(),
+  testCases: z.array(z.object({ input: z.string(), output: z.string() }).strict()).optional(),
+});
+var FillBlanksAnswer = zObject({
+  questionType: z.literal("fill-blanks"),
+  blanks: z.array(BlankSlotSchema),
+});
+var FillBlanksDdAnswer = zObject({
+  questionType: z.literal("fill-blanks-dd"),
+  blanks: z.array(BlankSlotSchema),
+});
+var MatchingAnswer = zObject({
+  questionType: z.literal("matching"),
+  pairs: z.array(MatchPairSchema),
+});
+var JumbledAnswer = zObject({
+  questionType: z.literal("jumbled"),
+  correctOrder: z.array(z.number().int()),
+});
+var AudioAnswer = zObject({ questionType: z.literal("audio"), modelAnswer: z.string().optional() });
+var ImageEvaluationAnswer = zObject({
+  questionType: z.literal("image_evaluation"),
+  modelAnswer: z.string().optional(),
+});
+var GroupOptionsAnswer = zObject({
+  questionType: z.literal("group-options"),
+  assignments: z.array(zObject({ itemId: z.string(), group: z.string() })),
+});
+var ChatAgentQuestionAnswer = zObject({
+  questionType: z.literal("chat_agent_question"),
+  modelAnswer: z.string().optional(),
+});
+var McqLearner = zObject({
+  questionType: z.literal("mcq"),
+  selectedOptionIds: z.array(z.string()),
+});
+var McaqLearner = zObject({
+  questionType: z.literal("mcaq"),
+  selectedOptionIds: z.array(z.string()),
+});
+var TrueFalseLearner = zObject({ questionType: z.literal("true-false"), answer: z.boolean() });
+var NumericalLearner = zObject({ questionType: z.literal("numerical"), value: z.number() });
+var TextLearner = zObject({ questionType: z.literal("text"), text: z.string() });
+var ParagraphLearner = zObject({ questionType: z.literal("paragraph"), text: z.string() });
+var CodeLearner = zObject({
+  questionType: z.literal("code"),
+  code: z.string(),
+  language: z.string().optional(),
+});
+var FillBlanksLearner = zObject({
+  questionType: z.literal("fill-blanks"),
+  answers: z.array(zObject({ id: z.string(), value: z.string() })),
+});
+var FillBlanksDdLearner = zObject({
+  questionType: z.literal("fill-blanks-dd"),
+  answers: z.array(zObject({ id: z.string(), value: z.string() })),
+});
+var MatchingLearner = zObject({
+  questionType: z.literal("matching"),
+  matches: z.array(MatchPairSchema),
+});
+var JumbledLearner = zObject({
+  questionType: z.literal("jumbled"),
+  order: z.array(z.number().int()),
+});
+var AudioLearner = zObject({ questionType: z.literal("audio"), audioUrl: z.string() });
+var ImageEvaluationLearner = zObject({
+  questionType: z.literal("image_evaluation"),
+  imageUrls: z.array(z.string()),
+});
+var GroupOptionsLearner = zObject({
+  questionType: z.literal("group-options"),
+  assignments: z.array(zObject({ itemId: z.string(), group: z.string() })),
+});
+var ChatAgentQuestionLearner = zObject({
+  questionType: z.literal("chat_agent_question"),
+  transcript: z.array(zObject({ role: z.string(), content: z.string() })).optional(),
+});
+var QUESTION_TYPE_REGISTRY = {
+  mcq: {
+    prompt: McqPrompt,
+    answer: McqAnswer,
+    learnerAnswer: McqLearner,
+    evaluation: "auto",
+    label: "Multiple choice",
+    sample: () => ({ questionType: "mcq", options: [{ id: "a", text: "A" }] }),
+  },
+  mcaq: {
+    prompt: McaqPrompt,
+    answer: McaqAnswer,
+    learnerAnswer: McaqLearner,
+    evaluation: "auto",
+    label: "Multiple correct answers",
+    sample: () => ({ questionType: "mcaq", options: [{ id: "a", text: "A" }] }),
+  },
+  "true-false": {
+    prompt: TrueFalsePrompt,
+    answer: TrueFalseAnswer,
+    learnerAnswer: TrueFalseLearner,
+    evaluation: "auto",
+    label: "True / false",
+    sample: () => ({ questionType: "true-false" }),
+  },
+  numerical: {
+    prompt: NumericalPrompt,
+    answer: NumericalAnswer,
+    learnerAnswer: NumericalLearner,
+    evaluation: "auto",
+    label: "Numerical",
+    sample: () => ({ questionType: "numerical" }),
+  },
+  text: {
+    prompt: TextPrompt,
+    answer: TextAnswer,
+    learnerAnswer: TextLearner,
+    evaluation: "ai",
+    label: "Short answer",
+    sample: () => ({ questionType: "text" }),
+  },
+  paragraph: {
+    prompt: ParagraphPrompt,
+    answer: ParagraphAnswer,
+    learnerAnswer: ParagraphLearner,
+    evaluation: "ai",
+    label: "Long answer",
+    sample: () => ({ questionType: "paragraph" }),
+  },
+  code: {
+    prompt: CodePrompt,
+    answer: CodeAnswer,
+    learnerAnswer: CodeLearner,
+    evaluation: "ai",
+    label: "Code",
+    sample: () => ({ questionType: "code" }),
+  },
+  "fill-blanks": {
+    prompt: FillBlanksPrompt,
+    answer: FillBlanksAnswer,
+    learnerAnswer: FillBlanksLearner,
+    evaluation: "auto",
+    label: "Fill in the blanks",
+    sample: () => ({ questionType: "fill-blanks", template: "__", blanks: [{ id: "b1" }] }),
+  },
+  "fill-blanks-dd": {
+    prompt: FillBlanksDdPrompt,
+    answer: FillBlanksDdAnswer,
+    learnerAnswer: FillBlanksDdLearner,
+    evaluation: "auto",
+    label: "Fill in the blanks (drag & drop)",
+    sample: () => ({
+      questionType: "fill-blanks-dd",
+      template: "__",
+      blanks: [{ id: "b1" }],
+      optionPool: ["x"],
+    }),
+  },
+  matching: {
+    prompt: MatchingPrompt,
+    answer: MatchingAnswer,
+    learnerAnswer: MatchingLearner,
+    evaluation: "auto",
+    label: "Matching",
+    sample: () => ({ questionType: "matching", pairs: [{ left: "l", right: "r" }] }),
+  },
+  jumbled: {
+    prompt: JumbledPrompt,
+    answer: JumbledAnswer,
+    learnerAnswer: JumbledLearner,
+    evaluation: "auto",
+    label: "Reorder",
+    sample: () => ({ questionType: "jumbled", tokens: ["a", "b"] }),
+  },
+  audio: {
+    prompt: AudioPrompt,
+    answer: AudioAnswer,
+    learnerAnswer: AudioLearner,
+    evaluation: "ai",
+    label: "Audio response",
+    sample: () => ({ questionType: "audio" }),
+  },
+  image_evaluation: {
+    prompt: ImageEvaluationPrompt,
+    answer: ImageEvaluationAnswer,
+    learnerAnswer: ImageEvaluationLearner,
+    evaluation: "ai",
+    label: "Image evaluation",
+    sample: () => ({ questionType: "image_evaluation" }),
+  },
+  "group-options": {
+    prompt: GroupOptionsPrompt,
+    answer: GroupOptionsAnswer,
+    learnerAnswer: GroupOptionsLearner,
+    evaluation: "auto",
+    label: "Group options",
+    sample: () => ({
+      questionType: "group-options",
+      groups: ["g"],
+      items: [{ id: "i", text: "I" }],
+    }),
+  },
+  chat_agent_question: {
+    prompt: ChatAgentQuestionPrompt,
+    answer: ChatAgentQuestionAnswer,
+    learnerAnswer: ChatAgentQuestionLearner,
+    evaluation: "ai",
+    label: "Chat-agent question",
+    sample: () => ({ questionType: "chat_agent_question" }),
+  },
+};
+var QUESTION_TYPES = Object.keys(QUESTION_TYPE_REGISTRY);
+var zQuestionType = z.enum(QUESTION_TYPES);
+var promptMembers = QUESTION_TYPES.map((t) => QUESTION_TYPE_REGISTRY[t].prompt);
+var QuestionTypeDataSchema = z.discriminatedUnion("questionType", promptMembers);
+var AUTO_EVALUATABLE_TYPES = QUESTION_TYPES.filter(
+  (t) => QUESTION_TYPE_REGISTRY[t].evaluation === "auto"
+);
+var AI_EVALUATABLE_TYPES = QUESTION_TYPES.filter(
+  (t) => QUESTION_TYPE_REGISTRY[t].evaluation === "ai"
+);
 var ITEM_TYPES = [
   "question",
   "material",
@@ -236,24 +656,6 @@ var ITEM_TYPES = [
   "checkpoint",
 ];
 var zItemType = zEnum(ITEM_TYPES);
-var QUESTION_TYPES = [
-  "mcq",
-  "mcaq",
-  "true-false",
-  "numerical",
-  "text",
-  "paragraph",
-  "code",
-  "fill-blanks",
-  "fill-blanks-dd",
-  "matching",
-  "jumbled",
-  "audio",
-  "image_evaluation",
-  "group-options",
-  "chat_agent_question",
-];
-var zQuestionType = zEnum(QUESTION_TYPES);
 var MATERIAL_TYPES = ["text", "video", "pdf", "link", "interactive", "story", "rich"];
 var zMaterialType = zEnum(MATERIAL_TYPES);
 var INTERACTIVE_TYPES = ["simulation", "demo", "tool", "game"];
@@ -308,6 +710,21 @@ var PURCHASE_STATUSES = ["completed", "failed", "pending"];
 var zPurchaseStatus = zEnum(PURCHASE_STATUSES);
 var GRADE_LETTERS = ["A+", "A", "B+", "B", "C+", "C", "D", "F"];
 var zGradeLetter = zEnum(GRADE_LETTERS);
+var GRADE_THRESHOLDS = [
+  { letter: "A+", min: 90 },
+  { letter: "A", min: 80 },
+  { letter: "B+", min: 70 },
+  { letter: "B", min: 60 },
+  { letter: "C+", min: 50 },
+  { letter: "C", min: 40 },
+  { letter: "D", min: 33 },
+  { letter: "F", min: 0 },
+];
+function gradeForPercentage(pct2) {
+  const p = Number.isFinite(pct2) ? Math.max(0, pct2) : 0;
+  return (GRADE_THRESHOLDS.find((t) => p >= t.min) ?? GRADE_THRESHOLDS[GRADE_THRESHOLDS.length - 1])
+    .letter;
+}
 var BLOOMS_LEVELS = ["remember", "understand", "apply", "analyze", "evaluate", "create"];
 var zBloomsLevel = zEnum(BLOOMS_LEVELS);
 var DIFFICULTIES = ["easy", "medium", "hard"];
@@ -426,6 +843,123 @@ var STUDY_GOAL_TARGET_TYPES = ["spaces", "story_points", "items", "exams", "minu
 var zStudyGoalTargetType = zEnum(STUDY_GOAL_TARGET_TYPES);
 var LEADERBOARD_SCOPES = ["tenant", "space", "storyPoint"];
 var zLeaderboardScope = zEnum(LEADERBOARD_SCOPES);
+var RubricCriterionLevelSchema = zObject({
+  label: z.string(),
+  description: z.string().optional(),
+  score: z.number(),
+});
+var RubricCriterionSchema = zObject({
+  id: z.string().optional(),
+  name: z.string(),
+  description: z.string().optional(),
+  maxScore: z.number(),
+  weight: z.number().optional(),
+  levels: z.array(RubricCriterionLevelSchema).optional(),
+});
+var EvaluationDimensionSchema = zObject({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  priority: zDimensionPriority,
+  weight: z.number().optional(),
+  scoringScale: z.number().optional(),
+  // ⚷ authoring-only — leaks how to score.
+  promptGuidance: z.string().optional(),
+});
+var UnifiedRubricSchema = zObject({
+  scoringMode: zRubricScoringMode,
+  criteria: z.array(RubricCriterionSchema).optional(),
+  dimensions: z.array(EvaluationDimensionSchema).optional(),
+  holisticGuidance: z.string().optional(),
+  holisticMaxScore: z.number().optional(),
+  passingPercentage: z.number().optional(),
+  showModelAnswer: z.boolean().optional(),
+  // ⚷ authoring-only.
+  modelAnswer: z.string().optional(),
+  evaluatorGuidance: z.string().optional(),
+});
+var EvaluationDisplaySettingsSchema = zObject({
+  showStrengths: z.boolean(),
+  showKeyTakeaway: z.boolean(),
+  prioritizeByImportance: z.boolean(),
+});
+var EvaluationConfidenceConfigSchema = zObject({
+  confidenceThreshold: z.number().default(0.7),
+  autoApproveThreshold: z.number().default(0.9),
+  requireReviewForPartialCredit: z.boolean(),
+});
+var UsageQuotaConfigSchema = zObject({
+  monthlyBudgetUsd: z.number(),
+  dailyCallLimit: z.number().int(),
+  warningThresholdPercent: z.number().default(80),
+});
+var EvaluationSettingsSchema = zObject({
+  id: zEvaluationSettingsId,
+  name: z.string(),
+  description: z.string().optional(),
+  isDefault: z.boolean(),
+  isPublic: z.boolean().optional(),
+  enabledDimensions: z.array(EvaluationDimensionSchema),
+  displaySettings: EvaluationDisplaySettingsSchema,
+  confidenceConfig: EvaluationConfidenceConfigSchema.optional(),
+  usageQuota: UsageQuotaConfigSchema.optional(),
+  createdBy: zUserId.optional(),
+  createdAt: zTimestamp,
+  updatedAt: zTimestamp,
+});
+var GRADING_PIPELINE_STEPS = ["scouting", "grading"];
+var DEAD_LETTER_RESOLUTION_METHODS = ["retry_success", "manual_grade", "dismissed"];
+var GradingDeadLetterEntrySchema = zObject({
+  id: zDeadLetterEntryId,
+  submissionId: zSubmissionId,
+  questionSubmissionId: zQuestionSubmissionId.optional(),
+  pipelineStep: z.enum(GRADING_PIPELINE_STEPS),
+  error: z.string(),
+  errorStack: z.string().optional(),
+  attempts: z.number().int(),
+  lastAttemptAt: zTimestamp,
+  resolvedAt: zTimestamp.nullable(),
+  resolvedBy: zUserId.optional(),
+  resolutionMethod: z.enum(DEAD_LETTER_RESOLUTION_METHODS).optional(),
+  createdAt: zTimestamp,
+});
+var LEGACY_EXAM_STATUSES = ["completed"];
+var normalizeExamStatus = (value) => (value === "completed" ? "grading" : value);
+var zLegacyExamStatusRead = z
+  .enum([...EXAM_STATUSES, ...LEGACY_EXAM_STATUSES])
+  .transform(normalizeExamStatus);
+var LEGACY_SUBMISSION_PIPELINE_STATUSES = ["ocr_processing", "ocr_failed"];
+var SUBMISSION_PIPELINE_STATUS_MAP = {
+  ocr_processing: "scouting",
+  ocr_failed: "scouting_failed",
+};
+var normalizeSubmissionPipelineStatus = (value) =>
+  value in SUBMISSION_PIPELINE_STATUS_MAP ? SUBMISSION_PIPELINE_STATUS_MAP[value] : value;
+var zLegacySubmissionPipelineStatusRead = z
+  .enum([...SUBMISSION_PIPELINE_STATUSES, ...LEGACY_SUBMISSION_PIPELINE_STATUSES])
+  .transform(normalizeSubmissionPipelineStatus);
+var LEGACY_GRADING_PIPELINE_STEPS = ["ocr"];
+var normalizeGradingPipelineStep = (value) => (value === "ocr" ? "scouting" : value);
+var zLegacyGradingPipelineStepRead = z
+  .enum([...GRADING_PIPELINE_STEPS, ...LEGACY_GRADING_PIPELINE_STEPS])
+  .transform(normalizeGradingPipelineStep);
+var LEGACY_UPLOAD_SOURCES = ["gcs"];
+var normalizeUploadSource = (value) => (value === "gcs" ? "scanner" : value);
+var zLegacyUploadSourceRead = z
+  .enum([...UPLOAD_SOURCES, ...LEGACY_UPLOAD_SOURCES])
+  .transform(normalizeUploadSource);
+var LEGACY_STORY_POINT_TYPES = ["test"];
+var normalizeStoryPointType = (value) => (value === "test" ? "timed_test" : value);
+var zLegacyStoryPointTypeRead = z
+  .enum([...STORY_POINT_TYPES, ...LEGACY_STORY_POINT_TYPES])
+  .transform(normalizeStoryPointType);
+var LEGACY_TEST_SESSION_TYPES = ["test", "exam"];
+var normalizeTestSessionType = (value) =>
+  value === "test" || value === "exam" ? "timed_test" : value;
+var zLegacyTestSessionTypeRead = z
+  .enum([...TEST_SESSION_TYPES, ...LEGACY_TEST_SESSION_TYPES])
+  .transform(normalizeTestSessionType);
+var zLegacyGradeLetterRead = z.string().pipe(zGradeLetter);
 var SPACE_TRANSITIONS = {
   draft: ["published"],
   published: ["archived", "draft"],
@@ -507,41 +1041,6 @@ var canTransition = (domain, from, to) => {
   const targets = map?.[from];
   return targets != null && targets.includes(to);
 };
-var RubricCriterionLevelSchema = zObject({
-  label: z.string(),
-  description: z.string().optional(),
-  score: z.number(),
-});
-var RubricCriterionSchema = zObject({
-  id: z.string().optional(),
-  name: z.string(),
-  description: z.string().optional(),
-  maxScore: z.number(),
-  weight: z.number().optional(),
-  levels: z.array(RubricCriterionLevelSchema).optional(),
-});
-var EvaluationDimensionSchema = zObject({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  priority: zDimensionPriority,
-  weight: z.number().optional(),
-  scoringScale: z.number().optional(),
-  // ⚷ authoring-only — leaks how to score.
-  promptGuidance: z.string().optional(),
-});
-var UnifiedRubricSchema = zObject({
-  scoringMode: zRubricScoringMode,
-  criteria: z.array(RubricCriterionSchema).optional(),
-  dimensions: z.array(EvaluationDimensionSchema).optional(),
-  holisticGuidance: z.string().optional(),
-  holisticMaxScore: z.number().optional(),
-  passingPercentage: z.number().optional(),
-  showModelAnswer: z.boolean().optional(),
-  // ⚷ authoring-only.
-  modelAnswer: z.string().optional(),
-  evaluatorGuidance: z.string().optional(),
-});
 var FeedbackItemSchema = zObject({
   severity: zFeedbackSeverity,
   message: z.string(),
@@ -590,127 +1089,6 @@ var StoredEvaluationSchema = zObject({
   summary: StoredEvaluationSummarySchema.optional(),
   mistakeClassification: zMistakeClassification.optional(),
 });
-var McqOptionSchema = zObject({
-  id: z.string(),
-  text: z.string(),
-  imageUrl: z.string().optional(),
-  // ⚷ stripped into AnswerKey server-side for non-authoring reads.
-  isCorrect: z.boolean().optional(),
-});
-var McqDataSchema = zObject({
-  questionType: z.literal("mcq"),
-  options: z.array(McqOptionSchema),
-  shuffleOptions: z.boolean().optional(),
-});
-var McaqDataSchema = zObject({
-  questionType: z.literal("mcaq"),
-  options: z.array(McqOptionSchema),
-  shuffleOptions: z.boolean().optional(),
-  minSelections: z.number().int().optional(),
-  maxSelections: z.number().int().optional(),
-});
-var TrueFalseDataSchema = zObject({
-  questionType: z.literal("true-false"),
-  correctAnswer: z.boolean().optional(),
-});
-var NumericalDataSchema = zObject({
-  questionType: z.literal("numerical"),
-  correctAnswer: z.number().optional(),
-  tolerance: z.number().optional(),
-  unit: z.string().optional(),
-});
-var TextDataSchema = zObject({
-  questionType: z.literal("text"),
-  maxLength: z.number().int().optional(),
-  modelAnswer: z.string().optional(),
-});
-var ParagraphDataSchema = zObject({
-  questionType: z.literal("paragraph"),
-  minWords: z.number().int().optional(),
-  maxWords: z.number().int().optional(),
-  modelAnswer: z.string().optional(),
-});
-var CodeDataSchema = zObject({
-  questionType: z.literal("code"),
-  language: z.string().optional(),
-  starterCode: z.string().optional(),
-  modelAnswer: z.string().optional(),
-  testCases: z.array(z.object({ input: z.string(), output: z.string() }).strict()).optional(),
-});
-var BlankSlotSchema = zObject({
-  id: z.string(),
-  correctAnswer: z.string().optional(),
-  acceptableAnswers: z.array(z.string()).optional(),
-});
-var FillBlanksDataSchema = zObject({
-  questionType: z.literal("fill-blanks"),
-  template: z.string(),
-  blanks: z.array(BlankSlotSchema),
-});
-var FillBlanksDdSchema = zObject({
-  questionType: z.literal("fill-blanks-dd"),
-  template: z.string(),
-  blanks: z.array(BlankSlotSchema),
-  optionPool: z.array(z.string()),
-});
-var MatchPairSchema = zObject({
-  left: z.string(),
-  right: z.string(),
-});
-var MatchingDataSchema = zObject({
-  questionType: z.literal("matching"),
-  pairs: z.array(MatchPairSchema),
-  shufflePairs: z.boolean().optional(),
-});
-var JumbledDataSchema = zObject({
-  questionType: z.literal("jumbled"),
-  tokens: z.array(z.string()),
-  correctOrder: z.array(z.number().int()).optional(),
-});
-var AudioDataSchema = zObject({
-  questionType: z.literal("audio"),
-  promptAudioUrl: z.string().optional(),
-  maxDurationSeconds: z.number().int().optional(),
-  modelAnswer: z.string().optional(),
-});
-var ImageEvaluationDataSchema = zObject({
-  questionType: z.literal("image_evaluation"),
-  referenceImageUrls: z.array(z.string()).optional(),
-  modelAnswer: z.string().optional(),
-});
-var GroupOptionItemSchema = zObject({
-  id: z.string(),
-  text: z.string(),
-  group: z.string().optional(),
-});
-var GroupOptionsDataSchema = zObject({
-  questionType: z.literal("group-options"),
-  groups: z.array(z.string()),
-  items: z.array(GroupOptionItemSchema),
-});
-var ChatAgentQuestionDataSchema = zObject({
-  questionType: z.literal("chat_agent_question"),
-  agentInstructions: z.string().optional(),
-  maxTurns: z.number().int().optional(),
-  modelAnswer: z.string().optional(),
-});
-var QuestionTypeDataSchema = z.discriminatedUnion("questionType", [
-  McqDataSchema,
-  McaqDataSchema,
-  TrueFalseDataSchema,
-  NumericalDataSchema,
-  TextDataSchema,
-  ParagraphDataSchema,
-  CodeDataSchema,
-  FillBlanksDataSchema,
-  FillBlanksDdSchema,
-  MatchingDataSchema,
-  JumbledDataSchema,
-  AudioDataSchema,
-  ImageEvaluationDataSchema,
-  GroupOptionsDataSchema,
-  ChatAgentQuestionDataSchema,
-]);
 var QuestionPayloadSchema = zObject({
   type: z.literal("question"),
   basePoints: z.number().optional(),
@@ -950,7 +1328,7 @@ var UnifiedUserSchema = zObject({
   lastLogin: zTimestamp.nullable(),
 });
 var TeacherPermissionsSchema = zObject({
-  permissions: z.record(zTeacherPermissionKey, z.boolean()).optional(),
+  permissions: z.partialRecord(zTeacherPermissionKey, z.boolean()).optional(),
   managedSpaceIds: z.array(zSpaceId).optional(),
   managedClassIds: z.array(zClassId).optional(),
 });
@@ -962,13 +1340,10 @@ var UserMembershipSchema = zObject({
   role: zTenantRole,
   status: zMembershipStatus,
   joinSource: zJoinSource,
-  teacherId: zTeacherId.optional(),
-  studentId: zStudentId.optional(),
-  parentId: zParentId.optional(),
-  staffId: zStaffId.optional(),
-  scannerId: zScannerId.optional(),
+  // Per-role id fields DERIVED from ID_ROLES (DP-2 Part B).
+  ...roleIdFields,
   permissions: TeacherPermissionsSchema.optional(),
-  staffPermissions: z.record(zStaffPermissionKey, z.boolean()).optional(),
+  staffPermissions: z.partialRecord(zStaffPermissionKey, z.boolean()).optional(),
   parentLinkedStudentIds: z.array(zStudentId).optional(),
   createdAt: zTimestamp,
   updatedAt: zTimestamp,
@@ -980,16 +1355,14 @@ var PlatformClaimsSchema = zObject({
   role: zTenantRole.optional(),
   tenantId: zTenantId.optional(),
   tenantCode: zTenantCode.optional(),
-  teacherId: zTeacherId.optional(),
-  studentId: zStudentId.optional(),
-  parentId: zParentId.optional(),
-  scannerId: zScannerId.optional(),
-  staffId: zStaffId.optional(),
+  // Per-role id fields (teacherId/studentId/parentId/scannerId/staffId) DERIVED
+  // from ID_ROLES (DP-2 Part B) — a new role's id field appears here automatically.
+  ...roleIdFields,
   classIds: z.array(zClassId).optional(),
   classIdsOverflow: z.boolean().optional(),
   studentIds: z.array(zStudentId).optional(),
-  permissions: z.record(zTeacherPermissionKey, z.boolean()).optional(),
-  staffPermissions: z.record(zStaffPermissionKey, z.boolean()).optional(),
+  permissions: z.partialRecord(zTeacherPermissionKey, z.boolean()).optional(),
+  staffPermissions: z.partialRecord(zStaffPermissionKey, z.boolean()).optional(),
   isSuperAdmin: z.boolean().optional(),
 });
 var TenantSubscriptionSchema = zObject({
@@ -1074,6 +1447,9 @@ var TenantPublicViewSchema = zObject({
   tenantId: zTenantId,
   name: z.string(),
   status: zTenantStatus,
+  // Pre-auth trial-expiry signal (login gates). Optional: deployed backends that
+  // predate this field must keep passing literal-true response validation.
+  trialEndsAt: zTimestamp.nullable().optional(),
   branding: TenantBrandingSchema.optional(),
 });
 var StudentSchema = zObject({
@@ -1215,7 +1591,7 @@ var SpaceSchema = zObject({
   labels: z.array(z.string()).optional(),
   classIds: z.array(zClassId).default([]),
   sectionIds: z.array(zSectionId).optional(),
-  teacherIds: z.array(zUserId).default([]),
+  teacherIds: z.array(zTeacherId).default([]),
   accessType: zSpaceAccessType,
   academicSessionId: zAcademicSessionId.optional(),
   defaultEvaluatorAgentId: zAgentId.optional(),
@@ -1640,6 +2016,12 @@ var ExamQuestionPaperSchema = zObject({
 var ExamGradingConfigSchema = zObject({
   autoGrade: z.boolean(),
   allowRubricEdit: z.boolean(),
+  /**
+   * @deprecated Read-only legacy field. The canonical location is `Exam.evaluationSettingsId`
+   * (top-level). Readers must resolve `exam.evaluationSettingsId ?? exam.gradingConfig?.evaluationSettingsId`.
+   * NEVER write here from new code — only the top-level field is written. Retained so existing
+   * legacy docs still parse.
+   */
   evaluationSettingsId: zEvaluationSettingsId.optional(),
   allowManualOverride: z.boolean(),
   requireOverrideReason: z.boolean(),
@@ -1771,51 +2153,6 @@ var QuestionSubmissionSchema = zObject({
   manualOverride: ManualOverrideSchema.optional(),
   createdAt: zTimestamp,
   updatedAt: zTimestamp,
-});
-var EvaluationDisplaySettingsSchema = zObject({
-  showStrengths: z.boolean(),
-  showKeyTakeaway: z.boolean(),
-  prioritizeByImportance: z.boolean(),
-});
-var EvaluationConfidenceConfigSchema = zObject({
-  confidenceThreshold: z.number().default(0.7),
-  autoApproveThreshold: z.number().default(0.9),
-  requireReviewForPartialCredit: z.boolean(),
-});
-var UsageQuotaConfigSchema = zObject({
-  monthlyBudgetUsd: z.number(),
-  dailyCallLimit: z.number().int(),
-  warningThresholdPercent: z.number().default(80),
-});
-var EvaluationSettingsSchema = zObject({
-  id: zEvaluationSettingsId,
-  name: z.string(),
-  description: z.string().optional(),
-  isDefault: z.boolean(),
-  isPublic: z.boolean().optional(),
-  enabledDimensions: z.array(EvaluationDimensionSchema),
-  displaySettings: EvaluationDisplaySettingsSchema,
-  confidenceConfig: EvaluationConfidenceConfigSchema.optional(),
-  usageQuota: UsageQuotaConfigSchema.optional(),
-  createdBy: zUserId.optional(),
-  createdAt: zTimestamp,
-  updatedAt: zTimestamp,
-});
-var GRADING_PIPELINE_STEPS = ["scouting", "grading"];
-var DEAD_LETTER_RESOLUTION_METHODS = ["retry_success", "manual_grade", "dismissed"];
-var GradingDeadLetterEntrySchema = zObject({
-  id: zDeadLetterEntryId,
-  submissionId: zSubmissionId,
-  questionSubmissionId: zQuestionSubmissionId.optional(),
-  pipelineStep: z.enum(GRADING_PIPELINE_STEPS),
-  error: z.string(),
-  errorStack: z.string().optional(),
-  attempts: z.number().int(),
-  lastAttemptAt: zTimestamp,
-  resolvedAt: zTimestamp.nullable(),
-  resolvedBy: zUserId.optional(),
-  resolutionMethod: z.enum(DEAD_LETTER_RESOLUTION_METHODS).optional(),
-  createdAt: zTimestamp,
 });
 var QuestionAnalyticsEntrySchema = zObject({
   questionId: zExamQuestionId,
@@ -2074,6 +2411,741 @@ var AnnouncementSchema = zObject({
 import { getApps, initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, Timestamp, FieldPath } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+
+// ../../packages/ai/dist/index.js
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+function resolveModelDefaults(env) {
+  return {
+    pro: env["LEVELUP_AI_MODEL_PRO"] || "gemini-2.5-pro",
+    flash: env["LEVELUP_AI_MODEL_FLASH"] || "gemini-2.5-flash",
+  };
+}
+var DEFAULTS = resolveModelDefaults(process.env);
+var DEFAULT_PRO_MODEL = DEFAULTS.pro;
+var DEFAULT_FLASH_MODEL = DEFAULTS.flash;
+var def = (t) => t;
+var PROMPTS = {
+  /** Panopticon stage 1 — extract questions + rubric from a question paper. */
+  questionExtraction: def({
+    purpose: "question_extraction",
+    system:
+      "You are an exam-paper extraction engine. Read the provided question-paper images and emit a structured list of questions with marks and a per-question rubric. Never invent questions; preserve numbering and sub-parts.",
+    user: 'Exam title: {{examTitle}}\nExam type: {{examType}}\nTotal marks: {{totalMarks}}\nExtraction mode: {{mode}} \u2014 when "single", extract ONLY question number {{questionNumber}}; otherwise extract every question.\nFor each question: text, maxMarks, order, and a criteria-based rubric whose criteria marks sum to maxMarks.',
+    requiredVariables: ["examTitle", "examType", "mode"],
+    structured: true,
+    defaultModel: DEFAULT_PRO_MODEL,
+    defaultTemperature: 0,
+  }),
+  /** Panopticon stage 2 — map a scanned answer sheet to question regions. */
+  answerMapping: def({
+    purpose: "answer_mapping",
+    system:
+      "You are an answer-sheet scout. Given answer-sheet images and the known question list, locate each answer and report which question it belongs to, with a readability/confidence assessment.",
+    user: 'Questions: {{questions}}\nThe {{pageCount}} answer-sheet pages are attached IN ORDER; page indices are ZERO-BASED (first attached page = 0).\nReturn JSON: {"routingMap": {"<questionId>": [pageIndex, \u2026]}, "confidence": {"<questionId>": 0..1}}. Flag unreadable or missing answers with confidence 0.',
+    requiredVariables: ["questions", "pageCount"],
+    structured: true,
+    defaultModel: DEFAULT_FLASH_MODEL,
+    defaultTemperature: 0,
+  }),
+  /** RELMS — grade a single answer against its resolved rubric. */
+  answerGrading: def({
+    purpose: "answer_grading",
+    system:
+      "You are a rigorous, fair grader. Score the student answer ONLY against the provided rubric. Output score, per-criterion breakdown, strengths, weaknesses, missing concepts, and a confidence value in [0,1]. Never exceed maxMarks. Be consistent and explain each deduction.",
+    user: "Question: {{question}}\nMax marks: {{maxMarks}}\nRubric: {{rubric}}\nStudent answer: {{answer}}\nGrade strictly per the rubric.",
+    requiredVariables: ["question", "maxMarks", "rubric", "answer"],
+    structured: true,
+    defaultModel: DEFAULT_PRO_MODEL,
+    defaultTemperature: 0,
+  }),
+  /** Tutor chat — conversational help inside a story-point item. */
+  aiChat: def({
+    purpose: "ai_chat",
+    system:
+      "You are a patient learning tutor scoped to one practice item. Help the learner reason toward the answer with hints and questions. NEVER reveal the model answer, the rubric, or the grading guidance verbatim. Keep replies concise and encouraging.",
+    user: "Item context: {{itemContext}}\nConversation so far: {{history}}\nLearner says: {{message}}\nRespond as the tutor in {{language}}.",
+    requiredVariables: ["itemContext", "message", "language"],
+    structured: false,
+    defaultModel: DEFAULT_FLASH_MODEL,
+    defaultTemperature: 0.6,
+  }),
+  /** Learning-insight generation from a student's progress summary. */
+  insights: def({
+    purpose: "insights",
+    system:
+      "You generate short, actionable learning insights for a single student from their performance summary. Be specific and supportive; cite the weak areas.",
+    user: "Student summary: {{summary}}\nProduce up to {{maxInsights}} insights with a title, body, and severity.",
+    requiredVariables: ["summary", "maxInsights"],
+    structured: true,
+    defaultModel: DEFAULT_FLASH_MODEL,
+    defaultTemperature: 0.3,
+  }),
+};
+var PROMPT_KEYS = Object.keys(PROMPTS);
+function renderPrompt(key, variables) {
+  const template = PROMPTS[key];
+  for (const req of template.requiredVariables) {
+    if (variables[req] === void 0 || variables[req] === null) {
+      throw new Error(`Prompt "${key}" missing required variable "${req}"`);
+    }
+  }
+  const user = template.user.replace(/\{\{(\w+)\}\}/g, (_m, name) => {
+    const v = variables[name];
+    if (v === void 0) return "";
+    return typeof v === "string" ? v : JSON.stringify(v);
+  });
+  return { system: template.system, user, template };
+}
+var DEFAULT_MODEL = DEFAULT_FLASH_MODEL;
+function toParts(input) {
+  const parts = [{ text: input.user }];
+  for (const img of input.images ?? []) {
+    parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+  }
+  return parts;
+}
+function toUsage(meta) {
+  const inputTokens = meta?.promptTokenCount ?? 0;
+  const outputTokens = meta?.candidatesTokenCount ?? 0;
+  const totalTokens = meta?.totalTokenCount ?? inputTokens + outputTokens;
+  return { inputTokens, outputTokens, totalTokens };
+}
+function createGeminiProvider(apiKey, opts = {}) {
+  const client = new GoogleGenerativeAI(apiKey);
+  const fallbackModel = opts.defaultModel ?? DEFAULT_MODEL;
+  return {
+    name: "gemini",
+    async call(input) {
+      const modelName = input.model || fallbackModel;
+      const model = client.getGenerativeModel({
+        model: modelName,
+        systemInstruction: input.system,
+      });
+      const request = {
+        contents: [{ role: "user", parts: toParts(input) }],
+        generationConfig: {
+          ...(input.temperature !== void 0 ? { temperature: input.temperature } : {}),
+          ...(input.maxTokens !== void 0 ? { maxOutputTokens: input.maxTokens } : {}),
+          ...(input.responseSchema
+            ? {
+                responseMimeType: "application/json",
+                responseSchema: input.responseSchema,
+              }
+            : {}),
+        },
+      };
+      const result = await model.generateContent(request);
+      const response = result.response;
+      const text = response.text();
+      let json;
+      if (input.responseSchema) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = void 0;
+        }
+      }
+      return {
+        text,
+        json,
+        usage: toUsage(response.usageMetadata),
+        model: modelName,
+      };
+    },
+  };
+}
+var AiGatewayError = class _AiGatewayError extends Error {
+  constructor(code, message, opts = {}) {
+    super(message);
+    this.name = "AiGatewayError";
+    this.code = code;
+    this.retryable = opts.retryable ?? false;
+    this.meta = opts.meta;
+    if (opts.cause !== void 0) {
+      this.cause = opts.cause;
+    }
+    Object.setPrototypeOf(this, _AiGatewayError.prototype);
+  }
+};
+function isAiGatewayError(x) {
+  return x instanceof AiGatewayError;
+}
+var quotaExceeded = (message, meta) =>
+  new AiGatewayError("QUOTA_EXCEEDED", message, { retryable: false, meta });
+var aiDisabled = (message, meta) =>
+  new AiGatewayError("FEATURE_DISABLED", message, { retryable: false, meta });
+var providerFailed = (message, opts = {}) => new AiGatewayError("INTERNAL_ERROR", message, opts);
+var DEFAULT_MAX_TOTAL_IMAGE_BYTES = 14 * 1024 * 1024;
+var EXTENSION_MIME = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+  gif: "image/gif",
+  pdf: "application/pdf",
+};
+function inferMimeType(path) {
+  const ext = path.split("?")[0]?.split(".").pop()?.toLowerCase() ?? "";
+  return EXTENSION_MIME[ext] ?? "image/jpeg";
+}
+var imageError = (message, meta) =>
+  new AiGatewayError("PRECONDITION_FAILED", message, { retryable: false, meta });
+async function resolveImages(refs, opts = {}) {
+  if (!refs || refs.length === 0) return void 0;
+  const maxTotal = opts.maxTotalBytes ?? DEFAULT_MAX_TOTAL_IMAGE_BYTES;
+  const out = [];
+  let totalBytes = 0;
+  for (const ref of refs) {
+    if ("base64" in ref) {
+      totalBytes += Math.floor((ref.base64.length * 3) / 4);
+      out.push(ref);
+    } else {
+      if (!opts.store) {
+        throw imageError(
+          "AI image store is not configured \u2014 cannot resolve storagePath image refs. Wire `imageStore` into createAiGateway() at the composition root.",
+          { storagePath: ref.storagePath }
+        );
+      }
+      let bytes;
+      let contentType;
+      try {
+        ({ bytes, contentType } = await opts.store.read(ref.storagePath));
+      } catch (err) {
+        throw imageError(`Failed to read AI image from storage: ${ref.storagePath}`, {
+          storagePath: ref.storagePath,
+          cause: String(err?.message ?? err),
+        });
+      }
+      totalBytes += bytes.byteLength;
+      out.push({
+        base64: Buffer.from(bytes).toString("base64"),
+        mimeType: ref.mimeType ?? contentType ?? inferMimeType(ref.storagePath),
+      });
+    }
+    if (totalBytes > maxTotal) {
+      throw imageError(
+        `Inline image payload exceeds the ${Math.floor(maxTotal / (1024 * 1024))}MB budget (${refs.length} images, ${totalBytes} bytes so far) \u2014 chunk the call into smaller page batches or compress/downscale images at upload.`,
+        { imageCount: refs.length, totalBytes, maxTotal }
+      );
+    }
+  }
+  return out;
+}
+function createStubImageStore() {
+  const bytes = Uint8Array.from([255, 216, 255, 224, 0, 16, 74, 70, 73, 70]);
+  return {
+    async read(path) {
+      return { bytes, contentType: inferMimeType(path) };
+    },
+  };
+}
+var secretNameFor = (tenantId) => `tenant-${tenantId}-gemini`;
+function resolveProjectId(opts) {
+  return (
+    opts.projectId ??
+    opts.env?.GOOGLE_CLOUD_PROJECT ??
+    opts.env?.GCLOUD_PROJECT ??
+    process.env.GOOGLE_CLOUD_PROJECT ??
+    process.env.GCLOUD_PROJECT
+  );
+}
+function isAlreadyExists(cause) {
+  return cause?.code === 6 || /ALREADY_EXISTS/i.test(String(cause));
+}
+function createSecretResolver(opts = {}) {
+  const env = opts.env ?? process.env;
+  const cache = /* @__PURE__ */ new Map();
+  let client = opts.client ?? null;
+  const getClient = () => {
+    if (!client) client = new SecretManagerServiceClient();
+    return client;
+  };
+  return {
+    async getApiKey(tenantId) {
+      const cached = cache.get(tenantId);
+      if (cached) return cached;
+      const override = env.LEVELUP_AI_KEY ?? env.GEMINI_API_KEY;
+      if (override) {
+        cache.set(tenantId, override);
+        return override;
+      }
+      const projectId2 = resolveProjectId(opts);
+      if (!projectId2) {
+        throw aiDisabled("No GCP project configured for Secret Manager key resolution", {
+          tenantId,
+        });
+      }
+      const name = `projects/${projectId2}/secrets/${secretNameFor(tenantId)}/versions/latest`;
+      let payload;
+      try {
+        const [version] = await getClient().accessSecretVersion({ name });
+        const data = version.payload?.data;
+        payload =
+          typeof data === "string" ? data : data ? Buffer.from(data).toString("utf8") : void 0;
+      } catch (cause) {
+        throw aiDisabled("No Gemini key provisioned for tenant", {
+          tenantId,
+          cause: String(cause),
+        });
+      }
+      const key = payload?.trim();
+      if (!key) {
+        throw providerFailed("Empty Gemini secret payload", { meta: { tenantId } });
+      }
+      cache.set(tenantId, key);
+      return key;
+    },
+    invalidate(tenantId) {
+      cache.delete(tenantId);
+    },
+  };
+}
+function createSecretWriter(opts = {}) {
+  const env = opts.env ?? process.env;
+  let client = opts.client ?? null;
+  const getClient = () => {
+    if (!client) client = new SecretManagerServiceClient();
+    return client;
+  };
+  return {
+    async writeSecret(tenantId, value) {
+      const secretRef = secretNameFor(tenantId);
+      const override = env.LEVELUP_AI_KEY ?? env.GEMINI_API_KEY;
+      const projectId2 = resolveProjectId(opts);
+      if (override || !projectId2) return secretRef;
+      const parent = `projects/${projectId2}`;
+      try {
+        await getClient().createSecret({
+          parent,
+          secretId: secretRef,
+          secret: { replication: { automatic: {} } },
+        });
+      } catch (cause) {
+        if (!isAlreadyExists(cause)) {
+          throw providerFailed("Failed to create tenant Gemini secret", {
+            meta: { tenantId, cause: String(cause) },
+          });
+        }
+      }
+      try {
+        await getClient().addSecretVersion({
+          parent: `${parent}/secrets/${secretRef}`,
+          payload: { data: Buffer.from(value, "utf8") },
+        });
+      } catch (cause) {
+        throw providerFailed("Failed to write tenant Gemini secret version", {
+          meta: { tenantId, cause: String(cause) },
+        });
+      }
+      return secretRef;
+    },
+  };
+}
+var DEFAULT_MONTHLY_BUDGET_USD = 100;
+var DEFAULT_DAILY_CALL_CAP = 5e3;
+function dayBounds(nowIso) {
+  const d = new Date(nowIso);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const dateYmd = `${y}-${m}-${day}`;
+  const dayStart = `${dateYmd}T00:00:00.000Z`;
+  const nextDay = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate() + 1));
+  return { dateYmd, dayStart, dayEnd: nextDay.toISOString() };
+}
+function monthBounds(nowIso) {
+  const d = new Date(nowIso);
+  const y = d.getUTCFullYear();
+  const mIdx = d.getUTCMonth();
+  const monthYm = `${y}-${String(mIdx + 1).padStart(2, "0")}`;
+  const monthStart = `${monthYm}-01T00:00:00.000Z`;
+  const monthEnd = new Date(Date.UTC(y, mIdx + 1, 1)).toISOString();
+  return { monthYm, monthStart, monthEnd };
+}
+async function checkUsageQuota(repos, tenantId, nowIso) {
+  const cfg = await repos.tenants.getUsageConfig(tenantId);
+  if (cfg?.aiEnabled === false) {
+    throw aiDisabled("AI is disabled for this tenant", { tenantId });
+  }
+  const monthlyBudgetUsd =
+    cfg?.monthlyBudgetUsd && cfg.monthlyBudgetUsd > 0
+      ? cfg.monthlyBudgetUsd
+      : DEFAULT_MONTHLY_BUDGET_USD;
+  const dailyCallCap =
+    cfg?.dailyCallCap && cfg.dailyCallCap > 0 ? cfg.dailyCallCap : DEFAULT_DAILY_CALL_CAP;
+  const { monthYm, monthStart, monthEnd } = monthBounds(nowIso);
+  const monthlySummary = await repos.costSummaries.monthly(tenantId, monthYm);
+  const monthlySpendUsd =
+    monthlySummary?.totalCostUsd ?? (await repos.llm.sumCostUsd(tenantId, monthStart, monthEnd));
+  if (monthlySpendUsd >= monthlyBudgetUsd) {
+    throw quotaExceeded("Monthly AI budget exceeded", {
+      tenantId,
+      monthlyBudgetUsd,
+      monthlySpendUsd,
+    });
+  }
+  const { dateYmd, dayStart, dayEnd } = dayBounds(nowIso);
+  const dailySummary = await repos.costSummaries.daily(tenantId, dateYmd);
+  const dailyCalls =
+    dailySummary?.totalCalls ?? (await repos.llm.countCalls(tenantId, dayStart, dayEnd));
+  if (dailyCalls >= dailyCallCap) {
+    throw quotaExceeded("Daily AI call cap exceeded", { tenantId, dailyCallCap, dailyCalls });
+  }
+  return { allowed: true, monthlyBudgetUsd, monthlySpendUsd, dailyCallCap, dailyCalls };
+}
+var MODEL_PRICING = {
+  // Current defaults (models.ts): ≤200k-prompt tier list prices.
+  "gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10 },
+  "gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+  "gemini-2.5-flash-lite": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
+  // Retired generations kept for historical cost re-estimation of old call logs.
+  "gemini-1.5-pro": { inputPerMillion: 1.25, outputPerMillion: 5 },
+  "gemini-1.5-flash": { inputPerMillion: 0.075, outputPerMillion: 0.3 },
+  "gemini-1.5-flash-8b": { inputPerMillion: 0.0375, outputPerMillion: 0.15 },
+  "gemini-2.0-flash": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
+};
+var FALLBACK_PRICING = { inputPerMillion: 1.25, outputPerMillion: 5 };
+function buildTokenUsage(usage) {
+  return {
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    totalTokens: usage.totalTokens || usage.inputTokens + usage.outputTokens,
+  };
+}
+function estimateCost(usage, model) {
+  const pricing = MODEL_PRICING[model] ?? FALLBACK_PRICING;
+  const inputCostUsd = (usage.inputTokens / 1e6) * pricing.inputPerMillion;
+  const outputCostUsd = (usage.outputTokens / 1e6) * pricing.outputPerMillion;
+  return {
+    inputCostUsd,
+    outputCostUsd,
+    totalCostUsd: inputCostUsd + outputCostUsd,
+    model,
+  };
+}
+async function logLLMCall(repos, params) {
+  const record = {
+    tenantId: params.tenantId,
+    functionName: params.functionName,
+    model: params.model,
+    inputTokens: params.usage.inputTokens,
+    outputTokens: params.usage.outputTokens,
+    totalTokens: params.usage.totalTokens,
+    costUSD: params.cost.totalCostUsd,
+    latencyMs: params.latencyMs,
+    status: params.status,
+    ...(params.errorMessage !== void 0 ? { errorMessage: params.errorMessage } : {}),
+    ...(params.userId !== void 0 ? { userId: params.userId } : {}),
+    ...(params.examId !== void 0 ? { examId: params.examId } : {}),
+    ...(params.spaceId !== void 0 ? { spaceId: params.spaceId } : {}),
+  };
+  await repos.llm.log(record);
+}
+function classifyError(err) {
+  const status = err?.status;
+  const code = err?.code;
+  const n =
+    typeof status === "number" ? status : typeof code === "number" ? code : Number(err?.statusCode);
+  if (n === 429 || n === 503 || n === 500 || n === 502 || n === 504) return "transient";
+  const msg = String(err?.message ?? "").toLowerCase();
+  if (
+    msg.includes("timeout") ||
+    msg.includes("etimedout") ||
+    msg.includes("econnreset") ||
+    msg.includes("overloaded") ||
+    msg.includes("unavailable") ||
+    msg.includes("rate limit")
+  ) {
+    return "transient";
+  }
+  return "permanent";
+}
+function createCircuitBreaker(opts = {}) {
+  const failureThreshold = opts.failureThreshold ?? 5;
+  const cooldownMs = opts.cooldownMs ?? 3e4;
+  const now = opts.now ?? (() => Date.now());
+  const circuits = /* @__PURE__ */ new Map();
+  const entry = (key) => {
+    let e = circuits.get(key);
+    if (!e) {
+      e = { state: "closed", failures: 0, openedAt: 0 };
+      circuits.set(key, e);
+    }
+    return e;
+  };
+  return {
+    isCircuitOpen(key) {
+      const e = entry(key);
+      if (e.state === "open" && now() - e.openedAt >= cooldownMs) {
+        e.state = "half_open";
+        return false;
+      }
+      return e.state === "open";
+    },
+    recordSuccess(key) {
+      const e = entry(key);
+      e.failures = 0;
+      e.state = "closed";
+      e.openedAt = 0;
+    },
+    recordFailure(key) {
+      const e = entry(key);
+      e.failures += 1;
+      if (e.state === "half_open" || e.failures >= failureThreshold) {
+        e.state = "open";
+        e.openedAt = now();
+      }
+    },
+    stateOf(key) {
+      return entry(key).state;
+    },
+  };
+}
+var defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function withRetry(fn, opts) {
+  const maxAttempts = opts.maxAttempts ?? 3;
+  const baseDelayMs = opts.baseDelayMs ?? 250;
+  const maxDelayMs = opts.maxDelayMs ?? 4e3;
+  const sleep = opts.sleep ?? defaultSleep;
+  const rng = opts.rng ?? Math.random;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt >= maxAttempts || !opts.isRetryable(err)) break;
+      const exp = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
+      const jitter = exp * 0.25 * rng();
+      await sleep(exp + jitter);
+    }
+  }
+  throw lastErr;
+}
+var RULES = [
+  {
+    category: "prompt_injection",
+    pattern:
+      /\b(ignore (all |the )?previous instructions|disregard (the )?system prompt|reveal (the )?(system )?prompt|show (me )?the (rubric|model answer|grading guidance))\b/i,
+  },
+  { category: "self_harm", pattern: /\b(kill myself|suicide|end my life|self[-\s]?harm)\b/i },
+  {
+    category: "sexual_minor",
+    pattern: /\b(child|minor|underage)\b.{0,20}\b(sex|nude|explicit)\b/i,
+  },
+  { category: "violence_threat", pattern: /\b(i('| wi)ll kill|shoot up|bomb the|murder you)\b/i },
+  { category: "hate", pattern: /\b(kill all|exterminate the)\b/i },
+];
+var EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+var PHONE_RE = /\b(?:\+?\d[\d\s-]{7,}\d)\b/g;
+function redactPii(text) {
+  return text.replace(EMAIL_RE, "[redacted-email]").replace(PHONE_RE, "[redacted-phone]");
+}
+function moderateText(text, opts = {}) {
+  const blockOn = new Set(
+    opts.blockOn ?? ["prompt_injection", "self_harm", "sexual_minor", "violence_threat", "hate"]
+  );
+  const categories = [];
+  for (const rule of RULES) {
+    if (rule.pattern.test(text) && blockOn.has(rule.category)) {
+      categories.push(rule.category);
+    }
+  }
+  const sanitized = opts.redactPii === false ? text : redactPii(text);
+  return { allowed: categories.length === 0, categories, sanitized };
+}
+function createAiGateway(deps) {
+  const repos = deps.repos;
+  const secretResolver = deps.secretResolver ?? createSecretResolver({ projectId: deps.projectId });
+  const circuit = deps.circuitBreaker ?? createCircuitBreaker();
+  const providerFactory =
+    deps.providerFactory ??
+    ((apiKey, model) => createGeminiProvider(apiKey, { defaultModel: model }));
+  const maxRetries = deps.maxRetries ?? 3;
+  return {
+    async generate(req, ctx) {
+      const nowIso = (ctx.now ?? (() => /* @__PURE__ */ new Date().toISOString()))();
+      const template = PROMPTS[req.promptKey];
+      const model = req.model ?? template.defaultModel;
+      const circuitKey = `${ctx.tenantId}:${model}`;
+      const shouldModerate = req.moderate ?? template.purpose === "ai_chat";
+      let inputCategories = [];
+      if (shouldModerate) {
+        const raw = JSON.stringify(req.variables);
+        const m = moderateText(raw);
+        inputCategories = m.categories;
+        if (!m.allowed) {
+          throw aiDisabled("Input blocked by content moderation", {
+            tenantId: ctx.tenantId,
+            categories: m.categories,
+          });
+        }
+      }
+      await checkUsageQuota(repos, ctx.tenantId, nowIso);
+      if (circuit.isCircuitOpen(circuitKey)) {
+        throw providerFailed("AI provider circuit is open", {
+          retryable: true,
+          meta: { tenantId: ctx.tenantId, model },
+        });
+      }
+      const apiKey = await secretResolver.getApiKey(ctx.tenantId);
+      const provider = providerFactory(apiKey, model);
+      const { system, user } = renderPrompt(req.promptKey, req.variables);
+      const startedAt = Date.now();
+      let providerOut;
+      try {
+        const images = await resolveImages(req.images, {
+          ...(deps.imageStore !== void 0 ? { store: deps.imageStore } : {}),
+          ...(deps.maxTotalImageBytes !== void 0 ? { maxTotalBytes: deps.maxTotalImageBytes } : {}),
+        });
+        providerOut = await withRetry(
+          () =>
+            provider.call({
+              model,
+              system,
+              user,
+              images,
+              ...(req.temperature !== void 0
+                ? { temperature: req.temperature }
+                : { temperature: template.defaultTemperature }),
+              ...(req.maxTokens !== void 0 ? { maxTokens: req.maxTokens } : {}),
+              ...(req.responseSchema !== void 0 ? { responseSchema: req.responseSchema } : {}),
+            }),
+          {
+            maxAttempts: maxRetries,
+            isRetryable: (e) => classifyError(e) === "transient",
+          }
+        );
+        circuit.recordSuccess(circuitKey);
+      } catch (err) {
+        if (classifyError(err) === "transient") circuit.recordFailure(circuitKey);
+        const latencyMs2 = Date.now() - startedAt;
+        await safeLogFailure(repos, ctx, req, model, latencyMs2, err);
+        if (isAiGatewayError(err)) throw err;
+        throw providerFailed("AI provider call failed", {
+          retryable: classifyError(err) === "transient",
+          meta: { tenantId: ctx.tenantId, model, operation: req.operation },
+          cause: err,
+        });
+      }
+      const latencyMs = Date.now() - startedAt;
+      const usage = buildTokenUsage(providerOut.usage);
+      const cost = estimateCost(usage, providerOut.model);
+      let outputCategories = [];
+      if (shouldModerate) {
+        outputCategories = moderateText(providerOut.text).categories;
+      }
+      await logLLMCall(repos, {
+        tenantId: ctx.tenantId,
+        functionName: req.operation,
+        model: providerOut.model,
+        usage,
+        cost,
+        latencyMs,
+        status: "success",
+        userId: ctx.uid,
+        ...(ctx.examId !== void 0 ? { examId: ctx.examId } : {}),
+        ...(ctx.spaceId !== void 0 ? { spaceId: ctx.spaceId } : {}),
+      });
+      const data = template.structured ? providerOut.json : providerOut.text;
+      return {
+        data,
+        text: providerOut.text,
+        tokenUsage: usage,
+        cost,
+        model: providerOut.model,
+        ...(shouldModerate
+          ? { moderation: { input: inputCategories, output: outputCategories } }
+          : {}),
+      };
+    },
+  };
+}
+async function safeLogFailure(repos, ctx, req, model, latencyMs, err) {
+  const zeroUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  try {
+    await logLLMCall(repos, {
+      tenantId: ctx.tenantId,
+      functionName: req.operation,
+      model,
+      usage: zeroUsage,
+      cost: estimateCost(zeroUsage, model),
+      latencyMs,
+      status: "error",
+      errorMessage: String(err?.message ?? err),
+      userId: ctx.uid,
+      ...(ctx.examId !== void 0 ? { examId: ctx.examId } : {}),
+      ...(ctx.spaceId !== void 0 ? { spaceId: ctx.spaceId } : {}),
+    });
+  } catch {}
+}
+var STUB_USAGE = { inputTokens: 16, outputTokens: 32, totalTokens: 48 };
+var GRADE_JSON = {
+  score: 1,
+  maxScore: 1,
+  correctness: 1,
+  percentage: 100,
+  confidence: 0.95,
+  feedback: "Deterministic stub grade.",
+  strengths: ["stub-strength"],
+  weaknesses: [],
+  missingConcepts: [],
+  breakdown: [{ criterion: "stub", marks: 1, maxMarks: 1 }],
+};
+var EXTRACT_JSON = [
+  {
+    text: "Stub extracted question",
+    maxMarks: 1,
+    order: 1,
+    questionType: "subjective",
+    rubric: { criteria: [{ description: "stub", marks: 1 }] },
+    extractionConfidence: 0.95,
+    readabilityIssue: false,
+  },
+];
+var MAPPING_JSON = {
+  routingMap: { q1: [1] },
+  confidence: { q1: 0.95 },
+};
+var INSIGHTS_JSON = {
+  insights: [{ title: "Stub insight", body: "Deterministic stub insight.", severity: "info" }],
+};
+function pickJson(input) {
+  const sys = input.system.toLowerCase();
+  if (sys.includes("extraction engine")) return EXTRACT_JSON;
+  if (sys.includes("answer-sheet scout")) return MAPPING_JSON;
+  if (sys.includes("grader")) return GRADE_JSON;
+  if (sys.includes("insight")) return INSIGHTS_JSON;
+  return GRADE_JSON;
+}
+function createStubProvider(_apiKey, model) {
+  const defaultModel = model ?? DEFAULT_FLASH_MODEL;
+  return {
+    name: "gemini",
+    async call(input) {
+      const resolvedModel = input.model ?? defaultModel;
+      if (input.responseSchema !== void 0) {
+        const json = pickJson(input);
+        return {
+          text: JSON.stringify(json),
+          json,
+          usage: STUB_USAGE,
+          model: resolvedModel,
+        };
+      }
+      return {
+        text: "Deterministic stub tutor reply.",
+        usage: STUB_USAGE,
+        model: resolvedModel,
+      };
+    },
+  };
+}
+
+// ../../packages/services/dist/repo-admin/index.js
 var __defProp2 = Object.defineProperty;
 var __export2 = (target, all) => {
   for (var name in all) __defProp2(target, name, { get: all[name], enumerable: true });
@@ -2204,7 +3276,9 @@ __export2(paths_exports, {
   spaceDoc: () => spaceDoc,
   spaceProgressDoc: () => spaceProgressDoc,
   spaceProgressId: () => spaceProgressId,
-  spaceProgressLiveDoc: () => spaceProgressLiveDoc,
+  spaceReviewDoc: () => spaceReviewDoc,
+  spaceReviewsPath: () => spaceReviewsPath,
+  spaceVersionsPath: () => spaceVersionsPath,
   spacesPath: () => spacesPath,
   storyPointDoc: () => storyPointDoc,
   storyPointProgressDoc: () => storyPointProgressDoc,
@@ -2264,14 +3338,20 @@ function answerKeyDoc(tenantId, spaceId, storyPointId, itemId) {
   return `${itemDoc(tenantId, spaceId, storyPointId, itemId)}/answerKeys/${itemId}`;
 }
 var ANSWER_KEYS_COLLECTION_GROUP = "answerKeys";
+function spaceReviewsPath(tenantId, spaceId) {
+  return `${spaceDoc(tenantId, spaceId)}/reviews`;
+}
+function spaceReviewDoc(tenantId, spaceId, uid) {
+  return `${spaceReviewsPath(tenantId, spaceId)}/${uid}`;
+}
+function spaceVersionsPath(tenantId, spaceId) {
+  return `${spaceDoc(tenantId, spaceId)}/versions`;
+}
 function spaceProgressId(userId, spaceId) {
   return `${userId}_${spaceId}`;
 }
 function spaceProgressDoc(tenantId, userId, spaceId) {
   return `${tenantCollection(tenantId, "spaceProgress")}/${spaceProgressId(userId, spaceId)}`;
-}
-function spaceProgressLiveDoc(tenantId, userId, spaceId) {
-  return `${spaceProgressDoc(tenantId, userId, spaceId)}/projection/live`;
 }
 function storyPointProgressDoc(tenantId, userId, spaceId, storyPointId) {
   return `${spaceProgressDoc(tenantId, userId, spaceId)}/storyPointProgress/${storyPointId}`;
@@ -2514,7 +3594,6 @@ function makeProgressRepo(firestore, nowFn) {
   return {
     async update(tenantId, input, now = nowFn()) {
       const aggRef = firestore.doc(spaceProgressDoc(tenantId, input.userId, input.spaceId));
-      const liveRef = firestore.doc(spaceProgressLiveDoc(tenantId, input.userId, input.spaceId));
       const result = await firestore.runTransaction(async (tx) => {
         const snap = await tx.get(aggRef);
         const doc = snap.exists
@@ -2572,33 +3651,12 @@ function makeProgressRepo(firestore, nowFn) {
         doc.updatedAt = now;
         doc.recomputeMarker = now;
         tx.set(aggRef, toFirestore(doc), { merge: true });
-        tx.set(
-          liveRef,
-          toFirestore({
-            userId: input.userId,
-            spaceId: input.spaceId,
-            pointsEarned: doc.pointsEarned,
-            totalPoints: doc.totalPoints,
-            completed: doc.completed,
-            storyPoints: Object.fromEntries(
-              Object.entries(doc.storyPoints).map(([k, sp]) => [
-                k,
-                {
-                  pointsEarned: sp.pointsEarned,
-                  totalPoints: sp.totalPoints,
-                  completed: sp.completed,
-                },
-              ])
-            ),
-            updatedAt: now,
-          }),
-          { merge: true }
-        );
         return {
           spaceProgressId: doc.id,
           completed: doc.completed,
           pointsEarned: doc.pointsEarned,
           totalPoints: doc.totalPoints,
+          storyPoints: { ...doc.storyPoints },
         };
       });
       return result;
@@ -2669,7 +3727,8 @@ function makeTx(firestore, now) {
             toFirestore({
               ...entry,
               status: "pending",
-              attempts: 0,
+              // DLQ entries carry their own attempt count — don't clobber it to 0.
+              attempts: entry["attempts"] ?? 0,
               createdAt: now(),
               enqueuedAt: now(),
             })
@@ -2782,7 +3841,8 @@ function makeOutboxRepo(firestore, now) {
         toFirestore({
           ...entry,
           status: "pending",
-          attempts: 0,
+          // DLQ entries carry their own attempt count — don't clobber it to 0.
+          attempts: entry["attempts"] ?? 0,
           createdAt: now(),
           enqueuedAt: now(),
         })
@@ -2899,6 +3959,20 @@ function makeTenantRepo(firestore, now) {
       if (!snap.exists) return null;
       return snap.data()?.["tenantId"] ?? null;
     },
+    // Write the public join-code index (`tenantCodes/{code}` → tenantId), the
+    // counterpart of `resolveCode`. Transactional so two tenants can never claim
+    // the same code: throws `ALREADY_EXISTS` if the code already maps elsewhere.
+    async writeCode(code, tenantId, ts = now()) {
+      const ref = firestore.doc(tenantCodeDoc(code));
+      await firestore.runTransaction(async (txn) => {
+        const snap = await txn.get(ref);
+        const owner = snap.exists ? snap.data()?.["tenantId"] : void 0;
+        if (owner && owner !== tenantId) {
+          throw new Error(`ALREADY_EXISTS: tenant code ${code} is taken`);
+        }
+        txn.set(ref, toFirestore({ tenantId, createdAt: ts }), { merge: true });
+      });
+    },
   };
 }
 function makeUserRepo(db2, adminAuth, now) {
@@ -2931,17 +4005,15 @@ function makeUserRepo(db2, adminAuth, now) {
         ...(input.displayName ? { displayName: input.displayName } : {}),
         ...(input.password ? { password: input.password } : {}),
       });
-      await db2
-        .doc(usersDoc(user.uid))
-        .set(
-          toFirestore({
-            id: user.uid,
-            email: input.email,
-            displayName: input.displayName,
-            createdAt: now(),
-          }),
-          { merge: true }
-        );
+      await db2.doc(usersDoc(user.uid)).set(
+        toFirestore({
+          id: user.uid,
+          email: input.email,
+          displayName: input.displayName,
+          createdAt: now(),
+        }),
+        { merge: true }
+      );
       return { uid: user.uid };
     },
   };
@@ -3100,6 +4172,25 @@ function makeChatRepo(db2, now) {
         .catch(() => void 0);
       return ref.id;
     },
+    async listMessages(tenantId, sessionId) {
+      const snap = await messages(tenantId, sessionId).orderBy("timestamp", "asc").get();
+      return snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+    },
+    async listSessions(tenantId, uid, filter) {
+      const limit = filter.limit ?? 20;
+      let q = sessions(tenantId).where("userId", "==", uid);
+      if (filter.spaceId) q = q.where("spaceId", "==", filter.spaceId);
+      if (filter.itemId) q = q.where("itemId", "==", filter.itemId);
+      q = q.orderBy("updatedAt", "desc");
+      if (filter.cursor) q = q.startAfter(filter.cursor);
+      const snap = await q.limit(limit + 1).get();
+      const docs = snap.docs
+        .slice(0, limit)
+        .map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const nextCursor =
+        snap.size > limit ? String(docs[docs.length - 1]?.["updatedAt"] ?? "") || null : null;
+      return { items: docs, nextCursor };
+    },
   };
 }
 function makeAnnouncementReadRepo(db2, now) {
@@ -3155,10 +4246,8 @@ function makeTestSubmissionRepo(db2, now) {
 }
 function makeStoryPointProgressRepo(db2) {
   return {
-    async get(tenantId, uid, _spaceId, storyPointId) {
-      const snap = await db2
-        .doc(`${tenantDoc(tenantId)}/storyPointProgress/${uid}_${storyPointId}`)
-        .get();
+    async get(tenantId, uid, spaceId, storyPointId) {
+      const snap = await db2.doc(storyPointProgressDoc(tenantId, uid, spaceId, storyPointId)).get();
       return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
     },
   };
@@ -3301,14 +4390,142 @@ function makeStudyGoalRepo(db2, now) {
     },
   };
 }
-function makeSecretRepo(db2, now) {
+function makeSecretRepo(db2, now, writer = createSecretWriter()) {
   return {
-    async put(tenantId, _key) {
-      const secretRef = `${tenantId}-gemini-key`;
+    async put(tenantId, key) {
+      const secretRef = await writer.writeSecret(tenantId, key);
       await db2
         .doc(`${tenantDoc(tenantId)}/secretRefs/gemini`)
         .set(toFirestore({ secretRef, updatedAt: now() }), { merge: true });
       return { secretRef };
+    },
+  };
+}
+function makeSpaceReviewRepo(db2, now) {
+  return {
+    async get(tenantId, spaceId, uid) {
+      const snap = await db2.doc(spaceReviewDoc(tenantId, spaceId, uid)).get();
+      return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
+    },
+    async upsert(tenantId, spaceId, uid, data) {
+      const ref = db2.doc(spaceReviewDoc(tenantId, spaceId, uid));
+      const existing = await ref.get();
+      const created = !existing.exists;
+      const ts = now();
+      await ref.set(
+        toFirestore({
+          ...data,
+          id: uid,
+          updatedAt: ts,
+          ...(created ? { createdAt: ts } : {}),
+        }),
+        { merge: true }
+      );
+      return { id: uid, created };
+    },
+    async list(tenantId, spaceId, filter = {}) {
+      const limit = filter.limit ?? 20;
+      let q = db2
+        .collection(spaceReviewsPath(tenantId, spaceId))
+        .orderBy("createdAt", "desc")
+        .orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("createdAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+  };
+}
+function makeContentVersionRepo(db2, now) {
+  const coll = (t, s) => db2.collection(spaceVersionsPath(t, s));
+  return {
+    async list(tenantId, spaceId, filter = {}) {
+      const limit = filter.limit ?? 20;
+      let q = coll(tenantId, spaceId).orderBy("changedAt", "desc").orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("changedAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+    async add(tenantId, spaceId, entry) {
+      const lastSnap = await coll(tenantId, spaceId)
+        .where("entityType", "==", entry.entityType)
+        .where("entityId", "==", entry.entityId)
+        .orderBy("version", "desc")
+        .limit(1)
+        .get();
+      const nextVersion = lastSnap.empty ? 1 : (lastSnap.docs[0]?.data()["version"] ?? 0) + 1;
+      const ref = coll(tenantId, spaceId).doc();
+      await ref.set(toFirestore({ id: ref.id, version: nextVersion, ...entry, changedAt: now() }));
+      return ref.id;
+    },
+  };
+}
+function makePlatformActivityRepo(db2) {
+  return {
+    async list(filter = {}) {
+      const limit = filter.limit ?? 20;
+      let q = db2.collection(platformActivityLogCollection());
+      if (filter.tenantId) q = q.where("tenantId", "==", filter.tenantId);
+      if (filter.action) q = q.where("action", "==", filter.action);
+      q = q.orderBy("createdAt", "desc").orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("createdAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+  };
+}
+function makeCostSummariesRepo(db2) {
+  const coll = (t) => db2.collection(`${tenantDoc(t)}/costSummaries`);
+  const byIdRange = async (tenantId, prefix, startKey, endKey, limit) => {
+    const snap = await coll(tenantId)
+      .orderBy(FieldPath.documentId())
+      .startAt(`${prefix}${startKey}`)
+      .endAt(`${prefix}${endKey}\uF8FF`)
+      .limit(limit)
+      .get();
+    return snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+  };
+  return {
+    async daily(tenantId, dateYmd) {
+      const snap = await coll(tenantId).doc(`daily_${dateYmd}`).get();
+      return snap.exists ? snap.data() : null;
+    },
+    async monthly(tenantId, monthYm) {
+      const snap = await coll(tenantId).doc(`monthly_${monthYm}`).get();
+      return snap.exists ? snap.data() : null;
+    },
+    async listDaily(tenantId, filter = {}) {
+      const start = filter.date ?? filter.from ?? "";
+      const end = filter.date ?? filter.to ?? "9999-12-31";
+      return byIdRange(tenantId, "daily_", start, end, filter.limit ?? 100);
+    },
+    async listMonthly(tenantId, filter = {}) {
+      const start = filter.month ?? "";
+      const end = filter.month ?? "9999-12";
+      return byIdRange(tenantId, "monthly_", start, end, filter.limit ?? 100);
     },
   };
 }
@@ -3371,6 +4588,16 @@ function createRepos(options = {}) {
     analyticsInsights: entity("insights"),
     // autograde evaluation-settings (its own collection, NOT the tenants repo).
     evaluationSettings: entity("evaluationSettings"),
+    // levelup authoring collections (LVL-2 — flat tenant-scoped, seed-Paths names).
+    agents: entity("agents"),
+    rubricPresets: entity("rubricPresets"),
+    questionBank: entity("questionBank"),
+    // class-assignment metadata rows (LVL-2 assignContent; deterministic ids
+    // `{contentType}_{contentId}_{classId}` make re-assignment idempotent).
+    assignments: entity("assignments"),
+    // nested-under-space collections (reviews keyed by uid; legacy-path versions).
+    spaceReviews: makeSpaceReviewRepo(firestore, now),
+    contentVersions: makeContentVersionRepo(firestore, now),
     // AI-gateway cost/usage seam (`@levelup/ai` `AiRepos`: llm + costSummaries).
     llm: {
       async log(params) {
@@ -3398,20 +4625,11 @@ function createRepos(options = {}) {
         return snap.size;
       },
     },
-    costSummaries: {
-      async daily(tenantId, dateYmd) {
-        const snap = await firestore
-          .doc(`${tenantDoc(tenantId)}/costSummaries/daily_${dateYmd}`)
-          .get();
-        return snap.exists ? snap.data() : null;
-      },
-      async monthly(tenantId, monthYm) {
-        const snap = await firestore
-          .doc(`${tenantDoc(tenantId)}/costSummaries/monthly_${monthYm}`)
-          .get();
-        return snap.exists ? snap.data() : null;
-      },
-    },
+    // Canonical costSummaries accessor (same daily/monthly seam the AI quota
+    // fast-path reads, plus the range lists getCostSummary consumes).
+    costSummaries: makeCostSummariesRepo(firestore),
+    // Top-level platformActivityLog feed (super-admin read replacement, U2.4+5).
+    platformActivity: makePlatformActivityRepo(firestore),
     // audit + in-tx variant (fail-closed impersonation audit).
     audit: Object.assign(auditRepo, {
       writeInTx(_tx, actorUid, action, target, meta) {
@@ -3442,611 +4660,6 @@ function createRepos(options = {}) {
     encodeCursor,
     decodeCursor,
     ...extended,
-  };
-}
-
-// ../../packages/ai/dist/index.js
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
-var def = (t) => t;
-var PROMPTS = {
-  /** Panopticon stage 1 — extract questions + rubric from a question paper. */
-  questionExtraction: def({
-    purpose: "question_extraction",
-    system:
-      "You are an exam-paper extraction engine. Read the provided question-paper images and emit a structured list of questions with marks and a per-question rubric. Never invent questions; preserve numbering and sub-parts.",
-    user: "Exam title: {{examTitle}}\nExam type: {{examType}}\nExtract every question. For each: text, maxMarks, order, and a criteria-based rubric whose criteria marks sum to maxMarks.",
-    requiredVariables: ["examTitle", "examType"],
-    structured: true,
-    defaultModel: "gemini-1.5-pro",
-    defaultTemperature: 0,
-  }),
-  /** Panopticon stage 2 — map a scanned answer sheet to question regions. */
-  answerMapping: def({
-    purpose: "answer_mapping",
-    system:
-      "You are an answer-sheet scout. Given answer-sheet images and the known question list, locate each answer and report which question it belongs to, with a readability/confidence assessment.",
-    user: "Questions: {{questions}}\nMap each detected answer region to a questionId. Flag unreadable or missing answers.",
-    requiredVariables: ["questions"],
-    structured: true,
-    defaultModel: "gemini-1.5-flash",
-    defaultTemperature: 0,
-  }),
-  /** RELMS — grade a single answer against its resolved rubric. */
-  answerGrading: def({
-    purpose: "answer_grading",
-    system:
-      "You are a rigorous, fair grader. Score the student answer ONLY against the provided rubric. Output score, per-criterion breakdown, strengths, weaknesses, missing concepts, and a confidence value in [0,1]. Never exceed maxMarks. Be consistent and explain each deduction.",
-    user: "Question: {{question}}\nMax marks: {{maxMarks}}\nRubric: {{rubric}}\nStudent answer: {{answer}}\nGrade strictly per the rubric.",
-    requiredVariables: ["question", "maxMarks", "rubric", "answer"],
-    structured: true,
-    defaultModel: "gemini-1.5-pro",
-    defaultTemperature: 0,
-  }),
-  /** Tutor chat — conversational help inside a story-point item. */
-  aiChat: def({
-    purpose: "ai_chat",
-    system:
-      "You are a patient learning tutor scoped to one practice item. Help the learner reason toward the answer with hints and questions. NEVER reveal the model answer, the rubric, or the grading guidance verbatim. Keep replies concise and encouraging.",
-    user: "Item context: {{itemContext}}\nConversation so far: {{history}}\nLearner says: {{message}}\nRespond as the tutor in {{language}}.",
-    requiredVariables: ["itemContext", "message", "language"],
-    structured: false,
-    defaultModel: "gemini-1.5-flash",
-    defaultTemperature: 0.6,
-  }),
-  /** Learning-insight generation from a student's progress summary. */
-  insights: def({
-    purpose: "insights",
-    system:
-      "You generate short, actionable learning insights for a single student from their performance summary. Be specific and supportive; cite the weak areas.",
-    user: "Student summary: {{summary}}\nProduce up to {{maxInsights}} insights with a title, body, and severity.",
-    requiredVariables: ["summary", "maxInsights"],
-    structured: true,
-    defaultModel: "gemini-1.5-flash",
-    defaultTemperature: 0.3,
-  }),
-};
-var PROMPT_KEYS = Object.keys(PROMPTS);
-function renderPrompt(key, variables) {
-  const template = PROMPTS[key];
-  for (const req of template.requiredVariables) {
-    if (variables[req] === void 0 || variables[req] === null) {
-      throw new Error(`Prompt "${key}" missing required variable "${req}"`);
-    }
-  }
-  const user = template.user.replace(/\{\{(\w+)\}\}/g, (_m, name) => {
-    const v = variables[name];
-    if (v === void 0) return "";
-    return typeof v === "string" ? v : JSON.stringify(v);
-  });
-  return { system: template.system, user, template };
-}
-var DEFAULT_MODEL = "gemini-1.5-flash";
-function toParts(input) {
-  const parts = [{ text: input.user }];
-  for (const img of input.images ?? []) {
-    parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
-  }
-  return parts;
-}
-function toUsage(meta) {
-  const inputTokens = meta?.promptTokenCount ?? 0;
-  const outputTokens = meta?.candidatesTokenCount ?? 0;
-  const totalTokens = meta?.totalTokenCount ?? inputTokens + outputTokens;
-  return { inputTokens, outputTokens, totalTokens };
-}
-function createGeminiProvider(apiKey, opts = {}) {
-  const client = new GoogleGenerativeAI(apiKey);
-  const fallbackModel = opts.defaultModel ?? DEFAULT_MODEL;
-  return {
-    name: "gemini",
-    async call(input) {
-      const modelName = input.model || fallbackModel;
-      const model = client.getGenerativeModel({
-        model: modelName,
-        systemInstruction: input.system,
-      });
-      const request = {
-        contents: [{ role: "user", parts: toParts(input) }],
-        generationConfig: {
-          ...(input.temperature !== void 0 ? { temperature: input.temperature } : {}),
-          ...(input.maxTokens !== void 0 ? { maxOutputTokens: input.maxTokens } : {}),
-          ...(input.responseSchema
-            ? {
-                responseMimeType: "application/json",
-                responseSchema: input.responseSchema,
-              }
-            : {}),
-        },
-      };
-      const result = await model.generateContent(request);
-      const response = result.response;
-      const text = response.text();
-      let json;
-      if (input.responseSchema) {
-        try {
-          json = JSON.parse(text);
-        } catch {
-          json = void 0;
-        }
-      }
-      return {
-        text,
-        json,
-        usage: toUsage(response.usageMetadata),
-        model: modelName,
-      };
-    },
-  };
-}
-var AiGatewayError = class _AiGatewayError extends Error {
-  constructor(code, message, opts = {}) {
-    super(message);
-    this.name = "AiGatewayError";
-    this.code = code;
-    this.retryable = opts.retryable ?? false;
-    this.meta = opts.meta;
-    if (opts.cause !== void 0) {
-      this.cause = opts.cause;
-    }
-    Object.setPrototypeOf(this, _AiGatewayError.prototype);
-  }
-};
-function isAiGatewayError(x) {
-  return x instanceof AiGatewayError;
-}
-var quotaExceeded = (message, meta) =>
-  new AiGatewayError("QUOTA_EXCEEDED", message, { retryable: false, meta });
-var aiDisabled = (message, meta) =>
-  new AiGatewayError("FEATURE_DISABLED", message, { retryable: false, meta });
-var providerFailed = (message, opts = {}) => new AiGatewayError("INTERNAL_ERROR", message, opts);
-var secretNameFor = (tenantId) => `tenant-${tenantId}-gemini`;
-function resolveProjectId(opts) {
-  return (
-    opts.projectId ??
-    opts.env?.GOOGLE_CLOUD_PROJECT ??
-    opts.env?.GCLOUD_PROJECT ??
-    process.env.GOOGLE_CLOUD_PROJECT ??
-    process.env.GCLOUD_PROJECT
-  );
-}
-function createSecretResolver(opts = {}) {
-  const env = opts.env ?? process.env;
-  const cache = /* @__PURE__ */ new Map();
-  let client = opts.client ?? null;
-  const getClient = () => {
-    if (!client) client = new SecretManagerServiceClient();
-    return client;
-  };
-  return {
-    async getApiKey(tenantId) {
-      const cached = cache.get(tenantId);
-      if (cached) return cached;
-      const override = env.LEVELUP_AI_KEY ?? env.GEMINI_API_KEY;
-      if (override) {
-        cache.set(tenantId, override);
-        return override;
-      }
-      const projectId2 = resolveProjectId(opts);
-      if (!projectId2) {
-        throw aiDisabled("No GCP project configured for Secret Manager key resolution", {
-          tenantId,
-        });
-      }
-      const name = `projects/${projectId2}/secrets/${secretNameFor(tenantId)}/versions/latest`;
-      let payload;
-      try {
-        const [version] = await getClient().accessSecretVersion({ name });
-        const data = version.payload?.data;
-        payload =
-          typeof data === "string" ? data : data ? Buffer.from(data).toString("utf8") : void 0;
-      } catch (cause) {
-        throw aiDisabled("No Gemini key provisioned for tenant", {
-          tenantId,
-          cause: String(cause),
-        });
-      }
-      const key = payload?.trim();
-      if (!key) {
-        throw providerFailed("Empty Gemini secret payload", { meta: { tenantId } });
-      }
-      cache.set(tenantId, key);
-      return key;
-    },
-    invalidate(tenantId) {
-      cache.delete(tenantId);
-    },
-  };
-}
-var DEFAULT_MONTHLY_BUDGET_USD = 100;
-var DEFAULT_DAILY_CALL_CAP = 5e3;
-function dayBounds(nowIso) {
-  const d = new Date(nowIso);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const dateYmd = `${y}-${m}-${day}`;
-  const dayStart = `${dateYmd}T00:00:00.000Z`;
-  const nextDay = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate() + 1));
-  return { dateYmd, dayStart, dayEnd: nextDay.toISOString() };
-}
-function monthBounds(nowIso) {
-  const d = new Date(nowIso);
-  const y = d.getUTCFullYear();
-  const mIdx = d.getUTCMonth();
-  const monthYm = `${y}-${String(mIdx + 1).padStart(2, "0")}`;
-  const monthStart = `${monthYm}-01T00:00:00.000Z`;
-  const monthEnd = new Date(Date.UTC(y, mIdx + 1, 1)).toISOString();
-  return { monthYm, monthStart, monthEnd };
-}
-async function checkUsageQuota(repos, tenantId, nowIso) {
-  const cfg = await repos.tenants.getUsageConfig(tenantId);
-  if (cfg?.aiEnabled === false) {
-    throw aiDisabled("AI is disabled for this tenant", { tenantId });
-  }
-  const monthlyBudgetUsd =
-    cfg?.monthlyBudgetUsd && cfg.monthlyBudgetUsd > 0
-      ? cfg.monthlyBudgetUsd
-      : DEFAULT_MONTHLY_BUDGET_USD;
-  const dailyCallCap =
-    cfg?.dailyCallCap && cfg.dailyCallCap > 0 ? cfg.dailyCallCap : DEFAULT_DAILY_CALL_CAP;
-  const { monthYm, monthStart, monthEnd } = monthBounds(nowIso);
-  const monthlySummary = await repos.costSummaries.monthly(tenantId, monthYm);
-  const monthlySpendUsd =
-    monthlySummary?.totalCostUsd ?? (await repos.llm.sumCostUsd(tenantId, monthStart, monthEnd));
-  if (monthlySpendUsd >= monthlyBudgetUsd) {
-    throw quotaExceeded("Monthly AI budget exceeded", {
-      tenantId,
-      monthlyBudgetUsd,
-      monthlySpendUsd,
-    });
-  }
-  const { dateYmd, dayStart, dayEnd } = dayBounds(nowIso);
-  const dailySummary = await repos.costSummaries.daily(tenantId, dateYmd);
-  const dailyCalls =
-    dailySummary?.totalCalls ?? (await repos.llm.countCalls(tenantId, dayStart, dayEnd));
-  if (dailyCalls >= dailyCallCap) {
-    throw quotaExceeded("Daily AI call cap exceeded", { tenantId, dailyCallCap, dailyCalls });
-  }
-  return { allowed: true, monthlyBudgetUsd, monthlySpendUsd, dailyCallCap, dailyCalls };
-}
-var MODEL_PRICING = {
-  "gemini-1.5-pro": { inputPerMillion: 1.25, outputPerMillion: 5 },
-  "gemini-1.5-flash": { inputPerMillion: 0.075, outputPerMillion: 0.3 },
-  "gemini-1.5-flash-8b": { inputPerMillion: 0.0375, outputPerMillion: 0.15 },
-  "gemini-2.0-flash": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
-};
-var FALLBACK_PRICING = { inputPerMillion: 1.25, outputPerMillion: 5 };
-function buildTokenUsage(usage) {
-  return {
-    inputTokens: usage.inputTokens,
-    outputTokens: usage.outputTokens,
-    totalTokens: usage.totalTokens || usage.inputTokens + usage.outputTokens,
-  };
-}
-function estimateCost(usage, model) {
-  const pricing = MODEL_PRICING[model] ?? FALLBACK_PRICING;
-  const inputCostUsd = (usage.inputTokens / 1e6) * pricing.inputPerMillion;
-  const outputCostUsd = (usage.outputTokens / 1e6) * pricing.outputPerMillion;
-  return {
-    inputCostUsd,
-    outputCostUsd,
-    totalCostUsd: inputCostUsd + outputCostUsd,
-    model,
-  };
-}
-async function logLLMCall(repos, params) {
-  const record = {
-    tenantId: params.tenantId,
-    functionName: params.functionName,
-    model: params.model,
-    inputTokens: params.usage.inputTokens,
-    outputTokens: params.usage.outputTokens,
-    totalTokens: params.usage.totalTokens,
-    costUSD: params.cost.totalCostUsd,
-    latencyMs: params.latencyMs,
-    status: params.status,
-    ...(params.errorMessage !== void 0 ? { errorMessage: params.errorMessage } : {}),
-    ...(params.userId !== void 0 ? { userId: params.userId } : {}),
-    ...(params.examId !== void 0 ? { examId: params.examId } : {}),
-    ...(params.spaceId !== void 0 ? { spaceId: params.spaceId } : {}),
-  };
-  await repos.llm.log(record);
-}
-function classifyError(err) {
-  const status = err?.status;
-  const code = err?.code;
-  const n =
-    typeof status === "number" ? status : typeof code === "number" ? code : Number(err?.statusCode);
-  if (n === 429 || n === 503 || n === 500 || n === 502 || n === 504) return "transient";
-  const msg = String(err?.message ?? "").toLowerCase();
-  if (
-    msg.includes("timeout") ||
-    msg.includes("etimedout") ||
-    msg.includes("econnreset") ||
-    msg.includes("overloaded") ||
-    msg.includes("unavailable") ||
-    msg.includes("rate limit")
-  ) {
-    return "transient";
-  }
-  return "permanent";
-}
-function createCircuitBreaker(opts = {}) {
-  const failureThreshold = opts.failureThreshold ?? 5;
-  const cooldownMs = opts.cooldownMs ?? 3e4;
-  const now = opts.now ?? (() => Date.now());
-  const circuits = /* @__PURE__ */ new Map();
-  const entry = (key) => {
-    let e = circuits.get(key);
-    if (!e) {
-      e = { state: "closed", failures: 0, openedAt: 0 };
-      circuits.set(key, e);
-    }
-    return e;
-  };
-  return {
-    isCircuitOpen(key) {
-      const e = entry(key);
-      if (e.state === "open" && now() - e.openedAt >= cooldownMs) {
-        e.state = "half_open";
-        return false;
-      }
-      return e.state === "open";
-    },
-    recordSuccess(key) {
-      const e = entry(key);
-      e.failures = 0;
-      e.state = "closed";
-      e.openedAt = 0;
-    },
-    recordFailure(key) {
-      const e = entry(key);
-      e.failures += 1;
-      if (e.state === "half_open" || e.failures >= failureThreshold) {
-        e.state = "open";
-        e.openedAt = now();
-      }
-    },
-    stateOf(key) {
-      return entry(key).state;
-    },
-  };
-}
-var defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function withRetry(fn, opts) {
-  const maxAttempts = opts.maxAttempts ?? 3;
-  const baseDelayMs = opts.baseDelayMs ?? 250;
-  const maxDelayMs = opts.maxDelayMs ?? 4e3;
-  const sleep = opts.sleep ?? defaultSleep;
-  const rng = opts.rng ?? Math.random;
-  let lastErr;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (attempt >= maxAttempts || !opts.isRetryable(err)) break;
-      const exp = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
-      const jitter = exp * 0.25 * rng();
-      await sleep(exp + jitter);
-    }
-  }
-  throw lastErr;
-}
-var RULES = [
-  {
-    category: "prompt_injection",
-    pattern:
-      /\b(ignore (all |the )?previous instructions|disregard (the )?system prompt|reveal (the )?(system )?prompt|show (me )?the (rubric|model answer|grading guidance))\b/i,
-  },
-  { category: "self_harm", pattern: /\b(kill myself|suicide|end my life|self[-\s]?harm)\b/i },
-  {
-    category: "sexual_minor",
-    pattern: /\b(child|minor|underage)\b.{0,20}\b(sex|nude|explicit)\b/i,
-  },
-  { category: "violence_threat", pattern: /\b(i('| wi)ll kill|shoot up|bomb the|murder you)\b/i },
-  { category: "hate", pattern: /\b(kill all|exterminate the)\b/i },
-];
-var EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
-var PHONE_RE = /\b(?:\+?\d[\d\s-]{7,}\d)\b/g;
-function redactPii(text) {
-  return text.replace(EMAIL_RE, "[redacted-email]").replace(PHONE_RE, "[redacted-phone]");
-}
-function moderateText(text, opts = {}) {
-  const blockOn = new Set(
-    opts.blockOn ?? ["prompt_injection", "self_harm", "sexual_minor", "violence_threat", "hate"]
-  );
-  const categories = [];
-  for (const rule of RULES) {
-    if (rule.pattern.test(text) && blockOn.has(rule.category)) {
-      categories.push(rule.category);
-    }
-  }
-  const sanitized = opts.redactPii === false ? text : redactPii(text);
-  return { allowed: categories.length === 0, categories, sanitized };
-}
-function createAiGateway(deps) {
-  const repos = deps.repos;
-  const secretResolver = deps.secretResolver ?? createSecretResolver({ projectId: deps.projectId });
-  const circuit = deps.circuitBreaker ?? createCircuitBreaker();
-  const providerFactory =
-    deps.providerFactory ??
-    ((apiKey, model) => createGeminiProvider(apiKey, { defaultModel: model }));
-  const maxRetries = deps.maxRetries ?? 3;
-  return {
-    async generate(req, ctx) {
-      const nowIso = (ctx.now ?? (() => /* @__PURE__ */ new Date().toISOString()))();
-      const template = PROMPTS[req.promptKey];
-      const model = req.model ?? template.defaultModel;
-      const circuitKey = `${ctx.tenantId}:${model}`;
-      const shouldModerate = req.moderate ?? template.purpose === "ai_chat";
-      let inputCategories = [];
-      if (shouldModerate) {
-        const raw = JSON.stringify(req.variables);
-        const m = moderateText(raw);
-        inputCategories = m.categories;
-        if (!m.allowed) {
-          throw aiDisabled("Input blocked by content moderation", {
-            tenantId: ctx.tenantId,
-            categories: m.categories,
-          });
-        }
-      }
-      await checkUsageQuota(repos, ctx.tenantId, nowIso);
-      if (circuit.isCircuitOpen(circuitKey)) {
-        throw providerFailed("AI provider circuit is open", {
-          retryable: true,
-          meta: { tenantId: ctx.tenantId, model },
-        });
-      }
-      const apiKey = await secretResolver.getApiKey(ctx.tenantId);
-      const provider = providerFactory(apiKey, model);
-      const { system, user } = renderPrompt(req.promptKey, req.variables);
-      const startedAt = Date.now();
-      let providerOut;
-      try {
-        providerOut = await withRetry(
-          () =>
-            provider.call({
-              model,
-              system,
-              user,
-              images: req.images,
-              ...(req.temperature !== void 0
-                ? { temperature: req.temperature }
-                : { temperature: template.defaultTemperature }),
-              ...(req.maxTokens !== void 0 ? { maxTokens: req.maxTokens } : {}),
-              ...(req.responseSchema !== void 0 ? { responseSchema: req.responseSchema } : {}),
-            }),
-          {
-            maxAttempts: maxRetries,
-            isRetryable: (e) => classifyError(e) === "transient",
-          }
-        );
-        circuit.recordSuccess(circuitKey);
-      } catch (err) {
-        if (classifyError(err) === "transient") circuit.recordFailure(circuitKey);
-        const latencyMs2 = Date.now() - startedAt;
-        await safeLogFailure(repos, ctx, req, model, latencyMs2, err);
-        if (isAiGatewayError(err)) throw err;
-        throw providerFailed("AI provider call failed", {
-          retryable: classifyError(err) === "transient",
-          meta: { tenantId: ctx.tenantId, model, operation: req.operation },
-          cause: err,
-        });
-      }
-      const latencyMs = Date.now() - startedAt;
-      const usage = buildTokenUsage(providerOut.usage);
-      const cost = estimateCost(usage, providerOut.model);
-      let outputCategories = [];
-      if (shouldModerate) {
-        outputCategories = moderateText(providerOut.text).categories;
-      }
-      await logLLMCall(repos, {
-        tenantId: ctx.tenantId,
-        functionName: req.operation,
-        model: providerOut.model,
-        usage,
-        cost,
-        latencyMs,
-        status: "success",
-        userId: ctx.uid,
-        ...(ctx.examId !== void 0 ? { examId: ctx.examId } : {}),
-        ...(ctx.spaceId !== void 0 ? { spaceId: ctx.spaceId } : {}),
-      });
-      const data = template.structured ? providerOut.json : providerOut.text;
-      return {
-        data,
-        text: providerOut.text,
-        tokenUsage: usage,
-        cost,
-        model: providerOut.model,
-        ...(shouldModerate
-          ? { moderation: { input: inputCategories, output: outputCategories } }
-          : {}),
-      };
-    },
-  };
-}
-async function safeLogFailure(repos, ctx, req, model, latencyMs, err) {
-  const zeroUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-  try {
-    await logLLMCall(repos, {
-      tenantId: ctx.tenantId,
-      functionName: req.operation,
-      model,
-      usage: zeroUsage,
-      cost: estimateCost(zeroUsage, model),
-      latencyMs,
-      status: "error",
-      errorMessage: String(err?.message ?? err),
-      userId: ctx.uid,
-      ...(ctx.examId !== void 0 ? { examId: ctx.examId } : {}),
-      ...(ctx.spaceId !== void 0 ? { spaceId: ctx.spaceId } : {}),
-    });
-  } catch {}
-}
-var STUB_USAGE = { inputTokens: 16, outputTokens: 32, totalTokens: 48 };
-var GRADE_JSON = {
-  score: 1,
-  maxScore: 1,
-  correctness: 1,
-  percentage: 100,
-  confidence: 0.95,
-  feedback: "Deterministic stub grade.",
-  strengths: ["stub-strength"],
-  weaknesses: [],
-  missingConcepts: [],
-  breakdown: [{ criterion: "stub", marks: 1, maxMarks: 1 }],
-};
-var EXTRACT_JSON = [
-  {
-    text: "Stub extracted question",
-    maxMarks: 1,
-    order: 1,
-    questionType: "subjective",
-    rubric: { criteria: [{ description: "stub", marks: 1 }] },
-    extractionConfidence: 0.95,
-    readabilityIssue: false,
-  },
-];
-var MAPPING_JSON = {
-  routingMap: { q1: [1] },
-  confidence: { q1: 0.95 },
-};
-var INSIGHTS_JSON = {
-  insights: [{ title: "Stub insight", body: "Deterministic stub insight.", severity: "info" }],
-};
-function pickJson(input) {
-  const sys = input.system.toLowerCase();
-  if (sys.includes("extraction engine")) return EXTRACT_JSON;
-  if (sys.includes("answer-sheet scout")) return MAPPING_JSON;
-  if (sys.includes("grader")) return GRADE_JSON;
-  if (sys.includes("insight")) return INSIGHTS_JSON;
-  return GRADE_JSON;
-}
-function createStubProvider(_apiKey, model) {
-  const defaultModel = model ?? "gemini-1.5-flash";
-  return {
-    name: "gemini",
-    async call(input) {
-      const resolvedModel = input.model ?? defaultModel;
-      if (input.responseSchema !== void 0) {
-        const json = pickJson(input);
-        return {
-          text: JSON.stringify(json),
-          json,
-          usage: STUB_USAGE,
-          model: resolvedModel,
-        };
-      }
-      return {
-        text: "Deterministic stub tutor reply.",
-        usage: STUB_USAGE,
-        model: resolvedModel,
-      };
-    },
   };
 }
 
@@ -4099,6 +4712,11 @@ var SaveTenantRequestSchema = z2
       .object({
         name: z2.string().optional(),
         shortName: z2.string().optional(),
+        // Public join code (e.g. "SUB001"). On CREATE the server writes the
+        // `tenantCodes/{tenantCode}` index so `lookupTenantByCode`/`joinTenant`
+        // resolve it; it is the tenant's stable human-facing code (≠ tenantId).
+        tenantCode: z2.string().optional(),
+        slug: z2.string().optional(),
         contactEmail: z2.string().optional(),
         contactPhone: z2.string().optional(),
         plan: zTenantPlan.optional(),
@@ -4714,6 +5332,11 @@ var StudentImportRowSchema = z2
     grade: z2.string().optional(),
     admissionNumber: z2.string().optional(),
     classIds: z2.array(zClassId).optional(),
+    // Admin-supplied initial password. When present it WINS over server generation
+    // (no credential is generated/delivered for the row — the admin already knows it).
+    // min(8): reject weak/typo'd credentials at the edge with a clear message rather
+    // than a confusing per-row Firebase Auth runtime rejection (stricter than the 6 floor).
+    password: z2.string().min(8).optional(),
   })
   .strict();
 var TeacherImportRowSchema = z2
@@ -4724,20 +5347,51 @@ var TeacherImportRowSchema = z2
     phone: z2.string().optional(),
     subjects: z2.array(z2.string()).optional(),
     department: z2.string().optional(),
+    // Admin-supplied initial password (wins over server generation — see student row).
+    password: z2.string().min(8).optional(),
   })
   .strict();
 var BulkRowErrorSchema = z2.object({ row: z2.number().int(), error: z2.string() }).strict();
+var BulkRowOutcomeSchema = z2
+  .object({
+    row: z2.number().int(),
+    outcome: z2.enum(["create", "skip", "error"]),
+    error: z2.string().optional(),
+  })
+  .strict();
+var BulkCredentialsDeliverySchema = z2
+  .object({
+    /** Signed GET URL to the credentials CSV (deny-all client rules; signed access only). */
+    url: z2.string().url(),
+    /** ISO-8601 expiry of the signed URL (<= 15 min from issue). */
+    expiresAt: zTimestamp,
+    /** Number of rows whose password was server-generated and included in the CSV. */
+    count: z2.number().int(),
+  })
+  .strict();
 var BulkImportResponseSchema = z2
   .object({
     created: z2.number().int(),
     skipped: z2.number().int(),
     errors: z2.array(BulkRowErrorSchema),
+    // Echoed `true` when the request ran as a SIMULATION (zero writes). A dryRun
+    // response can therefore never be mistaken for a commit. Absent on a real import.
+    dryRun: z2.boolean().optional(),
+    // Per-row projected outcomes; present ONLY on a dryRun simulation.
+    preview: z2.array(BulkRowOutcomeSchema).optional(),
+    // Signed-URL delivery of server-generated credentials; present ONLY on a real
+    // import that generated at least one password. NEVER contains plaintext.
+    credentials: BulkCredentialsDeliverySchema.optional(),
   })
   .strict();
 var BulkImportStudentsRequestSchema = z2
   .object({
     rows: z2.array(StudentImportRowSchema).min(1),
     defaultClassIds: z2.array(zClassId).optional(),
+    // Simulation mode: validate every row + return per-row would-create/would-fail
+    // results with ZERO writes (no auth users, no docs, no credentials, no side
+    // effects). The response echoes `dryRun: true`.
+    dryRun: z2.boolean().optional(),
   })
   .strict();
 var bulkImportStudents = defineCallable({
@@ -4754,7 +5408,11 @@ var bulkImportStudents = defineCallable({
   authoritySensitive: true,
 });
 var BulkImportTeachersRequestSchema = z2
-  .object({ rows: z2.array(TeacherImportRowSchema).min(1) })
+  .object({
+    rows: z2.array(TeacherImportRowSchema).min(1),
+    // Simulation mode — see `BulkImportStudentsRequestSchema.dryRun`.
+    dryRun: z2.boolean().optional(),
+  })
   .strict();
 var bulkImportTeachers = defineCallable({
   name: "v1.identity.bulkImportTeachers",
@@ -4799,15 +5457,9 @@ var ChangeMembershipRoleRequestSchema = z2
   .object({
     uid: zUserId,
     toRole: zTenantRole,
-    links: z2
-      .object({
-        teacherId: zTeacherId.optional(),
-        studentId: zStudentId.optional(),
-        parentId: zParentId.optional(),
-        staffId: zStaffId.optional(),
-      })
-      .strict()
-      .optional(),
+    // DP-2 Part B: the per-role id links are DERIVED from `ID_ROLES` (one source) —
+    // this auto-includes `scannerId`, fixing B-IDN-23 (scanner was orphaned here).
+    links: z2.object(roleIdFields).strict().optional(),
   })
   .strict();
 var ChangeMembershipRoleResponseSchema = z2
@@ -5314,15 +5966,8 @@ var IDENTITY_CALLABLES = {
   "v1.identity.endImpersonation": endImpersonation,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 };
-var SaveResponseSchema2 = z2
-  .object({
-    id: z2.string(),
-    created: z2.boolean().optional(),
-    deleted: z2.boolean().optional(),
-  })
-  .strict();
 var SaveOrDeleteResponseSchema = z2.union([
-  SaveResponseSchema2,
+  SaveResponseSchema,
   z2.object({ id: z2.string(), deleted: z2.literal(true) }).strict(),
 ]);
 var SpaceViewSchema = SpaceSchema;
@@ -5429,7 +6074,7 @@ var SaveSpaceRequestSchema = z2
     data: SaveSpaceDataSchema,
   })
   .strict();
-var SaveSpaceResponseSchema = SaveResponseSchema2;
+var SaveSpaceResponseSchema = SaveResponseSchema;
 var saveSpaceDef = defineCallable({
   name: "v1.levelup.saveSpace",
   module: "levelup",
@@ -5706,7 +6351,12 @@ var EvaluateAnswerRequestSchema = z2
     itemId: z2.string(),
     answer: z2.unknown(),
     mode: z2.enum(["practice", "preview"]).optional(),
-    mediaUrls: z2.array(z2.string().url()).max(20).optional(),
+    // Captured image/audio the learner attached to this answer. These are
+    // server-scoped Storage PATHS (e.g. `tenants/{tenantId}/exams/.../x.jpg`),
+    // NOT web URLs — the same shape autograde's `imageUrls` carries — so the value
+    // is a plain string, never `.url()` (which rejects bare paths). Tenant-scoping
+    // is enforced server-side before the paths are attached to the AI grader.
+    mediaUrls: z2.array(z2.string().min(1)).max(20).optional(),
   })
   .strict();
 var EvaluateAnswerResponseSchema = z2
@@ -5848,7 +6498,7 @@ var AssignContentRequestSchema = z2
     visibility: z2.enum(["visible", "hidden", "scheduled"]).optional(),
   })
   .strict();
-var AssignContentResponseSchema = SaveResponseSchema2;
+var AssignContentResponseSchema = SaveResponseSchema;
 var assignContentDef = defineCallable({
   name: "v1.levelup.assignContent",
   module: "levelup",
@@ -6263,7 +6913,7 @@ var saveAchievementDefinitionDef = defineCallable({
   name: "v1.levelup.saveAchievementDefinition",
   module: "levelup",
   requestSchema: SaveAchievementDefinitionRequestSchema,
-  responseSchema: SaveResponseSchema2,
+  responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
   invalidates: ["achievements"],
@@ -6308,7 +6958,7 @@ var saveStudyGoalDef = defineCallable({
   name: "v1.levelup.saveStudyGoal",
   module: "levelup",
   requestSchema: SaveStudyGoalRequestSchema,
-  responseSchema: SaveResponseSchema2,
+  responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
   idempotent: true,
@@ -7183,6 +7833,8 @@ var GetCostSummaryRequestSchema = zObject({
     .regex(/^\d{4}-\d{2}$/)
     .optional(),
   range: TimeRangeSchema.optional(),
+  /** Super-admin cross-tenant read (platform LLM-usage roll-up). */
+  tenantOverride: zTenantId.optional(),
 });
 var GetCostSummaryResponseSchema = zObject({
   summaries: z2.array(z2.union([DailyCostSummarySchema, MonthlyCostSummarySchema])),
@@ -7194,6 +7846,7 @@ var getCostSummary = defineCallable({
   responseSchema: GetCostSummaryResponseSchema,
   authMode: "authed",
   rateTier: "read",
+  allowsTenantOverride: true,
 });
 var LEADERBOARD_SCOPES2 = ["tenant", "space", "storyPoint"];
 var zLeaderboardScope2 = z2.enum(LEADERBOARD_SCOPES2);
@@ -7447,17 +8100,23 @@ var TestSessionDeadlineParamsSchema = zObject({ sessionId: z2.string() });
 var testSessionDeadline = defineSubscription({
   name: "v1.levelup.testSessionDeadline",
   module: "levelup",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: TestSessionDeadlineParamsSchema,
   payload: TestSessionLiveSchema,
 });
 var ChatStreamParamsSchema = zObject({ sessionId: z2.string() });
+var ChatBumpSchema = zObject({
+  /** Monotonic per-session revision (server-side atomic increment). */
+  rev: z2.number(),
+  /** ISO timestamp of the message that triggered the bump. */
+  lastMessageAt: z2.string(),
+});
 var chatStream = defineSubscription({
   name: "v1.levelup.chatStream",
   module: "levelup",
-  source: "firestore-query",
+  source: "rtdb-node",
   params: ChatStreamParamsSchema,
-  payload: ChatMessageSchema,
+  payload: ChatBumpSchema,
 });
 var StoryPointProgressLiveSchema = zObject({
   storyPointId: z2.string(),
@@ -7465,8 +8124,6 @@ var StoryPointProgressLiveSchema = zObject({
   pointsEarned: z2.number(),
   totalPoints: z2.number(),
   percentage: z2.number(),
-  completedItems: z2.number().int(),
-  totalItems: z2.number().int(),
 });
 var SpaceProgressLiveSchema = zObject({
   spaceId: z2.string(),
@@ -7475,7 +8132,8 @@ var SpaceProgressLiveSchema = zObject({
   pointsEarned: z2.number(),
   totalPoints: z2.number(),
   percentage: z2.number(),
-  storyPoints: z2.record(z2.string(), StoryPointProgressLiveSchema),
+  // RTDB drops empty objects at rest — an entry-less rollup arrives keyless.
+  storyPoints: z2.record(z2.string(), StoryPointProgressLiveSchema).default({}),
   updatedAt: z2.string(),
 });
 var SpaceProgressLiveParamsSchema = zObject({
@@ -7485,7 +8143,7 @@ var SpaceProgressLiveParamsSchema = zObject({
 var spaceProgressLive = defineSubscription({
   name: "v1.levelup.spaceProgressLive",
   module: "levelup",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: SpaceProgressLiveParamsSchema,
   payload: SpaceProgressLiveSchema,
 });
@@ -7510,7 +8168,7 @@ var StudentLevelLiveParamsSchema = zObject({});
 var studentLevelLive = defineSubscription({
   name: "v1.levelup.studentLevelLive",
   module: "levelup",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: StudentLevelLiveParamsSchema,
   payload: StudentLevelSchema,
 });
@@ -7519,7 +8177,7 @@ var AchievementUnlockParamsSchema = zObject({});
 var achievementUnlock = defineSubscription({
   name: "v1.levelup.achievementUnlock",
   module: "levelup",
-  source: "firestore-query",
+  source: "rtdb-node",
   params: AchievementUnlockParamsSchema,
   payload: AchievementUnlockSchema,
 });
@@ -7532,7 +8190,7 @@ var GradingStatusParamsSchema = zObject({ submissionId: z2.string() });
 var gradingStatus = defineSubscription({
   name: "v1.autograde.gradingStatus",
   module: "autograde",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: GradingStatusParamsSchema,
   payload: SubmissionStatusSchema,
 });
@@ -7550,7 +8208,7 @@ var ExamGradingParamsSchema = zObject({ examId: z2.string() });
 var examGrading = defineSubscription({
   name: "v1.autograde.examGrading",
   module: "autograde",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: ExamGradingParamsSchema,
   payload: ExamGradingProgressSchema,
 });
@@ -7633,6 +8291,8 @@ var ACCESS_RULES = {
   // Roster reads (list/get students/teachers/parents/staff/classes) — any signed-in
   // member of the tenant; tenant-scoped so a forged cross-tenant target is denied.
   "roster.read": { roles: "any-authed", tenantScoped: true },
+  // Platform-scoped tenant directory — super-admin only (cross-tenant read).
+  "tenant.list": { roles: "super-admin-only", tenantScoped: false },
   "user.search": { roles: "super-admin-only", tenantScoped: false },
   "preset.global.write": { roles: "super-admin-only", tenantScoped: false },
   "user.impersonate.start": { roles: "super-admin-only", tenantScoped: false },
@@ -7650,6 +8310,7 @@ var ACCESS_RULES = {
   "questionBank.read": { roles: AUTHORING, tenantScoped: true },
   "questionBank.import": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
   "rubricPreset.write": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
+  "agent.write": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
   "testSession.start": { roles: STUDENT_ONLY, tenantScoped: true },
   "testSession.submit": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "answer.evaluate": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
@@ -7810,584 +8471,9 @@ import {
 } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onTaskDispatched } from "firebase-functions/v2/tasks";
-import { getFunctions } from "firebase-admin/functions";
-function makeSystemContext(tenantId, deps) {
-  return {
-    uid: "<system>",
-    isSuperAdmin: true,
-    tenantId,
-    role: null,
-    permissions: null,
-    staffPermissions: null,
-    classIds: [],
-    studentIds: [],
-    entityIds: {},
-    now: deps.clock ?? (() => /* @__PURE__ */ new Date().toISOString()),
-    repos: deps.repos,
-    ai: deps.ai,
-  };
-}
-function fail(code, message, extra) {
-  const meta = buildMeta(code, extra);
-  throw new AccessError(code, message, meta);
-}
-function buildMeta(_code, extra) {
-  if (!extra) return void 0;
-  const meta = { ...(extra.meta ?? {}) };
-  if (extra.validationErrors) {
-    meta.validationErrors = extra.validationErrors;
-  }
-  if (extra.retryable !== void 0) {
-    meta.retryable = extra.retryable;
-  }
-  return Object.keys(meta).length > 0 ? meta : void 0;
-}
-var PUBLIC_UID = "<public>";
-async function buildAuthContext(auth2, opts) {
-  const clock = opts.clock ?? (() => /* @__PURE__ */ new Date().toISOString());
-  if (opts.anonymous) {
-    return anonymousContext(opts, clock);
-  }
-  if (!auth2 || !auth2.uid) {
-    return fail("UNAUTHENTICATED", "authentication required");
-  }
-  const uid = auth2.uid;
-  const token = auth2.token ?? {};
-  const isSuperAdmin = token.isSuperAdmin === true;
-  const claimTenant = token.tenantId ?? token.activeTenantId ?? null;
-  let tenantId = claimTenant;
-  let usedTenantOverride = false;
-  if (isSuperAdmin && opts.tenantOverride) {
-    tenantId = opts.tenantOverride;
-    usedTenantOverride = true;
-  }
-  let classIds;
-  if (token.classIdsOverflow === true) {
-    const managed = await opts.repos.memberships.getManagedClassIds(uid, tenantId);
-    classIds = managed;
-  } else {
-    classIds = token.classIds ?? [];
-  }
-  const studentIds = token.studentIds ?? [];
-  return {
-    uid,
-    isSuperAdmin,
-    tenantId,
-    role: token.role ?? null,
-    permissions: token.permissions ?? null,
-    staffPermissions: token.staffPermissions ?? null,
-    classIds,
-    studentIds,
-    entityIds: {
-      teacherId: token.teacherId,
-      studentId: token.studentId,
-      parentId: token.parentId,
-      staffId: token.staffId,
-      scannerId: token.scannerId,
-    },
-    idempotencyKey: opts.idempotencyKey,
-    impersonating: token.impersonating === true,
-    usedTenantOverride,
-    now: clock,
-    repos: opts.repos,
-    ai: opts.ai,
-  };
-}
-function anonymousContext(opts, clock) {
-  return {
-    uid: PUBLIC_UID,
-    isSuperAdmin: false,
-    tenantId: null,
-    role: null,
-    permissions: null,
-    staffPermissions: null,
-    classIds: [],
-    studentIds: [],
-    entityIds: {},
-    idempotencyKey: opts.idempotencyKey,
-    now: clock,
-    repos: opts.repos,
-    ai: opts.ai,
-  };
-}
-var REGION = "asia-south1";
-var QUEUES = {
-  gradingPipeline: "grading-pipeline",
-  studentRollup: "student-rollup",
-  outboxDrain: "outbox-drain",
-};
-function projectId() {
-  return (
-    process.env.GCLOUD_PROJECT ??
-    process.env.GOOGLE_CLOUD_PROJECT ??
-    process.env.FIREBASE_PROJECT_ID ??
-    "levelup-local"
-  );
-}
-var VALIDATE_RESPONSES =
-  process.env.VALIDATE_RESPONSES === "1" || process.env.VALIDATE_RESPONSES === "true";
-var runtime = null;
-function configureRuntime(deps) {
-  runtime = deps;
-}
-function requireRuntime() {
-  if (!runtime) {
-    throw new Error(
-      "[functions-shared] runtime not configured \u2014 call configureRuntime({ repos, ai }) at bootstrap"
-    );
-  }
-  return runtime;
-}
-function getRepos() {
-  return requireRuntime().repos;
-}
-function getAi() {
-  return requireRuntime().ai;
-}
-function getClock() {
-  return runtime?.clock;
-}
-function parseRequest(data, schema) {
-  const result = schema.safeParse(data);
-  if (result.success) return result.data;
-  const validationErrors = result.error.issues.map((i) => ({
-    path: i.path.map(String).join("."),
-    message: i.message,
-  }));
-  const message =
-    "Invalid request: " + validationErrors.map((e) => `${e.path}: ${e.message}`).join("; ");
-  return fail("VALIDATION_ERROR", message, { validationErrors });
-}
-function isServiceErrorLike(e) {
-  return e instanceof Error && e.name === "ServiceError" && typeof e.code === "string";
-}
-var CODE_ALIASES = {
-  FAILED_PRECONDITION: "PRECONDITION_FAILED",
-  INVALID_ARGUMENT: "VALIDATION_ERROR",
-  TENANT_REQUIRED: "PERMISSION_DENIED",
-  ALREADY_EXISTS: "CONFLICT",
-  ABORTED: "CONFLICT",
-};
-function normalizeCode(raw) {
-  return CODE_ALIASES[raw] ?? raw;
-}
-function isZodLikeError(e) {
-  return typeof e === "object" && e !== null && Array.isArray(e.issues) && e.name === "ZodError";
-}
-function buildDetails(code, message, meta) {
-  const details = {
-    code,
-    message: message || ERROR_MESSAGES[code],
-    retryable: DEFAULT_RETRYABLE[code],
-  };
-  if (meta) {
-    const rest = {};
-    for (const [k, v] of Object.entries(meta)) {
-      if (k === "validationErrors" && Array.isArray(v)) {
-        details.validationErrors = v;
-      } else if (k === "retryable" && typeof v === "boolean") {
-        details.retryable = v;
-      } else if (v !== void 0) {
-        rest[k] = v;
-      }
-    }
-    if (Object.keys(rest).length > 0) details.meta = rest;
-  }
-  return details;
-}
-function mapError(e) {
-  if (e instanceof HttpsError) return e;
-  if (isAccessError(e) || isServiceErrorLike(e)) {
-    const code = normalizeCode(String(e.code));
-    const httpsCode = APP_ERROR_TO_HTTPS[code];
-    if (httpsCode) {
-      const details2 = buildDetails(code, e.message, e.meta);
-      return new HttpsError(httpsCode, details2.message, details2);
-    }
-  }
-  if (isZodLikeError(e)) {
-    const validationErrors = e.issues.map((i) => ({
-      path: i.path.map(String).join("."),
-      message: i.message,
-    }));
-    const details2 = buildDetails("VALIDATION_ERROR", "Invalid request", {
-      validationErrors,
-    });
-    return new HttpsError(APP_ERROR_TO_HTTPS.VALIDATION_ERROR, details2.message, details2);
-  }
-  console.error(
-    "[mapError] UNCLASSIFIED error \u2192INTERNAL_ERROR:",
-    e instanceof Error
-      ? `${e.name}: ${e.message}
-${e.stack}`
-      : JSON.stringify(e)
-  );
-  const details = buildDetails("INTERNAL_ERROR", ERROR_MESSAGES.INTERNAL_ERROR);
-  return new HttpsError(APP_ERROR_TO_HTTPS.INTERNAL_ERROR, details.message, details);
-}
-var RATE_TIER_LIMITS = {
-  read: { perMinute: 600 },
-  write: { perMinute: 120 },
-  ai: { perMinute: 30 },
-  auth: { perMinute: 20 },
-  report: { perMinute: 10 },
-};
-function windowKey(now) {
-  const iso = now();
-  return iso.slice(0, 16);
-}
-function isExempt(ctx) {
-  return ctx.uid === "<system>";
-}
-async function enforceRateLimit(ctx, tier) {
-  if (isExempt(ctx)) return;
-  const limit = RATE_TIER_LIMITS[tier];
-  const subject = `${String(ctx.tenantId ?? "none")}:${String(ctx.uid)}`;
-  const count = await ctx.repos.rateLimits.hit(subject, tier, windowKey(ctx.now));
-  if (count > limit.perMinute) {
-    fail("RATE_LIMITED", `rate limit exceeded for tier ${tier}`, {
-      retryable: true,
-      meta: { tier, limit: limit.perMinute, retryAfterMs: 6e4 },
-    });
-  }
-}
-function dedupeKey(name, idempotencyKey) {
-  return `${name}:${idempotencyKey}`;
-}
-var dedupe = {
-  /** Returns the cached response if present; null means "run the body". Throws on an active lease. */
-  async begin(ctx, name) {
-    const idk = ctx.idempotencyKey;
-    if (!idk) return null;
-    const repo = ctx.repos.idempotency;
-    const res = await repo.begin(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk));
-    if (res.status === "committed") return res.result ?? null;
-    if (res.status === "in_flight") {
-      fail("IDEMPOTENCY_CONFLICT", "a request with this idempotency key is in flight", {
-        retryable: true,
-        meta: { name },
-      });
-    }
-    return null;
-  },
-  /** Persist the committed response for replay. */
-  async commit(ctx, name, res) {
-    const idk = ctx.idempotencyKey;
-    if (!idk) return;
-    const repo = ctx.repos.idempotency;
-    await repo.commit(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk), res);
-  },
-  /** Release an in-flight lease (call when the service body throws). */
-  async release(ctx, name) {
-    const idk = ctx.idempotencyKey;
-    if (!idk) return;
-    const repo = ctx.repos.idempotency;
-    if (typeof repo.release === "function") {
-      await repo.release(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk)).catch(() => void 0);
-    }
-  },
-};
-async function writeAudit(ctx, action, target, meta) {
-  await ctx.repos.audit
-    .write({
-      tenantId: ctx.tenantId,
-      actorUid: ctx.uid,
-      action,
-      target,
-      meta,
-      at: ctx.now(),
-    })
-    .catch(() => void 0);
-}
-function extractTenantOverride(def2, data) {
-  if (!def2.allowsTenantOverride) return void 0;
-  if (typeof data === "object" && data !== null && "tenantOverride" in data) {
-    const v = data.tenantOverride;
-    return typeof v === "string" ? v : void 0;
-  }
-  return void 0;
-}
-var ENVELOPE_FIELDS = ["__apiVersion", "__idempotencyKey", "idempotencyKey"];
-function stripEnvelopeFields(data) {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) return data;
-  const obj = data;
-  if (!ENVELOPE_FIELDS.some((k) => k in obj)) return data;
-  const rest = { ...obj };
-  for (const k of ENVELOPE_FIELDS) delete rest[k];
-  return rest;
-}
-function extractIdempotencyKey(data) {
-  if (typeof data !== "object" || data === null) return void 0;
-  const obj = data;
-  const v = obj["__idempotencyKey"] ?? obj["idempotencyKey"];
-  return typeof v === "string" ? v : void 0;
-}
-function makeCallable(name, service) {
-  const def2 = CALLABLES[name];
-  return onCall({ region: REGION, cors: true }, async (request) => {
-    try {
-      const data = request.data;
-      const ctx = await buildAuthContext(request.auth, {
-        anonymous: def2.authMode === "public",
-        tenantOverride: extractTenantOverride(def2, data),
-        idempotencyKey: extractIdempotencyKey(data),
-        repos: getRepos(),
-        ai: getAi(),
-        clock: getClock(),
-      });
-      if (def2.authMode === "authed" && (!ctx.uid || ctx.uid === "<public>")) {
-        fail("UNAUTHENTICATED", "authentication required");
-      }
-      if (ctx.usedTenantOverride) {
-        await writeAudit(
-          ctx,
-          "tenantOverride",
-          { type: "tenant", id: String(ctx.tenantId) },
-          { callable: name }
-        );
-      }
-      await enforceRateLimit(ctx, def2.rateTier);
-      const requestSchema = def2.requestSchema;
-      const input = parseRequest(stripEnvelopeFields(data), requestSchema);
-      if (def2.idempotent && ctx.idempotencyKey) {
-        const cached = await dedupe.begin(ctx, name);
-        if (cached !== null) return cached;
-      }
-      let res;
-      try {
-        res = await service(input, ctx);
-      } catch (e) {
-        if (def2.idempotent && ctx.idempotencyKey) await dedupe.release(ctx, name);
-        throw e;
-      }
-      if (def2.idempotent && ctx.idempotencyKey) await dedupe.commit(ctx, name, res);
-      if (VALIDATE_RESPONSES) {
-        const parsed = def2.responseSchema.safeParse(res);
-        if (!parsed.success) {
-          throw new Error(`[contract] response drift for ${name}: ${parsed.error.message}`);
-        }
-      }
-      return res;
-    } catch (e) {
-      throw mapError(e);
-    }
-  });
-}
-function tenantOf(ref, params) {
-  const key = ref.tenantParam ?? "t";
-  return params[key] ?? null;
-}
-function systemCtx(tenantId) {
-  return makeSystemContext(tenantId, { repos: getRepos(), ai: getAi(), clock: getClock() });
-}
-function makeTrigger(ref, service) {
-  const opts = { region: REGION, document: ref.document };
-  const runCreated = async (event) => {
-    try {
-      const ctx = systemCtx(tenantOf(ref, event.params));
-      await service(
-        {
-          type: "created",
-          params: event.params,
-          before: null,
-          after: event.data?.data() ?? null,
-          id: event.data?.id ?? "",
-        },
-        ctx
-      );
-    } catch (e) {
-      throw mapError(e);
-    }
-  };
-  const runDeleted = async (event) => {
-    try {
-      const ctx = systemCtx(tenantOf(ref, event.params));
-      await service(
-        {
-          type: "deleted",
-          params: event.params,
-          before: event.data?.data() ?? null,
-          after: null,
-          id: event.data?.id ?? "",
-        },
-        ctx
-      );
-    } catch (e) {
-      throw mapError(e);
-    }
-  };
-  const runChange = async (type, event) => {
-    try {
-      const ctx = systemCtx(tenantOf(ref, event.params));
-      await service(
-        {
-          type,
-          params: event.params,
-          before: event.data?.before?.data() ?? null,
-          after: event.data?.after?.data() ?? null,
-          id: event.data?.after?.id ?? event.data?.before?.id ?? "",
-        },
-        ctx
-      );
-    } catch (e) {
-      throw mapError(e);
-    }
-  };
-  switch (ref.eventType) {
-    case "created":
-      return onDocumentCreated(opts, runCreated);
-    case "deleted":
-      return onDocumentDeleted(opts, runDeleted);
-    case "updated":
-      return onDocumentUpdated(opts, (e) => runChange("updated", e));
-    case "written":
-      return onDocumentWritten(opts, (e) => runChange("written", e));
-  }
-}
-function makeScheduler(schedule3, service) {
-  return onSchedule({ region: REGION, schedule: schedule3 }, async () => {
-    try {
-      const ctx = makeSystemContext(null, { repos: getRepos(), ai: getAi(), clock: getClock() });
-      await service(ctx);
-    } catch (e) {
-      throw mapError(e);
-    }
-  });
-}
-function makeTaskHandler(queue, service, opts = {}) {
-  return onTaskDispatched(
-    {
-      region: REGION,
-      retryConfig: opts.retryConfig,
-      rateLimits: opts.rateLimits,
-    },
-    async (req) => {
-      try {
-        const payload = req.data;
-        const tenantId = payload?.[opts.tenantField ?? "tenantId"] ?? null;
-        const ctx = makeSystemContext(tenantId, {
-          repos: getRepos(),
-          ai: getAi(),
-          clock: getClock(),
-        });
-        await service(payload, ctx);
-      } catch (e) {
-        throw mapError(e);
-      }
-    }
-  );
-}
-
-// src/bootstrap.ts
-var configured = false;
-function bootstrapRuntime() {
-  if (configured) return;
-  if (admin.apps.length === 0) {
-    admin.initializeApp();
-  }
-  const clock = () => isoNow();
-  const repos = createRepos({ now: () => clock() });
-  const isEmulatorOrTest =
-    !!process.env["FIRESTORE_EMULATOR_HOST"] ||
-    process.env["LEVELUP_AI_STUB"] === "1" ||
-    process.env["SEED"] === "1" ||
-    process.env["TEST"] === "1";
-  const aiDeps = {
-    repos,
-    projectId: projectId(),
-  };
-  if (isEmulatorOrTest) {
-    const stubSecretResolver = {
-      getApiKey: async () => "stub-emulator-key",
-      invalidate: () => {},
-    };
-    aiDeps.providerFactory = (apiKey, model) => createStubProvider(apiKey, model);
-    aiDeps.secretResolver = stubSecretResolver;
-  }
-  const ai = createAiGateway(aiDeps);
-  configureRuntime({
-    // Structural-port reconciliation cast (see file header). The concrete
-    // implementations are supersets of the adapter-layer ports.
-    repos,
-    ai,
-    clock,
-  });
-  configured = true;
-}
-bootstrapRuntime();
-
-// src/identity.ts
-var identity_exports = {};
-__export(identity_exports, {
-  bulkApplyTenantFeatures: () => bulkApplyTenantFeatures2,
-  bulkImportStudents: () => bulkImportStudents2,
-  bulkImportTeachers: () => bulkImportTeachers2,
-  bulkUpdateStatus: () => bulkUpdateStatus2,
-  changeMembershipRole: () => changeMembershipRole2,
-  cleanupExpiredExports: () => cleanupExpiredExports,
-  createOrgUser: () => createOrgUser2,
-  deactivateTenant: () => deactivateTenant2,
-  deleteConsumerAccount: () => deleteConsumerAccount2,
-  endImpersonation: () => endImpersonation2,
-  estimateAudience: () => estimateAudience2,
-  exportTenantData: () => exportTenantData2,
-  getClass: () => getClass2,
-  getMe: () => getMe2,
-  getNotificationBadge: () => getNotificationBadge2,
-  getNotificationPreferences: () => getNotificationPreferences2,
-  getPlatformConfig: () => getPlatformConfig2,
-  getStudent: () => getStudent2,
-  getTeacher: () => getTeacher2,
-  getTenant: () => getTenant2,
-  joinTenant: () => joinTenant2,
-  listAcademicSessions: () => listAcademicSessions2,
-  listAnnouncements: () => listAnnouncements2,
-  listClasses: () => listClasses2,
-  listExportJobs: () => listExportJobs2,
-  listGlobalEvaluationPresets: () => listGlobalEvaluationPresets2,
-  listNotifications: () => listNotifications2,
-  listParents: () => listParents2,
-  listStaff: () => listStaff2,
-  listStudents: () => listStudents2,
-  listTeachers: () => listTeachers2,
-  listTenants: () => listTenants2,
-  lookupTenantByCode: () => lookupTenantByCode2,
-  markAnnouncementRead: () => markAnnouncementRead2,
-  markNotificationRead: () => markNotificationRead2,
-  monthlyUsageReset: () => monthlyUsageReset,
-  onAnnouncementPublished: () => onAnnouncementPublished,
-  onClassArchived: () => onClassArchived,
-  onMembershipWritten: () => onMembershipWritten,
-  onStudentArchived: () => onStudentArchived,
-  onTenantDeactivated: () => onTenantDeactivated,
-  reactivateTenant: () => reactivateTenant2,
-  registerDeviceToken: () => registerDeviceToken2,
-  rolloverSession: () => rolloverSession2,
-  saveAcademicSession: () => saveAcademicSession2,
-  saveAnnouncement: () => saveAnnouncement2,
-  saveClass: () => saveClass2,
-  saveGlobalEvaluationPreset: () => saveGlobalEvaluationPreset2,
-  saveNotificationPreferences: () => saveNotificationPreferences2,
-  saveParent: () => saveParent2,
-  savePlatformConfig: () => savePlatformConfig2,
-  saveStaff: () => saveStaff2,
-  saveStudent: () => saveStudent2,
-  saveTeacher: () => saveTeacher2,
-  saveTenant: () => saveTenant2,
-  saveTenantFeatures: () => saveTenantFeatures2,
-  saveTenantSettings: () => saveTenantSettings2,
-  searchUsers: () => searchUsers2,
-  sendDirectMessage: () => sendDirectMessage2,
-  sendPasswordReset: () => sendPasswordReset2,
-  setUserStatus: () => setUserStatus2,
-  startImpersonation: () => startImpersonation2,
-  switchActiveTenant: () => switchActiveTenant2,
-  tenantLifecycleCheck: () => tenantLifecycleCheck,
-  unregisterDeviceToken: () => unregisterDeviceToken2,
-  updateMyProfile: () => updateMyProfile2,
-  uploadTenantAsset: () => uploadTenantAsset2,
-  uploadUserAsset: () => uploadUserAsset2,
-});
+import { getStorage as getStorage$1 } from "firebase-admin/storage";
+import { getDatabase, ServerValue } from "firebase-admin/database";
+import { logger } from "firebase-functions/v2";
 
 // ../../packages/services/dist/index.js
 function requireTenant(ctx) {
@@ -8404,7 +8490,7 @@ var ServiceError = class extends Error {
     this.name = "ServiceError";
   }
 };
-function fail2(code, message, meta) {
+function fail(code, message, meta) {
   throw new ServiceError(code, message, meta);
 }
 function isAuthoringRole(ctx) {
@@ -8412,6 +8498,23 @@ function isAuthoringRole(ctx) {
 }
 function isTeacherish(ctx) {
   return isAuthoringRole(ctx);
+}
+function tsOrNull(v) {
+  if (v == null) return null;
+  try {
+    return toTimestamp(v);
+  } catch {
+    return null;
+  }
+}
+function tsRequired(...candidates) {
+  for (const c of candidates) {
+    if (c == null) continue;
+    try {
+      return toTimestamp(c);
+    } catch {}
+  }
+  throw new RangeError("no parseable timestamp among candidates");
 }
 function projectRubric(rubric, authoring) {
   if (authoring || !rubric || typeof rubric !== "object") return rubric;
@@ -8434,9 +8537,6 @@ function projectRubric(rubric, authoring) {
   }
   return r;
 }
-function projectQuestion(q, authoring) {
-  return { ...q, rubric: projectRubric(q["rubric"], authoring) };
-}
 function stripEvaluationCost(evaluation) {
   if (!evaluation || typeof evaluation !== "object") return evaluation;
   const e = { ...evaluation };
@@ -8448,7 +8548,7 @@ function stripEvaluationCost(evaluation) {
   delete e["rawProviderResponse"];
   return e;
 }
-function projectSpaceProgress(p) {
+function projectSpaceProgress(p, nowFallback) {
   const spIn = p["storyPoints"] ?? {};
   const storyPoints = {};
   for (const [k, v] of Object.entries(spIn)) {
@@ -8468,7 +8568,7 @@ function projectSpaceProgress(p) {
             : 0,
       completedItems: typeof e["completedItems"] === "number" ? e["completedItems"] : 0,
       totalItems: typeof e["totalItems"] === "number" ? e["totalItems"] : 0,
-      completedAt: e["completedAt"] ?? null,
+      completedAt: tsOrNull(e["completedAt"]),
     };
   }
   const percentage =
@@ -8494,9 +8594,9 @@ function projectSpaceProgress(p) {
     totalPoints: typeof p["totalPoints"] === "number" ? p["totalPoints"] : 0,
     percentage,
     storyPoints,
-    startedAt: p["startedAt"] ?? null,
-    completedAt: p["completedAt"] ?? null,
-    updatedAt: p["updatedAt"],
+    startedAt: tsOrNull(p["startedAt"]),
+    completedAt: tsOrNull(p["completedAt"]),
+    updatedAt: tsRequired(p["updatedAt"], p["completedAt"], p["startedAt"], nowFallback),
   };
   if (typeof p["marksEarned"] === "number") out["marksEarned"] = p["marksEarned"];
   if (typeof p["totalMarks"] === "number") out["totalMarks"] = p["totalMarks"];
@@ -8529,13 +8629,30 @@ function enqueueOutboxEvent(tx, input) {
   tx.enqueueOutbox(input.tenantId, buildOutboxRecord(input));
 }
 async function withIdempotency(ctx, tenantId, key, body) {
-  const begin = await ctx.repos.idempotency.begin(tenantId, ctx.uid, key);
+  let begin;
+  try {
+    begin = await ctx.repos.idempotency.begin(tenantId, ctx.uid, key);
+  } catch (err) {
+    if (err?.code === "IDEMPOTENCY_CONFLICT") {
+      fail(
+        "FAILED_PRECONDITION",
+        "an identical request is already in flight \u2014 retry in a few seconds",
+        { idempotencyKey: key, retryable: true, retryAfterMs: 5e3 }
+      );
+    }
+    throw err;
+  }
   if (begin.status === "committed") {
     return begin.result;
   }
-  const result = await body();
-  await ctx.repos.idempotency.commit(tenantId, ctx.uid, key, result);
-  return result;
+  try {
+    const result = await body();
+    await ctx.repos.idempotency.commit(tenantId, ctx.uid, key, result);
+    return result;
+  } catch (err) {
+    await ctx.repos.idempotency.release?.(tenantId, ctx.uid, key)?.catch(() => void 0);
+    throw err;
+  }
 }
 function xrepos(ctx) {
   return ctx.repos;
@@ -8567,7 +8684,7 @@ function buildClaimsFromMembership(membership, opts = {}) {
 }
 async function syncMembershipClaims(uid, tenantId, ctx, opts = {}) {
   const membership = await xrepos(ctx).memberships.get(uid, tenantId);
-  if (!membership) fail2("NOT_FOUND", `membership ${uid}@${tenantId} not found`);
+  if (!membership) fail("NOT_FOUND", `membership ${uid}@${tenantId} not found`);
   const claims = buildClaimsFromMembership(membership, { isSuperAdmin: opts.isSuperAdmin });
   await ctx.repos.claims.set(uid, claims);
   const inactive = membership.status === "suspended" || membership.status === "inactive";
@@ -8597,13 +8714,16 @@ async function provisionMembership(input, ctx, opts = {}) {
     if (data[k] === void 0) delete data[k];
   }
   const { id, created } = await repos.memberships.upsert(input.uid, input.tenantId, data, now);
-  await syncMembershipClaims(input.uid, input.tenantId, ctx, { revoke: opts.revoke });
+  await syncMembershipClaims(input.uid, input.tenantId, ctx, {
+    revoke: opts.revoke,
+    isSuperAdmin: opts.isSuperAdmin,
+  });
   return { membershipId: id, created };
 }
 async function saveEntity(ctx, repo, entityName, input) {
   const tenantId = requireTenant(ctx);
   const existing = input.id ? await repo.get(tenantId, input.id) : null;
-  if (input.id && !existing) fail2("NOT_FOUND", `${entityName} ${input.id} not found`);
+  if (input.id && !existing) fail("NOT_FOUND", `${entityName} ${input.id} not found`);
   const now = ctx.now();
   if (input.delete && input.id) {
     const from = existing?.["status"] ?? "active";
@@ -8635,7 +8755,7 @@ async function assertClassesExist(ctx, tenantId, classIds) {
   if (!classIds?.length) return;
   const found = await ctx.repos.classes.getMany(tenantId, classIds);
   if (found.length !== classIds.length) {
-    fail2("INVALID_ARGUMENT", "one or more classIds do not exist in tenant");
+    fail("INVALID_ARGUMENT", "one or more classIds do not exist in tenant");
   }
 }
 async function saveStudentService(input, ctx) {
@@ -8683,10 +8803,42 @@ async function saveStaffService(input, ctx) {
   const res = await saveEntity(ctx, xrepos(ctx).staff, "staff", input);
   return res;
 }
+async function syncTeacherClassAssignment(ctx, tenantId, teacherId, classId, op) {
+  const teacher = await ctx.repos.teachers.get(tenantId, teacherId);
+  const authUid = teacher?.["authUid"];
+  if (!authUid) return;
+  const repos = xrepos(ctx);
+  const membership = await repos.memberships.get(authUid, tenantId);
+  if (!membership) return;
+  const current = membership["classIds"] ?? [];
+  if (op === "add" && current.includes(classId)) return;
+  if (op === "remove" && !current.includes(classId)) return;
+  const next = op === "add" ? [...current, classId] : current.filter((c) => c !== classId);
+  await repos.memberships.upsert(
+    authUid,
+    tenantId,
+    { classIds: next, updatedBy: ctx.uid },
+    ctx.now()
+  );
+  await syncMembershipClaims(authUid, tenantId, ctx, { revoke: op === "remove" });
+}
 async function saveClassService(input, ctx) {
-  requireTenant(ctx);
+  const tenantId = requireTenant(ctx);
   authorize(ctx, "class.write", { classId: input.id, tenantId: ctx.tenantId ?? void 0 });
+  const prevDoc = input.id ? await ctx.repos.classes.get(tenantId, input.id) : null;
+  const prevTeacherIds = prevDoc?.["teacherIds"] ?? [];
   const res = await saveEntity(ctx, ctx.repos.classes, "class", input);
+  const nextTeacherIds = input.delete ? void 0 : input.data.teacherIds;
+  if (nextTeacherIds) {
+    const added = nextTeacherIds.filter((t) => !prevTeacherIds.includes(t));
+    const removed = prevTeacherIds.filter((t) => !nextTeacherIds.includes(t));
+    for (const teacherId of added) {
+      await syncTeacherClassAssignment(ctx, tenantId, teacherId, res.id, "add");
+    }
+    for (const teacherId of removed) {
+      await syncTeacherClassAssignment(ctx, tenantId, teacherId, res.id, "remove");
+    }
+  }
   return res;
 }
 async function saveAcademicSessionService(input, ctx) {
@@ -8695,40 +8847,111 @@ async function saveAcademicSessionService(input, ctx) {
   const res = await saveEntity(ctx, xrepos(ctx).academicSessions, "academicSession", input);
   return res;
 }
+var TRIAL_DAYS = 14;
+function slugify(source) {
+  return (
+    source
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "tenant"
+  );
+}
+async function generateUniqueTenantCode(seed, resolveCode) {
+  const base =
+    seed
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 8) || "TENANT";
+  let candidate = base;
+  let n = 1;
+  while (await resolveCode(candidate)) {
+    n += 1;
+    candidate = `${base}${n}`;
+  }
+  return candidate;
+}
 async function saveTenantService(input, ctx) {
   authorize(ctx, "tenant.create", {});
   const data = { ...input.data };
-  const tenantIdForSecret = input.id ?? data["code"] ?? "pending";
-  if (typeof data["geminiApiKey"] === "string" && data["geminiApiKey"]) {
-    authorize(ctx, "tenant.create", {});
-    const { secretRef } = await xrepos(ctx).secrets.put(
-      String(tenantIdForSecret),
-      data["geminiApiKey"]
+  const geminiApiKey =
+    typeof data["geminiApiKey"] === "string" && data["geminiApiKey"] ? data["geminiApiKey"] : null;
+  delete data["geminiApiKey"];
+  if (input.delete && input.id) {
+    const existing2 = await ctx.repos.tenants.get(input.id, input.id);
+    const from = existing2?.["status"] ?? "trial";
+    assertTransition2("tenant", from, "deactivated");
+    await ctx.repos.tenants.upsert(
+      input.id,
+      { ...(existing2 ?? {}), id: input.id, status: "deactivated" },
+      ctx.now()
     );
-    data["geminiKeyRef"] = secretRef;
-    await ctx.repos.audit.write(String(tenantIdForSecret), {
+    return { id: input.id, deleted: true };
+  }
+  const providedId = input.id;
+  const existing = providedId ? await ctx.repos.tenants.get(providedId, providedId) : null;
+  const isCreate = !existing;
+  const codeRepo = ctx.repos.tenants;
+  const resolveCode = (code) => codeRepo.resolveCode(code);
+  const tenantWrite = {
+    ...data,
+    ...(input.id ? { id: input.id } : {}),
+    updatedBy: ctx.uid,
+  };
+  let tenantCode;
+  if (isCreate) {
+    const nameSeed = String(data["name"] ?? providedId ?? "tenant");
+    const explicitCode = data["tenantCode"]?.trim();
+    if (explicitCode) {
+      const owner = await resolveCode(explicitCode);
+      if (owner && owner !== providedId) {
+        fail("ALREADY_EXISTS", `tenant code ${explicitCode} is already in use`);
+      }
+      tenantCode = explicitCode;
+    } else {
+      tenantCode = await generateUniqueTenantCode(nameSeed, resolveCode);
+    }
+    const trialEndsAt = new Date(
+      Date.parse(ctx.now()) + TRIAL_DAYS * 24 * 60 * 60 * 1e3
+    ).toISOString();
+    tenantWrite["ownerUid"] = ctx.uid;
+    tenantWrite["createdBy"] = ctx.uid;
+    tenantWrite["tenantCode"] = tenantCode;
+    tenantWrite["slug"] = data["slug"]?.trim() || slugify(nameSeed);
+    tenantWrite["status"] = data["status"] ?? "trial";
+    tenantWrite["trialEndsAt"] = trialEndsAt;
+    tenantWrite["subscription"] = {
+      plan: data["plan"] ?? "trial",
+      renewsAt: null,
+    };
+  }
+  const { id, created } = await ctx.repos.tenants.upsert(
+    providedId ?? tenantCode ?? "tenant",
+    tenantWrite,
+    ctx.now()
+  );
+  if (geminiApiKey) {
+    const { secretRef } = await xrepos(ctx).secrets.put(id, geminiApiKey);
+    await ctx.repos.tenants.upsert(id, { id, geminiKeyRef: secretRef }, ctx.now());
+    await ctx.repos.audit.write(id, {
       action: "tenant.ai.key.write",
       actorUid: ctx.uid,
       at: ctx.now(),
     });
   }
-  delete data["geminiApiKey"];
-  if (input.delete && input.id) {
-    const existing = await ctx.repos.tenants.get(input.id, input.id);
-    const from = existing?.["status"] ?? "trial";
-    assertTransition2("tenant", from, "deactivated");
-    await ctx.repos.tenants.upsert(
-      input.id,
-      { ...(existing ?? {}), id: input.id, status: "deactivated" },
-      ctx.now()
+  if (isCreate && tenantCode) {
+    await codeRepo.writeCode(tenantCode, id, ctx.now());
+    await provisionMembership(
+      {
+        uid: ctx.uid,
+        tenantId: id,
+        tenantCode,
+        role: "tenantAdmin",
+        joinSource: "admin_created",
+      },
+      ctx,
+      { isSuperAdmin: ctx.isSuperAdmin }
     );
-    return { id: input.id, deleted: true };
   }
-  const { id, created } = await ctx.repos.tenants.upsert(
-    String(tenantIdForSecret),
-    { ...data, ...(input.id ? { id: input.id } : {}), updatedBy: ctx.uid },
-    ctx.now()
-  );
   return { id, created };
 }
 async function deactivateTenantService(input, ctx) {
@@ -8766,11 +8989,14 @@ async function lookupTenantByCodeService(input, ctx) {
   const codeRepo = ctx.repos.tenants;
   const tenantId = (await codeRepo.resolveCode(input.tenantCode)) ?? input.tenantCode;
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  if (!tenant) fail2("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
+  if (!tenant) fail("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
   return {
     tenantId: tenant["id"],
     name: tenant["name"],
     status: tenant["status"],
+    // Pre-auth trial-expiry signal: the app login gates allow status='trial'
+    // until this passes (evaluateTenantAccess in @levelup/domain).
+    ...(tenant["trialEndsAt"] !== void 0 ? { trialEndsAt: tenant["trialEndsAt"] } : {}),
     ...(tenant["branding"] ? { branding: tenant["branding"] } : {}),
   };
 }
@@ -8792,29 +9018,23 @@ async function exportTenantDataService(input, ctx) {
 async function uploadTenantAssetService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "tenant.asset.upload", { tenantId });
-  return { assetUrl: `tenants/${tenantId}/assets/pending` };
+  return {
+    assetUrl: `tenants/${tenantId}/assets/pending`,
+  };
 }
-async function createOrgUserService(input, ctx) {
-  const tenantId = requireTenant(ctx);
-  authorize(ctx, "user.create", { tenantId });
-  const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = tenant?.["code"] ?? "";
+async function provisionOrgUser(input, tenantId, tenantCode, ctx) {
   const repos = xrepos(ctx);
   const now = ctx.now();
-  const entityRepoByRole = {
-    student: ctx.repos.students,
-    teacher: ctx.repos.teachers,
-    parent: repos.parents,
-    staff: repos.staff,
-  };
-  const entityRepo = entityRepoByRole[input.role];
+  const repoKey = repoKeyForRole(input.role);
+  const entityRepo = repoKey ? repos[repoKey] : void 0;
   if (!entityRepo)
-    fail2("INVALID_ARGUMENT", `role ${input.role} cannot be created via createOrgUser`);
-  let user = input.email ? await xrepos(ctx).users.get(input.email) : null;
+    fail("INVALID_ARGUMENT", `role ${input.role} cannot be created via provisionOrgUser`);
+  let user = input.email ? await repos.users.get(input.email) : null;
   if (!user) {
-    const created = await xrepos(ctx).users.create({
+    const created = await repos.users.create({
       email: input.email,
       displayName: `${input.firstName} ${input.lastName}`.trim(),
+      password: input.password,
     });
     user = { id: created.uid };
   }
@@ -8830,18 +9050,14 @@ async function createOrgUserService(input, ctx) {
       subjects: input.subjects ?? [],
       status: "active",
       createdBy: ctx.uid,
+      ...(input.entityExtra ?? {}),
     },
     now
   );
-  const entityIds =
-    input.role === "student"
-      ? { studentId: entityId }
-      : input.role === "teacher"
-        ? { teacherId: entityId }
-        : input.role === "parent"
-          ? { parentId: entityId }
-          : { staffId: entityId };
-  const { membershipId } = await provisionMembership(
+  const idField = idFieldForRole(input.role);
+  if (!idField) fail("INVALID_ARGUMENT", `role ${input.role} has no entity id field`);
+  const entityIds = { [idField]: entityId };
+  const { membershipId, created: membershipCreated } = await provisionMembership(
     {
       uid,
       tenantId,
@@ -8854,6 +9070,28 @@ async function createOrgUserService(input, ctx) {
     },
     ctx
   );
+  return { uid, entityId, membershipId, membershipCreated };
+}
+async function createOrgUserService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "user.create", { tenantId });
+  const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
+  const tenantCode = tenant?.["code"] ?? "";
+  const { uid, entityId, membershipId } = await provisionOrgUser(
+    {
+      role: input.role,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      email: input.email,
+      password: input.password,
+      classIds: input.classIds,
+      subjects: input.subjects,
+      linkedStudentIds: input.linkedStudentIds,
+    },
+    tenantId,
+    tenantCode,
+    ctx
+  );
   await ctx.repos.tx(async (tx) => {
     tx.upsert("tenants", tenantId, { id: tenantId });
   });
@@ -8862,14 +9100,17 @@ async function createOrgUserService(input, ctx) {
 async function switchActiveTenantService(input, ctx) {
   authorize(ctx, "tenant.switch", { tenantId: input.targetTenantId });
   const membership = await xrepos(ctx).memberships.get(ctx.uid, input.targetTenantId);
-  if (!membership) fail2("PERMISSION_DENIED", "no membership in target tenant");
-  if (membership["status"] !== "active") fail2("PERMISSION_DENIED", "membership not active");
+  if (!membership) fail("PERMISSION_DENIED", "no membership in target tenant");
+  if (membership["status"] !== "active") fail("PERMISSION_DENIED", "membership not active");
   await syncMembershipClaims(ctx.uid, input.targetTenantId, ctx);
-  return { tenantId: input.targetTenantId, role: membership["role"] };
+  return {
+    tenantId: input.targetTenantId,
+    role: membership["role"],
+  };
 }
 async function joinTenantService(input, ctx) {
   const tenant = await ctx.repos.tenants.get(input.tenantCode, input.tenantCode);
-  if (!tenant) fail2("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
+  if (!tenant) fail("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
   const tenantId = tenant["id"];
   authorize(ctx, "tenant.join", { tenantId });
   const { membershipId } = await provisionMembership(
@@ -8884,71 +9125,166 @@ async function joinTenantService(input, ctx) {
   );
   return { tenantId, membershipId, role: "student" };
 }
-async function bulkImportStudentsService(input, ctx) {
-  const tenantId = requireTenant(ctx);
-  authorize(ctx, "user.bulkImport", { tenantId });
+var CREDENTIALS_CSV_TTL_MS = 15 * 60 * 1e3;
+async function runBulkImport(rows, tenantId, tenantCode, dryRun, ctx) {
+  if (dryRun) return dryRunBulkImport(rows, tenantId, ctx);
   let created = 0;
   let skipped = 0;
   const errors = [];
-  const now = ctx.now();
-  for (let i = 0; i < input.rows.length; i++) {
-    const row = input.rows[i];
+  const generated = [];
+  for (let i = 0; i < rows.length; i++) {
+    const { provision, loginId } = rows[i];
     try {
-      await ctx.repos.students.upsert(
+      const adminSupplied = provision.password;
+      const password = adminSupplied ?? generatePassword();
+      const { membershipCreated } = await provisionOrgUser(
+        { ...provision, password },
         tenantId,
-        {
-          firstName: row.firstName,
-          lastName: row.lastName,
-          email: row.email,
-          rollNumber: row.rollNumber,
-          section: row.section,
-          grade: row.grade,
-          admissionNumber: row.admissionNumber,
-          classIds: row.classIds ?? input.defaultClassIds ?? [],
-          status: "active",
-          createdBy: ctx.uid,
-        },
-        now
+        tenantCode,
+        ctx
       );
-      created++;
+      if (membershipCreated) created++;
+      else skipped++;
+      if (membershipCreated && !adminSupplied) {
+        generated.push({
+          name: `${provision.firstName} ${provision.lastName}`.trim(),
+          loginId,
+          password,
+        });
+      }
     } catch (e) {
       errors.push({ row: i, error: e instanceof Error ? e.message : "unknown error" });
-      skipped++;
     }
   }
-  return { created, skipped, errors };
+  const result = { created, skipped, errors };
+  if (generated.length > 0) {
+    result.credentials = await deliverCredentials(generated, tenantId, ctx);
+  }
+  return result;
+}
+async function dryRunBulkImport(rows, tenantId, ctx) {
+  const repos = xrepos(ctx);
+  let created = 0;
+  let skipped = 0;
+  const errors = [];
+  const preview = [];
+  for (let i = 0; i < rows.length; i++) {
+    const { provision } = rows[i];
+    try {
+      const repoKey = repoKeyForRole(provision.role);
+      const entityRepo = repoKey ? repos[repoKey] : void 0;
+      if (!entityRepo)
+        throw new Error(`role ${provision.role} cannot be created via provisionOrgUser`);
+      let outcome = "create";
+      if (provision.email) {
+        const user = await repos.users.get(provision.email);
+        if (user) {
+          const existing = await repos.memberships.get(user["id"], tenantId);
+          if (existing) outcome = "skip";
+        }
+      }
+      if (outcome === "create") created++;
+      else skipped++;
+      preview.push({ row: i, outcome });
+    } catch (e) {
+      const error = e instanceof Error ? e.message : "unknown error";
+      errors.push({ row: i, error });
+      preview.push({ row: i, outcome: "error", error });
+    }
+  }
+  return { created, skipped, errors, dryRun: true, preview };
+}
+async function deliverCredentials(generated, tenantId, ctx) {
+  const csv = credentialsCsv(generated);
+  const path = credentialsPath(tenantId, ctx);
+  const hook = ctx.storage;
+  if (hook?.putCredentialsCsv) {
+    const { url, expiresAt: expiresAt2 } = await hook.putCredentialsCsv(
+      path,
+      csv,
+      CREDENTIALS_CSV_TTL_MS
+    );
+    return { url, expiresAt: expiresAt2, count: generated.length };
+  }
+  const baseMs = Date.parse(ctx.now());
+  const expiresAt = new Date(
+    (Number.isNaN(baseMs) ? Date.now() : baseMs) + CREDENTIALS_CSV_TTL_MS
+  ).toISOString();
+  return { url: `https://storage.local/${path}`, expiresAt, count: generated.length };
+}
+function credentialsPath(tenantId, ctx) {
+  const stamp = (Date.parse(ctx.now()) || Date.now()).toString(36);
+  const rand = Math.random().toString(36).slice(2, 10);
+  return `tenants/${tenantId}/credentials/${stamp}-${rand}.csv`;
+}
+function credentialsCsv(rows) {
+  const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const body = rows.map((r) => [r.name, r.loginId, r.password].map(esc).join(",")).join("\n");
+  return `name,loginId,password
+${body}
+`;
+}
+function generatePassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const len = 14;
+  const out = [];
+  const webcrypto = globalThis.crypto;
+  if (webcrypto?.getRandomValues) {
+    const buf = new Uint32Array(len);
+    webcrypto.getRandomValues(buf);
+    for (let i = 0; i < len; i++) out.push(alphabet[buf[i] % alphabet.length]);
+  } else {
+    for (let i = 0; i < len; i++) out.push(alphabet[Math.floor(Math.random() * alphabet.length)]);
+  }
+  return out.join("");
+}
+async function bulkImportStudentsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "user.bulkImport", { tenantId });
+  const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
+  const tenantCode = tenant?.["code"] ?? "";
+  const rows = input.rows.map((row) => ({
+    provision: {
+      role: "student",
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      password: row.password,
+      classIds: row.classIds ?? input.defaultClassIds ?? [],
+      entityExtra: {
+        rollNumber: row.rollNumber,
+        section: row.section,
+        grade: row.grade,
+        admissionNumber: row.admissionNumber,
+      },
+    },
+    loginId: row.email ?? row.rollNumber ?? "",
+  }));
+  const res = await runBulkImport(rows, tenantId, tenantCode, input.dryRun ?? false, ctx);
+  return res;
 }
 async function bulkImportTeachersService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "user.bulkImport", { tenantId });
-  let created = 0;
-  let skipped = 0;
-  const errors = [];
-  const now = ctx.now();
-  for (let i = 0; i < input.rows.length; i++) {
-    const row = input.rows[i];
-    try {
-      await ctx.repos.teachers.upsert(
-        tenantId,
-        {
-          firstName: row.firstName,
-          lastName: row.lastName,
-          email: row.email,
-          phone: row.phone,
-          subjects: row.subjects ?? [],
-          department: row.department,
-          status: "active",
-          createdBy: ctx.uid,
-        },
-        now
-      );
-      created++;
-    } catch (e) {
-      errors.push({ row: i, error: e instanceof Error ? e.message : "unknown error" });
-      skipped++;
-    }
-  }
-  return { created, skipped, errors };
+  const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
+  const tenantCode = tenant?.["code"] ?? "";
+  const rows = input.rows.map((row) => ({
+    provision: {
+      role: "teacher",
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      password: row.password,
+      subjects: row.subjects ?? [],
+      entityExtra: {
+        phone: row.phone,
+        department: row.department,
+      },
+    },
+    loginId: row.email ?? "",
+  }));
+  const res = await runBulkImport(rows, tenantId, tenantCode, input.dryRun ?? false, ctx);
+  return res;
 }
 async function bulkUpdateStatusService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -8959,7 +9295,7 @@ async function bulkUpdateStatusService(input, ctx) {
     class: ctx.repos.classes,
   };
   const repo = repoFor[input.entityType];
-  if (!repo) fail2("INVALID_ARGUMENT", `unknown entityType ${input.entityType}`);
+  if (!repo) fail("INVALID_ARGUMENT", `unknown entityType ${input.entityType}`);
   let updated = 0;
   const errors = [];
   const now = ctx.now();
@@ -9013,6 +9349,9 @@ var PARENT_KEYS = Object.keys(ParentSchema.shape);
 var STAFF_KEYS = Object.keys(StaffSchema.shape);
 var CLASS_KEYS = Object.keys(ClassSchema.shape);
 var SESSION_KEYS = Object.keys(AcademicSessionSchema.shape);
+var USER_KEYS = Object.keys(UnifiedUserSchema.shape);
+var MEMBERSHIP_KEYS = Object.keys(UserMembershipSchema.shape);
+var TENANT_FULL_KEYS = Object.keys(TenantSchema.shape);
 var TEACHER_PERMISSION_KEYS2 = /* @__PURE__ */ new Set([
   "canManageSpaces",
   "canManageStudents",
@@ -9055,7 +9394,9 @@ function projectPlatformClaims(raw) {
     "studentIds",
     "isSuperAdmin",
   ];
-  for (const k of passThrough) if (raw[k] !== void 0 && raw[k] !== null) out[k] = raw[k];
+  for (const k of passThrough) {
+    if (raw[k] !== void 0 && raw[k] !== null && raw[k] !== "") out[k] = raw[k];
+  }
   const perms = filterPermRecord(raw["permissions"], TEACHER_PERMISSION_KEYS2);
   if (perms) out["permissions"] = perms;
   const staffPerms = filterPermRecord(raw["staffPermissions"], STAFF_PERMISSION_KEYS2);
@@ -9063,22 +9404,59 @@ function projectPlatformClaims(raw) {
   return out;
 }
 function projectUnifiedUser(user, uid) {
-  const { id: _id, ...rest } = user;
-  const NULLABLE_OPTIONAL = [
-    "email",
-    "phone",
-    "firstName",
-    "lastName",
-    "photoURL",
-    "country",
-    "grade",
-  ];
-  for (const k of NULLABLE_OPTIONAL) if (rest[k] === null) delete rest[k];
-  return {
-    ...rest,
-    createdBy: rest["createdBy"] ?? uid,
-    updatedBy: rest["updatedBy"] ?? uid,
-  };
+  const out = {};
+  for (const k of USER_KEYS) {
+    const v = user[k];
+    if (v !== void 0 && v !== null) out[k] = v;
+  }
+  out["uid"] = out["uid"] ?? uid;
+  out["isSuperAdmin"] = out["isSuperAdmin"] ?? false;
+  const USER_STATUSES2 = /* @__PURE__ */ new Set(["active", "suspended", "deleted"]);
+  if (!USER_STATUSES2.has(out["status"])) out["status"] = "active";
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  out["createdBy"] = out["createdBy"] ?? uid;
+  out["updatedBy"] = out["updatedBy"] ?? uid;
+  if (out["lastLogin"] === void 0) out["lastLogin"] = null;
+  return out;
+}
+function projectMembership(m, tenantCodeByTenant) {
+  const out = {};
+  for (const k of MEMBERSHIP_KEYS) {
+    const v = m[k];
+    if (v !== void 0 && v !== null) out[k] = v;
+  }
+  const tenantId = out["tenantId"];
+  if (!out["tenantCode"]) {
+    out["tenantCode"] = tenantCodeByTenant.get(tenantId) || tenantId;
+  }
+  out["createdBy"] = out["createdBy"] ?? out["uid"];
+  out["updatedBy"] = out["updatedBy"] ?? out["createdBy"];
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  if (out["lastActive"] === void 0) out["lastActive"] = null;
+  return out;
+}
+function projectTenantFull(t) {
+  const out = {};
+  for (const k of TENANT_FULL_KEYS) {
+    const v = t[k];
+    if (v !== void 0 && v !== null) out[k] = v;
+  }
+  out["features"] = out["features"] ?? {};
+  const settings = out["settings"] ?? {};
+  if (t["geminiKeyRef"] && !settings["geminiKeyRef"]) {
+    settings["geminiKeyRef"] = t["geminiKeyRef"];
+  }
+  out["settings"] = settings;
+  out["stats"] = out["stats"] ?? {};
+  const subscription = out["subscription"] ?? { plan: "free" };
+  if (subscription["renewsAt"] === void 0) subscription["renewsAt"] = null;
+  out["subscription"] = subscription;
+  if (out["trialEndsAt"] === void 0) out["trialEndsAt"] = null;
+  const owner = out["ownerUid"];
+  out["createdBy"] = out["createdBy"] ?? owner;
+  out["updatedBy"] = out["updatedBy"] ?? out["createdBy"];
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  return out;
 }
 async function listEntity(ctx, repo, page, where) {
   const tenantId = requireTenant(ctx);
@@ -9088,17 +9466,38 @@ async function listEntity(ctx, repo, page, where) {
 }
 async function getMeService(_input, ctx) {
   const user = await xrepos(ctx).users.get(ctx.uid);
-  if (!user) fail2("NOT_FOUND", "user not found");
+  if (!user) fail("NOT_FOUND", "user not found");
   const memberships = await xrepos(ctx).memberships.listForUser(ctx.uid);
   const rawClaims = (await ctx.repos.claims.get(ctx.uid)) ?? {};
   const activeTenant = ctx.tenantId
     ? await ctx.repos.tenants.get(ctx.tenantId, ctx.tenantId)
     : void 0;
+  const tenantCodeByTenant = /* @__PURE__ */ new Map();
+  if (activeTenant?.["tenantCode"] && ctx.tenantId) {
+    tenantCodeByTenant.set(ctx.tenantId, activeTenant["tenantCode"]);
+  }
+  const codeless = [
+    ...new Set(
+      memberships
+        .filter((m) => !m["tenantCode"] && !tenantCodeByTenant.has(m["tenantId"]))
+        .map((m) => m["tenantId"])
+    ),
+  ];
+  await Promise.all(
+    codeless.map(async (tid) => {
+      const t = await ctx.repos.tenants.get(tid, tid).catch(() => null);
+      if (t?.["tenantCode"]) tenantCodeByTenant.set(tid, t["tenantCode"]);
+    })
+  );
+  const claims = projectPlatformClaims(rawClaims);
+  if (!claims["tenantCode"] && ctx.tenantId && tenantCodeByTenant.has(ctx.tenantId)) {
+    claims["tenantCode"] = tenantCodeByTenant.get(ctx.tenantId);
+  }
   return {
     user: projectUnifiedUser(user, ctx.uid),
-    memberships,
-    claims: projectPlatformClaims(rawClaims),
-    activeTenant: activeTenant ?? void 0,
+    memberships: memberships.map((m) => projectMembership(m, tenantCodeByTenant)),
+    claims,
+    activeTenant: activeTenant ? projectTenantFull(activeTenant) : void 0,
   };
 }
 async function listStudentsService(input, ctx) {
@@ -9113,7 +9512,7 @@ async function listStudentsService(input, ctx) {
 async function getStudentService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const student = await ctx.repos.students.get(tenantId, input.id);
-  if (!student) fail2("NOT_FOUND", "student not found");
+  if (!student) fail("NOT_FOUND", "student not found");
   return student;
 }
 async function listTeachersService(input, ctx) {
@@ -9124,7 +9523,7 @@ async function listTeachersService(input, ctx) {
 async function getTeacherService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const teacher = await ctx.repos.teachers.get(tenantId, input.id);
-  if (!teacher) fail2("NOT_FOUND", "teacher not found");
+  if (!teacher) fail("NOT_FOUND", "teacher not found");
   return teacher;
 }
 async function listParentsService(input, ctx) {
@@ -9145,12 +9544,16 @@ async function listClassesService(input, ctx) {
 async function getClassService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const klass = await ctx.repos.classes.get(tenantId, input.id);
-  if (!klass) fail2("NOT_FOUND", "class not found");
+  if (!klass) fail("NOT_FOUND", "class not found");
   const roster = await ctx.repos.students.list(tenantId, {
     where: { classIds: input.id },
     limit: 20,
   });
-  return { ...klass, roster: roster.items, rosterNextCursor: roster.nextCursor };
+  return {
+    ...klass,
+    roster: roster.items,
+    rosterNextCursor: roster.nextCursor,
+  };
 }
 async function listAcademicSessionsService(input, ctx) {
   const res = await listEntity(ctx, xrepos(ctx).academicSessions, input);
@@ -9175,7 +9578,11 @@ async function saveGlobalEvaluationPresetService(input, ctx) {
   }
   const { id, created } = await xrepos(ctx).presets.upsert(
     "__global__",
-    { ...input.data, ...(input.id ? { id: input.id } : {}), status: input.data.status ?? "active" },
+    {
+      ...input.data,
+      ...(input.id ? { id: input.id } : {}),
+      status: input.data.status ?? "active",
+    },
     now
   );
   return { id, created };
@@ -9214,13 +9621,13 @@ async function sendPasswordResetService(input, ctx) {
   return { sent: true };
 }
 async function startImpersonationService(input, ctx) {
-  if (ctx.impersonating) fail2("PERMISSION_DENIED", "nested impersonation denied");
-  if (!ctx.isSuperAdmin) fail2("PERMISSION_DENIED", "impersonation is super-admin only");
+  if (ctx.impersonating) fail("PERMISSION_DENIED", "nested impersonation denied");
+  if (!ctx.isSuperAdmin) fail("PERMISSION_DENIED", "impersonation is super-admin only");
   const now = ctx.now();
   const ttlMs = 30 * 60 * 1e3;
   const expiresAt = new Date(Date.parse(now) + ttlMs).toISOString();
   const targetMembership = await xrepos(ctx).memberships.get(input.targetUid, input.tenantOverride);
-  if (!targetMembership) fail2("NOT_FOUND", "target has no membership in tenant");
+  if (!targetMembership) fail("NOT_FOUND", "target has no membership in tenant");
   const sessionToken = `imp_${input.targetUid}_${Date.parse(now)}`;
   await ctx.repos.tx(async (tx) => {
     xrepos(ctx).impersonation.openSession(tx, {
@@ -9351,6 +9758,41 @@ async function monthlyUsageResetService(ctx) {
 }
 async function cleanupExpiredExportsService(ctx) {
   void xrepos(ctx);
+}
+async function recordVersion(ctx, tenantId, spaceId, entry) {
+  try {
+    await xrepos(ctx).contentVersions?.add(tenantId, spaceId, { ...entry, changedBy: ctx.uid });
+  } catch {}
+}
+function compact(o) {
+  const out = {};
+  for (const [k, v] of Object.entries(o)) if (v !== void 0) out[k] = v;
+  return out;
+}
+var num = (v, fb) => (typeof v === "number" && Number.isFinite(v) ? v : fb);
+var int = (v, fb) => Math.trunc(num(v, fb));
+var optNum = (v) => (typeof v === "number" ? v : void 0);
+var optInt = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : void 0);
+var optStr = (v) => (typeof v === "string" ? v : void 0);
+var optBool = (v) => (typeof v === "boolean" ? v : void 0);
+var optStrArray = (v) => (Array.isArray(v) ? v.map((x) => String(x)) : void 0);
+function pickDefined(src, keys) {
+  if (!src || typeof src !== "object" || Array.isArray(src)) return void 0;
+  const out = {};
+  for (const k of keys) {
+    const v = src[k];
+    if (v !== void 0) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : void 0;
+}
+var DIFFICULTY_SET = /* @__PURE__ */ new Set(["easy", "medium", "hard"]);
+function canonDifficulty(v) {
+  if (typeof v !== "string") return void 0;
+  const d = v.toLowerCase();
+  return DIFFICULTY_SET.has(d) ? d : void 0;
+}
+function canonStoryPointType(v) {
+  return typeof v === "string" ? zLegacyStoryPointTypeRead.parse(v) : "standard";
 }
 var ANSWER_KEY_FIELDS = [
   "answerKey",
@@ -9586,7 +10028,7 @@ async function saveSpaceService(input, ctx) {
   const data = input.data;
   const targetStatus = data["status"];
   const existing = input.id ? await ctx.repos.spaces.get(tenantId, input.id) : null;
-  if (input.id && !existing) fail2("NOT_FOUND", "space not found");
+  if (input.id && !existing) fail("NOT_FOUND", "space not found");
   if (input.id && targetStatus) {
     const fromStatus = existing["status"] ?? "draft";
     const action = targetStatus === "archived" ? "space.archive" : "space.publish";
@@ -9598,7 +10040,7 @@ async function saveSpaceService(input, ctx) {
           where: { spaceId: input.id },
           limit: 1,
         });
-        if (sps.items.length === 0) fail2("FAILED_PRECONDITION", "space has no content to publish");
+        if (sps.items.length === 0) fail("FAILED_PRECONDITION", "space has no content to publish");
       }
     }
   } else {
@@ -9607,7 +10049,7 @@ async function saveSpaceService(input, ctx) {
   const mergedTitle = data["title"] ?? existing?.["title"];
   const mergedType = data["type"] ?? existing?.["type"];
   if (!input.id && (mergedTitle === void 0 || mergedType === void 0)) {
-    fail2("VALIDATION_ERROR", "title and type are required to create a space");
+    fail("VALIDATION_ERROR", "title and type are required to create a space");
   }
   const now = ctx.now();
   const isDelete = data["deleted"] === true;
@@ -9625,6 +10067,18 @@ async function saveSpaceService(input, ctx) {
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.spaces.upsert(tenantId, doc, now);
+  await recordVersion(ctx, tenantId, id, {
+    entityType: "space",
+    entityId: id,
+    changeType: isDelete
+      ? "archived"
+      : targetStatus === "published"
+        ? "published"
+        : created
+          ? "created"
+          : "updated",
+    changeSummary: `space ${String(doc["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true };
   return { id, created };
 }
@@ -9642,6 +10096,12 @@ async function saveStoryPointService(input, ctx) {
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.storyPoints.upsert(tenantId, doc, now);
+  await recordVersion(ctx, tenantId, input.spaceId, {
+    entityType: "storyPoint",
+    entityId: id,
+    changeType: isDelete ? "archived" : created ? "created" : "updated",
+    changeSummary: `storyPoint ${String(data["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true };
   return { id, created };
 }
@@ -9673,6 +10133,12 @@ async function saveItemService(input, ctx) {
       storyPointId: input.storyPointId,
     });
   }
+  await recordVersion(ctx, tenantId, input.spaceId, {
+    entityType: "item",
+    entityId: id,
+    changeType: isDelete ? "archived" : created ? "created" : "updated",
+    changeSummary: `item ${String(strippedData["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true };
   return { id, created };
 }
@@ -9680,10 +10146,26 @@ async function getItemForEditService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "item.readForEdit", { spaceId: input.spaceId, tenantId });
   const item = await ctx.repos.items.get(tenantId, input.itemId);
-  if (!item) fail2("NOT_FOUND", "item not found");
+  if (!item) fail("NOT_FOUND", "item not found");
   const key = await ctx.repos.answerKeys.get(tenantId, input.itemId);
-  const merged = { ...item, ...(key ? { answerKey: key } : {}) };
+  const view = projectItem(item, true);
+  const merged = key ? { ...view, answerKey: projectAnswerKey(key, view, input.itemId) } : view;
   return { item: merged };
+}
+function projectAnswerKey(key, itemView, itemId) {
+  const qd = itemView["payload"]?.["questionData"] ?? {};
+  const qtRaw = optStr(key["questionType"]) ?? optStr(qd["questionType"]) ?? "text";
+  return compact({
+    id: optStr(key["id"]) ?? `ak_${itemId}`,
+    itemId: optStr(key["itemId"]) ?? itemId,
+    questionType: QUESTION_TYPE_MAP[qtRaw] ?? "text",
+    correctAnswer: key["correctAnswer"],
+    acceptableAnswers: Array.isArray(key["acceptableAnswers"]) ? key["acceptableAnswers"] : void 0,
+    evaluationGuidance: optStr(key["evaluationGuidance"]),
+    modelAnswer: optStr(key["modelAnswer"]),
+    createdAt: tsRequired(key["createdAt"], itemView["createdAt"]),
+    updatedAt: tsRequired(key["updatedAt"], key["createdAt"], itemView["updatedAt"]),
+  });
 }
 async function listItemsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -9697,48 +10179,136 @@ async function listItemsService(input, ctx) {
   const items = page.items.map((it) => projectItem(it, authoring));
   return { items, nextCursor: page.nextCursor };
 }
+var ITEM_META_KEYS = [
+  "totalPoints",
+  "maxMarks",
+  "estimatedTime",
+  "learningObjectives",
+  "skillsAssessed",
+  "bloomsLevel",
+  "prerequisites",
+  "isRetriable",
+  "evaluatorAgentId",
+  "pyqInfo",
+  "featured",
+  "viewCount",
+  "successRate",
+  "migrationSource",
+];
+var ITEM_ANALYTICS_KEYS = [
+  "difficulty",
+  "topics",
+  "cognitiveLoad",
+  "conceptImportance",
+  "attemptCount",
+  "averageScore",
+];
+function projectAttachments(v) {
+  if (!Array.isArray(v)) return void 0;
+  return v.map((a) => {
+    const e = a ?? {};
+    return compact({
+      type: e["type"],
+      url: String(e["url"] ?? ""),
+      name: optStr(e["name"]),
+      sizeBytes: optInt(e["sizeBytes"]),
+    });
+  });
+}
 function projectItem(item, authoring) {
-  const stripped = stripAnswerFields(item);
-  if (stripped["orderIndex"] === void 0 && typeof stripped["order"] === "number") {
-    stripped["orderIndex"] = stripped["order"];
-  }
-  if (typeof stripped["orderIndex"] !== "number") stripped["orderIndex"] = 0;
-  delete stripped["order"];
-  delete stripped["durationSeconds"];
-  if (stripped["rubric"] === void 0 && stripped["effectiveRubric"] !== void 0) {
-    stripped["rubric"] = stripped["effectiveRubric"];
-  }
-  delete stripped["effectiveRubric"];
-  if (stripped["rubric"]) stripped["rubric"] = projectRubric(stripped["rubric"], authoring);
-  else delete stripped["rubric"];
-  const norm = normalizeItemPayload(stripped["payload"], stripped);
-  stripped["type"] = norm.type;
-  stripped["payload"] = norm.payload;
-  if (stripped["title"] === void 0 && norm.title !== void 0) stripped["title"] = norm.title;
-  if (stripped["content"] === void 0 && norm.content !== void 0) {
-    stripped["content"] = norm.content;
-  }
-  return stripped;
+  const s = stripAnswerFields(item);
+  const norm = normalizeItemPayload(s["payload"], s);
+  const rubricIn = s["rubric"] ?? s["effectiveRubric"];
+  return compact({
+    id: s["id"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    sectionId: optStr(s["sectionId"]),
+    tenantId: s["tenantId"],
+    type: norm.type,
+    payload: norm.payload,
+    title: optStr(s["title"]) ?? norm.title,
+    content: optStr(s["content"]) ?? norm.content,
+    difficulty: canonDifficulty(s["difficulty"]),
+    topics: optStrArray(s["topics"]),
+    labels: optStrArray(s["labels"]),
+    orderIndex: int(s["orderIndex"], int(s["order"], 0)),
+    meta: pickDefined(s["meta"], ITEM_META_KEYS),
+    analytics: pickDefined(s["analytics"], ITEM_ANALYTICS_KEYS),
+    rubric: rubricIn ? projectRubric(rubricIn, authoring) : void 0,
+    rubricId: optStr(s["rubricId"]),
+    linkedQuestionId: optStr(s["linkedQuestionId"]),
+    attachments: projectAttachments(s["attachments"]),
+    version: optInt(s["version"]),
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
+}
+function projectSections(v) {
+  if (!Array.isArray(v)) return void 0;
+  return v.map((sec, i) => {
+    const e = sec ?? {};
+    return compact({
+      id: String(e["id"] ?? `section_${i}`),
+      title: String(e["title"] ?? ""),
+      description: optStr(e["description"]),
+      orderIndex: int(e["orderIndex"], int(e["order"], i)),
+    });
+  });
+}
+function projectAssessmentConfig(v, sp) {
+  const c = v && typeof v === "object" ? v : {};
+  const schedule3 = c["schedule"];
+  const out = compact({
+    durationMinutes: optInt(c["durationMinutes"]) ?? optInt(sp["durationMinutes"]),
+    maxAttempts: optInt(c["maxAttempts"]),
+    shuffle: optBool(c["shuffle"]),
+    passingPercentage: optNum(c["passingPercentage"]),
+    adaptiveConfig:
+      c["adaptiveConfig"] && typeof c["adaptiveConfig"] === "object"
+        ? compact({
+            enabled: Boolean(c["adaptiveConfig"]["enabled"]),
+            startingDifficulty: canonDifficulty(c["adaptiveConfig"]["startingDifficulty"]),
+            stepUpThreshold: optInt(c["adaptiveConfig"]["stepUpThreshold"]),
+            stepDownThreshold: optInt(c["adaptiveConfig"]["stepDownThreshold"]),
+          })
+        : void 0,
+    schedule: schedule3
+      ? { opensAt: tsOrNull(schedule3["opensAt"]), closesAt: tsOrNull(schedule3["closesAt"]) }
+      : void 0,
+    retryConfig: pickDefined(c["retryConfig"], ["cooldownMinutes", "lockAfterPassing"]),
+  });
+  return Object.keys(out).length > 0 ? out : void 0;
 }
 function projectStoryPoint(sp, authoring) {
-  const stripped = stripAnswerFields(sp);
-  if (stripped["orderIndex"] === void 0 && typeof stripped["order"] === "number") {
-    stripped["orderIndex"] = stripped["order"];
-  }
-  if (typeof stripped["orderIndex"] !== "number") stripped["orderIndex"] = 0;
-  delete stripped["order"];
-  delete stripped["durationSeconds"];
-  const stats = stripped["stats"];
-  if (stats) {
-    stripped["stats"] = {
-      itemCount: typeof stats["itemCount"] === "number" ? stats["itemCount"] : 0,
-      completionCount: typeof stats["completionCount"] === "number" ? stats["completionCount"] : 0,
-    };
-  }
-  if (stripped["defaultRubric"]) {
-    stripped["defaultRubric"] = projectRubric(stripped["defaultRubric"], authoring);
-  }
-  return stripped;
+  const s = stripAnswerFields(sp);
+  const stats = s["stats"];
+  return compact({
+    id: s["id"],
+    spaceId: s["spaceId"],
+    tenantId: s["tenantId"],
+    title: String(s["title"] ?? ""),
+    description: optStr(s["description"]),
+    orderIndex: int(s["orderIndex"], int(s["order"], 0)),
+    type: canonStoryPointType(s["type"]),
+    sections: projectSections(s["sections"]),
+    assessmentConfig: projectAssessmentConfig(s["assessmentConfig"], s),
+    defaultRubric: s["defaultRubric"] ? projectRubric(s["defaultRubric"], authoring) : void 0,
+    defaultRubricId: optStr(s["defaultRubricId"]),
+    difficulty: canonDifficulty(s["difficulty"]),
+    estimatedTimeMinutes: optInt(s["estimatedTimeMinutes"]),
+    stats: stats
+      ? { itemCount: int(stats["itemCount"], 0), completionCount: int(stats["completionCount"], 0) }
+      : void 0,
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
 }
 async function listSpacesService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -9762,36 +10332,77 @@ async function getSpaceService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "space.read", { spaceId: input.spaceId, tenantId });
   const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
-  if (!space) fail2("NOT_FOUND", "space not found");
-  return { space: projectSpace(space, isAuthoringRole(ctx)) };
+  if (!space) fail("NOT_FOUND", "space not found");
+  return {
+    space: projectSpace(space, isAuthoringRole(ctx)),
+  };
+}
+function projectPrice(v) {
+  if (typeof v === "number") {
+    return v > 0 ? { amountMinor: Math.trunc(v), currency: "INR" } : void 0;
+  }
+  if (v && typeof v === "object") {
+    const p = v;
+    const amountMinor = optInt(p["amountMinor"]) ?? optInt(p["amount"]);
+    if (amountMinor === void 0) return void 0;
+    return { amountMinor, currency: optStr(p["currency"]) ?? "INR" };
+  }
+  return void 0;
 }
 function projectSpace(space, authoring) {
-  const stripped = stripAnswerFields(space);
-  if (stripped["defaultRubric"]) {
-    stripped["defaultRubric"] = projectRubric(stripped["defaultRubric"], authoring);
-  }
-  const stats = stripped["stats"];
-  if (stats) {
-    stripped["stats"] = {
-      storyPointCount: stats["storyPointCount"] ?? 0,
-      itemCount: stats["itemCount"] ?? 0,
-      enrolledCount: stats["enrolledCount"] ?? stats["enrollmentCount"] ?? 0,
-    };
-  }
-  const rating = stripped["ratingAggregate"];
-  if (rating) {
-    stripped["ratingAggregate"] = {
-      averageRating: rating["averageRating"] ?? rating["average"] ?? 0,
-      totalReviews: rating["totalReviews"] ?? rating["count"] ?? 0,
-      distribution: rating["distribution"] ?? {},
-    };
-  }
-  const price = stripped["price"];
-  if (typeof price === "number") {
-    if (price > 0) stripped["price"] = { amountMinor: price, currency: "INR" };
-    else delete stripped["price"];
-  }
-  return stripped;
+  const s = stripAnswerFields(space);
+  const stats = s["stats"];
+  const rating = s["ratingAggregate"];
+  return compact({
+    id: s["id"],
+    tenantId: s["tenantId"],
+    title: String(s["title"] ?? ""),
+    description: optStr(s["description"]),
+    thumbnailUrl: optStr(s["thumbnailUrl"]),
+    slug: optStr(s["slug"]),
+    type: s["type"] ?? "learning",
+    subject: optStr(s["subject"]),
+    labels: optStrArray(s["labels"]),
+    classIds: optStrArray(s["classIds"]) ?? [],
+    sectionIds: optStrArray(s["sectionIds"]),
+    teacherIds: optStrArray(s["teacherIds"]) ?? [],
+    accessType: s["accessType"] ?? "class_assigned",
+    academicSessionId: optStr(s["academicSessionId"]),
+    defaultEvaluatorAgentId: optStr(s["defaultEvaluatorAgentId"]),
+    defaultTutorAgentId: optStr(s["defaultTutorAgentId"]),
+    defaultRubric: s["defaultRubric"] ? projectRubric(s["defaultRubric"], authoring) : void 0,
+    defaultRubricId: optStr(s["defaultRubricId"]),
+    price: projectPrice(s["price"]),
+    publishedToStore: optBool(s["publishedToStore"]),
+    storeDescription: optStr(s["storeDescription"]),
+    storeThumbnailUrl: optStr(s["storeThumbnailUrl"]),
+    status: s["status"] ?? "draft",
+    publishedAt: tsOrNull(s["publishedAt"]),
+    stats: stats
+      ? {
+          storyPointCount: int(stats["storyPointCount"], 0),
+          itemCount: int(stats["itemCount"], 0),
+          enrolledCount: int(stats["enrolledCount"], int(stats["enrollmentCount"], 0)),
+          completionCount: int(stats["completionCount"], 0),
+        }
+      : void 0,
+    ratingAggregate: rating
+      ? {
+          averageRating: num(rating["averageRating"], num(rating["average"], 0)),
+          totalReviews: int(rating["totalReviews"], int(rating["count"], 0)),
+          distribution:
+            rating["distribution"] && typeof rating["distribution"] === "object"
+              ? rating["distribution"]
+              : {},
+        }
+      : void 0,
+    version: optInt(s["version"]),
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
 }
 async function listStoryPointsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -9809,10 +10420,407 @@ async function getStoryPointService(input, ctx) {
   const req = input;
   authorize(ctx, "space.read", { spaceId: req.spaceId, tenantId });
   const sp = await ctx.repos.storyPoints.get(tenantId, req.storyPointId);
-  if (!sp) fail2("NOT_FOUND", "story point not found");
+  if (!sp) fail("NOT_FOUND", "story point not found");
   return {
     storyPoint: projectStoryPoint(sp, isAuthoringRole(ctx)),
   };
+}
+var ENTITY_TYPES = /* @__PURE__ */ new Set(["space", "storyPoint", "item"]);
+var CHANGE_TYPES = /* @__PURE__ */ new Set(["created", "updated", "published", "archived"]);
+function projectContentVersion(v) {
+  const entityType = String(v["entityType"] ?? "space");
+  const changeType = String(v["changeType"] ?? "updated");
+  return {
+    id: String(v["id"] ?? ""),
+    version: typeof v["version"] === "number" ? Math.trunc(v["version"]) : 0,
+    entityType: ENTITY_TYPES.has(entityType) ? entityType : "space",
+    entityId: String(v["entityId"] ?? ""),
+    changeType: CHANGE_TYPES.has(changeType) ? changeType : "updated",
+    changeSummary: String(v["changeSummary"] ?? ""),
+    changedBy: String(v["changedBy"] ?? ""),
+    changedAt: tsRequired(v["changedAt"]),
+  };
+}
+async function listVersionsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "version.list", { spaceId: input.spaceId, tenantId });
+  const filter = input;
+  const page = await xrepos(ctx).contentVersions.list(tenantId, filter.spaceId, {
+    ...(filter.cursor ? { cursor: filter.cursor } : {}),
+    limit: filter.limit ?? 20,
+  });
+  return {
+    items: page.items.map((v) => projectContentVersion(v)),
+    nextCursor: page.nextCursor,
+  };
+}
+var DIFFICULTY_SET2 = new Set(DIFFICULTIES);
+var BLOOMS_SET = new Set(BLOOMS_LEVELS);
+function projectBankItem(b, tenantId) {
+  const qt = String(b["questionType"] ?? "text");
+  const difficulty = String(b["difficulty"] ?? "medium");
+  const blooms = typeof b["bloomsLevel"] === "string" ? b["bloomsLevel"] : void 0;
+  return {
+    id: String(b["id"] ?? ""),
+    tenantId: String(b["tenantId"] ?? tenantId),
+    questionType: QUESTION_TYPE_MAP[qt] ?? "text",
+    ...(typeof b["title"] === "string" ? { title: b["title"] } : {}),
+    content: String(b["content"] ?? ""),
+    ...(typeof b["explanation"] === "string" ? { explanation: b["explanation"] } : {}),
+    ...(typeof b["basePoints"] === "number" ? { basePoints: b["basePoints"] } : {}),
+    questionData: stripAnswerFields(
+      b["questionData"] ?? { questionType: QUESTION_TYPE_MAP[qt] ?? "text" }
+    ),
+    subject: String(b["subject"] ?? ""),
+    topics: Array.isArray(b["topics"]) ? b["topics"].map(String) : [],
+    difficulty: DIFFICULTY_SET2.has(difficulty) ? difficulty : "medium",
+    ...(blooms && BLOOMS_SET.has(blooms) ? { bloomsLevel: blooms } : {}),
+    usageCount: typeof b["usageCount"] === "number" ? Math.trunc(b["usageCount"]) : 0,
+    ...(typeof b["averageScore"] === "number" ? { averageScore: b["averageScore"] } : {}),
+    lastUsedAt: tsOrNull(b["lastUsedAt"]),
+    tags: Array.isArray(b["tags"]) ? b["tags"].map(String) : [],
+    createdAt: tsRequired(b["createdAt"], b["updatedAt"]),
+    updatedAt: tsRequired(b["updatedAt"], b["createdAt"]),
+  };
+}
+async function listQuestionBankService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "questionBank.read", { tenantId });
+  const f = input;
+  const where = {};
+  if (f.questionType) where["questionType"] = f.questionType;
+  if (f.subject) where["subject"] = f.subject;
+  if (f.difficulty) where["difficulty"] = f.difficulty;
+  if (f.bloomsLevel) where["bloomsLevel"] = f.bloomsLevel;
+  const needle = f.search?.toLowerCase();
+  const page = await xrepos(ctx).questionBank.list(tenantId, {
+    ...(Object.keys(where).length > 0 ? { where } : {}),
+    ...(f.cursor ? { cursor: f.cursor } : {}),
+    limit: f.limit ?? 20,
+    // topic/search are in-memory refinements over the fetched page (no index).
+    filter: (d) => {
+      if (f.topic && !(Array.isArray(d["topics"]) && d["topics"].includes(f.topic))) return false;
+      if (needle) {
+        const hay = `${String(d["title"] ?? "")} ${String(d["content"] ?? "")}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    },
+  });
+  return {
+    items: page.items.map((b) => projectBankItem(b, tenantId)),
+    nextCursor: page.nextCursor,
+  };
+}
+async function saveQuestionBankItemService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "questionBank.write", { tenantId });
+  const data = input.data;
+  if (data["deleted"] === true) {
+    if (!input.id) fail("VALIDATION_ERROR", "id is required to delete a bank item");
+    await xrepos(ctx).questionBank.delete(tenantId, input.id);
+    return { id: input.id, deleted: true };
+  }
+  const existing = input.id ? await xrepos(ctx).questionBank.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "bank item not found");
+  const { deleted: _drop, ...rest } = data;
+  const { id, created } = await xrepos(ctx).questionBank.upsert(tenantId, {
+    ...(input.id ? { id: input.id } : {}),
+    ...rest,
+    topics: data["topics"] ?? [],
+    tags: data["tags"] ?? [],
+    usageCount: existing?.["usageCount"] ?? 0,
+    lastUsedAt: existing?.["lastUsedAt"] ?? null,
+    createdBy: existing?.["createdBy"] ?? ctx.uid,
+    updatedBy: ctx.uid,
+  });
+  return { id, created };
+}
+async function importFromBankService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "questionBank.import", { spaceId: input.spaceId, tenantId });
+  const idemKey = `importFromBank:${input.spaceId}:${input.storyPointId}:${[...input.bankItemIds].sort().join(",")}`;
+  return withIdempotency(ctx, tenantId, idemKey, async () => {
+    const bankItems = await xrepos(ctx).questionBank.getMany(tenantId, input.bankItemIds);
+    if (bankItems.length === 0) fail("NOT_FOUND", "no bank items found for the given ids");
+    const now = ctx.now();
+    const createdItemIds = [];
+    for (const [i, bank] of bankItems.entries()) {
+      const b = bank;
+      const qt = QUESTION_TYPE_MAP[String(b["questionType"] ?? "text")] ?? "text";
+      const rawQd = b["questionData"] ?? { questionType: qt };
+      const answerKey = extractAnswerKey(b);
+      const doc = {
+        type: input.targetType ?? "question",
+        payload: {
+          type: "question",
+          ...(typeof b["basePoints"] === "number" ? { basePoints: b["basePoints"] } : {}),
+          questionData: stripAnswerFields({ ...rawQd, questionType: qt }),
+        },
+        ...(typeof b["title"] === "string" ? { title: b["title"] } : {}),
+        content: String(b["content"] ?? ""),
+        ...(typeof b["difficulty"] === "string" ? { difficulty: b["difficulty"] } : {}),
+        topics: Array.isArray(b["topics"]) ? b["topics"] : [],
+        linkedQuestionId: String(b["id"] ?? ""),
+        spaceId: input.spaceId,
+        storyPointId: input.storyPointId,
+        orderIndex: i,
+        archivedAt: null,
+        createdBy: ctx.uid,
+        updatedBy: ctx.uid,
+      };
+      const { id } = await ctx.repos.items.upsert(tenantId, doc, now);
+      if (answerKey) {
+        await ctx.repos.answerKeys.put(tenantId, id, {
+          ...answerKey,
+          itemId: id,
+          spaceId: input.spaceId,
+          storyPointId: input.storyPointId,
+        });
+      }
+      await xrepos(ctx).questionBank.upsert(tenantId, {
+        id: String(b["id"]),
+        usageCount: (b["usageCount"] ?? 0) + 1,
+        lastUsedAt: now,
+      });
+      createdItemIds.push(id);
+    }
+    return { createdItemIds };
+  });
+}
+var AGENT_TYPE_SET = new Set(AGENT_TYPES);
+var PRESET_CATEGORY_SET = new Set(RUBRIC_PRESET_CATEGORIES);
+var optStr2 = (v) => (typeof v === "string" ? v : void 0);
+var optNum2 = (v) => (typeof v === "number" ? v : void 0);
+var optStrArr = (v) => (Array.isArray(v) ? v.map(String) : void 0);
+function compact2(o) {
+  const out = {};
+  for (const [k, v] of Object.entries(o)) if (v !== void 0) out[k] = v;
+  return out;
+}
+function projectAgent(a, tenantId, spaceId, authoring) {
+  const type = String(a["type"] ?? "tutor");
+  return compact2({
+    id: String(a["id"] ?? ""),
+    spaceId: String(a["spaceId"] ?? spaceId),
+    tenantId: String(a["tenantId"] ?? tenantId),
+    type: AGENT_TYPE_SET.has(type) ? type : "tutor",
+    name: String(a["name"] ?? ""),
+    identity: optStr2(a["identity"]),
+    isActive: typeof a["isActive"] === "boolean" ? a["isActive"] : true,
+    ...(authoring ? { systemPrompt: optStr2(a["systemPrompt"]) } : {}),
+    supportedLanguages: optStrArr(a["supportedLanguages"]),
+    defaultLanguage: optStr2(a["defaultLanguage"]),
+    maxConversationTurns:
+      typeof a["maxConversationTurns"] === "number"
+        ? Math.trunc(a["maxConversationTurns"])
+        : void 0,
+    ...(authoring
+      ? {
+          rules: optStrArr(a["rules"]),
+          evaluationObjectives: optStrArr(a["evaluationObjectives"]),
+        }
+      : {}),
+    strictness: optNum2(a["strictness"]),
+    feedbackStyle: optStr2(a["feedbackStyle"]),
+    modelOverride: optStr2(a["modelOverride"]),
+    temperatureOverride: optNum2(a["temperatureOverride"]),
+    createdAt: tsRequired(a["createdAt"], a["updatedAt"]),
+    updatedAt: tsRequired(a["updatedAt"], a["createdAt"]),
+    createdBy: String(a["createdBy"] ?? ""),
+    updatedBy: String(a["updatedBy"] ?? a["createdBy"] ?? ""),
+  });
+}
+async function listAgentsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "space.read", { spaceId: input.spaceId, tenantId });
+  const page = await xrepos(ctx).agents.list(tenantId, {
+    where: { spaceId: input.spaceId },
+    limit: 100,
+  });
+  const authoring = isAuthoringRole(ctx);
+  return {
+    items: page.items.map((a) => projectAgent(a, tenantId, input.spaceId, authoring)),
+  };
+}
+async function saveAgentService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "agent.write", { spaceId: input.spaceId, tenantId });
+  const data = input.data;
+  if (data["deleted"] === true) {
+    if (!input.id) fail("VALIDATION_ERROR", "id is required to delete an agent");
+    await xrepos(ctx).agents.delete(tenantId, input.id);
+    return { id: input.id, deleted: true };
+  }
+  const existing = input.id ? await xrepos(ctx).agents.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "agent not found");
+  const { deleted: _drop, ...rest } = data;
+  const { id, created } = await xrepos(ctx).agents.upsert(tenantId, {
+    ...(input.id ? { id: input.id } : {}),
+    ...rest,
+    spaceId: input.spaceId,
+    isActive: data["isActive"] ?? existing?.["isActive"] ?? true,
+    createdBy: existing?.["createdBy"] ?? ctx.uid,
+    updatedBy: ctx.uid,
+  });
+  return { id, created };
+}
+function projectRubricPreset(p, tenantId) {
+  const category = String(p["category"] ?? "general");
+  return compact2({
+    id: String(p["id"] ?? ""),
+    tenantId: String(p["tenantId"] ?? tenantId),
+    name: String(p["name"] ?? ""),
+    description: optStr2(p["description"]),
+    rubric: p["rubric"] ?? {},
+    category: PRESET_CATEGORY_SET.has(category) ? category : "general",
+    questionTypes: optStrArr(p["questionTypes"]),
+    isDefault: p["isDefault"] === true,
+    createdAt: tsRequired(p["createdAt"], p["updatedAt"]),
+    updatedAt: tsRequired(p["updatedAt"], p["createdAt"]),
+  });
+}
+async function listRubricPresetsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "rubric.guidance.read", { tenantId });
+  const page = await xrepos(ctx).rubricPresets.list(tenantId, {
+    ...(input.category ? { where: { category: input.category } } : {}),
+    limit: 100,
+    ...(input.questionType
+      ? {
+          filter: (d) =>
+            !Array.isArray(d["questionTypes"]) ||
+            d["questionTypes"].length === 0 ||
+            d["questionTypes"].includes(input.questionType),
+        }
+      : {}),
+  });
+  return {
+    items: page.items.map((p) => projectRubricPreset(p, tenantId)),
+  };
+}
+async function saveRubricPresetService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "rubricPreset.write", { tenantId });
+  const data = input.data;
+  if (data["deleted"] === true) {
+    if (!input.id) fail("VALIDATION_ERROR", "id is required to delete a rubric preset");
+    await xrepos(ctx).rubricPresets.delete(tenantId, input.id);
+    return { id: input.id, deleted: true };
+  }
+  const existing = input.id ? await xrepos(ctx).rubricPresets.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "rubric preset not found");
+  const { deleted: _drop, ...rest } = data;
+  const { id, created } = await xrepos(ctx).rubricPresets.upsert(tenantId, {
+    ...(input.id ? { id: input.id } : {}),
+    ...rest,
+    isDefault: data["isDefault"] ?? existing?.["isDefault"] ?? false,
+    createdBy: existing?.["createdBy"] ?? ctx.uid,
+    updatedBy: ctx.uid,
+  });
+  return { id, created };
+}
+function assignmentRowId(contentType, contentId, classId) {
+  return `${contentType}_${contentId}_${classId}`;
+}
+async function assignContentService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  const repo = input.contentType === "space" ? ctx.repos.spaces : ctx.repos.exams;
+  if (input.contentType === "space") {
+    authorize(ctx, "space.write", { spaceId: input.contentId, tenantId });
+  } else {
+    authorize(ctx, "exam.write", { examId: input.contentId, tenantId });
+  }
+  const target = await repo.get(tenantId, input.contentId);
+  if (!target) fail("NOT_FOUND", `${input.contentType} not found`);
+  const existing = Array.isArray(target["classIds"]) ? target["classIds"] : [];
+  const classIds = [.../* @__PURE__ */ new Set([...existing.map(String), ...input.classIds])];
+  await repo.upsert(tenantId, { id: input.contentId, classIds, updatedBy: ctx.uid }, ctx.now());
+  const now = ctx.now();
+  for (const classId of input.classIds) {
+    await xrepos(ctx).assignments.upsert(tenantId, {
+      id: assignmentRowId(input.contentType, input.contentId, classId),
+      contentType: input.contentType,
+      contentId: input.contentId,
+      classId,
+      startAt: input.window?.startAt ?? null,
+      dueAt: input.window?.dueAt ?? null,
+      visibility: input.visibility ?? "visible",
+      assignedBy: ctx.uid,
+      assignedAt: now,
+    });
+  }
+  return { id: input.contentId, created: false };
+}
+var CONTENT_DRAFT_PROMPT_V0 = `You are an expert curriculum author drafting practice content for a learning platform.
+
+Context:
+- Space (course): {{spaceTitle}} \u2014 subject: {{subject}}
+- Story point (lesson): {{storyPointTitle}}
+- Lesson description: {{storyPointDescription}}
+
+Task: draft exactly {{count}} item(s) of the requested kinds: {{types}}.
+Difficulty target: {{difficulty}}.
+
+Rules:
+- Allowed questionType values (use ONLY these): {{questionTypes}}.
+- Every draft MUST be a JSON object with this exact shape:
+  {
+    "itemType": "question" | "material",
+    "questionType": "<one of the allowed values, question drafts only>",
+    "title": "<short title>",
+    "payload": <see below>,
+    "bloomsLevel": "<optional: remember|understand|apply|analyze|evaluate|create>",
+    "topics": ["<optional topic tags>"]
+  }
+- For a question draft, "payload" is:
+  { "type": "question", "questionData": { "questionType": "<same value>", ...type-specific prompt fields } }
+  e.g. an "mcq" question carries "options": [{ "id": "a", "text": "..." }, ...].
+- For a material draft, "payload" is:
+  { "type": "material", "materialData": { "materialType": "text", "body": "<markdown body>" } }
+- Do NOT include correct answers, answer keys, or grading guidance in any field.
+- Respond with ONLY a JSON object: { "drafts": [ ...the draft objects... ] }.`;
+function fillPrompt(template, vars) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
+}
+async function generateContentService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "item.write", input.spaceId ? { spaceId: input.spaceId, tenantId } : { tenantId });
+  if (input.sourcePdfPath) {
+    fail("FAILED_PRECONDITION", "PDF-sourced generation lands with the AI-authoring milestone");
+  }
+  const storyPoint = await ctx.repos.storyPoints.get(tenantId, input.storyPointId);
+  if (!storyPoint) fail("NOT_FOUND", "story point not found");
+  const spaceId = input.spaceId ?? storyPoint["spaceId"];
+  const space = spaceId ? await ctx.repos.spaces.get(tenantId, spaceId) : null;
+  const prompt = fillPrompt(CONTENT_DRAFT_PROMPT_V0, {
+    spaceTitle: String(space?.["title"] ?? ""),
+    subject: String(space?.["subject"] ?? ""),
+    storyPointTitle: String(storyPoint["title"] ?? ""),
+    storyPointDescription: String(storyPoint["description"] ?? ""),
+    count: String(input.spec.count),
+    types: input.spec.types.join(", "),
+    difficulty: input.spec.difficulty ?? "medium",
+    questionTypes: QUESTION_TYPES.join(", "),
+  });
+  const ai = await ctx.ai.generate(
+    {
+      prompt,
+      operation: "levelup.generateContent",
+      variables: { storyPointId: input.storyPointId, spec: input.spec },
+      // Structured output: the gateway only populates `json` when a
+      // responseSchema is set (same requirement as practice.ts grading).
+      responseSchema: { type: "object" },
+    },
+    { tenantId, uid: ctx.uid, ...(spaceId ? { spaceId } : {}), now: ctx.now }
+  );
+  const raw = ai.json ?? {};
+  const candidates = Array.isArray(raw["drafts"]) ? raw["drafts"] : Array.isArray(raw) ? raw : [];
+  const drafts = candidates.flatMap((c) => {
+    const r = GeneratedItemSchema.safeParse(c);
+    return r.success ? [r.data] : [];
+  });
+  return { drafts };
 }
 var DETERMINISTIC_TYPES = /* @__PURE__ */ new Set([
   "mcq",
@@ -9823,6 +10831,8 @@ var DETERMINISTIC_TYPES = /* @__PURE__ */ new Set([
   "numeric",
   "matching",
   "ordering",
+  // group-options: normalizeQuestionType maps "group-options" → "grouping" (practice.ts).
+  "grouping",
 ]);
 function normalize(v) {
   return String(v ?? "")
@@ -9833,6 +10843,84 @@ function arraysEqualAsSet(a, b) {
   if (a.length !== b.length) return false;
   const sa = new Set(a.map(normalize));
   return b.every((x) => sa.has(normalize(x)));
+}
+function toAssignmentMap(v) {
+  const fromArray = (arr) => {
+    const map = /* @__PURE__ */ new Map();
+    for (const e of arr) {
+      if (e && typeof e === "object") {
+        const rec = e;
+        const id = rec["itemId"] ?? rec["id"];
+        const group = rec["group"] ?? rec["groupId"];
+        if (id != null && group != null) map.set(normalize(id), normalize(group));
+      }
+    }
+    return map;
+  };
+  if (Array.isArray(v)) {
+    const m = fromArray(v);
+    return m.size ? m : null;
+  }
+  if (v && typeof v === "object") {
+    const rec = v;
+    if (Array.isArray(rec["assignments"])) {
+      const m2 = fromArray(rec["assignments"]);
+      return m2.size ? m2 : null;
+    }
+    if (Array.isArray(rec["items"])) {
+      const m2 = fromArray(rec["items"]);
+      return m2.size ? m2 : null;
+    }
+    const m = /* @__PURE__ */ new Map();
+    for (const [k, g] of Object.entries(rec)) {
+      if (g != null && typeof g !== "object") m.set(normalize(k), normalize(g));
+    }
+    return m.size ? m : null;
+  }
+  return null;
+}
+function scoreGrouping(key, answer, maxScore) {
+  const correct =
+    toAssignmentMap(key["correctAnswer"]) ??
+    toAssignmentMap(key["assignments"]) ??
+    toAssignmentMap(key["items"]);
+  if (!correct || correct.size === 0) {
+    return {
+      evaluation: {
+        score: 0,
+        maxScore,
+        correctness: 0,
+        percentage: 0,
+        strengths: [],
+        weaknesses: [],
+        missingConcepts: [],
+      },
+      aiPending: true,
+    };
+  }
+  const given = toAssignmentMap(answer);
+  const total = correct.size;
+  let hit = 0;
+  if (given) {
+    for (const [itemId, group] of correct) {
+      if (given.get(itemId) === group) hit += 1;
+    }
+  }
+  const ratio = total > 0 ? hit / total : 0;
+  const score = ratio * maxScore;
+  const isFull = total > 0 && hit === total;
+  return {
+    evaluation: {
+      score,
+      maxScore,
+      correctness: ratio,
+      percentage: maxScore > 0 ? (score / maxScore) * 100 : 0,
+      strengths: isFull ? ["Correct answer"] : [],
+      weaknesses: isFull ? [] : ["Incorrect answer"],
+      missingConcepts: [],
+    },
+    aiPending: false,
+  };
 }
 function autoEvaluateDeterministic(type, key, answer, maxScore = 1) {
   if (!DETERMINISTIC_TYPES.has(type) || !key) {
@@ -9848,6 +10936,9 @@ function autoEvaluateDeterministic(type, key, answer, maxScore = 1) {
       },
       aiPending: true,
     };
+  }
+  if (type === "grouping") {
+    return scoreGrouping(key, answer, maxScore);
   }
   const correctAnswer = key["correctAnswer"];
   const acceptable = key["acceptableAnswers"] ?? [];
@@ -9882,17 +10973,70 @@ function storyPointTypeToSessionType(storyPointType) {
       return "quiz";
     case "test":
     case "exam":
-      return "test";
-    case "practice":
-      return "practice";
+    case "timed_test":
+      return "timed_test";
     default:
       return "practice";
   }
 }
+function port(ctx) {
+  return ctx.repos.levelupProjections ?? null;
+}
+function progressStatus(completed, pointsEarned) {
+  return completed ? "completed" : pointsEarned > 0 ? "in_progress" : "not_started";
+}
+function pct(earned, total) {
+  return total > 0 ? Math.round((earned / total) * 100) : 0;
+}
+async function projectSpaceProgressLive(ctx, tenantId, args) {
+  const p = port(ctx);
+  if (!p) return;
+  const { result } = args;
+  const storyPoints = {};
+  for (const [spId, sp] of Object.entries(result.storyPoints ?? {})) {
+    storyPoints[spId] = {
+      storyPointId: sp.storyPointId,
+      status: progressStatus(sp.completed, sp.pointsEarned),
+      pointsEarned: sp.pointsEarned,
+      totalPoints: sp.totalPoints,
+      percentage: pct(sp.pointsEarned, sp.totalPoints),
+    };
+  }
+  await p.setSpaceProgress(tenantId, args.userId, args.spaceId, {
+    spaceId: args.spaceId,
+    userId: args.userId,
+    status: progressStatus(result.completed, result.pointsEarned),
+    pointsEarned: result.pointsEarned,
+    totalPoints: result.totalPoints,
+    percentage: pct(result.pointsEarned, result.totalPoints),
+    storyPoints,
+    updatedAt: ctx.now(),
+  });
+}
+async function clearAchievementUnlockProjection(ctx, tenantId, userId) {
+  const p = port(ctx);
+  if (!p) return;
+  await p.clearAchievementUnlock(tenantId, userId);
+}
+async function projectTestSessionLive(ctx, tenantId, args) {
+  const p = port(ctx);
+  if (!p) return;
+  const now = ctx.now();
+  await p.setTestSessionLive(tenantId, args.userId, args.sessionId, {
+    remainingMs: Math.max(0, Date.parse(args.serverDeadline) - Date.parse(now)),
+    serverDeadline: args.serverDeadline,
+    status: args.status,
+  });
+}
+async function projectChatBump(ctx, tenantId, args) {
+  const p = port(ctx);
+  if (!p) return;
+  await p.bumpChat(tenantId, args.userId, args.sessionId, args.lastMessageAt);
+}
 async function applyProgress(args, ctx) {
   const tenantId = ctx.tenantId;
   if (!tenantId) throw new Error("progressUpdater requires a tenant on the context");
-  return ctx.repos.progress.update(
+  const result = await ctx.repos.progress.update(
     tenantId,
     {
       userId: args.userId,
@@ -9902,8 +11046,80 @@ async function applyProgress(args, ctx) {
     },
     ctx.now()
   );
+  await projectSpaceProgressLive(ctx, tenantId, {
+    userId: args.userId,
+    spaceId: args.spaceId,
+    result,
+  });
+  return result;
 }
 var DEFAULT_SESSION_MINUTES = 30;
+function compact3(o) {
+  const out = {};
+  for (const [k, v] of Object.entries(o)) if (v !== void 0) out[k] = v;
+  return out;
+}
+var optNum3 = (v) => (typeof v === "number" ? v : void 0);
+var optInt2 = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : void 0);
+var asRecord = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+function canonSessionType(v) {
+  return typeof v === "string" ? zLegacyTestSessionTypeRead.parse(v) : "practice";
+}
+function toTestSessionView(d) {
+  const questionOrder = Array.isArray(d["questionOrder"]) ? d["questionOrder"] : [];
+  return compact3({
+    id: d["id"],
+    tenantId: d["tenantId"],
+    userId: d["userId"],
+    spaceId: d["spaceId"],
+    storyPointId: d["storyPointId"],
+    sessionType: canonSessionType(d["sessionType"]),
+    attemptNumber: optInt2(d["attemptNumber"]) ?? 1,
+    status: d["status"] ?? "in_progress",
+    isLatest: typeof d["isLatest"] === "boolean" ? d["isLatest"] : true,
+    startedAt: tsRequired(d["startedAt"], d["createdAt"], d["updatedAt"]),
+    endedAt: tsOrNull(d["endedAt"]),
+    durationMinutes: optInt2(d["durationMinutes"]) ?? DEFAULT_SESSION_MINUTES,
+    serverDeadline: tsOrNull(d["serverDeadline"]),
+    totalQuestions: optInt2(d["totalQuestions"]) ?? questionOrder.length,
+    answeredQuestions: optInt2(d["answeredQuestions"]) ?? 0,
+    questionOrder,
+    visitedQuestions: asRecord(d["visitedQuestions"]),
+    markedForReview: asRecord(d["markedForReview"]),
+    pointsEarned: optNum3(d["pointsEarned"]) ?? optNum3(d["totalScore"]),
+    totalPoints: optNum3(d["totalPoints"]) ?? optNum3(d["maxScore"]),
+    marksEarned: optNum3(d["marksEarned"]),
+    totalMarks: optNum3(d["totalMarks"]),
+    percentage: optNum3(d["percentage"]),
+    sectionMapping: d["sectionMapping"] !== null ? d["sectionMapping"] : void 0,
+    lastVisitedIndex: optInt2(d["lastVisitedIndex"]),
+    adaptiveState: d["adaptiveState"] !== null ? d["adaptiveState"] : void 0,
+    currentDifficultyLevel:
+      d["currentDifficultyLevel"] !== null ? d["currentDifficultyLevel"] : void 0,
+    difficultyProgression: Array.isArray(d["difficultyProgression"])
+      ? d["difficultyProgression"]
+      : void 0,
+    analytics: d["analytics"] !== null ? d["analytics"] : void 0,
+    submittedAt: tsOrNull(d["submittedAt"]),
+    autoSubmitted: typeof d["autoSubmitted"] === "boolean" ? d["autoSubmitted"] : void 0,
+    createdAt: tsRequired(d["createdAt"], d["startedAt"], d["updatedAt"]),
+    updatedAt: tsRequired(d["updatedAt"], d["createdAt"], d["startedAt"]),
+  });
+}
+function toTestSessionSummaryView(d) {
+  return compact3({
+    id: d["id"],
+    spaceId: d["spaceId"],
+    storyPointId: d["storyPointId"],
+    sessionType: canonSessionType(d["sessionType"]),
+    status: d["status"] ?? "in_progress",
+    attemptNumber: optInt2(d["attemptNumber"]) ?? 1,
+    isLatest: typeof d["isLatest"] === "boolean" ? d["isLatest"] : true,
+    percentage: optNum3(d["percentage"]),
+    startedAt: tsRequired(d["startedAt"], d["createdAt"], d["updatedAt"]),
+    submittedAt: tsOrNull(d["submittedAt"]),
+  });
+}
 async function startTestSessionService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "testSession.start", { spaceId: input.spaceId, tenantId });
@@ -9917,10 +11133,22 @@ async function startTestSessionService(input, ctx) {
     limit: 1,
   });
   if (existing.items.length > 0) {
-    return { session: existing.items[0], resuming: true };
+    const resumed = existing.items[0];
+    if (typeof resumed["serverDeadline"] === "string") {
+      await projectTestSessionLive(ctx, tenantId, {
+        sessionId: resumed["id"],
+        userId: ctx.uid,
+        serverDeadline: resumed["serverDeadline"],
+        status: "in_progress",
+      });
+    }
+    return {
+      session: toTestSessionView(resumed),
+      resuming: true,
+    };
   }
   const storyPoint = await ctx.repos.storyPoints.get(tenantId, input.storyPointId);
-  if (!storyPoint) fail2("NOT_FOUND", "story point not found");
+  if (!storyPoint) fail("NOT_FOUND", "story point not found");
   const now = ctx.now();
   const durationMin = storyPoint["durationMinutes"] ?? DEFAULT_SESSION_MINUTES;
   const serverDeadline = new Date(Date.parse(now) + durationMin * 60 * 1e3).toISOString();
@@ -9960,19 +11188,28 @@ async function startTestSessionService(input, ctx) {
     updatedAt: now,
   };
   const { id } = await ctx.repos.testSessions.upsert(tenantId, session, now);
+  await projectTestSessionLive(ctx, tenantId, {
+    sessionId: id,
+    userId: ctx.uid,
+    serverDeadline,
+    status: "in_progress",
+  });
   await ctx.repos.tx(async (tx) => {
     for (const p of priors.items) {
       if (p["isLatest"]) tx.upsert("testSessions", tenantId, { id: p["id"], isLatest: false });
     }
   });
-  return { session: { ...session, id }, resuming: false };
+  return {
+    session: toTestSessionView({ ...session, id }),
+    resuming: false,
+  };
 }
 async function saveTestAnswerService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "testSession.submit", { sessionId: input.sessionId, tenantId });
   const session = await ctx.repos.testSessions.get(tenantId, input.sessionId);
-  if (!session) fail2("NOT_FOUND", "session not found");
-  if (session["userId"] !== ctx.uid) fail2("PERMISSION_DENIED", "not your session");
+  if (!session) fail("NOT_FOUND", "session not found");
+  if (session["userId"] !== ctx.uid) fail("PERMISSION_DENIED", "not your session");
   const now = ctx.now();
   const itemId = input.itemId;
   const existingSub = await xrepos(ctx).testSubmissions.get(tenantId, input.sessionId, itemId);
@@ -9984,7 +11221,10 @@ async function saveTestAnswerService(input, ctx) {
       ...(input.timeSpentSeconds !== void 0 ? { timeSpentSeconds: input.timeSpentSeconds } : {}),
     });
   });
-  const visited = { ...(session["visitedQuestions"] ?? {}), [itemId]: true };
+  const visited = {
+    ...(session["visitedQuestions"] ?? {}),
+    [itemId]: true,
+  };
   const marked = { ...(session["markedForReview"] ?? {}) };
   if (input.markedForReview !== void 0) marked[itemId] = input.markedForReview;
   const prevAnswered = session["answeredQuestions"] ?? 0;
@@ -9997,17 +11237,25 @@ async function saveTestAnswerService(input, ctx) {
       answeredQuestions,
     });
   });
-  return { sessionId: input.sessionId, itemId, saved: true, answeredQuestions };
+  return {
+    sessionId: input.sessionId,
+    itemId,
+    saved: true,
+    answeredQuestions,
+  };
 }
 async function submitTestSessionService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "testSession.submit", { sessionId: input.sessionId, tenantId });
   const session = await ctx.repos.testSessions.get(tenantId, input.sessionId);
-  if (!session) fail2("NOT_FOUND", "session not found");
-  if (session["userId"] !== ctx.uid) fail2("PERMISSION_DENIED", "not your session");
+  if (!session) fail("NOT_FOUND", "session not found");
+  if (session["userId"] !== ctx.uid) fail("PERMISSION_DENIED", "not your session");
   const currentStatus = session["status"] ?? "in_progress";
   if (currentStatus !== "in_progress") {
-    return { session, progressUpdated: false };
+    return {
+      session: toTestSessionView(session),
+      progressUpdated: false,
+    };
   }
   assertTransition2("testSession", currentStatus, "completed");
   await ctx.repos.tx(async (tx) => {
@@ -10073,6 +11321,14 @@ async function submitTestSessionService(input, ctx) {
     updatedAt: now,
   };
   await ctx.repos.testSessions.upsert(tenantId, finalSession, now);
+  if (typeof session["serverDeadline"] === "string") {
+    await projectTestSessionLive(ctx, tenantId, {
+      sessionId: input.sessionId,
+      userId: ctx.uid,
+      serverDeadline: session["serverDeadline"],
+      status: "completed",
+    });
+  }
   if (aiPending === 0) {
     await ctx.repos.tx(async (tx) => {
       tx.enqueueOutbox(tenantId, {
@@ -10085,16 +11341,21 @@ async function submitTestSessionService(input, ctx) {
       });
     });
   }
-  return { session: finalSession, progressUpdated: progressResult.completed };
+  return {
+    session: toTestSessionView(finalSession),
+    progressUpdated: progressResult.completed,
+  };
 }
 async function getTestSessionService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const session = await ctx.repos.testSessions.get(tenantId, input.sessionId);
-  if (!session) fail2("NOT_FOUND", "session not found");
+  if (!session) fail("NOT_FOUND", "session not found");
   if (session["userId"] !== ctx.uid) {
     authorize(ctx, "progress.read", { sessionId: input.sessionId, tenantId });
   }
-  return { session };
+  return {
+    session: toTestSessionView(session),
+  };
 }
 async function listTestSessionsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10111,7 +11372,12 @@ async function listTestSessionsService(input, ctx) {
     cursor: input.cursor,
     limit: input.limit ?? 20,
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    // Compact summary projection — the contract view is DigitalTestSessionSummaryView,
+    // NOT the full session (the pre-LVL-1 raw-doc return failed it wholesale).
+    items: page.items.map((d) => toTestSessionSummaryView(d)),
+    nextCursor: page.nextCursor,
+  };
 }
 var QT_TO_GRADING = {
   mcaq: "multi_select",
@@ -10122,6 +11388,9 @@ var QT_TO_GRADING = {
   "fill-blanks": "fill_blank",
   "fill-blanks-dd": "fill_blank",
   jumbled: "ordering",
+  "group-options": "grouping",
+  group_options: "grouping",
+  grouping: "grouping",
   text: "short_answer",
   paragraph: "long_answer",
   essay: "long_answer",
@@ -10130,13 +11399,46 @@ function normalizeQuestionType(t) {
   const k = String(t).trim();
   return QT_TO_GRADING[k] ?? k;
 }
+function guessMediaMime(path) {
+  const ext = path.toLowerCase().match(/\.([a-z0-9]+)(?:\?|$)/)?.[1] ?? "";
+  const AUDIO = {
+    m4a: "audio/mp4",
+    mp4: "audio/mp4",
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+    aac: "audio/aac",
+    ogg: "audio/ogg",
+    oga: "audio/ogg",
+    opus: "audio/ogg",
+    flac: "audio/flac",
+    webm: "audio/webm",
+  };
+  const IMAGE = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    heic: "image/heic",
+    gif: "image/gif",
+  };
+  return AUDIO[ext] ?? IMAGE[ext] ?? "image/jpeg";
+}
 function answerHash(answer) {
   const s = typeof answer === "string" ? answer : JSON.stringify(answer ?? null);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
-async function scoreOne(ctx, tenantId, item, itemId, answer) {
+async function scoreOne(ctx, tenantId, item, itemId, answer, mediaUrls) {
+  const answerObj = answer && typeof answer === "object" && !Array.isArray(answer) ? answer : null;
+  const answerText = answerObj
+    ? String(answerObj["text"] ?? "")
+    : typeof answer === "string"
+      ? answer
+      : JSON.stringify(answer ?? "");
+  const media = (
+    (mediaUrls && mediaUrls.length > 0 ? mediaUrls : answerObj?.["mediaUrls"]) ?? []
+  ).filter((p) => typeof p === "string" && p.startsWith(`tenants/${tenantId}/`));
   const payload = item["payload"] ?? {};
   const question = payload["question"] ?? {};
   const questionData = payload["questionData"] ?? {};
@@ -10168,9 +11470,7 @@ async function scoreOne(ctx, tenantId, item, itemId, answer) {
       .trim()
       .toLowerCase();
     const acceptable = (key["acceptableAnswers"] ?? []).map((a) => String(a).trim().toLowerCase());
-    const given = String(answer ?? "")
-      .trim()
-      .toLowerCase();
+    const given = answerText.trim().toLowerCase();
     const isCorrect = given.length > 0 && (given === correct || acceptable.includes(given));
     return {
       score: isCorrect ? maxScore : 0,
@@ -10190,6 +11490,17 @@ async function scoreOne(ctx, tenantId, item, itemId, answer) {
       item["title"] ??
       ""
   );
+  const images = media.map((url) => ({ storagePath: url, mimeType: guessMediaMime(url) }));
+  const answerForGrader =
+    answerText.trim().length > 0
+      ? images.length > 0
+        ? `${answerText}
+
+(The learner also attached ${images.length} media file(s) \u2014 consider the attached image/audio.)`
+        : answerText
+      : images.length > 0
+        ? "(The learner's response is provided as attached media \u2014 grade the attached image/audio.)"
+        : answerText;
   const ai = await ctx.ai.generate(
     {
       promptKey: "answerGrading",
@@ -10198,17 +11509,25 @@ async function scoreOne(ctx, tenantId, item, itemId, answer) {
         question: questionText,
         maxMarks: maxScore,
         rubric: JSON.stringify(item["effectiveRubric"] ?? item["rubric"] ?? {}),
-        answer: typeof answer === "string" ? answer : JSON.stringify(answer ?? ""),
+        answer: answerForGrader,
       },
+      ...(images.length > 0 ? { images } : {}),
+      // REQUIRED for structured output: the gateway only populates the parsed JSON
+      // (`data`/`json`) when a `responseSchema` is set — both the Gemini provider
+      // (`responseMimeType: application/json`) and the emulator stub key off it.
+      // Without it the grader returns free text and the eval collapses to zeros.
+      responseSchema: { type: "object" },
     },
     { tenantId, uid: ctx.uid, now: ctx.now }
   );
   const raw = ai.json ?? {};
+  const score = Number(raw["score"] ?? 0);
+  const ratio = maxScore > 0 ? Math.min(1, Math.max(0, score / maxScore)) : 0;
   const evaluation = {
-    score: Number(raw["score"] ?? 0),
+    score,
     maxScore,
-    correctness: Number(raw["correctness"] ?? 0),
-    percentage: Number(raw["percentage"] ?? 0),
+    correctness: raw["correctness"] != null ? Number(raw["correctness"]) : ratio,
+    percentage: raw["percentage"] != null ? Number(raw["percentage"]) : ratio * 100,
     strengths: raw["strengths"] ?? [],
     weaknesses: raw["weaknesses"] ?? [],
     missingConcepts: raw["missingConcepts"] ?? [],
@@ -10218,11 +11537,24 @@ async function scoreOne(ctx, tenantId, item, itemId, answer) {
 async function evaluateAnswerService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "answer.evaluate", { spaceId: input.spaceId, tenantId });
+  const prefix = `tenants/${tenantId}/`;
+  for (const p of input.mediaUrls ?? []) {
+    if (!p.startsWith(prefix)) {
+      fail("PERMISSION_DENIED", `media path "${p}" is not scoped to tenant ${tenantId}`);
+    }
+  }
   const dedupeKey2 = `evaluateAnswer:${input.spaceId}:${input.itemId}:${answerHash(input.answer)}`;
   return withIdempotency(ctx, tenantId, dedupeKey2, async () => {
     const item = await ctx.repos.items.get(tenantId, input.itemId);
-    if (!item) fail2("NOT_FOUND", "item not found");
-    const evaluation = await scoreOne(ctx, tenantId, item, input.itemId, input.answer);
+    if (!item) fail("NOT_FOUND", "item not found");
+    const evaluation = await scoreOne(
+      ctx,
+      tenantId,
+      item,
+      input.itemId,
+      input.answer,
+      input.mediaUrls
+    );
     let progressRecorded = false;
     if (input.storyPointId) {
       await applyProgress(
@@ -10253,7 +11585,7 @@ async function recordItemAttemptService(input, ctx) {
   const dedupeKey2 = `recordItemAttempt:${input.spaceId}:${input.storyPointId}:${input.itemId}:${answerHash(input.answer)}`;
   return withIdempotency(ctx, tenantId, dedupeKey2, async () => {
     const item = await ctx.repos.items.get(tenantId, input.itemId);
-    if (!item) fail2("NOT_FOUND", "item not found");
+    if (!item) fail("NOT_FOUND", "item not found");
     const evaluation = await scoreOne(ctx, tenantId, item, input.itemId, input.answer);
     const result = await applyProgress(
       {
@@ -10287,13 +11619,156 @@ async function recordItemAttemptService(input, ctx) {
     };
   });
 }
+function compactDoc(o) {
+  const out = {};
+  for (const [k, v] of Object.entries(o)) if (v !== void 0) out[k] = v;
+  return out;
+}
+var numOr = (v, fb) => (typeof v === "number" && Number.isFinite(v) ? v : fb);
+var intOr = (v, fb) => Math.trunc(numOr(v, fb));
+var optNum4 = (v) => (typeof v === "number" ? v : void 0);
+var optIntU = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : void 0);
+var optStrU = (v) => (typeof v === "string" ? v : void 0);
+var ITEM_TYPE_SET = /* @__PURE__ */ new Set([
+  "question",
+  "material",
+  "interactive",
+  "assessment",
+  "discussion",
+  "project",
+  "checkpoint",
+]);
+function projectStoredEvaluation(v) {
+  if (!v || typeof v !== "object") return void 0;
+  const e = v;
+  const summary = e["summary"];
+  return compactDoc({
+    score: numOr(e["score"], 0),
+    maxScore: numOr(e["maxScore"], 0),
+    correctness: numOr(e["correctness"], 0),
+    percentage: numOr(e["percentage"], 0),
+    strengths: Array.isArray(e["strengths"]) ? e["strengths"] : [],
+    weaknesses: Array.isArray(e["weaknesses"]) ? e["weaknesses"] : [],
+    missingConcepts: Array.isArray(e["missingConcepts"]) ? e["missingConcepts"] : [],
+    summary:
+      summary && typeof summary === "object"
+        ? {
+            keyTakeaway: String(summary["keyTakeaway"] ?? ""),
+            overallComment: String(summary["overallComment"] ?? ""),
+          }
+        : typeof summary === "string"
+          ? { keyTakeaway: summary, overallComment: summary }
+          : void 0,
+    mistakeClassification: optStrU(e["mistakeClassification"]),
+  });
+}
+function projectItemProgressEntry(key, v, docFallbackTs) {
+  const e = v ?? {};
+  const qd = e["questionData"];
+  const rawType = optStrU(e["itemType"]);
+  return compactDoc({
+    itemId: optStrU(e["itemId"]) ?? key,
+    // Legacy entries stored the QUESTION subtype here; the view enum is the item
+    // discriminator — collapse unknowns to 'question'.
+    itemType: rawType && ITEM_TYPE_SET.has(rawType) ? rawType : "question",
+    completed: Boolean(e["completed"]),
+    completedAt: tsOrNull(e["completedAt"]),
+    timeSpent: optNum4(e["timeSpent"]),
+    interactions: optIntU(e["interactions"]),
+    lastUpdatedAt: tsRequired(e["lastUpdatedAt"], e["completedAt"], ...docFallbackTs),
+    questionData: qd
+      ? compactDoc({
+          status: qd["status"] ?? "pending",
+          attemptsCount: intOr(qd["attemptsCount"], 0),
+          bestScore: optNum4(qd["bestScore"]),
+          pointsEarned: optNum4(qd["pointsEarned"]),
+          totalPoints: optNum4(qd["totalPoints"]),
+          percentage: optNum4(qd["percentage"]),
+          solved: Boolean(qd["solved"]),
+          latestScore: optNum4(qd["latestScore"]),
+          latestStatus: optStrU(qd["latestStatus"]),
+        })
+      : void 0,
+    progress: optNum4(e["progress"]),
+    score: optNum4(e["score"]),
+    feedback: optStrU(e["feedback"]),
+    lastAnswer: e["lastAnswer"],
+    lastEvaluation: projectStoredEvaluation(e["lastEvaluation"]),
+    attempts: Array.isArray(e["attempts"])
+      ? e["attempts"].map((a, i) => {
+          const ad = a ?? {};
+          return compactDoc({
+            attemptNumber: intOr(ad["attemptNumber"], i + 1),
+            answer: ad["answer"],
+            evaluation: projectStoredEvaluation(ad["evaluation"]) ?? {
+              score: numOr(ad["score"], 0),
+              maxScore: numOr(ad["maxScore"], 0),
+              correctness: 0,
+              percentage: 0,
+              strengths: [],
+              weaknesses: [],
+              missingConcepts: [],
+            },
+            score: numOr(ad["score"], 0),
+            maxScore: numOr(ad["maxScore"], 0),
+            timestamp: tsRequired(ad["timestamp"], e["lastUpdatedAt"], ...docFallbackTs),
+          });
+        })
+      : void 0,
+  });
+}
+function toStoryPointProgressDocView(d, storyPointId, now) {
+  const fallbackTs = [d["updatedAt"], d["completedAt"], d["startedAt"], now];
+  const rawItems = d["items"];
+  const itemEntries = Array.isArray(rawItems)
+    ? rawItems.map((e, i) => [String(e?.["itemId"] ?? i), e])
+    : Object.entries(rawItems ?? {});
+  const items = {};
+  for (const [k, v] of itemEntries) {
+    items[k] = projectItemProgressEntry(k, v, fallbackTs);
+  }
+  const pe = numOr(d["pointsEarned"], 0);
+  const tp = numOr(d["totalPoints"], 0);
+  const percentage = numOr(d["percentage"], tp > 0 ? Math.round((pe / tp) * 100) : 0);
+  return compactDoc({
+    storyPointId: optStrU(d["storyPointId"]) ?? storyPointId,
+    status:
+      optStrU(d["status"]) ??
+      (percentage >= 100 ? "completed" : percentage > 0 ? "in_progress" : "not_started"),
+    pointsEarned: pe,
+    totalPoints: tp,
+    percentage,
+    completedItems: intOr(d["completedItems"], 0),
+    totalItems: intOr(d["totalItems"], Object.keys(items).length),
+    completedAt: tsOrNull(d["completedAt"]),
+    updatedAt: tsRequired(...fallbackTs),
+    items,
+  });
+}
 async function getSpaceProgressService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const targetUid = input.userId ?? ctx.uid;
   if (targetUid !== ctx.uid) authorize(ctx, "progress.read", { tenantId, studentId: targetUid });
   const progress = await ctx.repos.progress.get(tenantId, targetUid, input.spaceId);
   return {
-    progress: progress ? projectSpaceProgress(progress) : null,
+    progress: progress ? projectSpaceProgress(progress, ctx.now()) : null,
+  };
+}
+async function listSpaceProgressForUserService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  if (input.userId !== ctx.uid) {
+    authorize(ctx, "progress.read", { tenantId, studentId: input.userId });
+  }
+  const filter = input;
+  const page = await ctx.repos.progressDocs.list(tenantId, {
+    where: { userId: filter.userId },
+    ...(filter.cursor ? { cursor: filter.cursor } : {}),
+    limit: filter.limit ?? 20,
+  });
+  const items = page.items.map((p) => projectSpaceProgress(p, ctx.now()));
+  return {
+    items,
+    nextCursor: page.nextCursor,
   };
 }
 async function getStoryPointProgressService(input, ctx) {
@@ -10306,7 +11781,11 @@ async function getStoryPointProgressService(input, ctx) {
     input.spaceId,
     input.storyPointId
   );
-  return { progress: progress ?? null };
+  return {
+    progress: progress
+      ? toStoryPointProgressDocView(progress, input.storyPointId, ctx.now())
+      : null,
+  };
 }
 function toStoreListing(space) {
   return {
@@ -10332,18 +11811,79 @@ async function listStoreSpacesService(input, ctx) {
   const items = page.items.map((s) => toStoreListing(s));
   return { items, nextCursor: page.nextCursor };
 }
+async function getStoreSpaceService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.list", { tenantId });
+  const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  if (!space || space["publishedToStore"] !== true) fail("NOT_FOUND", "store listing not found");
+  return {
+    listing: toStoreListing(space),
+  };
+}
+function projectSpaceReview(r, tenantId, spaceId) {
+  return {
+    id: String(r["id"] ?? r["userId"] ?? ""),
+    spaceId: String(r["spaceId"] ?? spaceId),
+    tenantId: String(r["tenantId"] ?? tenantId),
+    userId: String(r["userId"] ?? r["id"] ?? ""),
+    ...(typeof r["userName"] === "string" ? { userName: r["userName"] } : {}),
+    rating: typeof r["rating"] === "number" ? Math.trunc(r["rating"]) : 1,
+    ...(typeof r["comment"] === "string" ? { comment: r["comment"] } : {}),
+    createdAt: tsRequired(r["createdAt"], r["updatedAt"]),
+    updatedAt: tsRequired(r["updatedAt"], r["createdAt"]),
+    createdBy: String(r["createdBy"] ?? r["userId"] ?? ""),
+    updatedBy: String(r["updatedBy"] ?? r["userId"] ?? ""),
+  };
+}
+async function listSpaceReviewsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.list", { tenantId });
+  const filter = input;
+  const page = await xrepos(ctx).spaceReviews.list(tenantId, filter.spaceId, {
+    ...(filter.cursor ? { cursor: filter.cursor } : {}),
+    limit: filter.limit ?? 20,
+  });
+  const items = page.items.map((r) => projectSpaceReview(r, tenantId, filter.spaceId));
+  return {
+    items,
+    nextCursor: page.nextCursor,
+  };
+}
+async function saveSpaceReviewService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.review", { spaceId: input.spaceId, tenantId, ownerUid: ctx.uid });
+  const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  if (!space || space["publishedToStore"] !== true) fail("NOT_FOUND", "store listing not found");
+  const { created } = await xrepos(ctx).spaceReviews.upsert(tenantId, input.spaceId, ctx.uid, {
+    spaceId: input.spaceId,
+    tenantId,
+    userId: ctx.uid,
+    rating: input.rating,
+    ...(input.comment !== void 0 ? { comment: input.comment } : {}),
+    createdBy: ctx.uid,
+    updatedBy: ctx.uid,
+  });
+  return {
+    success: true,
+    isUpdate: !created,
+  };
+}
 async function purchaseSpaceService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "space.purchase", { spaceId: input.spaceId, tenantId });
   return withIdempotency(ctx, tenantId, `purchaseSpace:${input.spaceId}`, async () => {
     const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
-    if (!space) fail2("NOT_FOUND", "space not found");
-    if (space["status"] !== "published") fail2("FAILED_PRECONDITION", "space is not purchasable");
+    if (!space) fail("NOT_FOUND", "space not found");
+    if (space["status"] !== "published") fail("FAILED_PRECONDITION", "space is not purchasable");
     if (await xrepos(ctx).consumerProfiles.isEnrolled(ctx.uid, input.spaceId)) {
-      return { success: true, transactionId: "already_enrolled", enrolledSpaceId: input.spaceId };
+      return {
+        success: true,
+        transactionId: "already_enrolled",
+        enrolledSpaceId: input.spaceId,
+      };
     }
     const price = space["price"]?.amountMinor ?? 0;
-    if (price > 0 && !input.paymentToken) fail2("PAYMENT_FAILED", "payment token required");
+    if (price > 0 && !input.paymentToken) fail("PAYMENT_FAILED", "payment token required");
     const transactionId = `txn_${Date.parse(ctx.now())}`;
     const now = ctx.now();
     await ctx.repos.tx(async (tx) => {
@@ -10355,7 +11895,11 @@ async function purchaseSpaceService(input, ctx) {
         uid: ctx.uid,
       });
     });
-    return { success: true, transactionId, enrolledSpaceId: input.spaceId };
+    return {
+      success: true,
+      transactionId,
+      enrolledSpaceId: input.spaceId,
+    };
   });
 }
 async function sendChatMessageService(input, ctx) {
@@ -10386,6 +11930,7 @@ async function sendChatMessageService(input, ctx) {
     timestamp: now,
     ...(input.mediaUrls ? { mediaUrls: input.mediaUrls } : {}),
   });
+  await projectChatBump(ctx, tenantId, { userId: ctx.uid, sessionId, lastMessageAt: now });
   let replyText = "Let me help you with that.";
   let tokensUsed;
   try {
@@ -10408,6 +11953,7 @@ async function sendChatMessageService(input, ctx) {
     timestamp: now,
     ...(tokensUsed !== void 0 ? { tokensUsed } : {}),
   });
+  await projectChatBump(ctx, tenantId, { userId: ctx.uid, sessionId, lastMessageAt: now });
   return {
     sessionId,
     message: {
@@ -10418,6 +11964,82 @@ async function sendChatMessageService(input, ctx) {
       ...(tokensUsed !== void 0 ? { tokensUsed } : {}),
     },
     ...(tokensUsed !== void 0 ? { tokensUsed } : {}),
+  };
+}
+function toMessageView(m) {
+  const out = {
+    id: m["id"],
+    role: m["role"],
+    text: m["text"],
+    timestamp: m["timestamp"],
+  };
+  if (Array.isArray(m["mediaUrls"])) out["mediaUrls"] = m["mediaUrls"];
+  if (typeof m["tokensUsed"] === "number") out["tokensUsed"] = m["tokensUsed"];
+  return out;
+}
+function toSessionView(s, messages) {
+  const out = {
+    id: s["id"],
+    tenantId: s["tenantId"],
+    userId: s["userId"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    itemId: s["itemId"],
+    sessionTitle: s["sessionTitle"] ?? "Tutor chat",
+    previewMessage: s["previewMessage"] ?? "",
+    messageCount: typeof s["messageCount"] === "number" ? s["messageCount"] : messages.length,
+    language: s["language"] ?? "en",
+    isActive: s["isActive"] !== false,
+    messages: messages.map(toMessageView),
+    createdAt: s["createdAt"],
+    updatedAt: s["updatedAt"],
+    createdBy: s["createdBy"] ?? s["userId"],
+    updatedBy: s["updatedBy"] ?? s["userId"],
+  };
+  if (s["questionType"] !== void 0) out["questionType"] = s["questionType"];
+  if (s["agentId"] !== void 0) out["agentId"] = s["agentId"];
+  if (s["agentName"] !== void 0) out["agentName"] = s["agentName"];
+  return out;
+}
+function toSessionSummary(s) {
+  return {
+    id: s["id"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    itemId: s["itemId"],
+    sessionTitle: s["sessionTitle"] ?? "Tutor chat",
+    previewMessage: s["previewMessage"] ?? "",
+    messageCount: typeof s["messageCount"] === "number" ? s["messageCount"] : 0,
+    language: s["language"] ?? "en",
+    isActive: s["isActive"] !== false,
+    updatedAt: s["updatedAt"],
+  };
+}
+async function getChatSessionService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  const chat = xrepos(ctx).chat;
+  const session = await chat.getSession(tenantId, input.sessionId);
+  if (!session) fail("NOT_FOUND", "chat session not found");
+  if (session["userId"] !== ctx.uid) {
+    authorize(ctx, "space.read", { spaceId: session["spaceId"], tenantId });
+  }
+  const messages = await chat.listMessages(tenantId, input.sessionId);
+  return {
+    session: toSessionView(session, messages),
+  };
+}
+async function listChatSessionsService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  const chat = xrepos(ctx).chat;
+  const page = await chat.listSessions(tenantId, ctx.uid, {
+    spaceId: input.spaceId,
+    itemId: input.itemId,
+    cursor: input.cursor,
+    limit: input.limit ?? 20,
+  });
+  return {
+    items: page.items.map(toSessionSummary),
+    nextCursor: page.nextCursor,
   };
 }
 function resolveTarget(ctx, userId) {
@@ -10461,12 +12083,16 @@ async function listStudentAchievementsService(input, ctx) {
     cursor: input.cursor,
     limit: input.limit ?? 20,
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    items: page.items,
+    nextCursor: page.nextCursor,
+  };
 }
 async function markAchievementsSeenService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const ids = input.mode === "ids" ? input.achievementIds : "all";
   const updated = await xrepos(ctx).gamification.markSeen(tenantId, ctx.uid, ids, ctx.now());
+  await clearAchievementUnlockProjection(ctx, tenantId, ctx.uid);
   return { updated };
 }
 async function saveAchievementDefinitionService(input, ctx) {
@@ -10493,7 +12119,11 @@ async function levelupGetLeaderboardService(input, ctx) {
     input.scope,
     params
   );
-  return { items: page.items, nextCursor: page.nextCursor, callerEntry: callerEntry ?? null };
+  return {
+    items: page.items,
+    nextCursor: page.nextCursor,
+    callerEntry: callerEntry ?? null,
+  };
 }
 async function listStudyGoalsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10503,7 +12133,10 @@ async function listStudyGoalsService(input, ctx) {
     cursor: input.cursor,
     limit: input.limit ?? 20,
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    items: page.items,
+    nextCursor: page.nextCursor,
+  };
 }
 async function saveStudyGoalService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10537,7 +12170,10 @@ async function listLearningInsightsService(input, ctx) {
     cursor: input.cursor,
     limit: input.limit ?? 20,
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    items: page.items,
+    nextCursor: page.nextCursor,
+  };
 }
 async function levelupDismissInsightService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10557,6 +12193,14 @@ async function expireAndGradeSessionService(args, ctx) {
       autoSubmitted: true,
     });
   });
+  if (typeof session["serverDeadline"] === "string" && typeof session["userId"] === "string") {
+    await projectTestSessionLive(ctx, tenantId, {
+      sessionId: args.sessionId,
+      userId: session["userId"],
+      serverDeadline: session["serverDeadline"],
+      status: "expired",
+    });
+  }
   const submissions = await xrepos(ctx).testSubmissions.list(tenantId, args.sessionId);
   const items = [];
   for (const sub of submissions) {
@@ -10607,6 +12251,14 @@ async function cleanupStaleSessionsService(ctx) {
     if (startedAt && Date.parse(startedAt) < staleCutoff) {
       assertTransition2("testSession", "in_progress", "abandoned");
       await ctx.repos.testSessions.upsert(tenantId, { id: s["id"], status: "abandoned" }, now);
+      if (typeof deadline === "string" && typeof s["userId"] === "string") {
+        await projectTestSessionLive(ctx, tenantId, {
+          sessionId: s["id"],
+          userId: s["userId"],
+          serverDeadline: deadline,
+          status: "abandoned",
+        });
+      }
     }
   }
 }
@@ -10649,7 +12301,10 @@ async function listNotificationsService(input, ctx) {
     limit: input.limit ?? 20,
     orderBy: "createdAt",
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    items: page.items,
+    nextCursor: page.nextCursor,
+  };
 }
 async function getNotificationBadgeService(_input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10755,7 +12410,10 @@ async function listAnnouncementsService(input, ctx) {
       isReadByMe: await xrepos(ctx).announcementReads.isReadBy(tenantId, a["id"], ctx.uid),
     }))
   );
-  return { items, nextCursor: page.nextCursor };
+  return {
+    items,
+    nextCursor: page.nextCursor,
+  };
 }
 async function markAnnouncementReadService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -10801,7 +12459,7 @@ async function unregisterDeviceTokenService(input, ctx) {
 async function sendDirectMessageService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "announcement.write", { tenantId });
-  if (input.recipientUids.length === 0) fail2("INVALID_ARGUMENT", "no recipients");
+  if (input.recipientUids.length === 0) fail("INVALID_ARGUMENT", "no recipients");
   const { created } = await emitNotificationService(
     {
       tenantId,
@@ -10831,7 +12489,7 @@ async function saveExamService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "exam.write", { examId: input.id, tenantId });
   const existing = input.id ? await ctx.repos.exams.get(tenantId, input.id) : null;
-  if (input.id && !existing) fail2("NOT_FOUND", `exam ${input.id} not found`);
+  if (input.id && !existing) fail("NOT_FOUND", `exam ${input.id} not found`);
   const data = input.data;
   const currentStatus = existing?.["status"] ?? "draft";
   if (data.status && data.status !== currentStatus) {
@@ -10846,14 +12504,13 @@ async function saveExamService(input, ctx) {
   if (existing && currentStatus !== "draft" && isPublished(currentStatus)) {
     for (const f of POST_PUBLISH_LOCKED_FIELDS) {
       if (f in data && data[f] !== void 0) {
-        fail2("INVALID_ARGUMENT", `field "${f}" is locked after publish`);
+        fail("INVALID_ARGUMENT", `field "${f}" is locked after publish`);
       }
     }
   }
   if (data.linkedSpaceId) {
     const space = await ctx.repos.spaces.get(tenantId, data.linkedSpaceId);
-    if (!space)
-      fail2("INVALID_ARGUMENT", `linkedSpaceId ${data.linkedSpaceId} not found in tenant`);
+    if (!space) fail("INVALID_ARGUMENT", `linkedSpaceId ${data.linkedSpaceId} not found in tenant`);
   }
   const now = ctx.now();
   const payload = {
@@ -10896,10 +12553,10 @@ function buildQuestionPaper(existing, data) {
 }
 async function validatePublish(ctx, tenantId, examId) {
   const page = await ctx.repos.exams.get(tenantId, examId);
-  if (!page) fail2("NOT_FOUND", `exam ${examId} not found`);
+  if (!page) fail("NOT_FOUND", `exam ${examId} not found`);
   const questionCount = page["questionPaper"]?.["questionCount"];
   if (!questionCount || questionCount < 1) {
-    fail2("FAILED_PRECONDITION", "cannot publish: exam has no extracted questions");
+    fail("FAILED_PRECONDITION", "cannot publish: exam has no extracted questions");
   }
 }
 var RELEASABLE_PIPELINE_STATUSES = /* @__PURE__ */ new Set([
@@ -10911,7 +12568,7 @@ async function releaseResultsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "exam.results.release", { examId: input.examId, tenantId });
   const exam = await ctx.repos.exams.get(tenantId, input.examId);
-  if (!exam) fail2("NOT_FOUND", `exam ${input.examId} not found`);
+  if (!exam) fail("NOT_FOUND", `exam ${input.examId} not found`);
   const now = ctx.now();
   const currentStatus = exam["status"] ?? "grading";
   if (currentStatus !== "results_released") {
@@ -10962,11 +12619,11 @@ async function extractQuestionsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
   const exam = await ctx.repos.exams.get(tenantId, input.examId);
-  if (!exam) fail2("NOT_FOUND", `exam ${input.examId} not found`);
+  if (!exam) fail("NOT_FOUND", `exam ${input.examId} not found`);
   const paper = exam["questionPaper"];
   const images = paper?.["images"] ?? [];
   if (images.length === 0) {
-    fail2("FAILED_PRECONDITION", "cannot extract: no question-paper images uploaded");
+    fail("FAILED_PRECONDITION", "cannot extract: no question-paper images uploaded");
   }
   const mode = input.mode ?? "full";
   const now = ctx.now();
@@ -10974,13 +12631,17 @@ async function extractQuestionsService(input, ctx) {
     {
       promptKey: "questionExtraction",
       operation: "questions.extract",
+      // The `questionExtraction` template's requiredVariables are
+      // {examTitle, examType, mode} — locked by the prompt-contract test.
       variables: {
-        examId: input.examId,
+        examTitle: String(exam["title"] ?? ""),
+        examType: String(exam["examType"] ?? "standard"),
         mode,
-        questionNumber: input.questionNumber,
-        totalMarks: exam["totalMarks"],
+        questionNumber: input.questionNumber ?? "",
+        totalMarks: exam["totalMarks"] ?? "unspecified",
       },
-      images: images.map((path) => ({ base64: path, mimeType: "image/jpeg" })),
+      // Storage PATHS — the ai gateway downloads + inlines the bytes (P0-B seam).
+      images: images.map((path) => ({ storagePath: path })),
       responseSchema: { type: "array" },
     },
     { tenantId, uid: ctx.uid, now: ctx.now, examId: input.examId }
@@ -11001,11 +12662,17 @@ async function extractQuestionsService(input, ctx) {
     warnings.push("one or more questions had readability issues");
   }
   const imageQualityAcceptable = !questions.some((q) => q.readabilityIssue);
+  const priorCount = paper?.["questionCount"] ?? 0;
   await ctx.repos.tx(async (tx) => {
+    const seenIds = /* @__PURE__ */ new Set();
     for (const q of questions) {
+      let id = `${input.examId}_q${q.order}`;
+      while (seenIds.has(id)) id = `${id}_dup`;
+      seenIds.add(id);
       tx.upsert("exams", tenantId, {
         // questions are stored as a nested collection in the real adapter; the
         // testing twin flattens. We mark the parent + write via the exam repo path.
+        id,
         examId: input.examId,
         ...q,
         _kind: "examQuestion",
@@ -11014,7 +12681,12 @@ async function extractQuestionsService(input, ctx) {
     tx.upsert("exams", tenantId, {
       id: input.examId,
       status: "question_paper_extracted",
-      questionPaper: { ...(paper ?? {}), questionCount: questions.length, extractedAt: now },
+      questionPaper: {
+        ...(paper ?? {}),
+        // A single-question re-extract must not clobber the full paper's count.
+        questionCount: mode === "single" && priorCount > 0 ? priorCount : questions.length,
+        extractedAt: now,
+      },
     });
   });
   const currentStatus = exam["status"] ?? "question_paper_uploaded";
@@ -11066,13 +12738,84 @@ async function listQuestionSubmissions(ctx, tenantId, submissionId) {
   } while (cursor);
   return out;
 }
+function port2(ctx) {
+  return ctx.repos.gradingProjections ?? null;
+}
+var GRADED_PHASES = /* @__PURE__ */ new Set(["grading_complete", "ready_for_review", "reviewed"]);
+var FAILED_PHASES = /* @__PURE__ */ new Set([
+  "scouting_failed",
+  "grading_failed",
+  "finalization_failed",
+  "failed",
+  "manual_review_needed",
+]);
+function bucketForPhase(phase) {
+  if (GRADED_PHASES.has(phase)) return "graded";
+  if (FAILED_PHASES.has(phase)) return "failed";
+  return "pending";
+}
+function reduceExamCounts(examId, index, now) {
+  let graded = 0;
+  let failed = 0;
+  let pending = 0;
+  let latestPending;
+  for (const phase of Object.values(index)) {
+    switch (bucketForPhase(phase)) {
+      case "graded":
+        graded += 1;
+        break;
+      case "failed":
+        failed += 1;
+        break;
+      default:
+        pending += 1;
+        latestPending = phase;
+    }
+  }
+  const total = graded + failed + pending;
+  return {
+    examId,
+    totalSubmissions: total,
+    gradedSubmissions: graded,
+    failedSubmissions: failed,
+    pendingSubmissions: pending,
+    // Coarse exam-wide phase: still-working while any submission is pending, else a
+    // terminal phase. Kept optional (a hint for the teacher ticker, not authority).
+    phase: pending > 0 ? (latestPending ?? "grading") : failed > 0 ? "grading_partial" : "reviewed",
+    updatedAt: now,
+  };
+}
+async function projectSubmissionStatus(ctx, tenantId, submission) {
+  const p = port2(ctx);
+  if (!p) return;
+  const now = ctx.now();
+  const status = {
+    pipelineStatus: submission.pipelineStatus,
+    updatedAt: now,
+  };
+  if (submission.gradingProgress) status.gradingProgress = submission.gradingProgress;
+  await p.setSubmissionStatus(tenantId, submission.submissionId, {
+    ownerStudentId: submission.studentId,
+    status,
+  });
+  await p.recordExamPhase(
+    tenantId,
+    submission.examId,
+    submission.submissionId,
+    submission.pipelineStatus,
+    now
+  );
+}
 async function processAnswerMappingService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.submissionId} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const examId = sub["examId"];
   const questions = await listExamQuestions(ctx, tenantId, examId);
-  const images = sub["answerSheets"]?.["images"];
+  const pages = sub["answerSheets"]?.["images"] ?? [];
+  if (pages.length === 0) {
+    fail("FAILED_PRECONDITION", "cannot scout: submission has no answer-sheet images");
+  }
   const ai = await ctx.ai.generate(
     {
       promptKey: "answerMapping",
@@ -11080,11 +12823,13 @@ async function processAnswerMappingService(input, ctx) {
       variables: {
         submissionId: input.submissionId,
         examId,
-        // The `answerMapping` prompt requires a `questions` variable (registry
-        // requiredVariables); pass the question-id list under that exact name.
+        // The `answerMapping` prompt requires {questions, pageCount} (registry
+        // requiredVariables); page indices in the reply are ZERO-BASED.
         questions: questions.map((q) => q["id"]),
+        pageCount: pages.length,
       },
-      images: (images ?? []).map((path) => ({ base64: path, mimeType: "image/jpeg" })),
+      // Storage PATHS — the ai gateway downloads + inlines the bytes (P0-B seam).
+      images: pages.map((path) => ({ storagePath: path })),
       responseSchema: { type: "object" },
     },
     { tenantId, uid: ctx.uid, now: ctx.now, examId }
@@ -11107,14 +12852,20 @@ async function processAnswerMappingService(input, ctx) {
   );
   for (const q of questions) {
     const qid = q["id"];
-    const pageIndices = routingMap[qid] ?? [];
+    const pageIndices = (routingMap[qid] ?? []).filter(
+      (i) => Number.isInteger(i) && i >= 0 && i < pages.length
+    );
+    const imageUrls = pageIndices.map((i) => pages[i]);
     await ctx.repos.submissions.upsert(
       tenantId,
       {
+        // Deterministic id — a re-scout (scouting_failed → scouting) UPSERTS the
+        // same QuestionSubmission docs instead of duplicating them (P2-H class).
+        id: `${input.submissionId}_${qid}`,
         submissionId: input.submissionId,
         questionId: qid,
         examId,
-        mapping: { pageIndices, imageUrls: [], scoutedAt: now },
+        mapping: { pageIndices, imageUrls, scoutedAt: now },
         gradingStatus: "pending",
         gradingRetryCount: 0,
         _kind: "questionSubmission",
@@ -11122,11 +12873,19 @@ async function processAnswerMappingService(input, ctx) {
       now
     );
   }
+  await projectSubmissionStatus(ctx, tenantId, {
+    submissionId: input.submissionId,
+    examId,
+    studentId: sub["studentId"],
+    pipelineStatus: "scouting",
+    gradingProgress: { graded: 0, total: questions.length },
+  });
 }
 async function resolveRubricService(ctx, tenantId, exam, question) {
   const rubric = question["rubric"] ?? null;
   let confidenceConfig = null;
-  const settingsId = exam["evaluationSettingsId"];
+  const gradingConfig = exam["gradingConfig"];
+  const settingsId = exam["evaluationSettingsId"] ?? gradingConfig?.["evaluationSettingsId"];
   if (settingsId) {
     const settings = await ctx.repos.tenants.get(tenantId, settingsId);
     confidenceConfig = settings?.["confidenceConfig"] ?? null;
@@ -11143,10 +12902,10 @@ async function resolveRubricService(ctx, tenantId, exam, question) {
 async function processAnswerGradingService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.submissionId} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const examId = sub["examId"];
   const exam = await ctx.repos.exams.get(tenantId, examId);
-  if (!exam) fail2("NOT_FOUND", `exam ${examId} not found`);
+  if (!exam) fail("NOT_FOUND", `exam ${examId} not found`);
   const questionsById = new Map(
     (await listExamQuestions(ctx, tenantId, examId)).map((q) => [q["id"], q])
   );
@@ -11172,21 +12931,47 @@ async function processAnswerGradingService(input, ctx) {
     }
     const { rubric, confidenceConfig } = await resolveRubricService(ctx, tenantId, exam, question);
     const now = ctx.now();
+    const mappedImageUrls = qsub["mapping"]?.["imageUrls"] ?? [];
+    if (mappedImageUrls.length === 0) {
+      const now2 = ctx.now();
+      await ctx.repos.submissions.upsert(
+        tenantId,
+        {
+          id: qsub["id"],
+          evaluation: {
+            score: 0,
+            maxScore: question["maxMarks"] ?? 0,
+            confidence: 0,
+            feedback:
+              "No answer-sheet pages were mapped to this question (possibly unanswered) \u2014 needs teacher review.",
+          },
+          gradingStatus: "needs_review",
+          _kind: "questionSubmission",
+        },
+        now2
+      );
+      needsReviewCount += 1;
+      continue;
+    }
     try {
       await markQuestionStatus(ctx, tenantId, qsub, "pending", "processing");
       const ai = await ctx.ai.generate(
         {
           promptKey: "answerGrading",
           operation: "grade.ai",
+          // The `answerGrading` template's requiredVariables are
+          // {question, maxMarks, rubric, answer} — locked by the contract test.
           variables: {
-            questionId,
-            maxMarks: question["maxMarks"],
+            question: String(question["text"] ?? ""),
+            maxMarks: question["maxMarks"] ?? 0,
             rubric,
-            mapping: qsub["mapping"],
+            answer: `The student's handwritten answer is in the ${mappedImageUrls.length} attached answer-sheet image(s). Grade ONLY what is written there.`,
           },
+          // The mapped pages as storage paths — the ai gateway inlines the bytes.
+          images: mappedImageUrls.map((path) => ({ storagePath: path })),
           responseSchema: { type: "object" },
         },
-        { tenantId, uid: ctx.uid, now: ctx.now }
+        { tenantId, uid: ctx.uid, now: ctx.now, examId }
       );
       const result = ai.json ?? {};
       const score = result.score ?? 0;
@@ -11241,14 +13026,15 @@ async function processAnswerGradingService(input, ctx) {
       });
     }
     batchIndex += 1;
-    await ctx.repos.submissions.upsert(
-      tenantId,
-      {
-        id: input.submissionId,
-        gradingProgress: { graded: gradedCount, total: qsubs.length, batchIndex },
-      },
-      now
-    );
+    const gradingProgress = { graded: gradedCount, total: qsubs.length, batchIndex };
+    await ctx.repos.submissions.upsert(tenantId, { id: input.submissionId, gradingProgress }, now);
+    await projectSubmissionStatus(ctx, tenantId, {
+      submissionId: input.submissionId,
+      examId,
+      studentId: sub["studentId"],
+      pipelineStatus: "grading",
+      gradingProgress,
+    });
   }
   const allGraded = failedCount === 0;
   return { allGraded, gradedCount, needsReviewCount, failedCount };
@@ -11264,7 +13050,7 @@ var CONFIRMED_STATUSES = /* @__PURE__ */ new Set(["graded", "overridden", "manua
 async function finalizeSubmissionService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.submissionId} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const examId = sub["examId"];
   const exam = await ctx.repos.exams.get(tenantId, examId);
   const qsubs = await listQuestionSubmissions(ctx, tenantId, input.submissionId);
@@ -11291,7 +13077,7 @@ async function finalizeSubmissionService(input, ctx) {
     totalScore,
     maxScore: totalMarks,
     percentage,
-    grade: gradeFor(percentage),
+    grade: gradeForPercentage(percentage),
     questionsGraded,
     totalQuestions: qsubs.length,
     completedAt: now,
@@ -11314,16 +13100,14 @@ async function finalizeSubmissionService(input, ctx) {
       createdAt: now,
     });
   });
-}
-function gradeFor(percentage) {
-  if (percentage >= 95) return "A+";
-  if (percentage >= 90) return "A";
-  if (percentage >= 85) return "B+";
-  if (percentage >= 80) return "B";
-  if (percentage >= 75) return "C+";
-  if (percentage >= 70) return "C";
-  if (percentage >= 60) return "D";
-  return "F";
+  if (currentStatus === "grading_complete") {
+    await projectSubmissionStatus(ctx, tenantId, {
+      submissionId: input.submissionId,
+      examId,
+      studentId: sub["studentId"],
+      pipelineStatus: "ready_for_review",
+    });
+  }
 }
 async function enqueuePipelineAdvance(ctx, submissionId, step) {
   const hook = ctx.enqueuePipelineAdvance;
@@ -11336,16 +13120,59 @@ async function enqueuePipelineAdvance(ctx, submissionId, step) {
 async function advancePipelineService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.submissionId} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const status = sub["pipelineStatus"] ?? "uploaded";
+  const owner = { examId: sub["examId"], studentId: sub["studentId"] };
   switch (input.step) {
     case "scouting": {
       if (status !== "uploaded" && status !== "scouting") return;
       if (status === "uploaded") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "scouting");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "scouting", owner);
       }
-      await processAnswerMappingService({ submissionId: input.submissionId }, ctx);
-      await setPipelineStatus(ctx, tenantId, input.submissionId, "scouting", "scouting_complete");
+      try {
+        await processAnswerMappingService({ submissionId: input.submissionId }, ctx);
+      } catch (err) {
+        const now = ctx.now();
+        const attempts = (sub["scoutingRetryCount"] ?? 0) + 1;
+        const message = String(err?.message ?? err);
+        await ctx.repos.submissions.upsert(
+          tenantId,
+          {
+            id: input.submissionId,
+            pipelineError: { step: "scouting", message, at: now },
+            scoutingRetryCount: attempts,
+          },
+          now
+        );
+        await setPipelineStatus(
+          ctx,
+          tenantId,
+          input.submissionId,
+          "scouting",
+          "scouting_failed",
+          owner
+        );
+        await ctx.repos.outbox.enqueue(tenantId, {
+          _kind: "gradingDeadLetter",
+          submissionId: input.submissionId,
+          questionSubmissionId: null,
+          pipelineStep: "scouting",
+          error: message,
+          attempts,
+          lastAttemptAt: now,
+          resolvedAt: null,
+          createdAt: now,
+        });
+        return;
+      }
+      await setPipelineStatus(
+        ctx,
+        tenantId,
+        input.submissionId,
+        "scouting",
+        "scouting_complete",
+        owner
+      );
       await enqueuePipelineAdvance(ctx, input.submissionId, "grading");
       return;
     }
@@ -11354,13 +13181,13 @@ async function advancePipelineService(input, ctx) {
         return;
       }
       if (status === "scouting_complete") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading", owner);
       } else if (status === "grading_partial") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading", owner);
       }
       const result = await processAnswerGradingService({ submissionId: input.submissionId }, ctx);
       const next = result.allGraded ? "grading_complete" : "grading_partial";
-      await setPipelineStatus(ctx, tenantId, input.submissionId, "grading", next);
+      await setPipelineStatus(ctx, tenantId, input.submissionId, "grading", next, owner);
       if (next === "grading_complete") {
         await enqueuePipelineAdvance(ctx, input.submissionId, "finalize");
       }
@@ -11372,15 +13199,21 @@ async function advancePipelineService(input, ctx) {
       return;
     }
     default:
-      fail2("INVALID_ARGUMENT", `unknown pipeline step ${String(input.step)}`);
+      fail("INVALID_ARGUMENT", `unknown pipeline step ${String(input.step)}`);
   }
 }
-async function setPipelineStatus(ctx, tenantId, submissionId, from, to) {
+async function setPipelineStatus(ctx, tenantId, submissionId, from, to, owner) {
   if (from === to) return;
   if (!canTransition2("submission", from, to)) {
     assertTransition2("submission", from, to);
   }
   await ctx.repos.submissions.upsert(tenantId, { id: submissionId, pipelineStatus: to }, ctx.now());
+  await projectSubmissionStatus(ctx, tenantId, {
+    submissionId,
+    examId: owner.examId,
+    studentId: owner.studentId,
+    pipelineStatus: to,
+  });
 }
 async function uploadAnswerSheetsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -11389,7 +13222,7 @@ async function uploadAnswerSheetsService(input, ctx) {
   const key = `uploadAnswerSheets:${input.examId}:${input.studentId}`;
   return withIdempotency(ctx, tenantId, key, async () => {
     const exam = await ctx.repos.exams.get(tenantId, input.examId);
-    if (!exam) fail2("NOT_FOUND", `exam ${input.examId} not found`);
+    if (!exam) fail("NOT_FOUND", `exam ${input.examId} not found`);
     const now = ctx.now();
     const student = await ctx.repos.students.get(tenantId, input.studentId);
     const studentName = student?.["name"] ?? student?.["fullName"] ?? "Unknown";
@@ -11449,7 +13282,7 @@ function validatePathsInTenant(paths, tenantId) {
   const prefix = `${TENANT_PREFIX}${tenantId}/`;
   for (const p of paths) {
     if (!p.startsWith(prefix)) {
-      fail2("PERMISSION_DENIED", `storage path "${p}" is not scoped to tenant ${tenantId}`);
+      fail("PERMISSION_DENIED", `storage path "${p}" is not scoped to tenant ${tenantId}`);
     }
   }
 }
@@ -11470,13 +13303,13 @@ async function gradeQuestionService(input, ctx) {
       authorize(ctx, "grade.ai", { submissionId: input.submissionId, tenantId });
       return aiGrade(input, ctx, tenantId);
     default:
-      return fail2("INVALID_ARGUMENT", "unknown gradeQuestion mode");
+      return fail("INVALID_ARGUMENT", "unknown gradeQuestion mode");
   }
 }
 async function manualGrade(input, ctx, tenantId) {
   const qsubs = await listQuestionSubmissions(ctx, tenantId, input.submissionId);
   const qsub = qsubs.find((q) => q["questionId"] === input.questionId);
-  if (!qsub) fail2("NOT_FOUND", `question submission for ${input.questionId} not found`);
+  if (!qsub) fail("NOT_FOUND", `question submission for ${input.questionId} not found`);
   const now = ctx.now();
   const prevEval = qsub["evaluation"];
   const originalScore = prevEval?.["score"] ?? 0;
@@ -11584,7 +13417,7 @@ async function resolveDeadLetterService(input, ctx) {
   const entry = entries.find(
     (e) => e["_kind"] === "gradingDeadLetter" && e["id"] === input.entryId
   );
-  if (!entry) fail2("NOT_FOUND", `dead-letter entry ${input.entryId} not found`);
+  if (!entry) fail("NOT_FOUND", `dead-letter entry ${input.entryId} not found`);
   if (entry["resolvedAt"]) {
     return { success: true, resolution: entry["resolutionMethod"] };
   }
@@ -11616,7 +13449,7 @@ async function requestUploadUrlService(input, ctx) {
       input.classId &&
       !ctx.classIds.map(String).includes(String(input.classId))
     ) {
-      fail2("PERMISSION_DENIED", `class ${input.classId} is outside the scanner's scope`);
+      fail("PERMISSION_DENIED", `class ${input.classId} is outside the scanner's scope`);
     }
   } else {
     authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
@@ -11639,7 +13472,7 @@ function buildScopedPath(tenantId, input) {
   if (input.kind === "question-paper") {
     return `tenants/${tenantId}/exams/${input.examId}/question-paper/${stamp}-${rand}.${ext}`;
   }
-  if (!input.studentId) fail2("INVALID_ARGUMENT", "studentId required for answer-sheet upload");
+  if (!input.studentId) fail("INVALID_ARGUMENT", "studentId required for answer-sheet upload");
   return `tenants/${tenantId}/exams/${input.examId}/answer-sheets/${input.studentId}/${stamp}-${rand}.${ext}`;
 }
 function extFor(contentType) {
@@ -11676,8 +13509,8 @@ async function getExamService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "exam.read", { examId: input.id, tenantId });
   const exam = await ctx.repos.exams.get(tenantId, input.id);
-  if (!exam) fail2("NOT_FOUND", `exam ${input.id} not found`);
-  return exam;
+  if (!exam) fail("NOT_FOUND", `exam ${input.id} not found`);
+  return toExamDetailView(exam);
 }
 async function listQuestionsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -11685,7 +13518,7 @@ async function listQuestionsService(input, ctx) {
   const authoring = isAuthoringRole(ctx);
   const questions = await listExamQuestions(ctx, tenantId, input.examId);
   return {
-    questions: questions.map((q) => projectQuestion(q, authoring)),
+    questions: questions.map((q) => toExamQuestionView(q, authoring)),
   };
 }
 async function listSubmissionsService(input, ctx) {
@@ -11730,13 +13563,13 @@ async function getSubmissionService(input, ctx) {
     tenantId,
   });
   const sub = await ctx.repos.submissions.get(tenantId, input.id);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.id} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.id} not found`);
   if (!teacherish) {
     if (ctx.role === "student" && sub["studentId"] !== ctx.entityIds.studentId) {
-      fail2("PERMISSION_DENIED", "not your submission");
+      fail("PERMISSION_DENIED", "not your submission");
     }
     if (ctx.role === "parent" && !ctx.studentIds.includes(sub["studentId"])) {
-      fail2("PERMISSION_DENIED", "not a linked child");
+      fail("PERMISSION_DENIED", "not a linked child");
     }
     if (sub["resultsReleased"] !== true) {
       return stripReleaseGated(toSubmissionDetailView(sub));
@@ -11746,22 +13579,22 @@ async function getSubmissionService(input, ctx) {
 }
 function toSubmissionDetailView(d) {
   const ans = d["answerSheets"] ?? {};
-  return compact({
+  return compact4({
     id: d["id"],
     examId: d["examId"],
     studentId: d["studentId"],
     studentName: d["studentName"] ?? "",
     rollNumber: d["rollNumber"] ?? "",
     classId: d["classId"],
-    answerSheets: compact({
+    answerSheets: compact4({
       images: ans["images"] ?? [],
       uploadedAt: ans["uploadedAt"] ?? d["createdAt"],
       uploadedBy: ans["uploadedBy"] ?? d["uploadedBy"],
-      uploadSource: ans["uploadSource"] ?? "web",
+      uploadSource: canonUploadSource(ans["uploadSource"] ?? "web"),
     }),
     scoutingResult: d["scoutingResult"],
     summary: toSubmissionSummary(d),
-    pipelineStatus: d["pipelineStatus"],
+    pipelineStatus: canonPipelineStatus(d["pipelineStatus"]),
     pipelineError: d["pipelineError"],
     retryCount: d["retryCount"] ?? 0,
     gradingProgress: d["gradingProgress"],
@@ -11773,12 +13606,13 @@ function toSubmissionDetailView(d) {
 }
 function toSubmissionSummary(d) {
   const s = d["summary"] ?? {};
-  return compact({
+  return compact4({
     totalScore: s["totalScore"] ?? d["totalScore"] ?? 0,
     maxScore: s["maxScore"] ?? d["maxScore"] ?? 0,
     percentage: s["percentage"] ?? d["percentage"] ?? 0,
-    // '' is not a GradeLetter — coerce any empty/missing grade to 'F'.
-    grade: s["grade"] || "F",
+    // '' is not a GradeLetter — coerce empty/missing to 'F'; canonicalize the rest
+    // (legacy 'C+' etc. pass through the strict letter enum; unknown FAILS — AD-4).
+    grade: canonGrade(s["grade"] ?? d["grade"]),
     questionsGraded: s["questionsGraded"] ?? 0,
     totalQuestions: s["totalQuestions"] ?? 0,
     completedAt: s["completedAt"] ?? null,
@@ -11803,7 +13637,7 @@ async function listQuestionSubmissionsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const teacherish = isTeacherish(ctx);
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
-  if (!sub) fail2("NOT_FOUND", `submission ${input.submissionId} not found`);
+  if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   authorize(ctx, teacherish ? "submission.read" : "submission.readReleased", {
     submissionId: input.submissionId,
     tenantId,
@@ -11811,10 +13645,10 @@ async function listQuestionSubmissionsService(input, ctx) {
   const released = sub["resultsReleased"] === true;
   if (!teacherish) {
     if (ctx.role === "student" && sub["studentId"] !== ctx.entityIds.studentId) {
-      fail2("PERMISSION_DENIED", "not your submission");
+      fail("PERMISSION_DENIED", "not your submission");
     }
     if (ctx.role === "parent" && !ctx.studentIds.includes(sub["studentId"])) {
-      fail2("PERMISSION_DENIED", "not a linked child");
+      fail("PERMISSION_DENIED", "not a linked child");
     }
   }
   const qsubs = await listQuestionSubmissions(ctx, tenantId, input.submissionId);
@@ -11827,6 +13661,8 @@ async function listQuestionSubmissionsService(input, ctx) {
         return view;
       }
       delete view["evaluation"];
+      delete view["manualOverride"];
+      delete view["gradingError"];
       return view;
     }),
   };
@@ -11834,12 +13670,16 @@ async function listQuestionSubmissionsService(input, ctx) {
 function toQuestionSubmissionView(d, examId) {
   const ev = d["evaluation"];
   const maxScore = d["maxScore"] ?? ev?.["maxScore"] ?? 0;
-  return compact({
+  return compact4({
     id: d["id"],
     submissionId: d["submissionId"],
     questionId: d["questionId"],
     examId: d["examId"] ?? examId,
-    mapping: d["mapping"] ?? { pageIndices: [], imageUrls: [], scoutedAt: d["createdAt"] },
+    mapping: d["mapping"] ?? {
+      pageIndices: [],
+      imageUrls: [],
+      scoutedAt: d["createdAt"],
+    },
     evaluation: ev ? toUnifiedEvaluation(ev, d, maxScore) : void 0,
     gradingStatus: d["gradingStatus"] ?? "pending",
     gradingError: d["gradingError"],
@@ -11850,7 +13690,7 @@ function toQuestionSubmissionView(d, examId) {
 }
 function toUnifiedEvaluation(ev, parent, maxScore) {
   const score = ev["score"] ?? parent["score"] ?? 0;
-  return compact({
+  return compact4({
     score,
     maxScore: ev["maxScore"] ?? maxScore,
     correctness: ev["correctness"] ?? (maxScore > 0 ? score / maxScore : 0),
@@ -11863,8 +13703,9 @@ function toUnifiedEvaluation(ev, parent, maxScore) {
     summary: ev["summary"] ?? ev["feedback"],
     confidence: ev["confidence"] ?? 1,
     mistakeClassification: ev["mistakeClassification"],
-    tokensUsed: ev["tokensUsed"] ?? ev["tokenUsage"],
-    costUsd: ev["costUsd"],
+    // ⚷ `tokensUsed`/`costUsd` (cost telemetry) are NEVER emitted into a client
+    // view — `stripEvaluationCost` only catches the legacy `tokenUsage` alias, so
+    // mapping them here would leak the renamed field past the strip.
     gradedAt: ev["gradedAt"] ?? parent["updatedAt"] ?? parent["createdAt"],
   });
 }
@@ -11872,8 +13713,8 @@ async function getExamAnalyticsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "exam.read", { examId: input.examId, tenantId });
   const doc = await ctx.repos.exams.get(tenantId, `analytics_${input.examId}`);
-  if (!doc) fail2("NOT_FOUND", `exam analytics ${input.examId} not found`);
-  return doc;
+  if (!doc) fail("NOT_FOUND", `exam analytics ${input.examId} not found`);
+  return toExamAnalyticsView(doc);
 }
 async function listEvaluationSettingsService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -11882,7 +13723,7 @@ async function listEvaluationSettingsService(input, ctx) {
   const all = await listEvaluationSettings(ctx, tenantId);
   const visible = all.filter((s) => authoring || s["isPublic"] === true || input.includePublic);
   return {
-    settings: visible.map((s) => projectEvaluationSettings(s, authoring)),
+    settings: visible.map((s) => projectEvaluationSettings(toEvaluationSettingsView(s), authoring)),
   };
 }
 async function listDeadLetterService(input, ctx) {
@@ -11894,9 +13735,11 @@ async function listDeadLetterService(input, ctx) {
   if (f.resolved !== void 0) {
     dlq = dlq.filter((e) => Boolean(e["resolvedAt"]) === f.resolved);
   }
-  if (f.pipelineStep) dlq = dlq.filter((e) => e["pipelineStep"] === f.pipelineStep);
+  if (f.pipelineStep) {
+    dlq = dlq.filter((e) => canonPipelineStep(e["pipelineStep"]) === f.pipelineStep);
+  }
   for (const e of entries) await ctx.repos.outbox.enqueue(tenantId, e);
-  return { items: dlq, nextCursor: null };
+  return { items: dlq.map(toDeadLetterView), nextCursor: null };
 }
 async function getSubmissionForExamService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -11912,15 +13755,30 @@ async function getSubmissionForExamService(input, ctx) {
   if (!teacherish && sub["resultsReleased"] !== true) {
     return null;
   }
-  return sub;
+  return toSubmissionDetailView(sub);
 }
-function compact(o) {
+function compact4(o) {
   const out = {};
   for (const [k, v] of Object.entries(o)) if (v !== void 0) out[k] = v;
   return out;
 }
+function canonExamStatus(v) {
+  return typeof v === "string" ? zLegacyExamStatusRead.parse(v) : v;
+}
+function canonPipelineStatus(v) {
+  return typeof v === "string" ? zLegacySubmissionPipelineStatusRead.parse(v) : v;
+}
+function canonUploadSource(v) {
+  return typeof v === "string" ? zLegacyUploadSourceRead.parse(v) : v;
+}
+function canonPipelineStep(v) {
+  return typeof v === "string" ? zLegacyGradingPipelineStepRead.parse(v) : v;
+}
+function canonGrade(v) {
+  return v ? zLegacyGradeLetterRead.parse(v) : "F";
+}
 function toExamListView(d) {
-  return compact({
+  return compact4({
     id: d["id"],
     title: d["title"],
     subject: d["subject"] ?? "",
@@ -11930,7 +13788,7 @@ function toExamListView(d) {
     duration: d["duration"] ?? 0,
     totalMarks: d["totalMarks"] ?? 0,
     passingMarks: d["passingMarks"] ?? 0,
-    status: d["status"],
+    status: canonExamStatus(d["status"]),
     academicSessionId: d["academicSessionId"],
     linkedSpaceId: d["linkedSpaceId"],
     linkedSpaceTitle: d["linkedSpaceTitle"],
@@ -11939,15 +13797,105 @@ function toExamListView(d) {
     updatedAt: d["updatedAt"],
   });
 }
+function toExamDetailView(d) {
+  const gradingConfig = d["gradingConfig"] ?? {};
+  return compact4({
+    id: d["id"],
+    title: d["title"],
+    subject: d["subject"] ?? "",
+    topics: d["topics"] ?? [],
+    classIds: d["classIds"] ?? [],
+    sectionIds: d["sectionIds"],
+    examDate: d["examDate"] ?? d["createdAt"],
+    duration: d["duration"] ?? 0,
+    academicSessionId: d["academicSessionId"],
+    totalMarks: d["totalMarks"] ?? 0,
+    passingMarks: d["passingMarks"] ?? 0,
+    status: canonExamStatus(d["status"]),
+    questionPaper: d["questionPaper"],
+    gradingConfig: d["gradingConfig"],
+    // Canonical reader precedence (U1.3): top-level wins; nested is @deprecated read-only.
+    evaluationSettingsId: d["evaluationSettingsId"] ?? gradingConfig["evaluationSettingsId"],
+    linkedSpaceId: d["linkedSpaceId"],
+    linkedSpaceTitle: d["linkedSpaceTitle"],
+    linkedStoryPointId: d["linkedStoryPointId"],
+    stats: d["stats"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"],
+  });
+}
+function toExamQuestionView(d, authoring) {
+  return compact4({
+    id: d["id"],
+    examId: d["examId"],
+    text: d["text"] ?? "",
+    imageUrls: d["imageUrls"],
+    maxMarks: d["maxMarks"] ?? 0,
+    order: d["order"] ?? d["orderIndex"] ?? 0,
+    rubric: projectRubric(d["rubric"], authoring),
+    questionType: d["questionType"],
+    subQuestions: d["subQuestions"],
+    extractionConfidence: d["extractionConfidence"],
+    readabilityIssue: d["readabilityIssue"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"] ?? d["createdAt"],
+  });
+}
+function toExamAnalyticsView(d) {
+  return compact4({
+    examId: d["examId"],
+    totalSubmissions: d["totalSubmissions"] ?? 0,
+    gradedSubmissions: d["gradedSubmissions"] ?? 0,
+    avgScore: d["avgScore"] ?? 0,
+    avgPercentage: d["avgPercentage"] ?? 0,
+    passRate: d["passRate"] ?? 0,
+    medianScore: d["medianScore"] ?? 0,
+    scoreDistribution: d["scoreDistribution"],
+    questionAnalytics: d["questionAnalytics"] ?? {},
+    classBreakdown: d["classBreakdown"] ?? {},
+    topicPerformance: d["topicPerformance"] ?? {},
+    computedAt: d["computedAt"] ?? d["lastUpdatedAt"] ?? d["createdAt"],
+    lastUpdatedAt: d["lastUpdatedAt"] ?? d["computedAt"] ?? d["updatedAt"],
+  });
+}
+function toEvaluationSettingsView(d) {
+  return compact4({
+    id: d["id"],
+    name: d["name"] ?? "",
+    description: d["description"],
+    isDefault: d["isDefault"] ?? false,
+    isPublic: d["isPublic"],
+    enabledDimensions: d["enabledDimensions"] ?? [],
+    displaySettings: d["displaySettings"],
+    confidenceConfig: d["confidenceConfig"],
+    usageQuota: d["usageQuota"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"] ?? d["createdAt"],
+  });
+}
+function toDeadLetterView(d) {
+  return compact4({
+    id: d["id"],
+    submissionId: d["submissionId"],
+    questionSubmissionId: d["questionSubmissionId"],
+    pipelineStep: canonPipelineStep(d["pipelineStep"]),
+    error: d["error"] ?? "",
+    attempts: d["attempts"] ?? 0,
+    lastAttemptAt: d["lastAttemptAt"] ?? d["createdAt"],
+    resolvedAt: d["resolvedAt"] ?? null,
+    resolutionMethod: d["resolutionMethod"],
+    createdAt: d["createdAt"],
+  });
+}
 function toSubmissionListView(d) {
-  return compact({
+  return compact4({
     id: d["id"],
     examId: d["examId"],
     studentId: d["studentId"],
     studentName: d["studentName"] ?? "",
     rollNumber: d["rollNumber"] ?? "",
     classId: d["classId"],
-    pipelineStatus: d["pipelineStatus"],
+    pipelineStatus: canonPipelineStatus(d["pipelineStatus"]),
     summary: toSubmissionSummary(d),
     gradingProgress: d["gradingProgress"],
     resultsReleased: d["resultsReleased"] ?? false,
@@ -12227,23 +14175,26 @@ async function getSummaryService(input, ctx) {
     case "student": {
       const tenantId = requireTenant(ctx);
       const studentId = input.studentId ?? ctx.entityIds.studentId;
-      if (!studentId) fail2("INVALID_ARGUMENT", "studentId required");
+      if (!studentId) fail("INVALID_ARGUMENT", "studentId required");
       assertStudentReadable(ctx, studentId);
       authorize(ctx, "summary.read", { studentId, tenantId });
       const doc = await getKinded(ctx, tenantId, STUDENT_SUMMARY, studentId);
-      if (!doc) fail2("NOT_FOUND", `no summary for student ${studentId}`);
-      return { scope: "student", studentSummary: projectStudentSummary(doc) };
+      if (!doc) fail("NOT_FOUND", `no summary for student ${studentId}`);
+      return {
+        scope: "student",
+        studentSummary: projectStudentSummary(doc),
+      };
     }
     case "class": {
       const tenantId = requireTenant(ctx);
       const classId = input.classId;
-      if (!classId) fail2("INVALID_ARGUMENT", "classId required");
+      if (!classId) fail("INVALID_ARGUMENT", "classId required");
       authorize(ctx, "summary.read", { classId, tenantId });
       if (ctx.role === "teacher" && !ctx.classIds.map(String).includes(String(classId))) {
-        fail2("PERMISSION_DENIED", `class ${classId} is not assigned to this teacher`);
+        fail("PERMISSION_DENIED", `class ${classId} is not assigned to this teacher`);
       }
       const doc = await getKinded(ctx, tenantId, CLASS_SUMMARY, classId);
-      if (!doc) fail2("NOT_FOUND", `no summary for class ${classId}`);
+      if (!doc) fail("NOT_FOUND", `no summary for class ${classId}`);
       return {
         scope: "class",
         classSummary: {
@@ -12258,28 +14209,28 @@ async function getSummaryService(input, ctx) {
       };
     }
     case "platform": {
-      if (!ctx.isSuperAdmin) fail2("PERMISSION_DENIED", "platform scope is super-admin only");
+      if (!ctx.isSuperAdmin) fail("PERMISSION_DENIED", "platform scope is super-admin only");
       return {
         scope: "platform",
         platformSummary: await computePlatformSummary(),
       };
     }
     case "health": {
-      if (!ctx.isSuperAdmin) fail2("PERMISSION_DENIED", "health scope is super-admin only");
+      if (!ctx.isSuperAdmin) fail("PERMISSION_DENIED", "health scope is super-admin only");
       return {
         scope: "health",
         healthSummary: { snapshot: await computeHealthSnapshot(ctx) },
       };
     }
     default:
-      return fail2("INVALID_ARGUMENT", "unknown summary scope");
+      return fail("INVALID_ARGUMENT", "unknown summary scope");
   }
 }
 async function getExamAnalyticsService2(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "report.generate", { examId: input.examId, tenantId });
   const doc = await getKinded(ctx, tenantId, EXAM_ANALYTICS, input.examId);
-  if (!doc) fail2("NOT_FOUND", `no analytics for exam ${input.examId}`);
+  if (!doc) fail("NOT_FOUND", `no analytics for exam ${input.examId}`);
   return doc;
 }
 async function listInsightsService(input, ctx) {
@@ -12307,11 +14258,11 @@ async function getPerformanceTrendsService(input, ctx) {
 async function getChildSummaryService(input, ctx) {
   const tenantId = requireTenant(ctx);
   if (!ctx.studentIds.includes(input.studentId)) {
-    fail2("PERMISSION_DENIED", "student is not a linked child");
+    fail("PERMISSION_DENIED", "student is not a linked child");
   }
   authorize(ctx, "child.read", { studentId: input.studentId, tenantId });
   const studentSummary = await getKinded(ctx, tenantId, STUDENT_SUMMARY, input.studentId);
-  if (!studentSummary) fail2("NOT_FOUND", `no summary for child ${input.studentId}`);
+  if (!studentSummary) fail("NOT_FOUND", `no summary for child ${input.studentId}`);
   const insightsPage = await ctx.repos.tenants.list(tenantId, {
     filter: (d) =>
       d["_kind"] === INSIGHT && d["studentId"] === input.studentId && !d["dismissedAt"],
@@ -12325,7 +14276,7 @@ async function getChildSummaryService(input, ctx) {
 async function listLinkedChildrenService(input, ctx) {
   const tenantId = requireTenant(ctx);
   if (ctx.role !== "parent" && !ctx.isSuperAdmin) {
-    fail2("PERMISSION_DENIED", "linked children are a parent read");
+    fail("PERMISSION_DENIED", "linked children are a parent read");
   }
   const childIds = ctx.studentIds;
   const summaries = await Promise.all(
@@ -12352,7 +14303,7 @@ async function listLinkedChildrenService(input, ctx) {
 async function listParentAlertsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   if (ctx.role !== "parent" && !ctx.isSuperAdmin) {
-    fail2("PERMISSION_DENIED", "parent alerts are a parent read");
+    fail("PERMISSION_DENIED", "parent alerts are a parent read");
   }
   const now = ctx.now();
   const alerts = [];
@@ -12377,32 +14328,98 @@ async function listParentAlertsService(input, ctx) {
   }
   return { items: alerts, nextCursor: null };
 }
+var PLATFORM_ACTIVITY_ACTION_SET = /* @__PURE__ */ new Set([
+  "tenant_created",
+  "tenant_updated",
+  "tenant_deactivated",
+  "tenant_reactivated",
+  "user_created",
+  "users_bulk_imported",
+]);
+function projectPlatformActivity(d) {
+  const action = String(d["action"] ?? "tenant_updated");
+  return {
+    id: String(d["id"] ?? ""),
+    action: PLATFORM_ACTIVITY_ACTION_SET.has(action) ? action : "tenant_updated",
+    actorUid: String(d["actorUid"] ?? d["actorId"] ?? ""),
+    actorEmail: String(d["actorEmail"] ?? ""),
+    ...(typeof d["tenantId"] === "string" && d["tenantId"] ? { tenantId: d["tenantId"] } : {}),
+    metadata: d["metadata"] ?? {},
+    createdAt: tsRequired(d["createdAt"], d["timestamp"]),
+  };
+}
 async function listPlatformActivityService(input, ctx) {
-  if (!ctx.isSuperAdmin) fail2("PERMISSION_DENIED", "platform activity is super-admin only");
-  const page = await ctx.repos.tenants.list("__platform__", {
-    filter: (d) =>
-      d["_kind"] === "platformActivityLog" && (!input.action || d["action"] === input.action),
-    cursor: input.cursor,
+  if (!ctx.isSuperAdmin) fail("PERMISSION_DENIED", "platform activity is super-admin only");
+  const tenantFilter = input.tenantOverride;
+  const page = await xrepos(ctx).platformActivity.list({
+    ...(input.action ? { action: input.action } : {}),
+    ...(tenantFilter ? { tenantId: tenantFilter } : {}),
+    ...(input.cursor ? { cursor: input.cursor } : {}),
     limit: input.limit ?? 20,
   });
-  return { items: page.items, nextCursor: page.nextCursor };
+  return {
+    items: page.items.map(projectPlatformActivity),
+    nextCursor: page.nextCursor,
+  };
+}
+function projectCostSummary(d, tenantId, granularity) {
+  return {
+    id: String(d["id"] ?? ""),
+    tenantId: String(d["tenantId"] ?? tenantId),
+    ...(granularity === "daily"
+      ? { date: String(d["date"] ?? "") }
+      : { month: String(d["month"] ?? "") }),
+    totalCalls: typeof d["totalCalls"] === "number" ? Math.trunc(d["totalCalls"]) : 0,
+    totalInputTokens:
+      typeof d["totalInputTokens"] === "number" ? Math.trunc(d["totalInputTokens"]) : 0,
+    totalOutputTokens:
+      typeof d["totalOutputTokens"] === "number" ? Math.trunc(d["totalOutputTokens"]) : 0,
+    totalCostUsd: typeof d["totalCostUsd"] === "number" ? d["totalCostUsd"] : 0,
+    byPurpose: d["byPurpose"] ?? {},
+    byModel: d["byModel"] ?? {},
+    ...(typeof d["budgetLimitUsd"] === "number" ? { budgetLimitUsd: d["budgetLimitUsd"] } : {}),
+    ...(typeof d["budgetUsedPercent"] === "number"
+      ? { budgetUsedPercent: d["budgetUsedPercent"] }
+      : {}),
+    ...(typeof d["budgetAlertSent"] === "boolean" ? { budgetAlertSent: d["budgetAlertSent"] } : {}),
+    computedAt: tsRequired(d["computedAt"], d["updatedAt"], d["createdAt"]),
+  };
 }
 async function getCostSummaryService(input, ctx) {
   const tenantId = requireTenant(ctx);
   if (!ctx.isSuperAdmin && ctx.role !== "tenantAdmin") {
-    fail2("PERMISSION_DENIED", "cost summary is admin only");
+    fail("PERMISSION_DENIED", "cost summary is admin only");
   }
-  const kind = input.granularity === "monthly" ? COST_MONTHLY : COST_DAILY;
-  const page = await ctx.repos.tenants.list(tenantId, {
-    filter: (d) => {
-      if (d["_kind"] !== kind) return false;
-      if (input.date && d["date"] !== input.date) return false;
-      if (input.month && d["month"] !== input.month) return false;
-      return true;
-    },
-    limit: 200,
-  });
-  return { summaries: page.items };
+  const granularity = input.granularity === "monthly" ? "monthly" : "daily";
+  const range = input.range;
+  const canonical =
+    granularity === "monthly"
+      ? await xrepos(ctx).costSummaries.listMonthly(tenantId, {
+          ...(input.month ? { month: input.month } : {}),
+        })
+      : await xrepos(ctx).costSummaries.listDaily(tenantId, {
+          ...(input.date ? { date: input.date } : {}),
+          ...(range?.from ? { from: range.from.slice(0, 10) } : {}),
+          ...(range?.to ? { to: range.to.slice(0, 10) } : {}),
+        });
+  const docs =
+    canonical.length > 0
+      ? canonical
+      : (
+          await ctx.repos.tenants.list(tenantId, {
+            filter: (d) => {
+              if (d["_kind"] !== (granularity === "monthly" ? COST_MONTHLY : COST_DAILY))
+                return false;
+              if (input.date && d["date"] !== input.date) return false;
+              if (input.month && d["month"] !== input.month) return false;
+              return true;
+            },
+            limit: 200,
+          })
+        ).items;
+  return {
+    summaries: docs.map((d) => projectCostSummary(d, tenantId, granularity)),
+  };
 }
 async function getLeaderboardService(input, ctx) {
   const tenantId = requireTenant(ctx);
@@ -12461,7 +14478,7 @@ function assertStudentReadable(ctx, studentId) {
   if (ctx.role === "student" && ctx.entityIds.studentId === studentId) return;
   if (ctx.role === "parent" && ctx.studentIds.includes(studentId)) return;
   if (ctx.role === "teacher" || ctx.role === "tenantAdmin" || ctx.role === "staff") return;
-  fail2("PERMISSION_DENIED", "not permitted to read this student");
+  fail("PERMISSION_DENIED", "not permitted to read this student");
 }
 function bucketTrends(recent, _granularity) {
   return recent.map((e) => ({
@@ -12489,6 +14506,98 @@ async function computeHealthSnapshot(ctx) {
     status: "healthy",
     services: {},
     checkedAt: now,
+  };
+}
+function cellStatus(started, completed, dueAt, now) {
+  if (completed) return "completed";
+  if (dueAt && dueAt < now) return "overdue";
+  return started ? "in_progress" : "not_started";
+}
+var includesClass = (classId) => (d) =>
+  Array.isArray(d["classIds"]) && d["classIds"].map(String).includes(classId);
+async function getAssignmentMatrixService(input, ctx) {
+  const tenantId = requireTenant(ctx);
+  if (!ctx.isSuperAdmin && !isTeacherish(ctx)) {
+    fail("PERMISSION_DENIED", "assignment matrix is a teaching-staff read");
+  }
+  authorize(ctx, "summary.read", { classId: input.classId, tenantId });
+  const classId = String(input.classId);
+  const now = ctx.now();
+  const roster = (
+    await ctx.repos.students.list(tenantId, { filter: includesClass(classId), limit: 500 })
+  ).items;
+  const students = roster.map((s) => ({
+    studentId: String(s["id"]),
+    name:
+      (typeof s["displayName"] === "string" && s["displayName"]) ||
+      [s["firstName"], s["lastName"]].filter((p) => typeof p === "string" && p).join(" ") ||
+      String(s["id"]),
+  }));
+  const [spaces, exams, assignments] = await Promise.all([
+    ctx.repos.spaces.list(tenantId, { filter: includesClass(classId), limit: 200 }),
+    ctx.repos.exams.list(tenantId, { filter: includesClass(classId), limit: 200 }),
+    xrepos(ctx).assignments.list(tenantId, { where: { classId }, limit: 400 }),
+  ]);
+  const dueByContent = new Map(
+    assignments.items.map((a) => [
+      `${String(a["contentType"])}_${String(a["contentId"])}`,
+      tsOrNull(a["dueAt"]),
+    ])
+  );
+  const rows = [];
+  for (const space of spaces.items) {
+    const spaceId = String(space["id"]);
+    const dueAt = dueByContent.get(`space_${spaceId}`) ?? null;
+    const cells = await Promise.all(
+      roster.map(async (s) => {
+        const uid = s["authUid"] ?? s["userId"];
+        const progress = uid ? await ctx.repos.progress.get(tenantId, uid, spaceId) : null;
+        const pct2 = typeof progress?.["percentage"] === "number" ? progress["percentage"] : 0;
+        const completed = Boolean(progress?.["completedAt"]) || pct2 >= 100;
+        return {
+          studentId: String(s["id"]),
+          status: cellStatus(Boolean(progress), completed, dueAt, now),
+          completionPct: Math.max(0, Math.min(100, pct2)),
+        };
+      })
+    );
+    rows.push({
+      contentId: spaceId,
+      contentTitle: String(space["title"] ?? spaceId),
+      contentType: "space",
+      dueAt,
+      cells,
+    });
+  }
+  for (const exam of exams.items) {
+    const examId = String(exam["id"]);
+    const dueAt = dueByContent.get(`exam_${examId}`) ?? tsOrNull(exam["examDate"]);
+    const subs = (await ctx.repos.submissions.list(tenantId, { where: { examId }, limit: 500 }))
+      .items;
+    const byStudent = new Map(subs.map((s) => [String(s["studentId"]), s]));
+    const cells = students.map((s) => {
+      const sub = byStudent.get(s.studentId);
+      const status = String(sub?.["status"] ?? "");
+      const completed = status === "graded" || status === "released";
+      const pct2 = typeof sub?.["percentage"] === "number" ? sub["percentage"] : 0;
+      return {
+        studentId: s.studentId,
+        status: cellStatus(Boolean(sub), completed, dueAt, now),
+        completionPct: completed ? 100 : Math.max(0, Math.min(100, pct2)),
+      };
+    });
+    rows.push({
+      contentId: examId,
+      contentTitle: String(exam["title"] ?? examId),
+      contentType: "exam",
+      dueAt,
+      cells,
+    });
+  }
+  return {
+    classId: input.classId,
+    students,
+    rows,
   };
 }
 var STUDENT_SUMMARY2 = "studentSummary";
@@ -12788,7 +14897,7 @@ function leaderboardEntryId(input) {
 async function recomputeOrchestratorService(input, ctx) {
   const { tenantId, studentId } = input;
   const summary = await xrepos(ctx).studentSummaries.get(tenantId, studentId);
-  if (!summary) fail2("NOT_FOUND", `no summary for student ${studentId}`);
+  if (!summary) fail("NOT_FOUND", `no summary for student ${studentId}`);
   const marker = summary["recompute"];
   if (input.marker?.taskId && marker?.taskId && marker.taskId !== input.marker.taskId) {
     return;
@@ -12901,7 +15010,7 @@ async function aggregateDailyCostService(input, ctx) {
 async function dismissInsightService(input, ctx) {
   const tenantId = requireTenant(ctx);
   const insight = await findInsight(ctx, tenantId, input.insightId);
-  if (!insight) fail2("NOT_FOUND", `insight ${input.insightId} not found`);
+  if (!insight) fail("NOT_FOUND", `insight ${input.insightId} not found`);
   const studentId = insight["studentId"];
   const allowed =
     (ctx.role === "student" && ctx.entityIds.studentId === studentId) ||
@@ -13060,7 +15169,809 @@ function buildInsightContext(summary) {
   };
 }
 
+// ../../packages/functions-shared/dist/index.js
+import { getFunctions } from "firebase-admin/functions";
+function makeSystemContext(tenantId, deps) {
+  return {
+    uid: "<system>",
+    isSuperAdmin: true,
+    tenantId,
+    role: null,
+    permissions: null,
+    staffPermissions: null,
+    classIds: [],
+    studentIds: [],
+    entityIds: {},
+    now: deps.clock ?? (() => /* @__PURE__ */ new Date().toISOString()),
+    repos: deps.repos,
+    ai: deps.ai,
+    storage: deps.storage,
+    // Curry the enqueue port over THIS ctx's tenant so the services hook
+    // signature stays `(submissionId, step)` while the task payload still
+    // carries the tenant for the consumer-side SystemContext rebuild.
+    enqueuePipelineAdvance: deps.pipelineTasks
+      ? (submissionId, step) => deps.pipelineTasks({ tenantId, submissionId, step })
+      : void 0,
+  };
+}
+function fail2(code, message, extra) {
+  const meta = buildMeta(code, extra);
+  throw new AccessError(code, message, meta);
+}
+function buildMeta(_code, extra) {
+  if (!extra) return void 0;
+  const meta = { ...(extra.meta ?? {}) };
+  if (extra.validationErrors) {
+    meta.validationErrors = extra.validationErrors;
+  }
+  if (extra.retryable !== void 0) {
+    meta.retryable = extra.retryable;
+  }
+  return Object.keys(meta).length > 0 ? meta : void 0;
+}
+var PUBLIC_UID = "<public>";
+async function buildAuthContext(auth2, opts) {
+  const clock = opts.clock ?? (() => /* @__PURE__ */ new Date().toISOString());
+  if (opts.anonymous) {
+    return anonymousContext(opts, clock);
+  }
+  if (!auth2 || !auth2.uid) {
+    return fail2("UNAUTHENTICATED", "authentication required");
+  }
+  const uid = auth2.uid;
+  const token = auth2.token ?? {};
+  const isSuperAdmin = token.isSuperAdmin === true;
+  const claimTenant = token.tenantId ?? token.activeTenantId ?? null;
+  let tenantId = claimTenant;
+  let usedTenantOverride = false;
+  if (isSuperAdmin && opts.tenantOverride) {
+    tenantId = opts.tenantOverride;
+    usedTenantOverride = true;
+  }
+  let classIds;
+  if (token.classIdsOverflow === true) {
+    const managed = await opts.repos.memberships.getManagedClassIds(uid, tenantId);
+    classIds = managed;
+  } else {
+    classIds = token.classIds ?? [];
+  }
+  const studentIds = token.studentIds ?? [];
+  return {
+    uid,
+    isSuperAdmin,
+    tenantId,
+    role: token.role ?? null,
+    permissions: token.permissions ?? null,
+    staffPermissions: token.staffPermissions ?? null,
+    classIds,
+    studentIds,
+    entityIds: {
+      teacherId: token.teacherId,
+      studentId: token.studentId,
+      parentId: token.parentId,
+      staffId: token.staffId,
+      scannerId: token.scannerId,
+    },
+    idempotencyKey: opts.idempotencyKey,
+    impersonating: token.impersonating === true,
+    usedTenantOverride,
+    now: clock,
+    repos: opts.repos,
+    ai: opts.ai,
+    storage: opts.storage,
+    // Curried over the claim-resolved tenant (fixed for the request lifetime).
+    enqueuePipelineAdvance: opts.pipelineTasks
+      ? (submissionId, step) => opts.pipelineTasks({ tenantId, submissionId, step })
+      : void 0,
+  };
+}
+function anonymousContext(opts, clock) {
+  return {
+    uid: PUBLIC_UID,
+    isSuperAdmin: false,
+    tenantId: null,
+    role: null,
+    permissions: null,
+    staffPermissions: null,
+    classIds: [],
+    studentIds: [],
+    entityIds: {},
+    idempotencyKey: opts.idempotencyKey,
+    now: clock,
+    repos: opts.repos,
+    ai: opts.ai,
+  };
+}
+var REGION = "asia-south1";
+var QUEUES = {
+  gradingPipeline: "grading-pipeline",
+  studentRollup: "student-rollup",
+  outboxDrain: "outbox-drain",
+};
+function projectId() {
+  return (
+    process.env.GCLOUD_PROJECT ??
+    process.env.GOOGLE_CLOUD_PROJECT ??
+    process.env.FIREBASE_PROJECT_ID ??
+    "levelup-local"
+  );
+}
+var VALIDATE_RESPONSES =
+  process.env.VALIDATE_RESPONSES === "1" || process.env.VALIDATE_RESPONSES === "true";
+var runtime = null;
+function configureRuntime(deps) {
+  runtime = deps;
+}
+function requireRuntime() {
+  if (!runtime) {
+    throw new Error(
+      "[functions-shared] runtime not configured \u2014 call configureRuntime({ repos, ai }) at bootstrap"
+    );
+  }
+  return runtime;
+}
+function getRepos() {
+  return requireRuntime().repos;
+}
+function getAi() {
+  return requireRuntime().ai;
+}
+function getClock() {
+  return runtime?.clock;
+}
+function getStorage() {
+  return runtime?.storage;
+}
+function getPipelineTasks() {
+  return runtime?.pipelineTasks;
+}
+function parseRequest(data, schema) {
+  const result = schema.safeParse(data);
+  if (result.success) return result.data;
+  const validationErrors = result.error.issues.map((i) => ({
+    path: i.path.map(String).join("."),
+    message: i.message,
+  }));
+  const message =
+    "Invalid request: " + validationErrors.map((e) => `${e.path}: ${e.message}`).join("; ");
+  return fail2("VALIDATION_ERROR", message, { validationErrors });
+}
+function isServiceErrorLike(e) {
+  return e instanceof Error && e.name === "ServiceError" && typeof e.code === "string";
+}
+var CODE_ALIASES = {
+  FAILED_PRECONDITION: "PRECONDITION_FAILED",
+  INVALID_ARGUMENT: "VALIDATION_ERROR",
+  TENANT_REQUIRED: "PERMISSION_DENIED",
+  ALREADY_EXISTS: "CONFLICT",
+  ABORTED: "CONFLICT",
+};
+function normalizeCode(raw) {
+  return CODE_ALIASES[raw] ?? raw;
+}
+function isZodLikeError(e) {
+  return typeof e === "object" && e !== null && Array.isArray(e.issues) && e.name === "ZodError";
+}
+function buildDetails(code, message, meta) {
+  const details = {
+    code,
+    message: message || ERROR_MESSAGES[code],
+    retryable: DEFAULT_RETRYABLE[code],
+  };
+  if (meta) {
+    const rest = {};
+    for (const [k, v] of Object.entries(meta)) {
+      if (k === "validationErrors" && Array.isArray(v)) {
+        details.validationErrors = v;
+      } else if (k === "retryable" && typeof v === "boolean") {
+        details.retryable = v;
+      } else if (v !== void 0) {
+        rest[k] = v;
+      }
+    }
+    if (Object.keys(rest).length > 0) details.meta = rest;
+  }
+  return details;
+}
+function mapError(e) {
+  if (e instanceof HttpsError) return e;
+  if (isAccessError(e) || isServiceErrorLike(e)) {
+    const code = normalizeCode(String(e.code));
+    const httpsCode = APP_ERROR_TO_HTTPS[code];
+    if (httpsCode) {
+      const details2 = buildDetails(code, e.message, e.meta);
+      return new HttpsError(httpsCode, details2.message, details2);
+    }
+  }
+  if (isZodLikeError(e)) {
+    const validationErrors = e.issues.map((i) => ({
+      path: i.path.map(String).join("."),
+      message: i.message,
+    }));
+    const details2 = buildDetails("VALIDATION_ERROR", "Invalid request", {
+      validationErrors,
+    });
+    return new HttpsError(APP_ERROR_TO_HTTPS.VALIDATION_ERROR, details2.message, details2);
+  }
+  console.error(
+    "[mapError] UNCLASSIFIED error \u2192INTERNAL_ERROR:",
+    e instanceof Error
+      ? `${e.name}: ${e.message}
+${e.stack}`
+      : JSON.stringify(e)
+  );
+  const details = buildDetails("INTERNAL_ERROR", ERROR_MESSAGES.INTERNAL_ERROR);
+  return new HttpsError(APP_ERROR_TO_HTTPS.INTERNAL_ERROR, details.message, details);
+}
+var RATE_TIER_LIMITS = {
+  read: { perMinute: 600 },
+  write: { perMinute: 120 },
+  ai: { perMinute: 30 },
+  auth: { perMinute: 20 },
+  report: { perMinute: 10 },
+};
+function windowKey(now) {
+  const iso = now();
+  return iso.slice(0, 16);
+}
+function isExempt(ctx) {
+  return ctx.uid === "<system>";
+}
+async function enforceRateLimit(ctx, tier) {
+  if (isExempt(ctx)) return;
+  const limit = RATE_TIER_LIMITS[tier];
+  const subject = `${String(ctx.tenantId ?? "none")}:${String(ctx.uid)}`;
+  const count = await ctx.repos.rateLimits.hit(subject, tier, windowKey(ctx.now));
+  if (count > limit.perMinute) {
+    fail2("RATE_LIMITED", `rate limit exceeded for tier ${tier}`, {
+      retryable: true,
+      meta: { tier, limit: limit.perMinute, retryAfterMs: 6e4 },
+    });
+  }
+}
+function dedupeKey(name, idempotencyKey) {
+  return `${name}:${idempotencyKey}`;
+}
+var dedupe = {
+  /** Returns the cached response if present; null means "run the body". Throws on an active lease. */
+  async begin(ctx, name) {
+    const idk = ctx.idempotencyKey;
+    if (!idk) return null;
+    const repo = ctx.repos.idempotency;
+    const res = await repo.begin(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk));
+    if (res.status === "committed") return res.result ?? null;
+    if (res.status === "in_flight") {
+      fail2("IDEMPOTENCY_CONFLICT", "a request with this idempotency key is in flight", {
+        retryable: true,
+        meta: { name },
+      });
+    }
+    return null;
+  },
+  /** Persist the committed response for replay. */
+  async commit(ctx, name, res) {
+    const idk = ctx.idempotencyKey;
+    if (!idk) return;
+    const repo = ctx.repos.idempotency;
+    await repo.commit(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk), res);
+  },
+  /** Release an in-flight lease (call when the service body throws). */
+  async release(ctx, name) {
+    const idk = ctx.idempotencyKey;
+    if (!idk) return;
+    const repo = ctx.repos.idempotency;
+    if (typeof repo.release === "function") {
+      await repo.release(ctx.tenantId ?? "", ctx.uid, dedupeKey(name, idk)).catch(() => void 0);
+    }
+  },
+};
+async function writeAudit(ctx, action, target, meta) {
+  await ctx.repos.audit
+    .write({
+      tenantId: ctx.tenantId,
+      actorUid: ctx.uid,
+      action,
+      target,
+      meta,
+      at: ctx.now(),
+    })
+    .catch(() => void 0);
+}
+function extractTenantOverride(def2, data) {
+  if (!def2.allowsTenantOverride) return void 0;
+  if (typeof data === "object" && data !== null && "tenantOverride" in data) {
+    const v = data.tenantOverride;
+    return typeof v === "string" ? v : void 0;
+  }
+  return void 0;
+}
+var ENVELOPE_FIELDS = ["__apiVersion", "__idempotencyKey", "idempotencyKey"];
+function stripEnvelopeFields(data) {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return data;
+  const obj = data;
+  if (!ENVELOPE_FIELDS.some((k) => k in obj)) return data;
+  const rest = { ...obj };
+  for (const k of ENVELOPE_FIELDS) delete rest[k];
+  return rest;
+}
+function extractIdempotencyKey(data) {
+  if (typeof data !== "object" || data === null) return void 0;
+  const obj = data;
+  const v = obj["__idempotencyKey"] ?? obj["idempotencyKey"];
+  return typeof v === "string" ? v : void 0;
+}
+function makeCallable(name, service) {
+  const def2 = CALLABLES[name];
+  return onCall({ region: REGION, cors: true }, async (request) => {
+    try {
+      const data = request.data;
+      const ctx = await buildAuthContext(request.auth, {
+        anonymous: def2.authMode === "public",
+        tenantOverride: extractTenantOverride(def2, data),
+        idempotencyKey: extractIdempotencyKey(data),
+        repos: getRepos(),
+        ai: getAi(),
+        clock: getClock(),
+        storage: getStorage(),
+        pipelineTasks: getPipelineTasks(),
+      });
+      if (def2.authMode === "authed" && (!ctx.uid || ctx.uid === "<public>")) {
+        fail2("UNAUTHENTICATED", "authentication required");
+      }
+      if (ctx.usedTenantOverride) {
+        await writeAudit(
+          ctx,
+          "tenantOverride",
+          { type: "tenant", id: String(ctx.tenantId) },
+          { callable: name }
+        );
+      }
+      await enforceRateLimit(ctx, def2.rateTier);
+      const requestSchema = def2.requestSchema;
+      const input = parseRequest(stripEnvelopeFields(data), requestSchema);
+      if (def2.idempotent && ctx.idempotencyKey) {
+        const cached = await dedupe.begin(ctx, name);
+        if (cached !== null) return cached;
+      }
+      let res;
+      try {
+        res = await service(input, ctx);
+      } catch (e) {
+        if (def2.idempotent && ctx.idempotencyKey) await dedupe.release(ctx, name);
+        throw e;
+      }
+      if (def2.idempotent && ctx.idempotencyKey) await dedupe.commit(ctx, name, res);
+      if (VALIDATE_RESPONSES) {
+        const parsed = def2.responseSchema.safeParse(res);
+        if (!parsed.success) {
+          throw new Error(`[contract] response drift for ${name}: ${parsed.error.message}`);
+        }
+      }
+      return res;
+    } catch (e) {
+      throw mapError(e);
+    }
+  });
+}
+function tenantOf(ref, params) {
+  const key = ref.tenantParam ?? "t";
+  return params[key] ?? null;
+}
+function systemCtx(tenantId) {
+  return makeSystemContext(tenantId, {
+    repos: getRepos(),
+    ai: getAi(),
+    clock: getClock(),
+    storage: getStorage(),
+    // Safe to curry here: a trigger ctx's tenant comes from the doc path param
+    // and is fixed for the invocation (never re-scoped by a fan-out spread).
+    pipelineTasks: getPipelineTasks(),
+  });
+}
+function prefixTriggerDocument(document) {
+  const prefix = paths_exports.collectionPrefix();
+  if (!prefix) return document;
+  const path = document.startsWith("/") ? document.slice(1) : document;
+  return `${prefix}${path}`;
+}
+function makeTrigger(ref, service) {
+  const opts = { region: REGION, document: prefixTriggerDocument(ref.document) };
+  const runCreated = async (event) => {
+    try {
+      const ctx = systemCtx(tenantOf(ref, event.params));
+      await service(
+        {
+          type: "created",
+          params: event.params,
+          before: null,
+          after: event.data?.data() ?? null,
+          id: event.data?.id ?? "",
+        },
+        ctx
+      );
+    } catch (e) {
+      throw mapError(e);
+    }
+  };
+  const runDeleted = async (event) => {
+    try {
+      const ctx = systemCtx(tenantOf(ref, event.params));
+      await service(
+        {
+          type: "deleted",
+          params: event.params,
+          before: event.data?.data() ?? null,
+          after: null,
+          id: event.data?.id ?? "",
+        },
+        ctx
+      );
+    } catch (e) {
+      throw mapError(e);
+    }
+  };
+  const runChange = async (type, event) => {
+    try {
+      const ctx = systemCtx(tenantOf(ref, event.params));
+      await service(
+        {
+          type,
+          params: event.params,
+          before: event.data?.before?.data() ?? null,
+          after: event.data?.after?.data() ?? null,
+          id: event.data?.after?.id ?? event.data?.before?.id ?? "",
+        },
+        ctx
+      );
+    } catch (e) {
+      throw mapError(e);
+    }
+  };
+  switch (ref.eventType) {
+    case "created":
+      return onDocumentCreated(opts, runCreated);
+    case "deleted":
+      return onDocumentDeleted(opts, runDeleted);
+    case "updated":
+      return onDocumentUpdated(opts, (e) => runChange("updated", e));
+    case "written":
+      return onDocumentWritten(opts, (e) => runChange("written", e));
+  }
+}
+function makeScheduler(schedule3, service) {
+  return onSchedule({ region: REGION, schedule: schedule3 }, async () => {
+    try {
+      const ctx = makeSystemContext(null, { repos: getRepos(), ai: getAi(), clock: getClock() });
+      await service(ctx);
+    } catch (e) {
+      throw mapError(e);
+    }
+  });
+}
+function makeTaskHandler(queue, service, opts = {}) {
+  return onTaskDispatched(
+    {
+      region: REGION,
+      retryConfig: opts.retryConfig,
+      rateLimits: opts.rateLimits,
+    },
+    async (req) => {
+      try {
+        const payload = req.data;
+        const tenantId = payload?.[opts.tenantField ?? "tenantId"] ?? null;
+        const ctx = makeSystemContext(tenantId, {
+          repos: getRepos(),
+          ai: getAi(),
+          clock: getClock(),
+          storage: getStorage(),
+          // Payload-scoped tenant is fixed for the dispatch, so currying the
+          // enqueue hook here is safe — each step re-enqueues the next instead
+          // of running the whole pipeline inside one dispatch.
+          pipelineTasks: getPipelineTasks(),
+        });
+        await service(payload, ctx);
+      } catch (e) {
+        throw mapError(e);
+      }
+    }
+  );
+}
+function createAdminStorageSigner(bucketName) {
+  return {
+    async signUploadUrl(path, contentType, ttlMs) {
+      const bucket = bucketName ? getStorage$1().bucket(bucketName) : getStorage$1().bucket();
+      const [url] = await bucket.file(path).getSignedUrl({
+        version: "v4",
+        action: "write",
+        expires: Date.now() + ttlMs,
+        contentType,
+      });
+      return url;
+    },
+  };
+}
+function createRtdbGradingProjections() {
+  return {
+    async setSubmissionStatus(tenantId, submissionId, input) {
+      try {
+        await getDatabase()
+          .ref(`gradingProgress/${tenantId}/submission/${submissionId}`)
+          .update({ status: input.status, ownerStudentId: input.ownerStudentId });
+      } catch (e) {
+        logger.error(
+          `gradingProjection write failed: setSubmissionStatus ${tenantId}/${submissionId}`,
+          e
+        );
+      }
+    },
+    async recordExamPhase(tenantId, examId, submissionId, phase, now) {
+      try {
+        await getDatabase()
+          .ref(`gradingProgress/${tenantId}/exam/${examId}`)
+          .transaction((current) => {
+            const node = current ?? {};
+            const index = { ...(node._index ?? {}), [submissionId]: phase };
+            return { ...node, _index: index, agg: reduceExamCounts(examId, index, now) };
+          });
+      } catch (e) {
+        logger.error(
+          `gradingProjection write failed: recordExamPhase ${tenantId}/${examId}/${submissionId}`,
+          e
+        );
+      }
+    },
+  };
+}
+function createRtdbLevelupProjections() {
+  const swallow = async (label, write) => {
+    try {
+      await write();
+    } catch (e) {
+      logger.error(`[levelup-projections] ${label} failed`, e);
+    }
+  };
+  return {
+    async setSpaceProgress(tenantId, userId, spaceId, live) {
+      await swallow(`setSpaceProgress ${tenantId}/${userId}/${spaceId}`, () =>
+        getDatabase().ref(`spaceProgressLive/${tenantId}/${userId}/${spaceId}`).set(live)
+      );
+    },
+    async setStudentLevel(tenantId, userId, level) {
+      await swallow(`setStudentLevel ${tenantId}/${userId}`, () =>
+        getDatabase().ref(`studentLevelLive/${tenantId}/${userId}`).set(level)
+      );
+    },
+    async setAchievementUnlock(tenantId, userId, event) {
+      await swallow(`setAchievementUnlock ${tenantId}/${userId}`, () =>
+        getDatabase().ref(`achievementUnlocks/${tenantId}/${userId}/latest`).set(event)
+      );
+    },
+    async clearAchievementUnlock(tenantId, userId) {
+      await swallow(`clearAchievementUnlock ${tenantId}/${userId}`, () =>
+        getDatabase().ref(`achievementUnlocks/${tenantId}/${userId}/latest`).remove()
+      );
+    },
+    async setTestSessionLive(tenantId, userId, sessionId, live) {
+      await swallow(`setTestSessionLive ${tenantId}/${userId}/${sessionId}`, () =>
+        getDatabase().ref(`testSessionLive/${tenantId}/${userId}/${sessionId}`).set(live)
+      );
+    },
+    async bumpChat(tenantId, userId, sessionId, lastMessageAt) {
+      await swallow(`bumpChat ${tenantId}/${userId}/${sessionId}`, () =>
+        getDatabase()
+          .ref(`chatBump/${tenantId}/${userId}/${sessionId}`)
+          .update({ rev: ServerValue.increment(1), lastMessageAt })
+      );
+    },
+  };
+}
+var QUEUE_FUNCTION_IDS = {
+  [QUEUES.gradingPipeline]: "v1-autograde-advancePipeline",
+  [QUEUES.studentRollup]: "v1-analytics-recomputeStudentRollup",
+};
+function taskFunctionRef(queue) {
+  const fn = QUEUE_FUNCTION_IDS[queue];
+  if (!fn) {
+    throw new Error(`[cloud-tasks] no deployed task handler mapped for queue '${queue}'`);
+  }
+  return `locations/${REGION}/functions/${fn}`;
+}
+async function enqueueTask(queue, payload, opts = {}) {
+  const tq = getFunctions().taskQueue(taskFunctionRef(queue));
+  try {
+    await tq.enqueue(payload, {
+      scheduleDelaySeconds: opts.scheduleDelaySec,
+      id: opts.dedupeId,
+    });
+  } catch (e) {
+    if (opts.dedupeId && isAlreadyExists2(e)) {
+      logger.debug(`[cloud-tasks] dedupe hit on ${queue}/${opts.dedupeId} \u2014 already enqueued`);
+      return;
+    }
+    throw e;
+  }
+}
+async function enqueuePipelineAdvance2(req, opts = {}) {
+  await enqueueTask(
+    QUEUES.gradingPipeline,
+    {
+      tenantId: req.tenantId === null ? null : String(req.tenantId),
+      submissionId: String(req.submissionId),
+      step: req.step,
+    },
+    {
+      scheduleDelaySec: opts.scheduleDelaySec,
+      dedupeId: `${String(req.submissionId)}__${String(req.step)}`,
+    }
+  );
+}
+function isAlreadyExists2(e) {
+  const err = e;
+  const code = String(err?.code ?? "");
+  const status = String(err?.status ?? "");
+  const message = String(err?.message ?? "");
+  return (
+    code.includes("already-exists") ||
+    status === "409" ||
+    status === "ALREADY_EXISTS" ||
+    message.includes("ALREADY_EXISTS") ||
+    message.toLowerCase().includes("already exists")
+  );
+}
+
+// src/ai-seam.ts
+function adaptAiResult(res) {
+  return {
+    text: res.text,
+    json: res.data,
+    tokensUsed: res.tokenUsage?.totalTokens ?? 0,
+    costUsd: res.cost?.totalCostUsd ?? 0,
+    model: res.model,
+  };
+}
+function makeAiSeam(ai) {
+  return {
+    async generate(req, callCtx) {
+      const res = await ai.generate(req, callCtx);
+      return adaptAiResult(res);
+    },
+  };
+}
+
+// src/image-store.ts
+import { getStorage as getStorage2 } from "firebase-admin/storage";
+function createAdminImageStore(bucketName) {
+  return {
+    async read(path) {
+      const bucket = bucketName ? getStorage2().bucket(bucketName) : getStorage2().bucket();
+      const file = bucket.file(path);
+      const [[bytes], [metadata]] = await Promise.all([file.download(), file.getMetadata()]);
+      const contentType = metadata?.contentType;
+      return contentType ? { bytes, contentType } : { bytes };
+    },
+  };
+}
+
+// src/bootstrap.ts
+var configured = false;
+function bootstrapRuntime() {
+  if (configured) return;
+  if (admin.apps.length === 0) {
+    admin.initializeApp();
+  }
+  const clock = () => isoNow();
+  const repos = createRepos({ now: () => clock() });
+  const isEmulatorOrTest =
+    !!process.env["FIRESTORE_EMULATOR_HOST"] ||
+    process.env["LEVELUP_AI_STUB"] === "1" ||
+    process.env["SEED"] === "1" ||
+    process.env["TEST"] === "1";
+  const aiDeps = {
+    repos,
+    projectId: projectId(),
+    imageStore: isEmulatorOrTest ? createStubImageStore() : createAdminImageStore(),
+  };
+  if (isEmulatorOrTest) {
+    const stubSecretResolver = {
+      getApiKey: async () => "stub-emulator-key",
+      invalidate: () => {},
+    };
+    aiDeps.providerFactory = (apiKey, model) => createStubProvider(apiKey, model);
+    aiDeps.secretResolver = stubSecretResolver;
+  }
+  const ai = createAiGateway(aiDeps);
+  const aiSeam = makeAiSeam(ai);
+  const rtdbAvailable = !isEmulatorOrTest || !!process.env["FIREBASE_DATABASE_EMULATOR_HOST"];
+  if (rtdbAvailable) {
+    repos["gradingProjections"] = createRtdbGradingProjections();
+    repos["levelupProjections"] = createRtdbLevelupProjections();
+  }
+  const pipelineTasks = (req) => enqueuePipelineAdvance2(req);
+  configureRuntime({
+    // Structural-port reconciliation cast (see file header). The concrete
+    // implementations are supersets of the adapter-layer ports.
+    repos,
+    ai: aiSeam,
+    clock,
+    ...(isEmulatorOrTest ? {} : { storage: createAdminStorageSigner(), pipelineTasks }),
+  });
+  configured = true;
+}
+bootstrapRuntime();
+
 // src/identity.ts
+var identity_exports = {};
+__export(identity_exports, {
+  bulkApplyTenantFeatures: () => bulkApplyTenantFeatures2,
+  bulkImportStudents: () => bulkImportStudents2,
+  bulkImportTeachers: () => bulkImportTeachers2,
+  bulkUpdateStatus: () => bulkUpdateStatus2,
+  changeMembershipRole: () => changeMembershipRole2,
+  cleanupExpiredExports: () => cleanupExpiredExports,
+  createOrgUser: () => createOrgUser2,
+  deactivateTenant: () => deactivateTenant2,
+  deleteConsumerAccount: () => deleteConsumerAccount2,
+  endImpersonation: () => endImpersonation2,
+  estimateAudience: () => estimateAudience2,
+  exportTenantData: () => exportTenantData2,
+  getClass: () => getClass2,
+  getMe: () => getMe2,
+  getNotificationBadge: () => getNotificationBadge2,
+  getNotificationPreferences: () => getNotificationPreferences2,
+  getPlatformConfig: () => getPlatformConfig2,
+  getStudent: () => getStudent2,
+  getTeacher: () => getTeacher2,
+  getTenant: () => getTenant2,
+  joinTenant: () => joinTenant2,
+  listAcademicSessions: () => listAcademicSessions2,
+  listAnnouncements: () => listAnnouncements2,
+  listClasses: () => listClasses2,
+  listExportJobs: () => listExportJobs2,
+  listGlobalEvaluationPresets: () => listGlobalEvaluationPresets2,
+  listNotifications: () => listNotifications2,
+  listParents: () => listParents2,
+  listStaff: () => listStaff2,
+  listStudents: () => listStudents2,
+  listTeachers: () => listTeachers2,
+  listTenants: () => listTenants2,
+  lookupTenantByCode: () => lookupTenantByCode2,
+  markAnnouncementRead: () => markAnnouncementRead2,
+  markNotificationRead: () => markNotificationRead2,
+  membershipEventIdentity: () => membershipEventIdentity,
+  monthlyUsageReset: () => monthlyUsageReset,
+  onAnnouncementPublished: () => onAnnouncementPublished,
+  onClassArchived: () => onClassArchived,
+  onMembershipWritten: () => onMembershipWritten,
+  onStudentArchived: () => onStudentArchived,
+  onTenantDeactivated: () => onTenantDeactivated,
+  reactivateTenant: () => reactivateTenant2,
+  registerDeviceToken: () => registerDeviceToken2,
+  rolloverSession: () => rolloverSession2,
+  saveAcademicSession: () => saveAcademicSession2,
+  saveAnnouncement: () => saveAnnouncement2,
+  saveClass: () => saveClass2,
+  saveGlobalEvaluationPreset: () => saveGlobalEvaluationPreset2,
+  saveNotificationPreferences: () => saveNotificationPreferences2,
+  saveParent: () => saveParent2,
+  savePlatformConfig: () => savePlatformConfig2,
+  saveStaff: () => saveStaff2,
+  saveStudent: () => saveStudent2,
+  saveTeacher: () => saveTeacher2,
+  saveTenant: () => saveTenant2,
+  saveTenantFeatures: () => saveTenantFeatures2,
+  saveTenantSettings: () => saveTenantSettings2,
+  searchUsers: () => searchUsers2,
+  sendDirectMessage: () => sendDirectMessage2,
+  sendPasswordReset: () => sendPasswordReset2,
+  setUserStatus: () => setUserStatus2,
+  startImpersonation: () => startImpersonation2,
+  switchActiveTenant: () => switchActiveTenant2,
+  tenantLifecycleCheck: () => tenantLifecycleCheck,
+  unregisterDeviceToken: () => unregisterDeviceToken2,
+  updateMyProfile: () => updateMyProfile2,
+  uploadTenantAsset: () => uploadTenantAsset2,
+  uploadUserAsset: () => uploadUserAsset2,
+});
 function wire(name, service) {
   return makeCallable(name, service);
 }
@@ -13135,7 +16046,7 @@ var sendDirectMessage2 = wire("v1.identity.sendDirectMessage", sendDirectMessage
 var getTenantShell = async (_input, ctx) => {
   const tenantId = requireTenant(ctx);
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  if (!tenant) fail2("NOT_FOUND", "tenant not found");
+  if (!tenant) fail("NOT_FOUND", "tenant not found");
   return tenant;
 };
 var getTenant2 = wire("v1.identity.getTenant", getTenantShell);
@@ -13159,6 +16070,7 @@ var projectTenantSummary = (t) => {
   };
 };
 var listTenantsShell = async (input, ctx) => {
+  authorize(ctx, "tenant.list");
   const page = input;
   const where = {};
   if (page.status) where["status"] = page.status;
@@ -13193,7 +16105,10 @@ var listGlobalEvaluationPresetsShell = async (input, ctx) => {
     limit: page.limit ?? 20,
     where,
   });
-  return { items: res.items, nextCursor: res.nextCursor };
+  return {
+    items: res.items,
+    nextCursor: res.nextCursor,
+  };
 };
 var listGlobalEvaluationPresets2 = wire(
   "v1.identity.listGlobalEvaluationPresets",
@@ -13203,7 +16118,7 @@ var changeMembershipRoleShell = async (input, ctx) => {
   const tenantId = requireTenant(ctx);
   const req = input;
   const existing = await xrepos(ctx).memberships.get(req.uid, tenantId);
-  if (!existing) fail2("NOT_FOUND", "membership not found");
+  if (!existing) fail("NOT_FOUND", "membership not found");
   const { id: membershipId } = await xrepos(ctx).memberships.upsert(
     req.uid,
     tenantId,
@@ -13261,7 +16176,7 @@ var bulkApplyTenantFeatures2 = wire(
 );
 var getPlatformConfigShell = async (_input, ctx) => {
   const cfg = await ctx.repos.tenants.get("__platform__", "__config__");
-  if (!cfg) fail2("NOT_FOUND", "platform config not found");
+  if (!cfg) fail("NOT_FOUND", "platform config not found");
   return cfg;
 };
 var getPlatformConfig2 = wire("v1.identity.getPlatformConfig", getPlatformConfigShell);
@@ -13272,21 +16187,34 @@ var savePlatformConfigShell = async (input, ctx) => {
 };
 var savePlatformConfig2 = wire("v1.identity.savePlatformConfig", savePlatformConfigShell);
 var uploadUserAssetShell = async (_input, ctx) => {
-  return { assetUrl: `users/${ctx.uid}/assets/avatar` };
+  return {
+    assetUrl: `users/${ctx.uid}/assets/avatar`,
+  };
 };
 var uploadUserAsset2 = wire("v1.identity.uploadUserAsset", uploadUserAssetShell);
+function membershipEventIdentity(event) {
+  const doc = event.after ?? event.before;
+  const membershipId = event.params["membershipId"] ?? event.id ?? "";
+  const sep = membershipId.indexOf("_");
+  return {
+    uid: doc?.["uid"] ?? (sep > 0 ? membershipId.slice(0, sep) : ""),
+    tenantId: doc?.["tenantId"] ?? (sep > 0 ? membershipId.slice(sep + 1) : ""),
+  };
+}
 var onMembershipWritten = makeTrigger(
-  { document: "users/{uid}/memberships/{tenantId}", eventType: "written", tenantParam: "tenantId" },
-  (event, ctx) =>
-    onMembershipWrittenService(
+  { document: "userMemberships/{membershipId}", eventType: "written" },
+  (event, ctx) => {
+    const { uid, tenantId } = membershipEventIdentity(event);
+    return onMembershipWrittenService(
       {
-        tenantId: event.params["tenantId"] ?? "",
-        params: event.params,
+        tenantId,
+        params: { ...event.params, uid, tenantId },
         before: event.before,
         after: event.after,
       },
       sysCtx(ctx)
-    )
+    );
+  }
 );
 var onStudentArchived = makeTrigger(
   { document: "tenants/{tenantId}/students/{id}", eventType: "updated", tenantParam: "tenantId" },
@@ -13351,22 +16279,33 @@ var cleanupExpiredExports = wireScheduler("every 30 minutes", cleanupExpiredExpo
 // src/levelup.ts
 var levelup_exports = {};
 __export(levelup_exports, {
+  assignContent: () => assignContent,
   cleanupStaleSessions: () => cleanupStaleSessions,
   dismissInsight: () => dismissInsight2,
   evaluateAnswer: () => evaluateAnswer,
   expireTestSessions: () => expireTestSessions,
+  generateContent: () => generateContent,
+  getChatSession: () => getChatSession,
   getGamificationSummary: () => getGamificationSummary,
   getItemForEdit: () => getItemForEdit,
   getLeaderboard: () => getLeaderboard2,
   getSpace: () => getSpace,
   getSpaceProgress: () => getSpaceProgress,
+  getStoreSpace: () => getStoreSpace,
   getStoryPoint: () => getStoryPoint,
   getStoryPointProgress: () => getStoryPointProgress,
   getStudentLevel: () => getStudentLevel,
   getTestSession: () => getTestSession,
+  importFromBank: () => importFromBank,
   listAchievements: () => listAchievements,
+  listAgents: () => listAgents,
+  listChatSessions: () => listChatSessions,
   listItems: () => listItems,
   listLearningInsights: () => listLearningInsights,
+  listQuestionBank: () => listQuestionBank,
+  listRubricPresets: () => listRubricPresets,
+  listSpaceProgressForUser: () => listSpaceProgressForUser,
+  listSpaceReviews: () => listSpaceReviews,
   listSpaces: () => listSpaces,
   listStoreSpaces: () => listStoreSpaces,
   listStoryPoints: () => listStoryPoints,
@@ -13374,12 +16313,17 @@ __export(levelup_exports, {
   listStudyGoals: () => listStudyGoals,
   listStudySessions: () => listStudySessions,
   listTestSessions: () => listTestSessions,
+  listVersions: () => listVersions,
   markAchievementsSeen: () => markAchievementsSeen,
   purchaseSpace: () => purchaseSpace,
   recordItemAttempt: () => recordItemAttempt,
   saveAchievementDefinition: () => saveAchievementDefinition,
+  saveAgent: () => saveAgent,
   saveItem: () => saveItem,
+  saveQuestionBankItem: () => saveQuestionBankItem,
+  saveRubricPreset: () => saveRubricPreset,
   saveSpace: () => saveSpace,
+  saveSpaceReview: () => saveSpaceReview,
   saveStoryPoint: () => saveStoryPoint,
   saveStudyGoal: () => saveStudyGoal,
   saveTestAnswer: () => saveTestAnswer,
@@ -13402,6 +16346,16 @@ var listSpaces = call("v1.levelup.listSpaces", listSpacesService);
 var getSpace = call("v1.levelup.getSpace", getSpaceService);
 var listStoryPoints = call("v1.levelup.listStoryPoints", listStoryPointsService);
 var getStoryPoint = call("v1.levelup.getStoryPoint", getStoryPointService);
+var listVersions = call("v1.levelup.listVersions", listVersionsService);
+var generateContent = call("v1.levelup.generateContent", generateContentService);
+var assignContent = call("v1.levelup.assignContent", assignContentService);
+var listQuestionBank = call("v1.levelup.listQuestionBank", listQuestionBankService);
+var saveQuestionBankItem = call("v1.levelup.saveQuestionBankItem", saveQuestionBankItemService);
+var importFromBank = call("v1.levelup.importFromBank", importFromBankService);
+var listRubricPresets = call("v1.levelup.listRubricPresets", listRubricPresetsService);
+var saveRubricPreset = call("v1.levelup.saveRubricPreset", saveRubricPresetService);
+var listAgents = call("v1.levelup.listAgents", listAgentsService);
+var saveAgent = call("v1.levelup.saveAgent", saveAgentService);
 var startTestSession = call("v1.levelup.startTestSession", startTestSessionService);
 var submitTestSession = call("v1.levelup.submitTestSession", submitTestSessionService);
 var saveTestAnswer = call("v1.levelup.saveTestAnswer", saveTestAnswerService);
@@ -13410,10 +16364,19 @@ var listTestSessions = call("v1.levelup.listTestSessions", listTestSessionsServi
 var evaluateAnswer = call("v1.levelup.evaluateAnswer", evaluateAnswerService);
 var recordItemAttempt = call("v1.levelup.recordItemAttempt", recordItemAttemptService);
 var getSpaceProgress = call("v1.levelup.getSpaceProgress", getSpaceProgressService);
+var listSpaceProgressForUser = call(
+  "v1.levelup.listSpaceProgressForUser",
+  listSpaceProgressForUserService
+);
 var getStoryPointProgress = call("v1.levelup.getStoryPointProgress", getStoryPointProgressService);
 var purchaseSpace = call("v1.levelup.purchaseSpace", purchaseSpaceService);
 var listStoreSpaces = call("v1.levelup.listStoreSpaces", listStoreSpacesService);
+var getStoreSpace = call("v1.levelup.getStoreSpace", getStoreSpaceService);
+var listSpaceReviews = call("v1.levelup.listSpaceReviews", listSpaceReviewsService);
+var saveSpaceReview = call("v1.levelup.saveSpaceReview", saveSpaceReviewService);
 var sendChatMessage = call("v1.levelup.sendChatMessage", sendChatMessageService);
+var getChatSession = call("v1.levelup.getChatSession", getChatSessionService);
+var listChatSessions = call("v1.levelup.listChatSessions", listChatSessionsService);
 var getGamificationSummary = call(
   "v1.levelup.getGamificationSummary",
   getGamificationSummaryService
@@ -13442,6 +16405,7 @@ var cleanupStaleSessions = schedule("every 1 hours", cleanupStaleSessionsService
 var autograde_exports = {};
 __export(autograde_exports, {
   advancePipeline: () => advancePipeline,
+  eventDocKind: () => eventDocKind,
   extractQuestions: () => extractQuestions,
   getExam: () => getExam,
   getExamAnalytics: () => getExamAnalytics2,
@@ -13508,13 +16472,20 @@ function toServiceEvent(event, ctx) {
     eventId: event.id,
   };
 }
+var QUESTION_SUBMISSION_KIND = "questionSubmission";
+function eventDocKind(event) {
+  return event.after?.["_kind"] ?? event.before?.["_kind"];
+}
 var onSubmissionCreated = makeTrigger(
   {
     document: "tenants/{tenantId}/submissions/{submissionId}",
     eventType: "created",
     tenantParam: "tenantId",
   },
-  (event, ctx) => onSubmissionCreatedService(toServiceEvent(event, ctx), sysCtx2(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) === QUESTION_SUBMISSION_KIND) return;
+    await onSubmissionCreatedService(toServiceEvent(event, ctx), sysCtx2(ctx));
+  }
 );
 var onSubmissionUpdated = makeTrigger(
   {
@@ -13522,15 +16493,21 @@ var onSubmissionUpdated = makeTrigger(
     eventType: "updated",
     tenantParam: "tenantId",
   },
-  (event, ctx) => onSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx2(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) === QUESTION_SUBMISSION_KIND) return;
+    await onSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx2(ctx));
+  }
 );
 var onQuestionSubmissionUpdated = makeTrigger(
   {
-    document: "tenants/{tenantId}/submissions/{submissionId}/questionSubmissions/{questionId}",
+    document: "tenants/{tenantId}/submissions/{questionSubmissionId}",
     eventType: "updated",
     tenantParam: "tenantId",
   },
-  (event, ctx) => onQuestionSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx2(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) !== QUESTION_SUBMISSION_KIND) return;
+    await onQuestionSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx2(ctx));
+  }
 );
 var onExamPublished = makeTrigger(
   {
@@ -13592,6 +16569,7 @@ __export(analytics_exports, {
   dismissInsight: () => dismissInsight3,
   generateInsights: () => generateInsights,
   generateReport: () => generateReport2,
+  getAssignmentMatrix: () => getAssignmentMatrix2,
   getChildSummary: () => getChildSummary2,
   getCostSummary: () => getCostSummary2,
   getExamAnalytics: () => getExamAnalytics3,
@@ -13654,6 +16632,7 @@ var listLinkedChildren2 = call3("v1.analytics.listLinkedChildren", listLinkedChi
 var listParentAlerts2 = call3("v1.analytics.listParentAlerts", listParentAlertsService);
 var listPlatformActivity2 = call3("v1.analytics.listPlatformActivity", listPlatformActivityService);
 var getCostSummary2 = call3("v1.analytics.getCostSummary", getCostSummaryService);
+var getAssignmentMatrix2 = call3("v1.analytics.getAssignmentMatrix", getAssignmentMatrixService);
 var generateReport2 = call3("v1.analytics.generateReport", generateReportService);
 var dismissInsight3 = call3("v1.analytics.dismissInsight", dismissInsightService);
 var getLeaderboard3 = call3("v1.analytics.getLeaderboard", getLeaderboardService);

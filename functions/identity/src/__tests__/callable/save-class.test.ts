@@ -52,6 +52,15 @@ vi.mock("firebase-admin", () => {
   };
 });
 
+// The handler imports FieldValue from the `firebase-admin/firestore` subpath,
+// so stub it there (the top-level `firebase-admin` FieldValue never applies).
+vi.mock("firebase-admin/firestore", () => ({
+  FieldValue: {
+    serverTimestamp: () => "SERVER_TIMESTAMP",
+    increment: (n: number) => `INCREMENT(${n})`,
+  },
+}));
+
 // ── Mock utils ──────────────────────────────────────────────────────
 const mockAssertTenantAdminOrSuperAdmin = vi.fn();
 const mockGetTenant = vi.fn();

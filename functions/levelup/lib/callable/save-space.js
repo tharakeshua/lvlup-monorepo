@@ -57,10 +57,11 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const auth_1 = require("../utils/auth");
 const firestore_2 = require("../utils/firestore");
 const helpers_1 = require("../utils/helpers");
-const shared_types_1 = require("@levelup/shared-types");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const content_version_1 = require("../utils/content-version");
@@ -101,7 +102,7 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
   const callerUid = (0, auth_1.assertAuth)(request.auth);
   const { id, tenantId, data } = (0, utils_1.parseRequest)(
     request.data,
-    shared_types_1.SaveSpaceRequestSchema
+    wire_1.SaveSpaceRequestSchema
   );
   if (!tenantId) {
     throw new https_1.HttpsError("invalid-argument", "tenantId is required");
@@ -148,16 +149,16 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
         avgCompletionRate: 0,
       },
       createdBy: callerUid,
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      createdAt: (0, domain_1.isoNow)(),
+      updatedAt: (0, domain_1.isoNow)(),
     };
     await spaceRef.set(spaceDoc);
     // Increment tenant stats and usage counters
     await db.doc(`tenants/${tenantId}`).update({
       "stats.totalSpaces": firestore_1.FieldValue.increment(1),
       "usage.currentSpaces": firestore_1.FieldValue.increment(1),
-      "usage.lastUpdated": firestore_1.FieldValue.serverTimestamp(),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      "usage.lastUpdated": (0, domain_1.isoNow)(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     v2_1.logger.info(`Created space ${spaceRef.id} in tenant ${tenantId}`);
     return { id: spaceRef.id, created: true };
@@ -184,7 +185,7 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
     if (data.status === "published") {
       await validatePublish(db, tenantId, id, space);
       updates.status = "published";
-      updates.publishedAt = firestore_1.FieldValue.serverTimestamp();
+      updates.publishedAt = (0, domain_1.isoNow)();
       // Fire-and-forget student notifications
       notifyStudentsOfPublish(db, tenantId, id, space).catch((err) => {
         v2_1.logger.warn("Failed to send space publish notifications:", err);
@@ -209,7 +210,7 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
     if (data.status === "archived") {
       await expireActiveSessions(db, tenantId, id);
       updates.status = "archived";
-      updates.archivedAt = firestore_1.FieldValue.serverTimestamp();
+      updates.archivedAt = (0, domain_1.isoNow)();
     }
   }
   // Handle store listing fields
@@ -246,9 +247,9 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
         status: "published",
         stats: space.stats ?? { totalStoryPoints: 0, totalItems: 0, totalStudents: 0 },
         createdBy: callerUid,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        publishedAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
+        publishedAt: (0, domain_1.isoNow)(),
       });
       updates.publishedToStore = true;
       updates.price = data.price;
@@ -265,7 +266,7 @@ exports.saveSpace = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
   if (Object.keys(updates).length === 0) {
     throw new https_1.HttpsError("invalid-argument", "No valid fields to update");
   }
-  updates.updatedAt = firestore_1.FieldValue.serverTimestamp();
+  updates.updatedAt = (0, domain_1.isoNow)();
   await spaceRef.update(updates);
   // Write content version for status transitions
   if (data.status && data.status !== space.status) {
@@ -393,9 +394,11 @@ async function expireActiveSessions(db, tenantId, spaceId) {
       for (const sessionDoc of chunk) {
         batch.update(sessionDoc.ref, {
           status: "expired",
-          endedAt: firestore_1.FieldValue.serverTimestamp(),
+          // U3.5: session timing fields stay Firestore Timestamps at rest
+          // (legacy readers do .toMillis() math on endedAt — see contracts/legacy-docs.ts).
+          endedAt: firestore_1.Timestamp.now(),
           autoSubmitted: true,
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       await batch.commit();

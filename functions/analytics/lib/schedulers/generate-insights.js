@@ -61,8 +61,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateInsights = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const insight_rules_1 = require("../utils/insight-rules");
+const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 const PAGE_SIZE = 500;
 const MAX_ACTIVE_INSIGHTS = 5;
 exports.generateInsights = (0, scheduler_1.onSchedule)(
@@ -159,11 +160,12 @@ exports.generateInsights = (0, scheduler_1.onSchedule)(
           const toWrite = seeds.slice(0, Math.max(slotsAvailable, seeds.length));
           // If we'd exceed the limit, remove oldest existing insights
           if (existingCount + toWrite.length > MAX_ACTIVE_INSIGHTS) {
-            const sorted = existingSnap.docs.sort((a, b) => {
-              const aTime = a.data().createdAt?.toMillis?.() ?? 0;
-              const bTime = b.data().createdAt?.toMillis?.() ?? 0;
-              return aTime - bTime;
-            });
+            // B8: createdAt may be a Firestore Timestamp object OR an ISO string.
+            const sorted = existingSnap.docs.sort(
+              (a, b) =>
+                (0, aggregation_helpers_1.legacyMillis)(a.data().createdAt) -
+                (0, aggregation_helpers_1.legacyMillis)(b.data().createdAt)
+            );
             const toRemove = existingCount + toWrite.length - MAX_ACTIVE_INSIGHTS;
             const writeBatch = db.batch();
             for (let i = 0; i < Math.min(toRemove, sorted.length); i++) {
@@ -186,7 +188,7 @@ exports.generateInsights = (0, scheduler_1.onSchedule)(
               actionType: seed.actionType,
               actionEntityId: seed.actionEntityId ?? null,
               actionEntityTitle: seed.actionEntityTitle ?? null,
-              createdAt: firestore_1.FieldValue.serverTimestamp(),
+              createdAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
               dismissedAt: null,
             });
             totalInsightsCreated++;

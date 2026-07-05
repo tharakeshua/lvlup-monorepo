@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import { logger } from "firebase-functions/v2";
 
 /**
@@ -20,7 +20,8 @@ export async function logTenantAction(
         action,
         callerUid,
         details: details ?? null,
-        createdAt: FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: isoNow(),
       });
   } catch (err) {
     // Audit logging should never block the main operation

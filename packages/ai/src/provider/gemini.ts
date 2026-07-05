@@ -10,13 +10,14 @@ import {
   type ResponseSchema,
 } from "@google/generative-ai";
 import type { LLMProvider, ProviderInput, ProviderOutput, ProviderTokenUsage } from "./provider.js";
+import { DEFAULT_FLASH_MODEL } from "../models.js";
 
 export interface GeminiOpts {
   /** Default model when the request omits one. */
   defaultModel?: string;
 }
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
+const DEFAULT_MODEL = DEFAULT_FLASH_MODEL;
 
 function toParts(input: ProviderInput): Part[] {
   const parts: Part[] = [{ text: input.user }];

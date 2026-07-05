@@ -10,8 +10,8 @@
  * (Contents) plus an Overview tab. Navigates into the item viewer / practice /
  * timed-test gate per node type.
  */
-import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSpace, useSpaceProgress, useStoryPoints } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
@@ -27,7 +27,6 @@ import {
   ProgressBar,
   Screen,
   StatTile,
-  Tabs,
   XPMeter,
 } from "../../components";
 import { routes } from "../../lib/routes";
@@ -38,6 +37,7 @@ import {
   byOrder,
   pct,
   toTrackNode,
+  type NodeRouteKind,
   type NodeState,
   type TrackNodeModel,
 } from "./_shared/normalize";
@@ -240,6 +240,176 @@ function OverviewTab({ nodes, totalPoints }: { nodes: TrackNodeModel[]; totalPoi
   );
 }
 
+// ── in-space navigation ──────────────────────────────────────────────────────
+// A space is its own little world, so it gets its own nav bar — distinct from the
+// app-wide bottom tabs. It sits under the hero and switches between the space's
+// sections (Overview + one per story-point route kind present in this space).
+
+type SpaceSection = {
+  key: string;
+  label: string;
+  icon: string;
+  count: number;
+  /** null for Overview (the summary); the filtered node list otherwise. */
+  nodes: TrackNodeModel[] | null;
+};
+
+/** Empty-content card shown when a section has no nodes yet. */
+function EmptyContent() {
+  return (
+    <View className="py-8">
+      <Card className="items-center gap-2 py-6">
+        <Icon name="book-open" size={28} color="#756E61" />
+        <Text className="font-display text-text-primary text-base">
+          This journey is still being built
+        </Text>
+        <Text className="text-text-muted px-6 text-center text-sm">
+          Your teacher is adding content here. Check back soon — it'll be worth the wait.
+        </Text>
+      </Card>
+    </View>
+  );
+}
+
+/** The space's own horizontal nav bar (its own brand-tinted surface). */
+function SpaceNav({
+  sections,
+  activeKey,
+  onSelect,
+}: {
+  sections: SpaceSection[];
+  activeKey: string;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <View className="border-border-subtle bg-brand-subtle gap-2 rounded-xl border p-2">
+      <View className="flex-row items-center gap-1.5 px-1">
+        <Icon name="compass" size={13} color="#423A82" />
+        <Text className="text-brand text-2xs font-semibold uppercase">In this space</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2 px-0.5"
+      >
+        {sections.map((s) => {
+          const on = s.key === activeKey;
+          return (
+            <Pressable
+              key={s.key}
+              onPress={() => onSelect(s.key)}
+              className={`rounded-pill flex-row items-center gap-1.5 px-3.5 py-2 ${
+                on ? "bg-brand shadow-sm" : "border-border-subtle bg-surface border"
+              }`}
+            >
+              <Icon name={s.icon} size={14} color={on ? "#FFFDFA" : "#756E61"} />
+              <Text
+                className={`font-ui text-sm ${
+                  on ? "text-text-on-accent font-semibold" : "text-text-secondary"
+                }`}
+              >
+                {s.label}
+              </Text>
+              <View
+                className={`rounded-pill min-w-[20px] items-center px-1.5 py-0.5 ${
+                  on ? "bg-brand-hover" : "bg-surface-sunken"
+                }`}
+              >
+                <Text
+                  className={`text-2xs font-semibold ${
+                    on ? "text-text-on-accent" : "text-text-muted"
+                  }`}
+                >
+                  {s.count}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** The spine of node cards for one section. */
+function SectionNodeList({
+  nodes,
+  onOpen,
+}: {
+  nodes: TrackNodeModel[];
+  onOpen: (node: TrackNodeModel) => void;
+}) {
+  if (nodes.length === 0) return <EmptyContent />;
+  return (
+    <View className="mt-1">
+      {nodes.map((n, i) => (
+        <NodeCard
+          key={n.id}
+          node={n}
+          index={i}
+          last={i === nodes.length - 1}
+          onOpen={() => onOpen(n)}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** In-space nav bar + the active section's content. */
+function SpaceSections({
+  nodes,
+  totalPoints,
+  onOpen,
+}: {
+  nodes: TrackNodeModel[];
+  totalPoints: number;
+  onOpen: (node: TrackNodeModel) => void;
+}) {
+  const sections = useMemo<SpaceSection[]>(() => {
+    const byRoute = (r: NodeRouteKind) => nodes.filter((n) => n.route === r);
+    const out: SpaceSection[] = [
+      { key: "overview", label: "Overview", icon: "compass", count: nodes.length, nodes: null },
+    ];
+    const content = byRoute("content");
+    const practice = byRoute("practice");
+    const tests = byRoute("test");
+    if (content.length)
+      out.push({
+        key: "content",
+        label: "Content",
+        icon: "book-open",
+        count: content.length,
+        nodes: content,
+      });
+    if (practice.length)
+      out.push({
+        key: "practice",
+        label: "Practice",
+        icon: "dumbbell",
+        count: practice.length,
+        nodes: practice,
+      });
+    if (tests.length)
+      out.push({ key: "tests", label: "Tests", icon: "timer", count: tests.length, nodes: tests });
+    return out;
+  }, [nodes]);
+
+  const [activeKey, setActiveKey] = useState("overview");
+  // Keep the selection valid even if the section set shifts (e.g. content loads in).
+  const active = sections.find((s) => s.key === activeKey) ?? sections[0];
+
+  return (
+    <View className="gap-4">
+      <SpaceNav sections={sections} activeKey={active.key} onSelect={setActiveKey} />
+      {active.key === "overview" ? (
+        <OverviewTab nodes={nodes} totalPoints={totalPoints} />
+      ) : (
+        <SectionNodeList nodes={active.nodes ?? []} onOpen={onOpen} />
+      )}
+    </View>
+  );
+}
+
 export default function SpaceDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ spaceId?: string }>();
@@ -296,42 +466,6 @@ export default function SpaceDetailScreen() {
     | undefined;
   const title = spaceData?.title ?? spaceData?.name ?? spaceData?.displayName ?? "Space";
 
-  const tabs = [
-    {
-      label: "Contents",
-      content:
-        nodes.length > 0 ? (
-          <View className="mt-2">
-            {nodes.map((n, i) => (
-              <NodeCard
-                key={n.id}
-                node={n}
-                index={i}
-                last={i === nodes.length - 1}
-                onOpen={() => openNode(n)}
-              />
-            ))}
-          </View>
-        ) : (
-          <View className="py-8">
-            <Card className="items-center gap-2 py-6">
-              <Icon name="book-open" size={28} color="#756E61" />
-              <Text className="font-display text-text-primary text-base">
-                This journey is still being built
-              </Text>
-              <Text className="text-text-muted px-6 text-center text-sm">
-                Your teacher is adding content here. Check back soon — it'll be worth the wait.
-              </Text>
-            </Card>
-          </View>
-        ),
-    },
-    {
-      label: "Overview",
-      content: <OverviewTab nodes={nodes} totalPoints={totalPoints} />,
-    },
-  ];
-
   return (
     <Screen className="bg-canvas" contentClassName="p-5 gap-4">
       <Breadcrumb
@@ -378,7 +512,7 @@ export default function SpaceDetailScreen() {
         </View>
       </View>
 
-      <Tabs items={tabs} defaultIndex={0} />
+      <SpaceSections nodes={nodes} totalPoints={totalPoints} onOpen={openNode} />
     </Screen>
   );
 }

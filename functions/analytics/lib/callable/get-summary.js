@@ -68,7 +68,9 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const wire_1 = require("../contracts/wire");
+const legacy_docs_1 = require("../contracts/legacy-docs");
+const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 const parse_request_1 = require("../utils/parse-request");
 const rate_limit_1 = require("../utils/rate-limit");
 exports.getSummary = (0, https_1.onCall)(
@@ -77,10 +79,7 @@ exports.getSummary = (0, https_1.onCall)(
     if (!request.auth) {
       throw new https_1.HttpsError("unauthenticated", "Authentication required.");
     }
-    const data = (0, parse_request_1.parseRequest)(
-      request.data,
-      shared_types_1.GetSummaryRequestSchema
-    );
+    const data = (0, parse_request_1.parseRequest)(request.data, wire_1.GetSummaryRequestSchema);
     if (!data.scope) {
       throw new https_1.HttpsError("invalid-argument", "scope is required.");
     }
@@ -147,7 +146,7 @@ async function handleStudentSummary(db, data, callerUid, callerRole) {
   if (!snapshot.exists) {
     throw new https_1.HttpsError("not-found", "Student progress summary not found.");
   }
-  const result = shared_types_1.StudentProgressSummarySchema.safeParse({
+  const result = legacy_docs_1.StudentProgressSummarySchema.safeParse({
     id: snapshot.id,
     ...snapshot.data(),
   });
@@ -184,7 +183,7 @@ async function handleClassSummary(db, data, callerUid, callerRole) {
   if (!snapshot.exists) {
     throw new https_1.HttpsError("not-found", "Class progress summary not found.");
   }
-  const result = shared_types_1.ClassProgressSummarySchema.safeParse({
+  const result = legacy_docs_1.ClassProgressSummarySchema.safeParse({
     id: snapshot.id,
     ...snapshot.data(),
   });
@@ -261,7 +260,8 @@ async function handlePlatformSummary(db) {
       actorEmail: d.actorEmail ?? "",
       tenantId: d.tenantId,
       metadata: d.metadata ?? {},
-      createdAt: d.createdAt,
+      // B8: ISO over the wire, never a Firestore Timestamp serialization.
+      createdAt: (0, aggregation_helpers_1.legacyIso)(d.createdAt),
     };
   });
   return {

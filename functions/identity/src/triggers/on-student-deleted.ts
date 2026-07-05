@@ -2,7 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions/v2";
-import type { Student } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { Student } from "../contracts/legacy-docs";
 
 /**
  * Firestore trigger: when a student status changes to 'archived',
@@ -37,7 +38,8 @@ export const onStudentArchived = onDocumentUpdated(
             db.doc(`tenants/${tenantId}/parents/${parentId}`),
             {
               childStudentIds: FieldValue.arrayRemove(studentId),
-              updatedAt: FieldValue.serverTimestamp(),
+              // B8: timestamps at rest are canonical ISO strings.
+              updatedAt: isoNow(),
             },
           ]);
         }
@@ -50,7 +52,7 @@ export const onStudentArchived = onDocumentUpdated(
             {
               studentIds: FieldValue.arrayRemove(studentId),
               studentCount: FieldValue.increment(-1),
-              updatedAt: FieldValue.serverTimestamp(),
+              updatedAt: isoNow(),
             },
           ]);
         }

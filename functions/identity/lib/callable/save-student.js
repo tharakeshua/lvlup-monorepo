@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -72,7 +73,7 @@ exports.saveStudent = (0, https_1.onCall)(
     if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
     const { id, tenantId, data } = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.SaveStudentRequestSchema
+      wire_1.SaveStudentRequestSchema
     );
     await (0, utils_1.assertTenantAdminOrSuperAdmin)(callerUid, tenantId);
     await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 30);
@@ -100,9 +101,10 @@ exports.saveStudent = (0, https_1.onCall)(
         admissionNumber: data.admissionNumber ?? null,
         dateOfBirth: data.dateOfBirth ?? null,
         status: "active",
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: (0, domain_1.isoNow)(),
         createdBy: callerUid,
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
         updatedBy: callerUid,
       });
       // Create UserMembership
@@ -119,8 +121,8 @@ exports.saveStudent = (0, https_1.onCall)(
         permissions: {
           managedClassIds: classIds,
         },
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       await db.doc(`userMemberships/${membershipId}`).set(membership);
       // Set custom claims — use MembershipClaimsInput to avoid double-cast
@@ -147,7 +149,7 @@ exports.saveStudent = (0, https_1.onCall)(
         await classRef.update({
           studentIds: firestore_1.FieldValue.arrayUnion(studentRef.id),
           studentCount: firestore_1.FieldValue.increment(1),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       v2_1.logger.info(`Created student ${studentRef.id} in tenant ${tenantId}`);
@@ -160,7 +162,7 @@ exports.saveStudent = (0, https_1.onCall)(
         throw new https_1.HttpsError("not-found", "Student not found");
       }
       const updates = {
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
         updatedBy: callerUid,
       };
       if (data.rollNumber !== undefined) updates.rollNumber = data.rollNumber;
@@ -183,7 +185,7 @@ exports.saveStudent = (0, https_1.onCall)(
           await classRef.update({
             studentIds: firestore_1.FieldValue.arrayUnion(id),
             studentCount: firestore_1.FieldValue.increment(1),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            updatedAt: (0, domain_1.isoNow)(),
           });
         }
         // Remove student from old classes
@@ -192,7 +194,7 @@ exports.saveStudent = (0, https_1.onCall)(
           await classRef.update({
             studentIds: firestore_1.FieldValue.arrayRemove(id),
             studentCount: firestore_1.FieldValue.increment(-1),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            updatedAt: (0, domain_1.isoNow)(),
           });
         }
       }

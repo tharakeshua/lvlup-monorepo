@@ -11,6 +11,9 @@ import { authorize } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import { xrepos } from "../shared/extended-repos.js";
+import { tsRequired } from "../shared/projections.js";
+
+type Doc = Record<string, unknown>;
 
 const STUDENT_SUMMARY = "studentSummary";
 const CLASS_SUMMARY = "classSummary";
@@ -230,26 +233,79 @@ export async function listParentAlertsService(
 }
 
 // ---- listPlatformActivity (C25 — super-admin audit feed; top-level collection) ----
+
+const PLATFORM_ACTIVITY_ACTION_SET = new Set<string>([
+  "tenant_created",
+  "tenant_updated",
+  "tenant_deactivated",
+  "tenant_reactivated",
+  "user_created",
+  "users_bulk_imported",
+]);
+
+/** Whitelist a stored activity row to the strict PlatformActivityLogSchema view. */
+function projectPlatformActivity(d: Doc): Doc {
+  const action = String(d["action"] ?? "tenant_updated");
+  return {
+    id: String(d["id"] ?? ""),
+    action: PLATFORM_ACTIVITY_ACTION_SET.has(action) ? action : "tenant_updated",
+    actorUid: String(d["actorUid"] ?? d["actorId"] ?? ""),
+    actorEmail: String(d["actorEmail"] ?? ""),
+    ...(typeof d["tenantId"] === "string" && d["tenantId"] ? { tenantId: d["tenantId"] } : {}),
+    metadata: (d["metadata"] as Doc | undefined) ?? {},
+    createdAt: tsRequired(d["createdAt"], d["timestamp"]),
+  };
+}
+
 export async function listPlatformActivityService(
   input: ReqOf<"v1.analytics.listPlatformActivity">,
   ctx: AuthContext
 ): Promise<ResOf<"v1.analytics.listPlatformActivity">> {
   if (!ctx.isSuperAdmin) fail("PERMISSION_DENIED", "platform activity is super-admin only");
-  // The platform activity log is a PLATFORM-root collection (no tenant scope). The
-  // generic platform store ('__platform__') backs it via the tenants repo.
-  const page = await ctx.repos.tenants.list("__platform__", {
-    filter: (d) =>
-      d["_kind"] === "platformActivityLog" && (!input.action || d["action"] === input.action),
-    cursor: input.cursor,
+  // The REAL top-level `platformActivityLog` collection (the U2.4+5 replacement
+  // for super-admin's rules-denied direct SDK read) — NOT the tenants store.
+  // An explicit `tenantOverride` doubles as the per-tenant audit-feed filter
+  // (the tenant-detail audit card); without it the feed is platform-global.
+  const tenantFilter = (input as { tenantOverride?: string }).tenantOverride;
+  const page = await xrepos(ctx).platformActivity.list({
+    ...(input.action ? { action: input.action } : {}),
+    ...(tenantFilter ? { tenantId: tenantFilter } : {}),
+    ...(input.cursor ? { cursor: input.cursor } : {}),
     limit: input.limit ?? 20,
   });
   return {
-    items: page.items,
+    items: page.items.map(projectPlatformActivity),
     nextCursor: page.nextCursor,
   } as ResOf<"v1.analytics.listPlatformActivity">;
 }
 
-// ---- getCostSummary (admin) ----
+// ---- getCostSummary (admin; canonical costSummaries with legacy fallback) ----
+
+/** Whitelist a stored summary doc to the strict Daily/MonthlyCostSummary view. */
+function projectCostSummary(d: Doc, tenantId: string, granularity: "daily" | "monthly"): Doc {
+  return {
+    id: String(d["id"] ?? ""),
+    tenantId: String(d["tenantId"] ?? tenantId),
+    ...(granularity === "daily"
+      ? { date: String(d["date"] ?? "") }
+      : { month: String(d["month"] ?? "") }),
+    totalCalls: typeof d["totalCalls"] === "number" ? Math.trunc(d["totalCalls"]) : 0,
+    totalInputTokens:
+      typeof d["totalInputTokens"] === "number" ? Math.trunc(d["totalInputTokens"]) : 0,
+    totalOutputTokens:
+      typeof d["totalOutputTokens"] === "number" ? Math.trunc(d["totalOutputTokens"]) : 0,
+    totalCostUsd: typeof d["totalCostUsd"] === "number" ? d["totalCostUsd"] : 0,
+    byPurpose: (d["byPurpose"] as Doc | undefined) ?? {},
+    byModel: (d["byModel"] as Doc | undefined) ?? {},
+    ...(typeof d["budgetLimitUsd"] === "number" ? { budgetLimitUsd: d["budgetLimitUsd"] } : {}),
+    ...(typeof d["budgetUsedPercent"] === "number"
+      ? { budgetUsedPercent: d["budgetUsedPercent"] }
+      : {}),
+    ...(typeof d["budgetAlertSent"] === "boolean" ? { budgetAlertSent: d["budgetAlertSent"] } : {}),
+    computedAt: tsRequired(d["computedAt"], d["updatedAt"], d["createdAt"]),
+  };
+}
+
 export async function getCostSummaryService(
   input: ReqOf<"v1.analytics.getCostSummary">,
   ctx: AuthContext
@@ -258,17 +314,43 @@ export async function getCostSummaryService(
   if (!ctx.isSuperAdmin && ctx.role !== "tenantAdmin") {
     fail("PERMISSION_DENIED", "cost summary is admin only");
   }
-  const kind = input.granularity === "monthly" ? COST_MONTHLY : COST_DAILY;
-  const page = await ctx.repos.tenants.list(tenantId, {
-    filter: (d) => {
-      if (d["_kind"] !== kind) return false;
-      if (input.date && d["date"] !== input.date) return false;
-      if (input.month && d["month"] !== input.month) return false;
-      return true;
-    },
-    limit: 200,
-  });
-  return { summaries: page.items } as ResOf<"v1.analytics.getCostSummary">;
+  const granularity = input.granularity === "monthly" ? "monthly" : "daily";
+
+  // Canonical U3.3 store: ONE `costSummaries` collection, `daily_*`/`monthly_*` ids.
+  const range = input.range as { from?: string; to?: string } | undefined;
+  const canonical =
+    granularity === "monthly"
+      ? await xrepos(ctx).costSummaries.listMonthly(tenantId, {
+          ...(input.month ? { month: input.month } : {}),
+        })
+      : await xrepos(ctx).costSummaries.listDaily(tenantId, {
+          ...(input.date ? { date: input.date } : {}),
+          ...(range?.from ? { from: range.from.slice(0, 10) } : {}),
+          ...(range?.to ? { to: range.to.slice(0, 10) } : {}),
+        });
+
+  // Legacy fallback: the pre-canon recompute wrote `_kind`-tagged docs into the
+  // tenants generic store — keep serving them until the recompute is converged
+  // (flagged for the analytics tree: its INPUT read is also off-canon).
+  const docs =
+    canonical.length > 0
+      ? canonical
+      : (
+          await ctx.repos.tenants.list(tenantId, {
+            filter: (d) => {
+              if (d["_kind"] !== (granularity === "monthly" ? COST_MONTHLY : COST_DAILY))
+                return false;
+              if (input.date && d["date"] !== input.date) return false;
+              if (input.month && d["month"] !== input.month) return false;
+              return true;
+            },
+            limit: 200,
+          })
+        ).items;
+
+  return {
+    summaries: docs.map((d) => projectCostSummary(d as Doc, tenantId, granularity)),
+  } as ResOf<"v1.analytics.getCostSummary">;
 }
 
 // ---- getLeaderboard (shapes RTDB snapshot) ----

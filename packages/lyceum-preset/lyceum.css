@@ -1,0 +1,18 @@
+/* Lyceum — one-stop CSS entry.
+ *
+ * App index.css (Phase B recipe — order matters):
+ *
+ *   @import '@levelup/tailwind-config/variables.css';  (keep: a11y modes, resets)
+ *   @import '@levelup/lyceum-preset/lyceum.css';       (this file)
+ *   @tailwind base;
+ *   @tailwind components;
+ *   @tailwind utilities;
+ *
+ * Prefer loading fonts via <link> in index.html (see fonts.css header);
+ * in that case import tokens.css + bridge.css + base.css individually
+ * instead of this bundle.
+ */
+@import './fonts.css';
+@import './tokens.css';
+@import './bridge.css';
+@import './base.css';

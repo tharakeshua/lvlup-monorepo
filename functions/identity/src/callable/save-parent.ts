@@ -2,8 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SaveParentRequestSchema } from "@levelup/shared-types";
-import type { SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveParentRequestSchema, type SaveResponse } from "../contracts/wire";
 import { assertTenantAdminOrSuperAdmin, getTenant, parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -44,9 +44,10 @@ export const saveParent = onCall({ region: "asia-south1", cors: true }, async (r
       uid: data.uid,
       childStudentIds,
       status: "active",
-      createdAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
       createdBy: callerUid,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     });
 
@@ -55,7 +56,7 @@ export const saveParent = onCall({ region: "asia-south1", cors: true }, async (r
       const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
       await studentRef.update({
         parentIds: FieldValue.arrayUnion(parentRef.id),
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       });
     }
 
@@ -71,7 +72,7 @@ export const saveParent = onCall({ region: "asia-south1", cors: true }, async (r
     }
 
     const updates: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     };
 
@@ -91,7 +92,7 @@ export const saveParent = onCall({ region: "asia-south1", cors: true }, async (r
         const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
         await studentRef.update({
           parentIds: FieldValue.arrayUnion(id),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
 
@@ -100,7 +101,7 @@ export const saveParent = onCall({ region: "asia-south1", cors: true }, async (r
         const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
         await studentRef.update({
           parentIds: FieldValue.arrayRemove(id),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
     }

@@ -1,9 +1,10 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SwitchActiveTenantRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SwitchActiveTenantRequestSchema } from "../contracts/wire";
 import {
+  getUser,
   getMembership,
   getTenant,
   assertTenantAccessible,
@@ -50,14 +51,19 @@ export const switchActiveTenant = onCall({ region: "asia-south1", cors: true }, 
   const tenant = await getTenant(data.tenantId);
   assertTenantAccessible(tenant, "access");
 
-  // Build and set new custom claims for this tenant
-  const claims = buildClaimsForMembership(membership);
+  // Build and set new custom claims for this tenant. DEP-1: preserve the
+  // caller's isSuperAdmin claim, which a bare re-mint would silently strip.
+  const callerUser = await getUser(callerUid);
+  const claims = buildClaimsForMembership(membership, {
+    isSuperAdmin: callerUser?.isSuperAdmin === true,
+  });
   await admin.auth().setCustomUserClaims(callerUid, claims);
 
   // Update user's activeTenantId
   await admin.firestore().doc(`users/${callerUid}`).update({
     activeTenantId: data.tenantId,
-    updatedAt: FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    updatedAt: isoNow(),
   });
 
   logger.info(`User ${callerUid} switched to tenant ${data.tenantId} (role: ${membership.role})`);

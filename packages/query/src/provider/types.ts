@@ -13,42 +13,46 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { Repositories } from "@levelup/repositories";
-import type { SubscriptionName, ParamsOf, PayloadOf, ApiErrorDetails } from "@levelup/api-contract";
+import type {
+  SubscriptionName,
+  ParamsOf,
+  PayloadOf,
+  ApiErrorDetails,
+  SubscriptionHandle,
+  SubscriptionListener,
+  SubscriptionCallbacks,
+} from "@levelup/api-contract";
 
 /** Structural error carried over the realtime seam. */
 export type SeamError = ApiErrorDetails;
 
-/** Subscription consumer callbacks (mirrors the realtime seam). */
-export interface SubscriptionCallbacks<P> {
-  next: (payload: P) => void;
-  error?: (err: SeamError) => void;
-  onSynced?: () => void;
-}
-
-/** Idempotent, refcount-aware handle to a live subscription. */
-export interface SubscriptionHandle {
-  unsubscribe(): void;
-  readonly id: string;
-  readonly active: boolean;
-}
+/** Canonical subscription sub-types (DP-1: single home in `@levelup/api-contract`). */
+export type { SubscriptionHandle, SubscriptionCallbacks };
 
 /**
- * The injected transport seam. The full `Transport` lives in
- * `@levelup/api-client`; the query layer needs only this structural view (the
- * real client is assignable to it). `subscribe` is the realtime cache-write seam.
+ * The injected transport seam — a deliberately WIDENED structural view (DP-1
+ * NOT-unified case #1). The query layer is downward-only (it cannot import the
+ * api-client's `CallableName`-parameterized `invoke`), so `invoke` stays loosened
+ * to `(name: string, data: unknown)`; the realtime sub-types (`SubscriptionHandle`,
+ * `SubscriptionListener`) are the canonical api-contract ones. The real client is
+ * structurally assignable to this view.
  */
 export interface Transport {
   invoke(name: string, data: unknown): Promise<unknown>;
   subscribe<S extends SubscriptionName>(
     name: S,
     params: ParamsOf<S>,
-    cb: SubscriptionCallbacks<PayloadOf<S>> | ((payload: PayloadOf<S>) => void)
+    cb: SubscriptionListener<PayloadOf<S>>
   ): SubscriptionHandle;
   serverTimeOffset(cb: (offsetMs: number) => void): SubscriptionHandle;
   refreshToken(forceRefresh?: boolean): Promise<void>;
 }
 
-/** A raw api-client handle — kept opaque here (reads stay in repos). */
+/**
+ * A raw api-client handle — kept opaque (DP-1 step 7, intentional). The query
+ * layer never reads the client directly (all reads stay in `@levelup/repositories`),
+ * so linking it to the real `ApiClient` would buy nothing here; it stays `object`.
+ */
 export type ApiClientLike = object;
 
 /** Injected, platform-neutral toast/announcer (web: sonner adapter; RN: Toast). */

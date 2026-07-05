@@ -7,10 +7,12 @@
  * until confirmed (be-autograde §4 — the score-leak fix).
  */
 import { assertTransition } from "@levelup/access";
+import { gradeForPercentage } from "@levelup/domain";
 import type { SystemContext } from "../../shared/context.js";
 import { requireTenant, fail } from "../../shared/context.js";
 import { listQuestionSubmissions } from "./questions.js";
 import { enqueueOutboxEvent } from "../../shared/side-effects.js";
+import { projectSubmissionStatus } from "./grading-projection.js";
 
 export interface FinalizeSubmissionInput {
   submissionId: string;
@@ -59,7 +61,7 @@ export async function finalizeSubmissionService(
     totalScore,
     maxScore: totalMarks,
     percentage,
-    grade: gradeFor(percentage),
+    grade: gradeForPercentage(percentage),
     questionsGraded,
     totalQuestions: qsubs.length,
     completedAt: now,
@@ -84,17 +86,27 @@ export async function finalizeSubmissionService(
       createdAt: now,
     });
   });
+
+  // AG-5: project the final `ready_for_review` transition onto the RTDB live ticker
+  // (per-submission status + exam aggregate). Slim status only — the `summary`
+  // (totalScore/grade/percentage) NEVER rides this channel (release-gate invariant).
+  if (currentStatus === "grading_complete") {
+    await projectSubmissionStatus(ctx, tenantId, {
+      submissionId: input.submissionId,
+      examId,
+      studentId: sub["studentId"] as string,
+      pipelineStatus: "ready_for_review",
+    });
+  }
 }
 
-/** Simple letter grade from a percentage (server-authoritative).
- *  Must return a valid GradeLetter (zGradeLetter): A+,A,B+,B,C+,C,D,F (no 'E'). */
-export function gradeFor(percentage: number): string {
-  if (percentage >= 95) return "A+";
-  if (percentage >= 90) return "A";
-  if (percentage >= 85) return "B+";
-  if (percentage >= 80) return "B";
-  if (percentage >= 75) return "C+";
-  if (percentage >= 70) return "C";
-  if (percentage >= 60) return "D";
-  return "F";
-}
+/**
+ * Server-authoritative letter grade from a percentage.
+ *
+ * Delegates to the canonical domain boundary `gradeForPercentage` (U1.2/B5,
+ * `@levelup/domain`) — the ONE place thresholds live. This intentionally diverges
+ * from the legacy 7-letter table on the 33–59 range (C+ 50–59, C 40–49, D floor
+ * 33; a locked domain decision) and clamps negative/NaN to 'F'. NEVER re-hardcode
+ * thresholds here.
+ */
+export const gradeFor = gradeForPercentage;

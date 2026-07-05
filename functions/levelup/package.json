@@ -21,7 +21,9 @@
     "@levelup/functions-shared": "workspace:*",
     "@levelup/shared-services": "workspace:*",
     "@levelup/shared-types": "workspace:*",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@levelup/domain": "workspace:*",
+    "@levelup/api-contract": "workspace:*"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.0.0",

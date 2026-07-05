@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLookupTenantByCode } from "@levelup/query";
+import { evaluateTenantAccess } from "@levelup/domain";
 import { useAuthSession } from "../sdk/session";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button, Input, Label, Card, CardContent } from "@levelup/shared-ui";
@@ -35,13 +36,19 @@ export default function LoginPage() {
       const tenant = (await lookupTenant.mutateAsync(code)) as {
         name: string;
         status: string;
+        trialEndsAt?: string | null;
       } | null;
       if (!tenant) {
         setCodeError("Invalid school code. Please try again.");
         return;
       }
-      if (tenant.status !== "active") {
-        setCodeError("This school is currently inactive.");
+      const access = evaluateTenantAccess(tenant);
+      if (!access.allowed) {
+        setCodeError(
+          access.reason === "trial_expired"
+            ? "This school's trial has ended. Please contact your administrator to reactivate."
+            : "This school is currently inactive."
+        );
         return;
       }
 

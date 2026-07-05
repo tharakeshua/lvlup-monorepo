@@ -57,6 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Firestore trigger: when a student status changes to 'archived',
  * remove studentId from parent.childStudentIds[] and class.studentIds[].
@@ -85,7 +86,8 @@ exports.onStudentArchived = (0, firestore_2.onDocumentUpdated)(
             db.doc(`tenants/${tenantId}/parents/${parentId}`),
             {
               childStudentIds: firestore_1.FieldValue.arrayRemove(studentId),
-              updatedAt: firestore_1.FieldValue.serverTimestamp(),
+              // B8: timestamps at rest are canonical ISO strings.
+              updatedAt: (0, domain_1.isoNow)(),
             },
           ]);
         }
@@ -97,7 +99,7 @@ exports.onStudentArchived = (0, firestore_2.onDocumentUpdated)(
             {
               studentIds: firestore_1.FieldValue.arrayRemove(studentId),
               studentCount: firestore_1.FieldValue.increment(-1),
-              updatedAt: firestore_1.FieldValue.serverTimestamp(),
+              updatedAt: (0, domain_1.isoNow)(),
             },
           ]);
         }

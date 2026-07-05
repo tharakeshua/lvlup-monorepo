@@ -26,5 +26,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={user ? routes.home() : routes.login()} />;
+  return <Redirect href={user ? routes.spaces() : routes.login()} />;
 }

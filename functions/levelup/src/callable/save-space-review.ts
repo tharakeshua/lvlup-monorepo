@@ -1,10 +1,10 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { assertAuth, assertTenantMember } from "../utils/auth";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { parseRequest } from "../utils";
-import { SaveSpaceReviewRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveSpaceReviewRequestSchema } from "../contracts/wire";
 
 /**
  * Save or update a space review (one review per user per space).
@@ -30,7 +30,7 @@ export const saveSpaceReview = onCall({ region: "asia-south1", cors: true }, asy
     throw new HttpsError("not-found", "Space not found");
   }
 
-  const now = FieldValue.serverTimestamp();
+  const now = isoNow();
   const existingReview = await reviewRef.get();
   const isUpdate = existingReview.exists;
 

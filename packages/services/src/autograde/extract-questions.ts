@@ -44,13 +44,17 @@ export async function extractQuestionsService(input: Req, ctx: AuthContext): Pro
     {
       promptKey: "questionExtraction",
       operation: "questions.extract",
+      // The `questionExtraction` template's requiredVariables are
+      // {examTitle, examType, mode} — locked by the prompt-contract test.
       variables: {
-        examId: input.examId,
+        examTitle: String(exam["title"] ?? ""),
+        examType: String(exam["examType"] ?? "standard"),
         mode,
-        questionNumber: input.questionNumber,
-        totalMarks: exam["totalMarks"],
+        questionNumber: input.questionNumber ?? "",
+        totalMarks: (exam["totalMarks"] as number | undefined) ?? "unspecified",
       },
-      images: images.map((path) => ({ base64: path, mimeType: "image/jpeg" })),
+      // Storage PATHS — the ai gateway downloads + inlines the bytes (P0-B seam).
+      images: images.map((path) => ({ storagePath: path })),
       responseSchema: { type: "array" },
     },
     { tenantId, uid: ctx.uid, now: ctx.now, examId: input.examId }
@@ -75,11 +79,19 @@ export async function extractQuestionsService(input: Req, ctx: AuthContext): Pro
   const imageQualityAcceptable = !questions.some((q) => q.readabilityIssue);
 
   // Persist questions into the nested questions collection (resolved rubric snapshot).
+  // Ids are DETERMINISTIC (`{examId}_q{order}`) so a re-extract (full or single)
+  // UPSERTS the same docs instead of duplicating them (P2-H).
+  const priorCount = (paper?.["questionCount"] as number | undefined) ?? 0;
   await ctx.repos.tx(async (tx) => {
+    const seenIds = new Set<string>();
     for (const q of questions) {
+      let id = `${input.examId}_q${q.order}`;
+      while (seenIds.has(id)) id = `${id}_dup`;
+      seenIds.add(id);
       tx.upsert("exams", tenantId, {
         // questions are stored as a nested collection in the real adapter; the
         // testing twin flattens. We mark the parent + write via the exam repo path.
+        id,
         examId: input.examId,
         ...q,
         _kind: "examQuestion",
@@ -88,7 +100,12 @@ export async function extractQuestionsService(input: Req, ctx: AuthContext): Pro
     tx.upsert("exams", tenantId, {
       id: input.examId,
       status: "question_paper_extracted",
-      questionPaper: { ...(paper ?? {}), questionCount: questions.length, extractedAt: now },
+      questionPaper: {
+        ...(paper ?? {}),
+        // A single-question re-extract must not clobber the full paper's count.
+        questionCount: mode === "single" && priorCount > 0 ? priorCount : questions.length,
+        extractedAt: now,
+      },
     });
   });
 

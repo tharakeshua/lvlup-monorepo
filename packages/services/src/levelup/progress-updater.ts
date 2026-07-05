@@ -12,6 +12,7 @@
  */
 import type { ProgressItemUpdate, ProgressUpdateResult } from "../repo-admin/types.js";
 import type { AuthContext, SystemContext } from "../shared/context.js";
+import { projectSpaceProgressLive } from "./levelup-projection.js";
 
 export interface ApplyProgressArgs {
   userId: string;
@@ -23,7 +24,8 @@ export interface ApplyProgressArgs {
 /**
  * Apply one or more scored item contributions to a learner's space progress.
  * Wraps the single-writer repo call; the transaction + best-score retention live
- * in the admin adapter (`ProgressRepo.update`).
+ * in the admin adapter (`ProgressRepo.update`). The tx rollup then feeds the
+ * `spaceProgressLive` RTDB projection (AD-12 side-channel; no-op when unwired).
  */
 export async function applyProgress(
   args: ApplyProgressArgs,
@@ -31,7 +33,7 @@ export async function applyProgress(
 ): Promise<ProgressUpdateResult> {
   const tenantId = ctx.tenantId;
   if (!tenantId) throw new Error("progressUpdater requires a tenant on the context");
-  return ctx.repos.progress.update(
+  const result = await ctx.repos.progress.update(
     tenantId,
     {
       userId: args.userId,
@@ -41,4 +43,10 @@ export async function applyProgress(
     },
     ctx.now()
   );
+  await projectSpaceProgressLive(ctx, tenantId, {
+    userId: args.userId,
+    spaceId: args.spaceId,
+    result,
+  });
+  return result;
 }

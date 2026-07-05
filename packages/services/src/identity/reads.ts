@@ -12,6 +12,9 @@ import {
   StaffSchema,
   ClassSchema,
   AcademicSessionSchema,
+  UnifiedUserSchema,
+  UserMembershipSchema,
+  TenantSchema,
 } from "@levelup/domain";
 import { authorize } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
@@ -58,6 +61,9 @@ const PARENT_KEYS = Object.keys(ParentSchema.shape);
 const STAFF_KEYS = Object.keys(StaffSchema.shape);
 const CLASS_KEYS = Object.keys(ClassSchema.shape);
 const SESSION_KEYS = Object.keys(AcademicSessionSchema.shape);
+const USER_KEYS = Object.keys(UnifiedUserSchema.shape);
+const MEMBERSHIP_KEYS = Object.keys(UserMembershipSchema.shape);
+const TENANT_FULL_KEYS = Object.keys(TenantSchema.shape);
 
 /** Permission keys recognized by the domain `PlatformClaims` (drop legacy/unknown). */
 const TEACHER_PERMISSION_KEYS = new Set([
@@ -110,7 +116,11 @@ function projectPlatformClaims(raw: Doc): Doc {
     "studentIds",
     "isSuperAdmin",
   ];
-  for (const k of passThrough) if (raw[k] !== undefined && raw[k] !== null) out[k] = raw[k];
+  // Skip empty strings too: legacy claim builders write `tenantCode: ""`,
+  // which the branded `.optional()` id schemas reject (min-1).
+  for (const k of passThrough) {
+    if (raw[k] !== undefined && raw[k] !== null && raw[k] !== "") out[k] = raw[k];
+  }
   const perms = filterPermRecord(raw["permissions"], TEACHER_PERMISSION_KEYS);
   if (perms) out["permissions"] = perms;
   const staffPerms = filterPermRecord(raw["staffPermissions"], STAFF_PERMISSION_KEYS);
@@ -126,22 +136,78 @@ function projectPlatformClaims(raw: Doc): Doc {
  * drop `id`, drop null-valued optional strings, and default the audit actor to uid.
  */
 function projectUnifiedUser(user: Doc, uid: string): Doc {
-  const { id: _id, ...rest } = user as Doc;
-  const NULLABLE_OPTIONAL = [
-    "email",
-    "phone",
-    "firstName",
-    "lastName",
-    "photoURL",
-    "country",
-    "grade",
-  ];
-  for (const k of NULLABLE_OPTIONAL) if (rest[k] === null) delete rest[k];
-  return {
-    ...rest,
-    createdBy: (rest["createdBy"] as string | undefined) ?? uid,
-    updatedBy: (rest["updatedBy"] as string | undefined) ?? uid,
-  };
+  // Whitelist to the schema shape (drops the repo-injected `id` and any stray
+  // legacy keys) and drop null-valued optionals; legacy saga writers omitted
+  // `uid`/`isSuperAdmin`/`status`/`updatedAt`/`lastLogin` — default them so the
+  // strict schema validates (E2E-1: getMe drift broke every literal-true app).
+  const out: Doc = {};
+  for (const k of USER_KEYS) {
+    const v = user[k];
+    if (v !== undefined && v !== null) out[k] = v;
+  }
+  out["uid"] = out["uid"] ?? uid;
+  out["isSuperAdmin"] = out["isSuperAdmin"] ?? false;
+  const USER_STATUSES = new Set(["active", "suspended", "deleted"]);
+  if (!USER_STATUSES.has(out["status"] as string)) out["status"] = "active";
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  out["createdBy"] = out["createdBy"] ?? uid;
+  out["updatedBy"] = out["updatedBy"] ?? uid;
+  if (out["lastLogin"] === undefined) out["lastLogin"] = null;
+  return out;
+}
+
+/**
+ * Project a stored membership doc into a strict-domain `UserMembership`.
+ * Legacy writers persist `classIds` (a claims-sync key the schema doesn't
+ * model), an EMPTY `tenantCode`, and omit the audit pair + `lastActive`.
+ * `tenantCodeByTenant` supplies the authoritative code for empty/missing ones
+ * (falls back to the tenantId — same brand rules — so getMe never hard-fails).
+ */
+function projectMembership(m: Doc, tenantCodeByTenant: Map<string, string>): Doc {
+  const out: Doc = {};
+  for (const k of MEMBERSHIP_KEYS) {
+    const v = m[k];
+    if (v !== undefined && v !== null) out[k] = v;
+  }
+  const tenantId = out["tenantId"] as string;
+  if (!out["tenantCode"]) {
+    out["tenantCode"] = tenantCodeByTenant.get(tenantId) || tenantId;
+  }
+  out["createdBy"] = out["createdBy"] ?? out["uid"];
+  out["updatedBy"] = out["updatedBy"] ?? out["createdBy"];
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  if (out["lastActive"] === undefined) out["lastActive"] = null;
+  return out;
+}
+
+/**
+ * Project a stored tenant doc into the strict full `Tenant`. Legacy docs carry
+ * top-level `geminiKeyRef`/`tenantId` (the domain nests the ref in `settings`)
+ * and omit the required `features`/`settings`/`stats` embeds (all-default
+ * shapes) + the audit/`trialEndsAt` fields.
+ */
+function projectTenantFull(t: Doc): Doc {
+  const out: Doc = {};
+  for (const k of TENANT_FULL_KEYS) {
+    const v = t[k];
+    if (v !== undefined && v !== null) out[k] = v;
+  }
+  out["features"] = out["features"] ?? {};
+  const settings = (out["settings"] as Doc | undefined) ?? {};
+  if (t["geminiKeyRef"] && !settings["geminiKeyRef"]) {
+    settings["geminiKeyRef"] = t["geminiKeyRef"];
+  }
+  out["settings"] = settings;
+  out["stats"] = out["stats"] ?? {};
+  const subscription = (out["subscription"] as Doc | undefined) ?? { plan: "free" };
+  if (subscription["renewsAt"] === undefined) subscription["renewsAt"] = null;
+  out["subscription"] = subscription;
+  if (out["trialEndsAt"] === undefined) out["trialEndsAt"] = null;
+  const owner = out["ownerUid"];
+  out["createdBy"] = out["createdBy"] ?? owner;
+  out["updatedBy"] = out["updatedBy"] ?? out["createdBy"];
+  out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
+  return out;
 }
 
 /** Shared paginated-list reader over a tenant-scoped entity collection. */
@@ -170,11 +236,38 @@ export async function getMeService(
   const activeTenant = ctx.tenantId
     ? await ctx.repos.tenants.get(ctx.tenantId, ctx.tenantId)
     : undefined;
+
+  // Authoritative tenantCode per membership tenant (legacy rows store "").
+  // Bounded: one read per DISTINCT code-less membership tenant; the active
+  // tenant is reused from the fetch above.
+  const tenantCodeByTenant = new Map<string, string>();
+  if (activeTenant?.["tenantCode"] && ctx.tenantId) {
+    tenantCodeByTenant.set(ctx.tenantId, activeTenant["tenantCode"] as string);
+  }
+  const codeless = [
+    ...new Set(
+      memberships
+        .filter((m) => !m["tenantCode"] && !tenantCodeByTenant.has(m["tenantId"] as string))
+        .map((m) => m["tenantId"] as string)
+    ),
+  ];
+  await Promise.all(
+    codeless.map(async (tid) => {
+      const t = await ctx.repos.tenants.get(tid, tid).catch(() => null);
+      if (t?.["tenantCode"]) tenantCodeByTenant.set(tid, t["tenantCode"] as string);
+    })
+  );
+
+  const claims = projectPlatformClaims(rawClaims);
+  if (!claims["tenantCode"] && ctx.tenantId && tenantCodeByTenant.has(ctx.tenantId)) {
+    claims["tenantCode"] = tenantCodeByTenant.get(ctx.tenantId);
+  }
+
   return {
     user: projectUnifiedUser(user, ctx.uid),
-    memberships,
-    claims: projectPlatformClaims(rawClaims),
-    activeTenant: activeTenant ?? undefined,
+    memberships: memberships.map((m) => projectMembership(m, tenantCodeByTenant)),
+    claims,
+    activeTenant: activeTenant ? projectTenantFull(activeTenant) : undefined,
   } as unknown as ResOf<"v1.identity.getMe">;
 }
 

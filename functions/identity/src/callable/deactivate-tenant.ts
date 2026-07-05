@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { DeactivateTenantRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { DeactivateTenantRequestSchema } from "../contracts/wire";
 import { getUser, parseRequest, logTenantAction, writePlatformActivity } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -50,10 +50,11 @@ export const deactivateTenant = onCall({ region: "asia-south1", cors: true }, as
   await tenantRef.update({
     status: "deactivated",
     "deactivation.reason": reason ?? null,
-    "deactivation.deactivatedAt": FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    "deactivation.deactivatedAt": isoNow(),
     "deactivation.deactivatedBy": callerUid,
     "deactivation.previousStatus": tenantData.status,
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: isoNow(),
     updatedBy: callerUid,
   });
 
@@ -66,7 +67,7 @@ export const deactivateTenant = onCall({ region: "asia-south1", cors: true }, as
     for (const membershipDoc of chunk) {
       batch.update(membershipDoc.ref, {
         status: "suspended",
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       });
     }
     await batch.commit();

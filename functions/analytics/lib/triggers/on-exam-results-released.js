@@ -61,7 +61,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onExamResultsReleased = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
-const firestore_2 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 exports.onExamResultsReleased = (0, firestore_1.onDocumentUpdated)(
   {
@@ -121,8 +121,9 @@ exports.onExamResultsReleased = (0, firestore_1.onDocumentUpdated)(
         scores.push(obtained);
         percentages.push(percentage);
         if (obtained >= passingMarks) passCount++;
-        // Grade bucket
-        const grade = getGrade(percentage);
+        // Grade bucket — canonical 8-letter scale via domain (U1.2/B5; the
+        // former local 7-letter table intentionally diverged on 33–59%).
+        const grade = (0, domain_1.gradeForPercentage)(percentage);
         gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1;
         // Class aggregation
         const classId = sub.classId;
@@ -212,8 +213,8 @@ exports.onExamResultsReleased = (0, firestore_1.onDocumentUpdated)(
       questionAnalytics,
       classBreakdown,
       topicPerformance: {}, // populated separately if topic tags exist
-      computedAt: firestore_2.FieldValue.serverTimestamp(),
-      lastUpdatedAt: firestore_2.FieldValue.serverTimestamp(),
+      computedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
+      lastUpdatedAt: (0, domain_1.isoNow)(),
     };
     await db.doc(`tenants/${tenantId}/examAnalytics/${examId}`).set(analytics);
     console.log(
@@ -221,13 +222,4 @@ exports.onExamResultsReleased = (0, firestore_1.onDocumentUpdated)(
     );
   }
 );
-function getGrade(percentage) {
-  if (percentage >= 90) return "A+";
-  if (percentage >= 80) return "A";
-  if (percentage >= 70) return "B+";
-  if (percentage >= 60) return "B";
-  if (percentage >= 50) return "C";
-  if (percentage >= 40) return "D";
-  return "F";
-}
 //# sourceMappingURL=on-exam-results-released.js.map

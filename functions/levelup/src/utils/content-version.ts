@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 
 interface WriteVersionParams {
   entityType: "space" | "storyPoint" | "item";
@@ -42,7 +42,7 @@ export async function writeContentVersion(
     changeType: params.changeType,
     changeSummary: params.changeSummary,
     changedBy: params.changedBy,
-    changedAt: FieldValue.serverTimestamp(),
+    changedAt: isoNow(),
   });
 
   logger.info(`Wrote version ${nextVersion} for ${params.entityType}:${params.entityId}`);

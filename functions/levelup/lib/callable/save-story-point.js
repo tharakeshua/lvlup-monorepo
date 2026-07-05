@@ -59,7 +59,8 @@ const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
 const firestore_2 = require("../utils/firestore");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const content_version_1 = require("../utils/content-version");
@@ -87,7 +88,7 @@ exports.saveStoryPoint = (0, https_1.onCall)(
     const callerUid = (0, auth_1.assertAuth)(request.auth);
     const { id, tenantId, spaceId, data } = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.SaveStoryPointRequestSchema
+      wire_1.SaveStoryPointRequestSchema
     );
     if (!tenantId || !spaceId) {
       throw new https_1.HttpsError("invalid-argument", "tenantId and spaceId are required");
@@ -125,7 +126,7 @@ exports.saveStoryPoint = (0, https_1.onCall)(
       // Decrement space stats
       const spaceUpdates = {
         "stats.totalStoryPoints": firestore_1.FieldValue.increment(-1),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       if (totalItemsDeleted > 0) {
         spaceUpdates["stats.totalItems"] = firestore_1.FieldValue.increment(-totalItemsDeleted);
@@ -163,14 +164,14 @@ exports.saveStoryPoint = (0, https_1.onCall)(
         estimatedTimeMinutes: data.estimatedTimeMinutes ?? null,
         stats: { totalItems: 0, totalQuestions: 0, totalMaterials: 0, totalPoints: 0 },
         createdBy: callerUid,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       await spRef.set(storyPointDoc);
       // Update space stats
       await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
         "stats.totalStoryPoints": firestore_1.FieldValue.increment(1),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
       (0, content_version_1.writeContentVersion)(db, tenantId, spaceId, {
         entityType: "storyPoint",
@@ -193,7 +194,7 @@ exports.saveStoryPoint = (0, https_1.onCall)(
     if (Object.keys(sanitized).length === 0) {
       throw new https_1.HttpsError("invalid-argument", "No valid fields to update");
     }
-    sanitized.updatedAt = firestore_1.FieldValue.serverTimestamp();
+    sanitized.updatedAt = (0, domain_1.isoNow)();
     await db.doc(`${basePath}/${id}`).update(sanitized);
     const changedFields = Object.keys(sanitized).filter((k) => k !== "updatedAt");
     (0, content_version_1.writeContentVersion)(db, tenantId, spaceId, {

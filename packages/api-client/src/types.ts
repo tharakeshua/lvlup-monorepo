@@ -5,7 +5,13 @@
  * namespaced surface is exhaustive at compile time with zero manual upkeep: add a
  * callable to the contract and `api.<module>.<op>` appears automatically.
  */
-import type { CALLABLES, CallableName, ReqOf, ResOf } from "@levelup/api-contract";
+import type {
+  CALLABLES,
+  CallableName,
+  ReqOf,
+  ResOf,
+  StorageTransport,
+} from "@levelup/api-contract";
 import type { ApiError } from "./errors.js";
 import type { IdempotencyKeyFactory } from "./idempotency.js";
 import type { OfflineQueue } from "./offline.js";
@@ -34,6 +40,8 @@ export type ApiClient = {
   subscribe: SubscribeFn;
   /** Escape hatch for a name held dynamically (e.g. repositories). Still validated. */
   call<N extends CallableName>(name: N): CallFn<N>;
+  /** Storage capability — the only client Storage site (§3.7). Wired from `transport.storage`. */
+  storage: StorageTransport;
 };
 
 export interface ApiClientOptions {

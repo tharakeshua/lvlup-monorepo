@@ -31,18 +31,14 @@ import type {
   TestSessionType,
 } from "@levelup/domain";
 
-/** Contract pagination fragment (`PageRequest` — §3.5). */
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
+// DP-1: canonical wire envelopes from api-contract.
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  Callable,
+} from "@levelup/api-contract";
 
-/** Contract `pageResponse(item)` envelope (§3.5). */
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
+export type { PageRequest, PageResponse };
 
 // ---------------------------------------------------------------------------
 // Request / response shapes for the callables this domain owns (§3.2 / domain
@@ -176,7 +172,7 @@ export interface GetSummaryRequest {
 }
 
 /** A levelup-module callable surface (only the ops this domain calls). */
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+// `Callable<Req, Res>` imported from `@levelup/api-contract` (DP-1).
 
 export interface LevelupNamespace {
   startTestSession: Callable<StartTestSessionRequest, StartTestSessionResponse>;

@@ -10,6 +10,7 @@ import type { SystemContext } from "../../shared/context.js";
 import { requireTenant, fail } from "../../shared/context.js";
 import { listExamQuestions, listQuestionSubmissions } from "./questions.js";
 import { resolveRubricService } from "./resolve-rubric.js";
+import { projectSubmissionStatus } from "./grading-projection.js";
 
 export interface ProcessAnswerGradingInput {
   submissionId: string;
@@ -72,21 +73,58 @@ export async function processAnswerGradingService(
     const { rubric, confidenceConfig } = await resolveRubricService(ctx, tenantId, exam, question);
     const now = ctx.now();
 
+    // The pages the scout mapped to THIS question (P0-C invariant: written by
+    // processAnswerMapping as real storage paths). RELMS grades exactly these.
+    const mappedImageUrls =
+      ((qsub["mapping"] as Record<string, unknown> | undefined)?.["imageUrls"] as
+        | string[]
+        | undefined) ?? [];
+
+    if (mappedImageUrls.length === 0) {
+      // No mapped pages ⇒ nothing for the model to read. Grading anyway would
+      // HALLUCINATE a score — route to HITL instead (score 0, needs_review).
+      const now2 = ctx.now();
+      await ctx.repos.submissions.upsert(
+        tenantId,
+        {
+          id: qsub["id"],
+          evaluation: {
+            score: 0,
+            maxScore: (question["maxMarks"] as number) ?? 0,
+            confidence: 0,
+            feedback:
+              "No answer-sheet pages were mapped to this question (possibly unanswered) — needs teacher review.",
+          },
+          gradingStatus: "needs_review",
+          _kind: "questionSubmission",
+        },
+        now2
+      );
+      needsReviewCount += 1;
+      continue;
+    }
+
     try {
       await markQuestionStatus(ctx, tenantId, qsub, "pending", "processing");
       const ai = await ctx.ai.generate(
         {
           promptKey: "answerGrading",
           operation: "grade.ai",
+          // The `answerGrading` template's requiredVariables are
+          // {question, maxMarks, rubric, answer} — locked by the contract test.
           variables: {
-            questionId,
-            maxMarks: question["maxMarks"],
+            question: String(question["text"] ?? ""),
+            maxMarks: (question["maxMarks"] as number) ?? 0,
             rubric,
-            mapping: qsub["mapping"],
+            answer:
+              `The student's handwritten answer is in the ${mappedImageUrls.length} ` +
+              "attached answer-sheet image(s). Grade ONLY what is written there.",
           },
+          // The mapped pages as storage paths — the ai gateway inlines the bytes.
+          images: mappedImageUrls.map((path) => ({ storagePath: path })),
           responseSchema: { type: "object" },
         },
-        { tenantId, uid: ctx.uid, now: ctx.now }
+        { tenantId, uid: ctx.uid, now: ctx.now, examId }
       );
       const result = (ai.json as AiGradeJson) ?? {};
       const score = result.score ?? 0;
@@ -145,15 +183,18 @@ export async function processAnswerGradingService(
       });
     }
     batchIndex += 1;
+    const gradingProgress = { graded: gradedCount, total: qsubs.length, batchIndex };
     // Persist a live progress counter for the gradingStatus subscription.
-    await ctx.repos.submissions.upsert(
-      tenantId,
-      {
-        id: input.submissionId,
-        gradingProgress: { graded: gradedCount, total: qsubs.length, batchIndex },
-      },
-      now
-    );
+    await ctx.repos.submissions.upsert(tenantId, { id: input.submissionId, gradingProgress }, now);
+    // AG-5: mirror the counter onto the RTDB live ticker (status stays `grading`;
+    // slim counts only — no per-question score/answer ever rides this channel).
+    await projectSubmissionStatus(ctx, tenantId, {
+      submissionId: input.submissionId,
+      examId,
+      studentId: sub["studentId"] as string,
+      pipelineStatus: "grading",
+      gradingProgress,
+    });
   }
 
   const allGraded = failedCount === 0;

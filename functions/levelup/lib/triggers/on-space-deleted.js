@@ -57,6 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Firestore trigger: cascade delete when a space is deleted.
  *
@@ -127,7 +128,7 @@ exports.onSpaceDeleted = (0, firestore_2.onDocumentDeleted)(
     // Update tenant stats
     await db.doc(`tenants/${tenantId}`).update({
       "stats.totalSpaces": firestore_1.FieldValue.increment(-1),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     v2_1.logger.info(`Cascade delete complete for space ${spaceId}`);
   }

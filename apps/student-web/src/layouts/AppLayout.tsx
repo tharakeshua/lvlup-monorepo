@@ -38,6 +38,7 @@ import {
   LayoutDashboard,
   BookOpen,
   ClipboardList,
+  BarChart3,
   Trophy,
   Settings,
   UserCircle,
@@ -81,6 +82,12 @@ export default function AppLayout() {
           url: "/tests",
           icon: ClipboardList,
           isActive: location.pathname.startsWith("/tests"),
+        },
+        {
+          title: "Progress",
+          url: "/results",
+          icon: BarChart3,
+          isActive: location.pathname.startsWith("/results"),
         },
         {
           title: "Leaderboard",

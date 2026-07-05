@@ -61,8 +61,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyUsageReset = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const BATCH_SIZE = 450;
 exports.monthlyUsageReset = (0, scheduler_1.onSchedule)(
   {
@@ -88,8 +88,9 @@ exports.monthlyUsageReset = (0, scheduler_1.onSchedule)(
         batch.update(doc.ref, {
           "usage.examsThisMonth": 0,
           "usage.aiCallsThisMonth": 0,
-          "usage.lastUpdated": firestore_1.FieldValue.serverTimestamp(),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          // B8: timestamps at rest are canonical ISO strings.
+          "usage.lastUpdated": (0, domain_1.isoNow)(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
         resetCount++;
       }

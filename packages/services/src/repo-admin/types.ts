@@ -186,11 +186,24 @@ export interface ProgressUpdateInput {
   totalStoryPoints?: number;
 }
 
+/** Per-story-point rollup slice returned by the progress writer (bounded numerics). */
+export interface ProgressStoryPointRollup {
+  storyPointId: string;
+  pointsEarned: number;
+  totalPoints: number;
+  completed: boolean;
+}
+
 export interface ProgressUpdateResult {
   spaceProgressId: string;
   completed: boolean;
   pointsEarned: number;
   totalPoints: number;
+  /**
+   * The transaction's per-story-point rollup — feeds the `spaceProgressLive`
+   * RTDB projection (AD-12) without a post-tx re-read. Bounded numerics only.
+   */
+  storyPoints: Record<string, ProgressStoryPointRollup>;
 }
 
 /**

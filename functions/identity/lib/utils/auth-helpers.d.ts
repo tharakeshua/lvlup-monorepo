@@ -1,5 +1,5 @@
-import type { AuthProvider } from '@levelup/shared-types';
-import * as admin from 'firebase-admin';
+import type { AuthProvider } from "@levelup/domain";
+import * as admin from "firebase-admin";
 /** Sanitize roll number for synthetic email derivation. */
 export declare function sanitizeRollNumber(rollNumber: string): string;
 /** Generate an 8-character temporary password (no ambiguous chars). */

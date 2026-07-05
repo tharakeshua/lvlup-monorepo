@@ -4,8 +4,9 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
 import { loadSpace, loadStoryPoint } from "../utils/firestore";
-import { SaveStoryPointRequestSchema } from "@levelup/shared-types";
-import type { SaveStoryPointRequest, SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveStoryPointRequestSchema } from "../contracts/wire";
+import type { SaveResponse } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { writeContentVersion } from "../utils/content-version";
@@ -76,7 +77,7 @@ export const saveStoryPoint = onCall({ region: "asia-south1", cors: true }, asyn
     // Decrement space stats
     const spaceUpdates: Record<string, unknown> = {
       "stats.totalStoryPoints": FieldValue.increment(-1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     };
     if (totalItemsDeleted > 0) {
       spaceUpdates["stats.totalItems"] = FieldValue.increment(-totalItemsDeleted);
@@ -114,8 +115,8 @@ export const saveStoryPoint = onCall({ region: "asia-south1", cors: true }, asyn
       estimatedTimeMinutes: data.estimatedTimeMinutes ?? null,
       stats: { totalItems: 0, totalQuestions: 0, totalMaterials: 0, totalPoints: 0 },
       createdBy: callerUid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
 
     await spRef.set(storyPointDoc);
@@ -123,7 +124,7 @@ export const saveStoryPoint = onCall({ region: "asia-south1", cors: true }, asyn
     // Update space stats
     await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
       "stats.totalStoryPoints": FieldValue.increment(1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     });
 
     writeContentVersion(db, tenantId, spaceId, {
@@ -152,7 +153,7 @@ export const saveStoryPoint = onCall({ region: "asia-south1", cors: true }, asyn
     throw new HttpsError("invalid-argument", "No valid fields to update");
   }
 
-  sanitized.updatedAt = FieldValue.serverTimestamp();
+  sanitized.updatedAt = isoNow();
   await db.doc(`${basePath}/${id}`).update(sanitized);
 
   const changedFields = Object.keys(sanitized).filter((k) => k !== "updatedAt");

@@ -60,9 +60,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.nightlyAtRiskDetection = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const at_risk_rules_1 = require("../utils/at-risk-rules");
-const shared_types_1 = require("@levelup/shared-types");
+const legacy_docs_1 = require("../contracts/legacy-docs");
 exports.nightlyAtRiskDetection = (0, scheduler_1.onSchedule)(
   {
     schedule: "0 2 * * *", // 2:00 AM daily
@@ -97,7 +97,7 @@ exports.nightlyAtRiskDetection = (0, scheduler_1.onSchedule)(
         let writeBatch = db.batch();
         let batchWrites = 0;
         for (const doc of batch.docs) {
-          const summaryResult = shared_types_1.StudentProgressSummarySchema.safeParse({
+          const summaryResult = legacy_docs_1.StudentProgressSummarySchema.safeParse({
             id: doc.id,
             ...doc.data(),
           });
@@ -124,7 +124,7 @@ exports.nightlyAtRiskDetection = (0, scheduler_1.onSchedule)(
             writeBatch.update(doc.ref, {
               isAtRisk: result.isAtRisk,
               atRiskReasons: result.reasons,
-              lastUpdatedAt: firestore_1.FieldValue.serverTimestamp(),
+              lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
             });
             batchWrites++;
             // Track newly flagged students for notification

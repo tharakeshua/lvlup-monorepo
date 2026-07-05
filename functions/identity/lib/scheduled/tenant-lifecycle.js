@@ -62,8 +62,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.tenantLifecycleCheck = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
   {
@@ -74,7 +74,8 @@ exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
   },
   async () => {
     const db = admin.firestore();
-    const now = firestore_1.Timestamp.now();
+    // B8: timestamps at rest are canonical ISO strings; compare in epoch millis.
+    const nowMs = Date.now();
     let expiredCount = 0;
     let flaggedCount = 0;
     // ── Step 1: Expire trial tenants past their subscription expiry ──
@@ -83,12 +84,14 @@ exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
       const data = doc.data();
       const expiresAt = data.subscription?.expiresAt ?? data.trialEndsAt;
       if (!expiresAt) continue;
-      const expiryDate = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
-      if (expiryDate > now.toDate()) continue;
+      // B8 read: a legacy doc field may be a Firestore Timestamp OR an ISO string —
+      // collapse both shapes through the domain edge adapter.
+      const expiryMs = (0, domain_1.toMillis)((0, domain_1.toTimestamp)(expiresAt));
+      if (expiryMs > nowMs) continue;
       // Transition to expired
       await doc.ref.update({
         status: "expired",
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
       // Write audit log
       await db.collection(`tenants/${doc.id}/auditLog`).add({
@@ -97,9 +100,9 @@ exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
         actorId: "system",
         details: {
           previousStatus: "trial",
-          expiresAt: expiresAt,
+          expiresAt: (0, domain_1.toTimestamp)(expiresAt),
         },
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
       });
       expiredCount++;
     }
@@ -109,12 +112,15 @@ exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
       const data = doc.data();
       const expiresAt = data.subscription?.expiresAt ?? data.trialEndsAt;
       if (!expiresAt) continue;
-      const expiryDate = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
-      const daysSinceExpiry = now.toDate().getTime() - expiryDate.getTime();
+      // B8 read: collapse Firestore-Timestamp-or-ISO through the domain edge adapter.
+      const expiryMs = (0, domain_1.toMillis)((0, domain_1.toTimestamp)(expiresAt));
+      const daysSinceExpiry = nowMs - expiryMs;
       if (daysSinceExpiry < THIRTY_DAYS_MS) continue;
       // Check for recent activity (updated in last 30 days)
-      const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate() : null;
-      if (updatedAt && now.toDate().getTime() - updatedAt.getTime() < THIRTY_DAYS_MS) {
+      const updatedAtMs = data.updatedAt
+        ? (0, domain_1.toMillis)((0, domain_1.toTimestamp)(data.updatedAt))
+        : null;
+      if (updatedAtMs !== null && nowMs - updatedAtMs < THIRTY_DAYS_MS) {
         continue; // Has recent activity, skip
       }
       // Flag for admin review via platformActivityLog
@@ -125,10 +131,10 @@ exports.tenantLifecycleCheck = (0, scheduler_1.onSchedule)(
         metadata: {
           tenantName: data.name,
           status: "expired",
-          expiredSince: expiresAt,
+          expiredSince: (0, domain_1.toTimestamp)(expiresAt),
           daysSinceExpiry: Math.floor(daysSinceExpiry / (24 * 60 * 60 * 1000)),
         },
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
       });
       flaggedCount++;
     }

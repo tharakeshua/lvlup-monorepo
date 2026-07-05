@@ -54,10 +54,10 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveGlobalEvaluationPreset = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -80,7 +80,7 @@ exports.saveGlobalEvaluationPreset = (0, https_1.onCall)(
       id,
       data,
       delete: shouldDelete,
-    } = (0, utils_1.parseRequest)(request.data, shared_types_1.SaveGlobalPresetRequestSchema);
+    } = (0, utils_1.parseRequest)(request.data, wire_1.SaveGlobalPresetRequestSchema);
     if (id && shouldDelete) {
       // ── DELETE ──
       const presetRef = admin.firestore().doc(`globalEvaluationPresets/${id}`);
@@ -111,8 +111,9 @@ exports.saveGlobalEvaluationPreset = (0, https_1.onCall)(
           prioritizeByImportance: false,
         },
         createdBy: callerUid,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
       v2_1.logger.info(`Created global preset ${presetRef.id} (${data.name})`);
       return { id: presetRef.id, created: true };
@@ -124,7 +125,7 @@ exports.saveGlobalEvaluationPreset = (0, https_1.onCall)(
         throw new https_1.HttpsError("not-found", "Preset not found");
       }
       const updates = {
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       if (data?.name !== undefined) updates.name = data.name;
       if (data?.description !== undefined) updates.description = data.description;

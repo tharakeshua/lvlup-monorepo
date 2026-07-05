@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -71,7 +72,7 @@ exports.saveClass = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
   if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
   const { id, tenantId, data } = (0, utils_1.parseRequest)(
     request.data,
-    shared_types_1.SaveClassRequestSchema
+    wire_1.SaveClassRequestSchema
   );
   await (0, utils_1.assertTenantAdminOrSuperAdmin)(callerUid, tenantId);
   await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 30);
@@ -96,9 +97,10 @@ exports.saveClass = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
       studentIds: [],
       studentCount: 0,
       status: "active",
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: (0, domain_1.isoNow)(),
       createdBy: callerUid,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     });
     await admin
@@ -106,7 +108,7 @@ exports.saveClass = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
       .doc(`tenants/${tenantId}`)
       .update({
         "stats.totalClasses": firestore_1.FieldValue.increment(1),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
     v2_1.logger.info(`Created class ${classRef.id} in tenant ${tenantId}`);
     return { id: classRef.id, created: true };
@@ -118,7 +120,7 @@ exports.saveClass = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
       throw new https_1.HttpsError("not-found", "Class not found");
     }
     const updates = {
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     };
     if (data.name !== undefined) updates.name = data.name;
@@ -136,7 +138,7 @@ exports.saveClass = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
         .doc(`tenants/${tenantId}`)
         .update({
           "stats.totalClasses": firestore_1.FieldValue.increment(-1),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
     }
     v2_1.logger.info(`Updated class ${id} in tenant ${tenantId}`);

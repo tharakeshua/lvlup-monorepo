@@ -7,8 +7,8 @@
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 
 const BATCH_SIZE = 450;
 
@@ -40,8 +40,9 @@ export const monthlyUsageReset = onSchedule(
         batch.update(doc.ref, {
           "usage.examsThisMonth": 0,
           "usage.aiCallsThisMonth": 0,
-          "usage.lastUpdated": FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
+          // B8: timestamps at rest are canonical ISO strings.
+          "usage.lastUpdated": isoNow(),
+          updatedAt: isoNow(),
         });
         resetCount++;
       }

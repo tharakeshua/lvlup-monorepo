@@ -7,9 +7,9 @@
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { gradeForPercentage, isoNow } from "@levelup/domain";
 import { median, standardDeviation } from "../utils/aggregation-helpers";
-import type { ExamAnalytics } from "@levelup/shared-types";
+import type { ExamAnalytics } from "../contracts/legacy-docs";
 
 export const onExamResultsReleased = onDocumentUpdated(
   {
@@ -87,8 +87,9 @@ export const onExamResultsReleased = onDocumentUpdated(
 
         if (obtained >= passingMarks) passCount++;
 
-        // Grade bucket
-        const grade = getGrade(percentage);
+        // Grade bucket — canonical 8-letter scale via domain (U1.2/B5; the
+        // former local 7-letter table intentionally diverged on 33–59%).
+        const grade = gradeForPercentage(percentage);
         gradeDistribution[grade] = (gradeDistribution[grade] ?? 0) + 1;
 
         // Class aggregation
@@ -196,10 +197,7 @@ export const onExamResultsReleased = onDocumentUpdated(
       bucket.count++;
     }
 
-    const analytics: Omit<ExamAnalytics, "computedAt" | "lastUpdatedAt"> & {
-      computedAt: FieldValue;
-      lastUpdatedAt: FieldValue;
-    } = {
+    const analytics: ExamAnalytics = {
       id: examId,
       tenantId,
       examId,
@@ -213,8 +211,8 @@ export const onExamResultsReleased = onDocumentUpdated(
       questionAnalytics,
       classBreakdown,
       topicPerformance: {}, // populated separately if topic tags exist
-      computedAt: FieldValue.serverTimestamp(),
-      lastUpdatedAt: FieldValue.serverTimestamp(),
+      computedAt: isoNow(), // B8: ISO strings are canonical at rest
+      lastUpdatedAt: isoNow(),
     };
 
     await db.doc(`tenants/${tenantId}/examAnalytics/${examId}`).set(analytics);
@@ -224,13 +222,3 @@ export const onExamResultsReleased = onDocumentUpdated(
     );
   }
 );
-
-function getGrade(percentage: number): string {
-  if (percentage >= 90) return "A+";
-  if (percentage >= 80) return "A";
-  if (percentage >= 70) return "B+";
-  if (percentage >= 60) return "B";
-  if (percentage >= 50) return "C";
-  if (percentage >= 40) return "D";
-  return "F";
-}

@@ -29,8 +29,13 @@ const ACTION_LABELS: Record<string, string> = {
 
 function formatTimestamp(ts: TenantAuditLogEntry["createdAt"]): string {
   if (!ts) return "—";
-  const d = ts.toDate?.() ?? (ts.seconds ? new Date(ts.seconds * 1000) : null);
-  if (!d) return "—";
+  // Canonical callable views carry ISO strings; legacy rows carried Timestamps.
+  const legacy = ts as unknown as { seconds?: number; toDate?: () => Date };
+  const d =
+    typeof ts === "string"
+      ? new Date(ts)
+      : (legacy.toDate?.() ?? (legacy.seconds ? new Date(legacy.seconds * 1000) : null));
+  if (!d || Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString(undefined, {
     month: "short",
     day: "numeric",

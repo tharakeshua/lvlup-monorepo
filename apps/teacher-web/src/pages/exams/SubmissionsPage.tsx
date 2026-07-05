@@ -6,10 +6,11 @@ import {
   useStudents,
   useClasses,
   useReleaseResults,
+  useUploadAnswerSheets,
+  useUploadImage,
 } from "@levelup/query";
+import { asExamId, asStudentId, asClassId } from "@levelup/domain";
 import { useAuthSession } from "../../sdk/session";
-import { ref, uploadBytes } from "firebase/storage";
-import { getFirebaseServices, callUploadAnswerSheets } from "@levelup/shared-services";
 import type { Exam, Submission } from "@levelup/shared-types";
 import {
   ArrowLeft,
@@ -92,9 +93,9 @@ interface ClassRow {
 export default function SubmissionsPage() {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  // currentTenantId is retained: the kept shared-services callUploadAnswerSheets
-  // and the Storage upload path still need it.
-  const tenantId = useAuthSession((s) => s.currentTenantId);
+  // The Storage upload path is now server-owned (v1 requestUploadUrl) and the
+  // answer-sheet write goes through the claims-scoped v1 useUploadAnswerSheets —
+  // neither needs a client-supplied tenantId, so it is no longer read here.
   const firebaseUser = useAuthSession((s) => s.firebaseUser);
   const { data: examData } = useExam(examId ?? "");
   const exam = examData as Exam | undefined;
@@ -103,6 +104,8 @@ export default function SubmissionsPage() {
   const { data: classesData } = useClasses();
   const allClasses = useMemo(() => asArray<ClassRow>(classesData), [classesData]);
   const releaseResults = useReleaseResults();
+  const uploadAnswerSheets = useUploadAnswerSheets();
+  const uploadImage = useUploadImage();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [classId, setClassId] = useState("");
@@ -137,7 +140,7 @@ export default function SubmissionsPage() {
   }, [classId, examClasses]);
 
   const handleUploadSubmission = async () => {
-    if (!tenantId || !examId || !firebaseUser) return;
+    if (!examId || !firebaseUser) return;
     if (selectedFiles.length === 0) {
       setUploadError("Pick at least one file.");
       return;
@@ -154,20 +157,25 @@ export default function SubmissionsPage() {
     setUploadError(null);
     setUploading(true);
     try {
-      const { storage } = getFirebaseServices();
+      // Each answer sheet is PUT to a server-owned, scoped path via v1
+      // requestUploadUrl; the returned paths feed the uploadAnswerSheets write.
       const storagePaths: string[] = [];
       for (const file of selectedFiles) {
-        const path = `tenants/${tenantId}/submissions/${examId}/${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, path);
-        await uploadBytes(storageRef, file);
+        const path = await uploadImage.mutateAsync({
+          kind: "answer-sheet",
+          examId: asExamId(examId),
+          studentId: asStudentId(studentId),
+          classId: asClassId(classId),
+          contentType: file.type || "application/octet-stream",
+          body: file,
+        });
         storagePaths.push(path);
       }
 
-      await callUploadAnswerSheets({
-        tenantId,
-        examId,
-        studentId,
-        classId,
+      await uploadAnswerSheets.mutateAsync({
+        examId: asExamId(examId),
+        studentId: asStudentId(studentId),
+        classId: asClassId(classId),
         imageUrls: storagePaths,
       });
 

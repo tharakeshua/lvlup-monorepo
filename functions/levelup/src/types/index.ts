@@ -1,66 +1,124 @@
 /**
- * LevelUp Cloud Functions — re-exported from @levelup/shared-types.
- * All canonical types live in packages/shared-types/src/.
+ * LevelUp Cloud Functions type surface (U3.2, MIGRATION-PATTERN.md).
+ *
+ * Vocabulary (enums, grading-type constants) comes from @levelup/domain —
+ * verified value-identical to the retired shared-types definitions 2026-07-04.
+ * Doc shapes come from ../contracts/legacy-docs — honest LOCAL types for what
+ * is actually at rest in the unprefixed collections (NOT domain entities).
+ * Wire request schemas live in ../contracts/wire.
  */
 
-// ─── Content types (rubric, evaluation, items) ──────────────────────────────
+// ─── Vocabulary from @levelup/domain ─────────────────────────────────────────
+export { AUTO_EVALUATABLE_TYPES, AI_EVALUATABLE_TYPES } from "@levelup/domain";
+
 export type {
-  RubricScoringMode,
-  RubricCriterion,
-  EvaluationDimension,
-  UnifiedRubric,
-  UnifiedEvaluationResult,
-  FeedbackItem,
-  RubricBreakdownItem,
-  UnifiedItem,
   ItemType,
-  ItemPayload,
-  QuestionPayload,
   QuestionType,
   MaterialType,
-  ItemMetadata,
   BloomsLevel,
-} from '@levelup/shared-types';
-
-export {
-  AUTO_EVALUATABLE_TYPES,
-  AI_EVALUATABLE_TYPES,
-} from '@levelup/shared-types';
-
-// ─── LevelUp domain types ───────────────────────────────────────────────────
-export type {
-  Space,
   SpaceType,
   SpaceStatus,
   SpaceAccessType,
-  SpaceStats,
-  StoryPoint,
   StoryPointType,
+  AgentType,
+  ChatMessageRole,
+  TestSessionStatus,
+  TestSessionType,
+  QuestionStatus,
+  ProgressStatus,
+  RubricScoringMode,
+  RubricPresetCategory,
+} from "@levelup/domain";
+
+// ─── Legacy doc shapes (local, honest) ───────────────────────────────────────
+export type {
+  LegacyTimestamp,
+  LegacyStoryPointTypeField,
+  // Rubric + evaluation
+  RubricCriterionLevel,
+  RubricCriterion,
+  EvaluationDimension,
+  UnifiedRubric,
+  FeedbackItem,
+  RubricBreakdownItem,
+  UnifiedEvaluationResult,
+  // Item metadata + payloads
+  PyqInfo,
+  MigrationSource,
+  ItemMetadata,
+  ItemAnalytics,
+  MCQOption,
+  MCQData,
+  MCAQData,
+  TrueFalseData,
+  NumericalData,
+  TextData,
+  ParagraphData,
+  CodeTestCase,
+  CodeData,
+  FillBlank,
+  FillBlanksData,
+  FillBlanksDDOption,
+  FillBlanksDDBlank,
+  FillBlanksDDData,
+  MatchingPair,
+  MatchingData,
+  JumbledItem,
+  JumbledData,
+  AudioData,
+  ImageEvaluationData,
+  GroupOptionsGroup,
+  GroupOptionsItem,
+  GroupOptionsData,
+  ChatAgentQuestionData,
+  QuestionTypeData,
+  QuestionPayload,
+  RichContentBlockItem,
+  RichContentBlock,
+  MaterialPayload,
+  InteractivePayload,
+  AssessmentRubricItem,
+  AssessmentPayload,
+  DiscussionPayload,
+  ProjectPayload,
+  CheckpointPayload,
+  ItemPayload,
+  ItemAttachment,
+  UnifiedItem,
+  // LevelUp docs
+  Space,
+  SpaceStats,
+  SpaceRatingAggregate,
+  ContentVersion,
+  SpaceReview,
+  StoryPoint,
   StoryPointSection,
+  AdaptiveConfig,
+  AssessmentSchedule,
+  RetryConfig,
   AssessmentConfig,
   StoryPointStats,
   Agent,
-  AgentType,
   EvaluationObjective,
+  AnswerKey,
+  ChatSession,
+  ChatMessage,
+  QuestionBankItem,
+  QuestionBankFilter,
   DigitalTestSession,
-  TestSessionStatus,
-  TestSessionType,
   TestSubmission,
   TestAnalytics,
   AnalyticsBreakdownEntry,
-  QuestionStatus,
-  AdaptiveConfig,
-  QuestionBankItem,
-  QuestionBankFilter,
-  SpaceProgress,
-  StoryPointProgress,
-  ItemProgressEntry,
+  AdaptiveState,
+  // Progress
   QuestionProgressData,
-  ProgressStatus,
-  ChatSession,
-  ChatMessage,
-  ChatMessageRole,
-  AnswerKey,
+  StoredEvaluation,
+  AttemptRecord,
+  ItemProgressEntry,
+  StoryPointProgress,
+  StoryPointProgressDoc,
+  SpaceProgress,
   RubricPreset,
-  RubricPresetCategory,
-} from '@levelup/shared-types';
+  UserMembership,
+  TenantRole,
+} from "../contracts/legacy-docs";

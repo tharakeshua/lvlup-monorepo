@@ -34,24 +34,17 @@ import type {
   UserId,
 } from "@levelup/domain";
 
-/** Contract pagination fragment (`PageRequest` — §3.5). */
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
+// DP-1: canonical wire envelopes from api-contract. `SaveResponse` is the single
+// `{ id: string; created?: boolean; deleted?: boolean }` shape — the prior
+// `SaveResponse<Id>` (generic id, required `created`, no `deleted`) was drift.
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SaveResponse,
+  Callable,
+} from "@levelup/api-contract";
 
-/** Contract `pageResponse(item)` envelope (§3.5). */
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-
-/** `SaveResponse` (§3.5 upsert convention) — no id ⇒ created. */
-export interface SaveResponse<Id> {
-  id: Id;
-  created: boolean;
-}
+export type { PageRequest, PageResponse, SaveResponse };
 
 // ---------------------------------------------------------------------------
 // READ shapes
@@ -163,7 +156,7 @@ export interface SaveAchievementDefinitionRequest {
 }
 
 /** A `levelup`-module callable surface (only the ops gamification calls). */
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+// `Callable<Req, Res>` imported from `@levelup/api-contract` (DP-1).
 
 export interface LevelupNamespace {
   getGamificationSummary: Callable<GetGamificationSummaryRequest, GamificationSummary>;
@@ -176,12 +169,9 @@ export interface LevelupNamespace {
   getLeaderboard: Callable<GetLeaderboardRequest, GetLeaderboardResponse>;
   listStudySessions: Callable<ListStudySessionsRequest, ListStudySessionsResponse>;
   listStudyGoals: Callable<ListStudyGoalsRequest, PageResponse<StudyGoal>>;
-  saveStudyGoal: Callable<SaveStudyGoalRequest, SaveResponse<StudyGoalId>>;
+  saveStudyGoal: Callable<SaveStudyGoalRequest, SaveResponse>;
   markAchievementsSeen: Callable<MarkAchievementsSeenRequest, MarkAchievementsSeenResponse>;
-  saveAchievementDefinition: Callable<
-    SaveAchievementDefinitionRequest,
-    SaveResponse<Achievement["id"]>
-  >;
+  saveAchievementDefinition: Callable<SaveAchievementDefinitionRequest, SaveResponse>;
   // permissive tail — other levelup callables exist on the real client.
   [op: string]: (req: never) => Promise<unknown>;
 }

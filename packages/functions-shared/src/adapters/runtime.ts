@@ -9,12 +9,24 @@
  * level (structural ports) and at the wiring level (set by the codebase).
  */
 import type { Timestamp } from "@levelup/domain";
-import type { Repos, AiGateway } from "../context/ports.js";
+import type { Repos, AiGateway, StorageSignerPort, PipelineEnqueuePort } from "../context/ports.js";
 
 export interface RuntimeDeps {
   repos: Repos;
   ai: AiGateway;
   clock?: () => Timestamp;
+  /**
+   * Signed-upload-URL signer surfaced to services as `ctx.storage`. OPTIONAL:
+   * when unset (emulator/unit tests) `requestUploadUrlService` falls back to its
+   * `https://storage.local/…` stub grant.
+   */
+  storage?: StorageSignerPort;
+  /**
+   * Cloud Tasks pipeline-advance enqueue surfaced to services as
+   * `ctx.enqueuePipelineAdvance` (curried over the ctx tenant). OPTIONAL: when
+   * unset (emulator/unit tests) the pipeline reducer runs steps INLINE.
+   */
+  pipelineTasks?: PipelineEnqueuePort;
 }
 
 let runtime: RuntimeDeps | null = null;
@@ -41,4 +53,12 @@ export function getAi(): AiGateway {
 }
 export function getClock(): (() => Timestamp) | undefined {
   return runtime?.clock;
+}
+/** Optional — undefined preserves the service-layer stub-URL fallback. */
+export function getStorage(): StorageSignerPort | undefined {
+  return runtime?.storage;
+}
+/** Optional — undefined preserves the service-layer inline-pipeline fallback. */
+export function getPipelineTasks(): PipelineEnqueuePort | undefined {
+  return runtime?.pipelineTasks;
 }

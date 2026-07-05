@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { callSaveExam } from "@levelup/shared-services";
-import { useApiError } from "@levelup/query";
+import { useApiError, useSaveExam } from "@levelup/query";
+import { asExamId, asClassId } from "@levelup/domain";
 import { toast } from "sonner";
 import {
   Button,
@@ -48,6 +48,7 @@ export default function ExamMetadataEditDialog({
   onSaved,
 }: ExamMetadataEditDialogProps) {
   const { handleError } = useApiError();
+  const saveExam = useSaveExam();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [topics, setTopics] = useState("");
@@ -73,9 +74,8 @@ export default function ExamMetadataEditDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      return callSaveExam({
-        id: exam.id,
-        tenantId,
+      return saveExam.mutateAsync({
+        id: asExamId(exam.id),
         data: {
           title: title.trim(),
           subject: subject.trim(),
@@ -86,7 +86,7 @@ export default function ExamMetadataEditDialog({
           totalMarks,
           passingMarks,
           duration,
-          classIds,
+          classIds: classIds.map(asClassId),
           examDate: examDate ? new Date(examDate).toISOString() : undefined,
         },
       });

@@ -12,19 +12,57 @@
  *   matching → { [left]: right } · group-options → { [itemId]: group }
  *   jumbled → number[] (token order)
  */
-import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { useRef, useState } from "react";
+import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Audio } from "expo-av";
 
 import { colors } from "../theme";
+import { useMediaUpload, type CapturedMedia, type MediaAnswerKind } from "../lib/media-upload";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
 import { Badge } from "./data";
 import { Chip } from "./data";
 import { ContentRenderer } from "./containers";
 import { asArray, asString, getBasePoints, getPrompt, getQuestionData } from "./item-data";
+import { ChatAgentQuestion } from "./questions/ChatAgentQuestion";
 import type { QuestionViewProps } from "./_types";
 
 type Dict = Record<string, unknown>;
 type McqOption = { id: string; text: string; imageUrl?: string };
+
+/**
+ * Coexisting text + media answer shape (Issue4). For media-capable question
+ * types the answer value is normalized to `{ text, mediaUrls }`; when no media
+ * is attached we keep emitting the legacy plain-string value so text-only
+ * answers (and the server's existing grading of them) are unaffected.
+ *
+ * ⚠️ Runner note: `mediaUrls` currently rides INSIDE the `answer` value (the
+ * runner passes `answer: answers[itemId]`). To also surface them as the
+ * top-level `evaluate.mediaUrls` field, the runner should read
+ * `answer.mediaUrls` when the answer is this object shape.
+ */
+interface MediaAnswer {
+  text: string;
+  mediaUrls: string[];
+}
+
+function readAnswer(value: unknown): MediaAnswer {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const o = value as Dict;
+    return { text: asString(o.text), mediaUrls: asArray<string>(o.mediaUrls) };
+  }
+  return { text: asString(value), mediaUrls: [] };
+}
+
+/** Keep the legacy string shape until media exists, then switch to the object. */
+function writeAnswer(next: MediaAnswer): unknown {
+  return next.mediaUrls.length > 0 ? { text: next.text, mediaUrls: next.mediaUrls } : next.text;
+}
+
+function guessMediaKind(url: string): MediaAnswerKind {
+  return /\.(m4a|caf|wav|mp3|aac|ogg)(\?|$)/i.test(url) ? "audio" : "image";
+}
 
 const inputBase =
   "rounded-md border border-border-strong bg-surface px-3 py-2.5 font-ui text-base text-text-primary";
@@ -38,6 +76,8 @@ export function QuestionView({
   showResult,
   result,
   className,
+  spaceId,
+  storyPointId,
 }: QuestionViewProps) {
   const data = getQuestionData(item, questionData);
   const qType = asString(data?.questionType, "mcq");
@@ -93,6 +133,9 @@ export function QuestionView({
         disabled={disabled || showResult}
         showResult={showResult}
         result={result}
+        scopeId={item?.id}
+        spaceId={spaceId}
+        storyPointId={storyPointId}
       />
 
       {showResult && result?.feedback ? (
@@ -128,9 +171,25 @@ interface BodyProps {
   disabled?: boolean;
   showResult?: boolean;
   result?: QuestionViewProps["result"];
+  /** Stable id (itemId) used as the server storage path scope for uploads. */
+  scopeId?: string;
+  /** Item context for conversational types (chat_agent_question). */
+  spaceId?: string;
+  storyPointId?: string;
 }
 
-function QuestionBody({ qType, data, value, onChange, disabled, showResult, result }: BodyProps) {
+function QuestionBody({
+  qType,
+  data,
+  value,
+  onChange,
+  disabled,
+  showResult,
+  result,
+  scopeId,
+  spaceId,
+  storyPointId,
+}: BodyProps) {
   switch (qType) {
     case "mcq":
       return (
@@ -158,10 +217,29 @@ function QuestionBody({ qType, data, value, onChange, disabled, showResult, resu
         />
       );
     case "text":
-      return <FreeText value={value} onChange={onChange} disabled={disabled} />;
+      return (
+        <FreeText
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          allowMedia
+          scopeId={scopeId}
+        />
+      );
+    case "chat_agent_question":
+      return (
+        <ChatAgentQuestion
+          data={data}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          itemId={scopeId}
+          spaceId={spaceId}
+          storyPointId={storyPointId}
+        />
+      );
     case "paragraph":
     case "image_evaluation":
-    case "chat_agent_question":
     case "audio":
       return (
         <Composite
@@ -170,6 +248,7 @@ function QuestionBody({ qType, data, value, onChange, disabled, showResult, resu
           value={value}
           onChange={onChange}
           disabled={disabled}
+          scopeId={scopeId}
         />
       );
     case "code":
@@ -343,30 +422,60 @@ function FreeText({
   disabled,
   keyboardType,
   unit,
-}: Pick<BodyProps, "value" | "onChange" | "disabled"> & {
+  allowMedia,
+  scopeId,
+}: Pick<BodyProps, "value" | "onChange" | "disabled" | "scopeId"> & {
   keyboardType?: "numeric" | "default";
   unit?: string;
+  allowMedia?: boolean;
 }) {
+  const ans = readAnswer(value);
+  const text = allowMedia ? ans.text : asString(value);
+  const setText = (t: string) => onChange?.(allowMedia ? writeAnswer({ ...ans, text: t }) : t);
   return (
-    <View className="flex-row items-center gap-2">
-      <TextInput
-        value={asString(value)}
-        onChangeText={onChange}
-        editable={!disabled}
-        keyboardType={keyboardType}
-        placeholder="Your answer"
-        placeholderTextColor={colors.textMuted}
-        className={cx(inputBase, "flex-1")}
-      />
-      {unit ? <Text className="font-ui text-text-muted text-base">{unit}</Text> : null}
+    <View className="gap-3">
+      <View className="flex-row items-center gap-2">
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          editable={!disabled}
+          keyboardType={keyboardType}
+          placeholder="Your answer"
+          placeholderTextColor={colors.textMuted}
+          className={cx(inputBase, "flex-1")}
+        />
+        {unit ? <Text className="font-ui text-text-muted text-base">{unit}</Text> : null}
+      </View>
+      {allowMedia ? (
+        <MediaAttachments
+          mediaUrls={ans.mediaUrls}
+          onChange={(urls) => onChange?.(writeAnswer({ ...ans, mediaUrls: urls }))}
+          disabled={disabled}
+          scopeId={scopeId}
+          allow={{ image: true, audio: true }}
+        />
+      ) : null}
     </View>
   );
 }
 
-function Composite({ data, qType, value, onChange, disabled }: BodyProps & { qType: string }) {
+function Composite({
+  data,
+  qType,
+  value,
+  onChange,
+  disabled,
+  scopeId,
+}: BodyProps & { qType: string }) {
   const images = asArray<string>(data.referenceImageUrls);
   const audioUrl = asString(data.promptAudioUrl);
-  const instructions = asString(data.agentInstructions);
+  const ans = readAnswer(value);
+  // Media capture is offered only where it makes pedagogical sense.
+  const allow = {
+    image: qType === "paragraph" || qType === "image_evaluation",
+    audio: qType === "paragraph" || qType === "audio",
+  };
+  const showMedia = allow.image || allow.audio;
   return (
     <View className="gap-3">
       {qType === "audio" && audioUrl ? (
@@ -394,22 +503,282 @@ function Composite({ data, qType, value, onChange, disabled }: BodyProps & { qTy
           ))}
         </View>
       ) : null}
-      {qType === "chat_agent_question" && instructions ? (
-        <View className="bg-surface-sunken rounded-md p-3">
-          <Text className="font-ui text-text-secondary text-sm">{instructions}</Text>
-        </View>
-      ) : null}
       <TextInput
-        value={asString(value)}
-        onChangeText={onChange}
+        value={ans.text}
+        onChangeText={(t) => onChange?.(writeAnswer({ ...ans, text: t }))}
         editable={!disabled}
         multiline
-        placeholder={qType === "chat_agent_question" ? "Type your response…" : "Write your answer…"}
+        placeholder="Write your answer…"
         placeholderTextColor={colors.textMuted}
         style={{ minHeight: 120, textAlignVertical: "top" }}
         className={cx(inputBase)}
       />
+      {showMedia ? (
+        <MediaAttachments
+          mediaUrls={ans.mediaUrls}
+          onChange={(urls) => onChange?.(writeAnswer({ ...ans, mediaUrls: urls }))}
+          disabled={disabled}
+          scopeId={scopeId}
+          allow={allow}
+        />
+      ) : null}
     </View>
+  );
+}
+
+// --- media capture -----------------------------------------------------------
+/**
+ * Attach/record image + audio answers. Captured files are uploaded through the
+ * SDK Storage seam (see `useMediaUpload`) and their persisted paths are surfaced
+ * to the parent as `mediaUrls`. Recording uses expo-av; image capture uses
+ * expo-image-picker (library + camera).
+ */
+function MediaAttachments({
+  mediaUrls,
+  onChange,
+  disabled,
+  scopeId,
+  allow,
+}: {
+  mediaUrls: string[];
+  onChange: (urls: string[]) => void;
+  disabled?: boolean;
+  scopeId?: string;
+  allow: { image?: boolean; audio?: boolean };
+}) {
+  const { upload } = useMediaUpload();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  // Local kind hints (persisted answer is bare paths) for the attachment rows.
+  const [kinds, setKinds] = useState<Record<string, MediaAnswerKind>>({});
+  const [localUris, setLocalUris] = useState<Record<string, string>>({});
+
+  const uploadCaptured = async (media: CapturedMedia) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const url = await upload(media, scopeId);
+      setKinds((k) => ({ ...k, [url]: media.kind }));
+      setLocalUris((m) => ({ ...m, [url]: media.uri }));
+      onChange([...mediaUrls, url]);
+    } catch {
+      setError("Couldn't upload that file — check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickImage = async (fromCamera: boolean) => {
+    try {
+      const perm = fromCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setError(
+          fromCamera ? "Camera permission is needed to take a photo." : "Photo access is needed."
+        );
+        return;
+      }
+      const result = fromCamera
+        ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.7,
+          });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      await uploadCaptured({
+        uri: asset.uri,
+        kind: "image",
+        contentType: asset.mimeType ?? "image/jpeg",
+      });
+    } catch {
+      setError("Couldn't open the image picker.");
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setError("Microphone permission is needed to record.");
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = rec;
+      setRecording(true);
+    } catch {
+      setError("Couldn't start recording.");
+    }
+  };
+
+  const stopRecording = async () => {
+    const rec = recordingRef.current;
+    if (!rec) return;
+    setRecording(false);
+    recordingRef.current = null;
+    try {
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+      if (uri) await uploadCaptured({ uri, kind: "audio", contentType: "audio/m4a" });
+    } catch {
+      setError("Couldn't save the recording.");
+    }
+  };
+
+  const playLocal = async (url: string) => {
+    const uri = localUris[url];
+    if (!uri) return;
+    try {
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      soundRef.current = sound;
+    } catch {
+      setError("Couldn't play that clip.");
+    }
+  };
+
+  const removeAt = (i: number) => onChange(mediaUrls.filter((_, idx) => idx !== i));
+  const actionsDisabled = disabled || busy || recording;
+
+  return (
+    <View className="border-border-subtle gap-2 rounded-md border border-dashed p-3">
+      <Text className="font-ui text-text-muted text-xs font-semibold">Attach your answer</Text>
+
+      {/* capture actions */}
+      <View className="flex-row flex-wrap gap-2">
+        {allow.image ? (
+          <>
+            <CaptureButton
+              icon="image"
+              label="Photo library"
+              disabled={actionsDisabled}
+              onPress={() => pickImage(false)}
+            />
+            <CaptureButton
+              icon="camera"
+              label="Camera"
+              disabled={actionsDisabled}
+              onPress={() => pickImage(true)}
+            />
+          </>
+        ) : null}
+        {allow.audio ? (
+          recording ? (
+            <CaptureButton
+              icon="square"
+              label="Stop"
+              tone="danger"
+              disabled={disabled}
+              onPress={stopRecording}
+            />
+          ) : (
+            <CaptureButton
+              icon="mic"
+              label="Record audio"
+              disabled={actionsDisabled}
+              onPress={startRecording}
+            />
+          )
+        ) : null}
+        {busy ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+      </View>
+
+      {recording ? (
+        <Text className="font-ui text-error text-xs">● Recording… tap Stop when finished.</Text>
+      ) : null}
+      {error ? <Text className="font-ui text-error text-xs">{error}</Text> : null}
+
+      {/* attached files */}
+      {mediaUrls.length > 0 ? (
+        <View className="gap-1.5">
+          {mediaUrls.map((url, i) => {
+            const kind = kinds[url] ?? guessMediaKind(url);
+            const canPlay = kind === "audio" && !!localUris[url];
+            return (
+              <View
+                key={`${url}-${i}`}
+                className="bg-surface-sunken flex-row items-center gap-2 rounded-md px-2.5 py-2"
+              >
+                <Icon
+                  name={kind === "audio" ? "mic" : "image"}
+                  size={15}
+                  color={colors.textMuted}
+                />
+                <Text className="font-ui text-text-secondary flex-1 text-xs" numberOfLines={1}>
+                  {kind === "audio" ? "Audio answer" : "Image"} {i + 1}
+                </Text>
+                {canPlay ? (
+                  <Pressable
+                    onPress={() => playLocal(url)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Play recording"
+                    hitSlop={8}
+                  >
+                    <Icon name="play" size={15} color={colors.brand} />
+                  </Pressable>
+                ) : null}
+                {!disabled ? (
+                  <Pressable
+                    onPress={() => removeAt(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove attachment"
+                    hitSlop={8}
+                  >
+                    <Icon name="x" size={15} color={colors.error} />
+                  </Pressable>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function CaptureButton({
+  icon,
+  label,
+  onPress,
+  disabled,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  tone?: "danger";
+}) {
+  const active = tone === "danger";
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className={cx(
+        "rounded-pill flex-row items-center gap-1.5 border px-3 py-2",
+        active ? "border-error bg-red-200/40" : "border-border-strong bg-surface",
+        disabled ? "opacity-50" : ""
+      )}
+    >
+      <Icon name={icon} size={15} color={active ? colors.error : colors.brand} />
+      <Text
+        className={cx("font-ui text-xs font-semibold", active ? "text-error" : "text-text-primary")}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 

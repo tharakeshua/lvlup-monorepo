@@ -162,12 +162,15 @@ describe("reactivateTenant", () => {
     expect(result).toEqual({ success: true, membershipsReactivated: 0 });
 
     // Should update tenant with restored status
+    // B8: audit timestamps are canonical ISO strings (was serverTimestamp sentinel).
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "trial",
-        "deactivation.reactivatedAt": "SERVER_TIMESTAMP",
+        "deactivation.reactivatedAt": expect.stringMatching(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+        ),
         "deactivation.reactivatedBy": "superadmin-1",
-        updatedAt: "SERVER_TIMESTAMP",
+        updatedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
         updatedBy: "superadmin-1",
       })
     );
@@ -239,7 +242,8 @@ describe("reactivateTenant", () => {
     for (const doc of membershipDocs) {
       expect(mockBatchUpdate).toHaveBeenCalledWith(doc.ref, {
         status: "active",
-        updatedAt: "SERVER_TIMESTAMP",
+        // B8: canonical ISO string, not the serverTimestamp sentinel.
+        updatedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
       });
     }
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);

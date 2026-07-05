@@ -57,7 +57,7 @@ export const riversideTenant: TenantConfig = {
       lastName: "Kumar",
       subjects: ["Mathematics"],
       classKeys: ["g8-math"],
-      permissions: { canCreateExams: true, canCreateSpaces: true },
+      permissions: { canCreateExams: true, canManageSpaces: true },
     },
   ],
 

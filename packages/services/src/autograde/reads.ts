@@ -6,12 +6,19 @@
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
 import { authorize } from "@levelup/access";
+import {
+  zLegacyExamStatusRead,
+  zLegacySubmissionPipelineStatusRead,
+  zLegacyUploadSourceRead,
+  zLegacyGradeLetterRead,
+  zLegacyGradingPipelineStepRead,
+} from "@levelup/domain";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import {
   isAuthoringRole,
   isTeacherish,
-  projectQuestion,
+  projectRubric,
   stripEvaluationCost,
   projectEvaluationSettings,
 } from "../shared/projections.js";
@@ -58,7 +65,7 @@ export async function getExamService(
   authorize(ctx, "exam.read", { examId: input.id, tenantId });
   const exam = await ctx.repos.exams.get(tenantId, input.id);
   if (!exam) fail("NOT_FOUND", `exam ${input.id} not found`);
-  return exam as ResOf<"v1.autograde.getExam">;
+  return toExamDetailView(exam) as ResOf<"v1.autograde.getExam">;
 }
 
 // ---- listQuestions (strips rubric guidance for non-authoring) ----
@@ -71,7 +78,7 @@ export async function listQuestionsService(
   const authoring = isAuthoringRole(ctx);
   const questions = await listExamQuestions(ctx, tenantId, input.examId);
   return {
-    questions: questions.map((q) => projectQuestion(q, authoring)),
+    questions: questions.map((q) => toExamQuestionView(q, authoring)),
   } as ResOf<"v1.autograde.listQuestions">;
 }
 
@@ -162,11 +169,11 @@ function toSubmissionDetailView(d: Record<string, unknown>): Record<string, unkn
       images: ans["images"] ?? [],
       uploadedAt: ans["uploadedAt"] ?? d["createdAt"],
       uploadedBy: ans["uploadedBy"] ?? d["uploadedBy"],
-      uploadSource: ans["uploadSource"] ?? "web",
+      uploadSource: canonUploadSource(ans["uploadSource"] ?? "web"),
     }),
     scoutingResult: d["scoutingResult"],
     summary: toSubmissionSummary(d),
-    pipelineStatus: d["pipelineStatus"],
+    pipelineStatus: canonPipelineStatus(d["pipelineStatus"]),
     pipelineError: d["pipelineError"],
     retryCount: d["retryCount"] ?? 0,
     gradingProgress: d["gradingProgress"],
@@ -184,8 +191,9 @@ function toSubmissionSummary(d: Record<string, unknown>): Record<string, unknown
     totalScore: s["totalScore"] ?? d["totalScore"] ?? 0,
     maxScore: s["maxScore"] ?? d["maxScore"] ?? 0,
     percentage: s["percentage"] ?? d["percentage"] ?? 0,
-    // '' is not a GradeLetter — coerce any empty/missing grade to 'F'.
-    grade: (s["grade"] as string | undefined) || "F",
+    // '' is not a GradeLetter — coerce empty/missing to 'F'; canonicalize the rest
+    // (legacy 'C+' etc. pass through the strict letter enum; unknown FAILS — AD-4).
+    grade: canonGrade(s["grade"] ?? d["grade"]),
     questionsGraded: s["questionsGraded"] ?? 0,
     totalQuestions: s["totalQuestions"] ?? 0,
     completedAt: s["completedAt"] ?? null,
@@ -244,8 +252,14 @@ export async function listQuestionSubmissionsService(
         if (view["evaluation"]) view["evaluation"] = stripEvaluationCost(view["evaluation"]);
         return view;
       }
-      // Pre-release learner view: withhold the per-question evaluation entirely.
+      // Pre-release learner view (§6.10): withhold EVERY score/grade-bearing field —
+      // the per-question evaluation, the manual override (per-question score +
+      // teacher's override reason), and the grading error (pipeline internals) —
+      // until results are released. `mapping` (the student's own answer pages) and
+      // `gradingStatus` (process state, no score) remain visible.
       delete view["evaluation"];
+      delete view["manualOverride"];
+      delete view["gradingError"];
       return view;
     }),
   } as ResOf<"v1.autograde.listQuestionSubmissions">;
@@ -299,9 +313,9 @@ function toUnifiedEvaluation(
     summary: (ev["summary"] as string | undefined) ?? (ev["feedback"] as string | undefined),
     confidence: (ev["confidence"] as number | undefined) ?? 1,
     mistakeClassification: ev["mistakeClassification"],
-    tokensUsed:
-      (ev["tokensUsed"] as number | undefined) ?? (ev["tokenUsage"] as number | undefined),
-    costUsd: ev["costUsd"],
+    // ⚷ `tokensUsed`/`costUsd` (cost telemetry) are NEVER emitted into a client
+    // view — `stripEvaluationCost` only catches the legacy `tokenUsage` alias, so
+    // mapping them here would leak the renamed field past the strip.
     gradedAt:
       (ev["gradedAt"] as string | undefined) ??
       (parent["updatedAt"] as string | undefined) ??
@@ -318,7 +332,7 @@ export async function getExamAnalyticsService(
   authorize(ctx, "exam.read", { examId: input.examId, tenantId });
   const doc = await ctx.repos.exams.get(tenantId, `analytics_${input.examId}`);
   if (!doc) fail("NOT_FOUND", `exam analytics ${input.examId} not found`);
-  return doc as ResOf<"v1.autograde.getExamAnalytics">;
+  return toExamAnalyticsView(doc) as ResOf<"v1.autograde.getExamAnalytics">;
 }
 
 // ---- listEvaluationSettings (thresholds for authoring only) ----
@@ -332,7 +346,7 @@ export async function listEvaluationSettingsService(
   const all = await listEvaluationSettings(ctx, tenantId);
   const visible = all.filter((s) => authoring || s["isPublic"] === true || input.includePublic);
   return {
-    settings: visible.map((s) => projectEvaluationSettings(s, authoring)),
+    settings: visible.map((s) => projectEvaluationSettings(toEvaluationSettingsView(s), authoring)),
   } as ResOf<"v1.autograde.listEvaluationSettings">;
 }
 
@@ -349,10 +363,16 @@ export async function listDeadLetterService(
   if (f.resolved !== undefined) {
     dlq = dlq.filter((e) => Boolean(e["resolvedAt"]) === f.resolved);
   }
-  if (f.pipelineStep) dlq = dlq.filter((e) => e["pipelineStep"] === f.pipelineStep);
+  if (f.pipelineStep) {
+    // filter on the CANONICAL step so a legacy 'ocr' entry matches a 'scouting' filter.
+    dlq = dlq.filter((e) => canonPipelineStep(e["pipelineStep"]) === f.pipelineStep);
+  }
   // re-enqueue what we drained (drain is a read+clear; keep durable) — best effort.
   for (const e of entries) await ctx.repos.outbox.enqueue(tenantId, e);
-  return { items: dlq, nextCursor: null } as ResOf<"v1.autograde.listDeadLetter">;
+  return {
+    items: dlq.map(toDeadLetterView),
+    nextCursor: null,
+  } as ResOf<"v1.autograde.listDeadLetter">;
 }
 
 // ---- getSubmissionForExam (C16, released-gated single read) ----
@@ -373,7 +393,7 @@ export async function getSubmissionForExamService(
   if (!teacherish && sub["resultsReleased"] !== true) {
     return null as ResOf<"v1.autograde.getSubmissionForExam">;
   }
-  return sub as ResOf<"v1.autograde.getSubmissionForExam">;
+  return toSubmissionDetailView(sub) as ResOf<"v1.autograde.getSubmissionForExam">;
 }
 
 // ---- view mappers ----
@@ -384,6 +404,33 @@ function compact(o: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = v;
   return out;
+}
+
+// ---- legacy → canonical field collapse (U1.1 read-adapters). Every stored enum
+// is parsed through the domain legacy-tolerant READ schema so a v1 read emits the
+// CANONICAL value (which re-validates against the strict view schema). Un-migrated
+// SUB001 seed + functions writes carry dropped legacy values (`completed`,
+// `ocr_processing`, `gcs`, `ocr` step); these are the ONE boundary they collapse.
+/** Exam status: legacy 'completed' → 'grading' (AD-10; NEVER 'results_released'). */
+function canonExamStatus(v: unknown): unknown {
+  return typeof v === "string" ? zLegacyExamStatusRead.parse(v) : v;
+}
+/** Submission pipeline status: 'ocr_processing'→'scouting', 'ocr_failed'→'scouting_failed'. */
+function canonPipelineStatus(v: unknown): unknown {
+  return typeof v === "string" ? zLegacySubmissionPipelineStatusRead.parse(v) : v;
+}
+/** Answer-sheet upload source: legacy 'gcs' → 'scanner'. */
+function canonUploadSource(v: unknown): unknown {
+  return typeof v === "string" ? zLegacyUploadSourceRead.parse(v) : v;
+}
+/** DLQ/grading pipeline step: legacy 'ocr' → 'scouting'. */
+function canonPipelineStep(v: unknown): unknown {
+  return typeof v === "string" ? zLegacyGradingPipelineStepRead.parse(v) : v;
+}
+/** Grade letter: '' / missing → 'F' (ungraded/withheld); else canonicalize (incl.
+ *  'C+'). An unknown letter FAILS the parse — never guess a grade (AD-4). */
+function canonGrade(v: unknown): string {
+  return v ? zLegacyGradeLetterRead.parse(v) : "F";
 }
 
 function toExamListView(d: Record<string, unknown>): Record<string, unknown> {
@@ -397,13 +444,125 @@ function toExamListView(d: Record<string, unknown>): Record<string, unknown> {
     duration: d["duration"] ?? 0,
     totalMarks: d["totalMarks"] ?? 0,
     passingMarks: d["passingMarks"] ?? 0,
-    status: d["status"],
+    status: canonExamStatus(d["status"]),
     academicSessionId: d["academicSessionId"],
     linkedSpaceId: d["linkedSpaceId"],
     linkedSpaceTitle: d["linkedSpaceTitle"],
     stats: d["stats"],
     createdAt: d["createdAt"],
     updatedAt: d["updatedAt"],
+  });
+}
+
+/** Project a stored Exam doc → the strict ExamDetailView (drops entity-only
+ *  `tenantId`/`createdBy`; canonicalizes `status`; resolves the deprecated nested
+ *  `gradingConfig.evaluationSettingsId` up to the canonical top-level field). */
+function toExamDetailView(d: Record<string, unknown>): Record<string, unknown> {
+  const gradingConfig = (d["gradingConfig"] as Record<string, unknown> | undefined) ?? {};
+  return compact({
+    id: d["id"],
+    title: d["title"],
+    subject: d["subject"] ?? "",
+    topics: d["topics"] ?? [],
+    classIds: d["classIds"] ?? [],
+    sectionIds: d["sectionIds"],
+    examDate: d["examDate"] ?? d["createdAt"],
+    duration: d["duration"] ?? 0,
+    academicSessionId: d["academicSessionId"],
+    totalMarks: d["totalMarks"] ?? 0,
+    passingMarks: d["passingMarks"] ?? 0,
+    status: canonExamStatus(d["status"]),
+    questionPaper: d["questionPaper"],
+    gradingConfig: d["gradingConfig"],
+    // Canonical reader precedence (U1.3): top-level wins; nested is @deprecated read-only.
+    evaluationSettingsId: d["evaluationSettingsId"] ?? gradingConfig["evaluationSettingsId"],
+    linkedSpaceId: d["linkedSpaceId"],
+    linkedSpaceTitle: d["linkedSpaceTitle"],
+    linkedStoryPointId: d["linkedStoryPointId"],
+    stats: d["stats"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"],
+  });
+}
+
+/** Project a stored ExamQuestion doc → the strict ExamQuestionView. Whitelists the
+ *  view keys (drops `_kind`/`tenantId`/`extractedBy`/`linkedItemId`/…), absorbs the
+ *  legacy `orderIndex` alias for `order`, and strips rubric guidance for non-authors. */
+function toExamQuestionView(
+  d: Record<string, unknown>,
+  authoring: boolean
+): Record<string, unknown> {
+  return compact({
+    id: d["id"],
+    examId: d["examId"],
+    text: d["text"] ?? "",
+    imageUrls: d["imageUrls"],
+    maxMarks: d["maxMarks"] ?? 0,
+    order: (d["order"] as number | undefined) ?? (d["orderIndex"] as number | undefined) ?? 0,
+    rubric: projectRubric(d["rubric"], authoring),
+    questionType: d["questionType"],
+    subQuestions: d["subQuestions"],
+    extractionConfidence: d["extractionConfidence"],
+    readabilityIssue: d["readabilityIssue"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"] ?? d["createdAt"],
+  });
+}
+
+/** Project a stored ExamAnalytics doc → the strict ExamAnalyticsView (drops the
+ *  doc's `analytics_*` `id`/`_kind`/`tenantId` wrapper keys). */
+function toExamAnalyticsView(d: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    examId: d["examId"],
+    totalSubmissions: d["totalSubmissions"] ?? 0,
+    gradedSubmissions: d["gradedSubmissions"] ?? 0,
+    avgScore: d["avgScore"] ?? 0,
+    avgPercentage: d["avgPercentage"] ?? 0,
+    passRate: d["passRate"] ?? 0,
+    medianScore: d["medianScore"] ?? 0,
+    scoreDistribution: d["scoreDistribution"],
+    questionAnalytics: d["questionAnalytics"] ?? {},
+    classBreakdown: d["classBreakdown"] ?? {},
+    topicPerformance: d["topicPerformance"] ?? {},
+    computedAt: d["computedAt"] ?? d["lastUpdatedAt"] ?? d["createdAt"],
+    lastUpdatedAt: d["lastUpdatedAt"] ?? d["computedAt"] ?? d["updatedAt"],
+  });
+}
+
+/** Project a stored EvaluationSettings doc → the strict EvaluationSettingsView
+ *  (drops `_kind`/`tenantId`/`createdBy` wrapper keys; nested content is written
+ *  canonically by the v1 save path). Guidance/threshold stripping stays in
+ *  `projectEvaluationSettings`, applied by the caller. */
+function toEvaluationSettingsView(d: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    id: d["id"],
+    name: d["name"] ?? "",
+    description: d["description"],
+    isDefault: d["isDefault"] ?? false,
+    isPublic: d["isPublic"],
+    enabledDimensions: d["enabledDimensions"] ?? [],
+    displaySettings: d["displaySettings"],
+    confidenceConfig: d["confidenceConfig"],
+    usageQuota: d["usageQuota"],
+    createdAt: d["createdAt"],
+    updatedAt: d["updatedAt"] ?? d["createdAt"],
+  });
+}
+
+/** Project a stored gradingDeadLetter entry → the strict DeadLetterView
+ *  (whitelists view keys; canonicalizes the legacy `ocr` pipeline step → `scouting`). */
+function toDeadLetterView(d: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    id: d["id"],
+    submissionId: d["submissionId"],
+    questionSubmissionId: d["questionSubmissionId"],
+    pipelineStep: canonPipelineStep(d["pipelineStep"]),
+    error: d["error"] ?? "",
+    attempts: d["attempts"] ?? 0,
+    lastAttemptAt: d["lastAttemptAt"] ?? d["createdAt"],
+    resolvedAt: (d["resolvedAt"] as string | null | undefined) ?? null,
+    resolutionMethod: d["resolutionMethod"],
+    createdAt: d["createdAt"],
   });
 }
 
@@ -415,7 +574,7 @@ function toSubmissionListView(d: Record<string, unknown>): Record<string, unknow
     studentName: d["studentName"] ?? "",
     rollNumber: d["rollNumber"] ?? "",
     classId: d["classId"],
-    pipelineStatus: d["pipelineStatus"],
+    pipelineStatus: canonPipelineStatus(d["pipelineStatus"]),
     summary: toSubmissionSummary(d),
     gradingProgress: d["gradingProgress"],
     resultsReleased: d["resultsReleased"] ?? false,

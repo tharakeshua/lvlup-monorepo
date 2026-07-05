@@ -1,6 +1,8 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
-import type { UnifiedUser, UserMembership, Tenant, TenantRole } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { TenantRole } from "@levelup/domain";
+import type { UnifiedUser, UserMembership, Tenant } from "../contracts/legacy-docs";
 
 const db = () => admin.firestore();
 
@@ -45,6 +47,7 @@ export async function updateTenantStats(
     .doc(`tenants/${tenantId}`)
     .update({
       [field]: FieldValue.increment(delta),
-      updatedAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      updatedAt: isoNow(),
     });
 }

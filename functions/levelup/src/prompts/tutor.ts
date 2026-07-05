@@ -5,8 +5,8 @@
  * Context-aware, Socratic method, multi-language support.
  */
 
-import type { Agent, UnifiedItem, UnifiedEvaluationResult } from '../types';
-import type { QuestionPayload } from '@levelup/shared-types';
+import type { Agent, UnifiedItem, UnifiedEvaluationResult } from "../types";
+import type { QuestionPayload } from "../types";
 
 /**
  * Build the system prompt for an AI tutor chat session.
@@ -17,11 +17,11 @@ export function buildTutorSystemPrompt(
   item: UnifiedItem,
   studentAnswer?: unknown,
   evaluationResult?: UnifiedEvaluationResult,
-  language: string = 'english',
+  language: string = "english"
 ): string {
   const qPayload = item.payload as QuestionPayload;
 
-  let prompt = '';
+  let prompt = "";
 
   // Agent persona
   if (agent?.systemPrompt) {
@@ -32,14 +32,14 @@ export function buildTutorSystemPrompt(
     prompt += DEFAULT_TUTOR_PERSONA;
   }
 
-  prompt += '\n\n';
+  prompt += "\n\n";
 
   // Language instruction
   prompt += `LANGUAGE: Respond in ${language}.\n\n`;
 
   // Question context
   prompt += `CONTEXT:\nYou are helping a student with the following question.\n\n`;
-  prompt += `QUESTION:\n${qPayload.content || item.content || '(No question content)'}\n`;
+  prompt += `QUESTION:\n${qPayload.content || item.content || "(No question content)"}\n`;
 
   if (qPayload.questionType) {
     prompt += `Type: ${qPayload.questionType}\n`;
@@ -47,7 +47,7 @@ export function buildTutorSystemPrompt(
 
   // Student answer context (if available)
   if (studentAnswer !== undefined && studentAnswer !== null) {
-    prompt += `\nSTUDENT'S ANSWER:\n${typeof studentAnswer === 'string' ? studentAnswer : JSON.stringify(studentAnswer)}\n`;
+    prompt += `\nSTUDENT'S ANSWER:\n${typeof studentAnswer === "string" ? studentAnswer : JSON.stringify(studentAnswer)}\n`;
   }
 
   // Evaluation result context (if available)
@@ -55,13 +55,13 @@ export function buildTutorSystemPrompt(
     prompt += `\nEVALUATION RESULT:\n`;
     prompt += `Score: ${evaluationResult.score}/${evaluationResult.maxScore}\n`;
     if (evaluationResult.strengths?.length) {
-      prompt += `Strengths: ${evaluationResult.strengths.join(', ')}\n`;
+      prompt += `Strengths: ${evaluationResult.strengths.join(", ")}\n`;
     }
     if (evaluationResult.weaknesses?.length) {
-      prompt += `Areas to improve: ${evaluationResult.weaknesses.join(', ')}\n`;
+      prompt += `Areas to improve: ${evaluationResult.weaknesses.join(", ")}\n`;
     }
     if (evaluationResult.missingConcepts?.length) {
-      prompt += `Missing concepts: ${evaluationResult.missingConcepts.join(', ')}\n`;
+      prompt += `Missing concepts: ${evaluationResult.missingConcepts.join(", ")}\n`;
     }
   }
 
@@ -69,11 +69,11 @@ export function buildTutorSystemPrompt(
   const subject = (item.meta as Record<string, unknown> | undefined)?.subject as string | undefined;
   const subjectGuidance = getSubjectGuidance(subject);
   if (subjectGuidance) {
-    prompt += '\n' + subjectGuidance + '\n';
+    prompt += "\n" + subjectGuidance + "\n";
   }
 
   // Tutor rules (includes safety rules)
-  prompt += '\n' + TUTOR_RULES;
+  prompt += "\n" + TUTOR_RULES;
 
   return prompt.trim();
 }
@@ -149,12 +149,12 @@ const SUBJECT_GUIDANCE: Record<string, string> = {
  * Get subject-specific guidance text. Returns empty string if no match.
  */
 function getSubjectGuidance(subject?: string): string {
-  if (!subject) return '';
-  const normalized = subject.toLowerCase().replace(/\s+/g, '_');
+  if (!subject) return "";
+  const normalized = subject.toLowerCase().replace(/\s+/g, "_");
   // Try exact match first, then partial matching
   if (SUBJECT_GUIDANCE[normalized]) return SUBJECT_GUIDANCE[normalized];
   for (const [key, guidance] of Object.entries(SUBJECT_GUIDANCE)) {
     if (normalized.includes(key) || key.includes(normalized)) return guidance;
   }
-  return '';
+  return "";
 }

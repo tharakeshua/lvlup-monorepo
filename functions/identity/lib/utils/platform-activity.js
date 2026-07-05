@@ -54,8 +54,8 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.writePlatformActivity = writePlatformActivity;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Write a platform-wide activity log entry.
  * Collection: /platformActivityLog/{autoId}
@@ -77,7 +77,8 @@ async function writePlatformActivity(action, actorUid, metadata = {}, tenantId) 
       actorEmail,
       tenantId: tenantId ?? null,
       metadata,
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: (0, domain_1.isoNow)(),
     });
   } catch (err) {
     // Activity logging should never block the main operation

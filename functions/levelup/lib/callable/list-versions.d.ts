@@ -1,4 +1,3 @@
-import { Timestamp } from "firebase-admin/firestore";
 export interface ListVersionsResponse {
   versions: Array<{
     id: string;
@@ -8,7 +7,8 @@ export interface ListVersionsResponse {
     changeType: string;
     changeSummary: string;
     changedBy: string;
-    changedAt: Timestamp | null;
+    /** B8: ISO string out (old docs' Timestamps are collapsed on read). */
+    changedAt: string | null;
   }>;
   hasMore: boolean;
   lastId: string | null;
@@ -24,7 +24,7 @@ export declare const listVersions: import("firebase-functions/https").CallableFu
       changeType: any;
       changeSummary: any;
       changedBy: any;
-      changedAt: any;
+      changedAt: import("@levelup/domain").Timestamp | null;
     }[];
     hasMore: boolean;
     lastId: string | null;

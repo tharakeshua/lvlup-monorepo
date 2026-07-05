@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SaveGlobalPresetRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveGlobalPresetRequestSchema } from "../contracts/wire";
 import { getUser, parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -63,8 +63,9 @@ export const saveGlobalEvaluationPreset = onCall(
           prioritizeByImportance: false,
         },
         createdBy: callerUid,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
       });
 
       logger.info(`Created global preset ${presetRef.id} (${data.name})`);
@@ -78,7 +79,7 @@ export const saveGlobalEvaluationPreset = onCall(
       }
 
       const updates: Record<string, unknown> = {
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       };
 
       if (data?.name !== undefined) updates.name = data.name;

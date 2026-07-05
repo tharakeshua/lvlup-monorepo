@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const legacy_docs_1 = require("../contracts/legacy-docs");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const zod_1 = require("zod");
@@ -198,8 +199,9 @@ exports.bulkImportTeachers = (0, https_1.onCall)(
             designation: row.designation ?? null,
             classIds: [],
             status: "active",
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            createdAt: (0, domain_1.isoNow)(),
+            updatedAt: (0, domain_1.isoNow)(),
           });
           // Create membership
           const membershipId = `${userRecord.uid}_${data.tenantId}`;
@@ -212,9 +214,9 @@ exports.bulkImportTeachers = (0, https_1.onCall)(
             status: "active",
             joinSource: "bulk_import",
             teacherId: teacherRef.id,
-            permissions: shared_types_1.DEFAULT_TEACHER_PERMISSIONS,
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            permissions: legacy_docs_1.DEFAULT_TEACHER_PERMISSIONS,
+            createdAt: (0, domain_1.isoNow)(),
+            updatedAt: (0, domain_1.isoNow)(),
           };
           await admin.firestore().doc(`userMemberships/${membershipId}`).set(membership);
           // Set claims
@@ -235,7 +237,7 @@ exports.bulkImportTeachers = (0, https_1.onCall)(
         .doc(`tenants/${data.tenantId}`)
         .update({
           "stats.totalTeachers": firestore_1.FieldValue.increment(created),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
     }
     v2_1.logger.info(

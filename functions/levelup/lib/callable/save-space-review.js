@@ -54,12 +54,12 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveSpaceReview = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const auth_1 = require("../utils/auth");
 const rate_limit_1 = require("../utils/rate-limit");
 const utils_1 = require("../utils");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 /**
  * Save or update a space review (one review per user per space).
  * Also updates the denormalized rating aggregate on the Space document.
@@ -70,7 +70,7 @@ exports.saveSpaceReview = (0, https_1.onCall)(
     const callerUid = (0, auth_1.assertAuth)(request.auth);
     const { tenantId, spaceId, rating, comment } = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.SaveSpaceReviewRequestSchema
+      wire_1.SaveSpaceReviewRequestSchema
     );
     await (0, auth_1.assertTenantMember)(callerUid, tenantId);
     await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 10);
@@ -82,7 +82,7 @@ exports.saveSpaceReview = (0, https_1.onCall)(
     if (!spaceDoc.exists) {
       throw new https_1.HttpsError("not-found", "Space not found");
     }
-    const now = firestore_1.FieldValue.serverTimestamp();
+    const now = (0, domain_1.isoNow)();
     const existingReview = await reviewRef.get();
     const isUpdate = existingReview.exists;
     // Get user display name

@@ -57,6 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Scheduled function: cleanup truly stale test sessions (24h threshold).
  *
@@ -81,28 +82,35 @@ exports.cleanupStaleSessions = (0, scheduler_1.onSchedule)(
     const now = firestore_1.Timestamp.now();
     // 24 hours ago
     const staleThreshold = firestore_1.Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
+    // B8: createdAt is a Timestamp on pre-U3.2 docs and an ISO string after.
+    // Firestore range filters only match values of the operand's type, so the
+    // two representations need one query each.
+    const staleThresholdIso = (0, domain_1.toTimestamp)(staleThreshold);
     // Query across all tenants using collectionGroup
-    const staleSessions = await db
+    const baseQuery = db
       .collectionGroup("digitalTestSessions")
-      .where("status", "==", "in_progress")
-      .where("createdAt", "<", staleThreshold)
-      .limit(500)
-      .get();
-    if (staleSessions.empty) {
+      .where("status", "==", "in_progress");
+    const [tsSnap, isoSnap] = await Promise.all([
+      baseQuery.where("createdAt", "<", staleThreshold).limit(500).get(),
+      baseQuery.where("createdAt", "<", staleThresholdIso).limit(500).get(),
+    ]);
+    const staleDocs = [...tsSnap.docs, ...isoSnap.docs];
+    if (staleDocs.length === 0) {
       v2_1.logger.info("No stale test sessions (24h) found");
       return;
     }
-    v2_1.logger.info(`Found ${staleSessions.size} stale test sessions (24h+) to mark as abandoned`);
+    v2_1.logger.info(`Found ${staleDocs.length} stale test sessions (24h+) to mark as abandoned`);
     // Batch update
     const batch = db.batch();
     let count = 0;
-    for (const sessionDoc of staleSessions.docs) {
+    for (const sessionDoc of staleDocs) {
       batch.update(sessionDoc.ref, {
         status: "abandoned",
+        // U3.5: session timing fields stay Firestore Timestamps at rest.
         endedAt: now,
         autoSubmitted: true,
         abandonedReason: "stale_24h",
-        updatedAt: now,
+        updatedAt: (0, domain_1.isoNow)(),
       });
       count++;
     }

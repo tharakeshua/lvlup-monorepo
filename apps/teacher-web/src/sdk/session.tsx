@@ -18,6 +18,7 @@
  *   useAuthSession((s) => s.field)    → selected field
  */
 import { useMe, resetForTenantSwitch, useApi } from "@levelup/query";
+import { evaluateTenantAccess } from "@levelup/domain";
 import { createFirebaseAuthHandle, type FirebaseAuthHandle } from "@levelup/transport-firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -179,7 +180,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         const tenant = await sessionRepos.tenantRepo.lookupByCode(schoolCode.trim());
         if (!tenant) throw new Error("Invalid school code");
-        if (tenant.status !== "active") throw new Error("This school is currently inactive.");
+        const access = evaluateTenantAccess(tenant);
+        if (!access.allowed) {
+          throw new Error(
+            access.reason === "trial_expired"
+              ? "This school's trial has ended. Please contact your administrator to reactivate."
+              : "This school is currently inactive."
+          );
+        }
 
         // Teachers/staff sign in with email (roll-number derivation is student-only).
         const email = credential.trim();

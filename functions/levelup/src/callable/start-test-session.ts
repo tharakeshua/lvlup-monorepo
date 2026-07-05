@@ -1,14 +1,15 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTenantMember } from "../utils/auth";
 import { loadSpace, loadStoryPoint, loadItems } from "../utils/firestore";
 import { shuffleArray } from "../utils/helpers";
-import { StartTestSessionRequestSchema } from "@levelup/shared-types";
+import { isoNow, toMillis, toTimestamp } from "@levelup/domain";
+import { StartTestSessionRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
-import type { UnifiedItem, QuestionPayload } from "@levelup/shared-types";
+import type { UnifiedItem, QuestionPayload } from "../types";
 
 /**
  * Start a new timed test / quiz session.
@@ -43,13 +44,16 @@ export const startTestSession = onCall({ region: "asia-south1", cors: true }, as
   const schedule = storyPoint.assessmentConfig?.schedule;
   if (schedule) {
     const nowMs = Date.now();
-    if (schedule.startAt && schedule.startAt.toMillis() > nowMs) {
+    // B8: schedule fields may be Firestore Timestamps or ISO strings — collapse.
+    const startAtMs = schedule.startAt ? toMillis(toTimestamp(schedule.startAt)) : undefined;
+    const endAtMs = schedule.endAt ? toMillis(toTimestamp(schedule.endAt)) : undefined;
+    if (startAtMs !== undefined && startAtMs > nowMs) {
       throw new HttpsError(
         "failed-precondition",
-        `This test is not available yet. It opens on ${new Date(schedule.startAt.toMillis()).toLocaleString()}.`
+        `This test is not available yet. It opens on ${new Date(startAtMs).toLocaleString()}.`
       );
     }
-    if (schedule.endAt && schedule.endAt.toMillis() < nowMs) {
+    if (endAtMs !== undefined && endAtMs < nowMs) {
       throw new HttpsError(
         "failed-precondition",
         "This test is no longer available. The submission window has closed."
@@ -98,8 +102,10 @@ export const startTestSession = onCall({ region: "asia-south1", cors: true }, as
         return s === "completed" || s === "expired";
       })
       .sort((a, b) => {
-        const aEnd = a.data().endedAt?.toMillis() ?? 0;
-        const bEnd = b.data().endedAt?.toMillis() ?? 0;
+        // B8 collapse — endedAt stays a Timestamp at rest today, but never
+        // call .toMillis() on a doc field directly (MIGRATION-PATTERN rule 3).
+        const aEnd = a.data().endedAt ? toMillis(toTimestamp(a.data().endedAt)) : 0;
+        const bEnd = b.data().endedAt ? toMillis(toTimestamp(b.data().endedAt)) : 0;
         return bEnd - aEnd;
       });
 
@@ -119,7 +125,8 @@ export const startTestSession = onCall({ region: "asia-south1", cors: true }, as
     if (retryConfig.cooldownMinutes && completedDocs.length > 0) {
       const lastEndedAt = completedDocs[0].data().endedAt;
       if (lastEndedAt) {
-        const cooldownEnd = lastEndedAt.toMillis() + retryConfig.cooldownMinutes * 60 * 1000;
+        const cooldownEnd =
+          toMillis(toTimestamp(lastEndedAt)) + retryConfig.cooldownMinutes * 60 * 1000;
         if (Date.now() < cooldownEnd) {
           const minutesLeft = Math.ceil((cooldownEnd - Date.now()) / 60000);
           throw new HttpsError(
@@ -236,8 +243,8 @@ export const startTestSession = onCall({ region: "asia-south1", cors: true }, as
     analytics: null,
     submittedAt: null,
     autoSubmitted: false,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: isoNow(),
+    updatedAt: isoNow(),
   };
 
   await sessionRef.set(sessionDoc);

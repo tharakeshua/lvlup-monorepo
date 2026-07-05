@@ -38,7 +38,14 @@ import {
   StoryPointSchema,
   UnifiedItemSchema,
   AnswerKeySchema,
+  // U4.2 — legacy enum read-adapters (widen-on-read → canonical). Applied defensively so any
+  // future teacher-portal write carrying a dropped legacy enum value still migrates correctly.
+  normalizeStoryPointType,
 } from '@levelup/domain';
+
+/** First finite orderIndex among the canonical field and its legacy `order` synonym. */
+const orderIdx = (o) =>
+  Number.isFinite(o?.orderIndex) ? o.orderIndex : Number.isFinite(o?.order) ? o.order : 0;
 
 // ─────────────────────────── config ───────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -290,10 +297,10 @@ function transformStoryPoint(src, spaceId, computed) {
     tenantId: TENANT,
     title: src.title,
     description: src.description ?? undefined,
-    orderIndex: Number.isFinite(src.orderIndex) ? src.orderIndex : 0,
-    type: src.type ?? 'standard',
+    orderIndex: orderIdx(src),                                  // U4.2: canonical `orderIndex`, legacy `order` fallback
+    type: normalizeStoryPointType(src.type ?? 'standard'),      // U4.2: legacy 'test' → 'timed_test' (AD-4/legacy.ts)
     sections: Array.isArray(src.sections)
-      ? src.sections.map((s) => clean({ id: s.id, title: s.title, description: s.description, orderIndex: Number.isFinite(s.orderIndex) ? s.orderIndex : 0 }))
+      ? src.sections.map((s) => clean({ id: s.id, title: s.title, description: s.description, orderIndex: orderIdx(s) }))
       : [],
     difficulty: src.difficulty ?? undefined,
     estimatedTimeMinutes: Number.isFinite(src.estimatedTimeMinutes) ? src.estimatedTimeMinutes : undefined,
@@ -460,7 +467,7 @@ function transformItem(src, spaceId) {
     content: questionText,
     difficulty,
     labels,
-    orderIndex: Number.isFinite(src.orderIndex) ? src.orderIndex : 0,
+    orderIndex: orderIdx(src),                                  // U4.2: canonical `orderIndex`, legacy `order` fallback
     meta: Object.keys(meta).length ? meta : undefined,
     createdAt: iso(src.createdAt),
     updatedAt: iso(src.updatedAt),

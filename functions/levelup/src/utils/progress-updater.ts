@@ -11,14 +11,9 @@
  * happen in one transactional write.
  */
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import type {
-  ProgressStatus,
-  ItemProgressEntry,
-  StoredEvaluation,
-  AttemptRecord,
-} from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { ProgressStatus, ItemProgressEntry, StoredEvaluation, AttemptRecord } from "../types";
 
 /** Maximum number of attempts to keep per item in the progress document. */
 const MAX_ATTEMPTS = 20;
@@ -268,7 +263,7 @@ export async function recalculateAndWriteProgress(
 
     // ── Space completion detection ──
     let spaceStatus: ProgressStatus = "in_progress";
-    let spaceCompletedAt: FieldValue | undefined;
+    let spaceCompletedAt: string | undefined;
 
     if (storyPointStatus === "completed") {
       try {
@@ -286,7 +281,7 @@ export async function recalculateAndWriteProgress(
             }
             if (completedSPCount >= totalStoryPoints) {
               spaceStatus = "completed";
-              spaceCompletedAt = FieldValue.serverTimestamp();
+              spaceCompletedAt = isoNow();
             }
           }
         }
@@ -306,8 +301,8 @@ export async function recalculateAndWriteProgress(
       totalPoints: totalPointsAvailable,
       percentage: overallPercentage,
       storyPoints: mergedStoryPoints,
-      startedAt: existingSpaceData.startedAt ?? FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      startedAt: existingSpaceData.startedAt ?? isoNow(),
+      updatedAt: isoNow(),
     };
 
     if (spaceCompletedAt) {

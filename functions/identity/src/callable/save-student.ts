@@ -2,9 +2,9 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import type { UserMembership, MembershipClaimsInput } from "@levelup/shared-types";
-import { SaveStudentRequestSchema } from "@levelup/shared-types";
-import type { SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { UserMembership, MembershipClaimsInput } from "../contracts/legacy-docs";
+import { SaveStudentRequestSchema, type SaveResponse } from "../contracts/wire";
 import {
   assertTenantAdminOrSuperAdmin,
   getTenant,
@@ -56,9 +56,10 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
       admissionNumber: data.admissionNumber ?? null,
       dateOfBirth: data.dateOfBirth ?? null,
       status: "active",
-      createdAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
       createdBy: callerUid,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     });
 
@@ -76,8 +77,8 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
       permissions: {
         managedClassIds: classIds,
       },
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
     await db.doc(`userMemberships/${membershipId}`).set(membership);
 
@@ -106,7 +107,7 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
       await classRef.update({
         studentIds: FieldValue.arrayUnion(studentRef.id),
         studentCount: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       });
     }
 
@@ -122,7 +123,7 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
     }
 
     const updates: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     };
 
@@ -149,7 +150,7 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
         await classRef.update({
           studentIds: FieldValue.arrayUnion(id),
           studentCount: FieldValue.increment(1),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
 
@@ -159,7 +160,7 @@ export const saveStudent = onCall({ region: "asia-south1", cors: true }, async (
         await classRef.update({
           studentIds: FieldValue.arrayRemove(id),
           studentCount: FieldValue.increment(-1),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
     }

@@ -172,3 +172,62 @@ describe("envelope never leaks into the schema-validated body", () => {
     });
   });
 });
+
+describe("undefined-valued keys are PRUNED from the wire body (E2E-1 P1-9)", () => {
+  // Zod keeps a key that was PRESENT with value undefined, and the Firebase
+  // callable serializer encodes undefined as null — which the server's
+  // .strict() schemas reject (.optional() ≠ .nullable()). The repo layer
+  // routinely builds requests like { status: filter.status } where the value is
+  // undefined, so this stripping is load-bearing for EVERY module.
+  const ready = has("createApiClient");
+  const d = ready ? describe : describe.skip;
+  let transport: FakeTransport;
+  beforeEach(() => {
+    transport = createFakeTransport();
+  });
+
+  d("through createApiClient over the fake transport", () => {
+    it("listClasses with all-undefined optional filters sends NO such keys", async () => {
+      transport.onInvoke("v1.identity.listClasses", () => ({ items: [], nextCursor: null }));
+      const api = C.createApiClient!(transport, { validateResponses: false });
+      await (api.identity!.listClasses as (d: unknown) => Promise<unknown>)({
+        academicSessionId: undefined,
+        status: undefined,
+        cursor: undefined,
+        limit: undefined,
+      });
+      const sent = transport.lastCall()?.data as Record<string, unknown>;
+      expect(sent).toBeDefined();
+      for (const k of ["academicSessionId", "status", "cursor"]) {
+        expect(Object.prototype.hasOwnProperty.call(sent, k)).toBe(false);
+      }
+      // limit is NOT pruned — zod fills its .default(20) during parse.
+      expect(sent.limit).toBe(20);
+    });
+
+    it("defined keys survive alongside pruned undefined siblings (deep)", async () => {
+      transport.onInvoke("v1.identity.listClasses", () => ({ items: [], nextCursor: null }));
+      const api = C.createApiClient!(transport, { validateResponses: false });
+      await (api.identity!.listClasses as (d: unknown) => Promise<unknown>)({
+        status: "active",
+        limit: 20,
+        cursor: undefined,
+      });
+      const sent = transport.lastCall()?.data as Record<string, unknown>;
+      expect(sent.status).toBe("active");
+      expect(sent.limit).toBe(20);
+      expect(Object.prototype.hasOwnProperty.call(sent, "cursor")).toBe(false);
+    });
+  });
+
+  d("exported stripUndefinedDeep helper", () => {
+    it("prunes nested undefined keys, keeps null and array positions", () => {
+      const strip = (C as unknown as { stripUndefinedDeep?: (v: unknown) => unknown })
+        .stripUndefinedDeep;
+      if (!strip) return; // self-skip until exported through the barrel
+      expect(
+        strip({ a: undefined, b: null, c: { d: undefined, e: 1 }, f: [1, { g: undefined }] })
+      ).toEqual({ b: null, c: { e: 1 }, f: [1, {}] });
+    });
+  });
+});

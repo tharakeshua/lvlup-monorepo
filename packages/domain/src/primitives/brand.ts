@@ -33,6 +33,10 @@ export type ItemId = Brand<string, "ItemId">;
 export type ExamId = Brand<string, "ExamId">;
 export type SubmissionId = Brand<string, "SubmissionId">;
 export type UserId = Brand<string, "UserId">;
+/**
+ * @deprecated Use {@link TestSessionId} instead. Legacy alias, retained only for the
+ * core-19 brand contract. New code should not reference `SessionId`.
+ */
 export type SessionId = Brand<string, "SessionId">;
 export type AgentId = Brand<string, "AgentId">;
 export type AcademicSessionId = Brand<string, "AcademicSessionId">;
@@ -85,6 +89,7 @@ export const asItemId = (id: string): ItemId => id as ItemId;
 export const asExamId = (id: string): ExamId => id as ExamId;
 export const asSubmissionId = (id: string): SubmissionId => id as SubmissionId;
 export const asUserId = (id: string): UserId => id as UserId;
+/** @deprecated Use {@link asTestSessionId} instead. */
 export const asSessionId = (id: string): SessionId => id as SessionId;
 export const asAgentId = (id: string): AgentId => id as AgentId;
 export const asAcademicSessionId = (id: string): AcademicSessionId => id as AcademicSessionId;

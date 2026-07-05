@@ -54,9 +54,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bulkUpdateStatus = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const zod_1 = require("zod");
@@ -91,7 +91,8 @@ exports.bulkUpdateStatus = (0, https_1.onCall)(
         const ref = db.doc(`${basePath}/${entityId}`);
         batch.update(ref, {
           status: data.newStatus,
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          // B8: timestamps at rest are canonical ISO strings.
+          updatedAt: (0, domain_1.isoNow)(),
         });
         updated++;
       }

@@ -8,13 +8,14 @@
 
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import {
   computeOverallScore,
   identifyStrengthsAndWeaknesses,
+  legacyMillis,
   topN,
 } from "../utils/aggregation-helpers";
-import type { StudentLevelupMetrics, RecentActivityEntry } from "@levelup/shared-types";
+import type { StudentLevelupMetrics, RecentActivityEntry } from "../contracts/legacy-docs";
 
 export const onSpaceProgressUpdated = onDocumentWritten(
   {
@@ -98,9 +99,8 @@ export const onSpaceProgressUpdated = onDocumentWritten(
       };
     }
 
-    const sortedRecent = topN(recentActivity, 10, (e) =>
-      e.date?.toMillis ? e.date.toMillis() : 0
-    );
+    // B8: date may be a Firestore Timestamp object OR an ISO string.
+    const sortedRecent = topN(recentActivity, 10, (e) => legacyMillis(e.date));
 
     const levelup: StudentLevelupMetrics = {
       totalSpaces,
@@ -139,7 +139,7 @@ export const onSpaceProgressUpdated = onDocumentWritten(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: FieldValue.serverTimestamp(),
+          lastUpdatedAt: isoNow(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

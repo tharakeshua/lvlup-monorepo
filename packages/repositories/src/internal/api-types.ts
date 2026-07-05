@@ -42,26 +42,19 @@ import type {
 } from "@levelup/domain";
 
 // ---------------------------------------------------------------------------
-// Contract pagination fragment (§3.5) — repos thread the opaque cursor verbatim.
+// Contract wire envelopes (§3.5) — DP-1: the canonical types live in
+// `@levelup/api-contract`; re-exported here so sibling repos resolve unchanged.
 // ---------------------------------------------------------------------------
 
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SaveResponse,
+  SubscriptionHandle,
+  Callable,
+} from "@levelup/api-contract";
 
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-
-/** The consolidated SaveResponse `{ id, created? }` (§3.2). */
-export interface SaveResponse {
-  id: string;
-  created?: boolean;
-  deleted?: boolean;
-}
+export type { PageRequest, PageResponse, SaveResponse, SubscriptionHandle };
 
 /** The canonical save-input envelope — `{ id?, data, delete? }` (§3.2, D5). */
 export interface SaveInput<TData> {
@@ -72,11 +65,8 @@ export interface SaveInput<TData> {
 
 // ---------------------------------------------------------------------------
 // Realtime subscribe pass-through (§3.7 / api-client-core.md §3.7).
+// `SubscriptionHandle` is the canonical api-contract type (imported above).
 // ---------------------------------------------------------------------------
-
-export interface SubscriptionHandle {
-  unsubscribe(): void;
-}
 
 export type SubscribeFn = (
   name: string,
@@ -89,8 +79,7 @@ export type SubscribeFn = (
 // Authored against the FROZEN contract; the api-contract schemas are the SSOT
 // and the typecheck/fix wave reconciles field-level drift.
 // ---------------------------------------------------------------------------
-
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+// `Callable<Req, Res>` is imported from `@levelup/api-contract` (DP-1).
 
 // ---- session / me ----
 

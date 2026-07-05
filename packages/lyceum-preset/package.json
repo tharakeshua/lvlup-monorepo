@@ -1,0 +1,25 @@
+{
+  "name": "@levelup/lyceum-preset",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lyceum design system tokens: Tailwind preset + CSS custom properties + shadcn variable bridge, shared by all LevelUp web apps.",
+  "main": "preset.cjs",
+  "exports": {
+    ".": "./preset.cjs",
+    "./tokens": "./tokens.cjs",
+    "./lyceum.css": "./lyceum.css",
+    "./tokens.css": "./tokens.css",
+    "./bridge.css": "./bridge.css",
+    "./fonts.css": "./fonts.css",
+    "./base.css": "./base.css"
+  },
+  "files": [
+    "preset.cjs",
+    "tokens.cjs",
+    "*.css",
+    "scripts"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate-css.cjs"
+  }
+}

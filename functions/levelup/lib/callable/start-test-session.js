@@ -60,7 +60,8 @@ const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
 const firestore_2 = require("../utils/firestore");
 const helpers_1 = require("../utils/helpers");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -78,10 +79,7 @@ exports.startTestSession = (0, https_1.onCall)(
   { region: "asia-south1", cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.StartTestSessionRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.StartTestSessionRequestSchema);
     if (!data.tenantId || !data.spaceId || !data.storyPointId) {
       throw new https_1.HttpsError(
         "invalid-argument",
@@ -103,13 +101,20 @@ exports.startTestSession = (0, https_1.onCall)(
     const schedule = storyPoint.assessmentConfig?.schedule;
     if (schedule) {
       const nowMs = Date.now();
-      if (schedule.startAt && schedule.startAt.toMillis() > nowMs) {
+      // B8: schedule fields may be Firestore Timestamps or ISO strings — collapse.
+      const startAtMs = schedule.startAt
+        ? (0, domain_1.toMillis)((0, domain_1.toTimestamp)(schedule.startAt))
+        : undefined;
+      const endAtMs = schedule.endAt
+        ? (0, domain_1.toMillis)((0, domain_1.toTimestamp)(schedule.endAt))
+        : undefined;
+      if (startAtMs !== undefined && startAtMs > nowMs) {
         throw new https_1.HttpsError(
           "failed-precondition",
-          `This test is not available yet. It opens on ${new Date(schedule.startAt.toMillis()).toLocaleString()}.`
+          `This test is not available yet. It opens on ${new Date(startAtMs).toLocaleString()}.`
         );
       }
-      if (schedule.endAt && schedule.endAt.toMillis() < nowMs) {
+      if (endAtMs !== undefined && endAtMs < nowMs) {
         throw new https_1.HttpsError(
           "failed-precondition",
           "This test is no longer available. The submission window has closed."
@@ -157,8 +162,14 @@ exports.startTestSession = (0, https_1.onCall)(
           return s === "completed" || s === "expired";
         })
         .sort((a, b) => {
-          const aEnd = a.data().endedAt?.toMillis() ?? 0;
-          const bEnd = b.data().endedAt?.toMillis() ?? 0;
+          // B8 collapse — endedAt stays a Timestamp at rest today, but never
+          // call .toMillis() on a doc field directly (MIGRATION-PATTERN rule 3).
+          const aEnd = a.data().endedAt
+            ? (0, domain_1.toMillis)((0, domain_1.toTimestamp)(a.data().endedAt))
+            : 0;
+          const bEnd = b.data().endedAt
+            ? (0, domain_1.toMillis)((0, domain_1.toTimestamp)(b.data().endedAt))
+            : 0;
           return bEnd - aEnd;
         });
       // Lock after passing
@@ -176,7 +187,9 @@ exports.startTestSession = (0, https_1.onCall)(
       if (retryConfig.cooldownMinutes && completedDocs.length > 0) {
         const lastEndedAt = completedDocs[0].data().endedAt;
         if (lastEndedAt) {
-          const cooldownEnd = lastEndedAt.toMillis() + retryConfig.cooldownMinutes * 60 * 1000;
+          const cooldownEnd =
+            (0, domain_1.toMillis)((0, domain_1.toTimestamp)(lastEndedAt)) +
+            retryConfig.cooldownMinutes * 60 * 1000;
           if (Date.now() < cooldownEnd) {
             const minutesLeft = Math.ceil((cooldownEnd - Date.now()) / 60000);
             throw new https_1.HttpsError(
@@ -283,8 +296,8 @@ exports.startTestSession = (0, https_1.onCall)(
       analytics: null,
       submittedAt: null,
       autoSubmitted: false,
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      createdAt: (0, domain_1.isoNow)(),
+      updatedAt: (0, domain_1.isoNow)(),
     };
     await sessionRef.set(sessionDoc);
     v2_1.logger.info(

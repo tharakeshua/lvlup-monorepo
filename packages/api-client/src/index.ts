@@ -34,7 +34,7 @@ export {
 export type { ApiErrorInit, ApiErrorCode, ClientErrorCode } from "./errors.js";
 
 // ---- validation helpers ----
-export { validateRequest, validateResponse } from "./validate.js";
+export { validateRequest, validateResponse, stripUndefinedDeep } from "./validate.js";
 
 // ---- retry ----
 export { DEFAULT_RETRY_POLICY, NO_RETRY, isRetryable, withRetry, computeBackoff } from "./retry.js";

@@ -58,6 +58,7 @@ exports.getTenant = getTenant;
 exports.updateTenantStats = updateTenantStats;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const db = () => admin.firestore();
 /** Get a user document by UID. */
 async function getUser(uid) {
@@ -90,7 +91,8 @@ async function updateTenantStats(tenantId, role, operation) {
     .doc(`tenants/${tenantId}`)
     .update({
       [field]: firestore_1.FieldValue.increment(delta),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      updatedAt: (0, domain_1.isoNow)(),
     });
 }
 //# sourceMappingURL=firestore-helpers.js.map

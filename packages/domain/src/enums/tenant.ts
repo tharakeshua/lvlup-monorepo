@@ -9,17 +9,12 @@ export const TENANT_PLANS = ["free", "trial", "basic", "premium", "enterprise"] 
 export type TenantPlan = (typeof TENANT_PLANS)[number];
 export const zTenantPlan = zEnum(TENANT_PLANS);
 
-export const TENANT_ROLES = [
-  "superAdmin",
-  "tenantAdmin",
-  "teacher",
-  "student",
-  "parent",
-  "scanner",
-  "staff",
-] as const;
-export type TenantRole = (typeof TENANT_ROLES)[number];
-export const zTenantRole = zEnum(TENANT_ROLES);
+// Tenant roles — DERIVED from ROLE_DESCRIPTORS (DP-2 Part B: the role registry is
+// the ONE source; the enum, ROLE_RANK, EntityIds, repo/id-field maps, and the
+// per-role id schema fields all regenerate from it). Re-exported here under the
+// existing identifiers so the public surface is unchanged.
+export { TENANT_ROLES, zTenantRole } from "../entities/identity/role-registry.js";
+export type { TenantRole } from "../entities/identity/role-registry.js";
 
 export const MEMBERSHIP_STATUSES = ["active", "inactive", "suspended"] as const;
 export type MembershipStatus = (typeof MEMBERSHIP_STATUSES)[number];

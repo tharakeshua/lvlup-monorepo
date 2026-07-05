@@ -46,16 +46,13 @@ export {
 export {
   SUBSCRIPTION_SOURCES,
   type SourceDescriptor,
-  type FirestoreSourceDescriptor,
   type RtdbSourceDescriptor,
   type SubscriptionBackend,
-  type QueryConstraintSpec,
 } from "./subscribe/subscription-sources.js";
 
 // ---- low-level units (exported for unit tests + future reuse, NOT app consumption) ----
 export { invokeViaCallable, toDeployedCallableId } from "./invoke/invoke-via-callable.js";
 export { unwrapCallableError } from "./invoke/normalize-callable-error.js";
-export { subscribeViaFirestore } from "./subscribe/subscribe-via-firestore.js";
 export { subscribeViaRTDB } from "./subscribe/subscribe-via-rtdb.js";
 export { validatePayload, PayloadValidationError } from "./subscribe/validate-payload.js";
 export { toTransportError } from "./subscribe/to-transport-error.js";

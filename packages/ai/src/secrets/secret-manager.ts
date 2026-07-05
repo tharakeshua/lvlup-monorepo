@@ -12,6 +12,13 @@ import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import type { TenantId } from "@levelup/domain";
 import { aiDisabled, providerFailed } from "../errors.js";
 
+/**
+ * THE single source of the per-tenant Gemini secret name. The resolver (below)
+ * and the writer (`createSecretWriter`) both derive the Secret Manager secret id
+ * from this one helper so a written secret is always readable back — the P0 that
+ * previously broke onboarding was a writer/resolver name divergence
+ * (`{id}-gemini-key` written vs `tenant-{id}-gemini` read). Keep them unified here.
+ */
 export const secretNameFor = (tenantId: TenantId): string => `tenant-${tenantId}-gemini`;
 
 export interface SecretResolverOptions {
@@ -30,7 +37,10 @@ export interface SecretResolver {
   invalidate(tenantId: TenantId): void;
 }
 
-function resolveProjectId(opts: SecretResolverOptions): string | undefined {
+function resolveProjectId(opts: {
+  projectId?: string;
+  env?: NodeJS.ProcessEnv;
+}): string | undefined {
   return (
     opts.projectId ??
     opts.env?.GOOGLE_CLOUD_PROJECT ??
@@ -38,6 +48,11 @@ function resolveProjectId(opts: SecretResolverOptions): string | undefined {
     process.env.GOOGLE_CLOUD_PROJECT ??
     process.env.GCLOUD_PROJECT
   );
+}
+
+/** gRPC ALREADY_EXISTS (code 6) — the secret container was created by a prior write. */
+function isAlreadyExists(cause: unknown): boolean {
+  return (cause as { code?: number } | null)?.code === 6 || /ALREADY_EXISTS/i.test(String(cause));
 }
 
 export function createSecretResolver(opts: SecretResolverOptions = {}): SecretResolver {
@@ -94,6 +109,84 @@ export function createSecretResolver(opts: SecretResolverOptions = {}): SecretRe
 
     invalidate(tenantId: TenantId): void {
       cache.delete(tenantId);
+    },
+  };
+}
+
+export interface SecretWriterOptions {
+  /** GCP project id; falls back to GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT env. */
+  projectId?: string;
+  /** Inject a client for tests; defaults to a real SecretManagerServiceClient. */
+  client?: Pick<SecretManagerServiceClient, "createSecret" | "addSecretVersion">;
+  /** Read an env override (defaults to process.env). */
+  env?: NodeJS.ProcessEnv;
+}
+
+export interface SecretWriter {
+  /**
+   * Create-or-rotate the tenant's Gemini key in Secret Manager and return the
+   * secret name (`secretNameFor(tenantId)`) that the resolver reads back. Adding a
+   * new version on an existing secret is a rotation — the resolver reads
+   * `versions/latest`.
+   */
+  writeSecret(tenantId: TenantId, value: string): Promise<string>;
+}
+
+/**
+ * Server-side counterpart of `createSecretResolver`: actually persists the tenant
+ * key VALUE into GCP Secret Manager (the ref-doc-only repo used to record a
+ * pointer but never write the secret — the P0). Uses Admin credentials in the
+ * Cloud Functions runtime. In the emulator / local dev — where a platform-wide
+ * env key (`LEVELUP_AI_KEY` / `GEMINI_API_KEY`) short-circuits the resolver, or no
+ * project is configured — there is no Secret Manager to write to, so it no-ops and
+ * just returns the ref name so callers' ref bookkeeping stays coherent.
+ */
+export function createSecretWriter(opts: SecretWriterOptions = {}): SecretWriter {
+  const env = opts.env ?? process.env;
+  let client = opts.client ?? null;
+  const getClient = (): Pick<SecretManagerServiceClient, "createSecret" | "addSecretVersion"> => {
+    if (!client) client = new SecretManagerServiceClient();
+    return client;
+  };
+
+  return {
+    async writeSecret(tenantId: TenantId, value: string): Promise<string> {
+      const secretRef = secretNameFor(tenantId);
+
+      // Emulator / local-dev: an env override serves every tenant, so there is no
+      // per-tenant secret to write. No project ⇒ no Secret Manager. Either way the
+      // resolver will never hit SM for this tenant; return the ref name unchanged.
+      const override = env.LEVELUP_AI_KEY ?? env.GEMINI_API_KEY;
+      const projectId = resolveProjectId(opts);
+      if (override || !projectId) return secretRef;
+
+      const parent = `projects/${projectId}`;
+      // Ensure the secret container exists (idempotent — a rotation re-runs this).
+      try {
+        await getClient().createSecret({
+          parent,
+          secretId: secretRef,
+          secret: { replication: { automatic: {} } },
+        });
+      } catch (cause) {
+        if (!isAlreadyExists(cause)) {
+          throw providerFailed("Failed to create tenant Gemini secret", {
+            meta: { tenantId, cause: String(cause) },
+          });
+        }
+      }
+      // Write the key value as a new version; the resolver reads versions/latest.
+      try {
+        await getClient().addSecretVersion({
+          parent: `${parent}/secrets/${secretRef}`,
+          payload: { data: Buffer.from(value, "utf8") },
+        });
+      } catch (cause) {
+        throw providerFailed("Failed to write tenant Gemini secret version", {
+          meta: { tenantId, cause: String(cause) },
+        });
+      }
+      return secretRef;
     },
   };
 }

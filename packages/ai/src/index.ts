@@ -38,12 +38,34 @@ export type {
 export { createGeminiProvider, type GeminiOpts } from "./provider/gemini.js";
 export { createStubProvider } from "./provider/stub.js";
 
+// --- Model defaults (env-overridable; gemini-1.5-* is retired) ---
+export {
+  DEFAULT_PRO_MODEL,
+  DEFAULT_FLASH_MODEL,
+  resolveModelDefaults,
+  type ModelDefaults,
+} from "./models.js";
+
+// --- Image seam (storage-path → inline bytes, resolved by the gateway) ---
+export {
+  resolveImages,
+  inferMimeType,
+  createStubImageStore,
+  DEFAULT_MAX_TOTAL_IMAGE_BYTES,
+  type AiImageRef,
+  type AiImageStore,
+  type ResolveImagesOptions,
+} from "./images/image-store.js";
+
 // --- Secrets ---
 export {
   createSecretResolver,
+  createSecretWriter,
   secretNameFor,
   type SecretResolver,
   type SecretResolverOptions,
+  type SecretWriter,
+  type SecretWriterOptions,
 } from "./secrets/secret-manager.js";
 
 // --- Cost / quota ---

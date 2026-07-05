@@ -9,6 +9,7 @@
  * `AiRequest.variables`; `requiredVariables` is checked at render time.
  */
 import type { JsonValue } from "@levelup/domain";
+import { DEFAULT_PRO_MODEL, DEFAULT_FLASH_MODEL } from "../models.js";
 
 /** The five AI purposes the platform performs (matches `AiRequest.purpose`). */
 export type AiPurpose =
@@ -45,12 +46,14 @@ export const PROMPTS = {
       "images and emit a structured list of questions with marks and a per-question " +
       "rubric. Never invent questions; preserve numbering and sub-parts.",
     user:
-      "Exam title: {{examTitle}}\nExam type: {{examType}}\n" +
-      "Extract every question. For each: text, maxMarks, order, and a criteria-based " +
+      "Exam title: {{examTitle}}\nExam type: {{examType}}\nTotal marks: {{totalMarks}}\n" +
+      'Extraction mode: {{mode}} — when "single", extract ONLY question number ' +
+      "{{questionNumber}}; otherwise extract every question.\n" +
+      "For each question: text, maxMarks, order, and a criteria-based " +
       "rubric whose criteria marks sum to maxMarks.",
-    requiredVariables: ["examTitle", "examType"],
+    requiredVariables: ["examTitle", "examType", "mode"],
     structured: true,
-    defaultModel: "gemini-1.5-pro",
+    defaultModel: DEFAULT_PRO_MODEL,
     defaultTemperature: 0,
   }),
 
@@ -62,11 +65,14 @@ export const PROMPTS = {
       "question list, locate each answer and report which question it belongs to, " +
       "with a readability/confidence assessment.",
     user:
-      "Questions: {{questions}}\nMap each detected answer region to a questionId. " +
-      "Flag unreadable or missing answers.",
-    requiredVariables: ["questions"],
+      "Questions: {{questions}}\nThe {{pageCount}} answer-sheet pages are attached " +
+      "IN ORDER; page indices are ZERO-BASED (first attached page = 0).\n" +
+      'Return JSON: {"routingMap": {"<questionId>": [pageIndex, …]}, ' +
+      '"confidence": {"<questionId>": 0..1}}. ' +
+      "Flag unreadable or missing answers with confidence 0.",
+    requiredVariables: ["questions", "pageCount"],
     structured: true,
-    defaultModel: "gemini-1.5-flash",
+    defaultModel: DEFAULT_FLASH_MODEL,
     defaultTemperature: 0,
   }),
 
@@ -83,7 +89,7 @@ export const PROMPTS = {
       "Student answer: {{answer}}\nGrade strictly per the rubric.",
     requiredVariables: ["question", "maxMarks", "rubric", "answer"],
     structured: true,
-    defaultModel: "gemini-1.5-pro",
+    defaultModel: DEFAULT_PRO_MODEL,
     defaultTemperature: 0,
   }),
 
@@ -100,7 +106,7 @@ export const PROMPTS = {
       "Learner says: {{message}}\nRespond as the tutor in {{language}}.",
     requiredVariables: ["itemContext", "message", "language"],
     structured: false,
-    defaultModel: "gemini-1.5-flash",
+    defaultModel: DEFAULT_FLASH_MODEL,
     defaultTemperature: 0.6,
   }),
 
@@ -115,7 +121,7 @@ export const PROMPTS = {
       "title, body, and severity.",
     requiredVariables: ["summary", "maxInsights"],
     structured: true,
-    defaultModel: "gemini-1.5-flash",
+    defaultModel: DEFAULT_FLASH_MODEL,
     defaultTemperature: 0.3,
   }),
 } as const satisfies Record<string, PromptTemplate>;

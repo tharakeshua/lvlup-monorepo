@@ -1,4 +1,5 @@
-import type { UnifiedUser, UserMembership, Tenant, TenantRole } from "@levelup/shared-types";
+import type { TenantRole } from "@levelup/domain";
+import type { UnifiedUser, UserMembership, Tenant } from "../contracts/legacy-docs";
 /** Get a user document by UID. */
 export declare function getUser(uid: string): Promise<UnifiedUser | null>;
 /** Get a membership document. */

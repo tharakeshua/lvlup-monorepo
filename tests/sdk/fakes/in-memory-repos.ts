@@ -118,6 +118,10 @@ export interface InMemoryRepos {
       completed: boolean;
       pointsEarned: number;
       totalPoints: number;
+      storyPoints: Record<
+        string,
+        { storyPointId: string; pointsEarned: number; totalPoints: number; completed: boolean }
+      >;
     }>;
     get(tenantId: string, userId: string, spaceId: string): Promise<Record<string, unknown> | null>;
   };
@@ -393,7 +397,28 @@ export function createInMemoryRepos(options: InMemoryReposOptions = {}): InMemor
           updatedAt: ts,
         };
         progressStore.set(key, doc);
-        return { spaceProgressId, completed, pointsEarned, totalPoints };
+        // Per-story-point rollup (mirrors the admin repo) — feeds the
+        // spaceProgressLive RTDB projection seam (AD-12).
+        const storyPoints: Record<
+          string,
+          { storyPointId: string; pointsEarned: number; totalPoints: number; completed: boolean }
+        > = {};
+        for (const p of Object.values(itemProgress)) {
+          const spId = p["storyPointId"] as string;
+          const sp = storyPoints[spId] ?? {
+            storyPointId: spId,
+            pointsEarned: 0,
+            totalPoints: 0,
+            completed: false,
+          };
+          sp.pointsEarned += (p["bestScore"] as number | undefined) ?? 0;
+          sp.totalPoints += (p["maxScore"] as number | undefined) ?? 0;
+          storyPoints[spId] = sp;
+        }
+        for (const sp of Object.values(storyPoints)) {
+          sp.completed = sp.totalPoints > 0 && sp.pointsEarned >= sp.totalPoints;
+        }
+        return { spaceProgressId, completed, pointsEarned, totalPoints, storyPoints };
       },
       async get(tenantId, userId, spaceId) {
         return progressStore.get(`${tenantId}/${userId}/${spaceId}`) ?? null;

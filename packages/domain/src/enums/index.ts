@@ -13,3 +13,5 @@ export * from "./misc.js";
 export * from "./notification.js";
 export * from "./analytics.js";
 export * from "./gamification.js";
+// Legacy read-adapters (widen-on-read, narrow-on-write) — U1.1 / AD-4.
+export * from "./legacy.js";

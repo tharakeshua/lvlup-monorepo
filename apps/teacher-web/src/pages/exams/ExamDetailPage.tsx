@@ -7,16 +7,15 @@ import {
   useApiError,
   useExamQuestions,
   useSpaces,
+  useSaveExam,
+  useExtractQuestions,
+  useReleaseResults,
 } from "@levelup/query";
+import { asExamId, asClassId, asSpaceId } from "@levelup/domain";
 import { useAuthSession } from "../../sdk/session";
 import { toast } from "sonner";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
-import {
-  getFirebaseServices,
-  callSaveExam,
-  callGenerateReport,
-  callExtractQuestions,
-} from "@levelup/shared-services";
+import { getFirebaseServices, callGenerateReport } from "@levelup/shared-services";
 import type { Exam, Submission, ExamQuestion, UnifiedRubric } from "@levelup/shared-types";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import ExamMetadataEditDialog from "../../components/exam/ExamMetadataEditDialog";
@@ -307,9 +306,13 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
 export default function ExamDetailPage() {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  // currentTenantId is retained: the kept shared-services callables (callSaveExam,
-  // callGenerateReport, callExtractQuestions) and the Storage path still need it.
+  // currentTenantId is retained: the kept shared-services callGenerateReport, the
+  // ExamMetadataEditDialog prop, and the Storage path still need it. Exam writes now
+  // go through the claims-scoped v1 hooks (saveExam/extractQuestions/releaseResults).
   const tenantId = useAuthSession((s) => s.currentTenantId);
+  const saveExam = useSaveExam();
+  const extractQuestions = useExtractQuestions();
+  const releaseResults = useReleaseResults();
   const { data: examData, isLoading, refetch } = useExam(examId ?? "");
   const exam = examData as Exam | undefined;
   const { data: submissionsData } = useSubmissions({ examId });
@@ -379,22 +382,24 @@ export default function ExamDetailPage() {
   }, [exam?.questionPaper?.images, questionPaperUrls]);
 
   const handlePublish = async () => {
-    if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
+    if (!examId) return;
+    await saveExam.mutateAsync({ id: asExamId(examId), data: { status: "published" } });
     refetch();
   };
 
+  // Result-release is a dedicated v1 lifecycle verb (v1.autograde.releaseResults) —
+  // saveExam carves it out — so it goes through useReleaseResults, not saveExam.
   const handleReleaseResults = async () => {
-    if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: "results_released" } });
+    if (!examId) return;
+    await releaseResults.mutateAsync({ examId });
     refetch();
   };
 
   const handleExtractQuestions = async () => {
-    if (!tenantId || !examId) return;
+    if (!examId) return;
     setExtracting(true);
     try {
-      await callExtractQuestions({ tenantId, examId });
+      await extractQuestions.mutateAsync({ examId: asExamId(examId) });
       await refetchQuestions();
       refetch();
     } finally {
@@ -415,10 +420,14 @@ export default function ExamDetailPage() {
   };
 
   const handleReExtractQuestion = async (questionNumber: string) => {
-    if (!tenantId || !examId) return;
+    if (!examId) return;
     setReExtracting(questionNumber);
     try {
-      await callExtractQuestions({ tenantId, examId, mode: "single", questionNumber });
+      await extractQuestions.mutateAsync({
+        examId: asExamId(examId),
+        mode: "single",
+        questionNumber,
+      });
       await refetchQuestions();
     } finally {
       setReExtracting(null);
@@ -446,16 +455,16 @@ export default function ExamDetailPage() {
   };
 
   const handleConfirmAndPublish = async () => {
-    if (!tenantId || !examId) return;
-    await callSaveExam({ id: examId, tenantId, data: { status: "published" } });
+    if (!examId) return;
+    await saveExam.mutateAsync({ id: asExamId(examId), data: { status: "published" } });
     refetch();
   };
 
   const handleSaveClassIds = async (next: string[]) => {
-    if (!tenantId || !examId) return;
+    if (!examId) return;
     setSavingClasses(true);
     try {
-      await callSaveExam({ id: examId, tenantId, data: { classIds: next } });
+      await saveExam.mutateAsync({ id: asExamId(examId), data: { classIds: next.map(asClassId) } });
       toast.success("Exam classes updated");
       setShowEditClasses(false);
       refetch();
@@ -477,10 +486,13 @@ export default function ExamDetailPage() {
   };
 
   const handleLinkSpace = async (spaceId: string) => {
-    if (!tenantId || !examId) return;
+    if (!examId) return;
     setLinkingSpace(true);
     try {
-      await callSaveExam({ id: examId, tenantId, data: { linkedSpaceId: spaceId } });
+      await saveExam.mutateAsync({
+        id: asExamId(examId),
+        data: { linkedSpaceId: asSpaceId(spaceId) },
+      });
       setShowSpacePicker(false);
       refetch();
     } finally {

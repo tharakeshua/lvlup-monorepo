@@ -1,8 +1,11 @@
 /**
  * v1.levelup.testSessionDeadline — server-computed countdown for a timed test.
  *
- * Projection doc `tenants/{t}/.../sessions/{id}/live` written by startTestSession.
- * SLIM: server-computed remaining time + the authoritative deadline + status.
+ * RTDB projection node `testSessionLive/{t}/{uid}/{sessionId}` written by
+ * startTestSession / submitTestSession / the expire+cleanup schedulers via the
+ * AD-12 RTDB-projection pattern (U2.6 — the legacy unprefixed Firestore live doc
+ * is retired). SLIM: server-computed remaining time + authoritative deadline +
+ * status.
  * **No answers, no question bodies** — the live channel never carries test content.
  *
  * Plan: SDK-LAYERS-PLAN §3.3 (testSessionDeadline row) / api-contract-core §7.2.
@@ -27,7 +30,7 @@ export type TestSessionDeadlineParams = z.infer<typeof TestSessionDeadlineParams
 export const testSessionDeadline = defineSubscription({
   name: "v1.levelup.testSessionDeadline",
   module: "levelup",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: TestSessionDeadlineParamsSchema,
   payload: TestSessionLiveSchema,
 });

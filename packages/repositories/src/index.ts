@@ -132,6 +132,7 @@ export {
 } from "./views-and-storage-auth/index.js";
 export type {
   StorageRepo,
+  UploadImageInput,
   AuthRepo,
   DeviceRepo,
   MeAssetRepo,

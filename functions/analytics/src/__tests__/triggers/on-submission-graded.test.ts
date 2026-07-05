@@ -47,7 +47,9 @@ vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("../../utils/aggregation-helpers", () => ({
+vi.mock("../../utils/aggregation-helpers", async (importOriginal) => ({
+  // Keep the real module (legacyMillis is used by the recent-exams sort).
+  ...(await importOriginal<Record<string, unknown>>()),
   computeOverallScore: vi.fn(() => 0.75),
   identifyStrengthsAndWeaknesses: vi.fn(() => ({ strengthAreas: [], weaknessAreas: [] })),
   topN: vi.fn((arr: any[]) => arr.slice(0, 10)),

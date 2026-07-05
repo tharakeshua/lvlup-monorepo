@@ -38,20 +38,16 @@ import type {
   UserId,
 } from "@levelup/domain";
 
-// ── pagination + save envelopes (mirror the contract §3.5) ───────────────────
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-export interface SaveResponse<Id> {
-  id: Id;
-  created: boolean;
-}
+// ── pagination + save envelopes ── DP-1: canonical types from api-contract.
+// `SaveResponse` is the single `{ id: string; created?; deleted? }` shape (the
+// prior `SaveResponse<Id>` — generic id, required `created`, no `deleted` — was drift).
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SaveResponse,
+} from "@levelup/api-contract";
+
+export type { PageRequest, PageResponse, SaveResponse };
 
 // ── request/response shapes the hooks pass through ───────────────────────────
 
@@ -134,9 +130,7 @@ export interface AchievementRepoSeam {
   listCatalog(filter?: ListAchievementsRequest): Promise<PageResponse<AchievementWithEarnedState>>;
   listEarned(opts?: ListStudentAchievementsRequest): Promise<PageResponse<StudentAchievement>>;
   markSeen(input: MarkAchievementsSeenRequest): Promise<MarkAchievementsSeenResponse>;
-  saveDefinition(
-    input: SaveAchievementDefinitionRequest
-  ): Promise<SaveResponse<AchievementWithEarnedState["id"]>>;
+  saveDefinition(input: SaveAchievementDefinitionRequest): Promise<SaveResponse>;
   unseenCount(earned: readonly StudentAchievement[]): number;
 }
 
@@ -147,8 +141,8 @@ export interface StudentLevelRepoSeam {
 
 export interface StudyGoalRepoSeam {
   list(opts?: ListStudyGoalsRequest): Promise<PageResponse<StudyGoal>>;
-  save(input: SaveStudyGoalRequest): Promise<SaveResponse<StudyGoalId>>;
-  archive(goal: StudyGoal): Promise<SaveResponse<StudyGoalId>>;
+  save(input: SaveStudyGoalRequest): Promise<SaveResponse>;
+  archive(goal: StudyGoal): Promise<SaveResponse>;
 }
 
 export interface StudySessionRepoSeam {

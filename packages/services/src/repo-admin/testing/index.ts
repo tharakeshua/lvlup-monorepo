@@ -22,6 +22,7 @@ import type {
   ListOptions,
   ProgressRepo,
   ProgressUpdateInput,
+  ProgressUpdateResult,
   Repos,
   RepoPage,
   TxHandle,
@@ -238,6 +239,7 @@ export function createInMemoryRepos(options: CreateReposOptions = {}): InMemoryR
         completed,
         pointsEarned,
         totalPoints,
+        storyPoints: storyPoints as unknown as ProgressUpdateResult["storyPoints"],
       };
     },
     async get(tenantId, userId, spaceId) {
@@ -308,7 +310,8 @@ export function createInMemoryRepos(options: CreateReposOptions = {}): InMemoryR
         outboxFor(tenantId).push({
           ...entry,
           status: "pending",
-          attempts: 0,
+          // DLQ entries carry their own attempt count — don't clobber it to 0.
+          attempts: (entry["attempts"] as number | undefined) ?? 0,
           enqueuedAt: now(),
         });
       },
@@ -363,7 +366,12 @@ export function createInMemoryRepos(options: CreateReposOptions = {}): InMemoryR
       try {
         const out = await body(handle);
         for (const [t, entry] of staged) {
-          outboxFor(t).push({ ...entry, status: "pending", attempts: 0, enqueuedAt: now() });
+          outboxFor(t).push({
+            ...entry,
+            status: "pending",
+            attempts: (entry["attempts"] as number | undefined) ?? 0,
+            enqueuedAt: now(),
+          });
         }
         return out;
       } catch (e) {

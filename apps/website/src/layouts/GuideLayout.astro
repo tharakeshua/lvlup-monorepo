@@ -1,0 +1,67 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { APP_URLS } from '../config';
+
+interface Props {
+  title: string;
+  description: string;
+  role: 'admin' | 'teacher' | 'student' | 'parent';
+  steps: string[];
+}
+
+const { title, description, role, steps } = Astro.props;
+
+const portalUrls: Record<string, string> = {
+  admin:   APP_URLS.admin,
+  teacher: APP_URLS.teacher,
+  student: APP_URLS.student,
+  parent:  APP_URLS.parent,
+};
+
+const portalUrl = portalUrls[role];
+const arrow = `M5 12h14M12 5l7 7-7 7`;
+---
+<BaseLayout title={title} description={description}>
+  <article class="guide-page">
+    <header class="guide-header">
+      <span class={`role-chip role-chip-${role}`}>{role} guide</span>
+      <h1>{title}</h1>
+      <p class="lede">{description}</p>
+      <p class="guide-header-meta">
+        <span>{steps.length} steps</span>
+        <a href={portalUrl} class="arrow-link">
+          Open the {role} portal
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={arrow}/></svg>
+        </a>
+      </p>
+    </header>
+
+    <section class="glance" aria-label="Steps at a glance">
+      <p class="glance-label">At a glance</p>
+      <ol class="glance-list">
+        {steps.map(step => (
+          <li>{step}</li>
+        ))}
+      </ol>
+    </section>
+
+    <div class="guide-content">
+      {!Astro.slots.has('default') && (
+        <div class="coming-soon-banner" role="note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p>Full guide content is being prepared. Visit your portal to get started now, or check back soon for step-by-step documentation.</p>
+        </div>
+      )}
+      <slot />
+    </div>
+
+    <div class="guide-footer">
+      <a href={portalUrl} class="btn btn-primary">Open the {role} portal</a>
+      <a href="/guides" class="btn btn-ghost">All guides</a>
+    </div>
+  </article>
+</BaseLayout>

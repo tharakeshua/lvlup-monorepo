@@ -118,8 +118,24 @@ export function makeTenantRepo(firestore: Firestore, now: () => string): EntityR
       if (!snap.exists) return null;
       return (snap.data()?.["tenantId"] as string | undefined) ?? null;
     },
+
+    // Write the public join-code index (`tenantCodes/{code}` → tenantId), the
+    // counterpart of `resolveCode`. Transactional so two tenants can never claim
+    // the same code: throws `ALREADY_EXISTS` if the code already maps elsewhere.
+    async writeCode(code: string, tenantId: string, ts = now()) {
+      const ref = firestore.doc(tenantCodeDoc(code));
+      await firestore.runTransaction(async (txn) => {
+        const snap = await txn.get(ref);
+        const owner = snap.exists ? (snap.data()?.["tenantId"] as string | undefined) : undefined;
+        if (owner && owner !== tenantId) {
+          throw new Error(`ALREADY_EXISTS: tenant code ${code} is taken`);
+        }
+        txn.set(ref, toFirestore({ tenantId, createdAt: ts }), { merge: true });
+      });
+    },
   } as EntityRepo & {
     getUsageConfig(tenantId: string): Promise<Record<string, unknown> | null>;
     resolveCode(code: string): Promise<string | null>;
+    writeCode(code: string, tenantId: string, ts?: string): Promise<void>;
   };
 }

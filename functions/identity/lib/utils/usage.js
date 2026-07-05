@@ -62,6 +62,7 @@ exports.incrementUsage = incrementUsage;
 exports.incrementUsageMultiple = incrementUsageMultiple;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 /**
  * Atomically increment (or decrement) a usage counter on a tenant document.
  *
@@ -73,8 +74,9 @@ async function incrementUsage(tenantId, field, amount = 1) {
   const db = admin.firestore();
   await db.doc(`tenants/${tenantId}`).update({
     [`usage.${field}`]: firestore_1.FieldValue.increment(amount),
-    "usage.lastUpdated": firestore_1.FieldValue.serverTimestamp(),
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    "usage.lastUpdated": (0, domain_1.isoNow)(),
+    updatedAt: (0, domain_1.isoNow)(),
   });
 }
 /**
@@ -83,8 +85,8 @@ async function incrementUsage(tenantId, field, amount = 1) {
 async function incrementUsageMultiple(tenantId, increments) {
   const db = admin.firestore();
   const updates = {
-    "usage.lastUpdated": firestore_1.FieldValue.serverTimestamp(),
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    "usage.lastUpdated": (0, domain_1.isoNow)(),
+    updatedAt: (0, domain_1.isoNow)(),
   };
   for (const [field, amount] of Object.entries(increments)) {
     if (amount !== undefined && amount !== 0) {

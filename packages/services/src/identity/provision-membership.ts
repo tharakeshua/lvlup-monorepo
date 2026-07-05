@@ -6,6 +6,7 @@
  * exactly one way and claims are synced exactly one way. The membership doc is the
  * source of truth; the claim is a projection minted by `syncMembershipClaims`.
  */
+import type { EntityIds } from "@levelup/domain";
 import type { AuthContext, SystemContext } from "../shared/context.js";
 import { xrepos } from "../shared/extended-repos.js";
 import { syncMembershipClaims } from "./sync-membership-claims.js";
@@ -16,13 +17,8 @@ export interface ProvisionMembershipInput {
   tenantCode: string;
   role: string;
   joinSource?: string;
-  entityIds?: {
-    teacherId?: string;
-    studentId?: string;
-    parentId?: string;
-    staffId?: string;
-    scannerId?: string;
-  };
+  // DP-2 Part B: the per-role id bag is the registry-derived `EntityIds`.
+  entityIds?: EntityIds;
   classIds?: string[];
   permissions?: Record<string, boolean>;
   staffPermissions?: Record<string, boolean>;
@@ -42,7 +38,7 @@ export interface ProvisionMembershipResult {
 export async function provisionMembership(
   input: ProvisionMembershipInput,
   ctx: AuthContext | SystemContext,
-  opts: { revoke?: boolean } = {}
+  opts: { revoke?: boolean; isSuperAdmin?: boolean } = {}
 ): Promise<ProvisionMembershipResult> {
   const repos = xrepos(ctx);
   const now = ctx.now();
@@ -67,8 +63,13 @@ export async function provisionMembership(
 
   const { id, created } = await repos.memberships.upsert(input.uid, input.tenantId, data, now);
 
-  // Single claim-sync path (no second claim builder anywhere).
-  await syncMembershipClaims(input.uid, input.tenantId, ctx, { revoke: opts.revoke });
+  // Single claim-sync path (no second claim builder anywhere). `isSuperAdmin` is
+  // threaded so a super-admin who provisions their OWN owner membership (saveTenant
+  // create branch) keeps the `isSuperAdmin` claim instead of being demoted.
+  await syncMembershipClaims(input.uid, input.tenantId, ctx, {
+    revoke: opts.revoke,
+    isSuperAdmin: opts.isSuperAdmin,
+  });
 
   return { membershipId: id, created };
 }

@@ -55,7 +55,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendNotification = sendNotification;
 exports.sendBulkNotifications = sendBulkNotifications;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const v2_1 = require("firebase-functions/v2");
 /**
  * Send a single notification: writes to Firestore and updates RTDB unread count.
@@ -64,7 +64,8 @@ async function sendNotification(payload) {
   const db = admin.firestore();
   const rtdb = admin.database();
   const notifRef = db.collection(`tenants/${payload.tenantId}/notifications`).doc();
-  const now = firestore_1.FieldValue.serverTimestamp();
+  // B8: timestamps at rest are canonical ISO strings.
+  const now = (0, domain_1.isoNow)();
   await notifRef.set({
     id: notifRef.id,
     tenantId: payload.tenantId,
@@ -101,7 +102,7 @@ async function sendBulkNotifications(recipientIds, basePayload, recipientRoleOve
   if (recipientIds.length === 0) return 0;
   const db = admin.firestore();
   const rtdb = admin.database();
-  const now = firestore_1.FieldValue.serverTimestamp();
+  const now = (0, domain_1.isoNow)();
   const BATCH_SIZE = 450;
   let sent = 0;
   for (let i = 0; i < recipientIds.length; i += BATCH_SIZE) {

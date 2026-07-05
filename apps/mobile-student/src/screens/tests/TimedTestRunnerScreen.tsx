@@ -9,7 +9,7 @@
  * is sealed — `QuestionView` renders inputs only, never correctness, pre-submit.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { asItemId, asSpaceId, asStoryPointId, asTestSessionId } from "@levelup/domain";
@@ -65,6 +65,9 @@ interface QuestionData {
   type?: string;
   difficulty?: string;
   points?: number;
+  /** Learner-facing prompt/title, carried so QuestionView can render the question. */
+  prompt?: string;
+  title?: string;
 }
 
 function readQuestions(raw: Record<string, unknown>): QuestionData[] {
@@ -81,8 +84,22 @@ function readQuestions(raw: Record<string, unknown>): QuestionData[] {
       type: typeof o.questionType === "string" ? o.questionType : undefined,
       difficulty: typeof o.difficulty === "string" ? o.difficulty : undefined,
       points: typeof o.points === "number" ? o.points : undefined,
+      prompt: typeof o.prompt === "string" ? o.prompt : undefined,
+      title: typeof o.title === "string" ? o.title : undefined,
     };
   });
+}
+
+/**
+ * Pull captured `mediaUrls` out of a normalized `{ text, mediaUrls }` answer
+ * value (question-view.tsx). Plain string/array answers carry no media → [].
+ */
+function extractMediaUrls(answer: unknown): string[] {
+  if (answer && typeof answer === "object" && !Array.isArray(answer)) {
+    const m = (answer as { mediaUrls?: unknown }).mediaUrls;
+    if (Array.isArray(m)) return m.filter((u): u is string => typeof u === "string");
+  }
+  return [];
 }
 
 /** Question navigator grid (5-status taxonomy). */
@@ -256,11 +273,18 @@ export default function TimedTestRunnerScreen() {
     if (activeQ && answers[activeQ.itemId] != null) {
       setSaveFailed(false);
       try {
+        const raw = answers[activeQ.itemId];
+        // Captured-media answers are normalized to `{ text, mediaUrls }`
+        // (question-view.tsx). Lift `mediaUrls` to the contract's top-level field
+        // so the server AI grader actually receives the image/audio; keep sending
+        // the raw answer value as-is.
+        const mediaUrls = extractMediaUrls(raw);
         await evaluate.mutateAsync({
           spaceId: asSpaceId(detail.spaceId),
           storyPointId: asStoryPointId(storyPointId),
           itemId: asItemId(activeQ.itemId),
-          answer: answers[activeQ.itemId],
+          answer: raw,
+          ...(mediaUrls.length > 0 ? { mediaUrls } : {}),
         });
       } catch {
         setSaveFailed(true); // non-blocking: keep moving, server keeps retrying
@@ -366,56 +390,66 @@ export default function TimedTestRunnerScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerClassName="gap-4 p-4" keyboardShouldPersistTaps="handled">
-        {/* Low-time announcements */}
-        {timerTone === "warning" ? (
-          <Alert variant="warning" title="5 minutes remaining — finish strong.">
-            Anything you've entered is already being saved.
-          </Alert>
-        ) : null}
-        {timerTone === "critical" ? (
-          <Alert variant="error" title="Under a minute left.">
-            Anything you've entered is already being saved.
-          </Alert>
-        ) : null}
-
-        {/* Active question */}
-        <View className="gap-3">
-          <View className="flex-row items-center gap-2">
-            {activeQ?.type ? <Chip>{activeQ.type}</Chip> : <Chip>Question</Chip>}
-            {activeQ?.difficulty ? <Badge variant="info">{activeQ.difficulty}</Badge> : null}
-          </View>
-
-          {activeQ ? (
-            <Panel>
-              <QuestionView
-                questionData={activeQ.questionData}
-                value={answers[activeQ.itemId]}
-                onChange={onChangeAnswer}
-              />
-            </Panel>
-          ) : (
-            <Panel>
-              <Text className="text-text-muted text-sm">This question is loading…</Text>
-            </Panel>
-          )}
-
-          {saveFailed ? (
-            <Alert variant="warning" title="Still saving in the background">
-              We're having trouble saving your last answer, so we'll keep retrying. Your work isn't
-              lost.
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-5 px-4 pb-16 pt-4"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Low-time announcements */}
+          {timerTone === "warning" ? (
+            <Alert variant="warning" title="5 minutes remaining — finish strong.">
+              Anything you've entered is already being saved.
+            </Alert>
+          ) : null}
+          {timerTone === "critical" ? (
+            <Alert variant="error" title="Under a minute left.">
+              Anything you've entered is already being saved.
             </Alert>
           ) : null}
 
+          {/* Active question */}
           <View className="gap-3">
-            <Button
-              variant={marked[current] ? "secondary" : "ghost"}
-              block
-              leadingIcon={<Icon name="flag" size={16} />}
-              onPress={() => setMarked((m) => ({ ...m, [current]: !m[current] }))}
-            >
-              {marked[current] ? "Marked — I'll come back" : "Mark for review"}
-            </Button>
+            <View className="flex-row flex-wrap items-center gap-2">
+              {activeQ?.type ? <Chip>{activeQ.type}</Chip> : <Chip>Question</Chip>}
+              {activeQ?.difficulty ? <Badge variant="info">{activeQ.difficulty}</Badge> : null}
+            </View>
+
+            {activeQ ? (
+              <Panel>
+                <QuestionView
+                  item={{
+                    id: activeQ.itemId,
+                    title: activeQ.title,
+                    prompt: activeQ.prompt,
+                    basePoints: activeQ.points,
+                    questionData: activeQ.questionData as Record<string, unknown> | undefined,
+                  }}
+                  value={answers[activeQ.itemId]}
+                  onChange={onChangeAnswer}
+                />
+              </Panel>
+            ) : (
+              <Panel>
+                <Text className="text-text-muted text-sm">This question is loading…</Text>
+              </Panel>
+            )}
+
+            {saveFailed ? (
+              <Alert variant="warning" title="Still saving in the background">
+                We're having trouble saving your last answer, so we'll keep retrying. Your work
+                isn't lost.
+              </Alert>
+            ) : null}
+          </View>
+
+          {/* Action buttons — kept together, directly under the question */}
+          <View className="gap-2.5">
             <Button
               variant="primary"
               block
@@ -425,18 +459,26 @@ export default function TimedTestRunnerScreen() {
             >
               Save & Next
             </Button>
+            <Button
+              variant={marked[current] ? "secondary" : "ghost"}
+              block
+              leadingIcon={<Icon name="flag" size={16} />}
+              onPress={() => setMarked((m) => ({ ...m, [current]: !m[current] }))}
+            >
+              {marked[current] ? "Marked — I'll come back" : "Mark for review"}
+            </Button>
           </View>
-        </View>
 
-        <AnswerKeyLock title="Answers are sealed">
-          Hidden until you submit — scored fairly on the server.
-        </AnswerKeyLock>
+          <AnswerKeyLock title="Answers are sealed">
+            Hidden until you submit — scored fairly on the server.
+          </AnswerKeyLock>
 
-        {/* Navigator */}
-        {total > 0 ? (
-          <QuestionNavigator statuses={statuses} current={current} onJump={jump} />
-        ) : null}
-      </ScrollView>
+          {/* Navigator */}
+          {total > 0 ? (
+            <QuestionNavigator statuses={statuses} current={current} onJump={jump} />
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Submit confirm */}
       <Modal

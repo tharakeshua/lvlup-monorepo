@@ -264,6 +264,14 @@ export interface QuestionViewProps extends Styleable {
   item?: UnifiedItemLike;
   /** Loosely typed — SDK reads deliver `unknown`; the kit guards at runtime. */
   questionData?: unknown;
+  /**
+   * Item context, threaded from the viewer. Used by conversational question
+   * types (`chat_agent_question`) to drive the chat backend
+   * (`sendChatMessage` needs spaceId/storyPointId/itemId). itemId falls back
+   * to `item.id` when not supplied.
+   */
+  spaceId?: string;
+  storyPointId?: string;
   /** Controlled answer value. */
   value?: QuestionAnswer;
   onChange?: (answer: QuestionAnswer) => void;

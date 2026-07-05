@@ -3,8 +3,9 @@
  *
  * The dispatcher wired into the `Transport.subscribe` method. Normalizes the
  * function|callbacks form, looks up the wire-location descriptor, resolves the live
- * `PathContext` (claim tenant + auth uid), and routes to the Firestore or RTDB
- * subscriber. Pure dispatch — no shaping beyond the per-subscriber payload validate.
+ * `PathContext` (claim tenant + auth uid), and hands off to the RTDB subscriber —
+ * the ONLY realtime backend (AD-12 end state, reached by CHAT-1). Pure dispatch —
+ * no shaping beyond the per-subscriber payload validate.
  */
 import type { ParamsOf, PayloadOf, SubscriptionName } from "@levelup/api-contract";
 import type {
@@ -15,12 +16,7 @@ import type {
 import type { PathContext } from "../path-context.js";
 import type { FirebaseTransportServices } from "../config/firebase-services.js";
 import type { ValidateMode } from "./validate-payload.js";
-import {
-  SUBSCRIPTION_SOURCES,
-  type FirestoreSourceDescriptor,
-  type RtdbSourceDescriptor,
-} from "./subscription-sources.js";
-import { subscribeViaFirestore } from "./subscribe-via-firestore.js";
+import { SUBSCRIPTION_SOURCES, type RtdbSourceDescriptor } from "./subscription-sources.js";
 import { subscribeViaRTDB } from "./subscribe-via-rtdb.js";
 
 function normalize<P>(cb: SubscribeCallback<P>): SubscriptionCallbacks<P> {
@@ -39,24 +35,11 @@ export function createSubscribe(
   ): SubscriptionHandle {
     const callbacks = normalize(cb);
     const descriptor = SUBSCRIPTION_SOURCES[name];
-    const ctx = getCtx();
-
-    if (descriptor.backend === "firestore") {
-      return subscribeViaFirestore(
-        services.db,
-        descriptor as FirestoreSourceDescriptor<S>,
-        params,
-        ctx,
-        callbacks,
-        mode,
-        name
-      );
-    }
     return subscribeViaRTDB(
       services.rtdb,
       descriptor as RtdbSourceDescriptor<S>,
       params,
-      ctx,
+      getCtx(),
       callbacks,
       mode,
       name

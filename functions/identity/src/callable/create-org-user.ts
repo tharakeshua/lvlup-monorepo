@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import type { TenantRole } from "@levelup/shared-types";
-import { CreateOrgUserRequestSchema } from "@levelup/shared-types";
+import type { TenantRole } from "@levelup/domain";
+import { isoNow } from "@levelup/domain";
+import { CreateOrgUserRequestSchema } from "../contracts/wire";
 import {
   getUser,
   getMembership,
@@ -22,8 +22,7 @@ import {
 } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { incrementUsage } from "../utils/usage";
-import type { StaffPermissions } from "@levelup/shared-types";
-import { DEFAULT_STAFF_PERMISSIONS } from "@levelup/shared-types";
+import { DEFAULT_STAFF_PERMISSIONS } from "../contracts/legacy-docs";
 
 interface CreateOrgUserRequest {
   tenantId: string;
@@ -123,8 +122,9 @@ export const createOrgUser = onCall({ region: "asia-south1", cors: true }, async
       name: `${data.firstName} ${data.lastName}`,
       uid,
       status: "active",
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
 
     if (data.role === "student") {
@@ -200,8 +200,8 @@ export const createOrgUser = onCall({ region: "asia-south1", cors: true }, async
         staffPermissions: DEFAULT_STAFF_PERMISSIONS,
       }),
       ...(data.role === "scanner" && { scannerId: entityId }),
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
 
     await membershipRef.set(membership);
@@ -234,8 +234,8 @@ export const createOrgUser = onCall({ region: "asia-south1", cors: true }, async
         authProvider: determineProvider(authUser),
         isSuperAdmin: false,
         activeTenantId: data.tenantId,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
       });
     }
 

@@ -14,6 +14,43 @@ import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import { enqueueOutboxEvent } from "../shared/side-effects.js";
 import { xrepos } from "../shared/extended-repos.js";
+import { provisionMembership } from "./provision-membership.js";
+
+/** Trial window granted to a freshly-created tenant (days). Product knob. */
+const TRIAL_DAYS = 14;
+
+/** URL-safe slug from a display name (server-derived when the caller omits `slug`). */
+function slugify(source: string): string {
+  return (
+    source
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "tenant"
+  );
+}
+
+/**
+ * Generate a join code that is unique against the `tenantCodes/{code}` index.
+ * Deterministic for a given seed + index state (fixed-clock testable): derives a
+ * compact alphanumeric base from the seed and suffixes a counter until free.
+ */
+async function generateUniqueTenantCode(
+  seed: string,
+  resolveCode: (code: string) => Promise<string | null>
+): Promise<string> {
+  const base =
+    seed
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 8) || "TENANT";
+  let candidate = base;
+  let n = 1;
+  while (await resolveCode(candidate)) {
+    n += 1;
+    candidate = `${base}${n}`;
+  }
+  return candidate;
+}
 
 // ── saveTenant (super-admin; SEC-09 gemini key ingest) ────────────────────────
 export async function saveTenantService(
@@ -23,22 +60,15 @@ export async function saveTenantService(
   authorize(ctx, "tenant.create", {});
 
   const data = { ...(input.data as Record<string, unknown>) };
-  const tenantIdForSecret = (input.id as string | undefined) ?? data["code"] ?? "pending";
 
-  // SEC-09: consume geminiApiKey → Secret Manager, then strip from the doc.
-  if (typeof data["geminiApiKey"] === "string" && data["geminiApiKey"]) {
-    authorize(ctx, "tenant.create", {}); // distinct ai-key gate folds here; audited below
-    const { secretRef } = await xrepos(ctx).secrets.put(
-      String(tenantIdForSecret),
-      data["geminiApiKey"] as string
-    );
-    data["geminiKeyRef"] = secretRef;
-    await ctx.repos.audit.write(String(tenantIdForSecret), {
-      action: "tenant.ai.key.write",
-      actorUid: ctx.uid,
-      at: ctx.now(),
-    });
-  }
+  // SEC-09: pull the inbound key OUT of the doc now (it is never persisted). The
+  // Secret Manager write is deferred until AFTER the tenant id is allocated, so the
+  // secret is owned by the REAL created tenantId — a create-without-id used to fall
+  // back to the non-existent `data['code']` → 'pending', orphaning the secret ref.
+  const geminiApiKey =
+    typeof data["geminiApiKey"] === "string" && data["geminiApiKey"]
+      ? (data["geminiApiKey"] as string)
+      : null;
   delete data["geminiApiKey"];
 
   if (input.delete && input.id) {
@@ -53,11 +83,105 @@ export async function saveTenantService(
     return { id: input.id, deleted: true } as ResOf<"v1.identity.saveTenant">;
   }
 
+  // CREATE vs UPDATE — determined BEFORE the write so create-only provisioning
+  // (owner membership, join-code index, trial clock) never re-runs on an update.
+  // An update always carries `input.id`; a create-without-id has no existing doc
+  // and lets the repo allocate a fresh id at write time.
+  const providedId = input.id as string | undefined;
+  const existing = providedId ? await ctx.repos.tenants.get(providedId, providedId) : null;
+  const isCreate = !existing;
+
+  const codeRepo = ctx.repos.tenants as unknown as {
+    resolveCode(code: string): Promise<string | null>;
+    writeCode(code: string, tenantId: string, ts?: string): Promise<void>;
+  };
+  const resolveCode = (code: string): Promise<string | null> => codeRepo.resolveCode(code);
+
+  const tenantWrite: Record<string, unknown> = {
+    ...data,
+    ...(input.id ? { id: input.id } : {}),
+    updatedBy: ctx.uid,
+  };
+
+  // INVARIANT (Core ruling): every created tenant ends with BOTH `slug` and a
+  // resolvable `tenantCode` set + the `tenantCodes/{code}` index written. The
+  // domain entity requires both non-optional; the request makes them optional, so
+  // the SERVER derives them here (slug from name, tenantCode generated-unique) when
+  // absent. An explicit code is uniqueness-checked before any write.
+  let tenantCode: string | undefined;
+  if (isCreate) {
+    const nameSeed = String(data["name"] ?? providedId ?? "tenant");
+    const explicitCode = (data["tenantCode"] as string | undefined)?.trim();
+    if (explicitCode) {
+      const owner = await resolveCode(explicitCode);
+      if (owner && owner !== providedId) {
+        fail("ALREADY_EXISTS", `tenant code ${explicitCode} is already in use`);
+      }
+      tenantCode = explicitCode;
+    } else {
+      tenantCode = await generateUniqueTenantCode(nameSeed, resolveCode);
+    }
+
+    const trialEndsAt = new Date(
+      Date.parse(ctx.now()) + TRIAL_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
+    tenantWrite["ownerUid"] = ctx.uid;
+    tenantWrite["createdBy"] = ctx.uid;
+    tenantWrite["tenantCode"] = tenantCode;
+    tenantWrite["slug"] = (data["slug"] as string | undefined)?.trim() || slugify(nameSeed);
+    tenantWrite["status"] = (data["status"] as string | undefined) ?? "trial";
+    tenantWrite["trialEndsAt"] = trialEndsAt;
+    tenantWrite["subscription"] = {
+      plan: (data["plan"] as string | undefined) ?? "trial",
+      renewsAt: null,
+    };
+  }
+
+  // Routing arg is only used to pick the top-level `tenants` collection (any non-
+  // platform id does); the created id is allocated by the repo when absent.
   const { id, created } = await ctx.repos.tenants.upsert(
-    String(tenantIdForSecret),
-    { ...data, ...(input.id ? { id: input.id } : {}), updatedBy: ctx.uid },
+    providedId ?? tenantCode ?? "tenant",
+    tenantWrite,
     ctx.now()
   );
+
+  // SEC-09: ingest the Gemini key into Secret Manager NOW that the real tenantId
+  // exists (owner = the created `id`, never a code, never 'pending'), record the
+  // ref, and stamp `geminiKeyRef` on the tenant doc. The secret name the writer
+  // produces is exactly what the AI resolver reads back (`tenant-{id}-gemini`).
+  if (geminiApiKey) {
+    const { secretRef } = await xrepos(ctx).secrets.put(id, geminiApiKey);
+    await ctx.repos.tenants.upsert(id, { id, geminiKeyRef: secretRef }, ctx.now());
+    await ctx.repos.audit.write(id, {
+      action: "tenant.ai.key.write",
+      actorUid: ctx.uid,
+      at: ctx.now(),
+    });
+  }
+
+  // On CREATE only: publish the public join-code index + provision the creating
+  // user's OWNER (tenantAdmin) membership + claims, so v1 onboarding resolves
+  // end-to-end (lookupTenantByCode / joinTenant find the tenant; the creator can
+  // act as tenantAdmin). Mirrors the createOrgUser saga.
+  if (isCreate && tenantCode) {
+    await codeRepo.writeCode(tenantCode, id, ctx.now());
+
+    // Owner membership + claims via the single provisioning factory. tenantAdmin
+    // has no entity doc, so no entityIds. `isSuperAdmin` is preserved so a super-
+    // admin onboarding a school is not demoted by the minted tenantAdmin claim.
+    await provisionMembership(
+      {
+        uid: ctx.uid,
+        tenantId: id,
+        tenantCode,
+        role: "tenantAdmin",
+        joinSource: "admin_created",
+      },
+      ctx,
+      { isSuperAdmin: ctx.isSuperAdmin }
+    );
+  }
+
   return { id, created } as ResOf<"v1.identity.saveTenant">;
 }
 
@@ -123,6 +247,9 @@ export async function lookupTenantByCodeService(
     tenantId: tenant["id"],
     name: tenant["name"],
     status: tenant["status"],
+    // Pre-auth trial-expiry signal: the app login gates allow status='trial'
+    // until this passes (evaluateTenantAccess in @levelup/domain).
+    ...(tenant["trialEndsAt"] !== undefined ? { trialEndsAt: tenant["trialEndsAt"] } : {}),
     ...(tenant["branding"] ? { branding: tenant["branding"] } : {}),
   } as unknown as ResOf<"v1.identity.lookupTenantByCode">;
 }

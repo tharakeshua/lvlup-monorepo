@@ -2,12 +2,12 @@ import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTenantMember } from "../utils/auth";
-import { RecordItemAttemptRequestSchema } from "@levelup/shared-types";
+import { RecordItemAttemptRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { recalculateAndWriteProgress } from "../utils/progress-updater";
 import type { StoredItemProgressEntry } from "../utils/progress-updater";
-import type { StoredEvaluation } from "@levelup/shared-types";
+import type { StoredEvaluation } from "../types";
 
 interface RecordItemAttemptRequest {
   tenantId: string;

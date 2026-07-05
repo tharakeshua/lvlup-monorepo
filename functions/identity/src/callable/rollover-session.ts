@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 import { assertTenantAdminOrSuperAdmin, parseRequest, logTenantAction } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { z } from "zod";
@@ -40,7 +40,8 @@ export const rolloverSession = onCall(
 
     // Create new academic session
     const newSessionRef = db.collection(`${tenantPath}/academicSessions`).doc();
-    const now = FieldValue.serverTimestamp();
+    // B8: timestamps at rest are canonical ISO strings.
+    const now = isoNow();
 
     await newSessionRef.set({
       id: newSessionRef.id,

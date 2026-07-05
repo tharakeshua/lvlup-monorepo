@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions/v2";
+import { isoNow, toTimestamp } from "@levelup/domain";
 
 /**
  * Scheduled function: cleanup truly stale test sessions (24h threshold).
@@ -28,33 +29,40 @@ export const cleanupStaleSessions = onSchedule(
 
     // 24 hours ago
     const staleThreshold = Timestamp.fromMillis(now.toMillis() - 24 * 60 * 60 * 1000);
+    // B8: createdAt is a Timestamp on pre-U3.2 docs and an ISO string after.
+    // Firestore range filters only match values of the operand's type, so the
+    // two representations need one query each.
+    const staleThresholdIso = toTimestamp(staleThreshold);
 
     // Query across all tenants using collectionGroup
-    const staleSessions = await db
+    const baseQuery = db
       .collectionGroup("digitalTestSessions")
-      .where("status", "==", "in_progress")
-      .where("createdAt", "<", staleThreshold)
-      .limit(500)
-      .get();
+      .where("status", "==", "in_progress");
+    const [tsSnap, isoSnap] = await Promise.all([
+      baseQuery.where("createdAt", "<", staleThreshold).limit(500).get(),
+      baseQuery.where("createdAt", "<", staleThresholdIso).limit(500).get(),
+    ]);
+    const staleDocs = [...tsSnap.docs, ...isoSnap.docs];
 
-    if (staleSessions.empty) {
+    if (staleDocs.length === 0) {
       logger.info("No stale test sessions (24h) found");
       return;
     }
 
-    logger.info(`Found ${staleSessions.size} stale test sessions (24h+) to mark as abandoned`);
+    logger.info(`Found ${staleDocs.length} stale test sessions (24h+) to mark as abandoned`);
 
     // Batch update
     const batch = db.batch();
     let count = 0;
 
-    for (const sessionDoc of staleSessions.docs) {
+    for (const sessionDoc of staleDocs) {
       batch.update(sessionDoc.ref, {
         status: "abandoned",
+        // U3.5: session timing fields stay Firestore Timestamps at rest.
         endedAt: now,
         autoSubmitted: true,
         abandonedReason: "stale_24h",
-        updatedAt: now,
+        updatedAt: isoNow(),
       });
       count++;
     }

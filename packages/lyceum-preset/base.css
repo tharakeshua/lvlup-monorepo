@@ -1,0 +1,39 @@
+/* Lyceum — element-level base styles (opt-in, import before @tailwind base).
+ * Declared in @layer base so Tailwind utilities always win over these
+ * element defaults (same convention as @levelup/tailwind-config/variables.css).
+ */
+@layer base {
+  body {
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Foundation §3: h1–h3 are Fraunces display; h4–h6 stay on the UI face. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-display);
+  }
+
+  ::selection {
+    background: var(--brand-muted);
+    color: var(--ink-900);
+  }
+
+  /* Numeric alignment for scores/timers/tables (Lyceum mono idiom). */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tailwind's font-display utility sets the family only; Fraunces needs
+     its optical-size axis enabled to get the editorial display cut. */
+  .font-display {
+    font-optical-sizing: auto;
+  }
+}

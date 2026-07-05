@@ -55,12 +55,13 @@ export function getSdk(): Sdk {
     validatePayloads: import.meta.env.DEV,
   });
 
-  // Response validation stays OFF: the deployed backend's response-shape
-  // canonicalization is only PARTIAL, so reads can drift (e.g. legacy `order`
-  // key) and validation-ON would throw before screens' defensive `??` fallbacks
-  // run. The data is correct + usable today. See mobile-student/src/sdk/api.ts.
+  // Response validation is ON — literal `true`, client-wide (one shared client per
+  // app). AG-3 canonicalized the autograde reads; LVL-1 canonicalized the levelup
+  // reads (spaces/story points/items/progress/test sessions) with strict whitelist
+  // projections + domain legacy read-adapters, so every read emits a contract-
+  // canonical view for legacy-shaped AND canonical docs.
   const baseApi = createApiClient(transport as never, {
-    validateResponses: false,
+    validateResponses: true,
   });
 
   // The auth capability `authRepo` reads off `api.auth` (not a callable surface).

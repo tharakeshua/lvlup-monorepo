@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -73,7 +74,7 @@ exports.saveAcademicSession = (0, https_1.onCall)(
     if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
     const { id, tenantId, data } = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.SaveAcademicSessionRequestSchema
+      wire_1.SaveAcademicSessionRequestSchema
     );
     await (0, utils_1.assertTenantAdminOrSuperAdmin)(callerUid, tenantId);
     await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 30);
@@ -99,7 +100,8 @@ exports.saveAcademicSession = (0, https_1.onCall)(
         for (const doc of currentSessions.docs) {
           batch.update(doc.ref, {
             isCurrent: false,
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: (0, domain_1.isoNow)(),
           });
         }
         batch.set(sessionRef, {
@@ -110,9 +112,9 @@ exports.saveAcademicSession = (0, https_1.onCall)(
           endDate: firestore_1.Timestamp.fromDate(new Date(data.endDate)),
           isCurrent: true,
           status: "active",
-          createdAt: firestore_1.FieldValue.serverTimestamp(),
+          createdAt: (0, domain_1.isoNow)(),
           createdBy: callerUid,
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
           updatedBy: callerUid,
         });
         await batch.commit();
@@ -125,9 +127,9 @@ exports.saveAcademicSession = (0, https_1.onCall)(
           endDate: firestore_1.Timestamp.fromDate(new Date(data.endDate)),
           isCurrent: false,
           status: "active",
-          createdAt: firestore_1.FieldValue.serverTimestamp(),
+          createdAt: (0, domain_1.isoNow)(),
           createdBy: callerUid,
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
           updatedBy: callerUid,
         });
       }
@@ -141,7 +143,7 @@ exports.saveAcademicSession = (0, https_1.onCall)(
         throw new https_1.HttpsError("not-found", "Academic session not found");
       }
       const updates = {
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
         updatedBy: callerUid,
       };
       if (data.name !== undefined) updates.name = data.name;
@@ -160,7 +162,7 @@ exports.saveAcademicSession = (0, https_1.onCall)(
           if (doc.id !== id) {
             batch.update(doc.ref, {
               isCurrent: false,
-              updatedAt: firestore_1.FieldValue.serverTimestamp(),
+              updatedAt: (0, domain_1.isoNow)(),
             });
           }
         }

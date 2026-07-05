@@ -45,6 +45,8 @@ export type {
   StudyGoalRepo,
   SecretRepo,
   ImpersonationRepo,
+  SpaceReviewRepo,
+  ContentVersionRepo,
 } from "./shared/extended-repos.js";
 export { xrepos } from "./shared/extended-repos.js";
 
@@ -103,6 +105,8 @@ export {
   // cost aggregation + report
   aggregateDailyCostService,
   generateReportService,
+  // class assignment-tracker matrix (C12, LVL-2)
+  getAssignmentMatrixService,
   // triggers
   onSubmissionGradedService,
   onExamResultsReleasedService,

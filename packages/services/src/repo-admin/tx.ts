@@ -93,7 +93,8 @@ export function makeTx(firestore: Firestore, now: () => string) {
             toFirestore({
               ...entry,
               status: "pending",
-              attempts: 0,
+              // DLQ entries carry their own attempt count — don't clobber it to 0.
+              attempts: (entry["attempts"] as number | undefined) ?? 0,
               createdAt: now(),
               enqueuedAt: now(),
             })

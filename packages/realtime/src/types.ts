@@ -2,9 +2,10 @@
  * Public result/option types for the realtime hooks (transport-realtime layer §3.2).
  */
 import type { ApiError } from "./seam.js";
+import type { SubscriptionStatus } from "@levelup/api-contract";
 
-/** Lifecycle of a subscription as surfaced to the UI. */
-export type RealtimeStatus = "idle" | "connecting" | "live" | "error";
+/** Lifecycle of a subscription as surfaced to the UI (DP-1: canonical 4-state). */
+export type RealtimeStatus = SubscriptionStatus;
 
 /** What `useSubscription` returns. */
 export interface UseSubscriptionResult<P> {

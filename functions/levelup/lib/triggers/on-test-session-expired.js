@@ -57,6 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const firestore_2 = require("../utils/firestore");
 const auto_evaluate_1 = require("../utils/auto-evaluate");
 /**
@@ -99,9 +100,11 @@ exports.onTestSessionExpired = (0, scheduler_1.onSchedule)(
     for (const sessionDoc of staleSessions.docs) {
       batch.update(sessionDoc.ref, {
         status: "expired",
+        // U3.5: session timing fields stay Firestore Timestamps at rest.
+        // serverDeadline (the query field above) is likewise always a Timestamp.
         endedAt: now,
         autoSubmitted: true,
-        updatedAt: now,
+        updatedAt: (0, domain_1.isoNow)(),
       });
       count++;
     }

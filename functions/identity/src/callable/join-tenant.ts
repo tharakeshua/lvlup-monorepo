@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { JoinTenantRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { JoinTenantRequestSchema } from "../contracts/wire";
 import {
   getUser,
   getTenant,
@@ -66,7 +66,8 @@ export const joinTenant = onCall({ region: "asia-south1", cors: true }, async (r
     // Re-activate if previously deactivated
     await existingMembership.ref.update({
       status: "active",
-      updatedAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      updatedAt: isoNow(),
     });
 
     logger.info(`Re-activated membership ${membershipId} for user ${callerUid}`);
@@ -91,21 +92,24 @@ export const joinTenant = onCall({ region: "asia-south1", cors: true }, async (r
     role: "student" as const,
     status: "active" as const,
     joinSource: "tenant_code" as const,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: isoNow(),
+    updatedAt: isoNow(),
   };
 
   await db.doc(`userMemberships/${membershipId}`).set(membership);
 
-  // Set custom claims for the new tenant
-  const claims = buildClaimsForMembership(membership);
+  // Set custom claims for the new tenant. DEP-1: preserve the caller's
+  // isSuperAdmin claim, which a bare re-mint would silently strip.
+  const claims = buildClaimsForMembership(membership, {
+    isSuperAdmin: callerUser?.isSuperAdmin === true,
+  });
   await admin.auth().setCustomUserClaims(callerUid, claims);
 
   // Update user's activeTenantId if they don't have one
   if (!callerUser.activeTenantId) {
     await db.doc(`users/${callerUid}`).update({
       activeTenantId: tenantId,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     });
   }
 

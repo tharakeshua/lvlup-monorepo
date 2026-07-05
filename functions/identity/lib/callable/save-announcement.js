@@ -54,10 +54,10 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveAnnouncement = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 exports.saveAnnouncement = (0, https_1.onCall)(
@@ -70,7 +70,7 @@ exports.saveAnnouncement = (0, https_1.onCall)(
       tenantId,
       data,
       delete: shouldDelete,
-    } = (0, utils_1.parseRequest)(request.data, shared_types_1.SaveAnnouncementRequestSchema);
+    } = (0, utils_1.parseRequest)(request.data, wire_1.SaveAnnouncementRequestSchema);
     await (0, rate_limit_1.enforceRateLimit)(tenantId ?? "global", callerUid, "write", 30);
     const callerUser = await (0, utils_1.getUser)(callerUid);
     const isSuperAdmin = callerUser?.isSuperAdmin === true;
@@ -106,7 +106,8 @@ exports.saveAnnouncement = (0, https_1.onCall)(
         throw new https_1.HttpsError("invalid-argument", "title and body are required");
       }
       const ref = db.collection(collectionPath).doc();
-      const now = firestore_1.FieldValue.serverTimestamp();
+      // B8: timestamps at rest are canonical ISO strings.
+      const now = (0, domain_1.isoNow)();
       const status = data.status ?? "draft";
       await ref.set({
         id: ref.id,
@@ -136,7 +137,7 @@ exports.saveAnnouncement = (0, https_1.onCall)(
       throw new https_1.HttpsError("not-found", "Announcement not found");
     }
     const updates = {
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     };
     if (data.title !== undefined) updates.title = data.title;
     if (data.body !== undefined) updates.body = data.body;
@@ -147,9 +148,9 @@ exports.saveAnnouncement = (0, https_1.onCall)(
     if (data.status !== undefined) {
       updates.status = data.status;
       if (data.status === "published") {
-        updates.publishedAt = firestore_1.FieldValue.serverTimestamp();
+        updates.publishedAt = (0, domain_1.isoNow)();
       } else if (data.status === "archived") {
-        updates.archivedAt = firestore_1.FieldValue.serverTimestamp();
+        updates.archivedAt = (0, domain_1.isoNow)();
       }
     }
     await docRef.update(updates);

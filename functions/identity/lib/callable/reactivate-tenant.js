@@ -54,10 +54,10 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reactivateTenant = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -72,7 +72,7 @@ exports.reactivateTenant = (0, https_1.onCall)(
     if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
     const { tenantId } = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.ReactivateTenantRequestSchema
+      wire_1.ReactivateTenantRequestSchema
     );
     // SuperAdmin only
     const callerUser = await (0, utils_1.getUser)(callerUid);
@@ -101,9 +101,10 @@ exports.reactivateTenant = (0, https_1.onCall)(
     // Update tenant status first
     await tenantRef.update({
       status: restoredStatus,
-      "deactivation.reactivatedAt": firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      "deactivation.reactivatedAt": (0, domain_1.isoNow)(),
       "deactivation.reactivatedBy": callerUid,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     });
     // Reactivate memberships in chunks (Firestore batch limit is 500)
@@ -115,7 +116,7 @@ exports.reactivateTenant = (0, https_1.onCall)(
       for (const membershipDoc of chunk) {
         batch.update(membershipDoc.ref, {
           status: "active",
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       await batch.commit();

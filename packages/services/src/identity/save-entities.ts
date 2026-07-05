@@ -16,6 +16,7 @@ import { requireTenant, fail } from "../shared/context.js";
 import type { EntityRepo } from "../repo-admin/types.js";
 import { xrepos } from "../shared/extended-repos.js";
 import { provisionMembership } from "./provision-membership.js";
+import { syncMembershipClaims } from "./sync-membership-claims.js";
 
 type Doc = Record<string, unknown>;
 
@@ -146,13 +147,73 @@ export async function saveStaffService(
 }
 
 // ── saveClass ─────────────────────────────────────────────────────────────────
+
+/**
+ * Mirror one class-roster change into a teacher's membership + claims (P2-I /
+ * IDN-6). Claims `classIds` derive from the MEMBERSHIP doc (`buildClaimsFromMembership`),
+ * so an added teacher gets the class appended to `membership.classIds` and a
+ * removed teacher gets it dropped — both re-minted through the single
+ * `syncMembershipClaims` primitive. Removal is a privilege narrowing → refresh
+ * tokens are revoked (same semantics as the `onMembershipWritten` downgrade path).
+ * A teacher with no auth account or membership is skipped: there are no claims to
+ * mint, and membership creation belongs to the provisioning saga. Idempotent —
+ * an already-present (add) / already-absent (remove) class re-mints nothing.
+ */
+async function syncTeacherClassAssignment(
+  ctx: AuthContext,
+  tenantId: string,
+  teacherId: string,
+  classId: string,
+  op: "add" | "remove"
+): Promise<void> {
+  const teacher = await ctx.repos.teachers.get(tenantId, teacherId);
+  const authUid = teacher?.["authUid"] as string | undefined;
+  if (!authUid) return;
+  const repos = xrepos(ctx);
+  const membership = await repos.memberships.get(authUid, tenantId);
+  if (!membership) return;
+
+  const current = (membership["classIds"] as string[] | undefined) ?? [];
+  if (op === "add" && current.includes(classId)) return;
+  if (op === "remove" && !current.includes(classId)) return;
+  const next = op === "add" ? [...current, classId] : current.filter((c) => c !== classId);
+
+  await repos.memberships.upsert(
+    authUid,
+    tenantId,
+    { classIds: next, updatedBy: ctx.uid },
+    ctx.now()
+  );
+  await syncMembershipClaims(authUid, tenantId, ctx, { revoke: op === "remove" });
+}
+
 export async function saveClassService(
   input: ReqOf<"v1.identity.saveClass">,
   ctx: AuthContext
 ): Promise<ResOf<"v1.identity.saveClass">> {
-  requireTenant(ctx);
+  const tenantId = requireTenant(ctx);
   authorize(ctx, "class.write", { classId: input.id, tenantId: ctx.tenantId ?? undefined });
+
+  // Snapshot the roster BEFORE the upsert (saveEntity merges input over existing).
+  const prevDoc = input.id ? await ctx.repos.classes.get(tenantId, input.id) : null;
+  const prevTeacherIds = (prevDoc?.["teacherIds"] as string[] | undefined) ?? [];
+
   const res = await saveEntity(ctx, ctx.repos.classes, "class", input);
+
+  // Only an EXPLICIT `teacherIds` payload is a roster change: an omitted field
+  // keeps the stored array (saveEntity merge) → nothing to re-mint. Archive
+  // (`delete:true`) stays with the lifecycle path, not the roster diff.
+  const nextTeacherIds = input.delete ? undefined : (input.data.teacherIds as string[] | undefined);
+  if (nextTeacherIds) {
+    const added = nextTeacherIds.filter((t) => !prevTeacherIds.includes(t));
+    const removed = prevTeacherIds.filter((t) => !nextTeacherIds.includes(t));
+    for (const teacherId of added) {
+      await syncTeacherClassAssignment(ctx, tenantId, teacherId, res.id, "add");
+    }
+    for (const teacherId of removed) {
+      await syncTeacherClassAssignment(ctx, tenantId, teacherId, res.id, "remove");
+    }
+  }
   return res as ResOf<"v1.identity.saveClass">;
 }
 

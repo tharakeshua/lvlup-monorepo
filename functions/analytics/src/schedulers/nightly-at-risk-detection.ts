@@ -6,10 +6,10 @@
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import { evaluateAtRiskRules } from "../utils/at-risk-rules";
-import type { StudentProgressSummary } from "@levelup/shared-types";
-import { StudentProgressSummarySchema } from "@levelup/shared-types";
+import type { StudentProgressSummary } from "../contracts/legacy-docs";
+import { StudentProgressSummarySchema } from "../contracts/legacy-docs";
 
 export const nightlyAtRiskDetection = onSchedule(
   {
@@ -91,7 +91,7 @@ export const nightlyAtRiskDetection = onSchedule(
             writeBatch.update(doc.ref, {
               isAtRisk: result.isAtRisk,
               atRiskReasons: result.reasons,
-              lastUpdatedAt: FieldValue.serverTimestamp(),
+              lastUpdatedAt: isoNow(), // B8: ISO strings are canonical at rest
             });
             batchWrites++;
 

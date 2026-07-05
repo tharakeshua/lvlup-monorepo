@@ -58,7 +58,8 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -70,7 +71,7 @@ exports.purchaseSpace = (0, https_1.onCall)(
   { region: "asia-south1", cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(request.data, shared_types_1.PurchaseSpaceRequestSchema);
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.PurchaseSpaceRequestSchema);
     if (!data.spaceId) {
       throw new https_1.HttpsError("invalid-argument", "spaceId is required");
     }
@@ -104,7 +105,7 @@ exports.purchaseSpace = (0, https_1.onCall)(
       spaceTitle: storeSpace.title || "",
       amount: storeSpace.price ?? 0,
       currency: storeSpace.currency ?? "USD",
-      purchasedAt: firestore_1.FieldValue.serverTimestamp(),
+      purchasedAt: (0, domain_1.isoNow)(),
       transactionId,
     };
     // Update user document atomically
@@ -112,12 +113,12 @@ exports.purchaseSpace = (0, https_1.onCall)(
       "consumerProfile.enrolledSpaceIds": firestore_1.FieldValue.arrayUnion(data.spaceId),
       "consumerProfile.purchaseHistory": firestore_1.FieldValue.arrayUnion(purchaseRecord),
       "consumerProfile.totalSpend": firestore_1.FieldValue.increment(storeSpace.price ?? 0),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     // Increment store space student count
     await storeSpaceRef.update({
       "stats.totalStudents": firestore_1.FieldValue.increment(1),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     v2_1.logger.info(
       `Consumer ${callerUid} purchased space ${data.spaceId} (txn: ${transactionId})`

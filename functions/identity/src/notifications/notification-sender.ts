@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import { logger } from "firebase-functions/v2";
 
 export interface NotificationPayload {
@@ -22,7 +22,8 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
   const rtdb = admin.database();
 
   const notifRef = db.collection(`tenants/${payload.tenantId}/notifications`).doc();
-  const now = FieldValue.serverTimestamp();
+  // B8: timestamps at rest are canonical ISO strings.
+  const now = isoNow();
 
   await notifRef.set({
     id: notifRef.id,
@@ -68,7 +69,7 @@ export async function sendBulkNotifications(
 
   const db = admin.firestore();
   const rtdb = admin.database();
-  const now = FieldValue.serverTimestamp();
+  const now = isoNow();
   const BATCH_SIZE = 450;
 
   let sent = 0;

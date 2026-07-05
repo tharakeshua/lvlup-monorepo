@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import type { PlatformActivityAction } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { PlatformActivityAction } from "@levelup/domain";
 
 /**
  * Write a platform-wide activity log entry.
@@ -31,7 +31,8 @@ export async function writePlatformActivity(
       actorEmail,
       tenantId: tenantId ?? null,
       metadata,
-      createdAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
     });
   } catch (err) {
     // Activity logging should never block the main operation

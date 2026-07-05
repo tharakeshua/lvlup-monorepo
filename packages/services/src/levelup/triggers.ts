@@ -19,6 +19,7 @@ import { xrepos } from "../shared/extended-repos.js";
 import { autoEvaluateDeterministic } from "./grading.js";
 import { applyProgress } from "./progress-updater.js";
 import { awardAchievementsService, upsertLeaderboardEntryService } from "./gamification.js";
+import { projectTestSessionLive } from "./levelup-projection.js";
 
 type Doc = Record<string, unknown>;
 
@@ -41,6 +42,16 @@ export async function expireAndGradeSessionService(
       autoSubmitted: true,
     });
   });
+
+  // Flip the live countdown projection (AD-12; remainingMs clamps to 0).
+  if (typeof session["serverDeadline"] === "string" && typeof session["userId"] === "string") {
+    await projectTestSessionLive(ctx, tenantId, {
+      sessionId: args.sessionId,
+      userId: session["userId"],
+      serverDeadline: session["serverDeadline"],
+      status: "expired",
+    });
+  }
 
   const submissions = await xrepos(ctx).testSubmissions.list(tenantId, args.sessionId);
   const items: ProgressItemUpdate[] = [];
@@ -99,6 +110,14 @@ export async function cleanupStaleSessionsService(ctx: SystemContext): Promise<v
     if (startedAt && Date.parse(startedAt) < staleCutoff) {
       assertTransition("testSession", "in_progress", "abandoned");
       await ctx.repos.testSessions.upsert(tenantId, { id: s["id"], status: "abandoned" }, now);
+      if (typeof deadline === "string" && typeof s["userId"] === "string") {
+        await projectTestSessionLive(ctx, tenantId, {
+          sessionId: s["id"] as string,
+          userId: s["userId"],
+          serverDeadline: deadline,
+          status: "abandoned",
+        });
+      }
     }
   }
 }

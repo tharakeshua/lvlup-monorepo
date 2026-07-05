@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const usage_1 = require("../utils/usage");
@@ -76,10 +77,7 @@ exports.bulkImportStudents = (0, https_1.onCall)(
   },
   async (request) => {
     const callerUid = request.auth?.uid;
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.BulkImportStudentsRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.BulkImportStudentsRequestSchema);
     await (0, utils_1.assertTenantAdminOrSuperAdmin)(callerUid, data.tenantId);
     await (0, rate_limit_1.enforceRateLimit)(data.tenantId, callerUid, "write", 5);
     // Check that bulk import feature is enabled for this tenant
@@ -181,8 +179,9 @@ exports.bulkImportStudents = (0, https_1.onCall)(
             classIds: row.classId ? [row.classId] : [],
             sectionIds: row.section ? [row.section] : [],
             status: "active",
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            createdAt: (0, domain_1.isoNow)(),
+            updatedAt: (0, domain_1.isoNow)(),
           });
           // Create membership
           const membershipId = `${userRecord.uid}_${data.tenantId}`;
@@ -198,8 +197,8 @@ exports.bulkImportStudents = (0, https_1.onCall)(
             permissions: {
               managedClassIds: row.classId ? [row.classId] : [],
             },
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            createdAt: (0, domain_1.isoNow)(),
+            updatedAt: (0, domain_1.isoNow)(),
           };
           await admin.firestore().doc(`userMemberships/${membershipId}`).set(membership);
           // Keep the class document's denormalized roster in sync. saveStudent
@@ -212,7 +211,7 @@ exports.bulkImportStudents = (0, https_1.onCall)(
               .update({
                 studentIds: firestore_1.FieldValue.arrayUnion(studentRef.id),
                 studentCount: firestore_1.FieldValue.increment(1),
-                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: (0, domain_1.isoNow)(),
               });
           }
           // Set claims
@@ -240,7 +239,7 @@ exports.bulkImportStudents = (0, https_1.onCall)(
         .doc(`tenants/${data.tenantId}`)
         .update({
           "stats.totalStudents": firestore_1.FieldValue.increment(created),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       await (0, usage_1.incrementUsage)(data.tenantId, "currentStudents", created);
     }
@@ -348,7 +347,7 @@ async function createParentForStudent(tenantId, tenantCode, studentId, row) {
     // Add student to existing parent's linked students
     await existingMembership.ref.update({
       parentLinkedStudentIds: firestore_1.FieldValue.arrayUnion(studentId),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     return;
   }
@@ -364,8 +363,8 @@ async function createParentForStudent(tenantId, tenantCode, studentId, row) {
     phone: row.parentPhone ?? null,
     linkedStudentIds: [studentId],
     status: "active",
-    createdAt: firestore_1.FieldValue.serverTimestamp(),
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    createdAt: (0, domain_1.isoNow)(),
+    updatedAt: (0, domain_1.isoNow)(),
   });
   // Create parent membership
   await admin
@@ -381,8 +380,8 @@ async function createParentForStudent(tenantId, tenantCode, studentId, row) {
       joinSource: "bulk_import",
       parentId: parentRef.id,
       parentLinkedStudentIds: [studentId],
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      createdAt: (0, domain_1.isoNow)(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
   await (0, utils_1.updateTenantStats)(tenantId, "parent", "increment");
 }

@@ -39,7 +39,7 @@ export interface NotificationRepo {
 }
 
 /** No-op handle used when the client has no realtime transport wired. */
-const NOOP_HANDLE: SubscriptionHandle = { unsubscribe() {} };
+const NOOP_HANDLE: SubscriptionHandle = { unsubscribe() {}, id: "noop", active: false };
 
 export function createNotificationRepo(api: ApiClient): NotificationRepo {
   return {

@@ -66,15 +66,13 @@ export function getSdk(): Sdk {
   // (the deployed callables now strip `__apiVersion`/`__idempotencyKey` natively),
   // so the temporary `transport-compat` shim was removed.
   //
-  // Response validation stays OFF: the RESPONSE-shape canonicalization is only
-  // PARTIAL on the deployed backend — `listSpaces` validates clean, but
-  // `listStoryPoints` still returns the legacy `order` key (canonical = `orderIndex`)
-  // and other reads may drift too. With validation ON the api-client THROWS before
-  // a screen's defensive `??` fallbacks can run, breaking SpaceDetail/ContentViewer.
-  // Flip to `true` once SDK-coord canonicalizes ALL read responses (story points +
-  // items + progress), not just spaces. The data is correct + usable today.
+  // Response validation is ON — literal `true`, client-wide (one shared client per
+  // app). AG-3 canonicalized the autograde reads; LVL-1 canonicalized the levelup
+  // reads (spaces/story points/items/progress/test sessions) with strict whitelist
+  // projections + domain legacy read-adapters, so every read emits a contract-
+  // canonical view for legacy-shaped AND canonical docs.
   const baseApi = createApiClient(transport as never, {
-    validateResponses: false,
+    validateResponses: true,
   });
 
   // The auth capability `authRepo` reads off `api.auth` (not a callable surface).

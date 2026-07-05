@@ -1,0 +1,199 @@
+---
+title: Teacher Guide
+description: Create exams, upload question papers, let AI extract and grade answers, then review and release results.
+role: teacher
+steps:
+  - Create an exam — fill in Exam Details (title, subject, classes, marks, duration)
+  - Upload the question paper — PDF or image files accepted
+  - Click "Extract Questions" so AI reads the paper and builds a rubric
+  - Review and edit each question's rubric; criteria must sum to the question's max marks
+  - Click "Publish" to make the exam visible and lock the rubric
+  - After the exam, upload student answer sheets from the Submissions tab
+  - AI maps answer pages to questions (Scouting) then scores every answer (Grading)
+  - Review each submission — override any AI score, retry grading, or add comments
+  - Click "Release Results" — students and parents are notified automatically
+---
+
+## Introduction
+
+Autograde does the reading; you keep the judgement. Your job is to set the exam up correctly, check the rubric the AI drafts, and review every scored answer before anyone else sees it. This guide follows the teacher portal's exact flow, step by step.
+
+## Prerequisites
+
+- A teacher account created by your school admin (log in at the teacher portal URL your admin provided).
+- Your question paper as a PDF or image file (JPG, PNG, etc.).
+- Student answer sheets scanned as images or a PDF after the exam is complete.
+
+---
+
+## Step 1 — Create an exam
+
+From the left sidebar, go to **Exams** and click **Create Exam**. A four-step wizard opens.
+
+### Step 1 of 4 — Exam Details
+
+Fill in:
+- **Exam Title** — for example, *Mid-Term Mathematics*
+- **Subject** — for example, *Mathematics*
+- **Topics** — comma-separated list of topics, optional
+- **Total Marks** — the maximum possible score for the entire exam
+- **Passing Marks** — the minimum score to pass
+- **Duration (min)** — exam length in minutes
+- **Classes** — select one or more classes that will sit this exam
+- **Link to Space** — optionally link the exam to a study space so students see related content alongside their results
+
+Click **Next** when all required fields are filled.
+
+### Step 2 of 4 — Upload Question Paper
+
+Drag and drop your question paper files onto the upload area, or click it to browse. Both PDF and image files (JPG, PNG) are accepted. You can upload multiple pages as separate image files.
+
+Once files are selected, click **Upload & Continue**. Each file is uploaded to a server-owned, exam-scoped path. You'll see the file names confirmed before moving on.
+
+If you don't have the question paper yet, click **Skip (no question paper)** — you can add it later from the exam detail page.
+
+### Step 3 of 4 — Review
+
+Confirm the exam details shown. Click **Continue to Publish** if everything looks correct, or **Back** to make changes.
+
+### Step 4 of 4 — Create Exam
+
+Click the green **Create Exam** button. The exam is saved with status *question paper uploaded* (or *draft* if you skipped the upload). You are redirected to the **Exam Detail** page.
+
+---
+
+## Step 2 — Extract questions and build the rubric
+
+On the Exam Detail page, find the **Extract Questions** button (marked with a sparkle icon). Click it.
+
+Gemini AI reads your question paper images and creates one entry per question with:
+- The question text
+- A suggested scoring rubric (criteria, max marks per criterion, model answer where applicable)
+
+Extraction takes 10–60 seconds depending on the number of questions. A spinner shows while it's running.
+
+---
+
+## Step 3 — Review and edit the rubric
+
+After extraction, each question appears in the **Questions** list with its rubric. Click on a question's **Rubric** section to review the criteria.
+
+**Important:** Before you can publish, the sum of all rubric criteria marks for each question must equal that question's allocated maximum marks. The platform enforces this — you'll see a validation error if the numbers don't add up.
+
+To adjust:
+- Edit criterion marks directly in the rubric panel
+- Add or remove criteria using the rubric editor
+- If extraction got a question wrong, use the re-extract button on that question (the redo icon) to re-run AI extraction for just that question
+
+Repeat until all questions have a valid rubric.
+
+---
+
+## Step 4 — Publish the exam
+
+Once all rubric criteria sums are valid, the **Publish** button (globe icon) becomes active. Click it.
+
+Publishing locks the rubric and marks the exam as *published*. Students and parents are not notified at this point — publish only controls the exam's internal state and makes it eligible for answer-sheet upload.
+
+> After publishing, editing individual question rubrics is still possible until results are released, but the overall exam structure is locked.
+
+---
+
+## Step 5 — Upload student answer sheets
+
+After the paper exam is complete and you have scanned answer sheets, open the exam and go to the **Submissions** tab (or click the Submissions link on the exam detail page).
+
+Click **Upload Answer Sheets**. Select the scanned image files or PDF for all student answer booklets. Multiple pages per student are supported.
+
+Click **Upload** to submit. The platform creates one submission record per student set and starts the grading pipeline automatically.
+
+---
+
+## Step 6 — Watch the grading pipeline
+
+Each submission card shows its current pipeline status:
+
+| Status | What is happening |
+|--------|------------------|
+| Uploaded | Sheets received; pipeline starting |
+| Scouting | Panopticon AI is mapping each page to the correct question |
+| Scouting complete | Page mapping done; preparing to grade |
+| Grading | RELMS AI is scoring each answer against the rubric |
+| Grading partial | Some questions scored; others still running |
+| Grading complete | All questions scored; finalising summary |
+| Ready for review | AI grading finished — your review is needed |
+| Reviewed | You have reviewed and confirmed this submission |
+| Manual review needed | AI could not grade one or more questions with confidence — your override is required |
+
+You do not need to wait for all submissions to finish before reviewing the ones already at *Ready for review*.
+
+---
+
+## Step 7 — Review AI scores and override
+
+Click any submission that is *Ready for review*. The review panel shows every question with:
+- The scanned answer image(s)
+- The AI-assigned score and confidence level
+- The rubric it was scored against
+- A detailed breakdown of why each mark was awarded or deducted
+
+To **override a score**, click the score field for any question, enter the correct mark, and optionally add a comment. The summary total updates automatically.
+
+To **retry AI grading** for a specific question (for example, if the page scan quality was poor), click the retry (redo) icon on that question. The question goes back through RELMS grading.
+
+Mark the submission as **Reviewed** when you are satisfied. Reviewed submissions can still be edited until results are released.
+
+---
+
+## Step 8 — Release results
+
+When you are ready for students and parents to see results, click **Release Results** (the send icon) on the exam detail page.
+
+**This action is one-way and permanent.** Once released:
+- All students in the exam's classes are notified immediately
+- Parent accounts linked to those students are also notified
+- The full per-question score, rubric breakdown, and AI feedback become visible to students and parents
+- The exam and its submissions are locked — no further score edits are possible
+
+If you want to release results for only some students, use partial release by selecting specific submissions first (available when at least one submission is in *Reviewed* status).
+
+---
+
+## Grade scale
+
+All scores are mapped to the following **8-letter canonical scale**:
+
+| Letter | Minimum % |
+|--------|-----------|
+| A+     | 90        |
+| A      | 80        |
+| B+     | 70        |
+| B      | 60        |
+| C+     | 50        |
+| C      | 40        |
+| D      | 33        |
+| F      | 0         |
+
+A student who scores 72 out of 100, for example, receives a **B+**.
+
+---
+
+## FAQ & Troubleshooting
+
+**Extract Questions produced wrong questions or incorrect marks.**
+Re-extract individual questions using the per-question redo icon. If the paper scan quality is poor, rescan at higher resolution. For badly structured papers, you can also edit question text and rubric criteria manually.
+
+**The Publish button is greyed out.**
+One or more questions have rubric criteria whose marks do not sum to the question's maximum marks. Check every question in the Questions list for a red validation indicator and correct the totals.
+
+**A submission is stuck at "Scouting" for more than 10 minutes.**
+This can happen if the answer sheet images are very large or there is a processing backlog. Refresh the page after a few minutes. If the status does not progress, contact your school admin to check AI Usage quota — the Gemini key may have hit a rate limit.
+
+**A question shows "Manual review needed".**
+The AI was unable to assign a score with enough confidence (for example, the handwriting was illegible or the answer was outside the rubric). Click into the question, review the scanned image yourself, and manually enter a score.
+
+**Can I edit a score after releasing results?**
+No. Release is permanent. If a score was wrong, you will need to contact students directly — the platform does not support post-release edits.
+
+**How do I re-upload answer sheets for a student who was absent?**
+Go to the Submissions tab, click **Upload Answer Sheets**, and upload just that student's sheets. A new submission is created and enters the pipeline normally.

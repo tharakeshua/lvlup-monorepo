@@ -94,23 +94,6 @@ vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-// Mock the shared-types DEFAULT_TEACHER_PERMISSIONS
-vi.mock("@levelup/shared-types", () => ({
-  DEFAULT_TEACHER_PERMISSIONS: {
-    canCreateExams: true,
-    canEditRubrics: true,
-    canManuallyGrade: true,
-    canViewAllExams: false,
-    canCreateSpaces: false,
-    canManageContent: false,
-    canViewAnalytics: false,
-    canConfigureAgents: false,
-    managedSpaceIds: [],
-    managedClassIds: [],
-  },
-  SaveTeacherRequestSchema: {},
-}));
-
 import { saveTeacher } from "../../callable/save-teacher";
 
 const handler = saveTeacher as unknown as (request: any) => Promise<any>;

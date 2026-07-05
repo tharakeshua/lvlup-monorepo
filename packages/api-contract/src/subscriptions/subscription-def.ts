@@ -21,8 +21,13 @@
 import type { ZodType } from "zod";
 import type { ApiModule } from "../callable-def.js";
 
-/** Underlying wire-source kind — a HINT for transport-firebase. */
-export type SubscriptionSource = "firestore-doc" | "firestore-query" | "rtdb-node";
+/**
+ * Underlying wire-source kind — a HINT for transport-firebase. AD-12 end state
+ * (CHAT-1): client realtime is RTDB-projection ONLY; the `firestore-doc` /
+ * `firestore-query` variants are RETIRED — any future firestore-backed channel
+ * requires a projection design + domain-owner sign-off (AD-11), not a new variant.
+ */
+export type SubscriptionSource = "rtdb-node";
 
 /** Realtime channel definition — parallel to CallableDef but for subscribe(). */
 export interface SubscriptionDef<Params = unknown, Payload = unknown> {

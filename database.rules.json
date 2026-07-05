@@ -22,6 +22,78 @@
           ".write": false
         }
       }
+    },
+    "gradingProgress": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "submission": {
+          "$submissionId": {
+            ".write": false,
+            "status": {
+              ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin' || auth.token.studentId === data.parent().child('ownerStudentId').val())))"
+            }
+          }
+        },
+        "exam": {
+          "$examId": {
+            ".write": false,
+            "agg": {
+              ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+            }
+          }
+        }
+      }
+    },
+    "spaceProgressLive": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "$userId": {
+          ".write": false,
+          ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.uid === $userId || auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+        }
+      }
+    },
+    "studentLevelLive": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "$userId": {
+          ".write": false,
+          ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.uid === $userId || auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+        }
+      }
+    },
+    "achievementUnlocks": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "$userId": {
+          ".write": false,
+          ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.uid === $userId || auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+        }
+      }
+    },
+    "testSessionLive": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "$userId": {
+          ".write": false,
+          ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.uid === $userId || auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+        }
+      }
+    },
+    "chatBump": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "$userId": {
+          ".write": false,
+          ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && auth.uid === $userId))"
+        }
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
-import { Timestamp } from "firebase-admin/firestore";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall } from "firebase-functions/v2/https";
+import { toTimestamp } from "@levelup/domain";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { z } from "zod";
@@ -23,7 +23,8 @@ export interface ListVersionsResponse {
     changeType: string;
     changeSummary: string;
     changedBy: string;
-    changedAt: Timestamp | null;
+    /** B8: ISO string out (old docs' Timestamps are collapsed on read). */
+    changedAt: string | null;
   }>;
   hasMore: boolean;
   lastId: string | null;
@@ -70,7 +71,8 @@ export const listVersions = onCall({ region: "asia-south1", cors: true }, async 
       changeType: data.changeType ?? "updated",
       changeSummary: data.changeSummary ?? "",
       changedBy: data.changedBy ?? "",
-      changedAt: data.changedAt ?? null,
+      // B8 collapse: Timestamp (old docs) or ISO string (post-U3.2) → ISO out.
+      changedAt: data.changedAt ? toTimestamp(data.changedAt) : null,
     };
   });
 

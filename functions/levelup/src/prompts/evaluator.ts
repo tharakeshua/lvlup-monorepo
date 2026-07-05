@@ -5,7 +5,7 @@
  * text, paragraph, code, audio, image_evaluation, chat_agent_question.
  */
 
-import type { UnifiedItem, UnifiedRubric, Agent } from '../types';
+import type { UnifiedItem, UnifiedRubric, Agent } from "../types";
 import type {
   QuestionPayload,
   TextData,
@@ -14,7 +14,7 @@ import type {
   AudioData,
   ImageEvaluationData,
   ChatAgentQuestionData,
-} from '@levelup/shared-types';
+} from "../types";
 
 /**
  * Build the evaluation prompt for a given question type.
@@ -24,20 +24,22 @@ export function buildEvaluationPrompt(
   studentAnswer: unknown,
   rubric: UnifiedRubric | null,
   agent: Agent | null,
-  mediaUrls?: string[],
+  mediaUrls?: string[]
 ): string {
   const qPayload = item.payload as QuestionPayload;
   const questionType = qPayload.questionType;
-  const questionContent = qPayload.content || item.content || '';
-  const modelAnswer = ('modelAnswer' in qPayload.questionData
-    ? (qPayload.questionData as ParagraphData).modelAnswer
-    : '') || '';
-  const evaluationGuidance = ('evaluationGuidance' in qPayload.questionData
-    ? (qPayload.questionData as ParagraphData).evaluationGuidance
-    : '') || '';
+  const questionContent = qPayload.content || item.content || "";
+  const modelAnswer =
+    ("modelAnswer" in qPayload.questionData
+      ? (qPayload.questionData as ParagraphData).modelAnswer
+      : "") || "";
+  const evaluationGuidance =
+    ("evaluationGuidance" in qPayload.questionData
+      ? (qPayload.questionData as ParagraphData).evaluationGuidance
+      : "") || "";
   const maxScore = item.meta?.totalPoints ?? qPayload.basePoints ?? 10;
 
-  let prompt = '';
+  let prompt = "";
 
   // Agent persona (if configured)
   if (agent) {
@@ -45,7 +47,7 @@ export function buildEvaluationPrompt(
     if (agent.rules) prompt += `GRADING RULES:\n${agent.rules}\n`;
     if (agent.strictness) prompt += `STRICTNESS: ${agent.strictness}\n`;
     if (agent.feedbackStyle) prompt += `FEEDBACK STYLE: ${agent.feedbackStyle}\n`;
-    prompt += '\n';
+    prompt += "\n";
   }
 
   // Base evaluation prompt
@@ -56,22 +58,30 @@ export function buildEvaluationPrompt(
 
   // Type-specific context
   switch (questionType) {
-    case 'text':
+    case "text":
       prompt += buildTextPrompt(qPayload.questionData as TextData, studentAnswer);
       break;
-    case 'paragraph':
-      prompt += buildParagraphPrompt(qPayload.questionData as ParagraphData, studentAnswer, modelAnswer);
+    case "paragraph":
+      prompt += buildParagraphPrompt(
+        qPayload.questionData as ParagraphData,
+        studentAnswer,
+        modelAnswer
+      );
       break;
-    case 'code':
+    case "code":
       prompt += buildCodePrompt(qPayload.questionData as CodeData, studentAnswer);
       break;
-    case 'audio':
+    case "audio":
       prompt += buildAudioPrompt(qPayload.questionData as AudioData, studentAnswer, mediaUrls);
       break;
-    case 'image_evaluation':
-      prompt += buildImagePrompt(qPayload.questionData as ImageEvaluationData, studentAnswer, mediaUrls);
+    case "image_evaluation":
+      prompt += buildImagePrompt(
+        qPayload.questionData as ImageEvaluationData,
+        studentAnswer,
+        mediaUrls
+      );
       break;
-    case 'chat_agent_question':
+    case "chat_agent_question":
       prompt += buildChatAgentPrompt(qPayload.questionData as ChatAgentQuestionData, studentAnswer);
       break;
     default:
@@ -85,7 +95,7 @@ export function buildEvaluationPrompt(
 
   // Rubric injection
   if (rubric) {
-    prompt += '\n' + injectRubricIntoPrompt(rubric);
+    prompt += "\n" + injectRubricIntoPrompt(rubric);
   }
 
   // Scoring instructions
@@ -106,12 +116,16 @@ function buildTextPrompt(qData: TextData, studentAnswer: unknown): string {
     prompt += `EXPECTED ANSWER: ${qData.correctAnswer}\n`;
   }
   if (qData?.acceptableAnswers?.length) {
-    prompt += `ALSO ACCEPTABLE: ${qData.acceptableAnswers.join(', ')}\n`;
+    prompt += `ALSO ACCEPTABLE: ${qData.acceptableAnswers.join(", ")}\n`;
   }
   return prompt;
 }
 
-function buildParagraphPrompt(qData: ParagraphData, studentAnswer: unknown, modelAnswer: string): string {
+function buildParagraphPrompt(
+  qData: ParagraphData,
+  studentAnswer: unknown,
+  modelAnswer: string
+): string {
   let prompt = `STUDENT'S ANSWER:\n<student_answer>${studentAnswer}</student_answer>\n\n`;
   if (modelAnswer) {
     prompt += `MODEL ANSWER (reference):\n${modelAnswer}\n\n`;
@@ -122,7 +136,7 @@ function buildParagraphPrompt(qData: ParagraphData, studentAnswer: unknown, mode
 }
 
 function buildCodePrompt(qData: CodeData, studentAnswer: unknown): string {
-  let prompt = `LANGUAGE: ${qData?.language || 'unknown'}\n\n`;
+  let prompt = `LANGUAGE: ${qData?.language || "unknown"}\n\n`;
   prompt += `STUDENT'S CODE:\n<student_answer>\n\`\`\`\n${studentAnswer}\n\`\`\`\n</student_answer>\n\n`;
   if (qData?.starterCode) {
     prompt += `STARTER CODE PROVIDED:\n\`\`\`\n${qData.starterCode}\n\`\`\`\n\n`;
@@ -142,18 +156,22 @@ function buildCodePrompt(qData: CodeData, studentAnswer: unknown): string {
 function buildAudioPrompt(qData: AudioData, studentAnswer: unknown, mediaUrls?: string[]): string {
   let prompt = `The student submitted an audio recording.\n`;
   if (qData?.language) prompt += `Expected language: ${qData.language}\n`;
-  if (mediaUrls?.length) prompt += `Audio URL(s): ${mediaUrls.join(', ')}\n`;
-  if (typeof studentAnswer === 'string') {
+  if (mediaUrls?.length) prompt += `Audio URL(s): ${mediaUrls.join(", ")}\n`;
+  if (typeof studentAnswer === "string") {
     prompt += `Transcription: ${studentAnswer}\n`;
   }
   return prompt;
 }
 
-function buildImagePrompt(qData: ImageEvaluationData, studentAnswer: unknown, mediaUrls?: string[]): string {
+function buildImagePrompt(
+  qData: ImageEvaluationData,
+  studentAnswer: unknown,
+  mediaUrls?: string[]
+): string {
   let prompt = `The student submitted an image.\n`;
-  prompt += `INSTRUCTIONS: ${qData?.instructions || 'Evaluate the submitted image.'}\n`;
-  if (mediaUrls?.length) prompt += `Image URL(s): ${mediaUrls.join(', ')}\n`;
-  if (typeof studentAnswer === 'string') {
+  prompt += `INSTRUCTIONS: ${qData?.instructions || "Evaluate the submitted image."}\n`;
+  if (mediaUrls?.length) prompt += `Image URL(s): ${mediaUrls.join(", ")}\n`;
+  if (typeof studentAnswer === "string") {
     prompt += `Student's description: ${studentAnswer}\n`;
   }
   return prompt;
@@ -173,36 +191,39 @@ function buildChatAgentPrompt(qData: ChatAgentQuestionData, studentAnswer: unkno
 }
 
 function injectRubricIntoPrompt(rubric: UnifiedRubric): string {
-  if (rubric.scoringMode === 'criteria_based' && rubric.criteria?.length) {
+  if (rubric.scoringMode === "criteria_based" && rubric.criteria?.length) {
     const criteriaText = rubric.criteria
-      .map((c) => `- ${c.name} (${c.maxPoints} pts): ${c.description || ''}`)
-      .join('\n');
+      .map((c) => `- ${c.name} (${c.maxPoints} pts): ${c.description || ""}`)
+      .join("\n");
     return `GRADING RUBRIC (score each criterion separately):\n${criteriaText}\n`;
   }
 
-  if (rubric.scoringMode === 'dimension_based' && rubric.dimensions?.length) {
+  if (rubric.scoringMode === "dimension_based" && rubric.dimensions?.length) {
     const dimText = rubric.dimensions
-      .map((d) => `- ${d.name} (weight: ${d.weight}, scale: 1-${d.scoringScale}): ${d.description || ''}`)
-      .join('\n');
+      .map(
+        (d) =>
+          `- ${d.name} (weight: ${d.weight}, scale: 1-${d.scoringScale}): ${d.description || ""}`
+      )
+      .join("\n");
     return `EVALUATION DIMENSIONS (rate each):\n${dimText}\n`;
   }
 
-  if (rubric.scoringMode === 'holistic') {
-    return `HOLISTIC EVALUATION:\n${rubric.holisticGuidance || ''}\nMax score: ${rubric.holisticMaxScore || 10}\n`;
+  if (rubric.scoringMode === "holistic") {
+    return `HOLISTIC EVALUATION:\n${rubric.holisticGuidance || ""}\nMax score: ${rubric.holisticMaxScore || 10}\n`;
   }
 
-  if (rubric.scoringMode === 'hybrid') {
-    let text = '';
+  if (rubric.scoringMode === "hybrid") {
+    let text = "";
     if (rubric.criteria?.length) {
-      text += `CRITERIA:\n${rubric.criteria.map((c) => `- ${c.name} (${c.maxPoints} pts)`).join('\n')}\n`;
+      text += `CRITERIA:\n${rubric.criteria.map((c) => `- ${c.name} (${c.maxPoints} pts)`).join("\n")}\n`;
     }
     if (rubric.dimensions?.length) {
-      text += `DIMENSIONS:\n${rubric.dimensions.map((d) => `- ${d.name} (weight: ${d.weight})`).join('\n')}\n`;
+      text += `DIMENSIONS:\n${rubric.dimensions.map((d) => `- ${d.name} (weight: ${d.weight})`).join("\n")}\n`;
     }
     return text;
   }
 
-  return '';
+  return "";
 }
 
 const EVALUATION_OUTPUT_FORMAT = `

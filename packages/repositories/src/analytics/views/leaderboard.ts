@@ -60,7 +60,7 @@ export function createLeaderboardRepo(api: ApiClient): LeaderboardRepo {
     getLive: (params, cb) => {
       if (!api.subscribe) {
         // No realtime transport wired — return a no-op handle (offline/SSR safe).
-        return { unsubscribe: () => undefined };
+        return { unsubscribe: () => undefined, id: "noop", active: false };
       }
       return api.subscribe(
         "v1.analytics.leaderboard",

@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import * as functions from "firebase-functions/v1";
 import { logger } from "firebase-functions/v2";
-import type { UnifiedUser } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { UnifiedUser } from "../contracts/legacy-docs";
 import { determineProvider } from "../utils/auth-helpers";
 
 /**
@@ -26,9 +26,10 @@ export const onUserCreated = functions
         photoURL: user.photoURL ?? null,
         isSuperAdmin: false,
         status: "active" as const,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        lastLogin: FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
+        lastLogin: isoNow(),
       };
 
       await admin.firestore().doc(`users/${user.uid}`).set(userDoc);

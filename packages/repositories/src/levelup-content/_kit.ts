@@ -14,6 +14,8 @@
  * it is written concurrently.
  */
 import { ALLOWED_TRANSITIONS } from "@levelup/api-contract";
+import type { PageRequestInput as PageRequest, PageResponse } from "@levelup/api-contract";
+import type { ApiClient as RealApiClient } from "@levelup/api-client";
 // Single canonical source for the answer-key editor cache-scope helpers (§4.2).
 import { EDIT_ITEM_SCOPE, editItemKey, isSensitiveKey } from "../internal/sensitive-keys";
 
@@ -48,25 +50,30 @@ export interface ApiClientLike {
   call: (name: string) => CallableFn;
 }
 
+/**
+ * DP-1 step 7 (closes LB-03): LINK this structural view to the REAL
+ * `@levelup/api-client` `ApiClient`. Repositories declared the api-client dep but
+ * never imported it, so a callable/namespace rename never broke the seam. This
+ * guard fails to compile if the client drops a top-level member this view assumes
+ * (`identity`/`levelup`/`autograde`/`analytics`/`subscribe`/`call`). Per-op strict
+ * typing stays intentionally loose (repos consume `Promise<unknown>` and recover
+ * types at their own boundary — REPO-7, tracked separately).
+ */
+type _ApiClientSurface = keyof ApiClientLike;
+type _AssertApiClientSurface = _ApiClientSurface extends keyof RealApiClient ? true : never;
+void (0 as unknown as _AssertApiClientSurface);
+
 // ---------------------------------------------------------------------------
 // Pagination — opaque cursor management (§3.5, §4.1, MERGE-PAGINATION)
 // ---------------------------------------------------------------------------
 
-/** A contract `PageRequest` fragment merged onto any list filter. */
-export interface PageRequest {
-  cursor?: string | null;
-  limit?: number;
-}
-
-/** The wire `pageResponse(item)` shape (§3.5). `nextCursor:null` = end-of-stream. */
-export interface Page<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
+// DP-1: canonical wire envelopes from api-contract. `cursor` is `string`
+// (optional, NOT nullable). `Page<T>` is an alias of the canonical `PageResponse<T>`.
+export type { PageRequest };
+export type Page<T> = PageResponse<T>;
 
 /** A cursor-managing page bag with a bound `fetchNextPage` (§4.1 iterator). */
-export interface PageBag<T> extends Page<T> {
+export interface PageBag<T> extends PageResponse<T> {
   fetchNextPage(): Promise<PageBag<T>>;
 }
 
@@ -99,7 +106,9 @@ export function makePaginator<T, R extends PageRequest = PageRequest>(
     return {
       ...page,
       async fetchNextPage(): Promise<PageBag<T>> {
-        if (page.nextCursor === null) return fetch({ ...req, cursor: null });
+        // DP-1: thread `cursor: undefined` (NOT `null`) on end-of-stream — the
+        // strict contract `PageRequest` accepts `undefined`/omitted but rejects `null`.
+        if (page.nextCursor === null) return fetch({ ...req, cursor: undefined });
         return fetch({ ...req, cursor: page.nextCursor });
       },
     };

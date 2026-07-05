@@ -16,6 +16,26 @@ export const GRADE_THRESHOLDS = [
   { letter: "F", min: 0 },
 ] as const satisfies readonly { letter: GradeLetter; min: number }[];
 
+/**
+ * Canonical percentage → letter boundary (DATA-MODEL-FIX-PLAN U1.2, B5).
+ *
+ * The ONE place the new spine derives a grade from a score: returns the highest
+ * `GRADE_THRESHOLDS` entry whose `min <= pct`. Because the table is exhaustive
+ * (`F` at `min: 0`) every finite `pct >= 0` resolves; negatives clamp to 0.
+ *
+ * This is the 8-letter canonical scale (incl. `C+` at 50–59). It intentionally
+ * DIVERGES from the legacy 7-letter `calculateGrade`
+ * (`functions/autograde/.../grading-helpers.ts`) on the 33–59 range — see
+ * `grading.boundary.test.ts` for the band-by-band contract. All new grade
+ * computation MUST route through here rather than re-hardcoding thresholds.
+ */
+export function gradeForPercentage(pct: number): GradeLetter {
+  const p = Number.isFinite(pct) ? Math.max(0, pct) : 0;
+  // GRADE_THRESHOLDS is descending by `min`; first match is the highest band.
+  return (GRADE_THRESHOLDS.find((t) => p >= t.min) ?? GRADE_THRESHOLDS[GRADE_THRESHOLDS.length - 1])
+    .letter;
+}
+
 export const BLOOMS_LEVELS = [
   "remember",
   "understand",

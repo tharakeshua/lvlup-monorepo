@@ -19,8 +19,12 @@ import type { FirebaseStorage } from "firebase/storage";
 export interface FirebaseTransportServices {
   /** Already-regioned `Functions` instance (region bound by the app at `getFunctions`). */
   functions: Functions;
-  /** Firestore instance — doc/query subscription source. */
-  db: Firestore;
+  /**
+   * UNUSED since CHAT-1 (AD-12 end state: realtime = RTDB only; the last
+   * Firestore subscription is gone). Optional so existing composition roots keep
+   * compiling; new callers should omit it — the transport never reads it.
+   */
+  db?: Firestore;
   /** RTDB instance — node subscription source + `/.info/serverTimeOffset`. */
   rtdb: Database;
   /** Auth instance — ID-token forwarding seam + `PathContext` derivation. */

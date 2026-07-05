@@ -16,6 +16,8 @@
  * `string` so the seam is forward-compatible.
  */
 import type { ExamId, StudentId, ClassId, UserId } from "@levelup/domain";
+import type { UploadBytesInput, Callable } from "@levelup/api-contract";
+import type { ApiClient as RealApiClient } from "@levelup/api-client";
 
 // ---------------------------------------------------------------------------
 // Storage seam (C1 — MERGE-C9-ORPHANED §3.7). Canonical mechanism: signed PUT
@@ -50,18 +52,22 @@ export interface UploadUrlGrant {
   expiresAt: string;
 }
 
-/** Bytes accepted by the signed-PUT upload (web `Blob`/RN `Uint8Array`/base64). */
-export type UploadBody = Blob | Uint8Array | ArrayBuffer | string;
+/** Bytes accepted by the signed-PUT upload (web `Blob`/RN `Uint8Array`/`ArrayBuffer`). */
+export type UploadBody = Blob | Uint8Array | ArrayBuffer;
 
 /**
  * The Storage capability the api-client re-exposes over the transport's
  * `StorageTransport` (the only client firebase/storage site lives in
  * transport-firebase). `requestUploadUrl` invokes the signing callable;
- * `upload` PUTs bytes to the signed URL (no Firestore, no auth decision here).
+ * `uploadImage` PUTs bytes to the signed URL (no Firestore, no auth decision here).
+ *
+ * DP-1: the `upload(url, body, ct)` method was renamed to the canonical
+ * `uploadImage({uploadUrl, bytes, contentType})` to match the one real impl
+ * (`@levelup/transport-firebase`'s `StorageTransport`).
  */
 export interface StorageCapability {
   requestUploadUrl(input: RequestUploadUrlInput): Promise<UploadUrlGrant>;
-  upload(uploadUrl: string, body: UploadBody, contentType: string): Promise<void>;
+  uploadImage(input: UploadBytesInput): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +136,7 @@ export interface UploadUserAssetResponse {
   assetUrl: string;
 }
 
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+// `Callable<Req, Res>` imported from `@levelup/api-contract` (DP-1).
 
 /** The identity namespace slice this domain invokes (permissive tail). */
 export interface IdentitySeam {
@@ -151,3 +157,13 @@ export interface ApiClientSeam {
   storage: StorageCapability;
   auth: AuthCapability;
 }
+
+/**
+ * DP-1 step 7 (closes LB-03): LINK to the REAL `@levelup/api-client` `ApiClient`.
+ * `identity` + `storage` ARE on the real client (storage is wired in
+ * `createApiClient` — the TR-2 runtime-bug fix). `auth` is a transport-handle seam
+ * re-exposed by the composition root (NOT a callable on `ApiClient`), so it is
+ * intentionally absent from this surface assertion.
+ */
+type _SeamLinked = "identity" | "storage" extends keyof RealApiClient ? true : never;
+void (0 as unknown as _SeamLinked);

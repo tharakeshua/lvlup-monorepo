@@ -34,6 +34,12 @@ export type ExamQuestionPaper = z.infer<typeof ExamQuestionPaperSchema>;
 export const ExamGradingConfigSchema = zObject({
   autoGrade: z.boolean(),
   allowRubricEdit: z.boolean(),
+  /**
+   * @deprecated Read-only legacy field. The canonical location is `Exam.evaluationSettingsId`
+   * (top-level). Readers must resolve `exam.evaluationSettingsId ?? exam.gradingConfig?.evaluationSettingsId`.
+   * NEVER write here from new code — only the top-level field is written. Retained so existing
+   * legacy docs still parse.
+   */
   evaluationSettingsId: zEvaluationSettingsId.optional(),
   allowManualOverride: z.boolean(),
   requireOverrideReason: z.boolean(),

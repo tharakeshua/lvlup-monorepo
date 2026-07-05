@@ -48,6 +48,11 @@ export const SaveTenantRequestSchema = z
       .object({
         name: z.string().optional(),
         shortName: z.string().optional(),
+        // Public join code (e.g. "SUB001"). On CREATE the server writes the
+        // `tenantCodes/{tenantCode}` index so `lookupTenantByCode`/`joinTenant`
+        // resolve it; it is the tenant's stable human-facing code (≠ tenantId).
+        tenantCode: z.string().optional(),
+        slug: z.string().optional(),
         contactEmail: z.string().optional(),
         contactPhone: z.string().optional(),
         plan: zTenantPlan.optional(),

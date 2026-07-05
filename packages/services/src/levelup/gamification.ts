@@ -15,6 +15,11 @@ import { authorize } from "@levelup/access";
 import type { AuthContext, SystemContext } from "../shared/context.js";
 import { requireTenant } from "../shared/context.js";
 import { xrepos } from "../shared/extended-repos.js";
+import {
+  clearAchievementUnlockProjection,
+  projectAchievementUnlock,
+  projectStudentLevel,
+} from "./levelup-projection.js";
 
 type Doc = Record<string, unknown>;
 
@@ -96,6 +101,9 @@ export async function markAchievementsSeenService(
   const tenantId = requireTenant(ctx);
   const ids = input.mode === "ids" ? (input.achievementIds as string[]) : "all";
   const updated = await xrepos(ctx).gamification.markSeen(tenantId, ctx.uid, ids, ctx.now());
+  // Clear the live `latest` unlock node (AD-12 ticker; over-clearing is safe —
+  // the callable read path stays canonical for the earned list).
+  await clearAchievementUnlockProjection(ctx, tenantId, ctx.uid);
   return { updated } as ResOf<"v1.levelup.markAchievementsSeen">;
 }
 
@@ -228,12 +236,27 @@ export async function awardAchievementsService(
   if (!tenantId) return { awarded: [] };
   const earned = await xrepos(ctx).gamification.earnedAchievementIds(tenantId, args.userId);
   // The catalog + criteria evaluation live in the adapter; here we award net-new.
-  const awarded: string[] = [];
+  const awarded: Doc[] = [];
   await ctx.repos.tx(async (tx) => {
     void earned;
     void tx;
   });
-  return { awarded };
+  // AD-12 live-ticker projections for every net-new unlock: the `latest` unlock
+  // event + the refreshed level node. No-ops while the criteria evaluation above
+  // is a stub (awarded stays empty) — the seam is what U2.6 locks in.
+  for (const a of awarded) {
+    await projectAchievementUnlock(ctx, tenantId, args.userId, {
+      id: String(a["id"] ?? ""),
+      achievementId: String(a["achievementId"] ?? a["id"] ?? ""),
+      achievement: (a["achievement"] as Doc) ?? {},
+      earnedAt: ctx.now(),
+    });
+  }
+  if (awarded.length > 0) {
+    const level = await xrepos(ctx).gamification.getStudentLevel(tenantId, args.userId);
+    await projectStudentLevel(ctx, tenantId, args.userId, level);
+  }
+  return { awarded: awarded.map((a) => String(a["id"] ?? "")) };
 }
 
 /** Single leaderboard writer — RTDB runTransaction on the node (invoked from recompute). */

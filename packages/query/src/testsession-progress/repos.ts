@@ -24,16 +24,10 @@ import type {
   UserId,
 } from "@levelup/domain";
 
-/** Contract `pageResponse(item)` envelope (read-only here). */
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
+// ── pagination envelopes ── DP-1: canonical types from api-contract.
+import type { PageRequestInput as PageRequest, PageResponse } from "@levelup/api-contract";
+
+export type { PageRequest, PageResponse };
 
 // ── request/response shapes (mirror the repo public surface) ────────────────
 

@@ -1,0 +1,308 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { APP_URLS, SITE } from '../config';
+
+const arrow = `M5 12h14M12 5l7 7-7 7`;
+---
+<BaseLayout title={SITE.name} description={SITE.description}>
+
+  <!-- HERO ----------------------------------------------------------------- -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container">
+      <div class="hero-inner">
+        <div>
+          <p class="hero-eyebrow">AI-graded paper exams · Early access</p>
+          <h1 id="hero-heading">Every answer read. Every mark <em>accounted for.</em></h1>
+          <p class="hero-sub">
+            LvlUp Autograde reads scanned answer sheets, scores them against the
+            rubric in your question paper, and shows each student where every
+            mark went. Teachers keep the final say — nothing goes out until you
+            release it.
+          </p>
+          <div class="hero-actions">
+            <a href={APP_URLS.admin} class="btn btn-spark btn-lg">Set up your school</a>
+            <a href="#how" class="btn btn-ghost btn-lg">How it works</a>
+          </div>
+          <p class="hero-meta">
+            <span>Handwritten answers</span>
+            <span>Rubric-checked scoring</span>
+            <span>Sealed until released</span>
+          </p>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="slip">
+            <div class="slip-head">
+              <span>Mid-term Mathematics</span>
+              <span>Class 10B</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-q">Q1&ensp;Quadratic roots</span>
+              <span class="slip-leader"></span>
+              <span class="slip-marks">8 / 10</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-q">Q2&ensp;Factor theorem</span>
+              <span class="slip-leader"></span>
+              <span class="slip-marks">10 / 10</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-q">Q3&ensp;Trig identity</span>
+              <span class="slip-leader"></span>
+              <span class="slip-marks"><span class="slip-struck">7</span>9 / 12</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-q">Q4&ensp;Probability</span>
+              <span class="slip-leader"></span>
+              <span class="slip-marks">6 / 8</span>
+            </div>
+            <p style="margin-top: 0.5rem;">
+              <span class="slip-override-tag">Q3 — teacher override</span>
+            </p>
+            <div class="slip-total">
+              <span>Total</span>
+              <strong>33 / 40 &middot; A</strong>
+            </div>
+            <p class="slip-foot">
+              Reviewed &middot; <span class="sealed">Sealed until release</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE --------------------------------------------------------------- -->
+  <section id="how" class="section pipeline" aria-labelledby="pipeline-heading">
+    <div class="container">
+      <header class="section-head">
+        <p class="kicker">How it works</p>
+        <h2 id="pipeline-heading">A question paper in. A report card out.</h2>
+        <p class="lede">
+          One pipeline runs from the admin's first login to the moment a
+          student reads their feedback.
+        </p>
+      </header>
+      <ol class="pipeline-steps">
+        <li class="pipeline-step">
+          <h3>Set up the school</h3>
+          <p>An admin names the school, opens the academic session, and gets a join code to share.</p>
+        </li>
+        <li class="pipeline-step">
+          <h3>Bring everyone in</h3>
+          <p>Teachers and students are imported from CSV or added one by one.</p>
+        </li>
+        <li class="pipeline-step">
+          <h3>Create the exam</h3>
+          <p>Title, subject, classes, total marks — then the question paper goes in as PDF or images.</p>
+        </li>
+        <li class="pipeline-step">
+          <h3>AI drafts the rubric</h3>
+          <p>Every question is extracted, with criteria that must sum to its maximum marks. You edit until they do.</p>
+        </li>
+        <li class="pipeline-step">
+          <h3>Sheets in, scores out</h3>
+          <p>Scanned pages are mapped to their questions, then each answer is scored against the rubric with a stated confidence.</p>
+        </li>
+        <li class="pipeline-step">
+          <h3>Review, then release</h3>
+          <p>Override any score, add comments, and release when ready. Until then, results stay sealed.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ROLES ------------------------------------------------------------------ -->
+  <section class="section" aria-labelledby="roles-heading">
+    <div class="container">
+      <header class="section-head">
+        <p class="kicker">Who does what</p>
+        <h2 id="roles-heading">Four roles. One exam.</h2>
+        <p class="lede">
+          Admins set the stage, teachers run the exam, students and parents
+          read the results — each through their own portal.
+        </p>
+      </header>
+
+      <article class="role-band" aria-label="Admin role">
+        <div class="role-band-intro">
+          <span class="role-chip role-chip-admin">Admin</span>
+          <h3>Set the stage.</h3>
+          <a href={APP_URLS.admin} class="arrow-link">
+            Admin portal
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={arrow}/></svg>
+          </a>
+        </div>
+        <ol class="role-band-steps">
+          <li>Onboard the school — name, academic session, first class.</li>
+          <li>Share the auto-generated join code with staff and students.</li>
+          <li>Import teachers and students by CSV, or add them by hand.</li>
+          <li>Watch results and AI usage across every exam in the school.</li>
+        </ol>
+      </article>
+
+      <article class="role-band" aria-label="Teacher role">
+        <div class="role-band-intro">
+          <span class="role-chip role-chip-teacher">Teacher</span>
+          <h3>Run the exam.</h3>
+          <a href={APP_URLS.teacher} class="arrow-link">
+            Teacher portal
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={arrow}/></svg>
+          </a>
+        </div>
+        <ol class="role-band-steps">
+          <li>Create the exam and upload the question paper.</li>
+          <li>Check the AI-drafted rubric — criteria must sum to each question's maximum marks.</li>
+          <li>Publish, then upload scanned answer sheets after exam day.</li>
+          <li>AI maps every page to its question and scores each answer.</li>
+          <li>Review the scores. Override anything. Add comments.</li>
+          <li>Release results — students and parents are notified at once.</li>
+        </ol>
+      </article>
+
+      <article class="role-band" aria-label="Student role">
+        <div class="role-band-intro">
+          <span class="role-chip role-chip-student">Student</span>
+          <h3>Sit it on paper.</h3>
+          <a href={APP_URLS.student} class="arrow-link">
+            Student portal
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={arrow}/></svg>
+          </a>
+        </div>
+        <ol class="role-band-steps">
+          <li>Join with your school's code and log in.</li>
+          <li>Sit the exam with pen and paper — no device needed on the day.</li>
+          <li>Results arrive sealed; a notification tells you when they open.</li>
+          <li>Read your score, letter grade, and feedback on every question.</li>
+        </ol>
+      </article>
+
+      <article class="role-band" aria-label="Parent role">
+        <div class="role-band-intro">
+          <span class="role-chip role-chip-parent">Parent</span>
+          <h3>See the whole picture.</h3>
+          <a href={APP_URLS.parent} class="arrow-link">
+            Parent portal
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={arrow}/></svg>
+          </a>
+        </div>
+        <ol class="role-band-steps">
+          <li>Log in and pick your child.</li>
+          <li>Results stay sealed until the teacher releases them.</li>
+          <li>Read the per-question breakdown together.</li>
+          <li>Download the PDF report for your records.</li>
+        </ol>
+      </article>
+    </div>
+  </section>
+
+  <!-- FEATURES ----------------------------------------------------------------- -->
+  <section class="section features" aria-labelledby="features-heading">
+    <div class="container">
+      <header class="section-head">
+        <p class="kicker">The details</p>
+        <h2 id="features-heading">Grading you can defend.</h2>
+        <p class="lede">
+          Every score traces back to a rubric line, a confidence level, and a
+          teacher's sign-off.
+        </p>
+      </header>
+      <div class="features-index">
+        <article class="feature">
+          <p class="feature-label">Rubrics</p>
+          <h3>Extracted from the paper itself</h3>
+          <p>
+            Upload the question paper and the AI drafts a criterion-level
+            rubric for every question. Criteria must sum to the question's
+            maximum marks before you can publish — the platform enforces the
+            arithmetic.
+          </p>
+        </article>
+        <article class="feature">
+          <p class="feature-label">Page mapping</p>
+          <h3>Handwriting, located</h3>
+          <p>
+            Panopticon, the page-mapping model, matches every scanned page to
+            its question — across multi-page booklets and out-of-order sheets.
+          </p>
+        </article>
+        <article class="feature">
+          <p class="feature-label">Scoring</p>
+          <h3>Marks with a stated confidence</h3>
+          <p>
+            RELMS scores each answer against the rubric and says how sure it
+            is. Low-confidence answers are flagged for manual review, never
+            silently guessed.
+          </p>
+        </article>
+        <article class="feature">
+          <p class="feature-label">Override</p>
+          <h3>The teacher's word is final</h3>
+          <p>
+            Every AI decision is inspectable. Change any mark, attach a
+            comment, and the totals recalculate on the spot.
+          </p>
+        </article>
+        <article class="feature">
+          <p class="feature-label">Release</p>
+          <h3>Sealed until you say so</h3>
+          <p>
+            Students and parents see nothing until the teacher releases
+            results — all at once, or submission by submission.
+          </p>
+        </article>
+        <article class="feature">
+          <p class="feature-label">Feedback</p>
+          <h3>Per question, not per exam</h3>
+          <p>
+            Each student reads where every mark was earned or lost, with
+            strengths and gaps written out for their actual answer.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRADE SCALE ---------------------------------------------------------------- -->
+  <section id="grades" class="section" aria-labelledby="grades-heading">
+    <div class="container">
+      <header class="section-head">
+        <p class="kicker">The scale</p>
+        <h2 id="grades-heading">One scale, everywhere.</h2>
+        <p class="lede">
+          Eight letter grades, fixed across the platform. A B+ means the same
+          thing in every class, every exam, every school.
+        </p>
+      </header>
+      <dl class="gradescale-strip">
+        <div class="gradescale-cell"><dt class="gradescale-letter">A+</dt><dd class="gradescale-min">90%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">A</dt><dd class="gradescale-min">80%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">B+</dt><dd class="gradescale-min">70%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">B</dt><dd class="gradescale-min">60%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">C+</dt><dd class="gradescale-min">50%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">C</dt><dd class="gradescale-min">40%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">D</dt><dd class="gradescale-min">33%+</dd></div>
+        <div class="gradescale-cell"><dt class="gradescale-letter">F</dt><dd class="gradescale-min">below 33%</dd></div>
+      </dl>
+      <p class="gradescale-note">
+        A percentage maps to the highest band at or below it — 72% is a B+.
+      </p>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -------------------------------------------------------------------- -->
+  <section class="cta-band" aria-labelledby="cta-heading">
+    <div class="container">
+      <h2 id="cta-heading">Run your next exam through it.</h2>
+      <p>
+        Set up the school, add your teachers, and grade the first paper this
+        term. The guides cover every step, screen by screen.
+      </p>
+      <div class="cta-band-actions">
+        <a href={APP_URLS.admin} class="btn btn-spark btn-lg">Set up your school</a>
+        <a href="/guides" class="btn btn-outline-light btn-lg">Read the guides</a>
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>

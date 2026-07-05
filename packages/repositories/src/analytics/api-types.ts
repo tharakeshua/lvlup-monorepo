@@ -42,19 +42,16 @@ import type {
 // Contract pagination fragment (§3.5) — repos thread the opaque cursor verbatim.
 // ---------------------------------------------------------------------------
 
-export interface PageRequest {
-  cursor?: string | null;
-  limit?: number;
-}
+// DP-1: canonical wire envelopes from api-contract. `cursor` is `string`
+// (optional, NOT nullable — the strict contract rejects `null`).
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SubscriptionHandle,
+  Callable,
+} from "@levelup/api-contract";
 
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-
-/** Single namespaced callable: `req → Promise<res>`. */
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+export type { PageRequest, PageResponse, SubscriptionHandle };
 
 // ---------------------------------------------------------------------------
 // getSummary — discriminated by scope (analytics.md §getSummary).
@@ -254,11 +251,8 @@ export interface AnalyticsNamespace {
 
 // ---------------------------------------------------------------------------
 // Realtime subscribe pass-through (§3.7) — leaderboard live + notification badge.
+// `SubscriptionHandle` is the canonical api-contract type (imported above).
 // ---------------------------------------------------------------------------
-
-export interface SubscriptionHandle {
-  unsubscribe(): void;
-}
 
 export type SubscribeFn = (
   name: string,

@@ -10,7 +10,7 @@
  */
 import type { AuthInfo } from "./callable-auth.js";
 import type { AuthContext } from "./auth-context.js";
-import type { Repos, AiGateway } from "./ports.js";
+import type { Repos, AiGateway, StorageSignerPort, PipelineEnqueuePort } from "./ports.js";
 import { fail } from "../request/fail.js";
 import type {
   UserId,
@@ -38,6 +38,11 @@ export interface BuildCtxOptions {
   ai: AiGateway;
   /** Default () => new Date().toISOString() — overridable in tests. */
   clock?: () => Timestamp;
+  /** Optional signed-upload-URL signer → `ctx.storage` (absent in emulator/tests). */
+  storage?: StorageSignerPort;
+  /** Optional Cloud Tasks enqueue → `ctx.enqueuePipelineAdvance`, curried over the
+   *  claim-resolved tenant (absent in emulator/tests → inline pipeline fallback). */
+  pipelineTasks?: PipelineEnqueuePort;
 }
 
 const PUBLIC_UID = "<public>";
@@ -114,6 +119,11 @@ export async function buildAuthContext(
     now: clock,
     repos: opts.repos,
     ai: opts.ai,
+    storage: opts.storage,
+    // Curried over the claim-resolved tenant (fixed for the request lifetime).
+    enqueuePipelineAdvance: opts.pipelineTasks
+      ? (submissionId, step) => opts.pipelineTasks!({ tenantId, submissionId, step })
+      : undefined,
   };
 }
 

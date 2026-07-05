@@ -11,18 +11,104 @@
  * never scores (CD13/§6.5).
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
+import { zLegacyTestSessionTypeRead } from "@levelup/domain";
 import { authorize, assertTransition } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import type { ProgressItemUpdate } from "../repo-admin/types.js";
+import { tsOrNull, tsRequired } from "../shared/projections.js";
 import { xrepos } from "../shared/extended-repos.js";
 import { autoEvaluateDeterministic, storyPointTypeToSessionType } from "./grading.js";
 import { applyProgress } from "./progress-updater.js";
+import { projectTestSessionLive } from "./levelup-projection.js";
 
 type Doc = Record<string, unknown>;
 
 /** Default session window (overridable per story point). */
 const DEFAULT_SESSION_MINUTES = 30;
+
+// ── canonical contract-view projections (LVL-1) ───────────────────────────────
+// STRICT KEY WHITELISTS against DigitalTestSessionSchema (`.strict()`) /
+// DigitalTestSessionSummaryView so raw doc keys never leak. Legacy drift
+// collapsed on read: sessionType 'test'/'exam' → 'timed_test' (domain
+// read-adapter), legacy `totalScore`/`maxScore` keys → `pointsEarned`/
+// `totalPoints`, Firestore-Timestamp-at-rest → canonical ISO, required-nullable
+// timing fields (`endedAt`/`serverDeadline`/`submittedAt`) default null.
+
+function compact(o: Doc): Doc {
+  const out: Doc = {};
+  for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = v;
+  return out;
+}
+const optNum = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
+const optInt = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : undefined;
+const asRecord = (v: unknown): Doc =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Doc) : {};
+
+/** sessionType: legacy 'test'/'exam' → 'timed_test' (AD-4 read-adapter). */
+function canonSessionType(v: unknown): string {
+  return typeof v === "string" ? zLegacyTestSessionTypeRead.parse(v) : "practice";
+}
+
+/** Project a stored session doc → the strict DigitalTestSessionView. */
+export function toTestSessionView(d: Doc): Doc {
+  const questionOrder = Array.isArray(d["questionOrder"]) ? (d["questionOrder"] as string[]) : [];
+  return compact({
+    id: d["id"],
+    tenantId: d["tenantId"],
+    userId: d["userId"],
+    spaceId: d["spaceId"],
+    storyPointId: d["storyPointId"],
+    sessionType: canonSessionType(d["sessionType"]),
+    attemptNumber: optInt(d["attemptNumber"]) ?? 1,
+    status: d["status"] ?? "in_progress",
+    isLatest: typeof d["isLatest"] === "boolean" ? d["isLatest"] : true,
+    startedAt: tsRequired(d["startedAt"], d["createdAt"], d["updatedAt"]),
+    endedAt: tsOrNull(d["endedAt"]),
+    durationMinutes: optInt(d["durationMinutes"]) ?? DEFAULT_SESSION_MINUTES,
+    serverDeadline: tsOrNull(d["serverDeadline"]),
+    totalQuestions: optInt(d["totalQuestions"]) ?? questionOrder.length,
+    answeredQuestions: optInt(d["answeredQuestions"]) ?? 0,
+    questionOrder,
+    visitedQuestions: asRecord(d["visitedQuestions"]),
+    markedForReview: asRecord(d["markedForReview"]),
+    pointsEarned: optNum(d["pointsEarned"]) ?? optNum(d["totalScore"]),
+    totalPoints: optNum(d["totalPoints"]) ?? optNum(d["maxScore"]),
+    marksEarned: optNum(d["marksEarned"]),
+    totalMarks: optNum(d["totalMarks"]),
+    percentage: optNum(d["percentage"]),
+    sectionMapping: d["sectionMapping"] !== null ? d["sectionMapping"] : undefined,
+    lastVisitedIndex: optInt(d["lastVisitedIndex"]),
+    adaptiveState: d["adaptiveState"] !== null ? d["adaptiveState"] : undefined,
+    currentDifficultyLevel:
+      d["currentDifficultyLevel"] !== null ? d["currentDifficultyLevel"] : undefined,
+    difficultyProgression: Array.isArray(d["difficultyProgression"])
+      ? d["difficultyProgression"]
+      : undefined,
+    analytics: d["analytics"] !== null ? d["analytics"] : undefined,
+    submittedAt: tsOrNull(d["submittedAt"]),
+    autoSubmitted: typeof d["autoSubmitted"] === "boolean" ? d["autoSubmitted"] : undefined,
+    createdAt: tsRequired(d["createdAt"], d["startedAt"], d["updatedAt"]),
+    updatedAt: tsRequired(d["updatedAt"], d["createdAt"], d["startedAt"]),
+  });
+}
+
+/** Project a stored session doc → the compact DigitalTestSessionSummaryView. */
+export function toTestSessionSummaryView(d: Doc): Doc {
+  return compact({
+    id: d["id"],
+    spaceId: d["spaceId"],
+    storyPointId: d["storyPointId"],
+    sessionType: canonSessionType(d["sessionType"]),
+    status: d["status"] ?? "in_progress",
+    attemptNumber: optInt(d["attemptNumber"]) ?? 1,
+    isLatest: typeof d["isLatest"] === "boolean" ? d["isLatest"] : true,
+    percentage: optNum(d["percentage"]),
+    startedAt: tsRequired(d["startedAt"], d["createdAt"], d["updatedAt"]),
+    submittedAt: tsOrNull(d["submittedAt"]),
+  });
+}
 
 // ── startTestSession ──────────────────────────────────────────────────────────
 export async function startTestSessionService(
@@ -43,8 +129,19 @@ export async function startTestSessionService(
     limit: 1,
   });
   if (existing.items.length > 0) {
+    const resumed = existing.items[0] as Doc;
+    // Re-project the live countdown on resume (crash-safe: the node may be
+    // missing if the original start's best-effort projection was lost).
+    if (typeof resumed["serverDeadline"] === "string") {
+      await projectTestSessionLive(ctx, tenantId, {
+        sessionId: resumed["id"] as string,
+        userId: ctx.uid,
+        serverDeadline: resumed["serverDeadline"],
+        status: "in_progress",
+      });
+    }
     return {
-      session: existing.items[0],
+      session: toTestSessionView(resumed),
       resuming: true,
     } as unknown as ResOf<"v1.levelup.startTestSession">;
   }
@@ -98,6 +195,15 @@ export async function startTestSessionService(
   };
   const { id } = await ctx.repos.testSessions.upsert(tenantId, session, now);
 
+  // Live countdown projection (AD-12): `{remainingMs, serverDeadline, status}`
+  // ONLY — the channel never carries question bodies/order or answers.
+  await projectTestSessionLive(ctx, tenantId, {
+    sessionId: id,
+    userId: ctx.uid,
+    serverDeadline,
+    status: "in_progress",
+  });
+
   // Demote prior latest flags.
   await ctx.repos.tx(async (tx) => {
     for (const p of priors.items) {
@@ -106,7 +212,7 @@ export async function startTestSessionService(
   });
 
   return {
-    session: { ...session, id },
+    session: toTestSessionView({ ...session, id }),
     resuming: false,
   } as unknown as ResOf<"v1.levelup.startTestSession">;
 }
@@ -179,7 +285,10 @@ export async function submitTestSessionService(
 
   // Idempotent re-submit: a terminal session returns its already-computed result.
   if (currentStatus !== "in_progress") {
-    return { session, progressUpdated: false } as unknown as ResOf<"v1.levelup.submitTestSession">;
+    return {
+      session: toTestSessionView(session as Doc),
+      progressUpdated: false,
+    } as unknown as ResOf<"v1.levelup.submitTestSession">;
   }
   assertTransition("testSession", currentStatus, "completed");
 
@@ -256,6 +365,16 @@ export async function submitTestSessionService(
   // `aiPendingCount` is internal bookkeeping (not part of the session doc shape).
   await ctx.repos.testSessions.upsert(tenantId, finalSession, now);
 
+  // Flip the live countdown projection to its terminal status (still no scores).
+  if (typeof session["serverDeadline"] === "string") {
+    await projectTestSessionLive(ctx, tenantId, {
+      sessionId: input.sessionId,
+      userId: ctx.uid,
+      serverDeadline: session["serverDeadline"],
+      status: "completed",
+    });
+  }
+
   // 5) If fully graded, enqueue the single "graded" notification (outbox).
   if (aiPending === 0) {
     await ctx.repos.tx(async (tx) => {
@@ -271,7 +390,7 @@ export async function submitTestSessionService(
   }
 
   return {
-    session: finalSession,
+    session: toTestSessionView(finalSession),
     progressUpdated: progressResult.completed,
   } as unknown as ResOf<"v1.levelup.submitTestSession">;
 }
@@ -287,7 +406,9 @@ export async function getTestSessionService(
   if ((session["userId"] as string) !== ctx.uid) {
     authorize(ctx, "progress.read", { sessionId: input.sessionId, tenantId });
   }
-  return { session } as unknown as ResOf<"v1.levelup.getTestSession">;
+  return {
+    session: toTestSessionView(session as Doc),
+  } as unknown as ResOf<"v1.levelup.getTestSession">;
 }
 
 // ── listTestSessions ──────────────────────────────────────────────────────────
@@ -310,7 +431,9 @@ export async function listTestSessionsService(
     limit: input.limit ?? 20,
   });
   return {
-    items: page.items,
+    // Compact summary projection — the contract view is DigitalTestSessionSummaryView,
+    // NOT the full session (the pre-LVL-1 raw-doc return failed it wholesale).
+    items: page.items.map((d) => toTestSessionSummaryView(d as Doc)),
     nextCursor: page.nextCursor,
   } as unknown as ResOf<"v1.levelup.listTestSessions">;
 }

@@ -28,16 +28,14 @@ import type {
   StudentProgressSummary,
 } from "@levelup/domain";
 
-// ── pagination envelopes (read-only here) ───────────────────────────────────
-export interface PageRequest {
-  cursor?: string;
-  limit?: number;
-}
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
+// ── pagination + subscription seam ── DP-1: canonical types from api-contract.
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SubscriptionHandle,
+} from "@levelup/api-contract";
+
+export type { PageRequest, PageResponse, SubscriptionHandle };
 
 // ── derived/projection shapes carried over the repo seam ─────────────────────
 export interface PlatformSummary {
@@ -112,9 +110,7 @@ export interface LeaderboardSubParams {
   storyPointId?: string;
   limit?: number;
 }
-export interface SubscriptionHandle {
-  unsubscribe(): void;
-}
+// `SubscriptionHandle` is the canonical api-contract type (imported above).
 
 // ── repo seams (the methods the hooks use) ───────────────────────────────────
 

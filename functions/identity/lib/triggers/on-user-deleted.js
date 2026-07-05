@@ -54,9 +54,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onUserDeleted = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const functions = __importStar(require("firebase-functions/v1"));
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const firestore_helpers_1 = require("../utils/firestore-helpers");
 /**
  * Auth trigger: runs when a Firebase Auth account is deleted.
@@ -72,7 +72,8 @@ exports.onUserDeleted = functions
       const userRef = admin.firestore().doc(`users/${user.uid}`);
       batch.update(userRef, {
         status: "deleted",
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        updatedAt: (0, domain_1.isoNow)(),
       });
       // 2. Deactivate all memberships
       const membershipsQuery = await admin
@@ -83,7 +84,7 @@ exports.onUserDeleted = functions
       for (const doc of membershipsQuery.docs) {
         batch.update(doc.ref, {
           status: "inactive",
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       await batch.commit();

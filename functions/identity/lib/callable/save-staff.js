@@ -60,9 +60,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveStaff = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 exports.saveStaff = (0, https_1.onCall)({ region: "asia-south1", cors: true }, async (request) => {
@@ -70,7 +70,7 @@ exports.saveStaff = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
   if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
   const { id, tenantId, data } = (0, utils_1.parseRequest)(
     request.data,
-    shared_types_1.SaveStaffRequestSchema
+    wire_1.SaveStaffRequestSchema
   );
   if (!tenantId) {
     throw new https_1.HttpsError("invalid-argument", "tenantId is required");
@@ -88,7 +88,8 @@ exports.saveStaff = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
     throw new https_1.HttpsError("not-found", `Staff member ${id} not found`);
   }
   const updates = {
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    updatedAt: (0, domain_1.isoNow)(),
   };
   if (data.department !== undefined) updates.department = data.department;
   if (data.status !== undefined) updates.status = data.status;
@@ -103,16 +104,22 @@ exports.saveStaff = (0, https_1.onCall)({ region: "asia-south1", cors: true }, a
       if (membershipDoc.exists) {
         await membershipRef.update({
           staffPermissions: data.staffPermissions,
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
-        // Refresh custom claims with new permissions
+        // Refresh custom claims with new permissions. This REPLACES the target
+        // user's claims (DEP-1 bug class): fetch their user doc so a super-admin
+        // keeps `isSuperAdmin` across the re-mint.
         const membershipData = membershipDoc.data();
-        const claims = (0, utils_1.buildClaimsForMembership)({
-          tenantId,
-          tenantCode: membershipData.tenantCode,
-          role: membershipData.role,
-          staffPermissions: data.staffPermissions,
-        });
+        const targetUser = await (0, utils_1.getUser)(staffData.uid);
+        const claims = (0, utils_1.buildClaimsForMembership)(
+          {
+            tenantId,
+            tenantCode: membershipData.tenantCode,
+            role: membershipData.role,
+            staffPermissions: data.staffPermissions,
+          },
+          { isSuperAdmin: targetUser?.isSuperAdmin === true }
+        );
         await admin.auth().setCustomUserClaims(staffData.uid, claims);
       }
     }

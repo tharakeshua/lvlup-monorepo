@@ -63,9 +63,10 @@ const rate_limit_1 = require("../utils/rate-limit");
 const chat_safety_1 = require("../utils/chat-safety");
 const tutor_1 = require("../prompts/tutor");
 const ai_1 = require("@levelup/shared-services/ai");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
-const shared_types_2 = require("@levelup/shared-types");
+const legacy_docs_1 = require("../contracts/legacy-docs");
 /**
  * AI tutor chat — send a message and get a response.
  *
@@ -77,10 +78,7 @@ exports.sendChatMessage = (0, https_1.onCall)(
   { region: "asia-south1", timeoutSeconds: 30, cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.SendChatMessageRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.SendChatMessageRequestSchema);
     if (!data.tenantId || !data.spaceId || !data.itemId || !data.message?.trim()) {
       throw new https_1.HttpsError(
         "invalid-argument",
@@ -141,7 +139,7 @@ exports.sendChatMessage = (0, https_1.onCall)(
       if (!sessionDoc.exists) {
         throw new https_1.HttpsError("not-found", "Chat session not found");
       }
-      const sessionResult = shared_types_2.ChatSessionSchema.safeParse({
+      const sessionResult = legacy_docs_1.ChatSessionDocSchema.safeParse({
         id: sessionDoc.id,
         ...sessionDoc.data(),
       });
@@ -176,8 +174,8 @@ exports.sendChatMessage = (0, https_1.onCall)(
         isActive: true,
         messages: [],
         systemPrompt: "",
-        createdAt: firestore_1.Timestamp.now(),
-        updatedAt: firestore_1.Timestamp.now(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
     }
     // Build system prompt
@@ -358,7 +356,7 @@ Respond with a concise summary (max 300 words).`,
         messageCount: (session.messageCount ?? session.messages.length) + 2,
         systemPrompt,
         previewMessage: data.message.substring(0, 100),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       },
       { merge: !!data.sessionId }
     );

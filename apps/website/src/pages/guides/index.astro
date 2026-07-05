@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { GUIDES } from '../../config';
+
+const arrow = `M5 12h14M12 5l7 7-7 7`;
+---
+<BaseLayout
+  title="Guides"
+  description="Four short manuals for LvlUp Autograde — one per role. Each follows the exact flow of its portal, screen by screen."
+>
+  <div class="container">
+    <header class="guides-head">
+      <p class="kicker">Documentation</p>
+      <h1>The guides.</h1>
+      <p class="lede">
+        Four short manuals — one per role. Each follows the exact flow of its
+        portal, screen by screen, from first login to released results.
+      </p>
+    </header>
+
+    <nav class="guides-toc" aria-label="Guide list">
+      {GUIDES.map(guide => (
+        <a href={`/guides/${guide.slug}`} class="guide-row">
+          <span class={`role-chip role-chip-${guide.role}`}>{guide.role}</span>
+          <div>
+            <h2>{guide.title}</h2>
+            <p>{guide.description}</p>
+          </div>
+          <span class="arrow-link" aria-hidden="true">
+            Read
+            <svg viewBox="0 0 24 24"><path d={arrow}/></svg>
+          </span>
+        </a>
+      ))}
+    </nav>
+  </div>
+</BaseLayout>

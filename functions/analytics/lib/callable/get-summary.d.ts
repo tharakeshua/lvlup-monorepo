@@ -9,5 +9,9 @@
  * scope: 'platform' → returns platform-wide metrics (superAdmin only)
  * scope: 'health'   → returns health snapshots & error counts (superAdmin only)
  */
-import type { GetSummaryResponse } from '@levelup/shared-types';
-export declare const getSummary: import("firebase-functions/https").CallableFunction<any, Promise<GetSummaryResponse>, unknown>;
+import type { GetSummaryResponse } from "../contracts/wire";
+export declare const getSummary: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<GetSummaryResponse>,
+  unknown
+>;

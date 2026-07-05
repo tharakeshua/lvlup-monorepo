@@ -32,7 +32,12 @@ export type TargetKeyFactory = (params: Record<string, unknown>) => readonly unk
 export const SUBSCRIPTION_TARGET_KEYS: Record<string, TargetKeyFactory> = {
   // levelup
   "v1.levelup.testSessionDeadline": (p) => testSessionKeys.detail(str(p.sessionId)),
-  "v1.levelup.chatStream": (p) => chatKeys.sub(str(p.sessionId), "messages"),
+  // CHAT-1: the payload is the {rev, lastMessageAt} BUMP, not messages — parked
+  // under a dedicated `bump` sub-key so a default write can never clobber the
+  // `detail`/`messages` caches. `useChatStream` always installs its own handler
+  // (debounced detail-invalidate), so this factory is a raw-useSubscription
+  // fallback only.
+  "v1.levelup.chatStream": (p) => chatKeys.sub(str(p.sessionId), "bump"),
   "v1.levelup.spaceProgressLive": (p) =>
     progressKeys.sub(str(p.spaceId), "space", { userId: str(p.userId) }),
   "v1.levelup.leaderboardLive": (p) =>

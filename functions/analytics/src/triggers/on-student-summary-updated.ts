@@ -11,9 +11,9 @@
 
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
-import { topN, bottomN } from "../utils/aggregation-helpers";
-import type { ClassProgressSummary } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { topN, bottomN, legacyMillis } from "../utils/aggregation-helpers";
+import type { ClassProgressSummary } from "../contracts/legacy-docs";
 
 const DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -67,9 +67,12 @@ async function updateClassSummary(
   // Debounce check
   const existingSummary = await classSummaryRef.get();
   if (existingSummary.exists) {
-    const lastUpdated = existingSummary.data()?.lastUpdatedAt;
-    if (lastUpdated && typeof lastUpdated.toMillis === "function") {
-      const elapsed = Date.now() - lastUpdated.toMillis();
+    // B8: lastUpdatedAt may be a Firestore Timestamp object OR an ISO string —
+    // the old `typeof .toMillis === "function"` guard would silently disable
+    // the debounce once ISO strings land at rest.
+    const lastUpdatedMs = legacyMillis(existingSummary.data()?.lastUpdatedAt);
+    if (lastUpdatedMs > 0) {
+      const elapsed = Date.now() - lastUpdatedMs;
       if (elapsed < DEBOUNCE_MS) {
         // Mark that a recalculation is pending so a future run picks it up
         await classSummaryRef.update({ pendingRecalculation: true });
@@ -162,34 +165,33 @@ async function updateClassSummary(
 
   const studentCount = studentIds.length;
 
-  const classSummary: Omit<ClassProgressSummary, "lastUpdatedAt"> & { lastUpdatedAt: FieldValue } =
-    {
-      id: classId,
-      tenantId,
-      classId,
-      className,
-      studentCount,
-      autograde: {
-        averageClassScore: examStudentCount > 0 ? totalExamScore / examStudentCount : 0,
-        examCompletionRate: examStudentCount > 0 ? totalExamCompletionRate / examStudentCount : 0,
-        topPerformers: topN(studentPerformance, 5, (s) => s.avgScore).map(
-          ({ studentId, name, avgScore }) => ({ studentId, name, avgScore })
-        ),
-        bottomPerformers: bottomN(studentPerformance, 5, (s) => s.avgScore).map(
-          ({ studentId, name, avgScore }) => ({ studentId, name, avgScore })
-        ),
-      },
-      levelup: {
-        averageClassCompletion: allSummaries.length > 0 ? totalCompletion / allSummaries.length : 0,
-        activeStudentRate: studentCount > 0 ? activeStudents / studentCount : 0,
-        topPointEarners: topN(studentPerformance, 5, (s) => s.points).map(
-          ({ studentId, name, points }) => ({ studentId, name, points })
-        ),
-      },
-      atRiskStudentIds,
-      atRiskCount: atRiskStudentIds.length,
-      lastUpdatedAt: FieldValue.serverTimestamp(),
-    };
+  const classSummary: ClassProgressSummary = {
+    id: classId,
+    tenantId,
+    classId,
+    className,
+    studentCount,
+    autograde: {
+      averageClassScore: examStudentCount > 0 ? totalExamScore / examStudentCount : 0,
+      examCompletionRate: examStudentCount > 0 ? totalExamCompletionRate / examStudentCount : 0,
+      topPerformers: topN(studentPerformance, 5, (s) => s.avgScore).map(
+        ({ studentId, name, avgScore }) => ({ studentId, name, avgScore })
+      ),
+      bottomPerformers: bottomN(studentPerformance, 5, (s) => s.avgScore).map(
+        ({ studentId, name, avgScore }) => ({ studentId, name, avgScore })
+      ),
+    },
+    levelup: {
+      averageClassCompletion: allSummaries.length > 0 ? totalCompletion / allSummaries.length : 0,
+      activeStudentRate: studentCount > 0 ? activeStudents / studentCount : 0,
+      topPointEarners: topN(studentPerformance, 5, (s) => s.points).map(
+        ({ studentId, name, points }) => ({ studentId, name, points })
+      ),
+    },
+    atRiskStudentIds,
+    atRiskCount: atRiskStudentIds.length,
+    lastUpdatedAt: isoNow(), // B8: ISO strings are canonical at rest
+  };
 
   await classSummaryRef.set(classSummary);
 

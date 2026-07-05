@@ -1,18 +1,18 @@
-import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import { assertAuth, assertTenantMember } from '../utils/auth';
-import { loadItem, loadAgent, getDb } from '../utils/firestore';
-import { resolveRubric } from '../utils/rubric';
-import { enforceRateLimit } from '../utils/rate-limit';
-import { autoEvaluateSubmission } from '../utils/auto-evaluate';
-import { buildEvaluationPrompt } from '../prompts/evaluator';
-import { LLMWrapper, getGeminiApiKey } from '@levelup/shared-services/ai';
-import { EvaluateAnswerRequestSchema } from '@levelup/shared-types';
-import { parseRequest } from '../utils';
-import type { UnifiedEvaluationResult, Agent, QuestionPayload, AnswerKey } from '../types';
-import { AUTO_EVALUATABLE_TYPES } from '../types';
-import { Timestamp } from 'firebase-admin/firestore';
+import * as admin from "firebase-admin";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/v2";
+import { assertAuth, assertTenantMember } from "../utils/auth";
+import { loadItem, loadAgent, getDb } from "../utils/firestore";
+import { resolveRubric } from "../utils/rubric";
+import { enforceRateLimit } from "../utils/rate-limit";
+import { autoEvaluateSubmission } from "../utils/auto-evaluate";
+import { buildEvaluationPrompt } from "../prompts/evaluator";
+import { LLMWrapper, getGeminiApiKey } from "@levelup/shared-services/ai";
+import { EvaluateAnswerRequestSchema } from "../contracts/wire";
+import { parseRequest } from "../utils";
+import type { UnifiedEvaluationResult, Agent, QuestionPayload, AnswerKey } from "../types";
+import { AUTO_EVALUATABLE_TYPES } from "../types";
+import { Timestamp } from "firebase-admin/firestore";
 
 interface EvaluateAnswerRequest {
   tenantId: string;
@@ -31,13 +31,16 @@ interface EvaluateAnswerRequest {
  * Rate limited: 10 AI operations/min per user.
  */
 export const evaluateAnswer = onCall(
-  { region: 'asia-south1', timeoutSeconds: 60, cors: true },
+  { region: "asia-south1", timeoutSeconds: 60, cors: true },
   async (request) => {
     const callerUid = assertAuth(request.auth);
     const data = parseRequest(request.data, EvaluateAnswerRequestSchema);
 
     if (!data.tenantId || !data.spaceId || !data.itemId || data.answer === undefined) {
-      throw new HttpsError('invalid-argument', 'tenantId, spaceId, itemId, and answer are required');
+      throw new HttpsError(
+        "invalid-argument",
+        "tenantId, spaceId, itemId, and answer are required"
+      );
     }
 
     await assertTenantMember(callerUid, data.tenantId);
@@ -58,7 +61,9 @@ export const evaluateAnswer = onCall(
       // Fallback: if nested path empty and we used it, try flat path
       if (akSnap.empty && data.storyPointId) {
         akSnap = await db
-          .collection(`tenants/${data.tenantId}/spaces/${data.spaceId}/items/${data.itemId}/answerKeys`)
+          .collection(
+            `tenants/${data.tenantId}/spaces/${data.spaceId}/items/${data.itemId}/answerKeys`
+          )
           .limit(1)
           .get();
       }
@@ -68,13 +73,19 @@ export const evaluateAnswer = onCall(
 
       const autoResult = autoEvaluateSubmission(
         item,
-        { itemId: data.itemId, questionType, answer: data.answer, submittedAt: Date.now(), timeSpentSeconds: 0 },
-        answerKey,
+        {
+          itemId: data.itemId,
+          questionType,
+          answer: data.answer,
+          submittedAt: Date.now(),
+          timeSpentSeconds: 0,
+        },
+        answerKey
       );
 
       if (autoResult) {
         logger.info(
-          `Auto-evaluated item ${data.itemId}: ${autoResult.score}/${autoResult.maxScore} (deterministic)`,
+          `Auto-evaluated item ${data.itemId}: ${autoResult.score}/${autoResult.maxScore} (deterministic)`
         );
         return autoResult;
       }
@@ -84,7 +95,7 @@ export const evaluateAnswer = onCall(
     // --- AI evaluation for subjective question types ---
 
     // Rate limit: 10 AI operations/min per user
-    await enforceRateLimit(data.tenantId, callerUid, 'ai', 10);
+    await enforceRateLimit(data.tenantId, callerUid, "ai", 10);
 
     // Resolve evaluator agent (item > space default > null)
     let agent: Agent | null = null;
@@ -110,29 +121,35 @@ export const evaluateAnswer = onCall(
 
     // Get API key and call LLM
     const apiKey = await getGeminiApiKey(data.tenantId);
-    const llm = new LLMWrapper({ provider: 'gemini', apiKey, enableLogging: true });
+    const llm = new LLMWrapper({ provider: "gemini", apiKey, enableLogging: true });
 
-    const result = await llm.call<UnifiedEvaluationResult>(prompt, {
-      clientId: data.tenantId,
-      userId: callerUid,
-      userRole: 'student',
-      purpose: 'answer_evaluation',
-      operation: 'levelup_evaluate_answer',
-      resourceType: 'item',
-      resourceId: data.itemId,
-      model: agent?.modelOverride || 'gemini-2.5-flash',
-      temperature: agent?.temperatureOverride ?? 0.3,
-      maxTokens: 4096,
-    }, {
-      responseMimeType: 'application/json',
-      ...(data.mediaUrls?.length ? {
-        // For image evaluation, we'd need to fetch the images
-        // For now, the URLs are passed in the prompt text
-      } : {}),
-    });
+    const result = await llm.call<UnifiedEvaluationResult>(
+      prompt,
+      {
+        clientId: data.tenantId,
+        userId: callerUid,
+        userRole: "student",
+        purpose: "answer_evaluation",
+        operation: "levelup_evaluate_answer",
+        resourceType: "item",
+        resourceId: data.itemId,
+        model: agent?.modelOverride || "gemini-2.5-flash",
+        temperature: agent?.temperatureOverride ?? 0.3,
+        maxTokens: 4096,
+      },
+      {
+        responseMimeType: "application/json",
+        ...(data.mediaUrls?.length
+          ? {
+              // For image evaluation, we'd need to fetch the images
+              // For now, the URLs are passed in the prompt text
+            }
+          : {}),
+      }
+    );
 
     if (!result.parsed) {
-      throw new HttpsError('internal', 'Failed to parse AI evaluation response');
+      throw new HttpsError("internal", "Failed to parse AI evaluation response");
     }
 
     // Normalize the result
@@ -144,9 +161,9 @@ export const evaluateAnswer = onCall(
     };
 
     logger.info(
-      `Evaluated item ${data.itemId}: ${evaluation.score}/${evaluation.maxScore} (confidence: ${evaluation.confidence})`,
+      `Evaluated item ${data.itemId}: ${evaluation.score}/${evaluation.maxScore} (confidence: ${evaluation.confidence})`
     );
 
     return evaluation;
-  },
+  }
 );

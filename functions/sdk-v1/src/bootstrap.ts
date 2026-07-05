@@ -33,13 +33,25 @@
 import admin from "firebase-admin";
 import { isoNow, type Timestamp } from "@levelup/domain";
 import { createRepos } from "@levelup/services/repo-admin";
-import { createAiGateway, createStubProvider, type SecretResolver } from "@levelup/ai";
+import {
+  createAiGateway,
+  createStubProvider,
+  createStubImageStore,
+  type SecretResolver,
+} from "@levelup/ai";
 import {
   configureRuntime,
   projectId,
+  createAdminStorageSigner,
+  createRtdbGradingProjections,
+  createRtdbLevelupProjections,
+  enqueuePipelineAdvance,
   type Repos as PortRepos,
   type AiGateway as PortAiGateway,
+  type PipelineEnqueuePort,
 } from "@levelup/functions-adapters";
+import { makeAiSeam } from "./ai-seam.js";
+import { createAdminImageStore } from "./image-store.js";
 
 let configured = false;
 
@@ -76,9 +88,16 @@ export function bootstrapRuntime(): void {
     process.env["SEED"] === "1" ||
     process.env["TEST"] === "1";
 
+  // imageStore (FIX-3): the storagePath→bytes seam has NO in-gateway default —
+  // unwired, every `{ storagePath }` AI call fails loud PRECONDITION_FAILED
+  // ("image store not configured"). Prod reads the DEFAULT bucket (the same one
+  // `signUploadUrl` grants `tenants/…` paths into); emulator/tests get the
+  // deterministic stub (symmetric with createStubProvider — no Storage-emulator
+  // object needs to exist behind the paths services pass).
   const aiDeps: Parameters<typeof createAiGateway>[0] = {
     repos: repos as unknown as Parameters<typeof createAiGateway>[0]["repos"],
     projectId: projectId(),
+    imageStore: isEmulatorOrTest ? createStubImageStore() : createAdminImageStore(),
   };
   if (isEmulatorOrTest) {
     const stubSecretResolver: SecretResolver = {
@@ -90,12 +109,56 @@ export function bootstrapRuntime(): void {
   }
   const ai = createAiGateway(aiDeps);
 
+  // ── AI seam reconciliation (RESULT-shape adapter) ──────────────────────────
+  // The `@levelup/services` layer consumes the gateway through its OWN structural
+  // seam (`services/src/shared/ai.ts` `AiGenerateResult`), whose result fields are
+  // `{ text, json, tokensUsed, costUsd, model }` — every service reads `ai.json`
+  // (+ `ai.costUsd`/`ai.tokensUsed`). The concrete `@levelup/ai` gateway returns
+  // `AiResponse = { data, text, tokenUsage, cost, model }`. These two shapes have
+  // NEVER been reconciled: the `as unknown as PortAiGateway` cast below silences
+  // the type divergence, so at runtime `ai.json` was ALWAYS `undefined` and every
+  // AI-graded answer (and autograde grade, and chat token count) collapsed to a
+  // zeroed/empty result. Adapt the RESULT here — the single sanctioned wiring
+  // boundary — so the injected gateway satisfies the services seam at runtime.
+  // The mapping lives in `./ai-seam.ts` (pure, unit-pinned) because this `as
+  // unknown` cast has no compile guard; see `__tests__/ai-seam.adapter.test.ts`.
+  const aiSeam = makeAiSeam(ai as unknown as Parameters<typeof makeAiSeam>[0]);
+
+  // ── Runtime-wiring hooks (FIX-2: the previously-hollow composition root) ────
+  // PROD-ONLY injection (except the RTDB tickers — see below); when absent the
+  // services keep their emulator/test fallbacks (stub upload URL, inline
+  // pipeline, no-op ticker projection):
+  //   • storage            → ctx.storage.signUploadUrl (Admin-SDK v4 signed PUT;
+  //                          requestUploadUrlService, P0-D)
+  //   • pipelineTasks      → ctx.enqueuePipelineAdvance (Cloud Tasks via
+  //                          firebase-admin/functions onto the deployed
+  //                          v1-autograde-advancePipeline handler, P1-F)
+  //   • gradingProjections → ctx.repos.gradingProjections (Admin-RTDB live-ticker
+  //                          writer implementing the AG-5 GradingProjectionPort)
+  //   • levelupProjections → ctx.repos.levelupProjections (Admin-RTDB live-ticker
+  //                          writer implementing the U2.6 LevelupProjectionPort —
+  //                          spaceProgress/level/achievement/testSession channels)
+  // The RTDB ticker projections ALSO wire in the emulator when the database
+  // emulator is up (FIREBASE_DATABASE_EMULATOR_HOST): the Admin SDK then targets
+  // the emulated RTDB, which makes the AD-12 channels (incl. the CHAT-1
+  // chatBump e2e) testable end-to-end. The adapters stay best-effort
+  // (log+swallow), so a run without the database emulator only logs.
+  const rtdbAvailable = !isEmulatorOrTest || !!process.env["FIREBASE_DATABASE_EMULATOR_HOST"];
+  if (rtdbAvailable) {
+    (repos as unknown as Record<string, unknown>)["gradingProjections"] =
+      createRtdbGradingProjections();
+    (repos as unknown as Record<string, unknown>)["levelupProjections"] =
+      createRtdbLevelupProjections();
+  }
+  const pipelineTasks: PipelineEnqueuePort = (req) => enqueuePipelineAdvance(req);
+
   configureRuntime({
     // Structural-port reconciliation cast (see file header). The concrete
     // implementations are supersets of the adapter-layer ports.
     repos: repos as unknown as PortRepos,
-    ai: ai as unknown as PortAiGateway,
+    ai: aiSeam as unknown as PortAiGateway,
     clock,
+    ...(isEmulatorOrTest ? {} : { storage: createAdminStorageSigner(), pipelineTasks }),
   });
 
   configured = true;

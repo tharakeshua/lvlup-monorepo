@@ -12,7 +12,7 @@
  *  8. sendBulkNotifications: updates RTDB for all recipients
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Stable mock references (defined before vi.mock) ──────────────────────
 
@@ -25,7 +25,7 @@ const mockRtdbRefSet = vi.fn().mockResolvedValue(undefined);
 
 const stableDb = {
   collection: vi.fn(() => ({
-    doc: vi.fn(() => ({ id: 'notif-123', set: mockSet })),
+    doc: vi.fn(() => ({ id: "notif-123", set: mockSet })),
   })),
   batch: vi.fn(() => ({ set: mockBatchSet, commit: mockBatchCommit })),
 };
@@ -38,9 +38,9 @@ const stableRtdb = {
   })),
 };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
-  fsFn.FieldValue = { serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP') };
+  fsFn.FieldValue = { serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP") };
   return {
     default: { firestore: fsFn, database: () => stableRtdb },
     firestore: fsFn,
@@ -50,59 +50,63 @@ vi.mock('firebase-admin', () => {
 
 // ── Import under test (after mocks) ─────────────────────────────────────
 
-import { sendNotification, sendBulkNotifications, type NotificationPayload } from '../utils/notification-sender';
+import {
+  sendNotification,
+  sendBulkNotifications,
+  type NotificationPayload,
+} from "../utils/notification-sender";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function makePayload(overrides: Partial<NotificationPayload> = {}): NotificationPayload {
   return {
-    tenantId: 'tenant-1',
-    recipientId: 'user-1',
-    recipientRole: 'student',
-    type: 'exam_graded',
-    title: 'Exam Graded',
-    body: 'Your exam has been graded.',
+    tenantId: "tenant-1",
+    recipientId: "user-1",
+    recipientRole: "student",
+    type: "exam_graded",
+    title: "Exam Graded",
+    body: "Your exam has been graded.",
     ...overrides,
   };
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────
 
-describe('sendNotification', () => {
+describe("sendNotification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('creates Firestore doc with correct fields', async () => {
+  it("creates Firestore doc with correct fields", async () => {
     const payload = makePayload({
-      entityType: 'exam',
-      entityId: 'exam-42',
-      actionUrl: '/exam/42',
+      entityType: "exam",
+      entityId: "exam-42",
+      actionUrl: "/exam/42",
     });
 
     await sendNotification(payload);
 
-    expect(stableDb.collection).toHaveBeenCalledWith('tenants/tenant-1/notifications');
+    expect(stableDb.collection).toHaveBeenCalledWith("tenants/tenant-1/notifications");
     expect(mockSet).toHaveBeenCalledTimes(1);
 
     const docData = mockSet.mock.calls[0][0];
     expect(docData).toMatchObject({
-      id: 'notif-123',
-      tenantId: 'tenant-1',
-      recipientId: 'user-1',
-      recipientRole: 'student',
-      type: 'exam_graded',
-      title: 'Exam Graded',
-      body: 'Your exam has been graded.',
-      entityType: 'exam',
-      entityId: 'exam-42',
-      actionUrl: '/exam/42',
+      id: "notif-123",
+      tenantId: "tenant-1",
+      recipientId: "user-1",
+      recipientRole: "student",
+      type: "exam_graded",
+      title: "Exam Graded",
+      body: "Your exam has been graded.",
+      entityType: "exam",
+      entityId: "exam-42",
+      actionUrl: "/exam/42",
       isRead: false,
-      createdAt: 'SERVER_TIMESTAMP',
+      createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
     });
   });
 
-  it('sets entityType, entityId, and actionUrl to null when not provided', async () => {
+  it("sets entityType, entityId, and actionUrl to null when not provided", async () => {
     const payload = makePayload();
 
     await sendNotification(payload);
@@ -113,15 +117,13 @@ describe('sendNotification', () => {
     expect(docData.actionUrl).toBeNull();
   });
 
-  it('increments RTDB unread count via transaction', async () => {
+  it("increments RTDB unread count via transaction", async () => {
     const payload = makePayload();
 
     await sendNotification(payload);
 
     // Should call ref with the correct unread count path
-    expect(stableRtdb.ref).toHaveBeenCalledWith(
-      'notifications/tenant-1/user-1/unreadCount',
-    );
+    expect(stableRtdb.ref).toHaveBeenCalledWith("notifications/tenant-1/user-1/unreadCount");
     expect(mockTransaction).toHaveBeenCalledTimes(1);
 
     // The transaction callback should increment: (current ?? 0) + 1
@@ -131,44 +133,42 @@ describe('sendNotification', () => {
     expect(txCallback(5)).toBe(6);
   });
 
-  it('sets RTDB latest notification', async () => {
+  it("sets RTDB latest notification", async () => {
     const payload = makePayload();
 
     await sendNotification(payload);
 
-    expect(stableRtdb.ref).toHaveBeenCalledWith(
-      'notifications/tenant-1/user-1/latest',
-    );
+    expect(stableRtdb.ref).toHaveBeenCalledWith("notifications/tenant-1/user-1/latest");
     expect(mockRtdbRefSet).toHaveBeenCalledTimes(1);
 
     const latestData = mockRtdbRefSet.mock.calls[0][0];
     expect(latestData).toMatchObject({
-      id: 'notif-123',
-      title: 'Exam Graded',
-      type: 'exam_graded',
+      id: "notif-123",
+      title: "Exam Graded",
+      type: "exam_graded",
     });
     expect(latestData.createdAt).toEqual(expect.any(Number));
   });
 
-  it('returns notification ID', async () => {
+  it("returns notification ID", async () => {
     const payload = makePayload();
     const id = await sendNotification(payload);
-    expect(id).toBe('notif-123');
+    expect(id).toBe("notif-123");
   });
 });
 
-describe('sendBulkNotifications', () => {
+describe("sendBulkNotifications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns 0 for empty recipients array', async () => {
+  it("returns 0 for empty recipients array", async () => {
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'student' as const,
-      type: 'announcement',
-      title: 'Hello',
-      body: 'Announcement body',
+      tenantId: "tenant-1",
+      recipientRole: "student" as const,
+      type: "announcement",
+      title: "Hello",
+      body: "Announcement body",
     };
 
     const count = await sendBulkNotifications([], basePayload);
@@ -176,14 +176,14 @@ describe('sendBulkNotifications', () => {
     expect(stableDb.batch).not.toHaveBeenCalled();
   });
 
-  it('sends to all recipients in a single batch', async () => {
-    const recipients = ['user-1', 'user-2', 'user-3'];
+  it("sends to all recipients in a single batch", async () => {
+    const recipients = ["user-1", "user-2", "user-3"];
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'student' as const,
-      type: 'announcement',
-      title: 'Hello',
-      body: 'Announcement body',
+      tenantId: "tenant-1",
+      recipientRole: "student" as const,
+      type: "announcement",
+      title: "Hello",
+      body: "Announcement body",
     };
 
     const count = await sendBulkNotifications(recipients, basePayload);
@@ -194,15 +194,15 @@ describe('sendBulkNotifications', () => {
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
   });
 
-  it('handles batching when recipients exceed 450', async () => {
+  it("handles batching when recipients exceed 450", async () => {
     // Create 500 recipients to trigger 2 batches (450 + 50)
     const recipients = Array.from({ length: 500 }, (_, i) => `user-${i}`);
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'student' as const,
-      type: 'announcement',
-      title: 'Hello',
-      body: 'Announcement body',
+      tenantId: "tenant-1",
+      recipientRole: "student" as const,
+      type: "announcement",
+      title: "Hello",
+      body: "Announcement body",
     };
 
     const count = await sendBulkNotifications(recipients, basePayload);
@@ -214,16 +214,16 @@ describe('sendBulkNotifications', () => {
     expect(mockBatchSet).toHaveBeenCalledTimes(500);
   });
 
-  it('batch.set is called with correct doc data for each recipient', async () => {
-    const recipients = ['user-A'];
+  it("batch.set is called with correct doc data for each recipient", async () => {
+    const recipients = ["user-A"];
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'teacher' as const,
-      type: 'alert',
-      title: 'Alert',
-      body: 'Alert body',
-      entityType: 'student' as const,
-      entityId: 'student-1',
+      tenantId: "tenant-1",
+      recipientRole: "teacher" as const,
+      type: "alert",
+      title: "Alert",
+      body: "Alert body",
+      entityType: "student" as const,
+      entityId: "student-1",
     };
 
     await sendBulkNotifications(recipients, basePayload);
@@ -231,28 +231,28 @@ describe('sendBulkNotifications', () => {
     expect(mockBatchSet).toHaveBeenCalledTimes(1);
     const [docRef, docData] = mockBatchSet.mock.calls[0];
     expect(docData).toMatchObject({
-      id: 'notif-123',
-      tenantId: 'tenant-1',
-      recipientId: 'user-A',
-      recipientRole: 'teacher',
-      type: 'alert',
-      title: 'Alert',
-      body: 'Alert body',
-      entityType: 'student',
-      entityId: 'student-1',
+      id: "notif-123",
+      tenantId: "tenant-1",
+      recipientId: "user-A",
+      recipientRole: "teacher",
+      type: "alert",
+      title: "Alert",
+      body: "Alert body",
+      entityType: "student",
+      entityId: "student-1",
       isRead: false,
-      createdAt: 'SERVER_TIMESTAMP',
+      createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
     });
   });
 
-  it('updates RTDB latest for all recipients via ref().update()', async () => {
-    const recipients = ['user-1', 'user-2'];
+  it("updates RTDB latest for all recipients via ref().update()", async () => {
+    const recipients = ["user-1", "user-2"];
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'student' as const,
-      type: 'announcement',
-      title: 'Hello',
-      body: 'Announcement body',
+      tenantId: "tenant-1",
+      recipientRole: "student" as const,
+      type: "announcement",
+      title: "Hello",
+      body: "Announcement body",
     };
 
     await sendBulkNotifications(recipients, basePayload);
@@ -262,22 +262,22 @@ describe('sendBulkNotifications', () => {
     expect(mockRtdbUpdate).toHaveBeenCalledTimes(1);
 
     const updateArg = mockRtdbUpdate.mock.calls[0][0];
-    expect(updateArg).toHaveProperty('notifications/tenant-1/user-1/latest');
-    expect(updateArg).toHaveProperty('notifications/tenant-1/user-2/latest');
-    expect(updateArg['notifications/tenant-1/user-1/latest']).toMatchObject({
-      title: 'Hello',
-      type: 'announcement',
+    expect(updateArg).toHaveProperty("notifications/tenant-1/user-1/latest");
+    expect(updateArg).toHaveProperty("notifications/tenant-1/user-2/latest");
+    expect(updateArg["notifications/tenant-1/user-1/latest"]).toMatchObject({
+      title: "Hello",
+      type: "announcement",
     });
   });
 
-  it('increments RTDB unread count for each recipient via transaction', async () => {
-    const recipients = ['user-1', 'user-2'];
+  it("increments RTDB unread count for each recipient via transaction", async () => {
+    const recipients = ["user-1", "user-2"];
     const basePayload = {
-      tenantId: 'tenant-1',
-      recipientRole: 'student' as const,
-      type: 'announcement',
-      title: 'Hello',
-      body: 'Announcement body',
+      tenantId: "tenant-1",
+      recipientRole: "student" as const,
+      type: "announcement",
+      title: "Hello",
+      body: "Announcement body",
     };
 
     await sendBulkNotifications(recipients, basePayload);

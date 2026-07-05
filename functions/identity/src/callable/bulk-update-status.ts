@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 import { assertTenantAdminOrSuperAdmin, parseRequest, logTenantAction } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { z } from "zod";
@@ -43,7 +43,8 @@ export const bulkUpdateStatus = onCall(
         const ref = db.doc(`${basePath}/${entityId}`);
         batch.update(ref, {
           status: data.newStatus,
-          updatedAt: FieldValue.serverTimestamp(),
+          // B8: timestamps at rest are canonical ISO strings.
+          updatedAt: isoNow(),
         });
         updated++;
       }

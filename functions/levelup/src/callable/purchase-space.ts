@@ -3,7 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth } from "../utils/auth";
-import { PurchaseSpaceRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { PurchaseSpaceRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -65,7 +66,7 @@ export const purchaseSpace = onCall({ region: "asia-south1", cors: true }, async
     spaceTitle: storeSpace.title || "",
     amount: storeSpace.price ?? 0,
     currency: storeSpace.currency ?? "USD",
-    purchasedAt: FieldValue.serverTimestamp(),
+    purchasedAt: isoNow(),
     transactionId,
   };
 
@@ -74,13 +75,13 @@ export const purchaseSpace = onCall({ region: "asia-south1", cors: true }, async
     "consumerProfile.enrolledSpaceIds": FieldValue.arrayUnion(data.spaceId),
     "consumerProfile.purchaseHistory": FieldValue.arrayUnion(purchaseRecord),
     "consumerProfile.totalSpend": FieldValue.increment(storeSpace.price ?? 0),
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: isoNow(),
   });
 
   // Increment store space student count
   await storeSpaceRef.update({
     "stats.totalStudents": FieldValue.increment(1),
-    updatedAt: FieldValue.serverTimestamp(),
+    updatedAt: isoNow(),
   });
 
   logger.info(`Consumer ${callerUid} purchased space ${data.spaceId} (txn: ${transactionId})`);

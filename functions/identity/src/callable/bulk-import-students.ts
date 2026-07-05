@@ -2,10 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import {
-  DEFAULT_TEACHER_PERMISSIONS,
-  BulkImportStudentsRequestSchema,
-} from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { BulkImportStudentsRequestSchema } from "../contracts/wire";
 import {
   assertTenantAdminOrSuperAdmin,
   getTenant,
@@ -21,7 +19,7 @@ import {
 } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { incrementUsage } from "../utils/usage";
-import type { UserMembership } from "@levelup/shared-types";
+import type { UserMembership } from "../contracts/legacy-docs";
 
 interface StudentImportRow {
   firstName: string;
@@ -193,8 +191,9 @@ export const bulkImportStudents = onCall(
             classIds: row.classId ? [row.classId] : [],
             sectionIds: row.section ? [row.section] : [],
             status: "active",
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            createdAt: isoNow(),
+            updatedAt: isoNow(),
           });
 
           // Create membership
@@ -212,8 +211,8 @@ export const bulkImportStudents = onCall(
             permissions: {
               managedClassIds: row.classId ? [row.classId] : [],
             },
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: isoNow(),
+            updatedAt: isoNow(),
           };
 
           await admin.firestore().doc(`userMemberships/${membershipId}`).set(membership);
@@ -228,7 +227,7 @@ export const bulkImportStudents = onCall(
               .update({
                 studentIds: FieldValue.arrayUnion(studentRef.id),
                 studentCount: FieldValue.increment(1),
-                updatedAt: FieldValue.serverTimestamp(),
+                updatedAt: isoNow(),
               });
           }
 
@@ -260,7 +259,7 @@ export const bulkImportStudents = onCall(
         .doc(`tenants/${data.tenantId}`)
         .update({
           "stats.totalStudents": FieldValue.increment(created),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       await incrementUsage(data.tenantId, "currentStudents", created);
     }
@@ -386,7 +385,7 @@ async function createParentForStudent(
     // Add student to existing parent's linked students
     await existingMembership.ref.update({
       parentLinkedStudentIds: FieldValue.arrayUnion(studentId),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     });
     return;
   }
@@ -404,8 +403,8 @@ async function createParentForStudent(
     phone: row.parentPhone ?? null,
     linkedStudentIds: [studentId],
     status: "active",
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: isoNow(),
+    updatedAt: isoNow(),
   });
 
   // Create parent membership
@@ -422,8 +421,8 @@ async function createParentForStudent(
       joinSource: "bulk_import",
       parentId: parentRef.id,
       parentLinkedStudentIds: [studentId],
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     });
 
   await updateTenantStats(tenantId, "parent", "increment");

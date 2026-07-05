@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 import { loadItems } from "../utils/firestore";
 import { autoEvaluateSubmission } from "../utils/auto-evaluate";
 import type { QuestionPayload, TestSubmission, AnswerKey } from "../types";
@@ -52,9 +53,11 @@ export const onTestSessionExpired = onSchedule(
     for (const sessionDoc of staleSessions.docs) {
       batch.update(sessionDoc.ref, {
         status: "expired",
+        // U3.5: session timing fields stay Firestore Timestamps at rest.
+        // serverDeadline (the query field above) is likewise always a Timestamp.
         endedAt: now,
         autoSubmitted: true,
-        updatedAt: now,
+        updatedAt: isoNow(),
       });
       count++;
     }

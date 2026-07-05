@@ -1,8 +1,9 @@
 /**
  * v1.autograde.gradingStatus — live pipeline status for a submission.
  *
- * Projection doc `tenants/{t}/.../submissions/{id}/live` written by advancePipeline /
- * finalizeSubmission.
+ * RTDB projection node `gradingProgress/{t}/submission/{id}/status` written by the
+ * autograde pipeline (advancePipeline / finalizeSubmission) via the AD-12
+ * RTDB-projection pattern — NOT a Firestore doc/rules path.
  *
  * **RELEASE-GATE (MERGE-REALTIME-AUTHORITY).** `SubmissionStatusSchema` deliberately
  * DROPS `summary` / `totalScore` / `grade` / `percentage`. A student subscriber sees
@@ -33,7 +34,7 @@ export type GradingStatusParams = z.infer<typeof GradingStatusParamsSchema>;
 export const gradingStatus = defineSubscription({
   name: "v1.autograde.gradingStatus",
   module: "autograde",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: GradingStatusParamsSchema,
   payload: SubmissionStatusSchema,
 });

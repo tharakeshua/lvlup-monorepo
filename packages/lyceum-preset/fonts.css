@@ -1,0 +1,16 @@
+/* Lyceum — font faces (Google Fonts, variable), per 00-FOUNDATION §3.
+ * Display/headings: Fraunces (optical size + weight axes)
+ * UI/body:          Schibsted Grotesk
+ * Mono/numeric:     Spline Sans Mono
+ *
+ * PREFERRED (Phase B): put <link> tags in the app's index.html instead of
+ * this @import — a CSS @import blocks first paint. This file exists so an
+ * app can adopt Lyceum with a one-line CSS change and zero HTML edits:
+ *
+ *   <link rel="preconnect" href="https://fonts.googleapis.com">
+ *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ *   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+ *
+ * If the <link> route is taken, skip importing this file.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap');

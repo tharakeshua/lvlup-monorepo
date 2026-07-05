@@ -1,6 +1,6 @@
-import { HttpsError } from 'firebase-functions/v2/https';
-import type { TenantFeatures } from '@levelup/shared-types';
-import { getTenant } from './firestore-helpers';
+import { HttpsError } from "firebase-functions/v2/https";
+import type { TenantFeatures } from "../contracts/legacy-docs";
+import { getTenant } from "./firestore-helpers";
 
 /**
  * Assert a tenant has the given feature enabled.
@@ -8,17 +8,17 @@ import { getTenant } from './firestore-helpers';
  */
 export async function assertFeatureEnabled(
   tenantId: string,
-  feature: keyof TenantFeatures,
+  feature: keyof TenantFeatures
 ): Promise<void> {
   const tenant = await getTenant(tenantId);
   if (!tenant) {
-    throw new HttpsError('not-found', 'Tenant not found');
+    throw new HttpsError("not-found", "Tenant not found");
   }
 
   if (!tenant.features[feature]) {
     throw new HttpsError(
-      'permission-denied',
-      `Feature "${feature}" is not enabled for your plan. Contact your administrator.`,
+      "permission-denied",
+      `Feature "${feature}" is not enabled for your plan. Contact your administrator.`
     );
   }
 }

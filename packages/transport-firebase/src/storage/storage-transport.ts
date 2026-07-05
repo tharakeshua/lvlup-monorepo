@@ -28,11 +28,13 @@ export interface StorageTransportDeps {
   storage: FirebaseStorage;
 }
 
-function toBodyInit(bytes: Blob | ArrayBuffer | Uint8Array): BodyInit {
+function toBodyInit(bytes: UploadBytesInput["bytes"]): BodyInit {
   // Blob and ArrayBuffer are valid BodyInit; a Uint8Array view is forwarded as-is
-  // (its underlying buffer is the wire payload for the signed PUT).
+  // (its underlying buffer is the wire payload for the signed PUT). `bytes` is the
+  // contract's DOM-lib-free union (BinaryBlobLike | ArrayBuffer | Uint8Array); a
+  // real DOM/Node Blob satisfies BinaryBlobLike and is a valid BodyInit at runtime.
   if (bytes instanceof Uint8Array) return bytes as unknown as BodyInit;
-  return bytes as BodyInit;
+  return bytes as unknown as BodyInit;
 }
 
 export function createStorageTransport(deps: StorageTransportDeps): StorageTransport {

@@ -13,8 +13,9 @@
 import type { TenantId, UserId, ExamId, SpaceId, JsonValue } from "@levelup/domain";
 import type { AiRepos } from "./repos-seam.js";
 import { PROMPTS, renderPrompt, type AiPurpose, type PromptKey } from "./prompts/registry.js";
-import type { LLMProvider, ProviderImage } from "./provider/provider.js";
+import type { LLMProvider } from "./provider/provider.js";
 import { createGeminiProvider } from "./provider/gemini.js";
+import { resolveImages, type AiImageRef, type AiImageStore } from "./images/image-store.js";
 import { createSecretResolver, type SecretResolver } from "./secrets/secret-manager.js";
 import { checkUsageQuota } from "./cost/usage-quota.js";
 import {
@@ -43,7 +44,13 @@ export interface AiRequest {
   operation: string;
   promptKey: PromptKey;
   variables: Record<string, JsonValue>;
-  images?: ProviderImage[];
+  /**
+   * Vision inputs. Services pass STORAGE PATHS (`{ storagePath }`); the gateway
+   * resolves them to inline base64 via the injected `imageStore` right before
+   * the provider call (bytes never transit the services layer). Pre-encoded
+   * `{ base64, mimeType }` refs pass through untouched.
+   */
+  images?: AiImageRef[];
   /** JSON Schema for structured output. */
   responseSchema?: unknown;
   model?: string;
@@ -96,6 +103,14 @@ export interface CreateAiGatewayDeps {
   circuitBreaker?: CircuitBreaker;
   /** Retry attempts for transient provider failures. */
   maxRetries?: number;
+  /**
+   * Storage-read seam for `{ storagePath }` image refs (composition root wraps
+   * the Admin SDK bucket; tests inject a fake). When absent, a request carrying
+   * storage-path images fails with a clear PRECONDITION_FAILED.
+   */
+  imageStore?: AiImageStore;
+  /** Override the summed raw-byte inline-image budget (default 14MB). */
+  maxTotalImageBytes?: number;
 }
 
 export function createAiGateway(deps: CreateAiGatewayDeps): AiGateway {
@@ -149,13 +164,22 @@ export function createAiGateway(deps: CreateAiGatewayDeps): AiGateway {
 
       let providerOut: Awaited<ReturnType<LLMProvider["call"]>> | undefined;
       try {
+        // Resolve `{ storagePath }` refs → inline base64 (P0-B seam). Inside the
+        // try so a storage-read/budget failure is audit-logged like any other
+        // failed call; resolution is NOT inside withRetry (one download pass).
+        const images = await resolveImages(req.images, {
+          ...(deps.imageStore !== undefined ? { store: deps.imageStore } : {}),
+          ...(deps.maxTotalImageBytes !== undefined
+            ? { maxTotalBytes: deps.maxTotalImageBytes }
+            : {}),
+        });
         providerOut = await withRetry(
           () =>
             provider.call({
               model,
               system,
               user,
-              images: req.images,
+              images,
               ...(req.temperature !== undefined
                 ? { temperature: req.temperature }
                 : { temperature: template.defaultTemperature }),

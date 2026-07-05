@@ -1,18 +1,20 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTenantMember } from "../utils/auth";
 import { getDb, loadItems } from "../utils/firestore";
 import { autoEvaluateSubmission } from "../utils/auto-evaluate";
-import { SubmitTestSessionRequestSchema } from "@levelup/shared-types";
+import { isoNow, toMillis, toTimestamp } from "@levelup/domain";
+import { SubmitTestSessionRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { recalculateAndWriteProgress } from "../utils/progress-updater";
 import type { StoredItemProgressEntry } from "../utils/progress-updater";
 import type { DigitalTestSession, TestSubmission, AnswerKey, QuestionPayload } from "../types";
-import type { TestAnalytics, AnalyticsBreakdownEntry, UnifiedItem } from "@levelup/shared-types";
-import { AI_EVALUATABLE_TYPES, DigitalTestSessionSchema } from "@levelup/shared-types";
+import type { TestAnalytics, AnalyticsBreakdownEntry, UnifiedItem } from "../types";
+import { AI_EVALUATABLE_TYPES } from "../types";
+import { DigitalTestSessionDocSchema as DigitalTestSessionSchema } from "../contracts/legacy-docs";
 
 const GRACE_PERIOD_MS = 30_000; // 30 seconds grace period
 
@@ -70,7 +72,8 @@ export const submitTestSession = onCall(
     // Validate timing for timed tests
     const now = Timestamp.now();
     if (session.sessionType === "timed_test" && session.serverDeadline) {
-      const deadlineMs = session.serverDeadline.toMillis();
+      // B8 collapse — never call .toMillis() on a doc field directly.
+      const deadlineMs = toMillis(toTimestamp(session.serverDeadline));
       if (now.toMillis() > deadlineMs + GRACE_PERIOD_MS) {
         throw new HttpsError(
           "failed-precondition",
@@ -200,7 +203,7 @@ export const submitTestSession = onCall(
       submittedAt: now,
       endedAt: now,
       autoSubmitted: data.autoSubmitted ?? false,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     };
 
     // P1-6: Flag session if there are pending AI evaluations

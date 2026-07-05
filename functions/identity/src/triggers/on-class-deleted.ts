@@ -2,7 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions/v2";
-import type { Class } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { Class } from "../contracts/legacy-docs";
 
 /**
  * Firestore trigger: when a class status changes to 'archived',
@@ -50,7 +51,8 @@ export const onClassArchived = onDocumentUpdated(
         for (const ref of chunk) {
           batch.update(ref, {
             classIds: FieldValue.arrayRemove(classId),
-            updatedAt: FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: isoNow(),
           });
         }
         await batch.commit();

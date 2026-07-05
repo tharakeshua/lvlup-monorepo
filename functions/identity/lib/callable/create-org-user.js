@@ -54,14 +54,14 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrgUser = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const usage_1 = require("../utils/usage");
-const shared_types_2 = require("@levelup/shared-types");
+const legacy_docs_1 = require("../contracts/legacy-docs");
 /**
  * createOrgUser — Creates a new user within a tenant organization.
  *
@@ -73,7 +73,7 @@ exports.createOrgUser = (0, https_1.onCall)(
   async (request) => {
     const callerUid = request.auth?.uid;
     if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
-    const data = (0, utils_1.parseRequest)(request.data, shared_types_1.CreateOrgUserRequestSchema);
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.CreateOrgUserRequestSchema);
     if (!data.tenantId || !data.role || !data.firstName || !data.lastName) {
       throw new https_1.HttpsError(
         "invalid-argument",
@@ -129,8 +129,9 @@ exports.createOrgUser = (0, https_1.onCall)(
         name: `${data.firstName} ${data.lastName}`,
         uid,
         status: "active",
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       if (data.role === "student") {
         const studentRef = db.collection(`tenants/${data.tenantId}/students`).doc();
@@ -200,11 +201,11 @@ exports.createOrgUser = (0, https_1.onCall)(
         }),
         ...(data.role === "staff" && {
           staffId: entityId,
-          staffPermissions: shared_types_2.DEFAULT_STAFF_PERMISSIONS,
+          staffPermissions: legacy_docs_1.DEFAULT_STAFF_PERMISSIONS,
         }),
         ...(data.role === "scanner" && { scannerId: entityId }),
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       await membershipRef.set(membership);
       // Set custom claims
@@ -232,8 +233,8 @@ exports.createOrgUser = (0, https_1.onCall)(
           authProvider: (0, utils_1.determineProvider)(authUser),
           isSuperAdmin: false,
           activeTenantId: data.tenantId,
-          createdAt: firestore_1.FieldValue.serverTimestamp(),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          createdAt: (0, domain_1.isoNow)(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       v2_1.logger.info(`Created org user ${uid} as ${data.role} in tenant ${data.tenantId}`);

@@ -1,0 +1,144 @@
+---
+title: Admin Guide
+description: Onboard your school, import staff and students, configure AI grading, and monitor results across every exam.
+role: admin
+steps:
+  - Complete the Onboarding Wizard — school info, academic session, first class
+  - Copy your auto-generated school join code and share it with staff
+  - Configure your Gemini AI key in Settings so AI grading is enabled
+  - Import students in bulk via CSV (Users → Students → Bulk Import)
+  - Add teachers individually or import via CSV (Users → Teachers)
+  - Create additional classes and academic sessions as needed
+  - Monitor school-wide exam results from Exams Overview and Analytics
+---
+
+## Introduction
+
+You own the setup: the school itself, every user account, and the AI key that keeps grading running. This guide goes from first login to live exam results, in the order the admin portal presents them.
+
+## Prerequisites
+
+- An admin portal invitation link from your LvlUp onboarding representative (opens the admin web app).
+- A Google Gemini API key (used for AI question extraction and answer grading — one key per school).
+- Student CSV export from your school's existing register (optional but recommended for bulk import).
+
+---
+
+## Step 1 — Complete the Onboarding Wizard
+
+The first time you open the admin portal, the **Onboarding Wizard** launches automatically. It walks through four steps:
+
+### School Info
+Enter your school's **name** and **contact email** (required). Phone number is optional. Click **Save & Continue**.
+
+### Academic Session
+Give the current academic year a name (for example, `2025-2026`) and set the start and end dates. This session groups all exams and classes created during the year. Click **Save & Continue**.
+
+### First Class
+Create your first class group — provide a **name**, **grade level**, and optional **section** (for example, Class 10, Grade 10, Section B). You can add more classes after the wizard. Click **Save & Continue**.
+
+### All Set!
+The wizard confirms setup is complete. Your school's **join code** (also called *tenant code*) is displayed and auto-generated — it looks like a short uppercase string (for example, `SUB001`). Click the **Copy** button to copy it to your clipboard.
+
+**Share this join code with your teachers and students.** They use it when logging in for the first time to identify which school they belong to.
+
+---
+
+## Step 2 — Configure your Gemini AI key
+
+Navigate to **Settings** in the left sidebar.
+
+Find the **AI / Gemini** section and paste your Gemini API key. The platform stores the key in Secret Manager — it is never exposed in plain text after you save it.
+
+Without a valid Gemini key, question extraction and AI grading will fail. If grading stops working, check this key first.
+
+---
+
+## Step 3 — Import students in bulk
+
+Go to **Users** in the left sidebar. The Users page shows three tabs: **Teachers**, **Students**, and **Parents**.
+
+Select the **Students** tab and click the **Bulk Import** button (upload icon).
+
+**CSV format requirements:**
+- Required columns: `firstName`, `lastName`, `email`
+- Optional columns: `password` (if omitted, a temporary password is auto-generated), `classId` (links the student to a class on import)
+- One student per row; the header row must be present
+
+Upload your CSV and click **Import**. The system creates an auth account, student entity, and class membership for each row. Imported students can log in immediately using the email and password from the CSV (or the auto-generated one if you omitted the password column).
+
+> **Note:** Passwords are only set at import time. Students should change their password on first login via the student portal's Settings page.
+
+---
+
+## Step 4 — Add teachers
+
+Still on the **Users** page, switch to the **Teachers** tab.
+
+To add a single teacher, click **Add Teacher** (the `+` icon), fill in their details, and save. The system creates their auth account and teacher membership.
+
+To add multiple teachers at once, use **Bulk Import** — the CSV format is the same as for students.
+
+Teachers log in through the teacher portal using the credentials you create here.
+
+---
+
+## Step 5 — Create additional classes and academic sessions
+
+### Classes
+
+Go to **Classes** in the left sidebar to add more class groups beyond the one created in the wizard. Click **New Class**, enter the name, grade, and optional section, then save.
+
+Assign students to classes either at bulk import time (via the `classId` CSV column) or from the **Class Detail** page by adding students manually.
+
+### Academic Sessions
+
+Go to **Academic Sessions** to add future or historical sessions (for example, if you are migrating data from a previous year). Sessions partition exams by school year — each exam is associated with the session active at the time it was created.
+
+---
+
+## Step 6 — Monitor results and AI usage
+
+**Exams Overview** — shows every exam across all teachers and classes: status, submission counts, and whether results have been released.
+
+**Analytics** — school-wide performance summaries: average scores per class, grade distribution, and flagged submissions.
+
+**AI Usage** — tracks Gemini API calls consumed this month against your plan quota. If the school approaches its quota, AI grading requests will be queued or rejected — top up or manage quota here.
+
+---
+
+## Grade scale
+
+LvlUp Autograde uses the following **8-letter canonical scale** for all exam results:
+
+| Letter | Minimum % |
+|--------|-----------|
+| A+     | 90        |
+| A      | 80        |
+| B+     | 70        |
+| B      | 60        |
+| C+     | 50        |
+| C      | 40        |
+| D      | 33        |
+| F      | 0         |
+
+Every percentage score is mapped to the highest band whose minimum is at or below that score. This scale is fixed across the platform — it cannot be customised per exam.
+
+---
+
+## FAQ & Troubleshooting
+
+**Where is the join code after the wizard?**
+Go to **Settings** → **School** tab. The tenant code is displayed there and can be copied at any time.
+
+**A bulk-imported student cannot log in.**
+Check that the CSV row had a valid `email`. If the password column was missing, the auto-generated password is only returned at import time — reset the password from the student's row in the Users → Students tab.
+
+**AI grading is failing on all new exams.**
+Open **Settings** → **AI / Gemini** and verify the Gemini API key is present. If the key was recently rotated, paste the new key and save. Also check **AI Usage** to confirm you have remaining quota.
+
+**A teacher cannot see their class.**
+Ensure the class exists under **Classes** and that the teacher's account has been created. Teachers see only the classes their students belong to.
+
+**I need to add a parent account.**
+Go to **Users** → **Parents** tab. Add the parent and link them to the relevant student(s). Parents receive released exam results for their linked children automatically.

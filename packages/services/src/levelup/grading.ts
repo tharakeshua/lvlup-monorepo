@@ -21,6 +21,8 @@ export const DETERMINISTIC_TYPES = new Set([
   "numeric",
   "matching",
   "ordering",
+  // group-options: normalizeQuestionType maps "group-options" → "grouping" (practice.ts).
+  "grouping",
 ]);
 
 export interface DeterministicResult {
@@ -40,6 +42,105 @@ function arraysEqualAsSet(a: unknown[], b: unknown[]): boolean {
   if (a.length !== b.length) return false;
   const sa = new Set(a.map(normalize));
   return b.every((x) => sa.has(normalize(x)));
+}
+
+/**
+ * Coerce a group-options assignment payload into a normalized `itemId → group`
+ * map. Accepts the registry answer/learner shape (`{ assignments: [{itemId,
+ * group}] }`), a bare assignments array, the prompt `items` array (whose per-item
+ * `group` is the ⚷ correct group), or a plain `{ itemId: group }` record — so the
+ * scorer matches BOTH how the answer key is stored (`correctAnswer`) and how the
+ * learner submits, regardless of nesting. Returns `null` when nothing usable.
+ */
+function toAssignmentMap(v: unknown): Map<string, string> | null {
+  const fromArray = (arr: unknown[]): Map<string, string> => {
+    const map = new Map<string, string>();
+    for (const e of arr) {
+      if (e && typeof e === "object") {
+        const rec = e as Doc;
+        const id = rec["itemId"] ?? rec["id"];
+        const group = rec["group"] ?? rec["groupId"];
+        if (id != null && group != null) map.set(normalize(id), normalize(group));
+      }
+    }
+    return map;
+  };
+  if (Array.isArray(v)) {
+    const m = fromArray(v);
+    return m.size ? m : null;
+  }
+  if (v && typeof v === "object") {
+    const rec = v as Doc;
+    if (Array.isArray(rec["assignments"])) {
+      const m = fromArray(rec["assignments"] as unknown[]);
+      return m.size ? m : null;
+    }
+    if (Array.isArray(rec["items"])) {
+      const m = fromArray(rec["items"] as unknown[]);
+      return m.size ? m : null;
+    }
+    // Plain { itemId: group } record.
+    const m = new Map<string, string>();
+    for (const [k, g] of Object.entries(rec)) {
+      if (g != null && typeof g !== "object") m.set(normalize(k), normalize(g));
+    }
+    return m.size ? m : null;
+  }
+  return null;
+}
+
+/**
+ * Deterministic group-options scoring: award partial credit for the fraction of
+ * items assigned to their correct group (full credit iff EVERY item matches).
+ * Correct assignments come from the ⚷ answer key (`correctAnswer`/`assignments`/
+ * `items`); the learner submission is normalized the same way.
+ */
+function scoreGrouping(key: Doc, answer: unknown, maxScore: number): DeterministicResult {
+  const correct =
+    toAssignmentMap(key["correctAnswer"]) ??
+    toAssignmentMap(key["assignments"]) ??
+    toAssignmentMap(key["items"]);
+  // Authoring-error escape: a key with NO usable item→group map cannot be graded
+  // deterministically — escalate to the AI pass instead of silently zeroing the
+  // learner. Deliberate asymmetry with the scalar-key types below: this structured
+  // shape is the one key format where malformed legacy/seed data is plausible.
+  if (!correct || correct.size === 0) {
+    return {
+      evaluation: {
+        score: 0,
+        maxScore,
+        correctness: 0,
+        percentage: 0,
+        strengths: [],
+        weaknesses: [],
+        missingConcepts: [],
+      },
+      aiPending: true,
+    };
+  }
+  const given = toAssignmentMap(answer);
+  const total = correct.size;
+  let hit = 0;
+  if (given) {
+    for (const [itemId, group] of correct) {
+      if (given.get(itemId) === group) hit += 1;
+    }
+  }
+  const ratio = total > 0 ? hit / total : 0;
+  const score = ratio * maxScore;
+  const isFull = total > 0 && hit === total;
+  return {
+    evaluation: {
+      score,
+      maxScore,
+      correctness: ratio,
+      percentage: maxScore > 0 ? (score / maxScore) * 100 : 0,
+      strengths: isFull ? ["Correct answer"] : [],
+      weaknesses: isFull ? [] : ["Incorrect answer"],
+      missingConcepts: [],
+    },
+    aiPending: false,
+  };
 }
 
 /**
@@ -65,6 +166,12 @@ export function autoEvaluateDeterministic(
       },
       aiPending: true,
     };
+  }
+
+  // group-options: item→group assignment scoring (partial credit) — NOT a
+  // single-value/set match, so it needs its own branch before the generic logic.
+  if (type === "grouping") {
+    return scoreGrouping(key, answer, maxScore);
   }
 
   const correctAnswer = key["correctAnswer"];
@@ -97,16 +204,19 @@ export function autoEvaluateDeterministic(
   };
 }
 
-/** Map a story-point type to the session type it produces (shared helper). */
+/** Map a story-point type to the CANONICAL zTestSessionType it produces.
+ *  'test'/'exam' story points are timed assessments → 'timed_test' (the old
+ *  'test' output is not a valid zTestSessionType and fails the strict
+ *  DigitalTestSessionView; stored legacy values are collapsed on read via
+ *  zLegacyTestSessionTypeRead). */
 export function storyPointTypeToSessionType(storyPointType: string): string {
   switch (storyPointType) {
     case "quiz":
       return "quiz";
     case "test":
     case "exam":
-      return "test";
-    case "practice":
-      return "practice";
+    case "timed_test":
+      return "timed_test";
     default:
       return "practice";
   }

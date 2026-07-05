@@ -54,10 +54,10 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.joinTenant = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -69,7 +69,7 @@ const rate_limit_1 = require("../utils/rate-limit");
 exports.joinTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, async (request) => {
   const callerUid = request.auth?.uid;
   if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
-  const data = (0, utils_1.parseRequest)(request.data, shared_types_1.JoinTenantRequestSchema);
+  const data = (0, utils_1.parseRequest)(request.data, wire_1.JoinTenantRequestSchema);
   if (!data.tenantCode?.trim()) {
     throw new https_1.HttpsError("invalid-argument", "tenantCode is required");
   }
@@ -99,7 +99,8 @@ exports.joinTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
     // Re-activate if previously deactivated
     await existingMembership.ref.update({
       status: "active",
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      updatedAt: (0, domain_1.isoNow)(),
     });
     v2_1.logger.info(`Re-activated membership ${membershipId} for user ${callerUid}`);
     return { tenantId, membershipId, role: existing.role };
@@ -121,18 +122,21 @@ exports.joinTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
     role: "student",
     status: "active",
     joinSource: "tenant_code",
-    createdAt: firestore_1.FieldValue.serverTimestamp(),
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    createdAt: (0, domain_1.isoNow)(),
+    updatedAt: (0, domain_1.isoNow)(),
   };
   await db.doc(`userMemberships/${membershipId}`).set(membership);
-  // Set custom claims for the new tenant
-  const claims = (0, utils_1.buildClaimsForMembership)(membership);
+  // Set custom claims for the new tenant. DEP-1: preserve the caller's
+  // isSuperAdmin claim, which a bare re-mint would silently strip.
+  const claims = (0, utils_1.buildClaimsForMembership)(membership, {
+    isSuperAdmin: callerUser?.isSuperAdmin === true,
+  });
   await admin.auth().setCustomUserClaims(callerUid, claims);
   // Update user's activeTenantId if they don't have one
   if (!callerUser.activeTenantId) {
     await db.doc(`users/${callerUid}`).update({
       activeTenantId: tenantId,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
   }
   v2_1.logger.info(`User ${callerUid} joined tenant ${tenantId} via code ${normalizedCode}`);

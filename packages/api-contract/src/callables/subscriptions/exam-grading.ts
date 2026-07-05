@@ -1,9 +1,11 @@
 /**
  * v1.autograde.examGrading — live exam-wide grading progress aggregate.
  *
- * SINGLE aggregate doc `tenants/{t}/examGradingProgress/{examId}` written O(1) per
- * tick by the pipeline reducer (advancePipeline / finalizeSubmission) — NEVER an
- * O(submissions) fan-in query. Teacher dashboards subscribe to one doc.
+ * SINGLE aggregate RTDB node `gradingProgress/{t}/exam/{examId}/agg` written O(1) per
+ * tick by the pipeline (advancePipeline / finalizeSubmission) via the AD-12
+ * RTDB-projection pattern — the counts are reduced from the exam's own `_index`
+ * node, NEVER an O(submissions) Firestore fan-in query. Teacher dashboards subscribe
+ * to one node.
  *
  * SLIM: counts + phase only; no per-student scores, no answer-key.
  *
@@ -32,7 +34,7 @@ export type ExamGradingParams = z.infer<typeof ExamGradingParamsSchema>;
 export const examGrading = defineSubscription({
   name: "v1.autograde.examGrading",
   module: "autograde",
-  source: "firestore-doc",
+  source: "rtdb-node",
   params: ExamGradingParamsSchema,
   payload: ExamGradingProgressSchema,
 });

@@ -61,13 +61,13 @@ export function getSdk(): Sdk {
   // `ApiError` vs `ApiErrorDetails` (a known cross-package drift). Structurally
   // identical at runtime → cast.
   //
-  // Response validation stays OFF: the RESPONSE-shape canonicalization is only
-  // PARTIAL on the deployed backend (e.g. `listStoryPoints` still returns legacy
-  // `order` vs canonical `orderIndex`). With validation ON the api-client THROWS
-  // before a screen's defensive `??` fallbacks can run. Flip to `true` once
-  // SDK-coord canonicalizes ALL read responses.
+  // Response validation is ON — literal `true`, client-wide (one shared client per
+  // app). AG-3 canonicalized the autograde reads; LVL-1 canonicalized the levelup
+  // reads (spaces/story points/items/progress/test sessions) with strict whitelist
+  // projections + domain legacy read-adapters, so every read emits a contract-
+  // canonical view for legacy-shaped AND canonical docs.
   const baseApi = createApiClient(transport as never, {
-    validateResponses: false,
+    validateResponses: true,
   });
 
   // The auth capability `authRepo` reads off `api.auth` (not a callable surface).

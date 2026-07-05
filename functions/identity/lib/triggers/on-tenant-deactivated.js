@@ -54,10 +54,22 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onTenantDeactivated = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
-const firestore_2 = require("firebase-functions/v2/firestore");
+const firestore_1 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const zod_1 = require("zod");
+/**
+ * AG-3-style read projection: this trigger only consumes `status`, so it
+ * validates ONLY that field instead of parsing the whole doc through the full
+ * (135-line) shared-types TenantSchema. Unknown keys are stripped; a doc whose
+ * `status` is missing/invalid is treated as un-processable (logged + no-op),
+ * exactly as before — but a doc that is otherwise non-canonical no longer
+ * blocks the membership-suspension cascade.
+ */
+const TENANT_STATUSES = ["active", "suspended", "trial", "expired", "deactivated"];
+const tenantStatusProjection = zod_1.z.object({
+  status: zod_1.z.enum(TENANT_STATUSES),
+});
 /**
  * Firestore trigger: when a tenant status changes to 'suspended' or 'expired',
  * suspend all active memberships for that tenant.
@@ -65,7 +77,7 @@ const shared_types_1 = require("@levelup/shared-types");
  * This prevents orphaned active memberships from allowing access
  * to a deactivated tenant's resources.
  */
-exports.onTenantDeactivated = (0, firestore_2.onDocumentUpdated)(
+exports.onTenantDeactivated = (0, firestore_1.onDocumentUpdated)(
   {
     document: "tenants/{tenantId}",
     region: "asia-south1",
@@ -75,14 +87,8 @@ exports.onTenantDeactivated = (0, firestore_2.onDocumentUpdated)(
       const beforeRaw = event.data?.before.data();
       const afterRaw = event.data?.after.data();
       if (!beforeRaw || !afterRaw) return;
-      const beforeResult = shared_types_1.TenantSchema.safeParse({
-        id: event.data.before.id,
-        ...beforeRaw,
-      });
-      const afterResult = shared_types_1.TenantSchema.safeParse({
-        id: event.data.after.id,
-        ...afterRaw,
-      });
+      const beforeResult = tenantStatusProjection.safeParse(beforeRaw);
+      const afterResult = tenantStatusProjection.safeParse(afterRaw);
       if (!beforeResult.success || !afterResult.success) {
         v2_1.logger.error("Invalid Tenant document in trigger", {
           beforeValid: beforeResult.success,
@@ -123,7 +129,8 @@ exports.onTenantDeactivated = (0, firestore_2.onDocumentUpdated)(
           batch.update(doc.ref, {
             status: "suspended",
             suspendedReason: `tenant_${after.status}`,
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: (0, domain_1.isoNow)(),
           });
         }
         await batch.commit();

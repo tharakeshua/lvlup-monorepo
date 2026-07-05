@@ -132,6 +132,20 @@ function toServiceEvent<T extends Record<string, unknown>>(
   };
 }
 
+/**
+ * The pipeline stores questionSubmissions FLAT in the `submissions` collection
+ * with a `_kind: 'questionSubmission'` discriminator (see services
+ * `process-answer-mapping.ts` / `repos.submissions` usage) — there is NO nested
+ * `questionSubmissions/` subcollection. All three submission-collection triggers
+ * therefore share ONE document path and dispatch on `_kind`.
+ */
+const QUESTION_SUBMISSION_KIND = "questionSubmission";
+
+/** The `_kind` discriminator of the doc the event fired on (before-or-after). */
+export function eventDocKind(event: AdapterTriggerEvent<Record<string, unknown>>): unknown {
+  return event.after?.["_kind"] ?? event.before?.["_kind"];
+}
+
 /** Submission created → start the grading pipeline (guarded inside the service). */
 export const onSubmissionCreated = makeTrigger<Record<string, unknown>>(
   {
@@ -139,7 +153,10 @@ export const onSubmissionCreated = makeTrigger<Record<string, unknown>>(
     eventType: "created",
     tenantParam: "tenantId",
   },
-  (event, ctx) => services.onSubmissionCreatedService(toServiceEvent(event, ctx), sysCtx(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) === QUESTION_SUBMISSION_KIND) return; // flat sibling, not a submission
+    await services.onSubmissionCreatedService(toServiceEvent(event, ctx), sysCtx(ctx));
+  }
 );
 
 /** Submission pipelineStatus changed → the SINGLE reducer re-drives. */
@@ -149,18 +166,28 @@ export const onSubmissionUpdated = makeTrigger<Record<string, unknown>>(
     eventType: "updated",
     tenantParam: "tenantId",
   },
-  (event, ctx) => services.onSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) === QUESTION_SUBMISSION_KIND) return; // flat sibling, not a submission
+    await services.onSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx(ctx));
+  }
 );
 
-/** QuestionSubmission updated → enqueue an aggregate pipeline finalize check. */
+/**
+ * QuestionSubmission updated → enqueue an aggregate pipeline finalize check.
+ * P1-G: registered on the FLAT `submissions` collection (where the pipeline
+ * actually writes questionSubmission docs) and filtered on `_kind` — the old
+ * nested `…/submissions/{s}/questionSubmissions/{q}` path never receives events.
+ */
 export const onQuestionSubmissionUpdated = makeTrigger<Record<string, unknown>>(
   {
-    document: "tenants/{tenantId}/submissions/{submissionId}/questionSubmissions/{questionId}",
+    document: "tenants/{tenantId}/submissions/{questionSubmissionId}",
     eventType: "updated",
     tenantParam: "tenantId",
   },
-  (event, ctx) =>
-    services.onQuestionSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx(ctx))
+  async (event, ctx) => {
+    if (eventDocKind(event) !== QUESTION_SUBMISSION_KIND) return; // real submissions handled above
+    await services.onQuestionSubmissionUpdatedService(toServiceEvent(event, ctx), sysCtx(ctx));
+  }
 );
 
 /** Exam published → reliable (outbox-backed) notification fan-out. */
@@ -203,6 +230,9 @@ export const onExamDeleted = makeTrigger<Record<string, unknown>>(
 type PipelineStep = "scouting" | "grading" | "finalize";
 
 interface PipelineTaskPayload extends Record<string, unknown> {
+  /** Rides every enqueue (functions-shared `enqueuePipelineAdvance`) so the
+   *  handler rebuilds a tenant-scoped SystemContext (`tenantField: 'tenantId'`). */
+  tenantId: string | null;
   submissionId: string;
   step: PipelineStep;
 }

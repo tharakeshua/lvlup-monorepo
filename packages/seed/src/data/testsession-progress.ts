@@ -112,7 +112,6 @@ export const testsessionProgressTenant: TenantConfig = {
       staffPermissions: {
         canManageUsers: true,
         canManageClasses: true,
-        canManageSettings: true,
         canViewAnalytics: true,
       },
     },
@@ -130,10 +129,10 @@ export const testsessionProgressTenant: TenantConfig = {
       designation: "Senior Teacher",
       classKeys: ["c-dsa", "c-algo"],
       permissions: {
-        canCreateSpaces: true,
+        canManageSpaces: true,
         canManageContent: true,
         canViewAnalytics: true,
-        canManuallyGrade: true,
+        canGradeExams: true,
       },
     },
   ],

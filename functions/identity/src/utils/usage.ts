@@ -7,7 +7,8 @@
 
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
-import type { TenantUsage } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { TenantUsage } from "../contracts/legacy-docs";
 
 /** Fields on TenantUsage that can be atomically incremented. */
 export type UsageField = keyof Omit<TenantUsage, "lastUpdated" | "storageBytes">;
@@ -27,8 +28,9 @@ export async function incrementUsage(
   const db = admin.firestore();
   await db.doc(`tenants/${tenantId}`).update({
     [`usage.${field}`]: FieldValue.increment(amount),
-    "usage.lastUpdated": FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    "usage.lastUpdated": isoNow(),
+    updatedAt: isoNow(),
   });
 }
 
@@ -41,8 +43,8 @@ export async function incrementUsageMultiple(
 ): Promise<void> {
   const db = admin.firestore();
   const updates: Record<string, unknown> = {
-    "usage.lastUpdated": FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    "usage.lastUpdated": isoNow(),
+    updatedAt: isoNow(),
   };
 
   for (const [field, amount] of Object.entries(increments)) {

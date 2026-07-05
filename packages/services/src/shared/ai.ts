@@ -18,8 +18,13 @@ export interface AiGenerateInput {
   variables?: unknown;
   /** Legacy alias for `variables`. */
   input?: unknown;
-  /** Inline images (base64) for vision calls (scouting / grading / extraction). */
-  images?: { base64: string; mimeType: string }[];
+  /**
+   * Images for vision calls (scouting / grading / extraction). Services pass
+   * STORAGE PATHS (`{ storagePath }`) — the gateway resolves paths → inline
+   * bytes via its injected image store (bytes never transit the service layer).
+   * Pre-encoded `{ base64 }` refs are passed through untouched.
+   */
+  images?: ({ base64: string; mimeType: string } | { storagePath: string; mimeType?: string })[];
   /** Optional JSON-schema for structured-output parsing. */
   responseSchema?: unknown;
   model?: string;

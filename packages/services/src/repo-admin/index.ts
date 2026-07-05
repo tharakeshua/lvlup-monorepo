@@ -44,6 +44,10 @@ import {
   makeSecretRepo,
   makeImpersonationRepo,
   makeChatRepo,
+  makeSpaceReviewRepo,
+  makeContentVersionRepo,
+  makePlatformActivityRepo,
+  makeCostSummariesRepo,
 } from "./extended.js";
 import type { CreateReposOptions, Repos } from "./types.js";
 
@@ -93,6 +97,16 @@ export function createRepos(options: CreateReposOptions = {}): Repos {
     analyticsInsights: entity("insights"),
     // autograde evaluation-settings (its own collection, NOT the tenants repo).
     evaluationSettings: entity("evaluationSettings"),
+    // levelup authoring collections (LVL-2 — flat tenant-scoped, seed-Paths names).
+    agents: entity("agents"),
+    rubricPresets: entity("rubricPresets"),
+    questionBank: entity("questionBank"),
+    // class-assignment metadata rows (LVL-2 assignContent; deterministic ids
+    // `{contentType}_{contentId}_{classId}` make re-assignment idempotent).
+    assignments: entity("assignments"),
+    // nested-under-space collections (reviews keyed by uid; legacy-path versions).
+    spaceReviews: makeSpaceReviewRepo(firestore, now),
+    contentVersions: makeContentVersionRepo(firestore, now),
     // AI-gateway cost/usage seam (`@levelup/ai` `AiRepos`: llm + costSummaries).
     llm: {
       async log(params: Record<string, unknown>) {
@@ -123,20 +137,11 @@ export function createRepos(options: CreateReposOptions = {}): Repos {
         return snap.size;
       },
     },
-    costSummaries: {
-      async daily(tenantId: string, dateYmd: string) {
-        const snap = await firestore
-          .doc(`${tenantDoc(tenantId)}/costSummaries/daily_${dateYmd}`)
-          .get();
-        return snap.exists ? (snap.data() as Record<string, unknown>) : null;
-      },
-      async monthly(tenantId: string, monthYm: string) {
-        const snap = await firestore
-          .doc(`${tenantDoc(tenantId)}/costSummaries/monthly_${monthYm}`)
-          .get();
-        return snap.exists ? (snap.data() as Record<string, unknown>) : null;
-      },
-    },
+    // Canonical costSummaries accessor (same daily/monthly seam the AI quota
+    // fast-path reads, plus the range lists getCostSummary consumes).
+    costSummaries: makeCostSummariesRepo(firestore),
+    // Top-level platformActivityLog feed (super-admin read replacement, U2.4+5).
+    platformActivity: makePlatformActivityRepo(firestore),
     // audit + in-tx variant (fail-closed impersonation audit).
     audit: Object.assign(auditRepo, {
       writeInTx(

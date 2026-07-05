@@ -59,6 +59,13 @@ export default function PracticeModeScreen() {
   const submit = useCallback(() => {
     if (!item) return;
     const timeSpent = Math.round((Date.now() - startRef.current) / 1000);
+    // NOTE: unlike evaluateAnswer, the recordItemAttempt contract is `.strict()`
+    // with NO top-level `mediaUrls` field, so captured media cannot be lifted out
+    // here. It still reaches the grader: for media answers `answer` is the
+    // normalized `{ text, mediaUrls }` object (question-view.tsx) and the server
+    // (scoreOne, packages/services/src/levelup/practice.ts) unwraps `answer.mediaUrls`
+    // as an attachment fallback. If a top-level field is ever added to the contract,
+    // lift it here the way TimedTestRunnerScreen does.
     recordAttempt.mutate(
       {
         spaceId: asSpaceId(spaceId),
@@ -181,6 +188,8 @@ export default function PracticeModeScreen() {
         <Card className="gap-4">
           <QuestionView
             item={item}
+            spaceId={spaceId}
+            storyPointId={storyPointId}
             value={answer}
             onChange={setAnswer}
             disabled={outcome != null}

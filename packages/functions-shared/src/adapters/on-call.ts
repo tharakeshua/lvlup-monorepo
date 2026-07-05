@@ -12,7 +12,7 @@ import { CALLABLES, type CallableName, type ReqOf, type ResOf } from "@levelup/a
 import { REGION, VALIDATE_RESPONSES } from "../config/config.js";
 import { buildAuthContext } from "../context/build-auth-context.js";
 import type { AuthContext } from "../context/auth-context.js";
-import { getRepos, getAi, getClock } from "./runtime.js";
+import { getRepos, getAi, getClock, getStorage, getPipelineTasks } from "./runtime.js";
 import { parseRequest } from "../request/parse-request.js";
 import { mapError } from "../request/map-error.js";
 import { fail } from "../request/fail.js";
@@ -98,6 +98,8 @@ export function makeCallable<N extends CallableName>(name: N, service: ServiceFn
           repos: getRepos(),
           ai: getAi(),
           clock: getClock(),
+          storage: getStorage(),
+          pipelineTasks: getPipelineTasks(),
         });
 
         if (def.authMode === "authed" && (!ctx.uid || ctx.uid === "<public>")) {

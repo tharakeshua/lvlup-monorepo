@@ -43,6 +43,9 @@ export function subscribeViaRTDB<S extends SubscriptionName>(
         synced = true;
         cb.onSynced?.();
       }
+      // Projection not yet written (or cleared) — wait for it, exactly like the
+      // Firestore-doc `!snap.exists()` guard the flipped channels replaced.
+      if (snap.val() === null) return;
       try {
         cb.next(validatePayload(name, snap.val(), mode));
       } catch (err) {

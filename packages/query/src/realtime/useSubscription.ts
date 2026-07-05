@@ -15,7 +15,10 @@ import { useApi } from "../provider/useApi.js";
 import { useApiQueryClient } from "../provider/useApi.js";
 import { SUBSCRIPTION_TARGET_KEYS } from "./subscription-keys.js";
 
-export type SubscriptionStatus = "idle" | "live" | "error";
+// DP-1: canonical 4-state status from api-contract. This hook simply never emits
+// `"connecting"` (the realtime-package hook does) — the type stays unified.
+export type { SubscriptionStatus } from "@levelup/api-contract";
+import type { SubscriptionStatus } from "@levelup/api-contract";
 
 export interface UseSubscriptionResult {
   status: SubscriptionStatus;

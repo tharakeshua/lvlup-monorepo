@@ -197,7 +197,7 @@
     },
     {
       "target": "website",
-      "public": "website/dist",
+      "public": "apps/website/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
         {

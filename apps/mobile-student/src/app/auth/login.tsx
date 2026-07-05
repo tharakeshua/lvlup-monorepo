@@ -49,7 +49,7 @@ export default function LoginScreen() {
 
   // Already authenticated → leave the gate.
   if (!loading && user) {
-    return <Redirect href={routes.home()} />;
+    return <Redirect href={routes.spaces()} />;
   }
 
   return (

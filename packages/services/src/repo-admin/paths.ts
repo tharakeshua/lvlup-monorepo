@@ -111,6 +111,20 @@ export function answerKeyDoc(
 /** The `answerKeys` collection-group name (deny-all subcollection, §6.4). */
 export const ANSWER_KEYS_COLLECTION_GROUP = "answerKeys";
 
+/** B2C store reviews — one doc per reviewer, keyed by uid (`spaces/{s}/reviews/{uid}`). */
+export function spaceReviewsPath(tenantId: string, spaceId: string): string {
+  return `${spaceDoc(tenantId, spaceId)}/reviews`;
+}
+
+export function spaceReviewDoc(tenantId: string, spaceId: string, uid: string): string {
+  return `${spaceReviewsPath(tenantId, spaceId)}/${uid}`;
+}
+
+/** ContentVersion change-log — legacy-compatible `spaces/{s}/versions` subcollection. */
+export function spaceVersionsPath(tenantId: string, spaceId: string): string {
+  return `${spaceDoc(tenantId, spaceId)}/versions`;
+}
+
 // --- progress (D14 canonical: keyed userId) -------------------------------
 
 export function spaceProgressId(userId: string, spaceId: string): string {
@@ -121,9 +135,8 @@ export function spaceProgressDoc(tenantId: string, userId: string, spaceId: stri
   return `${tenantCollection(tenantId, "spaceProgress")}/${spaceProgressId(userId, spaceId)}`;
 }
 
-export function spaceProgressLiveDoc(tenantId: string, userId: string, spaceId: string): string {
-  return `${spaceProgressDoc(tenantId, userId, spaceId)}/projection/live`;
-}
+// (the `/projection/live` Firestore doc is retired — AD-12: the spaceProgressLive
+// realtime channel is an RTDB projection written via `levelupProjections`)
 
 export function storyPointProgressDoc(
   tenantId: string,

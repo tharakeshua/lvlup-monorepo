@@ -12,6 +12,10 @@
  * classIdsOverflow?, studentIds?, permissions?, staffPermissions?, isSuperAdmin?.
  */
 
+import {
+  STAFF_PERMISSION_KEYS as DOMAIN_STAFF_PERMISSION_KEYS,
+  TEACHER_PERMISSION_KEYS as DOMAIN_TEACHER_PERMISSION_KEYS,
+} from "@levelup/domain";
 import type {
   ClassId,
   ParentId,
@@ -35,26 +39,14 @@ export type TenantRole =
 
 export type MembershipStatus = "active" | "invited" | "suspended" | "archived";
 
-export const TEACHER_PERMISSION_KEYS = [
-  "canCreateExams",
-  "canEditRubrics",
-  "canManuallyGrade",
-  "canViewAllExams",
-  "canCreateSpaces",
-  "canManageContent",
-  "canViewAnalytics",
-  "canConfigureAgents",
-] as const;
+// Permission-key vocabulary is the DOMAIN's (enums/permissions.ts) — the membership doc's
+// permission records are zod-v4 exhaustive enum-keyed records, so any drifted key here would
+// fail the strict domain parse (SEED-1; supersedes the seed-local list that carried
+// canEditRubrics/canManageBilling/… — RR-T2-B).
+export const TEACHER_PERMISSION_KEYS = DOMAIN_TEACHER_PERMISSION_KEYS;
 export type TeacherPermissionKey = (typeof TEACHER_PERMISSION_KEYS)[number];
 
-export const STAFF_PERMISSION_KEYS = [
-  "canManageUsers",
-  "canManageClasses",
-  "canManageBilling",
-  "canViewAnalytics",
-  "canManageSettings",
-  "canExportData",
-] as const;
+export const STAFF_PERMISSION_KEYS = DOMAIN_STAFF_PERMISSION_KEYS;
 export type StaffPermissionKey = (typeof STAFF_PERMISSION_KEYS)[number];
 
 /**

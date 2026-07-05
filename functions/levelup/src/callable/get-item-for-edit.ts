@@ -11,7 +11,7 @@ import type {
   GroupOptionsGroup,
   QuestionPayload,
   UnifiedItem,
-} from "@levelup/shared-types";
+} from "../types";
 
 const idSchema = z.string().min(1).max(200);
 const RequestSchema = z.object({

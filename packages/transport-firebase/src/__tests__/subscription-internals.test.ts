@@ -4,7 +4,7 @@
  * Covers the pure pieces the Firestore/RTDB subscribers compose:
  *   • validatePayload: dev throws on drift; prod wraps in PayloadValidationError.
  *   • toTransportError: firebase listener-code → AppErrorCode coercion.
- *   • SUBSCRIPTION_SOURCES resolve(): produces placeholdered doc/query/node targets.
+ *   • SUBSCRIPTION_SOURCES resolve(): produces placeholdered RTDB node targets.
  *   • applyPathContext: substitutes __tenant__ / __uid__ from a PathContext.
  */
 import { describe, it, expect } from "vitest";
@@ -53,23 +53,44 @@ describe("toTransportError", () => {
 describe("SUBSCRIPTION_SOURCES resolve + applyPathContext", () => {
   const ctx = { tenantId: "TEN", uid: "U1" };
 
-  it("firestore-doc descriptor resolves a placeholdered doc path; ctx substitutes", () => {
+  it("U2.6: testSessionDeadline is an RTDB node under the OWNER uid segment", () => {
     const d = SUBSCRIPTION_SOURCES["v1.levelup.testSessionDeadline"];
-    expect(d.backend).toBe("firestore");
+    expect(d.backend).toBe("rtdb");
     const target = d.resolve({ sessionId: "s1" });
-    expect(target).toMatchObject({ kind: "doc" });
-    if (target.kind === "doc") {
-      expect(target.path).toContain("__tenant__");
-      expect(applyPathContext(target.path, ctx)).toContain("tenants/TEN/");
-      expect(applyPathContext(target.path, ctx)).not.toContain("__tenant__");
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      expect(target.nodePath).toBe("testSessionLive/__tenant__/__uid__/s1");
+      expect(applyPathContext(target.nodePath, ctx)).toBe("testSessionLive/TEN/U1/s1");
     }
   });
 
-  it("self-scoped channel embeds __uid__ and substitutes from ctx", () => {
+  it("U2.6: studentLevelLive is a self-scoped RTDB node (__uid__ substituted)", () => {
     const d = SUBSCRIPTION_SOURCES["v1.levelup.studentLevelLive"];
+    expect(d.backend).toBe("rtdb");
     const target = (d.resolve as () => ReturnType<typeof d.resolve>)();
-    if (target.kind === "doc") {
-      expect(applyPathContext(target.path, ctx)).toBe("tenants/TEN/students/U1/level/current");
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      expect(applyPathContext(target.nodePath, ctx)).toBe("studentLevelLive/TEN/U1");
+    }
+  });
+
+  it("U2.6: spaceProgressLive keys the node by the userId PARAM (not __uid__)", () => {
+    const d = SUBSCRIPTION_SOURCES["v1.levelup.spaceProgressLive"];
+    expect(d.backend).toBe("rtdb");
+    const target = d.resolve({ spaceId: "sp1", userId: "learner1" });
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      expect(applyPathContext(target.nodePath, ctx)).toBe("spaceProgressLive/TEN/learner1/sp1");
+    }
+  });
+
+  it("U2.6: achievementUnlock reads the self-scoped `latest` unlock-event node", () => {
+    const d = SUBSCRIPTION_SOURCES["v1.levelup.achievementUnlock"];
+    expect(d.backend).toBe("rtdb");
+    const target = (d.resolve as () => ReturnType<typeof d.resolve>)();
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      expect(applyPathContext(target.nodePath, ctx)).toBe("achievementUnlocks/TEN/U1/latest");
     }
   });
 
@@ -83,12 +104,36 @@ describe("SUBSCRIPTION_SOURCES resolve + applyPathContext", () => {
     }
   });
 
-  it("chatStream resolves an ordered query target", () => {
-    const d = SUBSCRIPTION_SOURCES["v1.levelup.chatStream"];
-    const target = d.resolve({ sessionId: "s1" });
-    expect(target.kind).toBe("query");
-    if (target.kind === "query") {
-      expect(target.constraints).toContainEqual(["orderBy", "createdAt", "asc"]);
+  it("AG-5: gradingStatus is an RTDB node at the submission `status` leaf", () => {
+    const d = SUBSCRIPTION_SOURCES["v1.autograde.gradingStatus"];
+    expect(d.backend).toBe("rtdb");
+    const target = d.resolve({ submissionId: "sub1" });
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      // Reads the payload LEAF (`/status`), never the gate sibling (`ownerStudentId`).
+      expect(target.nodePath).toBe("gradingProgress/__tenant__/submission/sub1/status");
+      expect(applyPathContext(target.nodePath, ctx)).toBe(
+        "gradingProgress/TEN/submission/sub1/status"
+      );
     }
+  });
+
+  it("AG-5: examGrading is an RTDB node at the exam `agg` leaf (O(1) aggregate)", () => {
+    const d = SUBSCRIPTION_SOURCES["v1.autograde.examGrading"];
+    expect(d.backend).toBe("rtdb");
+    const target = d.resolve({ examId: "exam1" });
+    expect(target.kind).toBe("rtdb");
+    if (target.kind === "rtdb") {
+      expect(applyPathContext(target.nodePath, ctx)).toBe("gradingProgress/TEN/exam/exam1/agg");
+    }
+  });
+
+  it("CHAT-1: chatStream is the self-scoped RTDB bump node (content never in RTDB)", () => {
+    const d = SUBSCRIPTION_SOURCES["v1.levelup.chatStream"];
+    expect(d.backend).toBe("rtdb");
+    const target = d.resolve({ sessionId: "s1" });
+    expect(target.kind).toBe("rtdb");
+    expect(target.nodePath).toBe("chatBump/__tenant__/__uid__/s1");
+    expect(applyPathContext(target.nodePath, ctx)).toBe("chatBump/TEN/U1/s1");
   });
 });

@@ -54,9 +54,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onUserCreated = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const functions = __importStar(require("firebase-functions/v1"));
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const auth_helpers_1 = require("../utils/auth-helpers");
 /**
  * Auth trigger: runs when a new Firebase Auth account is created.
@@ -78,9 +78,10 @@ exports.onUserCreated = functions
         photoURL: user.photoURL ?? null,
         isSuperAdmin: false,
         status: "active",
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        lastLogin: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
+        lastLogin: (0, domain_1.isoNow)(),
       };
       await admin.firestore().doc(`users/${user.uid}`).set(userDoc);
       v2_1.logger.info(`Created /users/${user.uid}`);

@@ -6,13 +6,15 @@
  */
 
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { SaveStaffRequestSchema } from "@levelup/shared-types";
-import type { TenantRole, StaffPermissions } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { TenantRole } from "@levelup/domain";
+import { SaveStaffRequestSchema } from "../contracts/wire";
+import type { StaffPermissions } from "../contracts/legacy-docs";
 import {
   assertTenantAdminOrSuperAdmin,
   buildClaimsForMembership,
+  getUser,
   parseRequest,
   logTenantAction,
 } from "../utils";
@@ -46,7 +48,8 @@ export const saveStaff = onCall({ region: "asia-south1", cors: true }, async (re
   }
 
   const updates: Record<string, unknown> = {
-    updatedAt: FieldValue.serverTimestamp(),
+    // B8: timestamps at rest are canonical ISO strings.
+    updatedAt: isoNow(),
   };
 
   if (data.department !== undefined) updates.department = data.department;
@@ -65,17 +68,23 @@ export const saveStaff = onCall({ region: "asia-south1", cors: true }, async (re
       if (membershipDoc.exists) {
         await membershipRef.update({
           staffPermissions: data.staffPermissions,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
 
-        // Refresh custom claims with new permissions
+        // Refresh custom claims with new permissions. This REPLACES the target
+        // user's claims (DEP-1 bug class): fetch their user doc so a super-admin
+        // keeps `isSuperAdmin` across the re-mint.
         const membershipData = membershipDoc.data()!;
-        const claims = buildClaimsForMembership({
-          tenantId,
-          tenantCode: membershipData.tenantCode as string,
-          role: membershipData.role as TenantRole,
-          staffPermissions: data.staffPermissions as StaffPermissions,
-        });
+        const targetUser = await getUser(staffData.uid);
+        const claims = buildClaimsForMembership(
+          {
+            tenantId,
+            tenantCode: membershipData.tenantCode as string,
+            role: membershipData.role as TenantRole,
+            staffPermissions: data.staffPermissions as StaffPermissions,
+          },
+          { isSuperAdmin: targetUser?.isSuperAdmin === true }
+        );
         await admin.auth().setCustomUserClaims(staffData.uid, claims);
       }
     }

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { lookupTenantByCode, getFirebaseServices } from "@levelup/shared-services";
+import { evaluateTenantAccess } from "@levelup/domain";
 import {
   Button,
   Input,
@@ -48,8 +49,15 @@ export default function LoginPage() {
         setCodeError("Invalid school code. Please try again.");
         return;
       }
-      if (tenant.status !== "active") {
-        setCodeError("This school is currently inactive.");
+      const access = evaluateTenantAccess(
+        tenant as { status: string; trialEndsAt?: string | null }
+      );
+      if (!access.allowed) {
+        setCodeError(
+          access.reason === "trial_expired"
+            ? "This school's trial has ended. Please contact support to reactivate."
+            : "This school is currently inactive."
+        );
         return;
       }
 
@@ -105,7 +113,7 @@ export default function LoginPage() {
               <div
                 id="schoolCode-error"
                 role="alert"
-                className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                className="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
               >
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 {codeError}
@@ -133,7 +141,7 @@ export default function LoginPage() {
           </form>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="rounded-md bg-muted p-3 text-sm">
+            <div className="bg-muted rounded-md p-3 text-sm">
               <span className="font-medium">{schoolName}</span>
               <Button
                 type="button"
@@ -155,7 +163,7 @@ export default function LoginPage() {
               <div
                 id="login-error"
                 role="alert"
-                className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                className="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
               >
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 {error}
@@ -210,9 +218,7 @@ export default function LoginPage() {
                   {forgotLoading ? "Sending..." : "Forgot password?"}
                 </Button>
               </div>
-              {forgotMessage && (
-                <p className="text-xs text-muted-foreground">{forgotMessage}</p>
-              )}
+              {forgotMessage && <p className="text-muted-foreground text-xs">{forgotMessage}</p>}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

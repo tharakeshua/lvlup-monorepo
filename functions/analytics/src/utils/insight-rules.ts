@@ -5,13 +5,9 @@
  * No LLM involved — pure rule evaluation.
  */
 
-import type {
-  StudentProgressSummary,
-  LearningInsight,
-  InsightType,
-  InsightPriority,
-  InsightActionType,
-} from '@levelup/shared-types';
+import type { InsightType, InsightPriority, InsightActionType } from "@levelup/domain";
+import type { StudentProgressSummary, LegacyTimestamp } from "../contracts/legacy-docs";
+import { legacyMillis } from "./aggregation-helpers";
 
 /** Minimal exam data needed for insight generation. */
 export interface InsightExamData {
@@ -21,7 +17,7 @@ export interface InsightExamData {
   linkedSpaceTitle?: string;
   classIds: string[];
   topics: string[];
-  examDate?: { toMillis(): number };
+  examDate?: LegacyTimestamp | null;
 }
 
 /** Minimal space data needed for insight generation. */
@@ -36,7 +32,10 @@ export interface InsightSpaceData {
 export type SpaceCompletionMap = Record<string, number>; // spaceId → completion %
 
 /** Aggregated exam-space correlation data: spaceId → { completedAvg, notCompletedAvg }. */
-export type CorrelationData = Record<string, { completedAvg: number; notCompletedAvg: number; gap: number }>;
+export type CorrelationData = Record<
+  string,
+  { completedAvg: number; notCompletedAvg: number; gap: number }
+>;
 
 interface InsightSeed {
   type: InsightType;
@@ -61,24 +60,22 @@ const CORRELATION_GAP_THRESHOLD = 0.15; // 15% score gap
 
 function ruleWeakTopicRecommendation(
   summary: StudentProgressSummary,
-  spaces: InsightSpaceData[],
+  spaces: InsightSpaceData[]
 ): InsightSeed[] {
   const seeds: InsightSeed[] = [];
   const weakAreas = summary.weaknessAreas ?? [];
 
   for (const topic of weakAreas) {
     const matchingSpace = spaces.find(
-      (s) =>
-        s.status === 'published' &&
-        s.subject?.toLowerCase() === topic.toLowerCase(),
+      (s) => s.status === "published" && s.subject?.toLowerCase() === topic.toLowerCase()
     );
     if (matchingSpace) {
       seeds.push({
-        type: 'weak_topic_recommendation',
-        priority: 'high',
+        type: "weak_topic_recommendation",
+        priority: "high",
         title: `Improve in ${topic}`,
         description: `You scored low in ${topic}. Practice with "${matchingSpace.title}" to strengthen your skills.`,
-        actionType: 'practice_space',
+        actionType: "practice_space",
         actionEntityId: matchingSpace.id,
         actionEntityTitle: matchingSpace.title,
       });
@@ -90,7 +87,7 @@ function ruleWeakTopicRecommendation(
 function ruleExamPreparation(
   summary: StudentProgressSummary,
   exams: InsightExamData[],
-  spaceCompletion: SpaceCompletionMap,
+  spaceCompletion: SpaceCompletionMap
 ): InsightSeed[] {
   const seeds: InsightSeed[] = [];
   const now = Date.now();
@@ -99,18 +96,20 @@ function ruleExamPreparation(
     if (!exam.linkedSpaceId || !exam.linkedSpaceTitle) continue;
     if (!exam.examDate) continue;
 
-    const examTime = exam.examDate.toMillis();
+    // B8: examDate may be a Firestore Timestamp object OR an ISO string.
+    const examTime = legacyMillis(exam.examDate);
+    if (examTime <= 0) continue;
     if (examTime < now || examTime > now + EXAM_PREP_WINDOW_MS) continue;
 
     const completion = spaceCompletion[exam.linkedSpaceId] ?? 0;
     if (completion >= 100) continue;
 
     seeds.push({
-      type: 'exam_preparation',
-      priority: 'high',
+      type: "exam_preparation",
+      priority: "high",
       title: `Prepare for ${exam.title}`,
       description: `Your exam "${exam.title}" is coming up. Practice with "${exam.linkedSpaceTitle}" to be ready.`,
-      actionType: 'practice_space',
+      actionType: "practice_space",
       actionEntityId: exam.linkedSpaceId,
       actionEntityTitle: exam.linkedSpaceTitle,
     });
@@ -122,11 +121,11 @@ function ruleStreakEncouragement(summary: StudentProgressSummary): InsightSeed[]
   if (summary.levelup.streakDays >= STREAK_ENCOURAGEMENT_MIN) {
     return [
       {
-        type: 'streak_encouragement',
-        priority: 'low',
+        type: "streak_encouragement",
+        priority: "low",
         title: `${summary.levelup.streakDays}-day streak!`,
         description: `You're on a ${summary.levelup.streakDays}-day learning streak. Keep it up!`,
-        actionType: 'celebrate',
+        actionType: "celebrate",
       },
     ];
   }
@@ -144,11 +143,11 @@ function ruleImprovementCelebration(summary: StudentProgressSummary): InsightSee
   if (latest.percentage > previousAvg + IMPROVEMENT_PERCENT_THRESHOLD) {
     return [
       {
-        type: 'improvement_celebration',
-        priority: 'medium',
-        title: 'Great improvement!',
+        type: "improvement_celebration",
+        priority: "medium",
+        title: "Great improvement!",
         description: `Your score improved by ${Math.round(latest.percentage - previousAvg)}% on "${latest.examTitle}". Keep up the great work!`,
-        actionType: 'celebrate',
+        actionType: "celebrate",
       },
     ];
   }
@@ -163,12 +162,12 @@ function ruleAtRiskIntervention(summary: StudentProgressSummary): InsightSeed[] 
 
   return [
     {
-      type: 'at_risk_intervention',
-      priority: 'high',
+      type: "at_risk_intervention",
+      priority: "high",
       title: "Let's get back on track",
       description:
         "You haven't been active recently. Even a few minutes of practice each day can make a big difference.",
-      actionType: 'seek_help',
+      actionType: "seek_help",
     },
   ];
 }
@@ -177,7 +176,7 @@ function ruleCrossSystemCorrelation(
   summary: StudentProgressSummary,
   correlationData: CorrelationData,
   spaceCompletion: SpaceCompletionMap,
-  spaces: InsightSpaceData[],
+  spaces: InsightSpaceData[]
 ): InsightSeed[] {
   const seeds: InsightSeed[] = [];
 
@@ -191,11 +190,11 @@ function ruleCrossSystemCorrelation(
 
     const gapPct = Math.round(corr.gap * 100);
     seeds.push({
-      type: 'cross_system_correlation',
-      priority: 'medium',
+      type: "cross_system_correlation",
+      priority: "medium",
       title: `Complete "${space.title}" for better scores`,
       description: `Students who completed "${space.title}" scored ${gapPct}% higher on linked exams.`,
-      actionType: 'practice_space',
+      actionType: "practice_space",
       actionEntityId: spaceId,
       actionEntityTitle: space.title,
     });
@@ -226,7 +225,12 @@ export function generateInsightsForStudent(ctx: InsightGenerationContext): Insig
     ...ruleStreakEncouragement(ctx.summary),
     ...ruleImprovementCelebration(ctx.summary),
     ...ruleAtRiskIntervention(ctx.summary),
-    ...ruleCrossSystemCorrelation(ctx.summary, ctx.correlationData, ctx.spaceCompletion, ctx.spaces),
+    ...ruleCrossSystemCorrelation(
+      ctx.summary,
+      ctx.correlationData,
+      ctx.spaceCompletion,
+      ctx.spaces
+    ),
   ];
 
   // Sort by priority: high > medium > low

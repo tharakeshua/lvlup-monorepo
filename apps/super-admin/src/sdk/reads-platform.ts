@@ -20,7 +20,6 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
   limit as fsLimit,
   where,
   doc,
@@ -33,6 +32,7 @@ import {
   callGetPlatformSummary,
 } from "@levelup/shared-services";
 import type { Tenant, DailyCostSummary, PlatformActivityLog } from "@levelup/domain";
+import { getSdk } from "./api";
 
 /**
  * Health-summary shape returned by the `getSummary` callable (scope:'health').
@@ -49,11 +49,11 @@ export interface HealthSummaryResponse {
 // ===========================================================================
 
 export async function listPlatformActivity(max = 10): Promise<PlatformActivityLog[]> {
-  const { db } = getFirebaseServices();
-  const snap = await getDocs(
-    query(collection(db, "platformActivityLog"), orderBy("createdAt", "desc"), fsLimit(max))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PlatformActivityLog);
+  // U2.4+5 cutover: the direct `platformActivityLog` read is rules-denied —
+  // the v1 callable is the sanctioned (and canonical-view) path.
+  const { api } = getSdk();
+  const res = await api.analytics.listPlatformActivity({ limit: max });
+  return res.items as PlatformActivityLog[];
 }
 
 // ===========================================================================
@@ -291,18 +291,31 @@ export async function getPlatformLlmUsage(range: PlatformLlmRange): Promise<Plat
   const tenantsSnap = await getDocs(collection(db, "tenants"));
   const tenants = tenantsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Tenant);
 
+  // U2.4+5 cutover: the direct `dailyCostSummaries` read was rules-denied AND
+  // off-canon (U3.3: ONE `costSummaries` collection, `daily_*` ids). The v1
+  // `getCostSummary` callable reads the canonical store; `tenantOverride` is the
+  // sanctioned super-admin cross-tenant path.
+  const { api } = getSdk();
   const tenantCostResults = await Promise.all(
     tenants.map(async (tenant) => {
-      const colRef = collection(db, `tenants/${tenant.id}/dailyCostSummaries`);
-      const q = query(
-        colRef,
-        where("date", ">=", range.start),
-        where("date", "<=", range.end),
-        orderBy("date", "desc")
-      );
-      const snap = await getDocs(q);
-      const days = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DailyCostSummary);
-      return { tenant, days };
+      try {
+        const res = await api.analytics.getCostSummary({
+          granularity: "daily",
+          range: {
+            from: `${range.start}T00:00:00.000Z`,
+            to: `${range.end}T23:59:59.999Z`,
+          },
+          tenantOverride: tenant.id,
+        });
+        const days = (res.summaries as DailyCostSummary[])
+          .filter((s): s is DailyCostSummary => "date" in s)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        return { tenant, days };
+      } catch {
+        // A tenant with no summaries (or a transient read failure) contributes
+        // zero rather than sinking the whole platform roll-up.
+        return { tenant, days: [] as DailyCostSummary[] };
+      }
     })
   );
 

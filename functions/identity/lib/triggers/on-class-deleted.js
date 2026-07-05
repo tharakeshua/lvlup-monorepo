@@ -57,6 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Firestore trigger: when a class status changes to 'archived',
  * remove classId from all linked students' and teachers' classIds[].
@@ -96,7 +97,8 @@ exports.onClassArchived = (0, firestore_2.onDocumentUpdated)(
         for (const ref of chunk) {
           batch.update(ref, {
             classIds: firestore_1.FieldValue.arrayRemove(classId),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: (0, domain_1.isoNow)(),
           });
         }
         await batch.commit();

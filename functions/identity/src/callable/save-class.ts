@@ -2,8 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SaveClassRequestSchema } from "@levelup/shared-types";
-import type { SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveClassRequestSchema, type SaveResponse } from "../contracts/wire";
 import { assertTenantAdminOrSuperAdmin, getTenant, parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -47,9 +47,10 @@ export const saveClass = onCall({ region: "asia-south1", cors: true }, async (re
       studentIds: [],
       studentCount: 0,
       status: "active",
-      createdAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
       createdBy: callerUid,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     });
 
@@ -58,7 +59,7 @@ export const saveClass = onCall({ region: "asia-south1", cors: true }, async (re
       .doc(`tenants/${tenantId}`)
       .update({
         "stats.totalClasses": FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       });
 
     logger.info(`Created class ${classRef.id} in tenant ${tenantId}`);
@@ -74,7 +75,7 @@ export const saveClass = onCall({ region: "asia-south1", cors: true }, async (re
     }
 
     const updates: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     };
 
@@ -95,7 +96,7 @@ export const saveClass = onCall({ region: "asia-south1", cors: true }, async (re
         .doc(`tenants/${tenantId}`)
         .update({
           "stats.totalClasses": FieldValue.increment(-1),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
     }
 

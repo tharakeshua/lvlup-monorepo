@@ -59,6 +59,13 @@ export interface FakeTransport {
   ): FakeSubscriptionHandle;
   serverTimeOffset(cb: (offsetMs: number) => void): FakeSubscriptionHandle;
   refreshToken(forceRefresh?: boolean): Promise<void>;
+  /** Storage capability (DP-1) — structurally matches the canonical `StorageTransport`. */
+  storage: {
+    requestUploadUrl(
+      data: unknown
+    ): Promise<{ uploadUrl: string; path: string; expiresAt: string }>;
+    uploadImage(input: unknown): Promise<void>;
+  };
 
   // ---- Test controls ----
   /** Register a canned response (value or req→res fn) for a callable name. */
@@ -154,6 +161,19 @@ export function createFakeTransport(opts: FakeTransportOptions = {}): FakeTransp
 
     async refreshToken() {
       refreshCount++;
+    },
+
+    storage: {
+      async requestUploadUrl() {
+        return {
+          uploadUrl: "https://fake.storage.invalid/signed-put",
+          path: "tenants/fake/objects/obj",
+          expiresAt: new Date(Date.now() + 600_000).toISOString(),
+        };
+      },
+      async uploadImage() {
+        /* no-op: the fake never performs a real PUT */
+      },
     },
 
     onInvoke(name, responder) {

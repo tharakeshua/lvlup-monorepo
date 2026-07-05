@@ -3,12 +3,13 @@ import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
-import { ImportFromBankRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { ImportFromBankRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { loadStoryPoint } from "../utils/firestore";
-import type { QuestionBankItem } from "@levelup/shared-types";
-import { QuestionBankItemSchema } from "@levelup/shared-types";
+import type { QuestionBankItem } from "../types";
+import { QuestionBankItemDocSchema as QuestionBankItemSchema } from "../contracts/legacy-docs";
 
 /**
  * Import questions from the question bank into a story point.
@@ -105,14 +106,14 @@ export const importFromBank = onCall({ region: "asia-south1", cors: true }, asyn
       orderIndex,
       linkedQuestionId: null,
       createdBy: callerUid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     });
 
     // Update usage count on bank item
     batch.update(doc.ref, {
       usageCount: FieldValue.increment(1),
-      lastUsedAt: FieldValue.serverTimestamp(),
+      lastUsedAt: isoNow(),
     });
 
     createdIds.push(itemRef.id);

@@ -1,9 +1,8 @@
 import { useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSpaces, useApiError } from "@levelup/query";
+import { useSpaces, useApiError, useSaveExam, useUploadImage } from "@levelup/query";
+import { asClassId, asSpaceId, asExamId } from "@levelup/domain";
 import { useAuthSession } from "../../sdk/session";
-import { getFirebaseServices, callSaveExam } from "@levelup/shared-services";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { ArrowLeft, ArrowRight, Upload, Check, Loader2, LinkIcon } from "lucide-react";
 import {
   Button,
@@ -46,13 +45,16 @@ function asArray<T>(d: unknown): T[] {
 
 export default function ExamCreatePage() {
   const navigate = useNavigate();
-  // currentTenantId is retained because the kept shared-services callSaveExam
-  // and the Storage upload path both still need the tenant id.
+  // currentTenantId is retained only for the class picker; the server now owns
+  // the Storage upload path (v1 requestUploadUrl) and exam writes go through the
+  // claims-scoped v1 useSaveExam hook — neither needs a client-supplied tenantId.
   const tenantId = useAuthSession((s) => s.currentTenantId);
   const firebaseUser = useAuthSession((s) => s.firebaseUser);
   const [step, setStep] = useState<WizardStep>("metadata");
   const [saving, setSaving] = useState(false);
   const { handleError } = useApiError();
+  const saveExam = useSaveExam();
+  const uploadImage = useUploadImage();
 
   // Metadata
   const [title, setTitle] = useState("");
@@ -74,8 +76,10 @@ export default function ExamCreatePage() {
   // Upload
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [uploadedPaths, setUploadedPaths] = useState<string[]>([]);
+  // The draft exam is created server-side up front so question-paper uploads get
+  // a server-owned, exam-scoped path (v1 requestUploadUrl requires an examId).
+  const [examId, setExamId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stepIndex = STEPS.findIndex((s) => s.value === step);
@@ -94,22 +98,51 @@ export default function ExamCreatePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  /** The exam metadata payload — shared by the draft-create and publish saves. */
+  const buildExamData = () => ({
+    title,
+    subject,
+    topics: topics
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+    classIds: classIds.map(asClassId),
+    totalMarks,
+    passingMarks,
+    duration,
+    examDate: new Date().toISOString(),
+    gradingConfig: {
+      autoGrade: true,
+      allowRubricEdit: true,
+      allowManualOverride: true,
+      requireOverrideReason: true,
+      releaseResultsAutomatically: false,
+    },
+    linkedSpaceId: linkedSpaceId ? asSpaceId(linkedSpaceId) : undefined,
+  });
+
   const handleUploadFiles = async () => {
-    if (!tenantId || files.length === 0) return;
+    if (files.length === 0) return;
     setUploading(true);
     try {
-      const { storage } = getFirebaseServices();
-      const urls: string[] = [];
+      // Create (or reuse) the draft exam so each question-paper upload gets a
+      // server-owned, exam-scoped path via v1 requestUploadUrl.
+      let id = examId;
+      if (!id) {
+        const draft = await saveExam.mutateAsync({ data: buildExamData() });
+        id = draft.id;
+        setExamId(id);
+      }
       const paths: string[] = [];
       for (const file of files) {
-        const path = `tenants/${tenantId}/question-papers/${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, path);
-        const snap = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snap.ref);
-        urls.push(url);
+        const path = await uploadImage.mutateAsync({
+          kind: "question-paper",
+          examId: asExamId(id),
+          contentType: file.type || "application/octet-stream",
+          body: file,
+        });
         paths.push(path);
       }
-      setUploadedUrls(urls);
       setUploadedPaths(paths);
       setStep("review");
     } catch (err) {
@@ -120,32 +153,16 @@ export default function ExamCreatePage() {
   };
 
   const handlePublish = async () => {
-    if (!tenantId || !firebaseUser) return;
+    if (!firebaseUser) return;
     setSaving(true);
     try {
-      const result = await callSaveExam({
-        tenantId,
+      const result = await saveExam.mutateAsync({
+        // If a draft was already created during upload, update it in place;
+        // otherwise create it fresh (server assigns the id).
+        ...(examId ? { id: asExamId(examId) } : {}),
         data: {
-          title,
-          subject,
-          topics: topics
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-          classIds,
-          totalMarks,
-          passingMarks,
-          duration,
-          examDate: new Date().toISOString(),
-          gradingConfig: {
-            autoGrade: true,
-            allowRubricEdit: true,
-            allowManualOverride: true,
-            requireOverrideReason: true,
-            releaseResultsAutomatically: false,
-          },
+          ...buildExamData(),
           questionPaperImages: uploadedPaths.length > 0 ? uploadedPaths : undefined,
-          linkedSpaceId: linkedSpaceId || undefined,
         },
       });
       navigate(`/exams/${result.id}`);
@@ -410,7 +427,7 @@ export default function ExamCreatePage() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Question Paper</dt>
                 <dd>
-                  {uploadedUrls.length > 0 ? `${uploadedUrls.length} image(s) uploaded` : "None"}
+                  {uploadedPaths.length > 0 ? `${uploadedPaths.length} image(s) uploaded` : "None"}
                 </dd>
               </div>
               <div className="flex justify-between">
@@ -441,7 +458,7 @@ export default function ExamCreatePage() {
             <h3 className="font-medium text-green-800 dark:text-green-300">Ready to Create</h3>
             <p className="mt-1 text-sm text-green-700 dark:text-green-400">
               The exam will be created as a{" "}
-              {uploadedUrls.length > 0 ? '"question paper uploaded"' : '"draft"'} exam. You can add
+              {uploadedPaths.length > 0 ? '"question paper uploaded"' : '"draft"'} exam. You can add
               questions, edit rubrics, and publish it later.
             </p>
           </div>

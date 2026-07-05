@@ -1,4 +1,4 @@
-import type { UnifiedItem } from "@levelup/shared-types";
+import type { UnifiedItem } from "../types";
 /**
  * getItemForEdit — returns the full UnifiedItem with answer-key data merged
  * back into the payload. Server-side strips answers into a protected

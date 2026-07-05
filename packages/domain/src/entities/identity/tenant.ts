@@ -112,6 +112,37 @@ export const TenantPublicViewSchema = zObject({
   tenantId: zTenantId,
   name: z.string(),
   status: zTenantStatus,
+  // Pre-auth trial-expiry signal (login gates). Optional: deployed backends that
+  // predate this field must keep passing literal-true response validation.
+  trialEndsAt: zTimestamp.nullable().optional(),
   branding: TenantBrandingSchema.optional(),
 });
 export type TenantPublicView = z.infer<typeof TenantPublicViewSchema>;
+
+/** Login/access gate outcome for a tenant — the ONE place apps decide it. */
+export type TenantAccessDecision =
+  | { allowed: true; trial: boolean }
+  | { allowed: false; reason: "trial_expired" | "inactive" };
+
+/**
+ * SSOT access gate over tenant status (used by every app's school-code login and
+ * session gates). `trial` tenants have FULL access until `trialEndsAt` passes;
+ * a missing/null `trialEndsAt` never locks a trial out (fail-open: the server is
+ * the enforcement authority, this gate only shapes UX). `expired` is the
+ * post-trial terminal status; everything else non-active is plain inactive.
+ */
+export function evaluateTenantAccess(
+  tenant: { status: string; trialEndsAt?: string | null },
+  now: Date = new Date()
+): TenantAccessDecision {
+  if (tenant.status === "active") return { allowed: true, trial: false };
+  if (tenant.status === "trial") {
+    const ends = tenant.trialEndsAt ? Date.parse(tenant.trialEndsAt) : Number.NaN;
+    if (Number.isFinite(ends) && ends <= now.getTime()) {
+      return { allowed: false, reason: "trial_expired" };
+    }
+    return { allowed: true, trial: true };
+  }
+  if (tenant.status === "expired") return { allowed: false, reason: "trial_expired" };
+  return { allowed: false, reason: "inactive" };
+}

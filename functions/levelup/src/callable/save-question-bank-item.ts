@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
-import { SaveQuestionBankItemRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveQuestionBankItemRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -45,7 +45,7 @@ export const saveQuestionBankItem = onCall(
       }
 
       const updateData: Record<string, unknown> = {
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       };
 
       // Only update provided fields
@@ -100,8 +100,8 @@ export const saveQuestionBankItem = onCall(
       averageScore: null,
       lastUsedAt: null,
       createdBy: callerUid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     });
 
     logger.info(`Created question bank item ${ref.id}`);

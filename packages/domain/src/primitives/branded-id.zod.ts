@@ -25,6 +25,11 @@ export const zItemId = zBrandedId("ItemId");
 export const zExamId = zBrandedId("ExamId");
 export const zSubmissionId = zBrandedId("SubmissionId");
 export const zUserId = zBrandedId("UserId");
+/**
+ * @deprecated Use {@link zTestSessionId} instead. `SessionId` is a legacy alias with no
+ * live callers in the new spine; retained only for the core-19 brand contract. All
+ * test-session records use `TestSessionId`.
+ */
 export const zSessionId = zBrandedId("SessionId");
 export const zAgentId = zBrandedId("AgentId");
 export const zAcademicSessionId = zBrandedId("AcademicSessionId");

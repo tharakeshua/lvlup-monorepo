@@ -54,7 +54,7 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logTenantAction = logTenantAction;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const v2_1 = require("firebase-functions/v2");
 /**
  * Log an administrative action to the tenant's audit log.
@@ -69,7 +69,8 @@ async function logTenantAction(tenantId, callerUid, action, details) {
         action,
         callerUid,
         details: details ?? null,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        createdAt: (0, domain_1.isoNow)(),
       });
   } catch (err) {
     // Audit logging should never block the main operation

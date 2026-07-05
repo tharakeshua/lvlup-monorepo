@@ -11,8 +11,7 @@
  * REPORTED GAP: tenant audit log needs a `listTenantAuditLog` (or
  * `listPlatformActivity`) callable on the identity contract.
  */
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
-import { getFirebaseServices } from "@levelup/shared-services";
+import { getSdk } from "./api";
 
 export interface TenantAuditLogEntry {
   id: string;
@@ -21,7 +20,8 @@ export interface TenantAuditLogEntry {
   actorUid: string;
   tenantId: string;
   metadata: Record<string, unknown>;
-  createdAt: { seconds?: number; toDate?: () => Date };
+  /** Canonical ISO timestamp (the v1 callable view). */
+  createdAt: string;
 }
 
 export interface TenantAuditLogPage {
@@ -31,35 +31,25 @@ export interface TenantAuditLogPage {
 
 /**
  * Read up to `pageSize` audit-log entries for a tenant, newest first, optionally
- * filtered by action. Fetches `pageSize + 1` to derive `hasMore`.
+ * filtered by action.
+ *
+ * U2.4+5 cutover: the direct `platformActivityLog` query is rules-denied — the
+ * v1 `listPlatformActivity` callable is the sanctioned path; `tenantOverride`
+ * doubles as the per-tenant feed filter server-side.
  */
 export async function listTenantAuditLog(
   tenantId: string,
   actionFilter: string,
   pageSize: number
 ): Promise<TenantAuditLogPage> {
-  const { db } = getFirebaseServices();
-
-  const q =
-    actionFilter !== "all"
-      ? query(
-          collection(db, "platformActivityLog"),
-          where("tenantId", "==", tenantId),
-          where("action", "==", actionFilter),
-          orderBy("createdAt", "desc"),
-          limit(pageSize + 1)
-        )
-      : query(
-          collection(db, "platformActivityLog"),
-          where("tenantId", "==", tenantId),
-          orderBy("createdAt", "desc"),
-          limit(pageSize + 1)
-        );
-
-  const snap = await getDocs(q);
-  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TenantAuditLogEntry);
+  const { api } = getSdk();
+  const res = await api.analytics.listPlatformActivity({
+    tenantOverride: tenantId,
+    ...(actionFilter !== "all" ? { action: actionFilter } : {}),
+    limit: pageSize,
+  } as never);
   return {
-    entries: docs.slice(0, pageSize),
-    hasMore: docs.length > pageSize,
+    entries: res.items as unknown as TenantAuditLogEntry[],
+    hasMore: res.nextCursor != null,
   };
 }

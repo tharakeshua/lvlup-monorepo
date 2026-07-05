@@ -8,13 +8,14 @@
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import {
   computeOverallScore,
   identifyStrengthsAndWeaknesses,
+  legacyMillis,
   topN,
 } from "../utils/aggregation-helpers";
-import type { StudentAutogradeMetrics, RecentExamEntry } from "@levelup/shared-types";
+import type { StudentAutogradeMetrics, RecentExamEntry } from "../contracts/legacy-docs";
 
 const GRADED_STATUSES = new Set(["graded", "grading_complete", "results_released"]);
 
@@ -113,7 +114,8 @@ export const onSubmissionGraded = onDocumentUpdated(
     }
 
     // Sort recent exams by date descending, keep top 10
-    const sortedRecent = topN(recentExams, 10, (e) => (e.date?.toMillis ? e.date.toMillis() : 0));
+    // B8: date may be a Firestore Timestamp object OR an ISO string.
+    const sortedRecent = topN(recentExams, 10, (e) => legacyMillis(e.date));
 
     const autograde: StudentAutogradeMetrics = {
       totalExams: examIds.length,
@@ -151,7 +153,7 @@ export const onSubmissionGraded = onDocumentUpdated(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: FieldValue.serverTimestamp(),
+          lastUpdatedAt: isoNow(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

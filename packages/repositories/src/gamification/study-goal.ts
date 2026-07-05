@@ -22,7 +22,7 @@
  * so it takes the `StudyGoal` and projects them. Per-entity repo — `api` +
  * `@levelup/domain` only; never a sibling repo (R6).
  */
-import type { StudyGoal, StudyGoalId } from "@levelup/domain";
+import type { StudyGoal } from "@levelup/domain";
 import type {
   ApiClient,
   ListStudyGoalsRequest,
@@ -39,10 +39,10 @@ export interface StudyGoalRepo {
   paginate(opts?: ListStudyGoalsRequest): Promise<PageBag<StudyGoal>>;
 
   /** Upsert (no id ⇒ create). Client-owned fields only — `.strict()`-guarded. */
-  save(input: SaveStudyGoalRequest): Promise<SaveResponse<StudyGoalId>>;
+  save(input: SaveStudyGoalRequest): Promise<SaveResponse>;
 
   /** Soft-delete sugar — re-sends the goal's client-owned fields with deleted. */
-  archive(goal: StudyGoal): Promise<SaveResponse<StudyGoalId>>;
+  archive(goal: StudyGoal): Promise<SaveResponse>;
 
   /** Derived 0..1 progress fraction (clamped). */
   computeProgressPct(goal: Pick<StudyGoal, "currentCount" | "targetCount">): number;

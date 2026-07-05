@@ -46,23 +46,16 @@ import type {
 // Contract pagination fragment (§3.5) — repos thread the opaque cursor verbatim.
 // ---------------------------------------------------------------------------
 
-export interface PageRequest {
-  cursor?: string | null;
-  limit?: number;
-}
+// DP-1: canonical wire envelopes from api-contract. `cursor` is `string`
+// (optional, NOT nullable — the strict contract rejects `null`).
+import type {
+  PageRequestInput as PageRequest,
+  PageResponse,
+  SaveResponse,
+  Callable,
+} from "@levelup/api-contract";
 
-export interface PageResponse<T> {
-  items: T[];
-  nextCursor: string | null;
-  total?: number;
-}
-
-/** The consolidated SaveResponse `{ id, created? }` (§3.2). */
-export interface SaveResponse {
-  id: string;
-  created?: boolean;
-  deleted?: boolean;
-}
+export type { PageRequest, PageResponse, SaveResponse };
 
 // ---------------------------------------------------------------------------
 // View-model projections (domain plan §Reads). These are the answer-key /
@@ -301,7 +294,7 @@ export interface ExamGradingOverview {
 // The permissive `[op]` tail keeps the real (superset) client assignable.
 // ---------------------------------------------------------------------------
 
-type Callable<Req, Res> = (req: Req) => Promise<Res>;
+// `Callable<Req, Res>` imported from `@levelup/api-contract` (DP-1).
 
 export interface AutogradeNamespace {
   // writes

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { lookupTenantByCode } from "@levelup/shared-services";
+import { evaluateTenantAccess } from "@levelup/domain";
 import { Button, Input } from "@levelup/shared-ui";
 import { Loader2 } from "lucide-react";
 
@@ -30,8 +31,15 @@ export function SchoolCodeForm({ onCodeVerified, onSwitchToConsumer }: SchoolCod
         setCodeError("Invalid school code. Please try again.");
         return;
       }
-      if (tenant.status !== "active") {
-        setCodeError("This school is currently inactive.");
+      const access = evaluateTenantAccess(
+        tenant as { status: string; trialEndsAt?: string | null }
+      );
+      if (!access.allowed) {
+        setCodeError(
+          access.reason === "trial_expired"
+            ? "This school's trial has ended. Please contact support to reactivate."
+            : "This school is currently inactive."
+        );
         return;
       }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
 
@@ -13,13 +13,17 @@ const stableDb: any = {
   doc: vi.fn(() => ({ get: mockGet })),
 };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
-  fsFn.FieldValue = { serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP') };
-  return { default: { firestore: fsFn, initializeApp: vi.fn() }, firestore: fsFn, initializeApp: vi.fn() };
+  fsFn.FieldValue = { serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP") };
+  return {
+    default: { firestore: fsFn, initializeApp: vi.fn() },
+    firestore: fsFn,
+    initializeApp: vi.fn(),
+  };
 });
 
-vi.mock('firebase-functions/v2/https', () => ({
+vi.mock("firebase-functions/v2/https", () => ({
   onCall: vi.fn((_opts: any, handler: any) => handler),
   HttpsError: class HttpsError extends Error {
     code: string;
@@ -30,37 +34,41 @@ vi.mock('firebase-functions/v2/https', () => ({
   },
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('../../utils/auth', () => ({
-  assertAuth: vi.fn().mockReturnValue('user-1'),
+vi.mock("../../utils/rate-limit", () => ({
+  enforceRateLimit: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { listStoreSpaces } from '../../callable/list-store-spaces';
+vi.mock("../../utils/auth", () => ({
+  assertAuth: vi.fn().mockReturnValue("user-1"),
+}));
+
+import { listStoreSpaces } from "../../callable/list-store-spaces";
 const handler = listStoreSpaces as any;
 
 function makeRequest(data: Record<string, unknown>) {
-  return { data, auth: { uid: 'user-1' }, rawRequest: {} as any };
+  return { data, auth: { uid: "user-1" }, rawRequest: {} as any };
 }
 
-describe('listStoreSpaces', () => {
+describe("listStoreSpaces", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should list published store spaces', async () => {
+  it("should list published store spaces", async () => {
     mockGet.mockResolvedValueOnce({
       docs: [
         {
-          id: 'space-1',
+          id: "space-1",
           data: () => ({
-            title: 'Algebra Basics',
+            title: "Algebra Basics",
             publishedToStore: true,
-            storeDescription: 'Learn algebra',
+            storeDescription: "Learn algebra",
             storePrice: 99,
-            subject: 'Math',
+            subject: "Math",
             stats: { totalStudents: 5 },
           }),
         },
@@ -69,29 +77,29 @@ describe('listStoreSpaces', () => {
 
     const result = await handler(makeRequest({}));
     expect(result.spaces).toHaveLength(1);
-    expect(result.spaces[0].title).toBe('Algebra Basics');
+    expect(result.spaces[0].title).toBe("Algebra Basics");
   });
 
-  it('should apply subject filter', async () => {
+  it("should apply subject filter", async () => {
     mockGet.mockResolvedValueOnce({
       docs: [
         {
-          id: 'space-1',
+          id: "space-1",
           data: () => ({
-            title: 'Physics 101',
+            title: "Physics 101",
             publishedToStore: true,
-            subject: 'Physics',
+            subject: "Physics",
             stats: {},
           }),
         },
       ],
     });
 
-    const result = await handler(makeRequest({ subject: 'Physics' }));
+    const result = await handler(makeRequest({ subject: "Physics" }));
     expect(result.spaces).toHaveLength(1);
   });
 
-  it('should handle empty store', async () => {
+  it("should handle empty store", async () => {
     mockGet.mockResolvedValueOnce({ docs: [] });
 
     const result = await handler(makeRequest({}));
@@ -99,15 +107,21 @@ describe('listStoreSpaces', () => {
     expect(result.hasMore).toBe(false);
   });
 
-  it('should apply text search', async () => {
+  it("should apply text search", async () => {
     mockGet.mockResolvedValueOnce({
       docs: [
-        { id: 'space-1', data: () => ({ title: 'Algebra Basics', storeDescription: 'Learn algebra', stats: {} }) },
-        { id: 'space-2', data: () => ({ title: 'Geometry', storeDescription: 'Shapes and angles', stats: {} }) },
+        {
+          id: "space-1",
+          data: () => ({ title: "Algebra Basics", storeDescription: "Learn algebra", stats: {} }),
+        },
+        {
+          id: "space-2",
+          data: () => ({ title: "Geometry", storeDescription: "Shapes and angles", stats: {} }),
+        },
       ],
     });
 
-    const result = await handler(makeRequest({ search: 'algebra' }));
+    const result = await handler(makeRequest({ search: "algebra" }));
     expect(result.spaces.length).toBeGreaterThanOrEqual(1);
   });
 });

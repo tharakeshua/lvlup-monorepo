@@ -23,7 +23,7 @@ import type {
   TeacherPermissionKey,
   StaffPermissionKey,
 } from "@levelup/domain";
-import type { Repos, AiGateway } from "./ports.js";
+import type { Repos, AiGateway, StorageSignerPort, PipelineEnqueuePort } from "./ports.js";
 
 export interface AuthContext {
   uid: UserId | string;
@@ -55,6 +55,18 @@ export interface AuthContext {
   repos: Repos;
   /** Injected AI gateway; services call LLMs ONLY through this. */
   ai: AiGateway;
+  /**
+   * Signed-upload-URL hook (`requestUploadUrlService` reads `ctx.storage`).
+   * Absent in emulator/unit tests → the service returns its stub-URL fallback.
+   */
+  storage?: StorageSignerPort;
+  /**
+   * Cloud Tasks pipeline-advance hook, ALREADY curried over this ctx's tenant
+   * (`enqueuePipelineAdvance` in `@levelup/services` reads it as
+   * `ctx.enqueuePipelineAdvance(submissionId, step)`). Absent in emulator/unit
+   * tests → the reducer runs the step inline.
+   */
+  enqueuePipelineAdvance?: (submissionId: string, step: string) => Promise<void>;
 }
 
 /**
@@ -68,7 +80,13 @@ export type SystemContext = AuthContext & { readonly uid: "<system>" };
 /** Build a SystemContext for a trigger/scheduler/task scoped to one tenant. */
 export function makeSystemContext(
   tenantId: TenantId | null,
-  deps: { repos: Repos; ai: AiGateway; clock?: () => Timestamp }
+  deps: {
+    repos: Repos;
+    ai: AiGateway;
+    clock?: () => Timestamp;
+    storage?: StorageSignerPort;
+    pipelineTasks?: PipelineEnqueuePort;
+  }
 ): SystemContext {
   return {
     uid: "<system>",
@@ -83,5 +101,12 @@ export function makeSystemContext(
     now: deps.clock ?? (() => new Date().toISOString() as Timestamp),
     repos: deps.repos,
     ai: deps.ai,
+    storage: deps.storage,
+    // Curry the enqueue port over THIS ctx's tenant so the services hook
+    // signature stays `(submissionId, step)` while the task payload still
+    // carries the tenant for the consumer-side SystemContext rebuild.
+    enqueuePipelineAdvance: deps.pipelineTasks
+      ? (submissionId, step) => deps.pipelineTasks!({ tenantId, submissionId, step })
+      : undefined,
   };
 }

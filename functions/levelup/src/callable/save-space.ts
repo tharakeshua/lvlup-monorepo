@@ -1,12 +1,14 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
+import { isoNow } from "@levelup/domain";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
 import { loadSpace } from "../utils/firestore";
 import { generateSlug } from "../utils/helpers";
-import { SaveSpaceRequestSchema } from "@levelup/shared-types";
-import type { SaveSpaceRequest, SaveResponse, Space } from "@levelup/shared-types";
+import { SaveSpaceRequestSchema } from "../contracts/wire";
+import type { SaveResponse } from "../contracts/wire";
+import type { Space } from "../types";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { writeContentVersion } from "../utils/content-version";
@@ -100,8 +102,8 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
         avgCompletionRate: 0,
       },
       createdBy: callerUid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
 
     await spaceRef.set(spaceDoc);
@@ -110,8 +112,8 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
     await db.doc(`tenants/${tenantId}`).update({
       "stats.totalSpaces": FieldValue.increment(1),
       "usage.currentSpaces": FieldValue.increment(1),
-      "usage.lastUpdated": FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      "usage.lastUpdated": isoNow(),
+      updatedAt: isoNow(),
     });
 
     logger.info(`Created space ${spaceRef.id} in tenant ${tenantId}`);
@@ -143,7 +145,7 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
       await validatePublish(db, tenantId, id, space);
 
       updates.status = "published";
-      updates.publishedAt = FieldValue.serverTimestamp();
+      updates.publishedAt = isoNow();
 
       // Fire-and-forget student notifications
       notifyStudentsOfPublish(db, tenantId, id, space).catch((err) => {
@@ -173,7 +175,7 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
       await expireActiveSessions(db, tenantId, id);
 
       updates.status = "archived";
-      updates.archivedAt = FieldValue.serverTimestamp();
+      updates.archivedAt = isoNow();
     }
   }
 
@@ -213,9 +215,9 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
         status: "published",
         stats: space.stats ?? { totalStoryPoints: 0, totalItems: 0, totalStudents: 0 },
         createdBy: callerUid,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        publishedAt: FieldValue.serverTimestamp(),
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
+        publishedAt: isoNow(),
       });
 
       updates.publishedToStore = true;
@@ -236,7 +238,7 @@ export const saveSpace = onCall({ region: "asia-south1", cors: true }, async (re
     throw new HttpsError("invalid-argument", "No valid fields to update");
   }
 
-  updates.updatedAt = FieldValue.serverTimestamp();
+  updates.updatedAt = isoNow();
   await spaceRef.update(updates);
 
   // Write content version for status transitions
@@ -391,9 +393,11 @@ async function expireActiveSessions(
       for (const sessionDoc of chunk) {
         batch.update(sessionDoc.ref, {
           status: "expired",
-          endedAt: FieldValue.serverTimestamp(),
+          // U3.5: session timing fields stay Firestore Timestamps at rest
+          // (legacy readers do .toMillis() math on endedAt — see contracts/legacy-docs.ts).
+          endedAt: Timestamp.now(),
           autoSubmitted: true,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
       await batch.commit();

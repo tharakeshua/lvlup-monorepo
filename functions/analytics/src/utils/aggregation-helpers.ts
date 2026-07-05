@@ -2,6 +2,38 @@
  * Aggregation helper utilities for progress computations.
  */
 
+import { toMillis, toTimestamp } from "@levelup/domain";
+import type { Timestamp, TimestampInput } from "@levelup/domain";
+
+/**
+ * Collapse a legacy timestamp field (Firestore Timestamp object, ISO string,
+ * epoch millis, …) to epoch millis for sorting/date math (B8 boundary,
+ * MIGRATION-PATTERN rule 3). Returns 0 for null/undefined/unparseable values,
+ * matching the legacy `?.toMillis?.() ?? 0` sort fallback.
+ */
+export function legacyMillis(v: unknown): number {
+  if (v == null) return 0;
+  try {
+    return toMillis(toTimestamp(v as TimestampInput));
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Collapse a legacy timestamp field to a canonical ISO `Timestamp` for wire
+ * responses (B8: never serialize Firestore Timestamp objects over the wire).
+ * Returns null for null/undefined/unparseable values.
+ */
+export function legacyIso(v: unknown): Timestamp | null {
+  if (v == null) return null;
+  try {
+    return toTimestamp(v as TimestampInput);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Compute the weighted overall score from AutoGrade and LevelUp metrics.
  * AutoGrade (exam performance) weighted 60%, LevelUp (space completion) 40%.
@@ -12,7 +44,7 @@
  */
 export function computeOverallScore(
   autogradeAvgScore: number,
-  levelupAvgCompletion: number,
+  levelupAvgCompletion: number
 ): number {
   const AUTOGRADE_WEIGHT = 0.6;
   const LEVELUP_WEIGHT = 0.4;
@@ -32,9 +64,7 @@ export function median(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 /**
@@ -54,7 +84,7 @@ export function standardDeviation(values: number[]): number {
  */
 export function identifyStrengthsAndWeaknesses(
   autogradeBreakdown: Record<string, { avgScore: number; examCount: number }>,
-  levelupBreakdown: Record<string, { avgCompletion: number; spaceCount: number }>,
+  levelupBreakdown: Record<string, { avgCompletion: number; spaceCount: number }>
 ): { strengths: string[]; weaknesses: string[] } {
   const subjectScores: Record<string, number[]> = {};
 

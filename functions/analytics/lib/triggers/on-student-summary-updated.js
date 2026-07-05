@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onStudentSummaryUpdated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
-const firestore_2 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 const DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 exports.onStudentSummaryUpdated = (0, firestore_1.onDocumentWritten)(
@@ -107,9 +107,14 @@ async function updateClassSummary(db, tenantId, classId) {
   // Debounce check
   const existingSummary = await classSummaryRef.get();
   if (existingSummary.exists) {
-    const lastUpdated = existingSummary.data()?.lastUpdatedAt;
-    if (lastUpdated && typeof lastUpdated.toMillis === "function") {
-      const elapsed = Date.now() - lastUpdated.toMillis();
+    // B8: lastUpdatedAt may be a Firestore Timestamp object OR an ISO string —
+    // the old `typeof .toMillis === "function"` guard would silently disable
+    // the debounce once ISO strings land at rest.
+    const lastUpdatedMs = (0, aggregation_helpers_1.legacyMillis)(
+      existingSummary.data()?.lastUpdatedAt
+    );
+    if (lastUpdatedMs > 0) {
+      const elapsed = Date.now() - lastUpdatedMs;
       if (elapsed < DEBOUNCE_MS) {
         // Mark that a recalculation is pending so a future run picks it up
         await classSummaryRef.update({ pendingRecalculation: true });
@@ -209,7 +214,7 @@ async function updateClassSummary(db, tenantId, classId) {
     },
     atRiskStudentIds,
     atRiskCount: atRiskStudentIds.length,
-    lastUpdatedAt: firestore_2.FieldValue.serverTimestamp(),
+    lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
   };
   await classSummaryRef.set(classSummary);
   console.log(

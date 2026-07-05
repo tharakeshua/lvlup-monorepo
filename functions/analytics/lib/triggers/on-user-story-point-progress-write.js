@@ -67,7 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onUserStoryPointProgressWrite = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
-const firestore_2 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 exports.onUserStoryPointProgressWrite = (0, firestore_1.onDocumentWritten)(
   {
@@ -160,7 +160,7 @@ exports.onUserStoryPointProgressWrite = (0, firestore_1.onDocumentWritten)(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: firestore_2.FieldValue.serverTimestamp(),
+          lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

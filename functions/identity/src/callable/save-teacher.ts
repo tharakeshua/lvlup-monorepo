@@ -2,13 +2,14 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import type { UserMembership, TeacherPermissions } from "@levelup/shared-types";
-import { DEFAULT_TEACHER_PERMISSIONS } from "@levelup/shared-types";
-import { SaveTeacherRequestSchema } from "@levelup/shared-types";
-import type { SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { UserMembership, TeacherPermissions } from "../contracts/legacy-docs";
+import { DEFAULT_TEACHER_PERMISSIONS } from "../contracts/legacy-docs";
+import { SaveTeacherRequestSchema, type SaveResponse } from "../contracts/wire";
 import {
   assertTenantAdminOrSuperAdmin,
   getTenant,
+  getUser,
   buildClaimsForMembership,
   parseRequest,
 } from "../utils";
@@ -52,9 +53,10 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
       designation: data.designation ?? null,
       classIds: data.classIds ?? [],
       status: "active",
-      createdAt: FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: isoNow(),
       createdBy: callerUid,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     });
 
@@ -74,8 +76,8 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
         managedClassIds: data.classIds ?? [],
         ...(data.permissions ?? {}),
       },
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
     await db.doc(`userMemberships/${membershipId}`).set(membership);
 
@@ -97,7 +99,7 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
     }
 
     const updates: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
       updatedBy: callerUid,
     };
 
@@ -119,7 +121,7 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
         const classRef = db.doc(`tenants/${tenantId}/classes/${classId}`);
         await classRef.update({
           teacherIds: FieldValue.arrayUnion(id),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
 
@@ -128,7 +130,7 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
         const classRef = db.doc(`tenants/${tenantId}/classes/${classId}`);
         await classRef.update({
           teacherIds: FieldValue.arrayRemove(id),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
     }
@@ -153,7 +155,7 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
 
         await membershipRef.update({
           permissions: updatedPerms,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
 
         // Refresh claims if classIds changed
@@ -166,7 +168,11 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
             ...currentMembership,
             permissions: updatedPerms,
           };
-          const claims = buildClaimsForMembership(updatedMembership);
+          // Replaces claims wholesale — preserve isSuperAdmin (DEP-1 bug class).
+          const teacherUser = await getUser(teacherUid);
+          const claims = buildClaimsForMembership(updatedMembership, {
+            isSuperAdmin: teacherUser?.isSuperAdmin === true,
+          });
           await admin.auth().setCustomUserClaims(teacherUid, claims);
         }
       }

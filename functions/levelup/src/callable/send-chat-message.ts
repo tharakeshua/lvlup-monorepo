@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTenantMember } from "../utils/auth";
@@ -8,10 +8,11 @@ import { enforceRateLimit } from "../utils/rate-limit";
 import { checkMessageSafety, checkRateLimitAbuse } from "../utils/chat-safety";
 import { buildTutorSystemPrompt } from "../prompts/tutor";
 import { LLMWrapper, getGeminiApiKey } from "@levelup/shared-services/ai";
-import { SendChatMessageRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SendChatMessageRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import type { Agent, ChatSession, ChatMessage, QuestionPayload } from "../types";
-import { ChatSessionSchema } from "@levelup/shared-types";
+import { ChatSessionDocSchema as ChatSessionSchema } from "../contracts/legacy-docs";
 
 interface SendChatMessageRequest {
   tenantId: string;
@@ -137,8 +138,8 @@ export const sendChatMessage = onCall(
         isActive: true,
         messages: [],
         systemPrompt: "",
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        createdAt: isoNow(),
+        updatedAt: isoNow(),
       } satisfies ChatSession;
     }
 
@@ -334,7 +335,7 @@ Respond with a concise summary (max 300 words).`,
         messageCount: (session.messageCount ?? session.messages.length) + 2,
         systemPrompt,
         previewMessage: data.message.substring(0, 100),
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
       },
       { merge: !!data.sessionId }
     );

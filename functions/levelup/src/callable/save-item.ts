@@ -5,8 +5,9 @@ import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
 import { loadSpace, loadStoryPoint, loadItem } from "../utils/firestore";
 import { extractAnswerKey, stripAnswerFromPayload } from "./create-item";
-import { SaveItemRequestSchema } from "@levelup/shared-types";
-import type { SaveItemRequest, SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveItemRequestSchema } from "../contracts/wire";
+import type { SaveResponse } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { writeContentVersion } from "../utils/content-version";
@@ -82,7 +83,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
     // Update storyPoint stats
     const statsUpdate: Record<string, unknown> = {
       "stats.totalItems": FieldValue.increment(-1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     };
     if (item.type === "question") {
       statsUpdate["stats.totalQuestions"] = FieldValue.increment(-1);
@@ -100,7 +101,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
     // Update space stats
     await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
       "stats.totalItems": FieldValue.increment(-1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     });
 
     logger.info(`Deleted item ${id} from space ${spaceId}`);
@@ -139,8 +140,8 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
           itemId: itemRef.id,
           questionType: payloadToStore.questionType,
           ...answerKeyData,
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
+          createdAt: isoNow(),
+          updatedAt: isoNow(),
         });
 
         payloadToStore = stripAnswerFromPayload(payloadToStore);
@@ -165,8 +166,8 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
       analytics: null,
       rubric: data.rubric ?? null,
       createdBy: callerUid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     };
 
     await itemRef.set(itemDoc);
@@ -174,7 +175,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
     // Update storyPoint stats
     const statsUpdate: Record<string, unknown> = {
       "stats.totalItems": FieldValue.increment(1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     };
     if (data.type === "question") {
       statsUpdate["stats.totalQuestions"] = FieldValue.increment(1);
@@ -202,7 +203,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
     // Update space stats
     await db.doc(`tenants/${tenantId}/spaces/${spaceId}`).update({
       "stats.totalItems": FieldValue.increment(1),
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     });
 
     writeContentVersion(db, tenantId, spaceId, {
@@ -231,7 +232,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
     throw new HttpsError("invalid-argument", "No valid fields to update");
   }
 
-  sanitized.updatedAt = FieldValue.serverTimestamp();
+  sanitized.updatedAt = isoNow();
 
   const itemPath = await resolveItemPath(id);
   await db.doc(itemPath).update(sanitized);
@@ -248,7 +249,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
         .doc(`tenants/${tenantId}/spaces/${spaceId}/storyPoints/${existingItem.storyPointId}`)
         .update({
           "stats.totalPoints": FieldValue.increment(delta),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
     }
   }
@@ -263,7 +264,7 @@ export const saveItem = onCall({ region: "asia-south1", cors: true }, async (req
         const akDoc = akSnap.docs[0];
         await akDoc.ref.update({
           ...answerKeyData,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
 
         const strippedPayload = stripAnswerFromPayload(payloadRecord);

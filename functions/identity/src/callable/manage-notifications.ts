@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { ManageNotificationsRequestSchema } from "@levelup/shared-types";
-import type { ManageNotificationsResponse } from "@levelup/shared-types";
+import { isoNow, toTimestamp } from "@levelup/domain";
+import { ManageNotificationsRequestSchema } from "../contracts/wire";
+import type { ManageNotificationsResponse } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -57,7 +57,9 @@ export const manageNotifications = onCall(
           title: d.title,
           body: d.body,
           isRead: d.isRead ?? false,
-          createdAt: d.createdAt?.toDate?.()?.toISOString() ?? null,
+          // B8: timestamps at rest are canonical ISO strings; collapse legacy
+          // Firestore Timestamp objects (old docs) and ISO strings uniformly.
+          createdAt: toTimestamp(d.createdAt),
           entityType: d.entityType,
           entityId: d.entityId,
           actionUrl: d.actionUrl,
@@ -73,7 +75,7 @@ export const manageNotifications = onCall(
     } else if (reqData.action === "markRead") {
       // ── MARK READ ──
       const rtdb = admin.database();
-      const now = FieldValue.serverTimestamp();
+      const now = isoNow();
 
       if (reqData.notificationId && !reqData.markAllRead) {
         // Mark single notification as read

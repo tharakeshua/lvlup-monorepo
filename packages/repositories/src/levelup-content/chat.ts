@@ -57,7 +57,13 @@ export function createChatRepo(api: ApiClientLike): ChatRepo {
   return {
     listSessions: (filter = {}) => lv["listChatSessions"]!(filter).then((r) => toPage(r)),
     paginateSessions: (filter = {}) => makePaginator((req) => lv["listChatSessions"]!(req), filter),
-    getSession: (id) => lv["getChatSession"]!({ sessionId: id }),
+    getSession: (id) =>
+      lv["getChatSession"]!({ sessionId: id }).then((r) => {
+        // Unwrap the `{ session }` response envelope so consumers get the session
+        // object directly (its `messages` array is what the chat screen reads).
+        const o = (r ?? {}) as { session?: unknown };
+        return o.session ?? r;
+      }),
     getMany: (ids) => batchGetMany((req) => lv["listChatSessions"]!(req), ids),
     recordMessage: async (input) => {
       const res = (await lv["sendChatMessage"]!(input)) as RecordMessageResult;

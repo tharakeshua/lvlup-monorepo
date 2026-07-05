@@ -54,10 +54,10 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.switchActiveTenant = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -72,10 +72,7 @@ exports.switchActiveTenant = (0, https_1.onCall)(
   async (request) => {
     const callerUid = request.auth?.uid;
     if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.SwitchActiveTenantRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.SwitchActiveTenantRequestSchema);
     if (!data.tenantId) {
       throw new https_1.HttpsError("invalid-argument", "tenantId is required");
     }
@@ -91,14 +88,22 @@ exports.switchActiveTenant = (0, https_1.onCall)(
     // Verify the tenant is accessible
     const tenant = await (0, utils_1.getTenant)(data.tenantId);
     (0, utils_1.assertTenantAccessible)(tenant, "access");
-    // Build and set new custom claims for this tenant
-    const claims = (0, utils_1.buildClaimsForMembership)(membership);
+    // Build and set new custom claims for this tenant. DEP-1: preserve the
+    // caller's isSuperAdmin claim, which a bare re-mint would silently strip.
+    const callerUser = await (0, utils_1.getUser)(callerUid);
+    const claims = (0, utils_1.buildClaimsForMembership)(membership, {
+      isSuperAdmin: callerUser?.isSuperAdmin === true,
+    });
     await admin.auth().setCustomUserClaims(callerUid, claims);
     // Update user's activeTenantId
-    await admin.firestore().doc(`users/${callerUid}`).update({
-      activeTenantId: data.tenantId,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
-    });
+    await admin
+      .firestore()
+      .doc(`users/${callerUid}`)
+      .update({
+        activeTenantId: data.tenantId,
+        // B8: timestamps at rest are canonical ISO strings.
+        updatedAt: (0, domain_1.isoNow)(),
+      });
     v2_1.logger.info(
       `User ${callerUid} switched to tenant ${data.tenantId} (role: ${membership.role})`
     );

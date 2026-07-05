@@ -98,6 +98,7 @@ export const ACCESS_RULES: Readonly<Record<Action, AccessRule>> = {
   "questionBank.read": { roles: AUTHORING, tenantScoped: true },
   "questionBank.import": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
   "rubricPreset.write": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
+  "agent.write": { roles: TEACHERISH, permission: "canManageContent", tenantScoped: true },
   "testSession.start": { roles: STUDENT_ONLY, tenantScoped: true },
   "testSession.submit": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "answer.evaluate": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },

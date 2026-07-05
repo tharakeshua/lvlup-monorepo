@@ -59,6 +59,7 @@ export type Action =
   | "questionBank.read"
   | "questionBank.import"
   | "rubricPreset.write"
+  | "agent.write"
   | "testSession.start"
   | "testSession.submit"
   | "answer.evaluate"
@@ -128,6 +129,7 @@ export const ACTIONS = [
   "questionBank.read",
   "questionBank.import",
   "rubricPreset.write",
+  "agent.write",
   "testSession.start",
   "testSession.submit",
   "answer.evaluate",

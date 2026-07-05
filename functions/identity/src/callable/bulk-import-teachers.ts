@@ -2,7 +2,8 @@ import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { DEFAULT_TEACHER_PERMISSIONS } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { DEFAULT_TEACHER_PERMISSIONS } from "../contracts/legacy-docs";
 import {
   assertTenantAdminOrSuperAdmin,
   getTenant,
@@ -17,7 +18,7 @@ import {
 } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 import { z } from "zod";
-import type { UserMembership } from "@levelup/shared-types";
+import type { UserMembership } from "../contracts/legacy-docs";
 
 const MAX_SHORT_TEXT = 200;
 const firestoreId = z
@@ -200,8 +201,9 @@ export const bulkImportTeachers = onCall(
             designation: row.designation ?? null,
             classIds: [],
             status: "active",
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            createdAt: isoNow(),
+            updatedAt: isoNow(),
           });
 
           // Create membership
@@ -217,8 +219,8 @@ export const bulkImportTeachers = onCall(
             joinSource: "bulk_import",
             teacherId: teacherRef.id,
             permissions: DEFAULT_TEACHER_PERMISSIONS,
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: isoNow(),
+            updatedAt: isoNow(),
           };
 
           await admin.firestore().doc(`userMemberships/${membershipId}`).set(membership);
@@ -243,7 +245,7 @@ export const bulkImportTeachers = onCall(
         .doc(`tenants/${data.tenantId}`)
         .update({
           "stats.totalTeachers": FieldValue.increment(created),
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
     }
 

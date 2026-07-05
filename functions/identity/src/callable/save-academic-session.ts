@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
-import { SaveAcademicSessionRequestSchema } from "@levelup/shared-types";
-import type { SaveResponse } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveAcademicSessionRequestSchema, type SaveResponse } from "../contracts/wire";
 import { assertTenantAdminOrSuperAdmin, getTenant, parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -49,7 +49,8 @@ export const saveAcademicSession = onCall(
         for (const doc of currentSessions.docs) {
           batch.update(doc.ref, {
             isCurrent: false,
-            updatedAt: FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: isoNow(),
           });
         }
 
@@ -61,9 +62,9 @@ export const saveAcademicSession = onCall(
           endDate: Timestamp.fromDate(new Date(data.endDate)),
           isCurrent: true,
           status: "active",
-          createdAt: FieldValue.serverTimestamp(),
+          createdAt: isoNow(),
           createdBy: callerUid,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
           updatedBy: callerUid,
         });
 
@@ -77,9 +78,9 @@ export const saveAcademicSession = onCall(
           endDate: Timestamp.fromDate(new Date(data.endDate)),
           isCurrent: false,
           status: "active",
-          createdAt: FieldValue.serverTimestamp(),
+          createdAt: isoNow(),
           createdBy: callerUid,
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
           updatedBy: callerUid,
         });
       }
@@ -96,7 +97,7 @@ export const saveAcademicSession = onCall(
       }
 
       const updates: Record<string, unknown> = {
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: isoNow(),
         updatedBy: callerUid,
       };
 
@@ -118,7 +119,7 @@ export const saveAcademicSession = onCall(
           if (doc.id !== id) {
             batch.update(doc.ref, {
               isCurrent: false,
-              updatedAt: FieldValue.serverTimestamp(),
+              updatedAt: isoNow(),
             });
           }
         }

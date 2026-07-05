@@ -44,7 +44,11 @@ export function createStorageRepo(api: ApiClientSeam): StorageRepo {
     async uploadImage(input) {
       const { body, ...signing } = input;
       const grant = await api.storage.requestUploadUrl(signing);
-      await api.storage.upload(grant.uploadUrl, body, signing.contentType);
+      await api.storage.uploadImage({
+        uploadUrl: grant.uploadUrl,
+        bytes: body,
+        contentType: signing.contentType,
+      });
       return grant.path;
     },
     resolveStoragePath: (grant) => grant.path,

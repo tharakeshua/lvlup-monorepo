@@ -57,7 +57,7 @@ const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
-const shared_types_1 = require("@levelup/shared-types");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const progress_updater_1 = require("../utils/progress-updater");
@@ -73,10 +73,7 @@ exports.recordItemAttempt = (0, https_1.onCall)(
   { region: "asia-south1", cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.RecordItemAttemptRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.RecordItemAttemptRequestSchema);
     if (!data.tenantId || !data.spaceId || !data.storyPointId || !data.itemId) {
       throw new https_1.HttpsError(
         "invalid-argument",

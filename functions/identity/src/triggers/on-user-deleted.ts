@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import * as functions from "firebase-functions/v1";
 import { logger } from "firebase-functions/v2";
-import type { UserMembership } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import type { UserMembership } from "../contracts/legacy-docs";
 import { updateTenantStats } from "../utils/firestore-helpers";
 
 /**
@@ -20,7 +20,8 @@ export const onUserDeleted = functions
       const userRef = admin.firestore().doc(`users/${user.uid}`);
       batch.update(userRef, {
         status: "deleted",
-        updatedAt: FieldValue.serverTimestamp(),
+        // B8: timestamps at rest are canonical ISO strings.
+        updatedAt: isoNow(),
       });
 
       // 2. Deactivate all memberships
@@ -33,7 +34,7 @@ export const onUserDeleted = functions
       for (const doc of membershipsQuery.docs) {
         batch.update(doc.ref, {
           status: "inactive",
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: isoNow(),
         });
       }
 

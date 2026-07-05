@@ -4,10 +4,10 @@
  * Re-exports the CORE authoring surface (`defineCallable`, `CallableDef`, the
  * pagination fragment — all owned by the stable src-root core files
  * `callable-def.ts` + `pagination.ts`) so every identity def authors against ONE
- * canonical helper set. The small write/empty fragments (`SaveResponseSchema`,
- * `EmptyRequest`, `looseRecord`) are defined here to the canonical §3.2 shape so
- * this module compiles standalone on the parallel build wave; the typecheck/fix
- * wave folds them onto the core `callables/core/_shared` versions (byte-identical).
+ * canonical helper set. `SaveResponseSchema`/`SaveResponse` are re-exported from
+ * the single canonical home (`callables/core/_shared`) — NOT re-declared here
+ * (DP-1: collapse the intra-contract dup). `EmptyRequest`/`looseRecord` stay
+ * module-local (no canonical twin).
  */
 import { z } from "zod";
 
@@ -22,15 +22,9 @@ export type {
 export { PageRequest, pageResponse, withPaging } from "../../pagination.js";
 export type { PageRequestInput, PageRequestParsed, PageResponse } from "../../pagination.js";
 
-/** The canonical write-callable response: `{ id, created?, deleted? }` (§3.2 DX-11). */
-export const SaveResponseSchema = z
-  .object({
-    id: z.string(),
-    created: z.boolean().optional(),
-    deleted: z.boolean().optional(),
-  })
-  .strict();
-export type SaveResponse = z.infer<typeof SaveResponseSchema>;
+/** The canonical write-callable response — single home in `callables/core/_shared`. */
+export { SaveResponseSchema } from "../core/_shared.js";
+export type { SaveResponse } from "../core/_shared.js";
 
 /** Empty request body (`{}`), still `.strict()` so a stray key is rejected. */
 export const EmptyRequest = z.object({}).strict();

@@ -11,6 +11,7 @@ import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import { withIdempotency } from "../shared/idempotency.js";
 import { xrepos } from "../shared/extended-repos.js";
+import { tsRequired } from "../shared/projections.js";
 
 type Doc = Record<string, unknown>;
 
@@ -44,6 +45,88 @@ export async function listStoreSpacesService(
   });
   const items = page.items.map((s) => toStoreListing(s as Doc));
   return { items, nextCursor: page.nextCursor } as unknown as ResOf<"v1.levelup.listStoreSpaces">;
+}
+
+// ── getStoreSpace (single B2C store listing) ──────────────────────────────────
+export async function getStoreSpaceService(
+  input: ReqOf<"v1.levelup.getStoreSpace">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.getStoreSpace">> {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.list", { tenantId });
+
+  const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  // A non-store space is NOT_FOUND through the store lens — the store surface
+  // never confirms the existence of class-assigned content.
+  if (!space || space["publishedToStore"] !== true) fail("NOT_FOUND", "store listing not found");
+  return {
+    listing: toStoreListing(space as Doc),
+  } as unknown as ResOf<"v1.levelup.getStoreSpace">;
+}
+
+// ── space reviews (B2C store; one review per user, uid-keyed upsert) ─────────
+
+/** Whitelist a stored review doc to the strict SpaceReviewSchema view. */
+function projectSpaceReview(r: Doc, tenantId: string, spaceId: string): Doc {
+  return {
+    id: String(r["id"] ?? r["userId"] ?? ""),
+    spaceId: String(r["spaceId"] ?? spaceId),
+    tenantId: String(r["tenantId"] ?? tenantId),
+    userId: String(r["userId"] ?? r["id"] ?? ""),
+    ...(typeof r["userName"] === "string" ? { userName: r["userName"] } : {}),
+    rating: typeof r["rating"] === "number" ? Math.trunc(r["rating"]) : 1,
+    ...(typeof r["comment"] === "string" ? { comment: r["comment"] } : {}),
+    createdAt: tsRequired(r["createdAt"], r["updatedAt"]),
+    updatedAt: tsRequired(r["updatedAt"], r["createdAt"]),
+    createdBy: String(r["createdBy"] ?? r["userId"] ?? ""),
+    updatedBy: String(r["updatedBy"] ?? r["userId"] ?? ""),
+  };
+}
+
+export async function listSpaceReviewsService(
+  input: ReqOf<"v1.levelup.listSpaceReviews">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.listSpaceReviews">> {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.list", { tenantId });
+  const filter = input as { spaceId: string; cursor?: string; limit?: number };
+
+  const page = await xrepos(ctx).spaceReviews.list(tenantId, filter.spaceId, {
+    ...(filter.cursor ? { cursor: filter.cursor } : {}),
+    limit: filter.limit ?? 20,
+  });
+  const items = page.items.map((r) => projectSpaceReview(r, tenantId, filter.spaceId));
+  return {
+    items,
+    nextCursor: page.nextCursor,
+  } as unknown as ResOf<"v1.levelup.listSpaceReviews">;
+}
+
+export async function saveSpaceReviewService(
+  input: ReqOf<"v1.levelup.saveSpaceReview">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.saveSpaceReview">> {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "store.review", { spaceId: input.spaceId, tenantId, ownerUid: ctx.uid });
+
+  const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  if (!space || space["publishedToStore"] !== true) fail("NOT_FOUND", "store listing not found");
+
+  // Strict-canonical SpaceReview write, uid-keyed → a re-review is an update.
+  // The rating aggregate on the space is ⚷ trigger-recomputed, NOT written here.
+  const { created } = await xrepos(ctx).spaceReviews.upsert(tenantId, input.spaceId, ctx.uid, {
+    spaceId: input.spaceId,
+    tenantId,
+    userId: ctx.uid,
+    rating: input.rating,
+    ...(input.comment !== undefined ? { comment: input.comment } : {}),
+    createdBy: ctx.uid,
+    updatedBy: ctx.uid,
+  });
+  return {
+    success: true,
+    isUpdate: !created,
+  } as unknown as ResOf<"v1.levelup.saveSpaceReview">;
 }
 
 export async function purchaseSpaceService(

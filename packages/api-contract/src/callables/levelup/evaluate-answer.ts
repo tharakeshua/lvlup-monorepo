@@ -16,7 +16,12 @@ export const EvaluateAnswerRequestSchema = z
     itemId: z.string(),
     answer: z.unknown(),
     mode: z.enum(["practice", "preview"]).optional(),
-    mediaUrls: z.array(z.string().url()).max(20).optional(),
+    // Captured image/audio the learner attached to this answer. These are
+    // server-scoped Storage PATHS (e.g. `tenants/{tenantId}/exams/.../x.jpg`),
+    // NOT web URLs — the same shape autograde's `imageUrls` carries — so the value
+    // is a plain string, never `.url()` (which rejects bare paths). Tenant-scoping
+    // is enforced server-side before the paths are attached to the AI grader.
+    mediaUrls: z.array(z.string().min(1)).max(20).optional(),
   })
   .strict();
 export type EvaluateAnswerRequest = z.infer<typeof EvaluateAnswerRequestSchema>;

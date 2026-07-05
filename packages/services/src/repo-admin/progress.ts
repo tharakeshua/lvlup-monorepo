@@ -10,14 +10,15 @@
  *   • best-score retention per item (never regress a higher prior score),
  *   • two-tier aggregation (item → storyPoint → space),
  *   • completion detection (all known story points complete),
- *   • a slim realtime projection (`/projection/live`) written in the SAME tx so
- *     the `spaceProgressLive` subscription is authority-equivalent (no ⚷ fields),
+ *   • the per-story-point rollup is RETURNED so `applyProgress` can feed the
+ *     `spaceProgressLive` RTDB projection (AD-12 — the old in-tx Firestore
+ *     `/projection/live` doc is retired: nothing reads it post-flip),
  *   • the inline RTDB leaderboard sync is REMOVED (a recompute marker is set; the
  *     single leaderboard writer consumes it — §5.3).
  */
 import { type Firestore, type Transaction } from "firebase-admin/firestore";
 import { docFromFirestore, toFirestore } from "./firestore.js";
-import { spaceProgressDoc, spaceProgressId, spaceProgressLiveDoc } from "./paths.js";
+import { spaceProgressDoc, spaceProgressId } from "./paths.js";
 import type { ProgressRepo, ProgressUpdateInput } from "./types.js";
 
 interface ItemEntry {
@@ -76,7 +77,6 @@ export function makeProgressRepo(firestore: Firestore, nowFn: () => string): Pro
   return {
     async update(tenantId, input: ProgressUpdateInput, now = nowFn()) {
       const aggRef = firestore.doc(spaceProgressDoc(tenantId, input.userId, input.spaceId));
-      const liveRef = firestore.doc(spaceProgressLiveDoc(tenantId, input.userId, input.spaceId));
 
       const result = await firestore.runTransaction(async (tx: Transaction) => {
         const snap = await tx.get(aggRef);
@@ -144,35 +144,14 @@ export function makeProgressRepo(firestore: Firestore, nowFn: () => string): Pro
 
         tx.set(aggRef, toFirestore(doc as unknown as Record<string, unknown>), { merge: true });
 
-        // 4. slim realtime projection in the SAME tx (authority-equivalent, no ⚷)
-        tx.set(
-          liveRef,
-          toFirestore({
-            userId: input.userId,
-            spaceId: input.spaceId,
-            pointsEarned: doc.pointsEarned,
-            totalPoints: doc.totalPoints,
-            completed: doc.completed,
-            storyPoints: Object.fromEntries(
-              Object.entries(doc.storyPoints).map(([k, sp]) => [
-                k,
-                {
-                  pointsEarned: sp.pointsEarned,
-                  totalPoints: sp.totalPoints,
-                  completed: sp.completed,
-                },
-              ])
-            ),
-            updatedAt: now,
-          }),
-          { merge: true }
-        );
-
+        // 4. return the rollup — `applyProgress` projects it to the
+        //    `spaceProgressLive` RTDB node (AD-12 side-channel; authority stays here)
         return {
           spaceProgressId: doc.id,
           completed: doc.completed,
           pointsEarned: doc.pointsEarned,
           totalPoints: doc.totalPoints,
+          storyPoints: { ...doc.storyPoints },
         };
       });
 

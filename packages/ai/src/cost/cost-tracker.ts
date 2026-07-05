@@ -28,6 +28,11 @@ interface ModelPricing {
 
 /** Per-1M-token USD pricing. Conservative public list prices. */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
+  // Current defaults (models.ts): ≤200k-prompt tier list prices.
+  "gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10.0 },
+  "gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+  "gemini-2.5-flash-lite": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
+  // Retired generations kept for historical cost re-estimation of old call logs.
   "gemini-1.5-pro": { inputPerMillion: 1.25, outputPerMillion: 5.0 },
   "gemini-1.5-flash": { inputPerMillion: 0.075, outputPerMillion: 0.3 },
   "gemini-1.5-flash-8b": { inputPerMillion: 0.0375, outputPerMillion: 0.15 },

@@ -16,7 +16,7 @@ import type {
   JumbledData,
   GroupOptionsData,
   GroupOptionsGroup,
-} from "@levelup/shared-types";
+} from "../types";
 import { Timestamp } from "firebase-admin/firestore";
 
 /**

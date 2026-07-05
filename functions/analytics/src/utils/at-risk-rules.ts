@@ -8,7 +8,9 @@
  * 4. Declining performance (latest exam scores trending downward)
  */
 
-import type { StudentProgressSummary, AtRiskReason } from '@levelup/shared-types';
+import type { AtRiskReason } from "@levelup/domain";
+import type { StudentProgressSummary } from "../contracts/legacy-docs";
+import { legacyMillis } from "./aggregation-helpers";
 
 interface AtRiskResult {
   isAtRisk: boolean;
@@ -31,7 +33,7 @@ export function evaluateAtRiskRules(summary: StudentProgressSummary): AtRiskResu
     summary.autograde.completedExams > 0 &&
     summary.autograde.averageScore < LOW_EXAM_SCORE_THRESHOLD
   ) {
-    reasons.push('low_exam_score');
+    reasons.push("low_exam_score");
   }
 
   // Rule 2: No activity / zero streak
@@ -43,11 +45,12 @@ export function evaluateAtRiskRules(summary: StudentProgressSummary): AtRiskResu
     summary.levelup.totalSpaces > 0 &&
     summary.levelup.recentActivity?.length > 0
   ) {
-    // Check if the most recent activity is older than 7 days
-    const lastActivity = summary.levelup.recentActivity[0]?.date;
+    // Check if the most recent activity is older than 7 days.
+    // B8: the date may be a Firestore Timestamp object OR an ISO string.
+    const lastActivityMs = legacyMillis(summary.levelup.recentActivity[0]?.date);
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    if (lastActivity && typeof lastActivity.toMillis === 'function' && lastActivity.toMillis() < sevenDaysAgo) {
-      reasons.push('zero_streak');
+    if (lastActivityMs > 0 && lastActivityMs < sevenDaysAgo) {
+      reasons.push("zero_streak");
     }
   }
 
@@ -56,17 +59,15 @@ export function evaluateAtRiskRules(summary: StudentProgressSummary): AtRiskResu
     summary.levelup.totalSpaces > 0 &&
     summary.levelup.averageCompletion < LOW_COMPLETION_THRESHOLD
   ) {
-    reasons.push('low_space_completion');
+    reasons.push("low_space_completion");
   }
 
   // Rule 4: Declining performance (check last 3+ exams for downward trend)
   if (summary.autograde.recentExams.length >= MIN_EXAMS_FOR_DECLINING) {
     const recent = summary.autograde.recentExams.slice(0, MIN_EXAMS_FOR_DECLINING);
-    const isDeclining = recent.every(
-      (exam, i) => i === 0 || exam.score <= recent[i - 1].score,
-    );
+    const isDeclining = recent.every((exam, i) => i === 0 || exam.score <= recent[i - 1].score);
     if (isDeclining && recent[0].score > recent[recent.length - 1].score) {
-      reasons.push('declining_performance');
+      reasons.push("declining_performance");
     }
   }
 

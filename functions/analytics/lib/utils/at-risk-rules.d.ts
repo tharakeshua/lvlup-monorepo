@@ -7,10 +7,11 @@
  * 3. Average space completion < 25%
  * 4. Declining performance (latest exam scores trending downward)
  */
-import type { StudentProgressSummary, AtRiskReason } from '@levelup/shared-types';
+import type { AtRiskReason } from "@levelup/domain";
+import type { StudentProgressSummary } from "../contracts/legacy-docs";
 interface AtRiskResult {
-    isAtRisk: boolean;
-    reasons: AtRiskReason[];
+  isAtRisk: boolean;
+  reasons: AtRiskReason[];
 }
 /**
  * Evaluate all at-risk rules for a student.

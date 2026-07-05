@@ -22,8 +22,14 @@ export async function resolveRubricService(
   const rubric = (question["rubric"] as Record<string, unknown> | undefined) ?? null;
 
   // ⚷ thresholds come from the exam's evaluationSettings (server-only).
+  // Canonical reader precedence (U1.3): top-level `evaluationSettingsId` wins, but
+  // legacy exams populated only the now-@deprecated nested `gradingConfig.*` — fall
+  // back to it so those exams still resolve their thresholds. NEVER write the nested one.
   let confidenceConfig: Record<string, unknown> | null = null;
-  const settingsId = exam["evaluationSettingsId"] as string | undefined;
+  const gradingConfig = exam["gradingConfig"] as Record<string, unknown> | undefined;
+  const settingsId =
+    (exam["evaluationSettingsId"] as string | undefined) ??
+    (gradingConfig?.["evaluationSettingsId"] as string | undefined);
   if (settingsId) {
     const settings = await ctx.repos.tenants.get(tenantId, settingsId);
     confidenceConfig =

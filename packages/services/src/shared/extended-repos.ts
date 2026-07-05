@@ -177,12 +177,77 @@ export interface ChatRepo {
   getSession(tenantId: string, sessionId: string): Promise<Doc | null>;
   createSession(tenantId: string, data: Doc): Promise<string>;
   appendMessage(tenantId: string, sessionId: string, message: Doc): Promise<string>;
+  /** Ordered (asc by `timestamp`) messages of a session — the getChatSession read. */
+  listMessages(tenantId: string, sessionId: string): Promise<Doc[]>;
+  /** Caller's own sessions, most-recently-updated first (listChatSessions read). */
+  listSessions(
+    tenantId: string,
+    uid: string,
+    filter: { spaceId?: string; itemId?: string; cursor?: string; limit?: number }
+  ): Promise<{ items: Doc[]; nextCursor: string | null }>;
 }
 
 /** Read-token revocation list / impersonation-session ledger. */
 export interface ImpersonationRepo {
   openSession(tx: TxHandle, record: Doc): { sessionId: string };
   endSession(tx: TxHandle, sessionId: string, now: string): void;
+}
+
+/** B2C store reviews — nested `spaces/{spaceId}/reviews/{uid}`, one doc per reviewer. */
+export interface SpaceReviewRepo {
+  get(tenantId: string, spaceId: string, uid: string): Promise<Doc | null>;
+  upsert(
+    tenantId: string,
+    spaceId: string,
+    uid: string,
+    data: Doc
+  ): Promise<{ id: string; created: boolean }>;
+  list(
+    tenantId: string,
+    spaceId: string,
+    filter?: { cursor?: string; limit?: number }
+  ): Promise<{ items: Doc[]; nextCursor: string | null }>;
+}
+
+/** ContentVersion change-log — legacy-compatible `spaces/{spaceId}/versions`. */
+export interface ContentVersionRepo {
+  list(
+    tenantId: string,
+    spaceId: string,
+    filter?: { cursor?: string; limit?: number }
+  ): Promise<{ items: Doc[]; nextCursor: string | null }>;
+  add(
+    tenantId: string,
+    spaceId: string,
+    entry: {
+      entityType: string;
+      entityId: string;
+      changeType: string;
+      changeSummary: string;
+      changedBy: string;
+    }
+  ): Promise<string>;
+}
+
+/** Top-level `platformActivityLog` feed (super-admin dashboard read). */
+export interface PlatformActivityRepo {
+  list(filter?: {
+    action?: string;
+    tenantId?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{ items: Doc[]; nextCursor: string | null }>;
+}
+
+/** Canonical `tenants/{t}/costSummaries` accessor (`daily_*` / `monthly_*` ids). */
+export interface CostSummariesRepo {
+  daily(tenantId: string, dateYmd: string): Promise<Doc | null>;
+  monthly(tenantId: string, monthYm: string): Promise<Doc | null>;
+  listDaily(
+    tenantId: string,
+    filter?: { date?: string; from?: string; to?: string; limit?: number }
+  ): Promise<Doc[]>;
+  listMonthly(tenantId: string, filter?: { month?: string; limit?: number }): Promise<Doc[]>;
 }
 
 /** Audit repo extended with the in-tx variant (fail-closed impersonation audit). */
@@ -229,6 +294,18 @@ export interface ExtendedRepos extends Repos {
   analyticsInsights: EntityRepo;
   /** Autograde evaluation-settings (dedicated collection, NOT the tenants repo). */
   evaluationSettings: EntityRepo;
+  /** Levelup authoring collections (LVL-2 — flat tenant-scoped, seed-Paths names). */
+  agents: EntityRepo;
+  rubricPresets: EntityRepo;
+  questionBank: EntityRepo;
+  /** Class-assignment metadata rows (`{contentType}_{contentId}_{classId}` ids). */
+  assignments: EntityRepo;
+  /** Nested-under-space collections (LVL-2). */
+  spaceReviews: SpaceReviewRepo;
+  contentVersions: ContentVersionRepo;
+  /** Platform reads (LVL-2 super-admin replacement callables). */
+  platformActivity: PlatformActivityRepo;
+  costSummaries: CostSummariesRepo;
 }
 
 /**

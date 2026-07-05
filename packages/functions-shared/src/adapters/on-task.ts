@@ -8,7 +8,7 @@ import { onTaskDispatched, type Request as TaskRequest } from "firebase-function
 import type { TenantId } from "@levelup/domain";
 import { REGION, type QueueName } from "../config/config.js";
 import { makeSystemContext, type SystemContext } from "../context/auth-context.js";
-import { getRepos, getAi, getClock } from "./runtime.js";
+import { getRepos, getAi, getClock, getStorage, getPipelineTasks } from "./runtime.js";
 import { mapError } from "../request/map-error.js";
 
 export type TaskService<P> = (payload: P, ctx: SystemContext) => Promise<void>;
@@ -40,6 +40,11 @@ export function makeTaskHandler<P extends Record<string, unknown>>(
           repos: getRepos(),
           ai: getAi(),
           clock: getClock(),
+          storage: getStorage(),
+          // Payload-scoped tenant is fixed for the dispatch, so currying the
+          // enqueue hook here is safe — each step re-enqueues the next instead
+          // of running the whole pipeline inside one dispatch.
+          pipelineTasks: getPipelineTasks(),
         });
         await service(payload, ctx);
       } catch (e) {

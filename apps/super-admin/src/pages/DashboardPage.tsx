@@ -102,10 +102,14 @@ function useActivityFeed() {
 }
 
 function formatTimestamp(ts: unknown): string {
-  const t = ts as { seconds?: number; toDate?: () => Date } | undefined;
-  if (!t) return "";
-  const d = t.toDate?.() ?? (t.seconds ? new Date(t.seconds * 1000) : null);
-  if (!d) return "";
+  if (!ts) return "";
+  // Canonical callable views carry ISO strings; legacy rows carried Timestamps.
+  const t = ts as { seconds?: number; toDate?: () => Date };
+  const d =
+    typeof ts === "string"
+      ? new Date(ts)
+      : (t.toDate?.() ?? (t.seconds ? new Date(t.seconds * 1000) : null));
+  if (!d || Number.isNaN(d.getTime())) return "";
   return d.toLocaleString(undefined, {
     month: "short",
     day: "numeric",

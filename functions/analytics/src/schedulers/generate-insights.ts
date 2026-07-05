@@ -7,7 +7,7 @@
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import {
   generateInsightsForStudent,
   type InsightExamData,
@@ -15,7 +15,8 @@ import {
   type SpaceCompletionMap,
   type CorrelationData,
 } from "../utils/insight-rules";
-import type { StudentProgressSummary } from "@levelup/shared-types";
+import { legacyMillis } from "../utils/aggregation-helpers";
+import type { StudentProgressSummary } from "../contracts/legacy-docs";
 
 const PAGE_SIZE = 500;
 const MAX_ACTIVE_INSIGHTS = 5;
@@ -132,11 +133,10 @@ export const generateInsights = onSchedule(
 
           // If we'd exceed the limit, remove oldest existing insights
           if (existingCount + toWrite.length > MAX_ACTIVE_INSIGHTS) {
-            const sorted = existingSnap.docs.sort((a, b) => {
-              const aTime = a.data().createdAt?.toMillis?.() ?? 0;
-              const bTime = b.data().createdAt?.toMillis?.() ?? 0;
-              return aTime - bTime;
-            });
+            // B8: createdAt may be a Firestore Timestamp object OR an ISO string.
+            const sorted = existingSnap.docs.sort(
+              (a, b) => legacyMillis(a.data().createdAt) - legacyMillis(b.data().createdAt)
+            );
             const toRemove = existingCount + toWrite.length - MAX_ACTIVE_INSIGHTS;
             const writeBatch = db.batch();
             for (let i = 0; i < Math.min(toRemove, sorted.length); i++) {
@@ -160,7 +160,7 @@ export const generateInsights = onSchedule(
               actionType: seed.actionType,
               actionEntityId: seed.actionEntityId ?? null,
               actionEntityTitle: seed.actionEntityTitle ?? null,
-              createdAt: FieldValue.serverTimestamp(),
+              createdAt: isoNow(), // B8: ISO strings are canonical at rest
               dismissedAt: null,
             });
             totalInsightsCreated++;

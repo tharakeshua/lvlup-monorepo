@@ -87,5 +87,8 @@ export function createApiClient(transport: Transport, opts: ApiClientOptions = {
     ...namespaces,
     subscribe: makeSubscribe(transport, { validateResponses: opts.validateResponses }),
     call,
+    // DP-1 (TR-2 runtime-bug fix): expose the transport's Storage capability so
+    // `api.storage.*` is defined (storageRepo would TypeError on first upload otherwise).
+    storage: transport.storage,
   } as unknown as ApiClient;
 }

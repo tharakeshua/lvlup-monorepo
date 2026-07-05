@@ -46,12 +46,33 @@ export { ERROR_MESSAGES, ERROR_RECOVERY_HINTS } from "./errors";
 export { PageRequest, pageResponse, withPaging } from "./pagination";
 export type { PageRequestInput, PageRequestParsed, PageResponse } from "./pagination";
 
+// ---- save-response envelope (canonical home: callables/core/_shared) ----
+export { SaveResponseSchema } from "./callables/core/_shared";
+export type { SaveResponse } from "./callables/core/_shared";
+
+// ---- generateContent draft gate (server validates every model draft) ----
+export { GeneratedItemSchema } from "./callables/levelup/generate-content";
+export type { GeneratedItem } from "./callables/levelup/generate-content";
+
 // ---- transitions (re-exported from @levelup/domain) ----
 export { ALLOWED_TRANSITIONS, canTransition, assertTransition } from "./transitions";
 export type { TransitionMap, TransitionDomain, TransitionEntity } from "./transitions";
 
 // ---- subscriptions (owned by the subscriptions module barrel) ----
 export * from "./subscriptions/index";
+
+// ---- transport seam (DP-1 canonical home: src/transport/) ----
+export type {
+  Transport,
+  StorageTransport,
+  UploadBytesInput,
+  BinaryBlobLike,
+  SubscriptionHandle,
+  SubscriptionCallbacks,
+  SubscriptionListener,
+  SubscriptionStatus,
+  Callable,
+} from "./transport/index";
 
 // ---- meta ----
 export { API_VERSION, callableName, parseCallableName, RATE_LIMITS } from "./meta";

@@ -10,18 +10,14 @@
  * NEVER from `input` (REVIEW D2 / #1 boundary). All data access is `ctx.repos.*`,
  * all LLM access is `ctx.ai.*`, all clock reads are `ctx.now()`.
  */
-import type { TenantRole } from "@levelup/domain";
+import type { TenantRole, EntityIds } from "@levelup/domain";
 import type { Repos } from "../repo-admin/types.js";
 import type { AiGateway } from "./ai.js";
 
-/** Entity-id bag derived from claims (which membership doc the caller is). */
-export interface EntityIds {
-  teacherId?: string;
-  studentId?: string;
-  parentId?: string;
-  staffId?: string;
-  scannerId?: string;
-}
+// DP-2 Part B: `EntityIds` (`{ teacherId?, studentId?, … }`) is DERIVED from
+// `ID_ROLES` in `@levelup/domain` (one source) — a new role's id key appears here
+// automatically. Re-exported under the same identifier so consumers are unchanged.
+export type { EntityIds };
 
 /**
  * The server `AuthContext`. `tenantId` is claim-derived (super-admin

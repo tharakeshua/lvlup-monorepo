@@ -14,12 +14,10 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import type { GetSummaryRequest, GetSummaryResponse } from "@levelup/shared-types";
-import {
-  GetSummaryRequestSchema,
-  StudentProgressSummarySchema,
-  ClassProgressSummarySchema,
-} from "@levelup/shared-types";
+import type { GetSummaryRequest, GetSummaryResponse } from "../contracts/wire";
+import { GetSummaryRequestSchema } from "../contracts/wire";
+import { StudentProgressSummarySchema, ClassProgressSummarySchema } from "../contracts/legacy-docs";
+import { legacyIso } from "../utils/aggregation-helpers";
 import { parseRequest } from "../utils/parse-request";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -248,7 +246,8 @@ async function handlePlatformSummary(db: FirebaseFirestore.Firestore): Promise<G
       actorEmail: (d.actorEmail as string) ?? "",
       tenantId: d.tenantId as string | undefined,
       metadata: (d.metadata as Record<string, unknown>) ?? {},
-      createdAt: d.createdAt,
+      // B8: ISO over the wire, never a Firestore Timestamp serialization.
+      createdAt: legacyIso(d.createdAt),
     };
   });
 

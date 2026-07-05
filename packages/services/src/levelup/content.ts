@@ -16,12 +16,77 @@
  * gated `getItemForEdit` authoring read.
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
+import { zLegacyStoryPointTypeRead } from "@levelup/domain";
 import { authorize, assertTransition } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
-import { isAuthoringRole, projectRubric } from "../shared/projections.js";
+import { isAuthoringRole, projectRubric, tsOrNull, tsRequired } from "../shared/projections.js";
+import { xrepos } from "../shared/extended-repos.js";
 
 type Doc = Record<string, unknown>;
+
+/**
+ * Best-effort ContentVersion change-log row (`spaces/{s}/versions`, the legacy
+ * path `listVersions` reads). NEVER fails the save — the log is an audit trail,
+ * not an invariant; test fakes may not even carry the repo.
+ */
+async function recordVersion(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string,
+  entry: { entityType: string; entityId: string; changeType: string; changeSummary: string }
+): Promise<void> {
+  try {
+    await xrepos(ctx).contentVersions?.add(tenantId, spaceId, { ...entry, changedBy: ctx.uid });
+  } catch {
+    /* best-effort */
+  }
+}
+
+// ── whitelist-projection primitives (LVL-1, mirrors autograde/reads.ts) ───────
+/** Drop UNDEFINED keys so absent OPTIONAL fields don't serialize as `null`
+ *  (a Firebase callable turns `undefined`→`null` over the wire, which a strict
+ *  `.optional()` schema then rejects). `null` is KEPT (nullable-required fields). */
+function compact(o: Doc): Doc {
+  const out: Doc = {};
+  for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = v;
+  return out;
+}
+
+const num = (v: unknown, fb: number): number =>
+  typeof v === "number" && Number.isFinite(v) ? v : fb;
+const int = (v: unknown, fb: number): number => Math.trunc(num(v, fb));
+const optNum = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
+const optInt = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : undefined;
+const optStr = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+const optBool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : undefined);
+const optStrArray = (v: unknown): string[] | undefined =>
+  Array.isArray(v) ? v.map((x) => String(x)) : undefined;
+
+/** Pick the given keys off a bag, dropping undefineds; undefined when empty/non-object. */
+function pickDefined(src: unknown, keys: readonly string[]): Doc | undefined {
+  if (!src || typeof src !== "object" || Array.isArray(src)) return undefined;
+  const out: Doc = {};
+  for (const k of keys) {
+    const v = (src as Doc)[k];
+    if (v !== undefined) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Difficulty: lowercase legacy casing drift; drop unknown values (optional field). */
+const DIFFICULTY_SET = new Set(["easy", "medium", "hard"]);
+function canonDifficulty(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const d = v.toLowerCase();
+  return DIFFICULTY_SET.has(d) ? d : undefined;
+}
+
+/** StoryPoint type: legacy 'test' → 'timed_test' via the domain read-adapter (AD-4). */
+function canonStoryPointType(v: unknown): string {
+  return typeof v === "string" ? zLegacyStoryPointTypeRead.parse(v) : "standard";
+}
 
 /** Answer-bearing field names stripped from an item payload before it is stored. */
 const ANSWER_KEY_FIELDS = [
@@ -33,8 +98,10 @@ const ANSWER_KEY_FIELDS = [
   "evaluatorGuidance",
 ] as const;
 
-/** Recursively strip any answer-key/guidance field from a value (deep, by name). */
-function stripAnswerFields<T>(value: T): T {
+/** Recursively strip any answer-key/guidance field from a value (deep, by name).
+ *  Exported for `importFromBank`, which persists bank items through the same
+ *  answer-stripped-item + deny-all-key split as `saveItem`. */
+export function stripAnswerFields<T>(value: T): T {
   if (Array.isArray(value)) {
     return value.map((v) => stripAnswerFields(v)) as unknown as T;
   }
@@ -57,8 +124,9 @@ function stripAnswerFields<T>(value: T): T {
 // in the old authoring vocabulary). These helpers rename/drop/restructure so the
 // emitted response is clean — they never reach for answer-bearing fields.
 
-/** Legacy authoring questionType vocabulary → canonical zQuestionType. */
-const QUESTION_TYPE_MAP: Record<string, string> = {
+/** Legacy authoring questionType vocabulary → canonical zQuestionType.
+ *  Exported for the question-bank read projection (same legacy drift). */
+export const QUESTION_TYPE_MAP: Record<string, string> = {
   mcq: "mcq",
   msq: "mcaq",
   mcaq: "mcaq",
@@ -269,7 +337,7 @@ function normalizeItemPayload(
 }
 
 /** Pull the answer-key bag off the save payload (the only place answers travel). */
-function extractAnswerKey(data: Doc): Doc | null {
+export function extractAnswerKey(data: Doc): Doc | null {
   const ak = data["answerKey"];
   if (ak && typeof ak === "object") return { ...(ak as Doc) };
   // Some payloads inline the answer fields rather than nesting under `answerKey`,
@@ -368,6 +436,18 @@ export async function saveSpaceService(
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.spaces.upsert(tenantId, doc, now);
+  await recordVersion(ctx, tenantId, id, {
+    entityType: "space",
+    entityId: id,
+    changeType: isDelete
+      ? "archived"
+      : targetStatus === "published"
+        ? "published"
+        : created
+          ? "created"
+          : "updated",
+    changeSummary: `space ${String(doc["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true } as unknown as ResOf<"v1.levelup.saveSpace">;
   return { id, created } as unknown as ResOf<"v1.levelup.saveSpace">;
 }
@@ -391,6 +471,12 @@ export async function saveStoryPointService(
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.storyPoints.upsert(tenantId, doc, now);
+  await recordVersion(ctx, tenantId, input.spaceId, {
+    entityType: "storyPoint",
+    entityId: id,
+    changeType: isDelete ? "archived" : created ? "created" : "updated",
+    changeSummary: `storyPoint ${String(data["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true } as unknown as ResOf<"v1.levelup.saveStoryPoint">;
   return { id, created } as unknown as ResOf<"v1.levelup.saveStoryPoint">;
 }
@@ -435,6 +521,12 @@ export async function saveItemService(
     });
   }
 
+  await recordVersion(ctx, tenantId, input.spaceId, {
+    entityType: "item",
+    entityId: id,
+    changeType: isDelete ? "archived" : created ? "created" : "updated",
+    changeSummary: `item ${String(strippedData["title"] ?? id)}`,
+  });
   if (isDelete) return { id, deleted: true } as unknown as ResOf<"v1.levelup.saveItem">;
   return { id, created } as unknown as ResOf<"v1.levelup.saveItem">;
 }
@@ -451,10 +543,40 @@ export async function getItemForEditService(
   const item = await ctx.repos.items.get(tenantId, input.itemId);
   if (!item) fail("NOT_FOUND", "item not found");
 
-  // Re-merge the ⚷ answer key — the ONE sanctioned answer-bearing read.
+  // Re-merge the ⚷ answer key — the ONE sanctioned answer-bearing read. The EDIT
+  // view is projected against ITS OWN ItemEditViewSchema (UnifiedItem + answerKey):
+  // the item body is whitelisted with authoring=true (rubric guidance KEPT), and
+  // the answer-bearing fields ride in the whitelisted `answerKey` — never stripped.
   const key = await ctx.repos.answerKeys.get(tenantId, input.itemId);
-  const merged: Doc = { ...item, ...(key ? { answerKey: key } : {}) };
+  const view = projectItem(item as Doc, true);
+  const merged: Doc = key
+    ? { ...view, answerKey: projectAnswerKey(key as Doc, view, input.itemId) }
+    : view;
   return { item: merged } as unknown as ResOf<"v1.levelup.getItemForEdit">;
+}
+
+/**
+ * Whitelist a stored ⚷ answer-key doc to the strict AnswerKeySchema view
+ * (drops the storage-only `spaceId`/`storyPointId` scope keys saveItem stamps;
+ * back-fills `questionType`/audit timestamps legacy keys omit). Authoring-gated
+ * caller only.
+ */
+function projectAnswerKey(key: Doc, itemView: Doc, itemId: string): Doc {
+  const qd = ((itemView["payload"] as Doc | undefined)?.["questionData"] ?? {}) as Doc;
+  const qtRaw = optStr(key["questionType"]) ?? optStr(qd["questionType"]) ?? "text";
+  return compact({
+    id: optStr(key["id"]) ?? `ak_${itemId}`,
+    itemId: optStr(key["itemId"]) ?? itemId,
+    questionType: QUESTION_TYPE_MAP[qtRaw] ?? "text",
+    correctAnswer: key["correctAnswer"],
+    acceptableAnswers: Array.isArray(key["acceptableAnswers"])
+      ? key["acceptableAnswers"]
+      : undefined,
+    evaluationGuidance: optStr(key["evaluationGuidance"]),
+    modelAnswer: optStr(key["modelAnswer"]),
+    createdAt: tsRequired(key["createdAt"], itemView["createdAt"]),
+    updatedAt: tsRequired(key["updatedAt"], key["createdAt"], itemView["updatedAt"]),
+  });
 }
 
 // ── listItems (answer-stripped learner/teacher list) ─────────────────────────
@@ -477,67 +599,168 @@ export async function listItemsService(
   return { items, nextCursor: page.nextCursor } as unknown as ResOf<"v1.levelup.listItems">;
 }
 
-/**
- * Project a single item to the canonical UnifiedItem view: answer-key fields
- * stripped; rubric guidance stripped for non-authoring; legacy drift canonicalized
- * (`order`→`orderIndex`, `effectiveRubric`→`rubric`, `durationSeconds` dropped, the
- * one-level `kind` payload rebuilt into the two-level `type`/`payload` union).
- */
-function projectItem(item: Doc, authoring: boolean): Doc {
-  const stripped = stripAnswerFields(item) as Doc;
+// ── canonical contract-view projections (LVL-1) ───────────────────────────────
+// STRICT KEY WHITELISTS against the domain view schemas (UnifiedItemSchema /
+// StoryPointSchema / SpaceSchema — all `.strict()`), so raw doc keys NEVER leak:
+// real-data audit-field supersets, seed drift, and merge-upsert leftovers are
+// dropped rather than failing `validateResponses:true`. Every timestamp runs
+// through domain `toTimestamp()` (Firestore-Timestamp-at-rest → canonical ISO);
+// every required-nullable field defaults omitted → null.
 
-  // order → orderIndex (UnifiedItemSchema requires an int orderIndex).
-  if (stripped["orderIndex"] === undefined && typeof stripped["order"] === "number") {
-    stripped["orderIndex"] = stripped["order"];
-  }
-  if (typeof stripped["orderIndex"] !== "number") stripped["orderIndex"] = 0;
-  delete stripped["order"];
-  delete stripped["durationSeconds"];
+/** UnifiedItem meta/analytics whitelists (ItemMetadataSchema / ItemAnalyticsSchema keys). */
+const ITEM_META_KEYS = [
+  "totalPoints",
+  "maxMarks",
+  "estimatedTime",
+  "learningObjectives",
+  "skillsAssessed",
+  "bloomsLevel",
+  "prerequisites",
+  "isRetriable",
+  "evaluatorAgentId",
+  "pyqInfo",
+  "featured",
+  "viewCount",
+  "successRate",
+  "migrationSource",
+] as const;
+const ITEM_ANALYTICS_KEYS = [
+  "difficulty",
+  "topics",
+  "cognitiveLoad",
+  "conceptImportance",
+  "attemptCount",
+  "averageScore",
+] as const;
 
-  // effectiveRubric → rubric (the schema key is `rubric`).
-  if (stripped["rubric"] === undefined && stripped["effectiveRubric"] !== undefined) {
-    stripped["rubric"] = stripped["effectiveRubric"];
-  }
-  delete stripped["effectiveRubric"];
-  if (stripped["rubric"]) stripped["rubric"] = projectRubric(stripped["rubric"], authoring);
-  else delete stripped["rubric"];
-
-  // Canonical two-level payload + top-level discriminant.
-  const norm = normalizeItemPayload(stripped["payload"] as Doc | undefined, stripped);
-  stripped["type"] = norm.type;
-  stripped["payload"] = norm.payload;
-  if (stripped["title"] === undefined && norm.title !== undefined) stripped["title"] = norm.title;
-  if (stripped["content"] === undefined && norm.content !== undefined) {
-    stripped["content"] = norm.content;
-  }
-  return stripped;
+/** Attachments: whitelist ItemAttachmentSchema entry keys. */
+function projectAttachments(v: unknown): Doc[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  return v.map((a) => {
+    const e = (a ?? {}) as Doc;
+    return compact({
+      type: e["type"],
+      url: String(e["url"] ?? ""),
+      name: optStr(e["name"]),
+      sizeBytes: optInt(e["sizeBytes"]),
+    });
+  });
 }
 
 /**
- * Project a StoryPoint to the canonical view: `order`→`orderIndex`, `durationSeconds`
- * dropped, stats coerced to the strict `{itemCount,completionCount}` shape, rubric
- * guidance stripped for non-authoring.
+ * Project a single item to the canonical UnifiedItem view (STRICT WHITELIST):
+ * answer-key fields stripped; rubric guidance stripped for non-authoring; legacy
+ * drift canonicalized (`order`→`orderIndex`, `effectiveRubric`→`rubric`,
+ * `durationSeconds`/audit supersets dropped by the whitelist, the one-level
+ * `kind` payload rebuilt into the two-level `type`/`payload` union); timestamps
+ * → canonical ISO; required-nullable `archivedAt` defaults to null.
+ */
+function projectItem(item: Doc, authoring: boolean): Doc {
+  const s = stripAnswerFields(item) as Doc;
+  const norm = normalizeItemPayload(s["payload"] as Doc | undefined, s);
+  const rubricIn = s["rubric"] ?? s["effectiveRubric"];
+  return compact({
+    id: s["id"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    sectionId: optStr(s["sectionId"]),
+    tenantId: s["tenantId"],
+    type: norm.type,
+    payload: norm.payload,
+    title: optStr(s["title"]) ?? norm.title,
+    content: optStr(s["content"]) ?? norm.content,
+    difficulty: canonDifficulty(s["difficulty"]),
+    topics: optStrArray(s["topics"]),
+    labels: optStrArray(s["labels"]),
+    orderIndex: int(s["orderIndex"], int(s["order"], 0)),
+    meta: pickDefined(s["meta"], ITEM_META_KEYS),
+    analytics: pickDefined(s["analytics"], ITEM_ANALYTICS_KEYS),
+    rubric: rubricIn ? projectRubric(rubricIn, authoring) : undefined,
+    rubricId: optStr(s["rubricId"]),
+    linkedQuestionId: optStr(s["linkedQuestionId"]),
+    attachments: projectAttachments(s["attachments"]),
+    version: optInt(s["version"]),
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
+}
+
+/** StoryPoint sections: whitelist StoryPointSectionSchema entry keys. */
+function projectSections(v: unknown): Doc[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  return v.map((sec, i) => {
+    const e = (sec ?? {}) as Doc;
+    return compact({
+      id: String(e["id"] ?? `section_${i}`),
+      title: String(e["title"] ?? ""),
+      description: optStr(e["description"]),
+      orderIndex: int(e["orderIndex"], int(e["order"], i)),
+    });
+  });
+}
+
+/** AssessmentConfig: whitelist nested strict shapes; legacy top-level
+ *  `durationMinutes` on the story-point doc folds in as the duration fallback. */
+function projectAssessmentConfig(v: unknown, sp: Doc): Doc | undefined {
+  const c = (v && typeof v === "object" ? (v as Doc) : {}) as Doc;
+  const schedule = c["schedule"] as Doc | undefined;
+  const out = compact({
+    durationMinutes: optInt(c["durationMinutes"]) ?? optInt(sp["durationMinutes"]),
+    maxAttempts: optInt(c["maxAttempts"]),
+    shuffle: optBool(c["shuffle"]),
+    passingPercentage: optNum(c["passingPercentage"]),
+    adaptiveConfig:
+      c["adaptiveConfig"] && typeof c["adaptiveConfig"] === "object"
+        ? compact({
+            enabled: Boolean((c["adaptiveConfig"] as Doc)["enabled"]),
+            startingDifficulty: canonDifficulty((c["adaptiveConfig"] as Doc)["startingDifficulty"]),
+            stepUpThreshold: optInt((c["adaptiveConfig"] as Doc)["stepUpThreshold"]),
+            stepDownThreshold: optInt((c["adaptiveConfig"] as Doc)["stepDownThreshold"]),
+          })
+        : undefined,
+    schedule: schedule
+      ? { opensAt: tsOrNull(schedule["opensAt"]), closesAt: tsOrNull(schedule["closesAt"]) }
+      : undefined,
+    retryConfig: pickDefined(c["retryConfig"], ["cooldownMinutes", "lockAfterPassing"]),
+  });
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Project a StoryPoint to the canonical view (STRICT WHITELIST): `order`→
+ * `orderIndex`, legacy type `'test'`→`'timed_test'` (domain read-adapter), stats
+ * coerced to the strict `{itemCount,completionCount}` shape, rubric guidance
+ * stripped for non-authoring, timestamps → canonical ISO, `archivedAt` → null.
  */
 function projectStoryPoint(sp: Doc, authoring: boolean): Doc {
-  const stripped = stripAnswerFields(sp) as Doc;
-  if (stripped["orderIndex"] === undefined && typeof stripped["order"] === "number") {
-    stripped["orderIndex"] = stripped["order"];
-  }
-  if (typeof stripped["orderIndex"] !== "number") stripped["orderIndex"] = 0;
-  delete stripped["order"];
-  delete stripped["durationSeconds"];
-
-  const stats = stripped["stats"] as Doc | undefined;
-  if (stats) {
-    stripped["stats"] = {
-      itemCount: typeof stats["itemCount"] === "number" ? stats["itemCount"] : 0,
-      completionCount: typeof stats["completionCount"] === "number" ? stats["completionCount"] : 0,
-    };
-  }
-  if (stripped["defaultRubric"]) {
-    stripped["defaultRubric"] = projectRubric(stripped["defaultRubric"], authoring);
-  }
-  return stripped;
+  const s = stripAnswerFields(sp) as Doc;
+  const stats = s["stats"] as Doc | undefined;
+  return compact({
+    id: s["id"],
+    spaceId: s["spaceId"],
+    tenantId: s["tenantId"],
+    title: String(s["title"] ?? ""),
+    description: optStr(s["description"]),
+    orderIndex: int(s["orderIndex"], int(s["order"], 0)),
+    type: canonStoryPointType(s["type"]),
+    sections: projectSections(s["sections"]),
+    assessmentConfig: projectAssessmentConfig(s["assessmentConfig"], s),
+    defaultRubric: s["defaultRubric"] ? projectRubric(s["defaultRubric"], authoring) : undefined,
+    defaultRubricId: optStr(s["defaultRubricId"]),
+    difficulty: canonDifficulty(s["difficulty"]),
+    estimatedTimeMinutes: optInt(s["estimatedTimeMinutes"]),
+    stats: stats
+      ? { itemCount: int(stats["itemCount"], 0), completionCount: int(stats["completionCount"], 0) }
+      : undefined,
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
 }
 
 // ── listSpaces ──────────────────────────────────────────────────────────────
@@ -590,37 +813,81 @@ export async function getSpaceService(
   } as unknown as ResOf<"v1.levelup.getSpace">;
 }
 
-/** Project a space view: rubric guidance stripped for non-authoring; answer fields deep-stripped. */
+/** Price: bare legacy number → zMoney; object → whitelist `{amountMinor,currency}`. */
+function projectPrice(v: unknown): Doc | undefined {
+  if (typeof v === "number") {
+    return v > 0 ? { amountMinor: Math.trunc(v), currency: "INR" } : undefined;
+  }
+  if (v && typeof v === "object") {
+    const p = v as Doc;
+    const amountMinor = optInt(p["amountMinor"]) ?? optInt(p["amount"]);
+    if (amountMinor === undefined) return undefined;
+    return { amountMinor, currency: optStr(p["currency"]) ?? "INR" };
+  }
+  return undefined;
+}
+
+/**
+ * Project a space to the canonical SpaceSchema view (STRICT WHITELIST): rubric
+ * guidance stripped for non-authoring, answer fields deep-stripped, stats/
+ * ratingAggregate coerced to their strict shapes, bare numeric price → zMoney,
+ * timestamps → canonical ISO, required-nullables (`publishedAt`/`archivedAt`)
+ * default null, raw doc supersets (audit/seed leftovers) dropped.
+ */
 function projectSpace(space: Doc, authoring: boolean): Doc {
-  const stripped = stripAnswerFields(space) as Doc;
-  if (stripped["defaultRubric"]) {
-    stripped["defaultRubric"] = projectRubric(stripped["defaultRubric"], authoring);
-  }
-  // Canonicalize to the strict SpaceSchema so the response validates even if the
-  // stored doc carries legacy/stale fields (merge-upsert leftovers): drop non-canonical
-  // stats/ratingAggregate keys, coerce a bare numeric price into zMoney.
-  const stats = stripped["stats"] as Record<string, unknown> | undefined;
-  if (stats) {
-    stripped["stats"] = {
-      storyPointCount: stats["storyPointCount"] ?? 0,
-      itemCount: stats["itemCount"] ?? 0,
-      enrolledCount: stats["enrolledCount"] ?? stats["enrollmentCount"] ?? 0,
-    };
-  }
-  const rating = stripped["ratingAggregate"] as Record<string, unknown> | undefined;
-  if (rating) {
-    stripped["ratingAggregate"] = {
-      averageRating: rating["averageRating"] ?? rating["average"] ?? 0,
-      totalReviews: rating["totalReviews"] ?? rating["count"] ?? 0,
-      distribution: rating["distribution"] ?? {},
-    };
-  }
-  const price = stripped["price"];
-  if (typeof price === "number") {
-    if (price > 0) stripped["price"] = { amountMinor: price, currency: "INR" };
-    else delete stripped["price"];
-  }
-  return stripped;
+  const s = stripAnswerFields(space) as Doc;
+  const stats = s["stats"] as Doc | undefined;
+  const rating = s["ratingAggregate"] as Doc | undefined;
+  return compact({
+    id: s["id"],
+    tenantId: s["tenantId"],
+    title: String(s["title"] ?? ""),
+    description: optStr(s["description"]),
+    thumbnailUrl: optStr(s["thumbnailUrl"]),
+    slug: optStr(s["slug"]),
+    type: s["type"] ?? "learning",
+    subject: optStr(s["subject"]),
+    labels: optStrArray(s["labels"]),
+    classIds: optStrArray(s["classIds"]) ?? [],
+    sectionIds: optStrArray(s["sectionIds"]),
+    teacherIds: optStrArray(s["teacherIds"]) ?? [],
+    accessType: s["accessType"] ?? "class_assigned",
+    academicSessionId: optStr(s["academicSessionId"]),
+    defaultEvaluatorAgentId: optStr(s["defaultEvaluatorAgentId"]),
+    defaultTutorAgentId: optStr(s["defaultTutorAgentId"]),
+    defaultRubric: s["defaultRubric"] ? projectRubric(s["defaultRubric"], authoring) : undefined,
+    defaultRubricId: optStr(s["defaultRubricId"]),
+    price: projectPrice(s["price"]),
+    publishedToStore: optBool(s["publishedToStore"]),
+    storeDescription: optStr(s["storeDescription"]),
+    storeThumbnailUrl: optStr(s["storeThumbnailUrl"]),
+    status: s["status"] ?? "draft",
+    publishedAt: tsOrNull(s["publishedAt"]),
+    stats: stats
+      ? {
+          storyPointCount: int(stats["storyPointCount"], 0),
+          itemCount: int(stats["itemCount"], 0),
+          enrolledCount: int(stats["enrolledCount"], int(stats["enrollmentCount"], 0)),
+          completionCount: int(stats["completionCount"], 0),
+        }
+      : undefined,
+    ratingAggregate: rating
+      ? {
+          averageRating: num(rating["averageRating"], num(rating["average"], 0)),
+          totalReviews: int(rating["totalReviews"], int(rating["count"], 0)),
+          distribution:
+            rating["distribution"] && typeof rating["distribution"] === "object"
+              ? rating["distribution"]
+              : {},
+        }
+      : undefined,
+    version: optInt(s["version"]),
+    createdAt: tsRequired(s["createdAt"], s["updatedAt"]),
+    updatedAt: tsRequired(s["updatedAt"], s["createdAt"]),
+    createdBy: optStr(s["createdBy"]) ?? optStr(s["updatedBy"]) ?? "system",
+    updatedBy: optStr(s["updatedBy"]) ?? optStr(s["createdBy"]) ?? "system",
+    archivedAt: tsOrNull(s["archivedAt"]),
+  });
 }
 
 // ── listStoryPoints ─────────────────────────────────────────────────────────

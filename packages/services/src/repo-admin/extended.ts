@@ -15,6 +15,8 @@
  */
 import { type Auth } from "firebase-admin/auth";
 import { FieldPath, type Firestore } from "firebase-admin/firestore";
+import { createSecretWriter, type SecretWriter } from "@levelup/ai";
+import type { TenantId } from "@levelup/domain";
 import { docFromFirestore, toFirestore } from "./firestore.js";
 import {
   usersCollection,
@@ -24,6 +26,11 @@ import {
   impersonationSessionsCollection,
   impersonationSessionDoc,
   tenantDoc,
+  storyPointProgressDoc,
+  spaceReviewsPath,
+  spaceReviewDoc,
+  spaceVersionsPath,
+  platformActivityLogCollection,
 } from "./paths.js";
 
 type Doc = Record<string, unknown>;
@@ -64,17 +71,15 @@ export function makeUserRepo(db: Firestore, adminAuth: Auth, now: Now) {
         ...(input.displayName ? { displayName: input.displayName } : {}),
         ...(input.password ? { password: input.password } : {}),
       });
-      await db
-        .doc(usersDoc(user.uid))
-        .set(
-          toFirestore({
-            id: user.uid,
-            email: input.email,
-            displayName: input.displayName,
-            createdAt: now(),
-          }),
-          { merge: true }
-        );
+      await db.doc(usersDoc(user.uid)).set(
+        toFirestore({
+          id: user.uid,
+          email: input.email,
+          displayName: input.displayName,
+          createdAt: now(),
+        }),
+        { merge: true }
+      );
       return { uid: user.uid };
     },
   };
@@ -258,6 +263,32 @@ export function makeChatRepo(db: Firestore, now: Now) {
         .catch(() => undefined);
       return ref.id;
     },
+    async listMessages(tenantId: string, sessionId: string): Promise<Doc[]> {
+      // Ordered by `timestamp` — the same field `appendMessage` writes (ISO strings
+      // sort chronologically). An `orderBy` on a field a doc lacks silently drops it,
+      // so this MUST match the written field (was mis-set to `createdAt` in chatStream).
+      const snap = await messages(tenantId, sessionId).orderBy("timestamp", "asc").get();
+      return snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+    },
+    async listSessions(
+      tenantId: string,
+      uid: string,
+      filter: { spaceId?: string; itemId?: string; cursor?: string; limit?: number }
+    ): Promise<{ items: Doc[]; nextCursor: string | null }> {
+      const limit = filter.limit ?? 20;
+      let q: FirebaseFirestore.Query = sessions(tenantId).where("userId", "==", uid);
+      if (filter.spaceId) q = q.where("spaceId", "==", filter.spaceId);
+      if (filter.itemId) q = q.where("itemId", "==", filter.itemId);
+      q = q.orderBy("updatedAt", "desc");
+      if (filter.cursor) q = q.startAfter(filter.cursor);
+      const snap = await q.limit(limit + 1).get();
+      const docs = snap.docs
+        .slice(0, limit)
+        .map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const nextCursor =
+        snap.size > limit ? String(docs[docs.length - 1]?.["updatedAt"] ?? "") || null : null;
+      return { items: docs, nextCursor };
+    },
   };
 }
 
@@ -334,18 +365,22 @@ export function makeTestSubmissionRepo(db: Firestore, now: Now) {
   };
 }
 
-/** Per-storyPoint progress docs: `storyPointProgress/{userId}_{storyPointId}` (D6). */
+/**
+ * Per-storyPoint progress docs, NESTED under spaceProgress (U2.2 canonical, the
+ * rule-blessed form): `spaceProgress/{uid}_{spaceId}/storyPointProgress/{storyPointId}`.
+ * This is the path the levelup progress-updater trigger writes and firestore.rules
+ * blesses; the former root-level `storyPointProgress/{uid}_{storyPointId}` form was
+ * unwritten-at-runtime and rule-less (removed under U2.2).
+ */
 export function makeStoryPointProgressRepo(db: Firestore) {
   return {
     async get(
       tenantId: string,
       uid: string,
-      _spaceId: string,
+      spaceId: string,
       storyPointId: string
     ): Promise<Doc | null> {
-      const snap = await db
-        .doc(`${tenantDoc(tenantId)}/storyPointProgress/${uid}_${storyPointId}`)
-        .get();
+      const snap = await db.doc(storyPointProgressDoc(tenantId, uid, spaceId, storyPointId)).get();
       return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
     },
   };
@@ -529,15 +564,225 @@ export function makeStudyGoalRepo(db: Firestore, now: Now) {
   };
 }
 
-/** Secret-manager bridge (records the ref only; never the key value, SEC-09). */
-export function makeSecretRepo(db: Firestore, now: Now) {
+/**
+ * Secret-manager bridge (SEC-09). Writes the tenant's Gemini key VALUE into GCP
+ * Secret Manager via the shared `@levelup/ai` writer (Admin credentials), then
+ * records a pointer doc — NEVER the key value — under the tenant. The secret name
+ * is `secretNameFor(tenantId)` (`tenant-{tenantId}-gemini`), the SAME name the AI
+ * resolver reads, so a written key is always found. The writer is injectable for
+ * tests (mock Secret Manager client); it defaults to a real client in prod.
+ *
+ * PREVIOUS P0: this used to record `{tenantId}-gemini-key` and never call Secret
+ * Manager, so the resolver's `tenant-{tenantId}-gemini` lookup always missed →
+ * FEATURE_DISABLED for every freshly onboarded tenant.
+ */
+export function makeSecretRepo(
+  db: Firestore,
+  now: Now,
+  writer: SecretWriter = createSecretWriter()
+) {
   return {
-    async put(tenantId: string, _key: string): Promise<{ secretRef: string }> {
-      const secretRef = `${tenantId}-gemini-key`;
+    async put(tenantId: string, key: string): Promise<{ secretRef: string }> {
+      const secretRef = await writer.writeSecret(tenantId as TenantId, key);
       await db
         .doc(`${tenantDoc(tenantId)}/secretRefs/gemini`)
         .set(toFirestore({ secretRef, updatedAt: now() }), { merge: true });
       return { secretRef };
+    },
+  };
+}
+
+/**
+ * B2C store reviews — `spaces/{spaceId}/reviews/{uid}` (one doc per reviewer,
+ * keyed by uid so a re-review is an upsert, mirroring `@levelup/seed` Paths).
+ */
+export function makeSpaceReviewRepo(db: Firestore, now: Now) {
+  return {
+    async get(tenantId: string, spaceId: string, uid: string): Promise<Doc | null> {
+      const snap = await db.doc(spaceReviewDoc(tenantId, spaceId, uid)).get();
+      return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
+    },
+    async upsert(
+      tenantId: string,
+      spaceId: string,
+      uid: string,
+      data: Doc
+    ): Promise<{ id: string; created: boolean }> {
+      const ref = db.doc(spaceReviewDoc(tenantId, spaceId, uid));
+      const existing = await ref.get();
+      const created = !existing.exists;
+      const ts = now();
+      await ref.set(
+        toFirestore({
+          ...data,
+          id: uid,
+          updatedAt: ts,
+          ...(created ? { createdAt: ts } : {}),
+        }),
+        { merge: true }
+      );
+      return { id: uid, created };
+    },
+    async list(
+      tenantId: string,
+      spaceId: string,
+      filter: { cursor?: string; limit?: number } = {}
+    ): Promise<{ items: Doc[]; nextCursor: string | null }> {
+      const limit = filter.limit ?? 20;
+      let q: FirebaseFirestore.Query = db
+        .collection(spaceReviewsPath(tenantId, spaceId))
+        .orderBy("createdAt", "desc")
+        .orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("createdAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+  };
+}
+
+/**
+ * ContentVersion change-log — legacy-compatible `spaces/{spaceId}/versions`
+ * subcollection (the SAME path `functions/levelup` wrote, so migrated tenants'
+ * existing history is readable). `add` computes the next per-entity version the
+ * same way the legacy writer did.
+ */
+export function makeContentVersionRepo(db: Firestore, now: Now) {
+  const coll = (t: string, s: string) => db.collection(spaceVersionsPath(t, s));
+  return {
+    async list(
+      tenantId: string,
+      spaceId: string,
+      filter: { cursor?: string; limit?: number } = {}
+    ): Promise<{ items: Doc[]; nextCursor: string | null }> {
+      const limit = filter.limit ?? 20;
+      let q: FirebaseFirestore.Query = coll(tenantId, spaceId)
+        .orderBy("changedAt", "desc")
+        .orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("changedAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+    async add(
+      tenantId: string,
+      spaceId: string,
+      entry: {
+        entityType: string;
+        entityId: string;
+        changeType: string;
+        changeSummary: string;
+        changedBy: string;
+      }
+    ): Promise<string> {
+      const lastSnap = await coll(tenantId, spaceId)
+        .where("entityType", "==", entry.entityType)
+        .where("entityId", "==", entry.entityId)
+        .orderBy("version", "desc")
+        .limit(1)
+        .get();
+      const nextVersion = lastSnap.empty
+        ? 1
+        : ((lastSnap.docs[0]?.data()["version"] as number | undefined) ?? 0) + 1;
+      const ref = coll(tenantId, spaceId).doc();
+      await ref.set(toFirestore({ id: ref.id, version: nextVersion, ...entry, changedAt: now() }));
+      return ref.id;
+    },
+  };
+}
+
+/**
+ * Top-level `platformActivityLog` ledger (super-admin dashboard feed — the
+ * U2.4+5 replacement for the app's rules-denied direct SDK read). Ordered by
+ * `createdAt` desc, the same field the legacy writer stamped.
+ */
+export function makePlatformActivityRepo(db: Firestore) {
+  return {
+    async list(
+      filter: { action?: string; tenantId?: string; cursor?: string; limit?: number } = {}
+    ): Promise<{ items: Doc[]; nextCursor: string | null }> {
+      const limit = filter.limit ?? 20;
+      let q: FirebaseFirestore.Query = db.collection(platformActivityLogCollection());
+      if (filter.tenantId) q = q.where("tenantId", "==", filter.tenantId);
+      if (filter.action) q = q.where("action", "==", filter.action);
+      q = q.orderBy("createdAt", "desc").orderBy(FieldPath.documentId());
+      if (filter.cursor) {
+        const [v, id] = filter.cursor.split("|");
+        q = q.startAfter(v, id);
+      }
+      const snap = await q.limit(limit + 1).get();
+      const page = snap.docs.slice(0, limit);
+      const docs = page.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const last = page[page.length - 1];
+      const nextCursor =
+        snap.size > limit && last ? `${String(last.get("createdAt") ?? "")}|${last.id}` : null;
+      return { items: docs, nextCursor };
+    },
+  };
+}
+
+/**
+ * Canonical `tenants/{t}/costSummaries` accessor (U3.3 path shape: ONE collection,
+ * doc ids `daily_YYYY-MM-DD` / `monthly_YYYY-MM`). `daily`/`monthly` single-doc
+ * getters keep the `@levelup/ai` quota fast-path seam; the `listDaily`/
+ * `listMonthly` range reads back the getCostSummary callable (doc-id range —
+ * index-free).
+ */
+export function makeCostSummariesRepo(db: Firestore) {
+  const coll = (t: string) => db.collection(`${tenantDoc(t)}/costSummaries`);
+  const byIdRange = async (
+    tenantId: string,
+    prefix: "daily_" | "monthly_",
+    startKey: string,
+    endKey: string,
+    limit: number
+  ): Promise<Doc[]> => {
+    const snap = await coll(tenantId)
+      .orderBy(FieldPath.documentId())
+      .startAt(`${prefix}${startKey}`)
+      .endAt(`${prefix}${endKey}`)
+      .limit(limit)
+      .get();
+    return snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+  };
+  return {
+    async daily(tenantId: string, dateYmd: string): Promise<Doc | null> {
+      const snap = await coll(tenantId).doc(`daily_${dateYmd}`).get();
+      return snap.exists ? (snap.data() as Doc) : null;
+    },
+    async monthly(tenantId: string, monthYm: string): Promise<Doc | null> {
+      const snap = await coll(tenantId).doc(`monthly_${monthYm}`).get();
+      return snap.exists ? (snap.data() as Doc) : null;
+    },
+    async listDaily(
+      tenantId: string,
+      filter: { date?: string; from?: string; to?: string; limit?: number } = {}
+    ): Promise<Doc[]> {
+      const start = filter.date ?? filter.from ?? "";
+      const end = filter.date ?? filter.to ?? "9999-12-31";
+      return byIdRange(tenantId, "daily_", start, end, filter.limit ?? 100);
+    },
+    async listMonthly(
+      tenantId: string,
+      filter: { month?: string; limit?: number } = {}
+    ): Promise<Doc[]> {
+      const start = filter.month ?? "";
+      const end = filter.month ?? "9999-12";
+      return byIdRange(tenantId, "monthly_", start, end, filter.limit ?? 100);
     },
   };
 }

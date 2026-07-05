@@ -54,9 +54,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.manageNotifications = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -73,7 +73,7 @@ exports.manageNotifications = (0, https_1.onCall)(
     const uid = request.auth.uid;
     const reqData = (0, utils_1.parseRequest)(
       request.data,
-      shared_types_1.ManageNotificationsRequestSchema
+      wire_1.ManageNotificationsRequestSchema
     );
     if (!reqData.tenantId) {
       throw new https_1.HttpsError("invalid-argument", "tenantId is required");
@@ -105,7 +105,8 @@ exports.manageNotifications = (0, https_1.onCall)(
           title: d.title,
           body: d.body,
           isRead: d.isRead ?? false,
-          createdAt: d.createdAt?.toDate?.()?.toISOString() ?? null,
+          // B8 collapse: Timestamp (old docs) or ISO string (post-U3.2) → ISO out.
+          createdAt: d.createdAt ? (0, domain_1.toTimestamp)(d.createdAt) : null,
           entityType: d.entityType,
           entityId: d.entityId,
           actionUrl: d.actionUrl,
@@ -119,7 +120,7 @@ exports.manageNotifications = (0, https_1.onCall)(
     } else if (reqData.action === "markRead") {
       // ── MARK READ ──
       const rtdb = admin.database();
-      const now = firestore_1.FieldValue.serverTimestamp();
+      const now = (0, domain_1.isoNow)();
       if (reqData.notificationId && !reqData.markAllRead) {
         // Mark single notification as read
         const notifRef = db.doc(

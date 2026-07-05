@@ -16,7 +16,11 @@
     "@levelup/shared-types": "workspace:*",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.0.0",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "@levelup/functions-shared": "workspace:*",
+    "@levelup/domain": "workspace:*",
+    "@levelup/api-contract": "workspace:*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/pdfkit": "^0.17.5",

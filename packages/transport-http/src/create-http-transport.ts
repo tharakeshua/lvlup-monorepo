@@ -16,10 +16,26 @@ import type {
   PayloadOf,
   SubscriptionHandle,
   SubscriptionCallbacks,
+  StorageTransport,
 } from "./seam.js";
 import { invokeViaHttp } from "./invoke/invoke-via-http.js";
 import { subscribeViaSSE } from "./subscribe/subscribe-via-sse.js";
 import { httpServerTimeOffset } from "./server-time/server-time.js";
+
+/**
+ * Storage capability stub (DP-1). The canonical `Transport` carries
+ * `storage: StorageTransport`; this REST adapter is unwired in v1, so the stub
+ * throws loudly rather than silently being `undefined`. A future build replaces
+ * it with a signed-PUT-over-REST impl. Marked partial here on purpose.
+ */
+const HTTP_STORAGE_NOT_IMPLEMENTED: StorageTransport = {
+  requestUploadUrl(): never {
+    throw new Error("[transport-http] storage.requestUploadUrl not implemented (v1 stub)");
+  },
+  uploadImage(): never {
+    throw new Error("[transport-http] storage.uploadImage not implemented (v1 stub)");
+  },
+};
 
 export interface HttpTransportOptions {
   /** Base URL of the REST gateway (no trailing slash), e.g. `https://api.levelup.app`. */
@@ -53,5 +69,8 @@ export function createHttpTransport(opts: HttpTransportOptions): Transport {
       // Stub: the bearer-token seam re-fetches on demand; no cached token to invalidate in v1 shape.
       return Promise.resolve();
     },
+
+    // DP-1: explicit partial — REST storage is unwired in v1 (throws, never silently undefined).
+    storage: HTTP_STORAGE_NOT_IMPLEMENTED,
   };
 }

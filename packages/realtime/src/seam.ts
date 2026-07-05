@@ -11,45 +11,30 @@
  * exactly (the layer plan explicitly permits re-stating it) so it compiles independently and
  * imports **no** `firebase/*` (all platform knowledge stays in `@levelup/transport-firebase`).
  */
-import type { SubscriptionName, ParamsOf, PayloadOf, ApiErrorDetails } from "@levelup/api-contract";
+import type {
+  Transport,
+  SubscriptionName,
+  ParamsOf,
+  PayloadOf,
+  ApiErrorDetails,
+} from "@levelup/api-contract";
+import type {
+  SubscriptionHandle as CanonicalSubscriptionHandle,
+  SubscriptionCallbacks as CanonicalSubscriptionCallbacks,
+} from "@levelup/api-contract";
 
 /** Structural error shape carried over the seam (api-client owns the concrete `ApiError`). */
 export type ApiError = ApiErrorDetails;
 
-/** Idempotent, refcount-aware handle to a live subscription. */
-export interface SubscriptionHandle {
-  /** Idempotent. Detaches the underlying listener (refcount-aware in the manager). */
-  unsubscribe(): void;
-  /** Stable id for dedupe / debug logging. */
-  readonly id: string;
-  /** True until `unsubscribe()` is called. */
-  readonly active: boolean;
-}
-
-/** Subscription consumer callbacks. */
-export interface SubscriptionCallbacks<P> {
-  next: (payload: P) => void;
-  error?: (err: ApiError) => void;
-  /** Fired once the first server snapshot has been received (vs a local-cache hydrate). */
-  onSynced?: () => void;
-}
+/** Canonical handle/callbacks re-exported (DP-1: single home in api-contract). */
+export type { CanonicalSubscriptionHandle as SubscriptionHandle };
+export type { CanonicalSubscriptionCallbacks as SubscriptionCallbacks };
 
 /**
  * The slice of the `Transport` contract `@levelup/realtime` consumes. The full `Transport`
- * additionally carries `invoke` (api-client) and `refreshToken` (meRepo) — out of scope here.
+ * additionally carries `invoke` (api-client), `refreshToken` (meRepo), and `storage` —
+ * out of scope here. A `Pick` so it stays LINKED to the canonical `Transport`.
  */
-export interface RealtimeTransport {
-  subscribe<S extends SubscriptionName>(
-    name: S,
-    params: ParamsOf<S>,
-    cb: SubscriptionCallbacks<PayloadOf<S>> | ((payload: PayloadOf<S>) => void)
-  ): SubscriptionHandle;
-
-  /**
-   * Server-time primitive. Resolves the server clock offset in ms
-   * (`serverNow ≈ Date.now() + offsetMs`). Subscribable for drift.
-   */
-  serverTimeOffset(cb: (offsetMs: number) => void): SubscriptionHandle;
-}
+export type RealtimeTransport = Pick<Transport, "subscribe" | "serverTimeOffset">;
 
 export type { SubscriptionName, ParamsOf, PayloadOf };

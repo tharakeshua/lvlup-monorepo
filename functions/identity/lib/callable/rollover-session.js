@@ -54,9 +54,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rolloverSession = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const zod_1 = require("zod");
@@ -89,7 +89,8 @@ exports.rolloverSession = (0, https_1.onCall)(
     }
     // Create new academic session
     const newSessionRef = db.collection(`${tenantPath}/academicSessions`).doc();
-    const now = firestore_1.FieldValue.serverTimestamp();
+    // B8: timestamps at rest are canonical ISO strings.
+    const now = (0, domain_1.isoNow)();
     await newSessionRef.set({
       id: newSessionRef.id,
       tenantId: data.tenantId,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
 const mockBatch = { update: vi.fn(), commit: vi.fn().mockResolvedValue({}) };
@@ -18,45 +18,52 @@ const stableDb: any = {
   batch: vi.fn(() => mockBatch),
 };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
-  fsFn.FieldValue = { serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP') };
+  fsFn.FieldValue = { serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP") };
   fsFn.Timestamp = {
     now: vi.fn(() => ({ seconds: Math.floor(Date.now() / 1000), toDate: () => new Date() })),
     fromDate: vi.fn((d: Date) => ({ seconds: Math.floor(d.getTime() / 1000), toDate: () => d })),
   };
-  return { default: { firestore: fsFn, initializeApp: vi.fn() }, firestore: fsFn, initializeApp: vi.fn() };
+  return {
+    default: { firestore: fsFn, initializeApp: vi.fn() },
+    firestore: fsFn,
+    initializeApp: vi.fn(),
+  };
 });
 
-vi.mock('firebase-functions/v2/scheduler', () => ({
+vi.mock("firebase-functions/v2/scheduler", () => ({
   onSchedule: vi.fn((_opts: any, handler: any) => handler),
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { cleanupInactiveChats } from '../../triggers/cleanup-inactive-chats';
+import { cleanupInactiveChats } from "../../triggers/cleanup-inactive-chats";
 const handler = cleanupInactiveChats as any;
 
-describe('cleanupInactiveChats', () => {
+describe("cleanupInactiveChats", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should deactivate chat sessions inactive for 7+ days', async () => {
-    mockGet.mockResolvedValueOnce({
-      docs: [
-        {
-          id: 'chat-1',
-          ref: { path: 'tenants/tenant-1/chatSessions/chat-1' },
-          data: () => ({
-            isActive: true,
-            updatedAt: { seconds: Date.now() / 1000 - 86400 * 10 }, // 10 days ago
-          }),
-        },
-      ],
-    });
+  it("should deactivate chat sessions inactive for 7+ days", async () => {
+    // B8 dual query: one get() for Timestamp-typed updatedAt, one for ISO strings.
+    mockGet
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            id: "chat-1",
+            ref: { path: "tenants/tenant-1/chatSessions/chat-1" },
+            data: () => ({
+              isActive: true,
+              updatedAt: { seconds: Date.now() / 1000 - 86400 * 10 }, // 10 days ago
+            }),
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ docs: [] });
 
     await handler({});
 
@@ -64,11 +71,13 @@ describe('cleanupInactiveChats', () => {
     expect(mockBatch.commit).toHaveBeenCalled();
     const updateArgs = mockBatch.update.mock.calls[0];
     expect(updateArgs[1].isActive).toBe(false);
-    expect(updateArgs[1].deactivatedReason).toBe('inactive_7d');
+    expect(updateArgs[1].deactivatedReason).toBe("inactive_7d");
+    // B8: audit timestamps are canonical ISO strings.
+    expect(updateArgs[1].updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
-  it('should handle no inactive chats', async () => {
-    mockGet.mockResolvedValueOnce({ docs: [] });
+  it("should handle no inactive chats", async () => {
+    mockGet.mockResolvedValue({ docs: [] });
 
     await handler({});
     expect(mockBatch.commit).not.toHaveBeenCalled();

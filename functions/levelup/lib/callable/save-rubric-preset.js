@@ -54,11 +54,11 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveRubricPreset = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -70,10 +70,7 @@ exports.saveRubricPreset = (0, https_1.onCall)(
   { region: "asia-south1", cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.SaveRubricPresetRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.SaveRubricPresetRequestSchema);
     if (!data.tenantId) {
       throw new https_1.HttpsError("invalid-argument", "tenantId is required");
     }
@@ -99,7 +96,7 @@ exports.saveRubricPreset = (0, https_1.onCall)(
         throw new https_1.HttpsError("not-found", "Rubric preset not found");
       }
       const updateData = {
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       };
       const fields = ["name", "description", "rubric", "category", "questionTypes"];
       for (const field of fields) {
@@ -129,8 +126,8 @@ exports.saveRubricPreset = (0, https_1.onCall)(
       questionTypes: data.data.questionTypes ?? [],
       isDefault: false,
       createdBy: callerUid,
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      createdAt: (0, domain_1.isoNow)(),
+      updatedAt: (0, domain_1.isoNow)(),
     });
     v2_1.logger.info(`Created rubric preset ${ref.id}`);
     return { id: ref.id, created: true };

@@ -57,7 +57,8 @@ const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 /**
@@ -70,7 +71,7 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
   if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
   const { id, tenantId, data } = (0, utils_1.parseRequest)(
     request.data,
-    shared_types_1.SaveParentRequestSchema
+    wire_1.SaveParentRequestSchema
   );
   await (0, utils_1.assertTenantAdminOrSuperAdmin)(callerUid, tenantId);
   await (0, rate_limit_1.enforceRateLimit)(tenantId, callerUid, "write", 30);
@@ -92,9 +93,10 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
       uid: data.uid,
       childStudentIds,
       status: "active",
-      createdAt: firestore_1.FieldValue.serverTimestamp(),
+      // B8: timestamps at rest are canonical ISO strings.
+      createdAt: (0, domain_1.isoNow)(),
       createdBy: callerUid,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     });
     // Link parent to students (add parentId to each student)
@@ -102,7 +104,7 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
       const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
       await studentRef.update({
         parentIds: firestore_1.FieldValue.arrayUnion(parentRef.id),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
     }
     v2_1.logger.info(`Created parent ${parentRef.id} in tenant ${tenantId}`);
@@ -115,7 +117,7 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
       throw new https_1.HttpsError("not-found", "Parent not found");
     }
     const updates = {
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     };
     if (data.status !== undefined) updates.status = data.status;
@@ -131,7 +133,7 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
         const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
         await studentRef.update({
           parentIds: firestore_1.FieldValue.arrayUnion(id),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
       // Remove parentId from unlinked students
@@ -139,7 +141,7 @@ exports.saveParent = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
         const studentRef = db.doc(`tenants/${tenantId}/students/${studentId}`);
         await studentRef.update({
           parentIds: firestore_1.FieldValue.arrayRemove(id),
-          updatedAt: firestore_1.FieldValue.serverTimestamp(),
+          updatedAt: (0, domain_1.isoNow)(),
         });
       }
     }

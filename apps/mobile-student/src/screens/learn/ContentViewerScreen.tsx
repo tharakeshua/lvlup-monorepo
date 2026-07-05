@@ -368,6 +368,8 @@ export default function ContentViewerScreen() {
           <>
             <QuestionView
               item={item}
+              spaceId={spaceId}
+              storyPointId={storyPointId}
               value={answers[itemId]}
               onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
               disabled={submitted}

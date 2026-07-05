@@ -190,6 +190,8 @@ export {
   useSubmissions,
   useSubmission,
   useUploadAnswerSheets,
+  // storage seam (signed-PUT upload)
+  useUploadImage,
   // question submissions (grading)
   useQuestionSubmissions,
   useGradeManual,

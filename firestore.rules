@@ -221,12 +221,12 @@ service cloud.firestore {
         || isTenantAdmin(tenantId);
     }
 
-    // ── /scanners/{scannerId} ────────────────────────────
-    match /scanners/{scannerId} {
+    // ── /tenants/{tenantId}/scanners/{scannerId} ─────────
+    match /tenants/{tenantId}/scanners/{scannerId} {
       allow read: if isSuperAdmin()
-        || (isAuthenticated() && resource.data.authUid == request.auth.uid);
+        || (isAuthenticated() && belongsToTenant(tenantId) && resource.data.uid == request.auth.uid);
 
-      // Only Cloud Functions write
+      // Only Cloud Functions write (AD-11: scanner writes are server-only)
       allow write: if false;
     }
 
@@ -317,29 +317,11 @@ service cloud.firestore {
         }
       }
 
-      // ── /tenants/{tenantId}/spaces/{spaceId}/items/{itemId}
-      match /items/{itemId} {
-        allow read: if isSuperAdmin()
-          || isTenantAdmin(tenantId)
-          || isTeacher(tenantId)
-          || (isStudent(tenantId) && (
-              get(/databases/$(database)/documents/tenants/$(tenantId)/spaces/$(spaceId)).data.accessType == 'tenant_wide'
-              || get(/databases/$(database)/documents/tenants/$(tenantId)/spaces/$(spaceId)).data.classIds.hasAny(request.auth.token.classIds)
-          ));
-
-        allow create, update: if isSuperAdmin()
-          || isTenantAdmin(tenantId)
-          || (isTeacher(tenantId)
-              && get(/databases/$(database)/documents/tenants/$(tenantId)/spaces/$(spaceId)).data.createdBy == request.auth.uid);
-
-        allow delete: if isSuperAdmin()
-          || isTenantAdmin(tenantId);
-
-        // ── Answer Keys — Admin SDK only
-        match /answerKeys/{keyId} {
-          allow read, write: if false;
-        }
-      }
+      // U2.3 (D1): the parallel flat `items/{itemId}` block was removed — items
+      // live ONLY at the nested `storyPoints/{storyPointId}/items/{itemId}` path
+      // above. No client flow reads/writes flat items; the legacy `functions/levelup`
+      // flat read-fallback uses the Admin SDK (bypasses rules). answerKeys stay
+      // deny-all on the nested item path.
     }
 
     // ══════════════════════════════════════════════════════
@@ -373,6 +355,11 @@ service cloud.firestore {
         || isTenantAdmin(tenantId);
 
       // ── /tenants/{tenantId}/exams/{examId}/questions/{questionId}
+      // LEGACY-ONLY (U2.4 verdict, 2026-07-04): the v1 stack stores exam questions
+      // FLAT in `exams` via `_kind == 'examQuestion'` — this nested path is DEAD in
+      // v1 (RUL-1 §3). It is KEPT because the legacy `functions/autograde` stack
+      // still actively reads/writes it (extract-questions, on-exam-deleted,
+      // firestore-helpers). Retire with the legacy stack in U3.4.
       match /questions/{questionId} {
         allow read: if isSuperAdmin()
           || isTenantAdmin(tenantId)
@@ -415,6 +402,12 @@ service cloud.firestore {
         || isTenantAdmin(tenantId);
 
       // ── /tenants/{tenantId}/submissions/{submissionId}/questionSubmissions/{qsId}
+      // LEGACY-ONLY (U2.4 verdict, 2026-07-04): the v1 stack stores question
+      // submissions FLAT in `submissions` via `_kind == 'questionSubmission'` —
+      // this nested path is DEAD in v1 (RUL-1 §3). It is KEPT because the legacy
+      // `functions/autograde` stack still actively reads/writes it (grading
+      // pipeline, grade-question, on-question-submission-updated trigger).
+      // Retire with the legacy stack in U3.4.
       match /questionSubmissions/{qsId} {
         allow read: if isSuperAdmin()
           || isTenantAdmin(tenantId)
@@ -526,10 +519,12 @@ service cloud.firestore {
     }
 
     // ── /tenants/{tenantId}/chatSessions/{sessionId} ────
+    // Owner is keyed by `userId` (= auth uid), the field sendChatMessage writes —
+    // NOT `studentId` (that field does not exist on the session doc).
     match /tenants/{tenantId}/chatSessions/{sessionId} {
       allow read: if isSuperAdmin()
         || isTenantAdmin(tenantId)
-        || (isStudent(tenantId) && resource.data.studentId == request.auth.token.studentId);
+        || (isStudent(tenantId) && resource.data.userId == request.auth.uid);
 
       allow create: if isSuperAdmin()
         || isTenantAdmin(tenantId)
@@ -537,10 +532,20 @@ service cloud.firestore {
 
       allow update: if isSuperAdmin()
         || isTenantAdmin(tenantId)
-        || (isStudent(tenantId) && resource.data.studentId == request.auth.token.studentId && isTenantActive(tenantId));
+        || (isStudent(tenantId) && resource.data.userId == request.auth.uid && isTenantActive(tenantId));
 
       // No client-side delete
       allow delete: if isSuperAdmin();
+
+      // Always-subcollection messages — the `chatStream` live listener reads these.
+      // Written ONLY by Cloud Functions (Admin SDK bypasses rules); no client write.
+      match /messages/{messageId} {
+        allow read: if isSuperAdmin()
+          || isTenantAdmin(tenantId)
+          || (isStudent(tenantId)
+              && get(/databases/$(database)/documents/tenants/$(tenantId)/chatSessions/$(sessionId)).data.userId == request.auth.uid);
+        allow write: if false;
+      }
     }
 
     // ══════════════════════════════════════════════════════
@@ -601,6 +606,153 @@ service cloud.firestore {
     match /globalEvaluationPresets/{presetId} {
       allow read: if isAuthenticated();
       allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // SERVER-ONLY PATHS — EXPLICIT DENY (U2.5, 2026-07-04)
+    // ══════════════════════════════════════════════════════
+    // These paths were previously "server-only by absence" (no match ⇒ Firestore
+    // default-deny). They are written/read EXCLUSIVELY by Cloud Functions via the
+    // Admin SDK (which bypasses rules). The blocks below make that posture
+    // explicit so a future edit cannot accidentally open them without noticing.
+    // Verified 2026-07-04: no live client-SDK read exists for any path below
+    // (shared-hooks copies are dead code — not imported by any app; all apps
+    // route through @levelup/query → callables). The two super-admin direct
+    // reads (platformActivityLog, dailyCostSummaries) were ALREADY broken under
+    // default-deny — flagged for a listPlatformActivity/llm-usage callable.
+
+    // Gamification subcollections under students (levels, achievements, goals,
+    // sessions) — written by the levelup progress pipeline only. The old
+    // firestore-backed live subscriptions (studentLevelLive, achievementUnlock)
+    // are retired to RTDB projections per AD-12 (U2.6).
+    match /tenants/{tenantId}/students/{studentId}/achievements/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/students/{studentId}/level/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/students/{studentId}/studyGoals/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/students/{studentId}/studySessions/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Announcements + per-user read receipts — served via callables only.
+    match /tenants/{tenantId}/announcements/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Device tokens (tenants/{t}/users/{uid}/devices/{token}) — server-managed.
+    match /tenants/{tenantId}/users/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Authoring/AI config + content pools — callable-served.
+    match /tenants/{tenantId}/rubricPresets/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/questionBank/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Space subresources with no client surface (reviews, agents) + the
+    // tenant-level agents collection (seed path form).
+    match /tenants/{tenantId}/spaces/{spaceId}/reviews/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/spaces/{spaceId}/agents/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/agents/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Tenant-level achievement DEFINITIONS (distinct from per-student unlocks).
+    match /tenants/{tenantId}/achievements/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Analytics / cost / ops ledgers — Admin-SDK pipelines only.
+    // NOTE: apps/super-admin reads dailyCostSummaries directly (getPlatformLlmUsage)
+    // — that read was already failing under default-deny; needs a callable.
+    match /tenants/{tenantId}/costSummaries/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/dailyCostSummaries/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/insights/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/studentProgressSummaries/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/classProgressSummaries/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/gradingDeadLetter/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/examAnalytics/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Top-level platform activity ledger — Admin-SDK writes; no client surface.
+    // NOTE: apps/super-admin reads this directly (reads-platform/reads-tenant) —
+    // already failing under default-deny; needs a listPlatformActivity callable.
+    match /platformActivityLog/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // v2_ PREFIXED SURFACE — DENY-ALL (U2.4 / AD-11, 2026-07-04)
+    // ══════════════════════════════════════════════════════
+    // CONTRACT (AD-11, DATA-MODEL-FIX-PLAN.md §10): the v1 backend runs with
+    // LVLUP_COLLECTION_PREFIX=v2_ (functions/sdk-v1/.env.lvlup-ff6fa), so ALL
+    // production data lives under the v2_-prefixed roots below. The v1 surface
+    // is CALLABLE-ONLY: every read/write goes through v1.* callables on the
+    // Admin SDK (bypasses rules). There is NO legitimate direct client access.
+    //
+    // ⚠️ DO NOT copy the legacy `tenants/…` allow rules under `v2_tenants/…`.
+    // v1 stores examQuestions + questionSubmissions FLAT inside the v2_ exams/
+    // submissions collections (discriminated by `_kind`), and those raw docs
+    // carry answerKey / rubric-guidance / eval-cost fields that only the
+    // callable projections strip. A verbatim duplication of the legacy
+    // teacher/student/parent read grants would LEAK ANSWER KEYS (RUL-1 §critical).
+    //
+    // Any future client-side Firestore read/subscription against v2_* requires
+    // a projection design + domain-owner sign-off — never a blanket read grant.
+    // Client realtime uses RTDB projections instead (AD-12).
+    //
+    // Roots mirror topLevel() in packages/services/src/repo-admin/paths.ts and
+    // @levelup/seed engine/paths.ts (the only prefix application points).
+    match /v2_tenants/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_users/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_userMemberships/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_tenantCodes/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_consumerProfiles/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_impersonationSessions/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_globalEvaluationPresets/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_platformActivityLog/{document=**} {
+      allow read, write: if false;
+    }
+    match /v2_platformAudit/{document=**} {
+      allow read, write: if false;
     }
   }
 }

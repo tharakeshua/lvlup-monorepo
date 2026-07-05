@@ -8,10 +8,6 @@ import {
   Skeleton,
   ProgressRing,
   ScoreCard,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   Table,
   TableBody,
   TableCell,
@@ -56,15 +52,34 @@ export default function ProgressPage() {
         <h1 className="text-2xl font-bold">My Progress</h1>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
-        <TabsList>
-          <TabsTrigger value="overall">Overall</TabsTrigger>
-          <TabsTrigger value="exams">Exams</TabsTrigger>
-          <TabsTrigger value="spaces">Spaces</TabsTrigger>
-        </TabsList>
+      <div className="flex gap-1 border-b" role="tablist">
+        {(
+          [
+            { id: "overall", label: "Overall" },
+            { id: "exams", label: "Exams" },
+            { id: "spaces", label: "Spaces" },
+          ] as { id: TabId; label: string }[]
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
+      <div>
         {/* Overall Tab */}
-        <TabsContent value="overall">
+        {activeTab === "overall" && (
           <div className="space-y-6">
             {summary ? (
               <>
@@ -116,10 +131,10 @@ export default function ProgressPage() {
               </p>
             )}
           </div>
-        </TabsContent>
+        )}
 
         {/* Exams Tab */}
-        <TabsContent value="exams">
+        {activeTab === "exams" && (
           <div className="space-y-4">
             {summary?.autograde.recentExams.length ? (
               <div className="rounded-lg border">
@@ -160,10 +175,10 @@ export default function ProgressPage() {
               <p className="text-muted-foreground text-sm">No exam results yet.</p>
             )}
           </div>
-        </TabsContent>
+        )}
 
         {/* Spaces Tab */}
-        <TabsContent value="spaces">
+        {activeTab === "spaces" && (
           <div className="space-y-4">
             {!spaces?.length ? (
               <p className="text-muted-foreground">No spaces to track.</p>
@@ -171,8 +186,8 @@ export default function ProgressPage() {
               spaces.map((space) => <SpaceProgressCard key={space.id} space={space} />)
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }

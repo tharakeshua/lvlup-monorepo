@@ -13,9 +13,9 @@
 
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { isoNow } from "@levelup/domain";
 import { computeOverallScore, identifyStrengthsAndWeaknesses } from "../utils/aggregation-helpers";
-import type { StoryPointProgress } from "@levelup/shared-types";
+import type { StoryPointProgress } from "../contracts/legacy-docs";
 
 export const onUserStoryPointProgressWrite = onDocumentWritten(
   {
@@ -127,7 +127,7 @@ export const onUserStoryPointProgressWrite = onDocumentWritten(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: FieldValue.serverTimestamp(),
+          lastUpdatedAt: isoNow(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

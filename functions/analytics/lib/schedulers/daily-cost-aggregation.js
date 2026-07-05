@@ -61,6 +61,7 @@ exports.dailyCostAggregation = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const BUDGET_WARNING_THRESHOLD = 0.8; // 80%
 const BUDGET_EXCEEDED_THRESHOLD = 1.0; // 100%
 exports.dailyCostAggregation = (0, scheduler_1.onSchedule)(
@@ -133,11 +134,13 @@ exports.dailyCostAggregation = (0, scheduler_1.onSchedule)(
       let budgetUsedPercent;
       let budgetAlertSent = false;
       if (budgetLimitUsd && budgetLimitUsd > 0) {
-        // Get monthly total so far
+        // Get monthly total so far. Canonical path shape: ONE costSummaries
+        // collection with prefixed doc ids (daily_YYYY-MM-DD / monthly_YYYY-MM) —
+        // the old nested daily/monthly sub-paths had invalid segment counts and
+        // threw at runtime.
         const monthStr = dateStr.substring(0, 7); // YYYY-MM
         const monthlySummarySnap = await db
-          .collection(`tenants/${tenantId}/costSummaries/monthly`)
-          .doc(monthStr)
+          .doc(`tenants/${tenantId}/costSummaries/monthly_${monthStr}`)
           .get();
         const existingMonthCost = monthlySummarySnap.data()?.totalCostUsd ?? 0;
         const monthTotal = existingMonthCost + totalCostUsd;
@@ -155,7 +158,7 @@ exports.dailyCostAggregation = (0, scheduler_1.onSchedule)(
         }
       }
       const costSummary = {
-        id: dateStr,
+        id: `daily_${dateStr}`, // mirrors the doc id (prefixed convention)
         tenantId,
         date: dateStr,
         totalCalls,
@@ -167,11 +170,11 @@ exports.dailyCostAggregation = (0, scheduler_1.onSchedule)(
         budgetLimitUsd,
         budgetUsedPercent,
         budgetAlertSent,
-        computedAt: firestore_1.FieldValue.serverTimestamp(),
+        computedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
       };
-      const dailyDocRef = db.doc(`tenants/${tenantId}/costSummaries/daily/${dateStr}`);
+      const dailyDocRef = db.doc(`tenants/${tenantId}/costSummaries/daily_${dateStr}`);
       const monthStr = dateStr.substring(0, 7);
-      const monthlyDocRef = db.doc(`tenants/${tenantId}/costSummaries/monthly/${monthStr}`);
+      const monthlyDocRef = db.doc(`tenants/${tenantId}/costSummaries/monthly_${monthStr}`);
       // Check if daily doc already exists (idempotency guard for monthly increment)
       const existingDailySnap = await dailyDocRef.get();
       const previousDailyCost = existingDailySnap.exists
@@ -198,7 +201,7 @@ exports.dailyCostAggregation = (0, scheduler_1.onSchedule)(
           totalCalls: firestore_1.FieldValue.increment(deltaCalls),
           totalInputTokens: firestore_1.FieldValue.increment(deltaInput),
           totalOutputTokens: firestore_1.FieldValue.increment(deltaOutput),
-          lastUpdatedAt: firestore_1.FieldValue.serverTimestamp(),
+          lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

@@ -1,8 +1,9 @@
 /**
  * read-only-realtime lint (transport-realtime.md §8.6 / principle 5).
  *
- * Subscriptions NEVER write. `subscribe-via-firestore.ts` / `subscribe-via-rtdb.ts`
- * (and server-time-offset.ts) must not contain any Firestore/RTDB write primitive:
+ * Subscriptions NEVER write. `subscribe-via-rtdb.ts` (the ONLY subscriber since
+ * CHAT-1 deleted the firestore one) and server-time-offset.ts must not contain
+ * any Firestore/RTDB write primitive:
  * set / update / push / setDoc / updateDoc / addDoc / deleteDoc / runTransaction.
  * Grep-asserts the absence (the listeners are read-only by construction).
  */
@@ -11,7 +12,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const READ_PATH_FILES = [
-  "../subscribe/subscribe-via-firestore.ts",
   "../subscribe/subscribe-via-rtdb.ts",
   "../server-time/server-time-offset.ts",
 ];

@@ -1,4 +1,4 @@
-import type { ItemProgressEntry } from "@levelup/shared-types";
+import type { ItemProgressEntry } from "../types";
 /** Item entry passed into the updater — extends ItemProgressEntry with storyPointId. */
 export interface StoredItemProgressEntry extends ItemProgressEntry {
   storyPointId: string;

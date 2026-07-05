@@ -54,11 +54,11 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveTenant = void 0;
 const admin = __importStar(require("firebase-admin"));
-const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const secret_manager_1 = require("@google-cloud/secret-manager");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const secretClient = new secret_manager_1.SecretManagerServiceClient();
@@ -71,10 +71,7 @@ const secretClient = new secret_manager_1.SecretManagerServiceClient();
 exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, async (request) => {
   const callerUid = request.auth?.uid;
   if (!callerUid) throw new https_1.HttpsError("unauthenticated", "Must be logged in");
-  const { id, data } = (0, utils_1.parseRequest)(
-    request.data,
-    shared_types_1.SaveTenantRequestSchema
-  );
+  const { id, data } = (0, utils_1.parseRequest)(request.data, wire_1.SaveTenantRequestSchema);
   if (!id) {
     // ── CREATE ──
     const callerUser = await (0, utils_1.getUser)(callerUid);
@@ -145,7 +142,8 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
           examsThisMonth: 0,
           aiCallsThisMonth: 0,
           storageBytes: 0,
-          lastUpdated: firestore_1.FieldValue.serverTimestamp(),
+          // B8: timestamps at rest are canonical ISO strings.
+          lastUpdated: (0, domain_1.isoNow)(),
         },
         stats: {
           totalStudents: 0,
@@ -154,9 +152,9 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
           totalSpaces: 0,
           totalExams: 0,
         },
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
         createdBy: callerUid,
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: (0, domain_1.isoNow)(),
         updatedBy: callerUid,
       };
       const membershipId = `${callerUid}_${tenantRef.id}`;
@@ -164,7 +162,7 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
       tx.set(tenantRef, tenantDoc);
       tx.set(tenantCodeRef, {
         tenantId: tenantRef.id,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
       });
       tx.set(membershipRef, {
         id: membershipId,
@@ -174,15 +172,22 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
         role: "tenantAdmin",
         status: "active",
         joinSource: "admin_created",
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        createdAt: (0, domain_1.isoNow)(),
+        updatedAt: (0, domain_1.isoNow)(),
       });
     });
-    await admin.auth().setCustomUserClaims(callerUid, {
-      role: "tenantAdmin",
-      tenantId: tenantRef.id,
-      tenantCode,
-    });
+    // DEP-1 fix: the create branch already verified the caller is a super-admin;
+    // hand-rolling the claim wiped isSuperAdmin. Mint via the converged builder
+    // and preserve the super-admin claim through the re-mint.
+    await admin
+      .auth()
+      .setCustomUserClaims(
+        callerUid,
+        (0, utils_1.buildClaimsForMembership)(
+          { role: "tenantAdmin", tenantId: tenantRef.id, tenantCode },
+          { isSuperAdmin: true }
+        )
+      );
     // Handle geminiApiKey if provided during creation
     if (data.geminiApiKey) {
       await storeGeminiApiKey(tenantRef.id, data.geminiApiKey);
@@ -238,7 +243,7 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
       }
     }
     const updates = {
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
       updatedBy: callerUid,
     };
     if (data.name !== undefined) updates.name = data.name;
@@ -277,7 +282,7 @@ exports.saveTenant = (0, https_1.onCall)({ region: "asia-south1", cors: true }, 
         updates[`onboarding.${k}`] = v;
       }
       if (data.onboarding.completed) {
-        updates["onboarding.completedAt"] = firestore_1.FieldValue.serverTimestamp();
+        updates["onboarding.completedAt"] = (0, domain_1.isoNow)();
       }
     }
     await tenantRef.update(updates);
@@ -320,11 +325,14 @@ async function storeGeminiApiKey(tenantId, apiKey) {
     parent: `${parent}/secrets/${secretId}`,
     payload: { data: Buffer.from(apiKey, "utf8") },
   });
-  await admin.firestore().doc(`tenants/${tenantId}`).update({
-    "settings.geminiKeyRef": secretId,
-    "settings.geminiKeySet": true,
-    updatedAt: firestore_1.FieldValue.serverTimestamp(),
-  });
+  await admin
+    .firestore()
+    .doc(`tenants/${tenantId}`)
+    .update({
+      "settings.geminiKeyRef": secretId,
+      "settings.geminiKeySet": true,
+      updatedAt: (0, domain_1.isoNow)(),
+    });
   v2_1.logger.info(`Set Gemini API key for tenant ${tenantId}`);
 }
 //# sourceMappingURL=save-tenant.js.map

@@ -19,6 +19,7 @@ import {
   type UseInfiniteQueryResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import type { StorageRepo } from "@levelup/repositories";
 import { useApi } from "../provider/useApi.js";
 import { defineMutation } from "../mutation/define-mutation.js";
 import { autogradeKeys } from "./keys.js";
@@ -161,6 +162,34 @@ export const useUploadAnswerSheets = defineMutation<
 >({
   callable: "v1.autograde.uploadAnswerSheets",
   run: (repos, vars) => autogradeRepos(repos).submissionRepo.upload(vars),
+});
+
+// ===========================================================================
+// Storage seam (signed-PUT upload)
+// ===========================================================================
+
+/** The `storageRepo` lives in the views-and-storage-auth slice of the bag (not
+ * in `AutogradeRepos`); narrow the open bag to just the seam this hook drives. */
+type StorageReposSlice = { storageRepo: StorageRepo };
+
+/**
+ * Request a scoped signed-PUT URL, upload the bytes, and resolve the
+ * SERVER-OWNED storage path (⚷ — the server pins the `tenants/{t}/…` scope via
+ * `buildScopedPath`; the client never hand-builds an upload path). This is the
+ * sanctioned answer-sheet / question-paper upload mechanism.
+ *
+ * A signed URL is a transient grant — it persists no state, so this mutation
+ * invalidates **nothing**. The returned path is persisted by a *separate*
+ * `useSaveExam` (questionPaperImages) / `useUploadAnswerSheets` (imageUrls)
+ * mutation, each of which owns its own invalidation.
+ */
+export const useUploadImage = defineMutation<
+  Parameters<StorageRepo["uploadImage"]>[0],
+  Awaited<ReturnType<StorageRepo["uploadImage"]>>
+>({
+  callable: "v1.autograde.requestUploadUrl",
+  invalidate: "none",
+  run: (repos, vars) => (repos as unknown as StorageReposSlice).storageRepo.uploadImage(vars),
 });
 
 // ===========================================================================

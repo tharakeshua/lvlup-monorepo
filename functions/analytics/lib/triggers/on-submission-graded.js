@@ -62,7 +62,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onSubmissionGraded = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
-const firestore_2 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 const GRADED_STATUSES = new Set(["graded", "grading_complete", "results_released"]);
 exports.onSubmissionGraded = (0, firestore_1.onDocumentUpdated)(
@@ -145,8 +145,9 @@ exports.onSubmissionGraded = (0, firestore_1.onDocumentUpdated)(
       };
     }
     // Sort recent exams by date descending, keep top 10
+    // B8: date may be a Firestore Timestamp object OR an ISO string.
     const sortedRecent = (0, aggregation_helpers_1.topN)(recentExams, 10, (e) =>
-      e.date?.toMillis ? e.date.toMillis() : 0
+      (0, aggregation_helpers_1.legacyMillis)(e.date)
     );
     const autograde = {
       totalExams: examIds.length,
@@ -182,7 +183,7 @@ exports.onSubmissionGraded = (0, firestore_1.onDocumentUpdated)(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: firestore_2.FieldValue.serverTimestamp(),
+          lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

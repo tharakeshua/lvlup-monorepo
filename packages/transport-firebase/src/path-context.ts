@@ -2,7 +2,7 @@
  * `PathContext` — the read-path tenant/uid scope (transport-realtime.md §2.2 note,
  * §9 open-Q #1).
  *
- * Subscriptions resolve to a Firestore doc/query path or an RTDB node that is
+ * Subscriptions resolve to an RTDB node (the only realtime backend — AD-12) that is
  * tenant- and (for self-scoped channels) uid-qualified. Neither `tenantId` nor
  * `uid` may ever be client-supplied; both are derived authoritatively here from the
  * decoded ID token (`tenantId` claim) and `auth.currentUser.uid`. The descriptor

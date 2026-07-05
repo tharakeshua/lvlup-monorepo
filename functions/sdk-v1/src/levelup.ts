@@ -6,15 +6,12 @@
  * derived from the nested `v1.levelup` export group in index.ts). Runtime ports
  * (repos/ai/clock) are injected by `./bootstrap`; do NOT re-wire them here.
  *
- * ── Backing-service coverage (Phase 5, TRACK A · STEP 2) ──
- * `@levelup/services` exposes the levelup RUNTIME slice (test-session, practice,
- * purchase, gamification, triggers/schedulers) but does NOT (yet) expose the
- * authoring/CONTENT-CRUD service fns (saveSpace, getSpace, listSpaces,
- * saveStoryPoint, saveItem, …, generateContent, assignContent, saveTestAnswer).
- * Per the wiring contract we wire ONLY callables with a real backing service fn
- * and do NOT invent business logic for the rest; the unbacked content callables
- * are listed in the STEP-2 return and remain unexported here until their services
- * land (they are part of the api-contract registry but have no server brain yet).
+ * ── Backing-service coverage ──
+ * LVL-2 closed the wire gap: every `v1.levelup.*` contract callable now has a
+ * backing `@levelup/services` fn and is exported here (content CRUD + versions,
+ * question bank, rubric presets, agents, store/reviews, progress list,
+ * assignContent, generateContent). Nothing in this module invents business
+ * logic — it is registration only.
  */
 import {
   makeCallable,
@@ -38,6 +35,17 @@ import {
   getSpaceService,
   listStoryPointsService,
   getStoryPointService,
+  listVersionsService,
+  generateContentService,
+  assignContentService,
+  // question bank / rubric presets / agents (LVL-2 authoring slice)
+  listQuestionBankService,
+  saveQuestionBankItemService,
+  importFromBankService,
+  listRubricPresetsService,
+  saveRubricPresetService,
+  listAgentsService,
+  saveAgentService,
   // test-session slice
   startTestSessionService,
   submitTestSessionService,
@@ -49,11 +57,17 @@ import {
   recordItemAttemptService,
   getSpaceProgressService,
   getStoryPointProgressService,
+  listSpaceProgressForUserService,
   // purchase / store slice
   purchaseSpaceService,
   listStoreSpacesService,
+  getStoreSpaceService,
+  listSpaceReviewsService,
+  saveSpaceReviewService,
   // chat slice
   sendChatMessageService,
+  getChatSessionService,
+  listChatSessionsService,
   // gamification slice
   getGamificationSummaryService,
   getStudentLevelService,
@@ -115,6 +129,21 @@ export const listSpaces = call("v1.levelup.listSpaces", listSpacesService);
 export const getSpace = call("v1.levelup.getSpace", getSpaceService);
 export const listStoryPoints = call("v1.levelup.listStoryPoints", listStoryPointsService);
 export const getStoryPoint = call("v1.levelup.getStoryPoint", getStoryPointService);
+export const listVersions = call("v1.levelup.listVersions", listVersionsService);
+export const generateContent = call("v1.levelup.generateContent", generateContentService);
+export const assignContent = call("v1.levelup.assignContent", assignContentService);
+
+// ── question bank / rubric presets / agents (LVL-2 authoring slice) ─────────
+export const listQuestionBank = call("v1.levelup.listQuestionBank", listQuestionBankService);
+export const saveQuestionBankItem = call(
+  "v1.levelup.saveQuestionBankItem",
+  saveQuestionBankItemService
+);
+export const importFromBank = call("v1.levelup.importFromBank", importFromBankService);
+export const listRubricPresets = call("v1.levelup.listRubricPresets", listRubricPresetsService);
+export const saveRubricPreset = call("v1.levelup.saveRubricPreset", saveRubricPresetService);
+export const listAgents = call("v1.levelup.listAgents", listAgentsService);
+export const saveAgent = call("v1.levelup.saveAgent", saveAgentService);
 
 // ── test sessions ──────────────────────────────────────────────────────────
 export const startTestSession = call("v1.levelup.startTestSession", startTestSessionService);
@@ -127,6 +156,10 @@ export const listTestSessions = call("v1.levelup.listTestSessions", listTestSess
 export const evaluateAnswer = call("v1.levelup.evaluateAnswer", evaluateAnswerService);
 export const recordItemAttempt = call("v1.levelup.recordItemAttempt", recordItemAttemptService);
 export const getSpaceProgress = call("v1.levelup.getSpaceProgress", getSpaceProgressService);
+export const listSpaceProgressForUser = call(
+  "v1.levelup.listSpaceProgressForUser",
+  listSpaceProgressForUserService
+);
 export const getStoryPointProgress = call(
   "v1.levelup.getStoryPointProgress",
   getStoryPointProgressService
@@ -135,9 +168,14 @@ export const getStoryPointProgress = call(
 // ── purchase / store (B2C) ───────────────────────────────────────────────────
 export const purchaseSpace = call("v1.levelup.purchaseSpace", purchaseSpaceService);
 export const listStoreSpaces = call("v1.levelup.listStoreSpaces", listStoreSpacesService);
+export const getStoreSpace = call("v1.levelup.getStoreSpace", getStoreSpaceService);
+export const listSpaceReviews = call("v1.levelup.listSpaceReviews", listSpaceReviewsService);
+export const saveSpaceReview = call("v1.levelup.saveSpaceReview", saveSpaceReviewService);
 
 // ── chat (AI tutor) ──────────────────────────────────────────────────────────
 export const sendChatMessage = call("v1.levelup.sendChatMessage", sendChatMessageService);
+export const getChatSession = call("v1.levelup.getChatSession", getChatSessionService);
+export const listChatSessions = call("v1.levelup.listChatSessions", listChatSessionsService);
 
 // ── gamification / insights (core-owned fold, v1.levelup.* namespace) ────────
 export const getGamificationSummary = call(

@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions/v2";
+import { isoNow, toTimestamp } from "@levelup/domain";
 
 /**
  * Scheduled function: deactivate inactive chat sessions (7-day threshold).
@@ -26,24 +27,27 @@ export const cleanupInactiveChats = onSchedule(
 
     // 7 days ago
     const inactiveThreshold = Timestamp.fromMillis(now.toMillis() - 7 * 24 * 60 * 60 * 1000);
+    // B8: updatedAt is a Timestamp on pre-U3.2 docs and an ISO string after.
+    // Firestore range filters only match values of the operand's type, so the
+    // two representations need one query each.
+    const inactiveThresholdIso = toTimestamp(inactiveThreshold);
 
     // Query across all tenants using collectionGroup
-    const inactiveSessions = await db
-      .collectionGroup("chatSessions")
-      .where("isActive", "==", true)
-      .where("updatedAt", "<", inactiveThreshold)
-      .limit(500)
-      .get();
+    const baseQuery = db.collectionGroup("chatSessions").where("isActive", "==", true);
+    const [tsSnap, isoSnap] = await Promise.all([
+      baseQuery.where("updatedAt", "<", inactiveThreshold).limit(500).get(),
+      baseQuery.where("updatedAt", "<", inactiveThresholdIso).limit(500).get(),
+    ]);
+    const docs = [...tsSnap.docs, ...isoSnap.docs];
 
-    if (inactiveSessions.empty) {
+    if (docs.length === 0) {
       logger.info("No inactive chat sessions (7d) found");
       return;
     }
 
-    logger.info(`Found ${inactiveSessions.size} inactive chat sessions (7d+) to deactivate`);
+    logger.info(`Found ${docs.length} inactive chat sessions (7d+) to deactivate`);
 
     // Process in batches of 450 (Firestore batch limit)
-    const docs = inactiveSessions.docs;
     let totalDeactivated = 0;
 
     for (let i = 0; i < docs.length; i += 450) {
@@ -53,9 +57,9 @@ export const cleanupInactiveChats = onSchedule(
       for (const sessionDoc of chunk) {
         batch.update(sessionDoc.ref, {
           isActive: false,
-          deactivatedAt: now,
+          deactivatedAt: isoNow(),
           deactivatedReason: "inactive_7d",
-          updatedAt: now,
+          updatedAt: isoNow(),
         });
       }
 

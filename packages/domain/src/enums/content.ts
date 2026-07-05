@@ -17,47 +17,17 @@ export const zItemType = zEnum(ITEM_TYPES);
 export const ITEM_KINDS = ITEM_TYPES;
 export type ItemKind = ItemType;
 
-// 15 question subtypes.
-export const QUESTION_TYPES = [
-  "mcq",
-  "mcaq",
-  "true-false",
-  "numerical",
-  "text",
-  "paragraph",
-  "code",
-  "fill-blanks",
-  "fill-blanks-dd",
-  "matching",
-  "jumbled",
-  "audio",
-  "image_evaluation",
-  "group-options",
-  "chat_agent_question",
-] as const;
-export type QuestionType = (typeof QUESTION_TYPES)[number];
-export const zQuestionType = zEnum(QUESTION_TYPES);
-
-export const AUTO_EVALUATABLE_TYPES = [
-  "mcq",
-  "mcaq",
-  "true-false",
-  "numerical",
-  "fill-blanks",
-  "fill-blanks-dd",
-  "matching",
-  "jumbled",
-  "group-options",
-] as const satisfies readonly QuestionType[];
-
-export const AI_EVALUATABLE_TYPES = [
-  "text",
-  "paragraph",
-  "code",
-  "audio",
-  "image_evaluation",
-  "chat_agent_question",
-] as const satisfies readonly QuestionType[];
+// 15 question subtypes — DERIVED from QUESTION_TYPE_REGISTRY (DP-2 Part A: the
+// registry is the ONE source; the enum, zQuestionType, and the AUTO/AI grading
+// arrays all regenerate from it, so they can never drift from the schema set).
+// Re-exported here under their existing identifiers — public surface unchanged.
+export {
+  QUESTION_TYPES,
+  zQuestionType,
+  AUTO_EVALUATABLE_TYPES,
+  AI_EVALUATABLE_TYPES,
+} from "../entities/content/question-types/registry.js";
+export type { QuestionType } from "../entities/content/question-types/registry.js";
 
 // 7 material subtypes.
 export const MATERIAL_TYPES = [

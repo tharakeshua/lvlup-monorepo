@@ -51,10 +51,9 @@ vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("@levelup/shared-types", () => {
+vi.mock("../contracts/legacy-docs", () => {
   const s = { safeParse: (data: any) => ({ success: true, data }) };
   return {
-    GetSummaryRequestSchema: s,
     StudentProgressSummarySchema: s,
     ClassProgressSummarySchema: s,
   };

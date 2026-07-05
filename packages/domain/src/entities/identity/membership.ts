@@ -9,20 +9,17 @@ import {
   zUserId,
   zTenantId,
   zTenantCode,
-  zTeacherId,
   zStudentId,
-  zParentId,
-  zStaffId,
-  zScannerId,
   zSpaceId,
   zClassId,
 } from "../../primitives/branded-id.zod.js";
 import { zTimestamp } from "../../primitives/timestamp.zod.js";
 import { zTenantRole, zMembershipStatus, zJoinSource } from "../../enums/tenant.js";
+import { roleIdFields } from "./role-registry.js";
 import { zTeacherPermissionKey, zStaffPermissionKey } from "../../enums/permissions.js";
 
 export const TeacherPermissionsSchema = zObject({
-  permissions: z.record(zTeacherPermissionKey, z.boolean()).optional(),
+  permissions: z.partialRecord(zTeacherPermissionKey, z.boolean()).optional(),
   managedSpaceIds: z.array(zSpaceId).optional(),
   managedClassIds: z.array(zClassId).optional(),
 });
@@ -36,13 +33,10 @@ export const UserMembershipSchema = zObject({
   role: zTenantRole,
   status: zMembershipStatus,
   joinSource: zJoinSource,
-  teacherId: zTeacherId.optional(),
-  studentId: zStudentId.optional(),
-  parentId: zParentId.optional(),
-  staffId: zStaffId.optional(),
-  scannerId: zScannerId.optional(),
+  // Per-role id fields DERIVED from ID_ROLES (DP-2 Part B).
+  ...roleIdFields,
   permissions: TeacherPermissionsSchema.optional(),
-  staffPermissions: z.record(zStaffPermissionKey, z.boolean()).optional(),
+  staffPermissions: z.partialRecord(zStaffPermissionKey, z.boolean()).optional(),
   parentLinkedStudentIds: z.array(zStudentId).optional(),
   createdAt: zTimestamp,
   updatedAt: zTimestamp,

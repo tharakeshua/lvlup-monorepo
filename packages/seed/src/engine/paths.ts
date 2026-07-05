@@ -103,8 +103,11 @@ export const Paths = {
   spaceProgressLive: (t: string, userId: string, spaceId: string) =>
     `${Paths.tenant(t)}/spaceProgress/${userId}_${spaceId}/live/current`,
   // D6: per-item progress docs (not a fat record-map).
-  storyPointProgress: (t: string, userId: string, storyPointId: string) =>
-    `${Paths.tenant(t)}/storyPointProgress/${userId}_${storyPointId}`,
+  // U2.2: NESTED under spaceProgress (the rule-blessed, runtime-written form).
+  // The former root-level `storyPointProgress/{userId}_{storyPointId}` was rule-less
+  // and never written at runtime; unified to nested to match rules + levelup trigger.
+  storyPointProgress: (t: string, userId: string, spaceId: string, storyPointId: string) =>
+    `${Paths.spaceProgress(t, userId, spaceId)}/storyPointProgress/${storyPointId}`,
 
   // ---- autograde ----
   exam: (t: string, id: string) => `${Paths.tenant(t)}/exams/${id}`,

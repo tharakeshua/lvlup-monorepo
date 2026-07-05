@@ -13,6 +13,7 @@
  * Wired in `functions/sdk-v1/src/bootstrap.ts` behind an emulator/test env guard.
  */
 import type { LLMProvider, ProviderInput, ProviderOutput, ProviderTokenUsage } from "./provider.js";
+import { DEFAULT_FLASH_MODEL } from "../models.js";
 
 const STUB_USAGE: ProviderTokenUsage = { inputTokens: 16, outputTokens: 32, totalTokens: 48 };
 
@@ -69,7 +70,7 @@ function pickJson(input: ProviderInput): unknown {
  * pricing (model-keyed) and downstream telemetry behave exactly as in prod.
  */
 export function createStubProvider(_apiKey?: string, model?: string): LLMProvider {
-  const defaultModel = model ?? "gemini-1.5-flash";
+  const defaultModel = model ?? DEFAULT_FLASH_MODEL;
   return {
     name: "gemini",
     async call(input: ProviderInput): Promise<ProviderOutput> {

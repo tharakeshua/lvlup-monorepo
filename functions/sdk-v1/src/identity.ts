@@ -422,19 +422,52 @@ export const uploadUserAsset = wire("v1.identity.uploadUserAsset", uploadUserAss
 // Triggers (thin Firestore wrappers → @levelup/services trigger fns)
 // ═════════════════════════════════════════════════════════════════════════════
 
-/** onMembershipWritten — the SINGLE claim-sync writer (re-mint on any membership change). */
+/**
+ * onMembershipWritten — the SINGLE claim-sync writer (re-mint on any membership change).
+ *
+ * Registered on the FLAT top-level `userMemberships/{uid}_{tenantId}` collection —
+ * the only place `makeMembershipRepo` writes (IDN-7: the old nested
+ * `users/{uid}/memberships/{tenantId}` registration watched a path nothing writes,
+ * so the trigger never fired). `makeTrigger` bakes the env prefix
+ * (`v2_userMemberships` under prefixed deploys) exactly like the repo does.
+ *
+ * uid/tenantId come from the doc FIELDS — the single-writer repo stamps both on
+ * every upsert. The composite doc id is NOT a reliable source: tenant ids contain
+ * underscores (`tenant_subhang`), so a last-`_` split is wrong; the first-`_`
+ * split below is a dead-in-practice fallback (Auth uids carry no underscore).
+ * With no tenant path param the SystemContext is tenant-null, which is fine:
+ * the handler passes uid/tenantId explicitly into `syncMembershipClaims`.
+ */
+export function membershipEventIdentity(event: {
+  params: Record<string, string>;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  id?: string;
+}): { uid: string; tenantId: string } {
+  const doc = event.after ?? event.before;
+  const membershipId = event.params["membershipId"] ?? event.id ?? "";
+  const sep = membershipId.indexOf("_");
+  return {
+    uid: (doc?.["uid"] as string | undefined) ?? (sep > 0 ? membershipId.slice(0, sep) : ""),
+    tenantId:
+      (doc?.["tenantId"] as string | undefined) ?? (sep > 0 ? membershipId.slice(sep + 1) : ""),
+  };
+}
+
 export const onMembershipWritten = makeTrigger(
-  { document: "users/{uid}/memberships/{tenantId}", eventType: "written", tenantParam: "tenantId" },
-  (event, ctx) =>
-    S.onMembershipWrittenService(
+  { document: "userMemberships/{membershipId}", eventType: "written" },
+  (event, ctx) => {
+    const { uid, tenantId } = membershipEventIdentity(event);
+    return S.onMembershipWrittenService(
       {
-        tenantId: event.params["tenantId"] ?? "",
-        params: event.params,
+        tenantId,
+        params: { ...event.params, uid, tenantId },
         before: event.before,
         after: event.after,
       },
       sysCtx(ctx)
-    )
+    );
+  }
 );
 
 /** onStudentArchived — reconcile the denormalized class-roster projection (D7). */

@@ -153,8 +153,11 @@ export interface Repos {
 // --- AI gateway seam (server-shared.md §4.2) -------------------------------
 
 export interface TokenUsage {
-  promptTokens: number;
-  completionTokens: number;
+  // DP-1 (RR-T1 §6.3): aligned to the real `@levelup/ai` gateway
+  // (`ai/src/gateway.ts` + `cost/cost-tracker.ts`) — was `promptTokens`/
+  // `completionTokens` (a fiction that renamed the wire fields).
+  inputTokens: number;
+  outputTokens: number;
   totalTokens: number;
 }
 export interface CostBreakdown {
@@ -183,6 +186,9 @@ export interface AiRequest {
 }
 export interface AiResponse<T = unknown> {
   data: T;
+  /** DP-1 (RR-T1 §6.3): the real gateway ALWAYS returns the raw text completion;
+   *  the port previously omitted it. Added to match `ai/src/gateway.ts` `AiResponse`. */
+  text: string;
   tokenUsage: TokenUsage;
   cost: CostBreakdown;
   model: string;
@@ -190,3 +196,34 @@ export interface AiResponse<T = unknown> {
 export interface AiGateway {
   generate<T = unknown>(req: AiRequest, ctx: AiCallContext): Promise<AiResponse<T>>;
 }
+
+// --- storage signer seam (SDK-LAYERS-PLAN §3.7 Storage seam C1) -------------
+
+/**
+ * Signed-upload-URL port consumed by `requestUploadUrlService` via
+ * `ctx.storage.signUploadUrl(path, contentType, ttlMs)`. The service computes the
+ * tenant-scoped path (`buildScopedPath`) and delegates ONLY the signing here.
+ * When absent (emulator/unit tests) the service falls back to a
+ * `https://storage.local/…` stub URL.
+ */
+export interface StorageSignerPort {
+  signUploadUrl(path: string, contentType: string, ttlMs: number): Promise<string>;
+}
+
+// --- pipeline enqueue seam (autograde single-writer reducer) ----------------
+
+/** One pipeline-advance enqueue request (tenantId rides the task payload so the
+ *  `makeTaskHandler` consumer can rebuild a tenant-scoped SystemContext). */
+export interface PipelineAdvanceRequest {
+  tenantId: string | null;
+  submissionId: string;
+  step: string;
+}
+
+/**
+ * Cloud Tasks enqueue port consumed (curried over the ctx tenant) by
+ * `enqueuePipelineAdvance` in `@levelup/services` via
+ * `ctx.enqueuePipelineAdvance(submissionId, step)`. When absent
+ * (emulator/unit tests) the service runs the step INLINE instead.
+ */
+export type PipelineEnqueuePort = (req: PipelineAdvanceRequest) => Promise<void>;

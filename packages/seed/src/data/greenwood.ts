@@ -77,7 +77,6 @@ export const greenwoodTenant: TenantConfig = {
       staffPermissions: {
         canManageUsers: true,
         canManageClasses: true,
-        canManageSettings: true,
         canViewAnalytics: true,
       },
     },
@@ -96,10 +95,9 @@ export const greenwoodTenant: TenantConfig = {
       classKeys: ["g8-math"],
       permissions: {
         canCreateExams: true,
-        canEditRubrics: true,
-        canManuallyGrade: true,
-        canCreateSpaces: true,
         canManageContent: true,
+        canGradeExams: true,
+        canManageSpaces: true,
         canViewAnalytics: true,
       },
     },
@@ -112,7 +110,7 @@ export const greenwoodTenant: TenantConfig = {
       subjects: ["Science", "Physics"],
       department: "Science",
       classKeys: ["g8-sci", "g10-phy"],
-      permissions: { canCreateExams: true, canManuallyGrade: true, canCreateSpaces: true },
+      permissions: { canCreateExams: true, canGradeExams: true, canManageSpaces: true },
     },
   ],
 
@@ -223,6 +221,8 @@ export const greenwoodTenant: TenantConfig = {
     {
       key: "math-evaluator",
       name: "Math Answer Evaluator",
+      spaceKey: "space-algebra",
+      type: "evaluator",
       purpose: "answer_grading",
       systemPrompt: "You grade math answers strictly against the rubric. Show partial credit.",
       rules: ["Award partial credit for correct method", "Penalize unit errors lightly"],
@@ -495,7 +495,7 @@ export const greenwoodTenant: TenantConfig = {
           gradingStatus: "manual",
           manualOverride: {
             score: 9,
-            by: "asha.rao@greenwood.edu",
+            by: "t-asha",
             reason: "Allowed alternate formula.",
           },
         },

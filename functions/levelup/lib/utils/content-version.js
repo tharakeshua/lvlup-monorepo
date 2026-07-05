@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.writeContentVersion = writeContentVersion;
-const firestore_1 = require("firebase-admin/firestore");
 const v2_1 = require("firebase-functions/v2");
+const domain_1 = require("@levelup/domain");
 /**
  * Writes a ContentVersion document to track content changes.
  * Collection: /tenants/{tenantId}/spaces/{spaceId}/versions/{versionId}
@@ -27,7 +27,7 @@ async function writeContentVersion(db, tenantId, spaceId, params) {
     changeType: params.changeType,
     changeSummary: params.changeSummary,
     changedBy: params.changedBy,
-    changedAt: firestore_1.FieldValue.serverTimestamp(),
+    changedAt: (0, domain_1.isoNow)(),
   });
   v2_1.logger.info(`Wrote version ${nextVersion} for ${params.entityType}:${params.entityId}`);
   return versionRef.id;

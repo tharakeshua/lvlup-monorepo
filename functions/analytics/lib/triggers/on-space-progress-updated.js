@@ -62,7 +62,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onSpaceProgressUpdated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
-const firestore_2 = require("firebase-admin/firestore");
+const domain_1 = require("@levelup/domain");
 const aggregation_helpers_1 = require("../utils/aggregation-helpers");
 exports.onSpaceProgressUpdated = (0, firestore_1.onDocumentWritten)(
   {
@@ -132,8 +132,9 @@ exports.onSpaceProgressUpdated = (0, firestore_1.onDocumentWritten)(
         spaceCount: data.count,
       };
     }
+    // B8: date may be a Firestore Timestamp object OR an ISO string.
     const sortedRecent = (0, aggregation_helpers_1.topN)(recentActivity, 10, (e) =>
-      e.date?.toMillis ? e.date.toMillis() : 0
+      (0, aggregation_helpers_1.legacyMillis)(e.date)
     );
     const levelup = {
       totalSpaces,
@@ -170,7 +171,7 @@ exports.onSpaceProgressUpdated = (0, firestore_1.onDocumentWritten)(
           overallScore,
           strengthAreas: strengths,
           weaknessAreas: weaknesses,
-          lastUpdatedAt: firestore_2.FieldValue.serverTimestamp(),
+          lastUpdatedAt: (0, domain_1.isoNow)(), // B8: ISO strings are canonical at rest
         },
         { merge: true }
       );

@@ -3,6 +3,7 @@ import { createAiGateway, type AiCallContext } from "../gateway.js";
 import { createCircuitBreaker } from "../reliability/fallback-handler.js";
 import { createSecretResolver } from "../secrets/secret-manager.js";
 import { isAiGatewayError } from "../errors.js";
+import { PROMPTS } from "../prompts/registry.js";
 import type { AiRepos } from "../repos-seam.js";
 import type { TenantId, UserId } from "@levelup/domain";
 
@@ -167,7 +168,9 @@ describe("createAiGateway", () => {
 
     await gw.generate(req, ctx).catch(() => undefined);
     await gw.generate(req, ctx).catch(() => undefined);
-    expect(circuit.stateOf(`${ctx.tenantId}:gemini-1.5-pro`)).toBe("open");
+    // circuit key uses the template's default model (env-overridable, models.ts)
+    const defaultModel = PROMPTS.answerGrading.defaultModel;
+    expect(circuit.stateOf(`${ctx.tenantId}:${defaultModel}`)).toBe("open");
 
     const callsBefore = provider.call.mock.calls.length;
     const err = await gw.generate(req, ctx).catch((e) => e);

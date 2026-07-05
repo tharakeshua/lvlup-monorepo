@@ -1,9 +1,29 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions/v2";
-import type { Tenant } from "@levelup/shared-types";
-import { TenantSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { z } from "zod";
+import type { TenantStatus } from "../contracts/legacy-docs";
+
+/**
+ * AG-3-style read projection: this trigger only consumes `status`, so it
+ * validates ONLY that field instead of parsing the whole doc through the full
+ * (135-line) shared-types TenantSchema. Unknown keys are stripped; a doc whose
+ * `status` is missing/invalid is treated as un-processable (logged + no-op),
+ * exactly as before — but a doc that is otherwise non-canonical no longer
+ * blocks the membership-suspension cascade.
+ */
+const TENANT_STATUSES = [
+  "active",
+  "suspended",
+  "trial",
+  "expired",
+  "deactivated",
+] as const satisfies readonly TenantStatus[];
+
+const tenantStatusProjection = z.object({
+  status: z.enum(TENANT_STATUSES),
+});
 
 /**
  * Firestore trigger: when a tenant status changes to 'suspended' or 'expired',
@@ -23,8 +43,8 @@ export const onTenantDeactivated = onDocumentUpdated(
       const afterRaw = event.data?.after.data();
       if (!beforeRaw || !afterRaw) return;
 
-      const beforeResult = TenantSchema.safeParse({ id: event.data!.before.id, ...beforeRaw });
-      const afterResult = TenantSchema.safeParse({ id: event.data!.after.id, ...afterRaw });
+      const beforeResult = tenantStatusProjection.safeParse(beforeRaw);
+      const afterResult = tenantStatusProjection.safeParse(afterRaw);
       if (!beforeResult.success || !afterResult.success) {
         logger.error("Invalid Tenant document in trigger", {
           beforeValid: beforeResult.success,
@@ -32,8 +52,8 @@ export const onTenantDeactivated = onDocumentUpdated(
         });
         return;
       }
-      const before = beforeResult.data as unknown as Tenant;
-      const after = afterResult.data as unknown as Tenant;
+      const before = beforeResult.data;
+      const after = afterResult.data;
 
       // Only trigger when status changes TO suspended or expired
       const deactivatedStatuses = ["suspended", "expired"];
@@ -72,7 +92,8 @@ export const onTenantDeactivated = onDocumentUpdated(
           batch.update(doc.ref, {
             status: "suspended",
             suspendedReason: `tenant_${after.status}`,
-            updatedAt: FieldValue.serverTimestamp(),
+            // B8: timestamps at rest are canonical ISO strings.
+            updatedAt: isoNow(),
           });
         }
 

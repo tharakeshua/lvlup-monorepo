@@ -34,6 +34,10 @@
     "test:e2e:visual:update": "playwright test --project=visual-regression --update-snapshots",
     "test:schemas": "vitest run --config packages/shared-types/vitest.config.ts",
     "test:ci": "turbo run test:coverage && pnpm run test:integration && pnpm run test:schemas",
+    "release:mobile": "bash scripts/release-mobile.sh",
+    "release:student": "bash scripts/release-mobile.sh student",
+    "release:admin": "bash scripts/release-mobile.sh admin",
+    "release:teacher": "bash scripts/release-mobile.sh teacher",
     "deploy:functions": "tsx scripts/prepare-functions-deploy.ts prepare && firebase deploy --only functions; tsx scripts/prepare-functions-deploy.ts cleanup",
     "deploy:functions:prepare": "tsx scripts/prepare-functions-deploy.ts prepare",
     "deploy:functions:cleanup": "tsx scripts/prepare-functions-deploy.ts cleanup"

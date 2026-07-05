@@ -74,7 +74,6 @@ export const contentLevelupTenant: TenantConfig = {
       staffPermissions: {
         canManageUsers: true,
         canManageClasses: true,
-        canManageSettings: true,
         canViewAnalytics: true,
       },
     },
@@ -92,10 +91,9 @@ export const contentLevelupTenant: TenantConfig = {
       designation: "Lead Content Author",
       classKeys: ["cohort-interview"],
       permissions: {
-        canCreateSpaces: true,
+        canManageSpaces: true,
         canManageContent: true,
-        canEditRubrics: true,
-        canManuallyGrade: true,
+        canGradeExams: true,
         canViewAnalytics: true,
       },
     },
@@ -143,6 +141,8 @@ export const contentLevelupTenant: TenantConfig = {
     {
       key: "dsa-evaluator",
       name: "DSA Answer Evaluator",
+      spaceKey: "space-dsa",
+      type: "evaluator",
       purpose: "answer_grading",
       systemPrompt:
         "You grade data-structures & algorithms answers. Reward correct complexity analysis and edge-case handling. Award partial credit for a correct approach with minor bugs.",
@@ -157,6 +157,8 @@ export const contentLevelupTenant: TenantConfig = {
     {
       key: "interview-tutor",
       name: "Interview Coach",
+      spaceKey: "space-behavioral",
+      type: "tutor",
       purpose: "tutoring",
       systemPrompt:
         "You are a friendly senior-engineer interview coach. Use the Socratic method; never give the full answer immediately. Nudge the learner toward the optimal approach.",

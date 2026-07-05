@@ -306,15 +306,13 @@ export const useMarkAchievementsSeen = defineMutation<
  * derives `currentCount/completed/completedAt`, so an optimistic create would
  * show wrong progress. `onSettled` invalidates `studyGoals` + `gamification`.
  */
-export const useSaveStudyGoal = defineMutation<SaveStudyGoalRequest, SaveResponse<StudyGoal["id"]>>(
-  {
-    callable: "v1.levelup.saveStudyGoal",
-    run: (repos, vars) => gamificationRepos(repos).studyGoalRepo.save(vars),
-  }
-);
+export const useSaveStudyGoal = defineMutation<SaveStudyGoalRequest, SaveResponse>({
+  callable: "v1.levelup.saveStudyGoal",
+  run: (repos, vars) => gamificationRepos(repos).studyGoalRepo.save(vars),
+});
 
 /** Archive (soft-delete) a study goal — thin over `save({deleted:true})`. ❌ never optimistic. */
-export const useArchiveStudyGoal = defineMutation<StudyGoal, SaveResponse<StudyGoal["id"]>>({
+export const useArchiveStudyGoal = defineMutation<StudyGoal, SaveResponse>({
   callable: "v1.levelup.saveStudyGoal",
   run: (repos, goal) => gamificationRepos(repos).studyGoalRepo.archive(goal),
 });
@@ -326,7 +324,7 @@ export const useArchiveStudyGoal = defineMutation<StudyGoal, SaveResponse<StudyG
  */
 export const useSaveAchievementDefinition = defineMutation<
   SaveAchievementDefinitionRequest,
-  SaveResponse<AchievementWithEarnedState["id"]>
+  SaveResponse
 >({
   callable: "v1.levelup.saveAchievementDefinition",
   run: (repos, vars) => gamificationRepos(repos).achievementRepo.saveDefinition(vars),

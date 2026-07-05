@@ -14,6 +14,7 @@ import { requireTenant, fail } from "../../shared/context.js";
 import { processAnswerMappingService } from "./process-answer-mapping.js";
 import { processAnswerGradingService } from "./process-answer-grading.js";
 import { finalizeSubmissionService } from "./finalize-submission.js";
+import { projectSubmissionStatus } from "./grading-projection.js";
 
 export type PipelineStep = "scouting" | "grading" | "finalize";
 
@@ -60,16 +61,63 @@ export async function advancePipelineService(
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
   if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const status = (sub["pipelineStatus"] as string) ?? "uploaded";
+  // Owner context for the AG-5 live-ticker projection (RTDB read-gate + exam agg).
+  const owner = { examId: sub["examId"] as string, studentId: sub["studentId"] as string };
 
   switch (input.step) {
     case "scouting": {
-      // uploaded → scouting → scouting_complete
+      // uploaded → scouting → scouting_complete | scouting_failed
       if (status !== "uploaded" && status !== "scouting") return; // already past; idempotent
       if (status === "uploaded") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "scouting");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "scouting", owner);
       }
-      await processAnswerMappingService({ submissionId: input.submissionId }, ctx);
-      await setPipelineStatus(ctx, tenantId, input.submissionId, "scouting", "scouting_complete");
+      try {
+        await processAnswerMappingService({ submissionId: input.submissionId }, ctx);
+      } catch (err) {
+        // Scouting failure must never strand the submission silently at
+        // 'scouting': record pipelineError, move to scouting_failed, and DLQ it
+        // (operator can retry/dismiss) — mirror of the grading DLQ capture.
+        const now = ctx.now();
+        const attempts = ((sub["scoutingRetryCount"] as number) ?? 0) + 1;
+        const message = String((err as Error)?.message ?? err);
+        await ctx.repos.submissions.upsert(
+          tenantId,
+          {
+            id: input.submissionId,
+            pipelineError: { step: "scouting", message, at: now },
+            scoutingRetryCount: attempts,
+          },
+          now
+        );
+        await setPipelineStatus(
+          ctx,
+          tenantId,
+          input.submissionId,
+          "scouting",
+          "scouting_failed",
+          owner
+        );
+        await ctx.repos.outbox.enqueue(tenantId, {
+          _kind: "gradingDeadLetter",
+          submissionId: input.submissionId,
+          questionSubmissionId: null,
+          pipelineStep: "scouting",
+          error: message,
+          attempts,
+          lastAttemptAt: now,
+          resolvedAt: null,
+          createdAt: now,
+        });
+        return;
+      }
+      await setPipelineStatus(
+        ctx,
+        tenantId,
+        input.submissionId,
+        "scouting",
+        "scouting_complete",
+        owner
+      );
       await enqueuePipelineAdvance(ctx, input.submissionId, "grading");
       return;
     }
@@ -78,13 +126,13 @@ export async function advancePipelineService(
         return;
       }
       if (status === "scouting_complete") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading", owner);
       } else if (status === "grading_partial") {
-        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading");
+        await setPipelineStatus(ctx, tenantId, input.submissionId, status, "grading", owner);
       }
       const result = await processAnswerGradingService({ submissionId: input.submissionId }, ctx);
       const next = result.allGraded ? "grading_complete" : "grading_partial";
-      await setPipelineStatus(ctx, tenantId, input.submissionId, "grading", next);
+      await setPipelineStatus(ctx, tenantId, input.submissionId, "grading", next, owner);
       if (next === "grading_complete") {
         await enqueuePipelineAdvance(ctx, input.submissionId, "finalize");
       }
@@ -106,11 +154,20 @@ async function setPipelineStatus(
   tenantId: string,
   submissionId: string,
   from: string,
-  to: string
+  to: string,
+  owner: { examId: string; studentId: string }
 ): Promise<void> {
   if (from === to) return;
   if (!canTransition("submission", from, to)) {
     assertTransition("submission", from, to); // throws with the contract diagnostic
   }
   await ctx.repos.submissions.upsert(tenantId, { id: submissionId, pipelineStatus: to }, ctx.now());
+  // AG-5: project the new authoritative status onto the RTDB live ticker (no-op
+  // when the projection port isn't wired). Slim status only — no score/grade.
+  await projectSubmissionStatus(ctx, tenantId, {
+    submissionId,
+    examId: owner.examId,
+    studentId: owner.studentId,
+    pipelineStatus: to,
+  });
 }

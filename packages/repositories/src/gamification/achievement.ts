@@ -49,9 +49,7 @@ export interface AchievementRepo {
   markSeen(input: MarkAchievementsSeenRequest): Promise<MarkAchievementsSeenResponse>;
 
   /** Tenant-admin upsert of a badge template (authoring; not a student write). */
-  saveDefinition(
-    input: SaveAchievementDefinitionRequest
-  ): Promise<SaveResponse<AchievementWithEarnedState["id"]>>;
+  saveDefinition(input: SaveAchievementDefinitionRequest): Promise<SaveResponse>;
 
   /** Derived: bucket the catalog by category for the badge wall (computed once). */
   computeByCategory(catalog: readonly AchievementWithEarnedState[]): AchievementsByCategory;

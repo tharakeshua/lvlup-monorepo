@@ -9,8 +9,9 @@
 import type { ReqOf, ResOf } from "@levelup/api-contract";
 import { authorize } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
-import { requireTenant } from "../shared/context.js";
+import { requireTenant, fail } from "../shared/context.js";
 import { xrepos } from "../shared/extended-repos.js";
+import { projectChatBump } from "./levelup-projection.js";
 
 type Doc = Record<string, unknown>;
 
@@ -43,13 +44,17 @@ export async function sendChatMessageService(
     });
   }
 
-  // 1) Append the learner message.
+  // 1) Append the learner message (+ bump the RTDB signal node — CHAT-1/AD-12:
+  // the bump carries rev/lastMessageAt ONLY, never the message; watchers
+  // debounce-refetch getChatSession. The tutor chat is self-owned (AD-9), so
+  // the caller uid IS the session owner the bump node is keyed by.)
   await chat.appendMessage(tenantId, sessionId, {
     role: "user",
     text: input.text,
     timestamp: now,
     ...(input.mediaUrls ? { mediaUrls: input.mediaUrls } : {}),
   });
+  await projectChatBump(ctx, tenantId, { userId: ctx.uid, sessionId, lastMessageAt: now });
 
   // 2) AI tutor reply (gateway is server-side; emulator stub returns deterministic json).
   let replyText = "Let me help you with that.";
@@ -71,13 +76,15 @@ export async function sendChatMessageService(
     /* gateway unavailable → deterministic fallback reply (still a valid turn) */
   }
 
-  // 3) Append + return the assistant message.
+  // 3) Append + return the assistant message (second bump — the reply is the
+  // turn other devices are actually waiting on).
   const messageId = await chat.appendMessage(tenantId, sessionId, {
     role: "assistant",
     text: replyText,
     timestamp: now,
     ...(tokensUsed !== undefined ? { tokensUsed } : {}),
   });
+  await projectChatBump(ctx, tenantId, { userId: ctx.uid, sessionId, lastMessageAt: now });
 
   return {
     sessionId,
@@ -90,4 +97,109 @@ export async function sendChatMessageService(
     },
     ...(tokensUsed !== undefined ? { tokensUsed } : {}),
   } as unknown as ResOf<"v1.levelup.sendChatMessage">;
+}
+
+/* ── read projections (strict-schema exact; VALIDATE_RESPONSES gate) ───────── */
+
+/** Project a raw message doc → domain `ChatMessage` (drops any stray at-rest field). */
+function toMessageView(m: Doc): Doc {
+  const out: Doc = {
+    id: m["id"],
+    role: m["role"],
+    text: m["text"],
+    timestamp: m["timestamp"],
+  };
+  if (Array.isArray(m["mediaUrls"])) out["mediaUrls"] = m["mediaUrls"];
+  if (typeof m["tokensUsed"] === "number") out["tokensUsed"] = m["tokensUsed"];
+  return out;
+}
+
+/** Project a raw session doc → `ChatSessionView` (systemPrompt ⚷ stripped, strict). */
+function toSessionView(s: Doc, messages: Doc[]): Doc {
+  const out: Doc = {
+    id: s["id"],
+    tenantId: s["tenantId"],
+    userId: s["userId"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    itemId: s["itemId"],
+    sessionTitle: (s["sessionTitle"] as string) ?? "Tutor chat",
+    previewMessage: (s["previewMessage"] as string) ?? "",
+    messageCount:
+      typeof s["messageCount"] === "number" ? (s["messageCount"] as number) : messages.length,
+    language: (s["language"] as string) ?? "en",
+    isActive: s["isActive"] !== false,
+    messages: messages.map(toMessageView),
+    createdAt: s["createdAt"],
+    updatedAt: s["updatedAt"],
+    createdBy: (s["createdBy"] as string) ?? (s["userId"] as string),
+    updatedBy: (s["updatedBy"] as string) ?? (s["userId"] as string),
+  };
+  if (s["questionType"] !== undefined) out["questionType"] = s["questionType"];
+  if (s["agentId"] !== undefined) out["agentId"] = s["agentId"];
+  if (s["agentName"] !== undefined) out["agentName"] = s["agentName"];
+  return out;
+}
+
+/** Project a raw session doc → `ChatSessionSummary` (list row; no message body, strict). */
+function toSessionSummary(s: Doc): Doc {
+  return {
+    id: s["id"],
+    spaceId: s["spaceId"],
+    storyPointId: s["storyPointId"],
+    itemId: s["itemId"],
+    sessionTitle: (s["sessionTitle"] as string) ?? "Tutor chat",
+    previewMessage: (s["previewMessage"] as string) ?? "",
+    messageCount: typeof s["messageCount"] === "number" ? (s["messageCount"] as number) : 0,
+    language: (s["language"] as string) ?? "en",
+    isActive: s["isActive"] !== false,
+    updatedAt: s["updatedAt"],
+  };
+}
+
+/**
+ * getChatSession — full ChatSessionView incl. the always-subcollection messages
+ * (systemPrompt ⚷ stripped). Owner reads own session; others need `space.read`.
+ */
+export async function getChatSessionService(
+  input: ReqOf<"v1.levelup.getChatSession">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.getChatSession">> {
+  const tenantId = requireTenant(ctx);
+  const chat = xrepos(ctx).chat;
+
+  const session = await chat.getSession(tenantId, input.sessionId);
+  if (!session) fail("NOT_FOUND", "chat session not found");
+  if ((session["userId"] as string) !== ctx.uid) {
+    authorize(ctx, "space.read", { spaceId: session["spaceId"] as string, tenantId });
+  }
+
+  const messages = await chat.listMessages(tenantId, input.sessionId);
+  return {
+    session: toSessionView(session, messages),
+  } as unknown as ResOf<"v1.levelup.getChatSession">;
+}
+
+/**
+ * listChatSessions — paginated ChatSessionSummary list for the caller (own
+ * sessions only; most-recently-updated first). No message bodies.
+ */
+export async function listChatSessionsService(
+  input: ReqOf<"v1.levelup.listChatSessions">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.listChatSessions">> {
+  const tenantId = requireTenant(ctx);
+  const chat = xrepos(ctx).chat;
+
+  const page = await chat.listSessions(tenantId, ctx.uid, {
+    spaceId: input.spaceId,
+    itemId: input.itemId,
+    cursor: input.cursor,
+    limit: input.limit ?? 20,
+  });
+
+  return {
+    items: page.items.map(toSessionSummary),
+    nextCursor: page.nextCursor,
+  } as unknown as ResOf<"v1.levelup.listChatSessions">;
 }

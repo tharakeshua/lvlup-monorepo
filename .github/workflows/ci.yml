@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - develop
+      - staging
   pull_request:
     branches:
       - main
       - develop
+      - staging
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -64,6 +66,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Freshness gate: rebuild @levelup/shared-types dist from src BEFORE any
+      # consumer typechecks. turbo's `typecheck dependsOn ^build` already forces
+      # a fresh shared-types build for consumers that DECLARE the workspace dep,
+      # but apps/admin-web and apps/parent-web import @levelup/shared-types
+      # (type-only) without declaring it, so turbo won't schedule its rebuild for
+      # them — they would typecheck against a stale on-disk dist (the
+      # questionPaperImages .url() class of bug). Building it here first guarantees
+      # every consumer, declared or not, typechecks against a dist rebuilt from src.
+      - name: Build shared-types (freshness gate)
+        run: pnpm --filter @levelup/shared-types build
 
       - name: Run type check
         run: pnpm exec turbo run typecheck

@@ -46,7 +46,12 @@ export {
   type TestSessionLive,
   type TestSessionDeadlineParams,
 } from "./test-session-deadline.js";
-export { ChatStreamParamsSchema, type ChatStreamParams } from "./chat-stream.js";
+export {
+  ChatStreamParamsSchema,
+  ChatBumpSchema,
+  type ChatStreamParams,
+  type ChatBump,
+} from "./chat-stream.js";
 export {
   StoryPointProgressLiveSchema,
   SpaceProgressLiveSchema,

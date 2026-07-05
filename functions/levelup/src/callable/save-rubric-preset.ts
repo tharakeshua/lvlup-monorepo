@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions/v2";
 import { assertAuth, assertTeacherOrAdmin } from "../utils/auth";
-import { SaveRubricPresetRequestSchema } from "@levelup/shared-types";
+import { isoNow } from "@levelup/domain";
+import { SaveRubricPresetRequestSchema } from "../contracts/wire";
 import { parseRequest } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
@@ -46,7 +46,7 @@ export const saveRubricPreset = onCall({ region: "asia-south1", cors: true }, as
     }
 
     const updateData: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: isoNow(),
     };
 
     const fields = ["name", "description", "rubric", "category", "questionTypes"] as const;
@@ -77,8 +77,8 @@ export const saveRubricPreset = onCall({ region: "asia-south1", cors: true }, as
     questionTypes: data.data.questionTypes ?? [],
     isDefault: false,
     createdBy: callerUid,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: isoNow(),
+    updatedAt: isoNow(),
   });
 
   logger.info(`Created rubric preset ${ref.id}`);

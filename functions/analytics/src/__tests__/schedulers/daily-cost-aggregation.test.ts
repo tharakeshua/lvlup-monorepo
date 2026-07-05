@@ -130,6 +130,66 @@ describe("dailyCostAggregation", () => {
     expect(mockSet).toHaveBeenCalled();
   });
 
+  it("pins canonical costSummaries doc paths (prefixed ids, even segment counts)", async () => {
+    // Budget tenant so the monthly budget-check read path is exercised too.
+    mockGet.mockResolvedValueOnce({
+      docs: [
+        {
+          id: "tenant-1",
+          data: () => ({ status: "active", subscription: { monthlyBudgetUsd: 100 } }),
+        },
+      ],
+    });
+    // LLM call logs
+    mockGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [
+        {
+          id: "log-1",
+          data: () => ({
+            purpose: "grading",
+            model: "flash",
+            tokens: { input: 100, output: 50 },
+            cost: { total: 0.01 },
+          }),
+        },
+      ],
+    });
+    // Monthly budget-check read, then existing-daily idempotency read
+    mockGet.mockResolvedValueOnce({ exists: false, data: () => null });
+    mockGet.mockResolvedValueOnce({ exists: false, data: () => null });
+
+    await handler({});
+
+    const docPaths: string[] = stableDb.doc.mock.calls
+      .map((c: unknown[]) => c[0] as string)
+      .filter((p: string) => p.includes("costSummaries"));
+
+    // The three cost-summary refs: budget-check read, daily write, monthly write.
+    expect(docPaths).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^tenants\/tenant-1\/costSummaries\/monthly_\d{4}-\d{2}$/),
+        expect.stringMatching(/^tenants\/tenant-1\/costSummaries\/daily_\d{4}-\d{2}-\d{2}$/),
+      ])
+    );
+    // Document paths need an EVEN segment count (the old nested
+    // costSummaries/daily/{date} shape had 5 and threw at runtime).
+    for (const p of docPaths) {
+      expect(p.split("/").length % 2).toBe(0);
+    }
+    // And no costSummaries path may be built via db.collection (odd segments).
+    const collectionPaths: string[] = stableDb.collection.mock.calls
+      .map((c: unknown[]) => c[0] as string)
+      .filter((p: string) => p.includes("costSummaries"));
+    expect(collectionPaths).toEqual([]);
+
+    // Daily doc id mirrors the prefixed doc-id convention.
+    const dailySet = mockSet.mock.calls.find((c: unknown[]) =>
+      String((c[0] as Record<string, unknown>).id ?? "").startsWith("daily_")
+    );
+    expect(dailySet).toBeDefined();
+  });
+
   it("should handle no logs gracefully", async () => {
     // Call 1: tenants list
     mockGet.mockResolvedValueOnce({

@@ -1,0 +1,133 @@
+---
+import '../styles/global.css';
+import { APP_URLS, SITE } from '../config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+}
+
+const {
+  title = SITE.name,
+  description = SITE.description,
+  canonical = Astro.url.href,
+} = Astro.props;
+
+const pageTitle = title === SITE.name ? title : `${title} — ${SITE.name}`;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content={description} />
+  <meta name="theme-color" content="#FBF8F3" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={SITE.name} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Schibsted+Grotesk:ital,wght@0,400..700;1,400&family=Spline+Sans+Mono:wght@400;500&display=swap"
+  />
+  <title>{pageTitle}</title>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <nav class="site-nav" aria-label="Main navigation">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo" aria-label={SITE.name + ' home'}>
+          <span class="nav-wordmark">LvlUp</span>
+          <span class="nav-wordmark-suffix">Autograde</span>
+        </a>
+
+        <div class="nav-links">
+          <a href="/#how" class="nav-link">How it works</a>
+          <a href="/#grades" class="nav-link">Grade scale</a>
+          <a href="/guides" class="nav-link">Guides</a>
+        </div>
+
+        <div class="nav-actions">
+          <a href={APP_URLS.student} class="btn btn-ghost btn-sm">Student login</a>
+          <a href={APP_URLS.teacher} class="btn btn-primary btn-sm">Teacher portal</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content">
+    <slot />
+  </main>
+
+  <footer class="site-footer" aria-label="Site footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a href="/" class="footer-wordmark">LvlUp Autograde</a>
+          <p>
+            AI grading for paper exams — rubric-checked, teacher-reviewed,
+            and sealed until the teacher releases it.
+          </p>
+        </div>
+
+        <nav class="footer-col" aria-label="Portals">
+          <h4>Portals</h4>
+          <ul>
+            <li><a href={APP_URLS.admin}>Admin</a></li>
+            <li><a href={APP_URLS.teacher}>Teacher</a></li>
+            <li><a href={APP_URLS.student}>Student</a></li>
+            <li><a href={APP_URLS.parent}>Parent</a></li>
+          </ul>
+        </nav>
+
+        <nav class="footer-col" aria-label="Guides">
+          <h4>Guides</h4>
+          <ul>
+            <li><a href="/guides/admin">For admins</a></li>
+            <li><a href="/guides/teacher">For teachers</a></li>
+            <li><a href="/guides/student">For students</a></li>
+            <li><a href="/guides/parent">For parents</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="footer-bottom">
+        <span>&copy; {new Date().getFullYear()} LvlUp Academy. All rights reserved.</span>
+        <span class="colophon">Made for schools that still write on paper.</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .skip-link:focus {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    background: var(--brand-primary);
+    color: var(--warm-white);
+    border-radius: var(--radius-md);
+    z-index: 9999;
+    font-weight: var(--weight-semibold);
+    text-decoration: none;
+  }
+</style>

@@ -7,11 +7,13 @@ const v2_1 = require("firebase-functions/v2");
 const auth_1 = require("../utils/auth");
 const firestore_2 = require("../utils/firestore");
 const auto_evaluate_1 = require("../utils/auto-evaluate");
-const shared_types_1 = require("@levelup/shared-types");
+const domain_1 = require("@levelup/domain");
+const wire_1 = require("../contracts/wire");
 const utils_1 = require("../utils");
 const rate_limit_1 = require("../utils/rate-limit");
 const progress_updater_1 = require("../utils/progress-updater");
-const shared_types_2 = require("@levelup/shared-types");
+const types_1 = require("../types");
+const legacy_docs_1 = require("../contracts/legacy-docs");
 const GRACE_PERIOD_MS = 30_000; // 30 seconds grace period
 /**
  * Submit a timed test / quiz session.
@@ -24,10 +26,7 @@ exports.submitTestSession = (0, https_1.onCall)(
   { region: "asia-south1", timeoutSeconds: 120, cors: true },
   async (request) => {
     const callerUid = (0, auth_1.assertAuth)(request.auth);
-    const data = (0, utils_1.parseRequest)(
-      request.data,
-      shared_types_1.SubmitTestSessionRequestSchema
-    );
+    const data = (0, utils_1.parseRequest)(request.data, wire_1.SubmitTestSessionRequestSchema);
     if (!data.tenantId || !data.sessionId) {
       throw new https_1.HttpsError("invalid-argument", "tenantId and sessionId are required");
     }
@@ -39,7 +38,7 @@ exports.submitTestSession = (0, https_1.onCall)(
     if (!sessionDoc.exists) {
       throw new https_1.HttpsError("not-found", "Test session not found");
     }
-    const sessionResult = shared_types_2.DigitalTestSessionSchema.safeParse({
+    const sessionResult = legacy_docs_1.DigitalTestSessionDocSchema.safeParse({
       id: sessionDoc.id,
       ...sessionDoc.data(),
     });
@@ -62,7 +61,8 @@ exports.submitTestSession = (0, https_1.onCall)(
     // Validate timing for timed tests
     const now = firestore_1.Timestamp.now();
     if (session.sessionType === "timed_test" && session.serverDeadline) {
-      const deadlineMs = session.serverDeadline.toMillis();
+      // B8 collapse — never call .toMillis() on a doc field directly.
+      const deadlineMs = (0, domain_1.toMillis)((0, domain_1.toTimestamp)(session.serverDeadline));
       if (now.toMillis() > deadlineMs + GRACE_PERIOD_MS) {
         throw new https_1.HttpsError(
           "failed-precondition",
@@ -138,7 +138,7 @@ exports.submitTestSession = (0, https_1.onCall)(
       } else {
         // P1-6: AI evaluation needed — mark as pending, exclude from percentage calc
         const questionType = item.payload?.questionType;
-        const isAIType = questionType && shared_types_2.AI_EVALUATABLE_TYPES.includes(questionType);
+        const isAIType = questionType && types_1.AI_EVALUATABLE_TYPES.includes(questionType);
         updatedSubmissions[itemId] = {
           ...sub,
           pointsEarned: 0,
@@ -181,7 +181,7 @@ exports.submitTestSession = (0, https_1.onCall)(
       submittedAt: now,
       endedAt: now,
       autoSubmitted: data.autoSubmitted ?? false,
-      updatedAt: firestore_1.FieldValue.serverTimestamp(),
+      updatedAt: (0, domain_1.isoNow)(),
     };
     // P1-6: Flag session if there are pending AI evaluations
     if (pendingAIItemIds.length > 0) {

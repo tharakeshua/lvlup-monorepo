@@ -356,7 +356,6 @@ export const autogradeTenant: TenantConfig = {
       staffPermissions: {
         canManageUsers: true,
         canManageClasses: true,
-        canManageSettings: true,
         canViewAnalytics: true,
       },
     },
@@ -375,10 +374,9 @@ export const autogradeTenant: TenantConfig = {
       classKeys: ["c9-math"],
       permissions: {
         canCreateExams: true,
-        canEditRubrics: true,
-        canManuallyGrade: true,
-        canCreateSpaces: true,
         canManageContent: true,
+        canGradeExams: true,
+        canManageSpaces: true,
         canViewAnalytics: true,
       },
     },
@@ -393,8 +391,8 @@ export const autogradeTenant: TenantConfig = {
       classKeys: ["c9-sci", "c10-hist"],
       permissions: {
         canCreateExams: true,
-        canEditRubrics: true,
-        canManuallyGrade: true,
+        canManageContent: true,
+        canGradeExams: true,
         canViewAnalytics: true,
       },
     },
