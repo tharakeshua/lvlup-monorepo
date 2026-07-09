@@ -77,7 +77,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="font-display text-2xl font-semibold">Settings</h1>
         <p className="text-muted-foreground text-sm">Evaluation and grading configuration</p>
       </div>
 
@@ -86,7 +86,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-2">
               <Settings className="text-muted-foreground h-5 w-5" />
-              <h2 className="font-semibold">Evaluation Settings</h2>
+              <h2 className="font-display text-lg font-semibold">Evaluation Settings</h2>
             </div>
 
             <div className="flex items-center justify-between">

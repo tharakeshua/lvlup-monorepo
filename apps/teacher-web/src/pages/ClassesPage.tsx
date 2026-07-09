@@ -75,7 +75,7 @@ export default function ClassesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Classes</h1>
+          <h1 className="font-display text-2xl font-semibold">Classes</h1>
           <p className="text-muted-foreground text-sm">
             Manage classes, enrolment and roster ({classes.length} total)
           </p>
@@ -129,23 +129,37 @@ export default function ClassesPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="border-subtle shadow-e1 overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead>Students</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-strong border-b">
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Name
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Grade
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Section
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Students
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Status
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-right text-xs font-bold uppercase">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((cls) => (
                 <TableRow
                   key={cls.id}
-                  className={cls.status === "archived" ? "opacity-60" : undefined}
+                  className={`border-subtle border-b hover:bg-surface-sunken/60${
+                    cls.status === "archived" ? " opacity-60" : ""
+                  }`}
                 >
                   <TableCell className="font-medium">
                     <Link to={`/classes/${cls.id}`} className="hover:text-primary hover:underline">
@@ -154,7 +168,9 @@ export default function ClassesPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{cls.grade}</TableCell>
                   <TableCell className="text-muted-foreground">{cls.section ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{cls.studentCount ?? 0}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono">
+                    {cls.studentCount ?? 0}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={cls.status} />
                   </TableCell>

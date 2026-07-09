@@ -177,7 +177,7 @@ export default function ExamCreatePage() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/exams")} aria-label="Go back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">Create Exam</h1>
+        <h1 className="font-display text-xl font-semibold">Create Exam</h1>
       </div>
 
       {/* Stepper */}
@@ -187,7 +187,7 @@ export default function ExamCreatePage() {
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
                 idx < stepIndex
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  ? "bg-success-subtle text-success"
                   : idx === stepIndex
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground"
@@ -349,7 +349,7 @@ export default function ExamCreatePage() {
               const droppedFiles = Array.from(e.dataTransfer.files);
               setFiles(droppedFiles);
             }}
-            className="hover:border-primary hover:bg-muted/50 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors"
+            className="border-strong bg-surface-sunken duration-fast ease-standard hover:border-brand hover:bg-brand-subtle cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors"
             aria-label="Upload question paper files"
           >
             <Upload className="text-muted-foreground mx-auto h-8 w-8" />
@@ -401,8 +401,8 @@ export default function ExamCreatePage() {
       {/* Step: Review */}
       {step === "review" && (
         <div className="max-w-xl space-y-4">
-          <div className="bg-card space-y-3 rounded-lg border p-5">
-            <h3 className="font-medium">Review Exam Details</h3>
+          <div className="bg-card border-subtle shadow-e1 space-y-3 rounded-lg border p-5">
+            <h3 className="font-display font-medium">Review Exam Details</h3>
             <dl className="grid gap-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Title</dt>
@@ -414,15 +414,15 @@ export default function ExamCreatePage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Total Marks</dt>
-                <dd>{totalMarks}</dd>
+                <dd className="font-mono">{totalMarks}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Passing</dt>
-                <dd>{passingMarks}</dd>
+                <dd className="font-mono">{passingMarks}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Duration</dt>
-                <dd>{duration} min</dd>
+                <dd className="font-mono">{duration} min</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Question Paper</dt>
@@ -454,9 +454,9 @@ export default function ExamCreatePage() {
       {/* Step: Publish */}
       {step === "publish" && (
         <div className="max-w-xl space-y-4">
-          <div className="rounded-lg border bg-green-50 p-5 dark:bg-green-950/30">
-            <h3 className="font-medium text-green-800 dark:text-green-300">Ready to Create</h3>
-            <p className="mt-1 text-sm text-green-700 dark:text-green-400">
+          <div className="bg-success-subtle border-subtle rounded-lg border p-5">
+            <h3 className="text-success font-medium">Ready to Create</h3>
+            <p className="text-success mt-1 text-sm">
               The exam will be created as a{" "}
               {uploadedPaths.length > 0 ? '"question paper uploaded"' : '"draft"'} exam. You can add
               questions, edit rubrics, and publish it later.
@@ -469,7 +469,7 @@ export default function ExamCreatePage() {
             <Button
               onClick={handlePublish}
               disabled={saving}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
               {saving ? (
                 <>

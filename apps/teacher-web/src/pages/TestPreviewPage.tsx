@@ -111,13 +111,11 @@ export default function TestPreviewPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       {/* Preview Banner */}
-      <div className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-500/10 p-3 dark:border-blue-800">
-        <Eye className="h-5 w-5 flex-shrink-0 text-blue-600" />
+      <div className="border-info/40 bg-info-subtle flex items-center gap-3 rounded-md border p-3">
+        <Eye className="text-info h-5 w-5 flex-shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            Preview Mode — answers are not saved
-          </p>
-          <p className="text-xs text-blue-600/80 dark:text-blue-400/80">
+          <p className="text-info text-sm font-medium">Preview Mode — answers are not saved</p>
+          <p className="text-info/80 text-xs">
             This simulates the student experience. No test session is created.
           </p>
         </div>
@@ -150,11 +148,11 @@ export default function TestPreviewPage() {
       {/* Timer & Progress Bar */}
       <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b py-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">
+          <span className="font-mono text-sm font-medium">
             Q{currentIndex + 1}/{questionItems.length}
           </span>
           {currentSection && (
-            <span className="text-muted-foreground bg-muted rounded px-2 py-0.5 text-xs">
+            <span className="text-muted-foreground bg-muted rounded-pill px-2 py-0.5 text-xs">
               {currentSection.title}
             </span>
           )}
@@ -162,8 +160,10 @@ export default function TestPreviewPage() {
         <div className="flex items-center gap-3">
           <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
             <Clock className="h-4 w-4" />
-            <span>{storyPoint.assessmentConfig?.durationMinutes ?? "--"} min</span>
-            <span className="text-xs">({elapsedMinutes}m elapsed)</span>
+            <span className="font-mono">
+              {storyPoint.assessmentConfig?.durationMinutes ?? "--"} min
+            </span>
+            <span className="font-mono text-xs">({elapsedMinutes}m elapsed)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch checked={showAnswers} onCheckedChange={setShowAnswers} id="show-answers" />
@@ -180,11 +180,11 @@ export default function TestPreviewPage() {
           <button
             key={q.id}
             onClick={() => setCurrentIndex(idx)}
-            className={`h-8 w-8 rounded border text-xs transition-colors ${
+            className={`duration-fast ease-standard h-8 w-8 rounded border font-mono text-xs transition-colors ${
               idx === currentIndex
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-brand text-fg-on-accent border-brand"
                 : answers[q.id] !== undefined
-                  ? "border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30"
+                  ? "border-success/40 bg-success-subtle"
                   : "bg-background hover:bg-muted"
             }`}
           >
@@ -195,27 +195,32 @@ export default function TestPreviewPage() {
 
       {/* Question Content */}
       {currentItem && (
-        <div className="space-y-4 rounded-lg border p-6">
+        <div className="bg-card border-subtle shadow-e1 space-y-4 rounded-lg border p-6">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs capitalize">
+            <Badge
+              variant="outline"
+              className="rounded-pill bg-surface-sunken text-fg-secondary border-transparent text-xs capitalize"
+            >
               {payload?.questionType?.replace(/[-_]/g, " ") ?? "question"}
             </Badge>
             {currentItem.difficulty && (
               <Badge
                 variant="outline"
-                className={`text-xs ${
+                className={`rounded-pill text-xs ${
                   currentItem.difficulty === "easy"
-                    ? "border-emerald-300 text-emerald-700"
+                    ? "border-success/40 text-success"
                     : currentItem.difficulty === "hard"
-                      ? "border-red-300 text-red-700"
-                      : "border-amber-300 text-amber-700"
+                      ? "border-error/40 text-error"
+                      : "border-warning/40 text-warning"
                 }`}
               >
                 {currentItem.difficulty}
               </Badge>
             )}
             {payload?.basePoints && (
-              <span className="text-muted-foreground text-xs">{payload.basePoints} pts</span>
+              <span className="text-muted-foreground font-mono text-xs">
+                {payload.basePoints} pts
+              </span>
             )}
           </div>
 
@@ -234,9 +239,9 @@ export default function TestPreviewPage() {
               )?.map((opt, idx) => (
                 <div
                   key={opt.id ?? idx}
-                  className={`flex cursor-pointer items-center gap-2 rounded border p-3 text-sm transition-colors ${
+                  className={`duration-fast ease-standard flex cursor-pointer items-center gap-2 rounded border p-3 text-sm transition-colors ${
                     showAnswers && opt.isCorrect
-                      ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30"
+                      ? "border-success/40 bg-success-subtle"
                       : "hover:bg-muted"
                   }`}
                   onClick={() => setAnswers((prev) => ({ ...prev, [currentItem.id]: opt.id }))}
@@ -245,9 +250,7 @@ export default function TestPreviewPage() {
                     {String.fromCharCode(65 + idx)}
                   </span>
                   <span className="flex-1">{opt.text}</span>
-                  {showAnswers && opt.isCorrect && (
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  )}
+                  {showAnswers && opt.isCorrect && <CheckCircle className="text-success h-4 w-4" />}
                 </div>
               ))}
             </div>
@@ -264,17 +267,15 @@ export default function TestPreviewPage() {
                 return (
                   <button
                     key={val}
-                    className={`flex-1 rounded border p-3 text-center text-sm transition-colors ${
-                      isCorrect
-                        ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30"
-                        : "hover:bg-muted"
+                    className={`duration-fast ease-standard flex-1 rounded border p-3 text-center text-sm transition-colors ${
+                      isCorrect ? "border-success/40 bg-success-subtle" : "hover:bg-muted"
                     }`}
                     onClick={() =>
                       setAnswers((prev) => ({ ...prev, [currentItem.id]: val === "True" }))
                     }
                   >
                     {val}
-                    {isCorrect && <CheckCircle className="ml-2 inline h-4 w-4 text-emerald-500" />}
+                    {isCorrect && <CheckCircle className="text-success ml-2 inline h-4 w-4" />}
                   </button>
                 );
               })}
@@ -283,9 +284,9 @@ export default function TestPreviewPage() {
 
           {/* Show explanation when answers are revealed */}
           {showAnswers && payload?.explanation && (
-            <div className="rounded bg-blue-50 p-3 text-sm dark:bg-blue-950/30">
-              <p className="mb-1 font-medium text-blue-700 dark:text-blue-300">Explanation</p>
-              <p className="text-blue-600/80 dark:text-blue-400/80">{payload.explanation}</p>
+            <div className="bg-info-subtle rounded p-3 text-sm">
+              <p className="text-info mb-1 font-medium">Explanation</p>
+              <p className="text-info/80">{payload.explanation}</p>
             </div>
           )}
         </div>
@@ -301,7 +302,7 @@ export default function TestPreviewPage() {
         >
           <ChevronLeft className="h-4 w-4" /> Previous
         </Button>
-        <span className="text-muted-foreground text-sm">
+        <span className="text-muted-foreground font-mono text-sm">
           {currentIndex + 1} / {questionItems.length}
         </span>
         <Button

@@ -43,14 +43,14 @@ function getStatusBadge(status: string) {
   switch (status) {
     case "grading_complete":
       return (
-        <Badge variant="outline" className="border-amber-300 text-amber-600">
+        <Badge variant="outline" className="border-success/40 bg-success-subtle text-success">
           Auto-Graded
         </Badge>
       );
     case "ready_for_review":
     case "grading_partial":
       return (
-        <Badge variant="outline" className="border-blue-300 text-blue-600">
+        <Badge variant="outline" className="border-warning/40 bg-warning-subtle text-warning">
           Needs Review
         </Badge>
       );
@@ -62,13 +62,13 @@ function getStatusBadge(status: string) {
     case "scouting_complete":
     case "grading":
       return (
-        <Badge variant="outline" className="border-violet-300 text-violet-600">
+        <Badge variant="outline" className="border-info/40 bg-info-subtle text-info">
           In Progress
         </Badge>
       );
     case "reviewed":
       return (
-        <Badge variant="outline" className="border-green-300 text-green-600">
+        <Badge variant="outline" className="border-success/40 bg-success-subtle text-success">
           Reviewed
         </Badge>
       );
@@ -184,7 +184,7 @@ export default function BatchGradingPage() {
         <div className="flex items-center gap-3">
           <CheckSquare className="text-primary h-6 w-6" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold">Batch Grading</h1>
+            <h1 className="font-display text-2xl font-semibold">Batch Grading</h1>
             <p className="text-muted-foreground text-sm">Review and approve pending submissions</p>
           </div>
         </div>
@@ -194,10 +194,11 @@ export default function BatchGradingPage() {
       <FadeIn delay={0.05}>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
-            <strong className="text-foreground">{pendingSubmissions.length}</strong> pending
+            <strong className="text-foreground font-mono">{pendingSubmissions.length}</strong>{" "}
+            pending
           </span>
           <span className="text-muted-foreground">
-            <strong className="text-foreground">{reviewed}</strong> reviewed
+            <strong className="text-foreground font-mono">{reviewed}</strong> reviewed
           </span>
           {pendingSubmissions.length > 0 && (
             <span className="text-muted-foreground">
@@ -333,7 +334,7 @@ export default function BatchGradingPage() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-muted-foreground text-sm">
+          <span className="text-muted-foreground font-mono text-sm">
             {page + 1} / {totalPages}
           </span>
           <Button

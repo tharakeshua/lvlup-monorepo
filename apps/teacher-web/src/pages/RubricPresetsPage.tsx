@@ -192,7 +192,7 @@ export default function RubricPresetsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Evaluation Presets</h1>
+          <h1 className="font-display text-xl font-semibold">Evaluation Presets</h1>
           <p className="text-muted-foreground text-sm">
             Reusable rubric templates for consistent grading
           </p>
@@ -225,7 +225,7 @@ export default function RubricPresetsPage() {
 
       {/* List */}
       {!filteredPresets?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+        <div className="border-subtle flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
           <FileText className="text-muted-foreground h-8 w-8" />
           <p className="text-muted-foreground mt-2 text-sm">
             No presets yet. Create one to get started.
@@ -234,7 +234,10 @@ export default function RubricPresetsPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filteredPresets.map((preset) => (
-            <div key={preset.id} className="bg-card flex flex-col gap-2 rounded-lg border p-4">
+            <div
+              key={preset.id}
+              className="bg-card border-subtle shadow-e1 flex flex-col gap-2 rounded-lg border p-4"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <div className="bg-muted rounded-md p-1.5">{CATEGORY_ICONS[preset.category]}</div>
@@ -247,7 +250,7 @@ export default function RubricPresetsPage() {
                   </div>
                 </div>
                 {preset.isDefault && (
-                  <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px]">
+                  <span className="bg-brand-subtle text-brand rounded-pill px-1.5 py-0.5 text-[10px]">
                     Default
                   </span>
                 )}
@@ -258,12 +261,12 @@ export default function RubricPresetsPage() {
               )}
 
               {preset.rubric.passingPercentage != null && (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground font-mono text-xs">
                   Passing: {preset.rubric.passingPercentage}%
                 </p>
               )}
 
-              <div className="mt-auto flex items-center gap-2 border-t pt-2">
+              <div className="border-subtle mt-auto flex items-center gap-2 border-t pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -298,7 +301,9 @@ export default function RubricPresetsPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{editingId ? "Edit Preset" : "New Evaluation Preset"}</SheetTitle>
+            <SheetTitle className="font-display">
+              {editingId ? "Edit Preset" : "New Evaluation Preset"}
+            </SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-4">
             <div>
@@ -398,7 +403,7 @@ export default function RubricPresetsPage() {
                       holisticMaxScore: Number(e.target.value) || 100,
                     }))
                   }
-                  className="mt-1"
+                  className="mt-1 font-mono"
                 />
               </div>
               <div>
@@ -414,7 +419,7 @@ export default function RubricPresetsPage() {
                       passingPercentage: Number(e.target.value) || 0,
                     }))
                   }
-                  className="mt-1"
+                  className="mt-1 font-mono"
                 />
               </div>
             </div>

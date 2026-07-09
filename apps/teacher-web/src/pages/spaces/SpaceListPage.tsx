@@ -180,7 +180,7 @@ export default function SpaceListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Spaces</h1>
+          <h1 className="font-display text-2xl font-semibold">Spaces</h1>
           <p className="text-muted-foreground text-sm">Manage your learning spaces and content</p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -241,10 +241,10 @@ export default function SpaceListPage() {
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              className={`duration-fast ease-standard rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                 activeTab === tab.value
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-fg-muted hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -257,21 +257,24 @@ export default function SpaceListPage() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-muted h-40 animate-pulse rounded-lg border" />
+            <div
+              key={i}
+              className="bg-surface-sunken border-subtle h-40 animate-pulse rounded-lg border"
+            />
           ))}
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-          <BookOpen className="text-muted-foreground h-10 w-10" />
-          <p className="text-muted-foreground mt-3 text-sm">Failed to load spaces</p>
+          <BookOpen className="text-fg-muted h-10 w-10" />
+          <p className="font-display mt-3 text-lg">Failed to load spaces</p>
           <Button onClick={() => refetch()} size="sm" variant="outline" className="mt-3">
             Retry
           </Button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-          <BookOpen className="text-muted-foreground h-10 w-10" />
-          <p className="text-muted-foreground mt-3 text-sm">
+          <BookOpen className="text-fg-muted h-10 w-10" />
+          <p className="font-display mt-3 text-lg">
             {search ? "No spaces match your search" : "No spaces yet"}
           </p>
           {!search && (
@@ -286,7 +289,7 @@ export default function SpaceListPage() {
             <Link
               key={space.id}
               to={`/spaces/${space.id}/edit`}
-              className="bg-card group rounded-lg border p-5 transition-shadow hover:shadow-md"
+              className="bg-card border-subtle shadow-e1 duration-fast ease-standard hover:shadow-e2 group rounded-lg border p-5 transition-shadow"
             >
               {space.thumbnailUrl && (
                 <img
@@ -299,7 +302,7 @@ export default function SpaceListPage() {
               )}
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="group-hover:text-primary font-semibold transition-colors">
+                  <h3 className="group-hover:text-brand font-display duration-fast ease-standard font-semibold transition-colors">
                     {space.title}
                   </h3>
                   {space.description && (
@@ -311,12 +314,14 @@ export default function SpaceListPage() {
                 <StatusBadge status={space.status} />
               </div>
               <div className="text-muted-foreground mt-4 flex items-center gap-4 text-xs">
-                <span className="capitalize">{space.type}</span>
+                <span className="rounded-pill bg-surface-sunken text-fg-secondary px-1.5 py-0.5 capitalize">
+                  {space.type}
+                </span>
                 {space.subject && <span>{space.subject}</span>}
-                <span>{space.stats?.totalStoryPoints ?? 0} story points</span>
-                <span>{space.stats?.totalItems ?? 0} items</span>
+                <span className="font-mono">{space.stats?.totalStoryPoints ?? 0} story points</span>
+                <span className="font-mono">{space.stats?.totalItems ?? 0} items</span>
                 {(space.stats?.totalStudents ?? 0) > 0 && (
-                  <span className="flex items-center gap-0.5">
+                  <span className="flex items-center gap-0.5 font-mono">
                     <Users className="h-3 w-3" />
                     {space.stats?.totalStudents}
                   </span>
@@ -325,12 +330,15 @@ export default function SpaceListPage() {
               {space.labels && space.labels.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {space.labels.slice(0, 3).map((label) => (
-                    <span key={label} className="bg-muted rounded px-1.5 py-0.5 text-[10px]">
+                    <span
+                      key={label}
+                      className="bg-surface-sunken text-fg-secondary rounded-pill px-1.5 py-0.5 text-[10px]"
+                    >
                       {label}
                     </span>
                   ))}
                   {space.labels.length > 3 && (
-                    <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
+                    <span className="bg-surface-sunken text-fg-muted rounded-pill px-1.5 py-0.5 text-[10px]">
                       +{space.labels.length - 3} more
                     </span>
                   )}
@@ -341,7 +349,7 @@ export default function SpaceListPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                  className="duration-fast ease-standard h-7 gap-1 text-xs opacity-0 transition-opacity group-hover:opacity-100"
                   onClick={(e) => handleDuplicate(e, space)}
                   disabled={duplicatingId === space.id}
                 >

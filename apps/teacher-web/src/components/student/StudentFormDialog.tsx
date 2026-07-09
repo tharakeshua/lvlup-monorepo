@@ -127,9 +127,11 @@ export default function StudentFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="shadow-e3 max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Student" : "Create Student"}</DialogTitle>
+          <DialogTitle className="font-display">
+            {isEdit ? "Edit Student" : "Create Student"}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
               ? "Update student details and class enrolment."
@@ -139,7 +141,9 @@ export default function StudentFormDialog({
         <div className="space-y-4 py-2">
           {!isEdit && (
             <div>
-              <Label htmlFor="student-uid">Firebase Auth UID</Label>
+              <Label htmlFor="student-uid" className="text-fg-secondary">
+                Firebase Auth UID
+              </Label>
               <Input
                 id="student-uid"
                 value={uid}
@@ -152,13 +156,15 @@ export default function StudentFormDialog({
                 The student must already have a Firebase Auth account. Use Bulk Import to provision
                 new accounts.
               </p>
-              {errors.uid && <p className="text-destructive mt-1 text-xs">{errors.uid}</p>}
+              {errors.uid && <p className="text-error mt-1 text-sm">{errors.uid}</p>}
             </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="student-roll">Roll Number</Label>
+              <Label htmlFor="student-roll" className="text-fg-secondary">
+                Roll Number
+              </Label>
               <Input
                 id="student-roll"
                 value={rollNumber}
@@ -168,7 +174,9 @@ export default function StudentFormDialog({
               />
             </div>
             <div>
-              <Label htmlFor="student-admission">Admission Number</Label>
+              <Label htmlFor="student-admission" className="text-fg-secondary">
+                Admission Number
+              </Label>
               <Input
                 id="student-admission"
                 value={admissionNumber}
@@ -181,7 +189,9 @@ export default function StudentFormDialog({
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <Label htmlFor="student-grade">Grade</Label>
+              <Label htmlFor="student-grade" className="text-fg-secondary">
+                Grade
+              </Label>
               <Input
                 id="student-grade"
                 value={grade}
@@ -191,7 +201,9 @@ export default function StudentFormDialog({
               />
             </div>
             <div>
-              <Label htmlFor="student-section">Section</Label>
+              <Label htmlFor="student-section" className="text-fg-secondary">
+                Section
+              </Label>
               <Input
                 id="student-section"
                 value={section}
@@ -201,7 +213,9 @@ export default function StudentFormDialog({
               />
             </div>
             <div>
-              <Label htmlFor="student-dob">Date of birth</Label>
+              <Label htmlFor="student-dob" className="text-fg-secondary">
+                Date of birth
+              </Label>
               <Input
                 id="student-dob"
                 type="date"
@@ -213,7 +227,7 @@ export default function StudentFormDialog({
           </div>
 
           <div>
-            <Label>Classes</Label>
+            <Label className="text-fg-secondary">Classes</Label>
             <div className="mt-1 space-y-2">
               <Popover open={classPickerOpen} onOpenChange={setClassPickerOpen}>
                 <PopoverTrigger asChild>
@@ -249,7 +263,7 @@ export default function StudentFormDialog({
                             key={cls.id}
                             type="button"
                             onClick={() => toggleClass(cls.id)}
-                            className="hover:bg-muted flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm"
+                            className="hover:bg-surface-sunken/60 duration-fast ease-standard flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors"
                           >
                             <span className="border-input flex h-4 w-4 items-center justify-center rounded border">
                               {isSelected && <Check className="h-3 w-3" />}

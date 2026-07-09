@@ -74,19 +74,17 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="shadow-card">
+    <Card className="border-subtle shadow-e2 rounded-lg">
       <CardContent className="p-6">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold">Teacher Portal</h1>
+          <h1 className="font-display text-2xl font-semibold">Teacher Portal</h1>
           <p className="text-muted-foreground mt-1 text-sm">Sign in to your teaching dashboard</p>
         </div>
 
         {step === "school-code" ? (
           <form onSubmit={handleSchoolCodeSubmit} className="space-y-4">
             {codeError && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                {codeError}
-              </div>
+              <div className="bg-error-subtle text-error rounded-md p-3 text-sm">{codeError}</div>
             )}
 
             <div className="space-y-2">
@@ -109,7 +107,7 @@ export default function LoginPage() {
           </form>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="bg-muted rounded-md p-3 text-sm">
+            <div className="bg-surface-sunken rounded-md p-3 text-sm">
               <span className="font-medium">{schoolName}</span>
               <Button
                 type="button"
@@ -126,9 +124,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                {error}
-              </div>
+              <div className="bg-error-subtle text-error rounded-md p-3 text-sm">{error}</div>
             )}
 
             <div className="space-y-2">

@@ -40,7 +40,7 @@ export default function ExamListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Exams</h1>
+          <h1 className="font-display text-2xl font-semibold">Exams</h1>
           <p className="text-muted-foreground text-sm">
             Create and manage exams, grade submissions
           </p>
@@ -70,7 +70,7 @@ export default function ExamListPage() {
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              className={`duration-fast ease-standard whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                 activeTab === tab.value
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -86,7 +86,10 @@ export default function ExamListPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-muted h-20 animate-pulse rounded-lg border" />
+            <div
+              key={i}
+              className="border-subtle bg-surface-sunken h-20 animate-pulse rounded-lg border"
+            />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -109,7 +112,7 @@ export default function ExamListPage() {
             <Link
               key={exam.id}
               to={`/exams/${exam.id}`}
-              className="bg-card flex items-center justify-between rounded-lg border p-4 transition-shadow hover:shadow-sm"
+              className="bg-card border-subtle shadow-e1 duration-fast ease-standard hover:shadow-e2 flex items-center justify-between rounded-lg border p-4 transition-shadow"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -127,17 +130,19 @@ export default function ExamListPage() {
                 {exam.stats && (
                   <>
                     <div className="text-center">
-                      <p className="text-foreground font-semibold">{exam.stats.totalSubmissions}</p>
+                      <p className="text-foreground font-mono font-semibold">
+                        {exam.stats.totalSubmissions}
+                      </p>
                       <p className="text-xs">Submissions</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-foreground font-semibold">
+                      <p className="text-foreground font-mono font-semibold">
                         {exam.stats.gradedSubmissions}
                       </p>
                       <p className="text-xs">Graded</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-foreground font-semibold">
+                      <p className="text-foreground font-mono font-semibold">
                         {Math.round(exam.stats.avgScore)}%
                       </p>
                       <p className="text-xs">Avg Score</p>

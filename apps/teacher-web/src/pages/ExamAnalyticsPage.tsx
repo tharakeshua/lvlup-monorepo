@@ -65,7 +65,7 @@ export default function ExamAnalyticsPage() {
     analytics?.scoreDistribution.buckets.map((b) => ({
       label: `${b.min}-${b.max}%`,
       value: b.count,
-      color: b.min >= 70 ? "#22c55e" : b.min >= 40 ? "#f59e0b" : "#ef4444",
+      color: b.min >= 70 ? "var(--grade-a)" : b.min >= 40 ? "var(--grade-c)" : "var(--grade-f)",
     })) ?? [];
 
   // Question analytics sorted by difficulty
@@ -79,7 +79,7 @@ export default function ExamAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Exam Analytics</h1>
+          <h1 className="font-display text-2xl font-semibold">Exam Analytics</h1>
           <p className="text-muted-foreground text-sm">
             Per-exam grade distribution and question analysis
           </p>
@@ -109,7 +109,7 @@ export default function ExamAnalyticsPage() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
+            <div key={i} className="bg-surface-sunken h-24 animate-pulse rounded-lg" />
           ))}
         </div>
       ) : !analytics ? (
@@ -141,7 +141,7 @@ export default function ExamAnalyticsPage() {
 
           {/* Score Distribution */}
           {distributionData.length > 0 && (
-            <div className="bg-card rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 rounded-lg border p-5">
               <h2 className="mb-4 font-semibold">Grade Distribution</h2>
               <SimpleBarChart
                 data={distributionData}
@@ -154,7 +154,7 @@ export default function ExamAnalyticsPage() {
 
           {/* Per-Question Analysis */}
           {questionEntries.length > 0 && (
-            <div className="bg-card rounded-lg border">
+            <div className="bg-card border-subtle shadow-e1 rounded-lg border">
               <div className="border-b px-5 py-3">
                 <h2 className="font-semibold">Per-Question Analysis</h2>
               </div>
@@ -172,30 +172,30 @@ export default function ExamAnalyticsPage() {
                   {questionEntries.map((q) => (
                     <TableRow key={q.questionId}>
                       <TableCell className="font-medium">Q{q.questionId}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono">
                         {q.avgScore.toFixed(1)}/{q.maxScore}
                       </TableCell>
                       <TableCell>
                         <span
-                          className={
+                          className={`font-mono ${
                             q.avgPercentage >= 70
-                              ? "text-green-600"
+                              ? "text-grade-a"
                               : q.avgPercentage >= 40
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                          }
+                                ? "text-grade-c"
+                                : "text-grade-f"
+                          }`}
                         >
                           {Math.round(q.avgPercentage)}%
                         </span>
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          className={`rounded-pill inline-flex px-2 py-0.5 text-xs font-medium ${
                             q.difficultyIndex >= 0.7
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              ? "bg-success-subtle text-success"
                               : q.difficultyIndex >= 0.4
-                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                ? "bg-warning-subtle text-warning"
+                                : "bg-error-subtle text-error"
                           }`}
                         >
                           {q.difficultyIndex >= 0.7
@@ -217,7 +217,7 @@ export default function ExamAnalyticsPage() {
 
           {/* Topic Performance */}
           {Object.keys(analytics.topicPerformance).length > 0 && (
-            <div className="bg-card rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 rounded-lg border p-5">
               <h2 className="mb-4 font-semibold">Topic Performance</h2>
               <SimpleBarChart
                 data={Object.entries(analytics.topicPerformance).map(([topic, perf]) => ({
@@ -225,10 +225,10 @@ export default function ExamAnalyticsPage() {
                   value: perf.avgPercentage,
                   color:
                     perf.avgPercentage >= 70
-                      ? "#22c55e"
+                      ? "var(--grade-a)"
                       : perf.avgPercentage >= 40
-                        ? "#f59e0b"
-                        : "#ef4444",
+                        ? "var(--grade-c)"
+                        : "var(--grade-f)",
                 }))}
                 maxValue={100}
                 height={180}

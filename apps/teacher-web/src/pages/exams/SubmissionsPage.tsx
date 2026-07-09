@@ -61,17 +61,17 @@ const PIPELINE_ICONS: Record<string, React.ElementType> = {
 };
 
 const PIPELINE_COLORS: Record<string, string> = {
-  uploaded: "text-blue-500",
-  ocr_processing: "text-blue-500 animate-spin",
-  scouting: "text-blue-500 animate-spin",
-  scouting_complete: "text-green-500",
-  grading: "text-purple-500 animate-spin",
-  grading_partial: "text-purple-500",
-  grading_complete: "text-green-500",
-  ready_for_review: "text-orange-500",
-  reviewed: "text-green-600",
-  failed: "text-red-500",
-  manual_review_needed: "text-red-500",
+  uploaded: "text-info",
+  ocr_processing: "text-info animate-spin",
+  scouting: "text-info animate-spin",
+  scouting_complete: "text-success",
+  grading: "text-info animate-spin",
+  grading_partial: "text-info",
+  grading_complete: "text-success",
+  ready_for_review: "text-warning",
+  reviewed: "text-success",
+  failed: "text-error",
+  manual_review_needed: "text-error",
 };
 
 /** Normalize a query hook result (bare array | PageResponse | infinite query) → array. */
@@ -313,7 +313,7 @@ export default function SubmissionsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">Submissions</h1>
+          <h1 className="font-display text-xl font-semibold">Submissions</h1>
           <p className="text-muted-foreground text-sm">
             {exam?.title} &middot; {submissions.length} submissions
           </p>
@@ -329,7 +329,7 @@ export default function SubmissionsPage() {
               onClick={() => handleReleaseResults()}
               disabled={releaseResults.isPending}
               size="sm"
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-brand text-fg-on-accent hover:bg-brand-hover"
             >
               <Send className="h-3.5 w-3.5" /> Release All Results ({unreleasedReviewed.length})
             </Button>
@@ -343,35 +343,35 @@ export default function SubmissionsPage() {
           <Card>
             <CardContent className="p-3 text-center">
               <Users className="text-muted-foreground mx-auto mb-1 h-4 w-4" />
-              <p className="text-lg font-bold">{stats.total}</p>
+              <p className="font-mono text-lg font-bold">{stats.total}</p>
               <p className="text-muted-foreground text-[10px]">Total</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <FileCheck className="mx-auto mb-1 h-4 w-4 text-green-500" />
-              <p className="text-lg font-bold">{stats.graded}</p>
+              <FileCheck className="text-success mx-auto mb-1 h-4 w-4" />
+              <p className="font-mono text-lg font-bold">{stats.graded}</p>
               <p className="text-muted-foreground text-[10px]">Graded</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <Loader2 className="mx-auto mb-1 h-4 w-4 text-blue-500" />
-              <p className="text-lg font-bold">{stats.inProgress}</p>
+              <Loader2 className="text-info mx-auto mb-1 h-4 w-4" />
+              <p className="font-mono text-lg font-bold">{stats.inProgress}</p>
               <p className="text-muted-foreground text-[10px]">In Progress</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <Eye className="mx-auto mb-1 h-4 w-4 text-amber-500" />
-              <p className="text-lg font-bold">{stats.needsReview}</p>
+              <Eye className="text-warning mx-auto mb-1 h-4 w-4" />
+              <p className="font-mono text-lg font-bold">{stats.needsReview}</p>
               <p className="text-muted-foreground text-[10px]">Needs Review</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <BarChart3 className="text-primary mx-auto mb-1 h-4 w-4" />
-              <p className="text-lg font-bold">
+              <p className="font-mono text-lg font-bold">
                 {stats.avgScore != null ? `${stats.avgScore}%` : "—"}
               </p>
               <p className="text-muted-foreground text-[10px]">Avg Score</p>
@@ -385,7 +385,7 @@ export default function SubmissionsPage() {
         <CardContent className="space-y-4 p-5">
           <h3 className="font-medium">Upload Answer Sheet</h3>
           {examClasses.length === 0 ? (
-            <div className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+            <div className="border-warning/30 bg-warning-subtle text-warning flex items-start gap-2 rounded border p-3 text-xs">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
                 This exam has no classes assigned. Add classes on the exam page before uploading
@@ -448,7 +448,7 @@ export default function SubmissionsPage() {
               setSelectedFiles(droppedFiles);
               // Update the file input programmatically isn't possible but track state
             }}
-            className="hover:border-primary hover:bg-muted/50 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors"
+            className="hover:border-primary hover:bg-muted/50 duration-fast ease-standard cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors"
           >
             <Upload className="text-muted-foreground mx-auto h-6 w-6" />
             <p className="mt-1 text-sm font-medium">Click to upload or drag and drop</p>
@@ -472,7 +472,7 @@ export default function SubmissionsPage() {
             </div>
           )}
           {uploadError && (
-            <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-400">
+            <div className="border-error/30 bg-error-subtle text-error flex items-start gap-2 rounded border p-2 text-xs">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span className="break-all">{uploadError}</span>
             </div>
@@ -510,13 +510,13 @@ export default function SubmissionsPage() {
         ) : (
           submissions.map((sub: Submission) => {
             const StatusIcon = PIPELINE_ICONS[sub.pipelineStatus] ?? Clock;
-            const statusColor = PIPELINE_COLORS[sub.pipelineStatus] ?? "text-gray-500";
+            const statusColor = PIPELINE_COLORS[sub.pipelineStatus] ?? "text-fg-muted";
 
             return (
               <Link
                 key={sub.id}
                 to={`/exams/${examId}/submissions/${sub.id}`}
-                className="bg-card block overflow-hidden rounded-lg border transition-shadow hover:shadow-sm"
+                className="bg-card border-subtle shadow-e1 hover:shadow-e2 duration-fast ease-standard block overflow-hidden rounded-lg border transition-shadow"
               >
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
@@ -534,19 +534,19 @@ export default function SubmissionsPage() {
                       {sub.pipelineStatus.replace(/_/g, " ")}
                     </span>
                     <div className="text-right">
-                      <p className="text-sm font-semibold">
+                      <p className="font-mono text-sm font-semibold">
                         {sub.summary?.totalScore ?? "-"}/
                         {sub.summary?.maxScore ?? exam?.totalMarks ?? "-"}
                       </p>
                       {sub.summary?.percentage != null && (
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground font-mono text-xs">
                           {Math.round(sub.summary.percentage)}%{" "}
                           {sub.summary.grade && `(${sub.summary.grade})`}
                         </p>
                       )}
                     </div>
                     {sub.resultsReleased && (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      <span className="rounded-pill bg-success-subtle text-success px-2 py-0.5 text-[10px] font-medium">
                         Released
                       </span>
                     )}
@@ -561,7 +561,7 @@ export default function SubmissionsPage() {
                         <span className="text-muted-foreground text-[10px]">
                           Grading in progress
                         </span>
-                        <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                        <span className="text-info font-mono text-[10px] font-medium">
                           {
                             (sub as Submission & { gradingProgress?: { percentComplete?: number } })
                               .gradingProgress!.percentComplete
@@ -571,7 +571,7 @@ export default function SubmissionsPage() {
                       </div>
                       <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                         <div
-                          className="h-full rounded-full bg-purple-500 transition-all duration-500"
+                          className="bg-info duration-base ease-standard h-full rounded-full transition-all"
                           style={{
                             width: `${(sub as Submission & { gradingProgress?: { percentComplete?: number } }).gradingProgress!.percentComplete}%`,
                           }}
@@ -626,14 +626,14 @@ function PipelineSteps({ status }: { status: string }) {
         return (
           <div key={step} className="flex flex-1 items-center gap-1">
             <div
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                isComplete ? "bg-green-500" : isCurrent ? "bg-primary animate-pulse" : "bg-muted"
+              className={`duration-fast ease-standard h-1 flex-1 rounded-full transition-colors ${
+                isComplete ? "bg-success" : isCurrent ? "bg-primary animate-pulse" : "bg-muted"
               }`}
             />
             <span
               className={`whitespace-nowrap text-[9px] ${
                 isComplete
-                  ? "text-green-600 dark:text-green-400"
+                  ? "text-success"
                   : isCurrent
                     ? "text-primary font-medium"
                     : "text-muted-foreground"

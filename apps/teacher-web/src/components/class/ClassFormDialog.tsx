@@ -89,9 +89,11 @@ export default function ClassFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="shadow-e3 max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Class" : "Create Class"}</DialogTitle>
+          <DialogTitle className="font-display">
+            {isEdit ? "Edit Class" : "Create Class"}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
               ? "Update the class name, grade, or section."
@@ -100,7 +102,9 @@ export default function ClassFormDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
-            <Label htmlFor="class-name">Class Name</Label>
+            <Label htmlFor="class-name" className="text-fg-secondary">
+              Class Name
+            </Label>
             <Input
               id="class-name"
               value={name}
@@ -109,11 +113,13 @@ export default function ClassFormDialog({
               className="mt-1"
               autoFocus
             />
-            {errors.name && <p className="text-destructive mt-1 text-xs">{errors.name}</p>}
+            {errors.name && <p className="text-error mt-1 text-sm">{errors.name}</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="class-grade">Grade</Label>
+              <Label htmlFor="class-grade" className="text-fg-secondary">
+                Grade
+              </Label>
               <Input
                 id="class-grade"
                 value={grade}
@@ -121,10 +127,12 @@ export default function ClassFormDialog({
                 placeholder="10"
                 className="mt-1"
               />
-              {errors.grade && <p className="text-destructive mt-1 text-xs">{errors.grade}</p>}
+              {errors.grade && <p className="text-error mt-1 text-sm">{errors.grade}</p>}
             </div>
             <div>
-              <Label htmlFor="class-section">Section (optional)</Label>
+              <Label htmlFor="class-section" className="text-fg-secondary">
+                Section (optional)
+              </Label>
               <Input
                 id="class-section"
                 value={section}

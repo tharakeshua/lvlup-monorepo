@@ -88,7 +88,7 @@ export default function AssignmentTrackerPage() {
   if (examsLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Assignment Tracker</h1>
+        <h1 className="font-display text-2xl font-semibold">Assignment Tracker</h1>
         <div className="grid gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }, (_, i) => (
             <Skeleton key={i} className="h-24 rounded-lg" />
@@ -102,7 +102,7 @@ export default function AssignmentTrackerPage() {
     <div className="space-y-6">
       <FadeIn>
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <h1 className="font-display flex items-center gap-2 text-2xl font-semibold">
             <ClipboardList className="text-primary h-6 w-6" aria-hidden="true" />
             Assignment Tracker
           </h1>
@@ -116,45 +116,45 @@ export default function AssignmentTrackerPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <ClipboardList className="h-5 w-5 text-blue-600" />
+            <div className="bg-info-subtle flex h-10 w-10 items-center justify-center rounded-full">
+              <ClipboardList className="text-info h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{activeAssignments.length}</p>
-              <p className="text-muted-foreground text-xs">Active</p>
+              <p className="font-display text-3xl font-semibold">{activeAssignments.length}</p>
+              <p className="tracking-caps text-fg-muted text-xs uppercase">Active</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-              <Clock className="h-5 w-5 text-amber-600" />
+            <div className="bg-warning-subtle flex h-10 w-10 items-center justify-center rounded-full">
+              <Clock className="text-warning h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{pendingGrading}</p>
-              <p className="text-muted-foreground text-xs">Pending Grading</p>
+              <p className="font-display text-3xl font-semibold">{pendingGrading}</p>
+              <p className="tracking-caps text-fg-muted text-xs uppercase">Pending Grading</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-              <AlertCircle className="h-5 w-5 text-purple-600" />
+            <div className="bg-brand-subtle flex h-10 w-10 items-center justify-center rounded-full">
+              <AlertCircle className="text-brand h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{gradingAssignments.length}</p>
-              <p className="text-muted-foreground text-xs">In Review</p>
+              <p className="font-display text-3xl font-semibold">{gradingAssignments.length}</p>
+              <p className="tracking-caps text-fg-muted text-xs uppercase">In Review</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div className="bg-success-subtle flex h-10 w-10 items-center justify-center rounded-full">
+              <CheckCircle2 className="text-success h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{completedAssignments.length}</p>
-              <p className="text-muted-foreground text-xs">Completed</p>
+              <p className="font-display text-3xl font-semibold">{completedAssignments.length}</p>
+              <p className="tracking-caps text-fg-muted text-xs uppercase">Completed</p>
             </div>
           </CardContent>
         </Card>
@@ -189,7 +189,7 @@ export default function AssignmentTrackerPage() {
 function AssignmentSection({ title, items }: { title: string; items: AssignmentSummary[] }) {
   return (
     <div>
-      <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+      <h2 className="font-display mb-3 text-lg font-semibold">{title}</h2>
       <div className="space-y-3">
         {items.map((item) => (
           <AssignmentRow key={item.examId} assignment={item} />
@@ -219,7 +219,7 @@ function AssignmentRow({ assignment }: { assignment: AssignmentSummary }) {
   return (
     <Link
       to={`/exams/${assignment.examId}`}
-      className="bg-card hover:bg-muted/50 flex items-center gap-4 rounded-lg border p-4 transition-colors"
+      className="bg-card border-subtle shadow-e1 duration-fast ease-standard hover:shadow-e2 flex items-center gap-4 rounded-lg border p-4 transition-shadow"
     >
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2">

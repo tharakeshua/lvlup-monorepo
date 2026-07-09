@@ -104,7 +104,7 @@ export default function RubricPresetPicker({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="flex max-h-[80vh] max-w-lg flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="font-display flex items-center gap-2">
               <BookOpen className="h-5 w-5" /> Rubric Presets
             </DialogTitle>
           </DialogHeader>
@@ -137,10 +137,10 @@ export default function RubricPresetPicker({
                 <button
                   key={preset.id}
                   onClick={() => setSelectedPreset(preset)}
-                  className={`w-full rounded-lg border p-3 text-left transition-all ${
+                  className={`duration-fast ease-standard w-full rounded-lg border p-3 text-left transition-all ${
                     selectedPreset?.id === preset.id
-                      ? "border-primary bg-primary/5 ring-primary ring-1"
-                      : "hover:shadow-sm"
+                      ? "border-brand bg-brand-subtle ring-brand ring-1"
+                      : "border-subtle hover:shadow-e1"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -186,21 +186,21 @@ export default function RubricPresetPicker({
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save as Rubric Preset</DialogTitle>
+            <DialogTitle className="font-display">Save as Rubric Preset</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Preset Name</label>
+              <label className="text-fg-secondary text-sm font-medium">Preset Name</label>
               <input
                 type="text"
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 placeholder="e.g., Math Problem Rubric"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                className="bg-surface border-strong focus-visible:ring-ring mt-1 w-full rounded-md border px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-fg-secondary text-sm font-medium">Category</label>
               <Select value={saveCategory} onValueChange={setSaveCategory}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />

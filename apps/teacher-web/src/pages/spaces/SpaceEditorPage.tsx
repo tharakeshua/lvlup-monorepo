@@ -178,16 +178,16 @@ function SortableItem({
           )}
         </button>
         {item.type === "question" ? (
-          <HelpCircle className="h-4 w-4 text-blue-500" />
+          <HelpCircle className="text-info h-4 w-4" />
         ) : (
-          <FileText className="h-4 w-4 text-green-500" />
+          <FileText className="text-success h-4 w-4" />
         )}
         <button
           onClick={onToggleExpand ?? onEdit}
-          className="hover:text-primary flex-1 text-left text-sm"
+          className="hover:text-brand flex-1 text-left text-sm"
         >
           {item.title || "Untitled"}
-          <span className="text-muted-foreground ml-2 text-xs capitalize">
+          <span className="text-fg-secondary bg-surface-sunken rounded-pill ml-2 px-1.5 py-0.5 text-xs capitalize">
             {item.type === "question"
               ? (item.payload as QuestionPayload).questionType
               : (item.payload as MaterialPayload).materialType}
@@ -196,7 +196,7 @@ function SortableItem({
         <Button
           variant="ghost"
           size="icon"
-          className="hover:text-primary h-7 w-7"
+          className="hover:text-brand h-7 w-7"
           onClick={onEdit}
           aria-label="Edit"
           title="Edit"
@@ -214,7 +214,7 @@ function SortableItem({
         </Button>
       </div>
       <div
-        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+        className={`duration-base ease-standard grid transition-[grid-template-rows] ${
           expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
@@ -259,7 +259,11 @@ function SortableStoryPoint({
   const isTest = sp.type === "timed_test" || sp.type === "test" || sp.type === "quiz";
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-card rounded-lg border">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-card border-subtle shadow-e1 rounded-lg border"
+    >
       <div className="flex items-center gap-2 px-4 py-3">
         <button
           {...attributes}
@@ -276,18 +280,20 @@ function SortableStoryPoint({
         >
           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           <span className="text-sm font-medium">{sp.title}</span>
-          <span className="text-muted-foreground ml-2 text-xs capitalize">{sp.type}</span>
+          <span className="text-fg-secondary bg-surface-sunken rounded-pill ml-2 px-1.5 py-0.5 text-xs capitalize">
+            {sp.type}
+          </span>
         </button>
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>{liveItemCount ?? sp.stats?.totalItems ?? 0} items</span>
+          <span className="font-mono">{liveItemCount ?? sp.stats?.totalItems ?? 0} items</span>
           {sp.stats?.totalQuestions != null && sp.stats.totalQuestions > 0 && (
-            <span>{sp.stats.totalQuestions} Q</span>
+            <span className="font-mono">{sp.stats.totalQuestions} Q</span>
           )}
           {sp.stats?.totalMaterials != null && sp.stats.totalMaterials > 0 && (
-            <span>{sp.stats.totalMaterials} M</span>
+            <span className="font-mono">{sp.stats.totalMaterials} M</span>
           )}
           {sp.stats?.totalPoints != null && sp.stats.totalPoints > 0 && (
-            <span>{sp.stats.totalPoints} pts</span>
+            <span className="font-mono">{sp.stats.totalPoints} pts</span>
           )}
           {sp.difficulty && <span className="capitalize">{sp.difficulty}</span>}
         </div>
@@ -969,7 +975,7 @@ export default function SpaceEditorPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">{space.title}</h1>
+          <h1 className="font-display text-xl font-semibold">{space.title}</h1>
           <div className="mt-0.5 flex items-center gap-2">
             <StatusBadge status={space.status} />
             <span className="text-muted-foreground text-xs capitalize">{space.type}</span>
@@ -984,7 +990,7 @@ export default function SpaceEditorPage() {
               onClick={handlePublish}
               size="sm"
               disabled={saveSpace.isPending}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
               <Globe className="h-3.5 w-3.5" /> Publish
             </Button>
@@ -1024,24 +1030,39 @@ export default function SpaceEditorPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as EditorTab)}>
-        <TabsList>
-          <TabsTrigger value="settings" className="gap-1.5">
+        <TabsList className="border-subtle h-auto w-full justify-start gap-4 rounded-none border-b bg-transparent p-0">
+          <TabsTrigger
+            value="settings"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
             <Settings2 className="h-4 w-4" />
             Settings
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-1.5">
+          <TabsTrigger
+            value="content"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
             <List className="h-4 w-4" />
             Content
           </TabsTrigger>
-          <TabsTrigger value="rubric" className="gap-1.5">
+          <TabsTrigger
+            value="rubric"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
             <FileText className="h-4 w-4" />
             Rubric
           </TabsTrigger>
-          <TabsTrigger value="agents" className="gap-1.5">
+          <TabsTrigger
+            value="agents"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
             <Bot className="h-4 w-4" />
             Agent Config
           </TabsTrigger>
-          <TabsTrigger value="versions" className="gap-1.5">
+          <TabsTrigger
+            value="versions"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
             <History className="h-4 w-4" />
             History
           </TabsTrigger>
@@ -1056,7 +1077,9 @@ export default function SpaceEditorPage() {
         <TabsContent value="content" className="mt-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Story Points ({storyPoints.length})</h2>
+              <h2 className="font-display text-lg font-semibold">
+                Story Points ({storyPoints.length})
+              </h2>
               <div className="flex items-center gap-2">
                 <Select onValueChange={(v) => handleAddStoryPoint(v as StoryPoint["type"])}>
                   <SelectTrigger className="h-9 w-44" aria-label="Add story point of type">
@@ -1083,8 +1106,8 @@ export default function SpaceEditorPage() {
 
             {storyPoints.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <List className="text-muted-foreground h-8 w-8" />
-                <p className="text-muted-foreground mt-2 text-sm">No story points yet</p>
+                <List className="text-fg-muted h-8 w-8" />
+                <p className="font-display mt-2 text-lg">No story points yet</p>
                 <Button onClick={() => handleAddStoryPoint("standard")} size="sm" className="mt-3">
                   <Plus className="h-3 w-3" /> Add Story Point
                 </Button>
@@ -1175,10 +1198,10 @@ export default function SpaceEditorPage() {
                                           <div key={section.id} className="space-y-1.5">
                                             <div className="flex items-center justify-between gap-2 border-b pb-1">
                                               <div className="flex items-baseline gap-2">
-                                                <h4 className="text-foreground text-xs font-semibold uppercase tracking-wide">
+                                                <h4 className="text-fg-muted tracking-caps text-xs font-bold uppercase">
                                                   {section.title}
                                                 </h4>
-                                                <span className="text-muted-foreground text-[10px]">
+                                                <span className="text-muted-foreground font-mono text-[10px]">
                                                   {sectionItems.length}{" "}
                                                   {sectionItems.length === 1 ? "item" : "items"}
                                                 </span>
@@ -1225,12 +1248,12 @@ export default function SpaceEditorPage() {
                                         <div className="space-y-1.5">
                                           <div className="flex items-center justify-between gap-2 border-b pb-1">
                                             <div className="flex items-baseline gap-2">
-                                              <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+                                              <h4 className="text-fg-muted tracking-caps text-xs font-bold uppercase">
                                                 {sortedSections.length === 0
                                                   ? "Items"
                                                   : "Unsectioned"}
                                               </h4>
-                                              <span className="text-muted-foreground text-[10px]">
+                                              <span className="text-muted-foreground font-mono text-[10px]">
                                                 {unsectioned.length}{" "}
                                                 {unsectioned.length === 1 ? "item" : "items"}
                                               </span>
@@ -1409,7 +1432,7 @@ export default function SpaceEditorPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-primary/40 text-primary border-dashed"
+                                className="border-brand/40 text-brand border-dashed"
                                 onClick={() => setImportBankSPId(sp.id)}
                               >
                                 <Library className="h-3 w-3" /> Import from Bank
@@ -1442,7 +1465,7 @@ export default function SpaceEditorPage() {
         {/* Version History tab */}
         <TabsContent value="versions" className="mt-4">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Version History</h2>
+            <h2 className="font-display text-lg font-semibold">Version History</h2>
             {versionsLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -1451,8 +1474,8 @@ export default function SpaceEditorPage() {
               </div>
             ) : versions.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <History className="text-muted-foreground h-8 w-8" />
-                <p className="text-muted-foreground mt-2 text-sm">No version history yet</p>
+                <History className="text-fg-muted h-8 w-8" />
+                <p className="font-display mt-2 text-lg">No version history yet</p>
                 <p className="text-muted-foreground text-xs">
                   Changes will be tracked when you publish, archive, or edit content.
                 </p>
@@ -1467,7 +1490,7 @@ export default function SpaceEditorPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{v.changeSummary}</p>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <span className="bg-muted inline-flex items-center rounded-full px-2 py-0.5 text-xs capitalize">
+                          <span className="bg-surface-sunken text-fg-secondary rounded-pill inline-flex items-center px-2 py-0.5 text-xs capitalize">
                             {v.changeType}
                           </span>
                           <span className="text-muted-foreground text-xs capitalize">
@@ -1574,7 +1597,7 @@ export default function SpaceEditorPage() {
           <div className="mt-4 space-y-6">
             {storyPoints.map((sp) => (
               <div key={sp.id} className="space-y-3">
-                <h3 className="border-b pb-2 text-lg font-semibold">{sp.title}</h3>
+                <h3 className="font-display border-b pb-2 text-lg font-semibold">{sp.title}</h3>
                 {sp.description && (
                   <p className="text-muted-foreground text-sm">{sp.description}</p>
                 )}
@@ -1597,7 +1620,10 @@ export default function SpaceEditorPage() {
                       {it.attachments && it.attachments.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {it.attachments.map((att) => (
-                            <span key={att.id} className="bg-muted rounded px-2 py-1 text-xs">
+                            <span
+                              key={att.id}
+                              className="bg-surface-sunken text-fg-secondary rounded-pill px-2 py-1 text-xs"
+                            >
                               {att.fileName}
                             </span>
                           ))}

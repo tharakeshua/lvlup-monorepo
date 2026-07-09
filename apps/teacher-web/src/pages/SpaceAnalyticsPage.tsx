@@ -35,7 +35,7 @@ export default function SpaceAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Space Analytics</h1>
+          <h1 className="font-display text-2xl font-semibold">Space Analytics</h1>
           <p className="text-muted-foreground text-sm">
             Completion rates and engagement metrics per space
           </p>
@@ -83,7 +83,7 @@ export default function SpaceAnalyticsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="bg-card space-y-4 rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 space-y-4 rounded-lg border p-5">
               <h2 className="font-semibold">Completion Overview</h2>
               <div className="flex items-center gap-6">
                 <ProgressRing value={avgCompletion} label="Avg Completion" />
@@ -101,13 +101,13 @@ export default function SpaceAnalyticsPage() {
                   )}
                   <p>
                     Story Points:{" "}
-                    <span className="font-medium">{stats?.totalStoryPoints ?? 0}</span>
+                    <span className="font-mono font-medium">{stats?.totalStoryPoints ?? 0}</span>
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card space-y-4 rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 space-y-4 rounded-lg border p-5">
               <h2 className="font-semibold">Engagement Metrics</h2>
               <p className="text-muted-foreground text-sm">
                 Detailed per-student completion and engagement metrics are not yet available via the
@@ -115,7 +115,7 @@ export default function SpaceAnalyticsPage() {
               </p>
               <div className="space-y-2 text-sm">
                 <p>
-                  Enrolled Students: <span className="font-medium">{totalStudents}</span>
+                  Enrolled Students: <span className="font-mono font-medium">{totalStudents}</span>
                 </p>
               </div>
             </div>

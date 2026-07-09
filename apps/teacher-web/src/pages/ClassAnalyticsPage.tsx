@@ -70,7 +70,7 @@ export default function ClassAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Class Analytics</h1>
+          <h1 className="font-display text-2xl font-semibold">Class Analytics</h1>
           <p className="text-muted-foreground text-sm">
             Cross-system performance overview per class
           </p>
@@ -100,7 +100,7 @@ export default function ClassAnalyticsPage() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
+            <div key={i} className="bg-surface-sunken h-24 animate-pulse rounded-lg" />
           ))}
         </div>
       ) : !classSummary ? (
@@ -139,9 +139,9 @@ export default function ClassAnalyticsPage() {
           {/* AutoGrade + LevelUp side by side */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* AutoGrade Section */}
-            <div className="bg-card space-y-4 rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 space-y-4 rounded-lg border p-5">
               <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-blue-500" />
+                <ClipboardList className="text-brand h-4 w-4" />
                 <h2 className="font-semibold">AutoGrade</h2>
               </div>
               <div className="flex items-center gap-6">
@@ -152,7 +152,7 @@ export default function ClassAnalyticsPage() {
                 <div className="space-y-1 text-sm">
                   <p>
                     Completion Rate:{" "}
-                    <span className="font-medium">
+                    <span className="font-mono font-medium">
                       {Math.round(classSummary.autograde.examCompletionRate * 100)}%
                     </span>
                   </p>
@@ -169,7 +169,9 @@ export default function ClassAnalyticsPage() {
                     {classSummary.autograde.topPerformers.slice(0, 3).map((s) => (
                       <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
-                        <span className="font-medium">{Math.round(s.avgScore * 100)}%</span>
+                        <span className="font-mono font-medium">
+                          {Math.round(s.avgScore * 100)}%
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -186,7 +188,7 @@ export default function ClassAnalyticsPage() {
                     {classSummary.autograde.bottomPerformers.slice(0, 3).map((s) => (
                       <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
-                        <span className="font-medium text-red-600">
+                        <span className="text-error font-mono font-medium">
                           {Math.round(s.avgScore * 100)}%
                         </span>
                       </div>
@@ -197,9 +199,9 @@ export default function ClassAnalyticsPage() {
             </div>
 
             {/* LevelUp Section */}
-            <div className="bg-card space-y-4 rounded-lg border p-5">
+            <div className="bg-card border-subtle shadow-e1 space-y-4 rounded-lg border p-5">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-green-500" />
+                <BookOpen className="text-mastery-mastered h-4 w-4" />
                 <h2 className="font-semibold">LevelUp</h2>
               </div>
               <div className="flex items-center gap-6">
@@ -210,7 +212,7 @@ export default function ClassAnalyticsPage() {
                 <div className="space-y-1 text-sm">
                   <p>
                     Active Rate:{" "}
-                    <span className="font-medium">
+                    <span className="font-mono font-medium">
                       {Math.round(classSummary.levelup.activeStudentRate * 100)}%
                     </span>
                   </p>
@@ -227,7 +229,7 @@ export default function ClassAnalyticsPage() {
                     {classSummary.levelup.topPointEarners.slice(0, 5).map((s) => (
                       <div key={s.studentId} className="flex items-center justify-between text-sm">
                         <span>{s.name || s.studentId.slice(0, 8)}</span>
-                        <span className="font-medium">{s.points} pts</span>
+                        <span className="font-mono font-medium">{s.points} pts</span>
                       </div>
                     ))}
                   </div>

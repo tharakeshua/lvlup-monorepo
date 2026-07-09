@@ -126,7 +126,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <FadeIn>
         <div>
-          <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
+          <h1 className="font-display text-2xl font-semibold">Teacher Dashboard</h1>
           <p className="text-muted-foreground text-sm">
             Welcome back, {user?.displayName || user?.email || "Teacher"}
           </p>
@@ -138,12 +138,12 @@ export default function DashboardPage() {
         <div className="space-y-6" role="status" aria-label="Loading dashboard">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-lg" />
+              <Skeleton key={i} className="bg-surface-sunken h-24 rounded-lg" />
             ))}
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Skeleton className="h-64 rounded-lg" />
-            <Skeleton className="h-64 rounded-lg" />
+            <Skeleton className="bg-surface-sunken h-64 rounded-lg" />
+            <Skeleton className="bg-surface-sunken h-64 rounded-lg" />
           </div>
         </div>
       )}
@@ -185,10 +185,10 @@ export default function DashboardPage() {
                 <Card>
                   <div className="flex items-center justify-between border-b px-5 py-3">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                      <AlertTriangle className="text-error h-4 w-4" />
                       <h2 className="font-semibold">At-Risk Students</h2>
                     </div>
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                    <span className="rounded-pill bg-error-subtle text-error px-2 py-0.5 text-xs font-medium">
                       {atRiskCount} students
                     </span>
                   </div>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
               <Card>
                 <div className="flex items-center justify-between border-b px-5 py-3">
                   <h2 className="font-semibold">Grading Queue</h2>
-                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                  <span className="rounded-pill bg-warning-subtle text-warning px-2 py-0.5 text-xs font-medium">
                     {submissions.length} pending
                   </span>
                 </div>

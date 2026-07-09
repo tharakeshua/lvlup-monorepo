@@ -94,8 +94,10 @@ function FieldHelp({ children }: { children: React.ReactNode }) {
   return <p className="text-muted-foreground mt-1 text-xs">{children}</p>;
 }
 
-interface AutoResizeTextareaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "rows"> {
+interface AutoResizeTextareaProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "rows"
+> {
   value: string;
   minRows?: number;
   maxRows?: number;
@@ -120,8 +122,7 @@ const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResizeTexta
       const style = window.getComputedStyle(el);
       const lineHeight = parseFloat(style.lineHeight) || 20;
       const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) || 0;
-      const borderY =
-        parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth) || 0;
+      const borderY = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth) || 0;
       const minH = lineHeight * minRows + paddingY + borderY;
       const maxH = lineHeight * maxRows + paddingY + borderY;
       el.style.height = "auto";
@@ -157,8 +158,8 @@ function SectionHeader({
 }) {
   return (
     <CardHeader className="pb-4">
-      <CardTitle className="flex items-center gap-2 text-base font-semibold">
-        <Icon className="text-muted-foreground h-4 w-4" />
+      <CardTitle className="font-display flex items-center gap-2 text-base font-semibold">
+        <Icon className="text-fg-muted h-4 w-4" />
         {title}
       </CardTitle>
       <CardDescription className="text-xs">{description}</CardDescription>
@@ -179,12 +180,8 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
   const [accessType, setAccessType] = useState<SpaceAccessType>(space.accessType);
   const [allowRetakes, setAllowRetakes] = useState(space.allowRetakes ?? false);
   const [maxRetakes, setMaxRetakes] = useState(space.maxRetakes ?? 3);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(
-    space.defaultTimeLimitMinutes ?? 0
-  );
-  const [showCorrectAnswers, setShowCorrectAnswers] = useState(
-    space.showCorrectAnswers ?? true
-  );
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(space.defaultTimeLimitMinutes ?? 0);
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(space.showCorrectAnswers ?? true);
   // Store listing fields
   const [publishedToStore, setPublishedToStore] = useState(space.publishedToStore ?? false);
   const [price, setPrice] = useState(space.price ?? 0);
@@ -295,7 +292,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         />
         <CardContent className="space-y-5">
           <div>
-            <Label htmlFor="space-title">Title</Label>
+            <Label htmlFor="space-title" className="text-fg-secondary">
+              Title
+            </Label>
             <Input
               id="space-title"
               type="text"
@@ -310,7 +309,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
           </div>
 
           <div>
-            <Label htmlFor="space-type">Type</Label>
+            <Label htmlFor="space-type" className="text-fg-secondary">
+              Type
+            </Label>
             <Select value={type} onValueChange={(v) => setType(v as SpaceType)}>
               <SelectTrigger id="space-type" className="mt-1.5">
                 <SelectValue />
@@ -324,13 +325,14 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
               </SelectContent>
             </Select>
             <FieldHelp>
-              {selectedTypeMeta?.description ??
-                "Choose how this space will be primarily used."}
+              {selectedTypeMeta?.description ?? "Choose how this space will be primarily used."}
             </FieldHelp>
           </div>
 
           <div>
-            <Label htmlFor="space-subject">Subject</Label>
+            <Label htmlFor="space-subject" className="text-fg-secondary">
+              Subject
+            </Label>
             <Input
               id="space-subject"
               type="text"
@@ -345,13 +347,13 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
           </div>
 
           <div>
-            <Label htmlFor="space-description">Description</Label>
+            <Label htmlFor="space-description" className="text-fg-secondary">
+              Description
+            </Label>
             <AutoResizeTextarea
               id="space-description"
               value={description}
-              onChange={(e) =>
-                setDescription(e.target.value.slice(0, DESCRIPTION_MAX))
-              }
+              onChange={(e) => setDescription(e.target.value.slice(0, DESCRIPTION_MAX))}
               minRows={3}
               maxRows={10}
               maxLength={DESCRIPTION_MAX}
@@ -364,9 +366,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 students.
               </FieldHelp>
               <span
-                className={`shrink-0 text-xs tabular-nums ${
+                className={`shrink-0 font-mono text-xs ${
                   description.length > DESCRIPTION_MAX - 50
-                    ? "text-amber-600"
+                    ? "text-warning"
                     : "text-muted-foreground"
                 }`}
                 aria-live="polite"
@@ -378,7 +380,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
 
           {/* Thumbnail */}
           <div>
-            <Label>Thumbnail Image</Label>
+            <Label className="text-fg-secondary">Thumbnail Image</Label>
             <FieldHelp>
               A cover image shown on space cards and listings. Recommended 16:9, PNG/JPEG/WebP, up
               to 2MB.
@@ -430,7 +432,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                     if (file) uploadThumbnail(file);
                   }}
                   onDragOver={(e) => e.preventDefault()}
-                  className="hover:border-primary/50 cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors"
+                  className="hover:border-brand duration-fast ease-standard cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors"
                 >
                   <input
                     ref={thumbInputRef}
@@ -448,9 +450,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                     <>
                       <ImageIcon className="text-muted-foreground mx-auto h-6 w-6" />
                       <p className="mt-1 text-sm">Drop image here or click to browse</p>
-                      <p className="text-muted-foreground text-xs">
-                        PNG, JPEG, WebP — max 2MB
-                      </p>
+                      <p className="text-muted-foreground text-xs">PNG, JPEG, WebP — max 2MB</p>
                     </>
                   )}
                 </div>
@@ -476,11 +476,10 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         />
         <CardContent>
           <div>
-            <Label htmlFor="space-access">Access Type</Label>
-            <Select
-              value={accessType}
-              onValueChange={(v) => setAccessType(v as SpaceAccessType)}
-            >
+            <Label htmlFor="space-access" className="text-fg-secondary">
+              Access Type
+            </Label>
+            <Select value={accessType} onValueChange={(v) => setAccessType(v as SpaceAccessType)}>
               <SelectTrigger id="space-access" className="mt-1.5">
                 <SelectValue />
               </SelectTrigger>
@@ -509,7 +508,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         />
         <CardContent className="space-y-5">
           <div>
-            <Label htmlFor="space-time-limit">Default time limit</Label>
+            <Label htmlFor="space-time-limit" className="text-fg-secondary">
+              Default time limit
+            </Label>
             <div className="mt-1.5 flex items-center gap-2">
               <Input
                 id="space-time-limit"
@@ -529,7 +530,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
           <div className="border-t pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <Label htmlFor="allow-retakes" className="cursor-pointer">
+                <Label htmlFor="allow-retakes" className="text-fg-secondary cursor-pointer">
                   Allow retakes
                 </Label>
                 <FieldHelp>
@@ -537,16 +538,14 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                   below.
                 </FieldHelp>
               </div>
-              <Switch
-                checked={allowRetakes}
-                onCheckedChange={setAllowRetakes}
-                id="allow-retakes"
-              />
+              <Switch checked={allowRetakes} onCheckedChange={setAllowRetakes} id="allow-retakes" />
             </div>
 
             {allowRetakes && (
               <div className="mt-4">
-                <Label htmlFor="space-max-retakes">Maximum retakes</Label>
+                <Label htmlFor="space-max-retakes" className="text-fg-secondary">
+                  Maximum retakes
+                </Label>
                 <Input
                   id="space-max-retakes"
                   type="number"
@@ -565,7 +564,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
           <div className="border-t pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <Label htmlFor="show-correct-answers" className="cursor-pointer">
+                <Label htmlFor="show-correct-answers" className="text-fg-secondary cursor-pointer">
                   Show correct answers after submission
                 </Label>
                 <FieldHelp>
@@ -591,7 +590,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         />
         <CardContent>
           <div>
-            <Label htmlFor="space-labels">Labels</Label>
+            <Label htmlFor="space-labels" className="text-fg-secondary">
+              Labels
+            </Label>
             <Input
               id="space-labels"
               type="text"
@@ -612,8 +613,8 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <ShoppingBag className="text-muted-foreground h-4 w-4" />
+              <CardTitle className="font-display flex items-center gap-2 text-base font-semibold">
+                <ShoppingBag className="text-fg-muted h-4 w-4" />
                 Store listing
               </CardTitle>
               <CardDescription className="mt-1 text-xs">
@@ -626,7 +627,10 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 onCheckedChange={setPublishedToStore}
                 id="published-to-store"
               />
-              <Label htmlFor="published-to-store" className="cursor-pointer text-sm">
+              <Label
+                htmlFor="published-to-store"
+                className="text-fg-secondary cursor-pointer text-sm"
+              >
                 {publishedToStore ? "Listed" : "Not listed"}
               </Label>
             </div>
@@ -637,7 +641,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
           <CardContent className="space-y-5 border-t pt-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="space-price">Price</Label>
+                <Label htmlFor="space-price" className="text-fg-secondary">
+                  Price
+                </Label>
                 <Input
                   id="space-price"
                   type="number"
@@ -652,7 +658,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 </FieldHelp>
               </div>
               <div>
-                <Label htmlFor="space-currency">Currency</Label>
+                <Label htmlFor="space-currency" className="text-fg-secondary">
+                  Currency
+                </Label>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger id="space-currency" className="mt-1.5">
                     <SelectValue />
@@ -670,7 +678,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="store-description">Store description</Label>
+              <Label htmlFor="store-description" className="text-fg-secondary">
+                Store description
+              </Label>
               <AutoResizeTextarea
                 id="store-description"
                 value={storeDescription}
@@ -689,9 +699,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                   description if left empty.
                 </FieldHelp>
                 <span
-                  className={`shrink-0 text-xs tabular-nums ${
+                  className={`shrink-0 font-mono text-xs ${
                     storeDescription.length > STORE_DESCRIPTION_MAX - 100
-                      ? "text-amber-600"
+                      ? "text-warning"
                       : "text-muted-foreground"
                   }`}
                   aria-live="polite"
@@ -702,7 +712,9 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="store-thumbnail-url">Store thumbnail URL</Label>
+              <Label htmlFor="store-thumbnail-url" className="text-fg-secondary">
+                Store thumbnail URL
+              </Label>
               <Input
                 id="store-thumbnail-url"
                 type="url"
@@ -719,7 +731,8 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
             <div className="bg-muted/40 flex items-start gap-2 rounded-md border p-3 text-xs">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <p className="text-muted-foreground">
-                Listings only become visible publicly after the space is also <strong>published</strong>.
+                Listings only become visible publicly after the space is also{" "}
+                <strong>published</strong>.
               </p>
             </div>
           </CardContent>

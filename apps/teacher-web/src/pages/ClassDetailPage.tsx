@@ -182,7 +182,7 @@ export default function ClassDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">{classData.name}</h1>
+          <h1 className="font-display text-xl font-semibold">{classData.name}</h1>
           <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-sm">
             <span>Grade {classData.grade}</span>
             {classData.section && <span>Section {classData.section}</span>}
@@ -190,7 +190,7 @@ export default function ClassDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-muted-foreground flex items-center gap-1 text-sm">
+          <span className="text-muted-foreground flex items-center gap-1 font-mono text-sm">
             <Users className="h-4 w-4" /> {classData.studentCount} students
           </span>
           <Button variant="outline" size="sm" onClick={() => setEditClassOpen(true)}>
@@ -229,7 +229,7 @@ export default function ClassDetailPage() {
           {/* Recent Spaces */}
           <Card>
             <CardContent className="p-5">
-              <h3 className="mb-3 font-semibold">Recent Spaces</h3>
+              <h3 className="font-display mb-3 font-semibold">Recent Spaces</h3>
               {classSpaces.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   No spaces assigned to this class yet.
@@ -240,7 +240,7 @@ export default function ClassDetailPage() {
                     <Link
                       key={space.id}
                       to={`/spaces/${space.id}/edit`}
-                      className="hover:bg-muted flex items-center justify-between rounded-md border px-3 py-2"
+                      className="hover:bg-surface-sunken/60 border-subtle duration-fast ease-standard flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
                     >
                       <div>
                         <span className="text-sm font-medium">{space.title}</span>
@@ -261,7 +261,7 @@ export default function ClassDetailPage() {
           {/* Recent Exams */}
           <Card>
             <CardContent className="p-5">
-              <h3 className="mb-3 font-semibold">Recent Exams</h3>
+              <h3 className="font-display mb-3 font-semibold">Recent Exams</h3>
               {classExams.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No exams for this class yet.</p>
               ) : (
@@ -270,7 +270,7 @@ export default function ClassDetailPage() {
                     <Link
                       key={exam.id}
                       to={`/exams/${exam.id}`}
-                      className="hover:bg-muted flex items-center justify-between rounded-md border px-3 py-2"
+                      className="hover:bg-surface-sunken/60 border-subtle duration-fast ease-standard flex items-center justify-between rounded-md border px-3 py-2 transition-colors"
                     >
                       <div>
                         <span className="text-sm font-medium">{exam.title}</span>
@@ -290,7 +290,10 @@ export default function ClassDetailPage() {
           {spacesLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-muted h-32 animate-pulse rounded-lg border" />
+                <div
+                  key={i}
+                  className="bg-surface-sunken border-subtle h-32 animate-pulse rounded-lg border"
+                />
               ))}
             </div>
           ) : classSpaces.length === 0 ? (
@@ -304,7 +307,7 @@ export default function ClassDetailPage() {
                 <Link
                   key={space.id}
                   to={`/spaces/${space.id}/edit`}
-                  className="bg-card group rounded-lg border p-5 transition-shadow hover:shadow-md"
+                  className="bg-card border-subtle shadow-e1 duration-fast ease-standard hover:shadow-e2 group rounded-lg border p-5 transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <h3 className="group-hover:text-primary font-semibold">{space.title}</h3>
@@ -331,7 +334,10 @@ export default function ClassDetailPage() {
           {examsLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-muted h-16 animate-pulse rounded-lg border" />
+                <div
+                  key={i}
+                  className="bg-surface-sunken border-subtle h-16 animate-pulse rounded-lg border"
+                />
               ))}
             </div>
           ) : classExams.length === 0 ? (
@@ -340,23 +346,38 @@ export default function ClassDetailPage() {
               <p className="text-muted-foreground mt-2 text-sm">No exams for this class yet</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="border-subtle shadow-e1 overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Total Marks</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableRow className="border-strong border-b">
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Title
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Subject
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Total Marks
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Status
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {classExams.map((exam: Exam) => (
-                    <TableRow key={exam.id}>
+                    <TableRow
+                      key={exam.id}
+                      className="border-subtle hover:bg-surface-sunken/60 border-b"
+                    >
                       <TableCell className="font-medium">{exam.title}</TableCell>
                       <TableCell className="text-muted-foreground">{exam.subject}</TableCell>
-                      <TableCell className="text-muted-foreground">{exam.totalMarks}</TableCell>
+                      <TableCell className="text-muted-foreground font-mono">
+                        {exam.totalMarks}
+                      </TableCell>
                       <TableCell>
                         <StatusBadge status={exam.status} />
                       </TableCell>
@@ -386,7 +407,10 @@ export default function ClassDetailPage() {
           {studentsLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-muted h-12 animate-pulse rounded-lg border" />
+                <div
+                  key={i}
+                  className="bg-surface-sunken border-subtle h-12 animate-pulse rounded-lg border"
+                />
               ))}
             </div>
           ) : classStudents.length === 0 ? (
@@ -398,27 +422,46 @@ export default function ClassDetailPage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="border-subtle shadow-e1 overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Roll No.</TableHead>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Section</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-strong border-b">
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Name
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Roll No.
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Student ID
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Grade
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Section
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                      Status
+                    </TableHead>
+                    <TableHead className="tracking-caps text-fg-muted text-right text-xs font-bold uppercase">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {classStudents.map((student) => (
-                    <TableRow key={student.id}>
+                    <TableRow
+                      key={student.id}
+                      className="border-subtle hover:bg-surface-sunken/60 border-b"
+                    >
                       <TableCell className="font-medium">
                         {student.displayName ?? student.uid}
                       </TableCell>
-                      <TableCell>{student.rollNumber ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{student.uid}</TableCell>
+                      <TableCell className="font-mono">{student.rollNumber ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-xs">
+                        {student.uid}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {student.grade ?? "—"}
                       </TableCell>
@@ -452,7 +495,10 @@ export default function ClassDetailPage() {
           {analyticsLoading ? (
             <div className="grid gap-4 md:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
+                <div
+                  key={i}
+                  className="bg-surface-sunken border-subtle h-24 animate-pulse rounded-lg border"
+                />
               ))}
             </div>
           ) : !classSummary ? (
@@ -484,8 +530,8 @@ export default function ClassDetailPage() {
                 <Card>
                   <CardContent className="space-y-4 p-5">
                     <div className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-blue-500" />
-                      <h2 className="font-semibold">AutoGrade</h2>
+                      <ClipboardList className="text-info h-4 w-4" />
+                      <h2 className="font-display font-semibold">AutoGrade</h2>
                     </div>
                     <div className="flex items-center gap-6">
                       <ProgressRing
@@ -495,7 +541,7 @@ export default function ClassDetailPage() {
                       <div className="text-sm">
                         <p>
                           Completion Rate:{" "}
-                          <span className="font-medium">
+                          <span className="font-mono font-medium">
                             {Math.round(classSummary.autograde.examCompletionRate * 100)}%
                           </span>
                         </p>
@@ -503,7 +549,7 @@ export default function ClassDetailPage() {
                     </div>
                     {classSummary.autograde.topPerformers.length > 0 && (
                       <div>
-                        <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
+                        <p className="tracking-caps text-fg-muted mb-2 flex items-center gap-1 text-xs font-bold uppercase">
                           <Trophy className="h-3 w-3" /> Top Performers
                         </p>
                         <div className="space-y-1">
@@ -513,7 +559,9 @@ export default function ClassDetailPage() {
                               className="flex items-center justify-between text-sm"
                             >
                               <span>{s.name || s.studentId.slice(0, 8)}</span>
-                              <span className="font-medium">{Math.round(s.avgScore * 100)}%</span>
+                              <span className="font-mono font-medium">
+                                {Math.round(s.avgScore * 100)}%
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -526,8 +574,8 @@ export default function ClassDetailPage() {
                 <Card>
                   <CardContent className="space-y-4 p-5">
                     <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-green-500" />
-                      <h2 className="font-semibold">LevelUp</h2>
+                      <BookOpen className="text-success h-4 w-4" />
+                      <h2 className="font-display font-semibold">LevelUp</h2>
                     </div>
                     <div className="flex items-center gap-6">
                       <ProgressRing
@@ -537,7 +585,7 @@ export default function ClassDetailPage() {
                       <div className="text-sm">
                         <p>
                           Active Rate:{" "}
-                          <span className="font-medium">
+                          <span className="font-mono font-medium">
                             {Math.round(classSummary.levelup.activeStudentRate * 100)}%
                           </span>
                         </p>
@@ -545,7 +593,7 @@ export default function ClassDetailPage() {
                     </div>
                     {classSummary.levelup.topPointEarners.length > 0 && (
                       <div>
-                        <p className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
+                        <p className="tracking-caps text-fg-muted mb-2 flex items-center gap-1 text-xs font-bold uppercase">
                           <Trophy className="h-3 w-3" /> Top Point Earners
                         </p>
                         <div className="space-y-1">
@@ -555,7 +603,7 @@ export default function ClassDetailPage() {
                               className="flex items-center justify-between text-sm"
                             >
                               <span>{s.name || s.studentId.slice(0, 8)}</span>
-                              <span className="font-medium">{s.points} pts</span>
+                              <span className="font-mono font-medium">{s.points} pts</span>
                             </div>
                           ))}
                         </div>

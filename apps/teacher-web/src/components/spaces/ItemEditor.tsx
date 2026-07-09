@@ -49,11 +49,7 @@ import {
   GripVertical,
   AlertTriangle,
 } from "lucide-react";
-import {
-  uploadItemMedia,
-  deleteItemMedia,
-  callGetItemForEdit,
-} from "@levelup/shared-services";
+import { uploadItemMedia, deleteItemMedia, callGetItemForEdit } from "@levelup/shared-services";
 import {
   Button,
   Input,
@@ -185,8 +181,7 @@ function answerKeyLooksStripped(qPayload: QuestionPayload): boolean {
     case "numerical":
       return (qd as NumericalData).correctAnswer === undefined;
     case "text":
-      return !(qd as TextData).correctAnswer
-        && !(qd as TextData).acceptableAnswers?.length;
+      return !(qd as TextData).correctAnswer && !(qd as TextData).acceptableAnswers?.length;
     case "fill-blanks": {
       const blanks = (qd as FillBlanksData).blanks ?? [];
       return blanks.length > 0 && blanks.every((b) => !b.correctAnswer);
@@ -253,20 +248,22 @@ function validateItem(args: {
         break;
       }
       case "true-false":
-        if ((qd as TrueFalseData).correctAnswer === undefined)
-          errors.push("Pick True or False");
+        if ((qd as TrueFalseData).correctAnswer === undefined) errors.push("Pick True or False");
         break;
       case "numerical":
-        if ((qd as NumericalData).correctAnswer === undefined ||
-            Number.isNaN(Number((qd as NumericalData).correctAnswer))) {
+        if (
+          (qd as NumericalData).correctAnswer === undefined ||
+          Number.isNaN(Number((qd as NumericalData).correctAnswer))
+        ) {
           errors.push("Numerical answer is required");
         }
-        if (((qd as NumericalData).tolerance ?? 0) < 0)
-          errors.push("Tolerance cannot be negative");
+        if (((qd as NumericalData).tolerance ?? 0) < 0) errors.push("Tolerance cannot be negative");
         break;
       case "text":
-        if (!((qd as TextData).correctAnswer ?? "").trim()
-            && !((qd as TextData).acceptableAnswers?.length))
+        if (
+          !((qd as TextData).correctAnswer ?? "").trim() &&
+          !(qd as TextData).acceptableAnswers?.length
+        )
           errors.push("Provide a correct answer or acceptable answers");
         break;
       case "paragraph":
@@ -312,14 +309,12 @@ function validateItem(args: {
       case "jumbled": {
         const jd = qd as JumbledData;
         if ((jd.items?.length ?? 0) < 2) errors.push("Add at least 2 items to reorder");
-        if (jd.items?.some((it) => !it.text.trim()))
-          errors.push("All items need text");
+        if (jd.items?.some((it) => !it.text.trim())) errors.push("All items need text");
         break;
       }
       case "audio": {
         const ad = qd as AudioData;
-        if ((ad.maxDurationSeconds ?? 0) <= 0)
-          errors.push("Max duration must be > 0 seconds");
+        if ((ad.maxDurationSeconds ?? 0) <= 0) errors.push("Max duration must be > 0 seconds");
         break;
       }
       case "image_evaluation": {
@@ -335,8 +330,7 @@ function validateItem(args: {
         if (god.items?.some((i) => !i.text.trim())) errors.push("All items need text");
         if (god.groups?.some((g) => !g.name.trim())) errors.push("All groups need a name");
         const totalAssigned = god.groups?.reduce((n, g) => n + g.correctItems.length, 0) ?? 0;
-        if (totalAssigned < (god.items?.length ?? 0))
-          errors.push("Assign every item to a group");
+        if (totalAssigned < (god.items?.length ?? 0)) errors.push("Assign every item to a group");
         break;
       }
       case "chat_agent_question": {
@@ -352,16 +346,14 @@ function validateItem(args: {
       case "video":
       case "pdf":
       case "link":
-        if (!isValidUrl(p.url ?? ""))
-          errors.push("A valid http(s) URL is required");
+        if (!isValidUrl(p.url ?? "")) errors.push("A valid http(s) URL is required");
         break;
       case "interactive":
-        if (!isValidUrl(p.url ?? ""))
-          errors.push("Interactive material needs a valid embed URL");
+        if (!isValidUrl(p.url ?? "")) errors.push("Interactive material needs a valid embed URL");
         break;
       case "story":
       case "rich":
-        if (!(p.content ?? "").trim() && !(p.richContent?.blocks?.length))
+        if (!(p.content ?? "").trim() && !p.richContent?.blocks?.length)
           errors.push("Add narrative content or at least one block");
         break;
       case "text":
@@ -517,27 +509,39 @@ export default function ItemEditor({
     const baseMeta = item.meta ?? {};
     const meta = bloomsLevel
       ? { ...baseMeta, bloomsLevel }
-      : Object.fromEntries(
-          Object.entries(baseMeta).filter(([k]) => k !== "bloomsLevel")
-        );
+      : Object.fromEntries(Object.entries(baseMeta).filter(([k]) => k !== "bloomsLevel"));
     return {
       ...item,
       title,
       content,
-      difficulty: difficulty as UnifiedItem['difficulty'],
+      difficulty: difficulty as UnifiedItem["difficulty"],
       topics,
       labels,
       sectionId: sectionId ?? undefined,
       meta,
       attachments,
       payload: isQuestion
-        // Mirror the top-level content into the payload so server and student
-        // views stay in sync. Use exact value (no `||` fallback) so clearing
-        // actually clears (P1-21).
-        ? { ...qPayload, content }
+        ? // Mirror the top-level content into the payload so server and student
+          // views stay in sync. Use exact value (no `||` fallback) so clearing
+          // actually clears (P1-21).
+          { ...qPayload, content }
         : mPayload,
     } as UnifiedItem;
-  }, [item, title, content, difficulty, topics, labels, sectionId, bloomsLevel, attachments, isQuestion, qPayload, mPayload, payload]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    item,
+    title,
+    content,
+    difficulty,
+    topics,
+    labels,
+    sectionId,
+    bloomsLevel,
+    attachments,
+    isQuestion,
+    qPayload,
+    mPayload,
+    payload,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const performAutoSave = useCallback(async () => {
     if (autoSaveInFlightRef.current) return; // P1-24: drop if already saving
@@ -576,21 +580,46 @@ export default function ItemEditor({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [title, content, difficulty, payload, attachments, topics, labels, sectionId, bloomsLevel, hasUnsavedChanges, performAutoSave]);
+  }, [
+    title,
+    content,
+    difficulty,
+    payload,
+    attachments,
+    topics,
+    labels,
+    sectionId,
+    bloomsLevel,
+    hasUnsavedChanges,
+    performAutoSave,
+  ]);
 
   // Wrap state setters to trigger unsaved tracking
-  const setTitleTracked = (v: string) => { setTitle(v); markUnsaved(); };
-  const setContentTracked = (v: string) => { setContent(v); markUnsaved(); };
-  const setDifficultyTracked = (v: string) => { setDifficulty(v); markUnsaved(); };
+  const setTitleTracked = (v: string) => {
+    setTitle(v);
+    markUnsaved();
+  };
+  const setContentTracked = (v: string) => {
+    setContent(v);
+    markUnsaved();
+  };
+  const setDifficultyTracked = (v: string) => {
+    setDifficulty(v);
+    markUnsaved();
+  };
 
   const handleChangeQuestionType = (qt: QuestionType) => {
     if (qt === questionType) return;
     // Warn before destroying configured data (P1-22).
-    const hasConfiguredData = qPayload.questionData && Object.keys(qPayload.questionData).length > 0
-      && JSON.stringify(qPayload.questionData) !== JSON.stringify(defaultQuestionData(questionType ?? "mcq"));
-    if (hasConfiguredData && !window.confirm(
-      "Changing question type will reset the question's configuration. Continue?"
-    )) {
+    const hasConfiguredData =
+      qPayload.questionData &&
+      Object.keys(qPayload.questionData).length > 0 &&
+      JSON.stringify(qPayload.questionData) !==
+        JSON.stringify(defaultQuestionData(questionType ?? "mcq"));
+    if (
+      hasConfiguredData &&
+      !window.confirm("Changing question type will reset the question's configuration. Continue?")
+    ) {
       return;
     }
     setPayload({
@@ -691,45 +720,48 @@ export default function ItemEditor({
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">
+        <h1 className="font-display text-xl font-semibold">
           Edit {isQuestion ? "Question" : "Material"}
         </h1>
-        <span className={`ml-auto text-xs px-2 py-1 rounded-full ${
-          saveStatus === "saved"
-            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+        <span
+          className={`rounded-pill ml-auto px-2 py-1 text-xs ${
+            saveStatus === "saved"
+              ? "bg-success-subtle text-success"
+              : saveStatus === "saving"
+                ? "bg-info-subtle text-info"
+                : "bg-warning-subtle text-warning"
+          }`}
+        >
+          {saveStatus === "saved"
+            ? "Saved"
             : saveStatus === "saving"
-            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-            : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-        }`}>
-          {saveStatus === "saved" ? "Saved" : saveStatus === "saving" ? "Saving..." : "Unsaved changes"}
+              ? "Saving..."
+              : "Unsaved changes"}
         </span>
       </div>
 
       <div className="max-w-3xl space-y-5">
         {/* Timed-test answer-key warning (P0-1 mitigation) */}
         {isQuestion && isTimedTestSP && looksAnswerKeyStripped && (
-          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+          <div className="border-warning/40 bg-warning-subtle text-warning flex items-start gap-2 rounded-md border px-3 py-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="text-xs">
-              This is a timed-test question. The correct answer is stored in
-              protected server-only storage and is <strong>not</strong> shown
-              here. Saving without re-entering the correct answer will overwrite
-              the stored answer key with empty data.
+              This is a timed-test question. The correct answer is stored in protected server-only
+              storage and is <strong>not</strong> shown here. Saving without re-entering the correct
+              answer will overwrite the stored answer key with empty data.
             </div>
           </div>
         )}
 
         {/* Validation errors */}
         {!isValid && validationErrors.length > 0 && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <div className="border-error/40 bg-error-subtle text-error rounded-md border px-3 py-2 text-xs">
             <p className="mb-1 font-medium">Fix before saving:</p>
             <ul className="list-disc pl-4">
               {validationErrors.slice(0, 5).map((e) => (
                 <li key={e}>{e}</li>
               ))}
-              {validationErrors.length > 5 && (
-                <li>… and {validationErrors.length - 5} more</li>
-              )}
+              {validationErrors.length > 5 && <li>… and {validationErrors.length - 5} more</li>}
             </ul>
           </div>
         )}
@@ -737,7 +769,9 @@ export default function ItemEditor({
         {/* Common fields */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label>Title <span className="text-destructive">*</span></Label>
+            <Label>
+              Title <span className="text-error">*</span>
+            </Label>
             <Input
               type="text"
               value={title}
@@ -805,25 +839,19 @@ export default function ItemEditor({
         </div>
 
         <div>
-          <Label>
-            {isQuestion ? "Question Content" : "Content"}
-          </Label>
+          <Label>{isQuestion ? "Question Content" : "Content"}</Label>
           <RichTextEditor
             content={content}
             onChange={setContentTracked}
-            placeholder={
-              isQuestion
-                ? "Enter the question text..."
-                : "Enter content or URL..."
-            }
+            placeholder={isQuestion ? "Enter the question text..." : "Enter content or URL..."}
             className="mt-1"
           />
         </div>
 
         {/* Question-type specific editors */}
         {isQuestion && (
-          <div className="rounded-lg border p-4 space-y-4">
-            <h3 className="font-medium capitalize">
+          <div className="border-subtle shadow-e1 space-y-4 rounded-lg border p-4">
+            <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">
               {questionType?.replace(/[-_]/g, " ")} Configuration
             </h3>
             <QuestionDataEditor
@@ -846,7 +874,7 @@ export default function ItemEditor({
                     })
                   }
                   min={0}
-                  className="mt-1"
+                  className="mt-1 font-mono"
                 />
               </div>
             </div>
@@ -866,8 +894,8 @@ export default function ItemEditor({
 
         {/* Material-type specific editors */}
         {!isQuestion && (
-          <div className="rounded-lg border p-4 space-y-4">
-            <h3 className="font-medium capitalize">
+          <div className="border-subtle shadow-e1 space-y-4 rounded-lg border p-4">
+            <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">
               {materialType?.replace(/[-_]/g, " ")} Configuration
             </h3>
             <MaterialDataEditor
@@ -882,8 +910,10 @@ export default function ItemEditor({
         )}
 
         {/* Classification panel (P0-7) */}
-        <div className="rounded-lg border p-4 space-y-4">
-          <h3 className="font-medium">Classification</h3>
+        <div className="border-subtle shadow-e1 space-y-4 rounded-lg border p-4">
+          <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+            Classification
+          </h3>
           <div className="grid gap-4 sm:grid-cols-2">
             {sections && sections.length > 0 && (
               <div>
@@ -938,13 +968,19 @@ export default function ItemEditor({
             label="Topics"
             placeholder="Add a topic and press Enter"
             values={topics}
-            onChange={(v) => { setTopics(v); markUnsaved(); }}
+            onChange={(v) => {
+              setTopics(v);
+              markUnsaved();
+            }}
           />
           <ChipsInput
             label="Labels"
             placeholder="Add a label and press Enter"
             values={labels}
-            onChange={(v) => { setLabels(v); markUnsaved(); }}
+            onChange={(v) => {
+              setLabels(v);
+              markUnsaved();
+            }}
           />
         </div>
 
@@ -954,16 +990,19 @@ export default function ItemEditor({
             <Label>Attachments</Label>
             <div className="mt-1 space-y-2">
               {attachments.map((attachment) => (
-                <div key={attachment.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <div
+                  key={attachment.id}
+                  className="border-subtle flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                >
                   {attachment.type === "image" ? (
-                    <ImageIcon className="h-4 w-4 text-blue-500" />
+                    <ImageIcon className="text-info h-4 w-4" />
                   ) : attachment.type === "audio" ? (
-                    <Music className="h-4 w-4 text-purple-500" />
+                    <Music className="text-brand h-4 w-4" />
                   ) : (
-                    <FileIcon className="h-4 w-4 text-red-500" />
+                    <FileIcon className="text-error h-4 w-4" />
                   )}
                   <span className="flex-1 truncate">{attachment.fileName}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-muted-foreground font-mono text-xs">
                     {(attachment.size / 1024).toFixed(0)}KB
                   </span>
                   <button
@@ -996,7 +1035,7 @@ export default function ItemEditor({
                 <Paperclip className="h-3.5 w-3.5" />
                 {uploading ? "Uploading..." : "Add Attachment"}
               </Button>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Max 10MB per file. Supported: images, PDFs, audio.
               </p>
             </div>
@@ -1011,7 +1050,7 @@ export default function ItemEditor({
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <span className="text-xs text-muted-foreground self-center ml-auto">
+          <span className="text-muted-foreground ml-auto self-center text-xs">
             Cmd/Ctrl+Enter to save
           </span>
         </div>
@@ -1076,7 +1115,7 @@ function ChipsInput({
           }}
           onBlur={commit}
           placeholder={placeholder}
-          className="flex-1 min-w-[8ch] bg-transparent text-sm outline-none"
+          className="min-w-[8ch] flex-1 bg-transparent text-sm outline-none"
         />
       </div>
     </div>
@@ -1099,7 +1138,13 @@ function QuestionDataEditor({
   switch (questionType) {
     case "mcq":
     case "mcaq":
-      return <MCQEditor data={data as MCQData | MCAQData} onChange={onChange} multi={questionType === "mcaq"} />;
+      return (
+        <MCQEditor
+          data={data as MCQData | MCAQData}
+          onChange={onChange}
+          multi={questionType === "mcaq"}
+        />
+      );
     case "true-false":
       return <TrueFalseEditor data={data as TrueFalseData} onChange={onChange} />;
     case "numerical":
@@ -1127,7 +1172,7 @@ function QuestionDataEditor({
     case "chat_agent_question":
       return <ChatAgentEditor data={data as ChatAgentQuestionData} onChange={onChange} />;
     default:
-      return <p className="text-sm text-muted-foreground">No editor for this type</p>;
+      return <p className="text-muted-foreground text-sm">No editor for this type</p>;
   }
 }
 
@@ -1146,10 +1191,7 @@ function MCQEditor({
 
   const addOption = () => {
     onChange({
-      options: [
-        ...options,
-        { id: `opt_${Date.now()}`, text: "", isCorrect: false },
-      ],
+      options: [...options, { id: `opt_${Date.now()}`, text: "", isCorrect: false }],
     });
   };
 
@@ -1180,7 +1222,9 @@ function MCQEditor({
             onCheckedChange={(v) => onChange({ shuffleOptions: v })}
             id="shuffle-options-mcq"
           />
-          <Label htmlFor="shuffle-options-mcq" className="cursor-pointer text-sm">Shuffle options</Label>
+          <Label htmlFor="shuffle-options-mcq" className="cursor-pointer text-sm">
+            Shuffle options
+          </Label>
         </div>
         {/* MCAQ-only: min/max selections (P0-9) */}
         {multi && (
@@ -1194,7 +1238,7 @@ function MCQEditor({
                 onChange={(e) =>
                   onChange({ minSelections: Math.max(1, Number(e.target.value) || 1) })
                 }
-                className="h-8 w-20"
+                className="h-8 w-20 font-mono"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -1208,7 +1252,7 @@ function MCQEditor({
                   const n = e.target.value === "" ? undefined : Number(e.target.value);
                   onChange({ maxSelections: n });
                 }}
-                className="h-8 w-20"
+                className="h-8 w-20 font-mono"
               />
             </div>
           </>
@@ -1234,13 +1278,17 @@ function MCQEditor({
           <Input
             type="text"
             value={opt.explanation ?? ""}
-            onChange={(e) =>
-              updateOption(idx, { explanation: e.target.value || undefined })
-            }
+            onChange={(e) => updateOption(idx, { explanation: e.target.value || undefined })}
             placeholder="Explanation"
             className="h-8 w-48"
           />
-          <Button variant="ghost" size="icon" onClick={() => removeOption(idx)} className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Remove option">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => removeOption(idx)}
+            className="text-muted-foreground hover:text-destructive h-8 w-8"
+            aria-label="Remove option"
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -1314,7 +1362,7 @@ function NumericalEditor({
           type="number"
           value={data.correctAnswer ?? 0}
           onChange={(e) => onChange({ correctAnswer: Number(e.target.value) })}
-          className="mt-1"
+          className="mt-1 font-mono"
         />
       </div>
       <div>
@@ -1323,11 +1371,9 @@ function NumericalEditor({
           type="number"
           min={0}
           value={data.tolerance ?? 0}
-          onChange={(e) =>
-            onChange({ tolerance: Math.max(0, Number(e.target.value) || 0) })
-          }
+          onChange={(e) => onChange({ tolerance: Math.max(0, Number(e.target.value) || 0) })}
           step="0.01"
-          className="mt-1"
+          className="mt-1 font-mono"
         />
       </div>
       <div>
@@ -1342,7 +1388,7 @@ function NumericalEditor({
             const v = e.target.value === "" ? undefined : Math.max(0, Number(e.target.value));
             onChange({ decimalPlaces: v });
           }}
-          className="mt-1"
+          className="mt-1 font-mono"
         />
       </div>
       <div>
@@ -1403,7 +1449,9 @@ function TextEditor({
             onCheckedChange={(v) => onChange({ caseSensitive: v })}
             id="case-sensitive"
           />
-          <Label htmlFor="case-sensitive" className="cursor-pointer text-sm">Case sensitive</Label>
+          <Label htmlFor="case-sensitive" className="cursor-pointer text-sm">
+            Case sensitive
+          </Label>
         </div>
         <div>
           <Label>Max Length</Label>
@@ -1463,9 +1511,7 @@ function ParagraphEditor({
         <Label>Evaluation Guidance (for AI)</Label>
         <Textarea
           value={data.evaluationGuidance ?? ""}
-          onChange={(e) =>
-            onChange({ evaluationGuidance: e.target.value || undefined })
-          }
+          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
           rows={2}
           className="mt-1"
         />
@@ -1487,10 +1533,7 @@ function CodeEditor({
 
   const addTestCase = () => {
     onChange({
-      testCases: [
-        ...testCases,
-        { id: `tc_${Date.now()}`, input: "", expectedOutput: "" },
-      ],
+      testCases: [...testCases, { id: `tc_${Date.now()}`, input: "", expectedOutput: "" }],
     });
   };
 
@@ -1504,13 +1547,11 @@ function CodeEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {["python", "javascript", "java", "cpp", "c", "go", "rust"].map(
-                (l) => (
-                  <SelectItem key={l} value={l}>
-                    {l}
-                  </SelectItem>
-                )
-              )}
+              {["python", "javascript", "java", "cpp", "c", "go", "rust"].map((l) => (
+                <SelectItem key={l} value={l}>
+                  {l}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -1522,7 +1563,9 @@ function CodeEditor({
             max={60000}
             value={data.timeoutMs ?? 5000}
             onChange={(e) =>
-              onChange({ timeoutMs: Math.max(100, Math.min(60000, Number(e.target.value) || 5000)) })
+              onChange({
+                timeoutMs: Math.max(100, Math.min(60000, Number(e.target.value) || 5000)),
+              })
             }
             className="mt-1"
           />
@@ -1535,7 +1578,9 @@ function CodeEditor({
             max={2048}
             value={data.memoryLimitMb ?? 256}
             onChange={(e) =>
-              onChange({ memoryLimitMb: Math.max(16, Math.min(2048, Number(e.target.value) || 256)) })
+              onChange({
+                memoryLimitMb: Math.max(16, Math.min(2048, Number(e.target.value) || 256)),
+              })
             }
             className="mt-1"
           />
@@ -1558,9 +1603,9 @@ function CodeEditor({
           </Button>
         </div>
         {testCases.map((tc, idx) => (
-          <div key={tc.id} className="rounded border p-2 space-y-2">
+          <div key={tc.id} className="border-subtle space-y-2 rounded border p-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-12">#{idx + 1}</span>
+              <span className="text-muted-foreground w-12 font-mono text-xs">#{idx + 1}</span>
               <Input
                 value={tc.description ?? ""}
                 onChange={(e) => {
@@ -1583,7 +1628,7 @@ function CodeEditor({
                   updated[idx] = { ...tc, points: v };
                   onChange({ testCases: updated });
                 }}
-                className="h-7 w-16 text-xs"
+                className="h-7 w-16 font-mono text-xs"
               />
               <div className="flex items-center gap-1">
                 <Switch
@@ -1595,15 +1640,15 @@ function CodeEditor({
                   }}
                   id={`hidden-${tc.id}`}
                 />
-                <Label htmlFor={`hidden-${tc.id}`} className="cursor-pointer text-xs">Hidden</Label>
+                <Label htmlFor={`hidden-${tc.id}`} className="cursor-pointer text-xs">
+                  Hidden
+                </Label>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() =>
-                  onChange({ testCases: testCases.filter((_, i) => i !== idx) })
-                }
-                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => onChange({ testCases: testCases.filter((_, i) => i !== idx) })}
+                className="text-muted-foreground hover:text-destructive h-7 w-7"
                 aria-label="Remove test case"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -1653,19 +1698,14 @@ function FillBlanksEditor({
 
   const addBlank = () => {
     onChange({
-      blanks: [
-        ...blanks,
-        { id: `blank_${Date.now()}`, correctAnswer: "" },
-      ],
+      blanks: [...blanks, { id: `blank_${Date.now()}`, correctAnswer: "" }],
     });
   };
 
   return (
     <div className="space-y-3">
       <div>
-        <Label>
-          Text with Blanks (use ___1___, ___2___ etc.)
-        </Label>
+        <Label>Text with Blanks (use ___1___, ___2___ etc.)</Label>
         <Textarea
           value={data.textWithBlanks}
           onChange={(e) => onChange({ textWithBlanks: e.target.value })}
@@ -1681,9 +1721,9 @@ function FillBlanksEditor({
           </Button>
         </div>
         {blanks.map((b, idx) => (
-          <div key={b.id} className="rounded border p-2 space-y-2">
+          <div key={b.id} className="border-subtle space-y-2 rounded border p-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-8">#{idx + 1}</span>
+              <span className="text-muted-foreground w-8 font-mono text-xs">#{idx + 1}</span>
               <Input
                 type="text"
                 value={b.correctAnswer}
@@ -1705,9 +1745,17 @@ function FillBlanksEditor({
                   }}
                   id={`fb-cs-${b.id}`}
                 />
-                <Label htmlFor={`fb-cs-${b.id}`} className="cursor-pointer text-xs">Case</Label>
+                <Label htmlFor={`fb-cs-${b.id}`} className="cursor-pointer text-xs">
+                  Case
+                </Label>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => onChange({ blanks: blanks.filter((_, i) => i !== idx) })} className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Remove blank">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onChange({ blanks: blanks.filter((_, i) => i !== idx) })}
+                className="text-muted-foreground hover:text-destructive h-8 w-8"
+                aria-label="Remove blank"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -1755,9 +1803,9 @@ function FillBlanksDDEditor({
           className="mt-1"
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Dropdown blanks are configured per-blank with options and a correct option ID.
-        Add blanks, then configure each with their options.
+      <p className="text-muted-foreground text-xs">
+        Dropdown blanks are configured per-blank with options and a correct option ID. Add blanks,
+        then configure each with their options.
       </p>
       <Button
         variant="outline"
@@ -1775,7 +1823,7 @@ function FillBlanksDDEditor({
         <Plus className="h-3 w-3" /> Add Blank
       </Button>
       {(data.blanks ?? []).map((blank, bIdx) => (
-        <div key={blank.id} className="rounded border p-3 space-y-2">
+        <div key={blank.id} className="border-subtle space-y-2 rounded border p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">Blank #{bIdx + 1}</span>
             <Button
@@ -1786,7 +1834,7 @@ function FillBlanksDDEditor({
                   blanks: (data.blanks ?? []).filter((_, i) => i !== bIdx),
                 })
               }
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive h-7 w-7"
               aria-label="Remove blank"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -1828,7 +1876,7 @@ function FillBlanksDDEditor({
                   blanks[bIdx] = { ...blank, options, correctOptionId };
                   onChange({ blanks });
                 }}
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive h-6 w-6"
                 aria-label={`Remove option ${oIdx + 1}`}
               >
                 <X className="h-3 w-3" />
@@ -1840,14 +1888,11 @@ function FillBlanksDDEditor({
               const blanks = [...(data.blanks ?? [])];
               blanks[bIdx] = {
                 ...blank,
-                options: [
-                  ...blank.options,
-                  { id: `ddo_${Date.now()}`, text: "" },
-                ],
+                options: [...blank.options, { id: `ddo_${Date.now()}`, text: "" }],
               };
               onChange({ blanks });
             }}
-            className="text-xs text-primary hover:underline"
+            className="text-primary text-xs hover:underline"
           >
             + Add option
           </button>
@@ -1876,7 +1921,9 @@ function MatchingEditor({
           onCheckedChange={(v) => onChange({ shufflePairs: v })}
           id="shuffle-pairs"
         />
-        <Label htmlFor="shuffle-pairs" className="cursor-pointer text-sm">Shuffle pairs</Label>
+        <Label htmlFor="shuffle-pairs" className="cursor-pointer text-sm">
+          Shuffle pairs
+        </Label>
       </div>
       {pairs.map((pair, idx) => (
         <div key={pair.id} className="flex items-center gap-2">
@@ -1903,7 +1950,13 @@ function MatchingEditor({
             placeholder="Right"
             className="h-8 flex-1"
           />
-          <Button variant="ghost" size="icon" onClick={() => onChange({ pairs: pairs.filter((_, i) => i !== idx) })} className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label="Remove pair">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onChange({ pairs: pairs.filter((_, i) => i !== idx) })}
+            className="text-muted-foreground hover:text-destructive h-8 w-8"
+            aria-label="Remove pair"
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -1913,10 +1966,7 @@ function MatchingEditor({
         size="sm"
         onClick={() =>
           onChange({
-            pairs: [
-              ...pairs,
-              { id: `pair_${Date.now()}`, left: "", right: "" },
-            ],
+            pairs: [...pairs, { id: `pair_${Date.now()}`, left: "", right: "" }],
           })
         }
       >
@@ -1958,7 +2008,7 @@ function JumbledEditor({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Drag items into the correct order. Students will see them shuffled.
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -2031,7 +2081,7 @@ function JumbledRow({
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
-      <span className="text-xs text-muted-foreground w-6">{idx + 1}.</span>
+      <span className="text-muted-foreground w-6 font-mono text-xs">{idx + 1}.</span>
       <Input
         type="text"
         value={item.text}
@@ -2042,7 +2092,7 @@ function JumbledRow({
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+        className="text-muted-foreground hover:text-destructive h-8 w-8"
         aria-label="Remove item"
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -2081,9 +2131,7 @@ function AudioEditor({
         <Label>Language</Label>
         <Select
           value={data.language ?? "__none__"}
-          onValueChange={(v) =>
-            onChange({ language: v === "__none__" ? undefined : v })
-          }
+          onValueChange={(v) => onChange({ language: v === "__none__" ? undefined : v })}
         >
           <SelectTrigger className="mt-1">
             <SelectValue placeholder="Any" />
@@ -2102,9 +2150,7 @@ function AudioEditor({
         <Label>Evaluation Guidance</Label>
         <Textarea
           value={data.evaluationGuidance ?? ""}
-          onChange={(e) =>
-            onChange({ evaluationGuidance: e.target.value || undefined })
-          }
+          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
           rows={2}
           className="mt-1"
         />
@@ -2150,9 +2196,7 @@ function ImageEvalEditor({
         <Label>Evaluation Guidance</Label>
         <Textarea
           value={data.evaluationGuidance ?? ""}
-          onChange={(e) =>
-            onChange({ evaluationGuidance: e.target.value || undefined })
-          }
+          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
           rows={2}
           className="mt-1"
         />
@@ -2213,7 +2257,7 @@ function GroupOptionsEditor({
               variant="ghost"
               size="icon"
               onClick={() => onChange({ groups: groups.filter((_, i) => i !== idx) })}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive h-8 w-8"
               aria-label="Remove group"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -2229,10 +2273,7 @@ function GroupOptionsEditor({
             size="sm"
             onClick={() =>
               onChange({
-                items: [
-                  ...goItems,
-                  { id: `gi_${Date.now()}`, text: "" },
-                ],
+                items: [...goItems, { id: `gi_${Date.now()}`, text: "" }],
               })
             }
           >
@@ -2252,16 +2293,15 @@ function GroupOptionsEditor({
               className="h-8 flex-1"
             />
             <Select
-              value={
-                groups.find((g) => g.correctItems.includes(item.id))?.id ?? "unassigned"
-              }
+              value={groups.find((g) => g.correctItems.includes(item.id))?.id ?? "unassigned"}
               onValueChange={(v) => {
                 const targetGroupId = v === "unassigned" ? "" : v;
                 const updatedGroups = groups.map((g) => ({
                   ...g,
-                  correctItems: g.id === targetGroupId
-                    ? [...g.correctItems.filter((id) => id !== item.id), item.id]
-                    : g.correctItems.filter((id) => id !== item.id),
+                  correctItems:
+                    g.id === targetGroupId
+                      ? [...g.correctItems.filter((id) => id !== item.id), item.id]
+                      : g.correctItems.filter((id) => id !== item.id),
                 }));
                 onChange({ groups: updatedGroups });
               }}
@@ -2293,7 +2333,7 @@ function GroupOptionsEditor({
                   groups: cleanedGroups,
                 });
               }}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive h-8 w-8"
               aria-label="Remove item"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -2325,32 +2365,27 @@ function ChatAgentEditor({
           className="mt-1 font-mono"
           placeholder="leave blank to use the space's default agent"
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Configure agents in the &ldquo;Agent Config&rdquo; tab on the space, then paste the agent ID here.
+        <p className="text-muted-foreground mt-1 text-xs">
+          Configure agents in the &ldquo;Agent Config&rdquo; tab on the space, then paste the agent
+          ID here.
         </p>
       </div>
       <div>
         <Label>Objectives (one per line)</Label>
         <Textarea
           value={data.objectives?.join("\n") ?? ""}
-          onChange={(e) =>
-            onChange({ objectives: e.target.value.split("\n").filter(Boolean) })
-          }
+          onChange={(e) => onChange({ objectives: e.target.value.split("\n").filter(Boolean) })}
           rows={3}
           className="mt-1"
         />
       </div>
       <div>
-        <Label>
-          Conversation Starters (one per line)
-        </Label>
+        <Label>Conversation Starters (one per line)</Label>
         <Textarea
           value={data.conversationStarters?.join("\n") ?? ""}
           onChange={(e) =>
             onChange({
-              conversationStarters: e.target.value
-                .split("\n")
-                .filter(Boolean),
+              conversationStarters: e.target.value.split("\n").filter(Boolean),
             })
           }
           rows={2}
@@ -2371,9 +2406,7 @@ function ChatAgentEditor({
         <Label>Evaluation Guidance</Label>
         <Textarea
           value={data.evaluationGuidance ?? ""}
-          onChange={(e) =>
-            onChange({ evaluationGuidance: e.target.value || undefined })
-          }
+          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
           rows={2}
           className="mt-1"
         />
@@ -2412,7 +2445,9 @@ function MaterialDataEditor({
       return (
         <div className="space-y-3">
           <div>
-            <Label>Video URL <span className="text-destructive">*</span></Label>
+            <Label>
+              Video URL <span className="text-error">*</span>
+            </Label>
             <Input
               type="url"
               value={data.url ?? ""}
@@ -2422,7 +2457,7 @@ function MaterialDataEditor({
               aria-invalid={!isValidUrl(data.url ?? "")}
             />
             {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
-              <p className="mt-1 text-xs text-destructive">Must be a valid http(s) URL</p>
+              <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
             )}
           </div>
           <div>
@@ -2431,9 +2466,7 @@ function MaterialDataEditor({
               type="number"
               min={0}
               value={data.duration ?? 0}
-              onChange={(e) =>
-                onChange({ duration: Math.max(0, Number(e.target.value) || 0) })
-              }
+              onChange={(e) => onChange({ duration: Math.max(0, Number(e.target.value) || 0) })}
               className="mt-1 w-32"
             />
           </div>
@@ -2443,7 +2476,9 @@ function MaterialDataEditor({
       return (
         <div className="space-y-3">
           <div>
-            <Label>PDF URL <span className="text-destructive">*</span></Label>
+            <Label>
+              PDF URL <span className="text-error">*</span>
+            </Label>
             <Input
               type="url"
               value={data.url ?? ""}
@@ -2452,7 +2487,7 @@ function MaterialDataEditor({
               aria-invalid={!isValidUrl(data.url ?? "")}
             />
             {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
-              <p className="mt-1 text-xs text-destructive">Must be a valid http(s) URL</p>
+              <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -2461,14 +2496,18 @@ function MaterialDataEditor({
               onCheckedChange={(v) => onChange({ downloadable: v })}
               id="allow-download"
             />
-            <Label htmlFor="allow-download" className="cursor-pointer text-sm">Allow download</Label>
+            <Label htmlFor="allow-download" className="cursor-pointer text-sm">
+              Allow download
+            </Label>
           </div>
         </div>
       );
     case "link":
       return (
         <div>
-          <Label>URL <span className="text-destructive">*</span></Label>
+          <Label>
+            URL <span className="text-error">*</span>
+          </Label>
           <Input
             type="url"
             value={data.url ?? ""}
@@ -2478,7 +2517,7 @@ function MaterialDataEditor({
             aria-invalid={!isValidUrl(data.url ?? "")}
           />
           {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
-            <p className="mt-1 text-xs text-destructive">Must be a valid http(s) URL</p>
+            <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
           )}
         </div>
       );
@@ -2487,7 +2526,9 @@ function MaterialDataEditor({
       return (
         <div className="space-y-3">
           <div>
-            <Label>Embed URL <span className="text-destructive">*</span></Label>
+            <Label>
+              Embed URL <span className="text-error">*</span>
+            </Label>
             <Input
               type="url"
               value={data.url ?? ""}
@@ -2497,7 +2538,7 @@ function MaterialDataEditor({
               aria-invalid={!isValidUrl(data.url ?? "")}
             />
             {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
-              <p className="mt-1 text-xs text-destructive">Must be a valid http(s) URL</p>
+              <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
             )}
           </div>
           <div>
@@ -2536,9 +2577,7 @@ function MaterialDataEditor({
       );
     default:
       return (
-        <p className="text-sm text-muted-foreground">
-          No specific editor for this material type
-        </p>
+        <p className="text-muted-foreground text-sm">No specific editor for this material type</p>
       );
   }
 }
@@ -2616,9 +2655,7 @@ function RichBlocksEditor({
             <Input
               type="url"
               value={rich.coverImage ?? ""}
-              onChange={(e) =>
-                updateRich({ ...rich, coverImage: e.target.value || undefined })
-              }
+              onChange={(e) => updateRich({ ...rich, coverImage: e.target.value || undefined })}
               className="mt-1"
               placeholder="https://..."
             />
@@ -2645,14 +2682,14 @@ function RichBlocksEditor({
           </Button>
         </div>
         {rich.blocks.length === 0 ? (
-          <p className="text-xs italic text-muted-foreground">
+          <p className="text-muted-foreground text-xs italic">
             No blocks. Use the markdown body above, or add structured blocks.
           </p>
         ) : (
           rich.blocks.map((b, idx) => (
-            <div key={b.id} className="rounded border p-2 space-y-2">
+            <div key={b.id} className="border-subtle space-y-2 rounded border p-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-6">{idx + 1}</span>
+                <span className="text-muted-foreground w-6 font-mono text-xs">{idx + 1}</span>
                 <Select
                   value={b.type}
                   onValueChange={(v) =>
@@ -2694,14 +2731,14 @@ function RichBlocksEditor({
                   variant="ghost"
                   size="icon"
                   onClick={() => removeBlock(idx)}
-                  className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive ml-auto h-7 w-7"
                   aria-label="Remove block"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
               {b.type === "divider" ? (
-                <p className="text-xs italic text-muted-foreground">Divider — no content</p>
+                <p className="text-muted-foreground text-xs italic">Divider — no content</p>
               ) : b.type === "image" || b.type === "video" || b.type === "audio" ? (
                 <Input
                   type="url"

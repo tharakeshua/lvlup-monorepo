@@ -195,7 +195,9 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl" aria-describedby={undefined}>
         <SheetHeader>
-          <SheetTitle>{isEditing ? "Edit Question" : "Create Question"}</SheetTitle>
+          <SheetTitle className="font-display">
+            {isEditing ? "Edit Question" : "Create Question"}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 space-y-5">
@@ -241,7 +243,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
 
           {/* Type-specific editors */}
           {(questionType === "mcq" || questionType === "mcaq") && (
-            <div className="space-y-3 rounded-lg border p-4">
+            <div className="border-subtle space-y-3 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <Label>Options</Label>
                 <Button
@@ -274,9 +276,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
                         )
                       }
                     />
-                    <span className="text-muted-foreground w-7 text-xs">
-                      {opt.isCorrect ? "✓" : ""}
-                    </span>
+                    <span className="text-success w-7 text-xs">{opt.isCorrect ? "✓" : ""}</span>
                   </div>
                   <Input
                     value={opt.text}
@@ -305,7 +305,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
           )}
 
           {questionType === "true-false" && (
-            <div className="rounded-lg border p-4">
+            <div className="border-subtle rounded-lg border p-4">
               <Label>Correct Answer</Label>
               <Select
                 value={correctAnswer ? "true" : "false"}
@@ -323,14 +323,14 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
           )}
 
           {questionType === "numerical" && (
-            <div className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+            <div className="border-subtle grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
               <div>
                 <Label>Correct Answer</Label>
                 <Input
                   type="number"
                   value={numericalAnswer}
                   onChange={(e) => setNumericalAnswer(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 font-mono"
                 />
               </div>
               <div>
@@ -341,7 +341,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
                   onChange={(e) => setTolerance(e.target.value)}
                   min={0}
                   step={0.01}
-                  className="mt-1"
+                  className="mt-1 font-mono"
                 />
               </div>
             </div>
@@ -404,7 +404,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
               value={basePoints}
               onChange={(e) => setBasePoints(Number(e.target.value) || 1)}
               min={1}
-              className="mt-1 w-24"
+              className="mt-1 w-24 font-mono"
             />
           </div>
 

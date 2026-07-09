@@ -47,27 +47,13 @@ interface Props {
 }
 
 export default function RubricEditor({ rubric, onSave }: Props) {
-  const [mode, setMode] = useState<RubricScoringMode>(
-    rubric?.scoringMode ?? "criteria_based"
-  );
-  const [criteria, setCriteria] = useState<RubricCriterion[]>(
-    rubric?.criteria ?? []
-  );
-  const [dimensions, setDimensions] = useState<EvaluationDimension[]>(
-    rubric?.dimensions ?? []
-  );
-  const [holisticGuidance, setHolisticGuidance] = useState(
-    rubric?.holisticGuidance ?? ""
-  );
-  const [holisticMaxScore, setHolisticMaxScore] = useState(
-    rubric?.holisticMaxScore ?? 100
-  );
-  const [passingPercentage, setPassingPercentage] = useState(
-    rubric?.passingPercentage ?? 40
-  );
-  const [evaluatorGuidance, setEvaluatorGuidance] = useState(
-    rubric?.evaluatorGuidance ?? ""
-  );
+  const [mode, setMode] = useState<RubricScoringMode>(rubric?.scoringMode ?? "criteria_based");
+  const [criteria, setCriteria] = useState<RubricCriterion[]>(rubric?.criteria ?? []);
+  const [dimensions, setDimensions] = useState<EvaluationDimension[]>(rubric?.dimensions ?? []);
+  const [holisticGuidance, setHolisticGuidance] = useState(rubric?.holisticGuidance ?? "");
+  const [holisticMaxScore, setHolisticMaxScore] = useState(rubric?.holisticMaxScore ?? 100);
+  const [passingPercentage, setPassingPercentage] = useState(rubric?.passingPercentage ?? 40);
+  const [evaluatorGuidance, setEvaluatorGuidance] = useState(rubric?.evaluatorGuidance ?? "");
   const [modelAnswer, setModelAnswer] = useState(rubric?.modelAnswer ?? "");
 
   useEffect(() => {
@@ -90,8 +76,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       dimensions: mode === "dimension_based" ? dimensions : undefined,
       holisticGuidance:
         mode === "holistic" || mode === "hybrid" ? holisticGuidance || undefined : undefined,
-      holisticMaxScore:
-        mode === "holistic" || mode === "hybrid" ? holisticMaxScore : undefined,
+      holisticMaxScore: mode === "holistic" || mode === "hybrid" ? holisticMaxScore : undefined,
       passingPercentage,
       evaluatorGuidance: evaluatorGuidance || undefined,
       modelAnswer: modelAnswer || undefined,
@@ -115,9 +100,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
   };
 
   const updateCriterion = (idx: number, updates: Partial<RubricCriterion>) => {
-    setCriteria((prev) =>
-      prev.map((c, i) => (i === idx ? { ...c, ...updates } : c))
-    );
+    setCriteria((prev) => prev.map((c, i) => (i === idx ? { ...c, ...updates } : c)));
   };
 
   const removeCriterion = (idx: number) => {
@@ -151,14 +134,14 @@ export default function RubricEditor({ rubric, onSave }: Props) {
             <button
               key={m.value}
               onClick={() => setMode(m.value)}
-              className={`rounded-lg border p-3 text-left transition-colors ${
+              className={`duration-fast ease-standard rounded-lg border p-3 text-left transition-colors ${
                 mode === m.value
-                  ? "border-primary bg-primary/5"
-                  : "hover:bg-muted"
+                  ? "border-brand bg-brand-subtle"
+                  : "border-subtle hover:bg-surface-sunken/60"
               }`}
             >
               <p className="text-sm font-medium">{m.label}</p>
-              <p className="text-xs text-muted-foreground">{m.desc}</p>
+              <p className="text-muted-foreground text-xs">{m.desc}</p>
             </button>
           ))}
         </div>
@@ -168,23 +151,21 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       {(mode === "criteria_based" || mode === "hybrid") && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium">Criteria</h3>
+            <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">Criteria</h3>
             <Button variant="outline" size="sm" onClick={addCriterion}>
               <Plus className="h-3 w-3" /> Add Criterion
             </Button>
           </div>
           {criteria.map((crit, idx) => (
-            <div key={crit.id} className="rounded-lg border p-4 space-y-3">
+            <div key={crit.id} className="border-subtle shadow-e1 space-y-3 rounded-lg border p-4">
               <div className="flex items-start gap-2">
-                <div className="flex-1 grid gap-3 sm:grid-cols-3">
+                <div className="grid flex-1 gap-3 sm:grid-cols-3">
                   <div className="sm:col-span-2">
                     <Label className="text-xs">Name</Label>
                     <Input
                       type="text"
                       value={crit.name}
-                      onChange={(e) =>
-                        updateCriterion(idx, { name: e.target.value })
-                      }
+                      onChange={(e) => updateCriterion(idx, { name: e.target.value })}
                       className="mt-1 h-8"
                     />
                   </div>
@@ -198,7 +179,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                           maxPoints: Number(e.target.value),
                         })
                       }
-                      className="mt-1 h-8"
+                      className="mt-1 h-8 font-mono"
                     />
                   </div>
                 </div>
@@ -206,7 +187,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                   variant="ghost"
                   size="icon"
                   onClick={() => removeCriterion(idx)}
-                  className="mt-5 text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive mt-5"
                   aria-label="Remove criterion"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -241,7 +222,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                         };
                         updateCriterion(idx, { levels });
                       }}
-                      className="h-7 w-16"
+                      className="h-7 w-16 font-mono"
                     />
                     <Input
                       type="text"
@@ -272,12 +253,10 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        const levels = (crit.levels ?? []).filter(
-                          (_, i) => i !== lIdx
-                        );
+                        const levels = (crit.levels ?? []).filter((_, i) => i !== lIdx);
                         updateCriterion(idx, { levels });
                       }}
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive h-7 w-7"
                       aria-label="Remove level"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -292,7 +271,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                     ];
                     updateCriterion(idx, { levels });
                   }}
-                  className="text-xs text-primary hover:underline"
+                  className="text-primary text-xs hover:underline"
                 >
                   + Add level
                 </button>
@@ -306,15 +285,17 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       {mode === "dimension_based" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium">Evaluation Dimensions</h3>
+            <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+              Evaluation Dimensions
+            </h3>
             <Button variant="outline" size="sm" onClick={addDimension}>
               <Plus className="h-3 w-3" /> Add Dimension
             </Button>
           </div>
           {dimensions.map((dim, idx) => (
-            <div key={dim.id} className="rounded-lg border p-4 space-y-3">
+            <div key={dim.id} className="border-subtle shadow-e1 space-y-3 rounded-lg border p-4">
               <div className="flex items-start gap-2">
-                <div className="flex-1 grid gap-3 sm:grid-cols-3">
+                <div className="grid flex-1 gap-3 sm:grid-cols-3">
                   <div>
                     <Label className="text-xs">Name</Label>
                     <Input
@@ -334,7 +315,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                       value={dim.priority}
                       onValueChange={(v) => {
                         const updated = [...dimensions];
-                        updated[idx] = { ...dim, priority: v as EvaluationDimension['priority'] };
+                        updated[idx] = { ...dim, priority: v as EvaluationDimension["priority"] };
                         setDimensions(updated);
                       }}
                     >
@@ -362,7 +343,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                           };
                           setDimensions(updated);
                         }}
-                        className="mt-1 h-8"
+                        className="mt-1 h-8 font-mono"
                       />
                     </div>
                     <div className="flex-1">
@@ -378,7 +359,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                           };
                           setDimensions(updated);
                         }}
-                        className="mt-1 h-8"
+                        className="mt-1 h-8 font-mono"
                       />
                     </div>
                   </div>
@@ -386,10 +367,8 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() =>
-                    setDimensions(dimensions.filter((_, i) => i !== idx))
-                  }
-                  className="mt-5 text-muted-foreground hover:text-destructive"
+                  onClick={() => setDimensions(dimensions.filter((_, i) => i !== idx))}
+                  className="text-muted-foreground hover:text-destructive mt-5"
                   aria-label="Remove dimension"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -429,14 +408,16 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       {/* Holistic */}
       {(mode === "holistic" || mode === "hybrid") && (
         <div className="space-y-3">
-          <h3 className="font-medium">Holistic Scoring</h3>
+          <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+            Holistic Scoring
+          </h3>
           <div>
             <Label>Max Score</Label>
             <Input
               type="number"
               value={holisticMaxScore}
               onChange={(e) => setHolisticMaxScore(Number(e.target.value))}
-              className="mt-1 w-32"
+              className="mt-1 w-32 font-mono"
             />
           </div>
           <div>
@@ -452,8 +433,8 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       )}
 
       {/* Shared settings */}
-      <div className="space-y-3 rounded-lg border p-4">
-        <h3 className="font-medium">Shared Settings</h3>
+      <div className="border-subtle shadow-e1 space-y-3 rounded-lg border p-4">
+        <h3 className="tracking-caps text-fg-muted text-xs font-bold uppercase">Shared Settings</h3>
         <div>
           <Label>Passing Percentage</Label>
           <Input
@@ -462,7 +443,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
             onChange={(e) => setPassingPercentage(Number(e.target.value))}
             min={0}
             max={100}
-            className="mt-1 w-32"
+            className="mt-1 w-32 font-mono"
           />
         </div>
         <div>

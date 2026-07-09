@@ -97,7 +97,7 @@ export default function StudentReportPage() {
           </div>
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">
+              <h1 className="font-display text-2xl font-semibold">
                 {student?.displayName ?? student?.name ?? "Student Report"}
               </h1>
               {studentId && (
@@ -212,12 +212,14 @@ export default function StudentReportPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {summary.strengthAreas.length > 0 && (
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs font-medium">Strengths</p>
+                  <p className="tracking-caps text-fg-muted mb-2 text-xs font-bold uppercase">
+                    Strengths
+                  </p>
                   <div className="flex flex-wrap gap-1.5">
                     {summary.strengthAreas.map((s) => (
                       <span
                         key={s}
-                        className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-700 dark:text-emerald-400"
+                        className="bg-success-subtle text-success rounded-full px-2.5 py-1 text-xs"
                       >
                         {s}
                       </span>
@@ -227,14 +229,14 @@ export default function StudentReportPage() {
               )}
               {summary.weaknessAreas.length > 0 && (
                 <div>
-                  <p className="text-muted-foreground mb-2 text-xs font-medium">
+                  <p className="tracking-caps text-fg-muted mb-2 text-xs font-bold uppercase">
                     Needs Improvement
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {summary.weaknessAreas.map((w) => (
                       <span
                         key={w}
-                        className="text-destructive rounded-full bg-red-500/10 px-2.5 py-1 text-xs"
+                        className="bg-error-subtle text-error rounded-full px-2.5 py-1 text-xs"
                       >
                         {w}
                       </span>
@@ -264,12 +266,12 @@ export default function StudentReportPage() {
                     </p>
                   </div>
                   <span
-                    className={`text-sm font-semibold ${
+                    className={`font-mono text-sm font-semibold ${
                       exam.percentage >= 70
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-success"
                         : exam.percentage >= 40
-                          ? "text-yellow-600 dark:text-yellow-400"
-                          : "text-destructive"
+                          ? "text-warning"
+                          : "text-error"
                     }`}
                   >
                     {Math.round(exam.percentage)}%

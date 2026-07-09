@@ -123,26 +123,24 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
   const showHolistic = (scoringMode === "holistic" || scoringMode === "hybrid") && holisticGuidance;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-purple-200 bg-gradient-to-b from-purple-50/40 to-transparent dark:border-purple-900/40 dark:from-purple-950/20">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 bg-purple-50 px-3 py-2 dark:border-purple-900/40 dark:bg-purple-950/30">
+    <div className="border-subtle mt-3 overflow-hidden rounded-lg border">
+      <div className="border-subtle bg-brand-subtle flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
         <div className="flex items-center gap-2">
-          <ClipboardCheck className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-          <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
-            Rubric &amp; Marking
-          </span>
-          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium capitalize text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+          <ClipboardCheck className="text-brand h-3.5 w-3.5" />
+          <span className="text-brand text-xs font-semibold">Rubric &amp; Marking</span>
+          <span className="text-brand rounded-pill bg-surface px-2 py-0.5 text-[10px] font-medium capitalize">
             {scoringMode.replace(/_/g, " ")}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-purple-700 dark:text-purple-300">
+        <div className="text-brand flex items-center gap-3 text-[11px]">
           {totalPoints != null && (
             <span>
-              <span className="font-semibold">{totalPoints}</span> total pts
+              <span className="font-mono font-semibold">{totalPoints}</span> total pts
             </span>
           )}
           {passingPercentage != null && (
             <span>
-              Pass <span className="font-semibold">{passingPercentage}%</span>
+              Pass <span className="font-mono font-semibold">{passingPercentage}%</span>
             </span>
           )}
         </div>
@@ -193,7 +191,7 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
                       <span className="italic">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                  <TableCell className="text-right font-mono text-xs font-semibold tabular-nums">
                     {c.maxPoints}
                     {c.weight != null && (
                       <span className="text-muted-foreground ml-1 text-[10px] font-normal">
@@ -240,21 +238,21 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
                   </TableCell>
                   <TableCell>
                     <span
-                      className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                      className={`rounded-pill inline-flex px-1.5 py-0.5 text-[10px] font-medium ${
                         d.priority === "HIGH"
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          ? "bg-error-subtle text-error"
                           : d.priority === "MEDIUM"
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            ? "bg-warning-subtle text-warning"
+                            : "bg-surface-sunken text-fg-secondary"
                       }`}
                     >
                       {d.priority}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                  <TableCell className="text-right font-mono text-xs font-semibold tabular-nums">
                     {d.weight}
                   </TableCell>
-                  <TableCell className="text-right text-xs font-semibold tabular-nums">
+                  <TableCell className="text-right font-mono text-xs font-semibold tabular-nums">
                     {d.scoringScale}
                   </TableCell>
                 </TableRow>
@@ -264,7 +262,7 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
         )}
 
         {showHolistic && (
-          <div className="rounded-md border bg-white/60 p-3 text-xs dark:bg-slate-900/40">
+          <div className="border-subtle bg-surface-sunken/50 rounded-md border p-3 text-xs">
             <div className="text-muted-foreground mb-1 flex items-center justify-between">
               <span className="font-semibold">Holistic guidance</span>
               {holisticMaxScore != null && (
@@ -278,18 +276,16 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
         )}
 
         {evaluatorGuidance && (
-          <div className="mt-3 rounded-md border border-blue-200 bg-blue-50/60 p-3 text-xs dark:border-blue-900/40 dark:bg-blue-950/20">
-            <p className="mb-1 font-semibold text-blue-800 dark:text-blue-300">
-              Evaluator guidance
-            </p>
-            <div className="text-blue-900/90 dark:text-blue-200/90">
+          <div className="border-subtle bg-info-subtle mt-3 rounded-md border p-3 text-xs">
+            <p className="text-info mb-1 font-semibold">Evaluator guidance</p>
+            <div className="text-fg-secondary">
               <MarkdownWithMath text={evaluatorGuidance} />
             </div>
           </div>
         )}
 
         {showModelAnswer && modelAnswer && (
-          <details className="group mt-3 rounded-md border bg-white/60 dark:bg-slate-900/40">
+          <details className="border-subtle bg-surface-sunken/50 group mt-3 rounded-md border">
             <summary className="hover:bg-muted/50 cursor-pointer rounded-md px-3 py-2 text-xs font-semibold">
               Model answer
             </summary>
@@ -557,7 +553,7 @@ export default function ExamDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-bold">{exam.title}</h1>
+            <h1 className="font-display truncate text-xl font-semibold">{exam.title}</h1>
             <div className="mt-0.5 flex items-center gap-2">
               <StatusBadge status={exam.status} />
               <span className="text-muted-foreground text-xs">
@@ -581,7 +577,7 @@ export default function ExamDetailPage() {
               onClick={handleExtractQuestions}
               disabled={extracting}
               size="sm"
-              className="bg-purple-600 text-white hover:bg-purple-700"
+              className="bg-brand text-fg-on-accent hover:bg-brand-hover"
             >
               {extracting ? (
                 <>
@@ -600,7 +596,7 @@ export default function ExamDetailPage() {
             <Button
               onClick={handlePublish}
               size="sm"
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
               <Globe className="h-3.5 w-3.5" /> Publish
             </Button>
@@ -609,13 +605,13 @@ export default function ExamDetailPage() {
             <Button
               onClick={handleReleaseResults}
               size="sm"
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-brand text-fg-on-accent hover:bg-brand-hover"
             >
               <Send className="h-3.5 w-3.5" /> Release Results
             </Button>
           )}
           {exam.linkedSpaceId ? (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+            <span className="border-subtle bg-brand-subtle text-brand inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium">
               <LinkIcon className="h-3.5 w-3.5" />
               {exam.linkedSpaceTitle || "Linked Space"}
             </span>
@@ -641,7 +637,7 @@ export default function ExamDetailPage() {
             <Link to={`/exams/${examId}/submissions`}>
               <Users className="h-3.5 w-3.5" /> Submissions
               {pendingReview.length > 0 && (
-                <span className="ml-1 rounded-full bg-orange-100 px-1.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                <span className="rounded-pill bg-warning-subtle text-warning ml-1 px-1.5 font-mono text-[10px] font-semibold">
                   {pendingReview.length}
                 </span>
               )}
@@ -655,32 +651,36 @@ export default function ExamDetailPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{exam.stats.totalSubmissions}</p>
+              <p className="font-display text-2xl font-semibold">{exam.stats.totalSubmissions}</p>
               <p className="text-muted-foreground text-xs">Submissions</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{exam.stats.gradedSubmissions}</p>
+              <p className="font-display text-2xl font-semibold">{exam.stats.gradedSubmissions}</p>
               <p className="text-muted-foreground text-xs">Graded</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{Math.round(exam.stats.avgScore)}%</p>
+              <p className="font-display text-2xl font-semibold">
+                {Math.round(exam.stats.avgScore)}%
+              </p>
               <p className="text-muted-foreground text-xs">Avg Score</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{Math.round(exam.stats.passRate)}%</p>
+              <p className="font-display text-2xl font-semibold">
+                {Math.round(exam.stats.passRate)}%
+              </p>
               <p className="text-muted-foreground text-xs">Pass Rate</p>
             </CardContent>
           </Card>
           {(exam.stats as Record<string, unknown>).totalGradingCostUsd != null && (
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="flex items-center justify-center gap-1 text-2xl font-bold">
+                <p className="font-display flex items-center justify-center gap-1 text-2xl font-semibold">
                   <DollarSign className="h-4 w-4" />
                   {((exam.stats as Record<string, unknown>).totalGradingCostUsd as number).toFixed(
                     2
@@ -711,7 +711,7 @@ export default function ExamDetailPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ImageIcon className="text-muted-foreground h-4 w-4" />
-                      <h3 className="text-sm font-medium">Question Paper</h3>
+                      <h3 className="font-display text-sm font-medium">Question Paper</h3>
                       <span className="text-muted-foreground text-xs">
                         {exam.questionPaper!.images.length} page
                         {exam.questionPaper!.images.length === 1 ? "" : "s"}
@@ -728,7 +728,7 @@ export default function ExamDetailPage() {
                           href={resolved || undefined}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-muted group relative block aspect-[3/4] overflow-hidden rounded-md border"
+                          className="bg-muted border-subtle group relative block aspect-[3/4] overflow-hidden rounded-md border"
                           aria-label={`Question paper page ${idx + 1}`}
                         >
                           {resolved === null ? (
@@ -742,10 +742,10 @@ export default function ExamDetailPage() {
                               src={resolved}
                               alt={`Question paper page ${idx + 1}`}
                               loading="lazy"
-                              className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
+                              className="duration-fast ease-standard h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
                             />
                           )}
-                          <span className="bg-background/80 absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                          <span className="bg-background/80 absolute bottom-1 left-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium">
                             {idx + 1}
                           </span>
                         </a>
@@ -758,15 +758,15 @@ export default function ExamDetailPage() {
 
             {/* Confirm & Publish button for extracted questions */}
             {exam.status === "question_paper_extracted" && questions.length > 0 && (
-              <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/30">
-                <p className="text-sm text-blue-700 dark:text-blue-400">
+              <div className="border-subtle bg-info-subtle flex items-center justify-between rounded-lg border p-3">
+                <p className="text-info text-sm">
                   Review the extracted questions below. Edit any inaccuracies, then confirm to
                   publish.
                 </p>
                 <Button
                   onClick={handleConfirmAndPublish}
                   size="sm"
-                  className="bg-green-600 text-white hover:bg-green-700"
+                  className="bg-success text-fg-on-accent hover:bg-success/90"
                 >
                   <Check className="h-3.5 w-3.5" /> Confirm & Publish
                 </Button>
@@ -794,25 +794,25 @@ export default function ExamDetailPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-muted-foreground text-sm font-bold">
+                            <span className="text-muted-foreground font-mono text-sm font-bold">
                               Q{q.order}.
                             </span>
                             {/* Confidence badge */}
                             {confidence != null && (
                               <span
-                                className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                                className={`rounded-pill inline-flex items-center px-1.5 py-0.5 font-mono text-[10px] font-medium ${
                                   confidence >= 0.9
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    ? "bg-confidence-high/15 text-confidence-high"
                                     : confidence >= 0.7
-                                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                      ? "bg-confidence-med/15 text-confidence-med"
+                                      : "bg-confidence-low/15 text-confidence-low"
                                 }`}
                               >
                                 {Math.round(confidence * 100)}% conf
                               </span>
                             )}
                             {hasReadabilityIssue && (
-                              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                              <span className="rounded-pill bg-warning-subtle text-warning inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium">
                                 Readability Issue
                               </span>
                             )}
@@ -830,7 +830,7 @@ export default function ExamDetailPage() {
                                     },
                                   }))
                                 }
-                                className="bg-background min-h-[60px] w-full resize-y rounded border p-2 text-sm"
+                                className="bg-background border-strong min-h-[60px] w-full resize-y rounded-md border p-2 text-sm"
                               />
                               <div className="flex items-center gap-2">
                                 <label className="text-muted-foreground text-xs">Max Marks:</label>
@@ -847,7 +847,7 @@ export default function ExamDetailPage() {
                                     }))
                                   }
                                   min={1}
-                                  className="bg-background h-7 w-16 rounded border px-2 py-1 text-sm"
+                                  className="bg-background border-strong h-7 w-16 rounded-md border px-2 py-1 font-mono text-sm"
                                 />
                                 <Button size="sm" onClick={() => handleSaveQuestionEdit(q.id)}>
                                   <Check className="h-3 w-3" /> Save
@@ -951,7 +951,7 @@ export default function ExamDetailPage() {
                 <Link
                   key={sub.id}
                   to={`/exams/${examId}/submissions/${sub.id}`}
-                  className="bg-card flex items-center justify-between rounded-lg border p-3 hover:shadow-sm"
+                  className="bg-card border-subtle shadow-e1 duration-fast ease-standard hover:shadow-e2 flex items-center justify-between rounded-lg border p-3 transition-shadow"
                 >
                   <div>
                     <p className="text-sm font-medium">{sub.studentName}</p>
@@ -960,7 +960,7 @@ export default function ExamDetailPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">
+                    <p className="font-mono text-sm font-semibold">
                       {sub.summary?.totalScore ?? "-"}/{sub.summary?.maxScore ?? exam.totalMarks}
                     </p>
                     <p className="text-muted-foreground text-xs">
@@ -988,7 +988,7 @@ export default function ExamDetailPage() {
           <Card className="max-w-xl">
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">Classes</h3>
+                <h3 className="font-display font-medium">Classes</h3>
                 {!editLocked && !showEditClasses && (
                   <Button variant="outline" size="sm" onClick={openEditClasses}>
                     <Pencil className="h-3.5 w-3.5" /> Manage
@@ -1050,7 +1050,7 @@ export default function ExamDetailPage() {
 
           <Card className="max-w-xl">
             <CardContent className="space-y-4 p-5">
-              <h3 className="font-medium">Grading Configuration</h3>
+              <h3 className="font-display font-medium">Grading Configuration</h3>
               <dl className="grid gap-2 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Auto Grade</dt>
@@ -1076,7 +1076,7 @@ export default function ExamDetailPage() {
                   <dt className="text-muted-foreground">Linked Space</dt>
                   <dd>
                     {exam.linkedSpaceId ? (
-                      <span className="text-blue-600 dark:text-blue-400">
+                      <span className="text-brand">
                         {exam.linkedSpaceTitle || exam.linkedSpaceId}
                       </span>
                     ) : (

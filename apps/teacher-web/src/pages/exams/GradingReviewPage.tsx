@@ -544,7 +544,7 @@ export default function GradingReviewPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-bold">
+            <h1 className="font-display truncate text-xl font-semibold">
               Grading Review — {submission.studentName}
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -564,7 +564,7 @@ export default function GradingReviewPage() {
             <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Previous</span>
           </Button>
           {allSubmissions.length > 0 && (
-            <span className="text-muted-foreground whitespace-nowrap text-xs">
+            <span className="text-muted-foreground whitespace-nowrap font-mono text-xs">
               {currentIdx + 1} of {allSubmissions.length}
             </span>
           )}
@@ -581,7 +581,7 @@ export default function GradingReviewPage() {
               onClick={handleGradeAllPending}
               disabled={!!gradingQuestionId}
               size="sm"
-              className="bg-violet-600 text-white hover:bg-violet-700"
+              className="bg-brand text-fg-on-accent hover:bg-brand-hover"
             >
               {gradingQuestionId ? (
                 <>
@@ -599,7 +599,7 @@ export default function GradingReviewPage() {
               onClick={() => setShowBulkApproveConfirm(true)}
               disabled={saving}
               size="sm"
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -616,7 +616,7 @@ export default function GradingReviewPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{submission.summary?.totalScore ?? 0}</p>
+            <p className="font-mono text-2xl font-bold">{submission.summary?.totalScore ?? 0}</p>
             <p className="text-muted-foreground text-xs">
               / {submission.summary?.maxScore ?? exam?.totalMarks ?? 0} Score
             </p>
@@ -624,7 +624,7 @@ export default function GradingReviewPage() {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">
+            <p className="font-mono text-2xl font-bold">
               {submission.summary?.percentage != null
                 ? `${Math.round(submission.summary.percentage)}%`
                 : "-"}
@@ -640,7 +640,7 @@ export default function GradingReviewPage() {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">
+            <p className="font-mono text-2xl font-bold">
               {submission.summary?.questionsGraded ?? 0}/
               {submission.summary?.totalQuestions ?? questions.length}
             </p>
@@ -651,18 +651,16 @@ export default function GradingReviewPage() {
 
       {/* High Score Celebration (Task 4.4) */}
       {submission.summary?.percentage != null && submission.summary.percentage >= 90 && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-4 dark:border-amber-800 dark:from-amber-950/30 dark:to-yellow-950/30">
-          <Trophy className="h-6 w-6 shrink-0 text-amber-500" />
+        <div className="border-spark/30 bg-spark-subtle flex items-center gap-3 rounded-lg border p-4">
+          <Trophy className="text-spark h-6 w-6 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              Outstanding Performance!
-            </p>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
+            <p className="text-fg text-sm font-semibold">Outstanding Performance!</p>
+            <p className="text-fg-secondary text-xs">
               {submission.studentName} scored {Math.round(submission.summary.percentage)}% —{" "}
               {submission.summary.grade} grade
             </p>
           </div>
-          <Star className="h-5 w-5 text-amber-400" />
+          <Star className="text-spark h-5 w-5" />
         </div>
       )}
 
@@ -703,7 +701,7 @@ export default function GradingReviewPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <h2 className="text-lg font-semibold">Per-Question Review</h2>
+            <h2 className="font-display text-lg font-semibold">Per-Question Review</h2>
             <button
               onClick={() => setShowKeyboardHints((prev) => !prev)}
               className="text-muted-foreground hover:text-foreground shrink-0"
@@ -714,26 +712,26 @@ export default function GradingReviewPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {needsReviewCount > 0 && (
-              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              <span className="text-warning text-xs font-medium">
                 {needsReviewCount} need{needsReviewCount === 1 ? "s" : ""} review
               </span>
             )}
-            <div className="flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5">
+            <div className="border-subtle flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5">
               <button
                 onClick={() => setReviewFilter("all")}
-                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "all" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                className={`duration-fast ease-standard rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "all" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 All ({questions.length})
               </button>
               <button
                 onClick={() => setReviewFilter("needs_review")}
-                className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "needs_review" ? "bg-amber-500 text-white" : "hover:bg-muted"}`}
+                className={`duration-fast ease-standard flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "needs_review" ? "bg-warning text-fg-on-accent" : "hover:bg-muted"}`}
               >
                 <Eye className="h-3 w-3" /> Review
               </button>
               <button
                 onClick={() => setReviewFilter("low_confidence")}
-                className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "low_confidence" ? "bg-red-500 text-white" : "hover:bg-muted"}`}
+                className={`duration-fast ease-standard flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors ${reviewFilter === "low_confidence" ? "bg-confidence-low text-fg-on-accent" : "hover:bg-muted"}`}
               >
                 <Filter className="h-3 w-3" /> Low Confidence
               </button>
@@ -766,18 +764,20 @@ export default function GradingReviewPage() {
                 ) : (
                   <ChevronRight className="h-4 w-4 shrink-0" />
                 )}
-                <span className="text-muted-foreground shrink-0 text-sm font-bold">Q{q.order}</span>
+                <span className="text-muted-foreground shrink-0 font-mono text-sm font-bold">
+                  Q{q.order}
+                </span>
                 <span className="min-w-0 flex-1 truncate text-sm">{q.text}</span>
                 <div className="flex shrink-0 items-center gap-2">
                   {/* Confidence badge */}
                   {confidence != null && (
                     <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                      className={`rounded-pill inline-flex items-center px-1.5 py-0.5 font-mono text-[10px] font-medium ${
                         confidence >= 0.9
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          ? "bg-confidence-high/15 text-confidence-high"
                           : confidence >= 0.7
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            ? "bg-confidence-med/15 text-confidence-med"
+                            : "bg-confidence-low/15 text-confidence-low"
                       }`}
                     >
                       {Math.round(confidence * 100)}%
@@ -785,25 +785,23 @@ export default function GradingReviewPage() {
                   )}
                   {/* Status icon */}
                   {qs?.gradingStatus === "graded" && !isReviewSuggested && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="text-success h-4 w-4" />
                   )}
                   {qs?.gradingStatus === "graded" && isReviewSuggested && (
-                    <Eye className="h-4 w-4 text-amber-500" />
+                    <Eye className="text-warning h-4 w-4" />
                   )}
-                  {qs?.gradingStatus === "needs_review" && (
-                    <Eye className="h-4 w-4 text-amber-500" />
-                  )}
-                  {qs?.gradingStatus === "failed" && <XCircle className="h-4 w-4 text-red-500" />}
+                  {qs?.gradingStatus === "needs_review" && <Eye className="text-warning h-4 w-4" />}
+                  {qs?.gradingStatus === "failed" && <XCircle className="text-error h-4 w-4" />}
                   {qs?.gradingStatus === "overridden" && (
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    <AlertTriangle className="text-warning h-4 w-4" />
                   )}
-                  {qs?.gradingStatus === "manual" && <Check className="h-4 w-4 text-blue-500" />}
+                  {qs?.gradingStatus === "manual" && <Check className="text-info h-4 w-4" />}
                   {(qs?.gradingStatus === "pending" ||
                     qs?.gradingStatus === "processing" ||
                     gradingQuestionId === qs?.id) && (
-                    <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+                    <Loader2 className="text-info h-4 w-4 animate-spin" />
                   )}
-                  <span className="text-sm font-semibold">
+                  <span className="font-mono text-sm font-semibold">
                     {qs?.manualOverride ? qs.manualOverride.score : (eval_?.score ?? "-")}/
                     {q.maxMarks}
                   </span>
@@ -811,9 +809,9 @@ export default function GradingReviewPage() {
               </button>
 
               {isExpanded && (
-                <div className="space-y-4 border-t px-4 py-4">
+                <div className="border-subtle space-y-4 border-t px-4 py-4">
                   {/* Original Question Text (Task 1.3) */}
-                  <details className="bg-muted/30 group rounded border">
+                  <details className="bg-muted/30 border-subtle group rounded border">
                     <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 px-3 py-2 text-xs font-medium">
                       <BookOpen className="h-3.5 w-3.5" />
                       Question — {q.maxMarks} marks
@@ -827,7 +825,7 @@ export default function GradingReviewPage() {
                       <p className="text-sm">{q.text}</p>
                       {q.rubric?.criteria && q.rubric.criteria.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                          <p className="text-muted-foreground tracking-caps text-[10px] font-medium uppercase">
                             Rubric Criteria
                           </p>
                           {q.rubric.criteria.map((c, ci) => (
@@ -836,7 +834,7 @@ export default function GradingReviewPage() {
                               className="text-muted-foreground flex items-center justify-between text-xs"
                             >
                               <span>{c.name}</span>
-                              <span className="font-medium">{c.maxPoints} pts</span>
+                              <span className="font-mono font-medium">{c.maxPoints} pts</span>
                             </div>
                           ))}
                         </div>
@@ -855,7 +853,7 @@ export default function GradingReviewPage() {
                               Student Answer
                             </p>
                             {qs.mapping.pageIndices?.length ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                              <span className="rounded-pill bg-info-subtle text-info inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium">
                                 <FileImage className="h-3 w-3" />
                                 {qs.mapping.pageIndices.length === 1
                                   ? `Page ${qs.mapping.pageIndices[0] + 1}`
@@ -904,12 +902,12 @@ export default function GradingReviewPage() {
                           </div>
                         </div>
                       ) : qs ? (
-                        <div className="space-y-1 rounded border border-dashed border-amber-300 bg-amber-50 p-4 text-center dark:border-amber-800 dark:bg-amber-950/20">
-                          <ImageOff className="mx-auto h-5 w-5 text-amber-500" />
-                          <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                        <div className="border-warning/40 bg-warning-subtle space-y-1 rounded border border-dashed p-4 text-center">
+                          <ImageOff className="text-warning mx-auto h-5 w-5" />
+                          <p className="text-warning text-xs font-medium">
                             No pages mapped to this question
                           </p>
-                          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          <p className="text-warning text-[10px]">
                             Scouting did not find a student response. Re-run scouting or grade
                             manually below.
                           </p>
@@ -919,18 +917,16 @@ export default function GradingReviewPage() {
                       {/* Grading error context (Task 3.1) */}
                       {qs &&
                         (qs as QuestionSubmission & { gradingError?: string }).gradingError && (
-                          <div className="space-y-1.5 rounded border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/20">
+                          <div className="border-error/30 bg-error-subtle space-y-1.5 rounded border p-3">
                             <div className="flex items-center gap-2">
-                              <Info className="h-3.5 w-3.5 text-red-500" />
-                              <p className="text-xs font-medium text-red-700 dark:text-red-400">
-                                Grading Error
-                              </p>
+                              <Info className="text-error h-3.5 w-3.5" />
+                              <p className="text-error text-xs font-medium">Grading Error</p>
                             </div>
-                            <p className="text-xs text-red-600 dark:text-red-400">
+                            <p className="text-error text-xs">
                               {(qs as QuestionSubmission & { gradingError?: string }).gradingError}
                             </p>
                             {(qs.gradingRetryCount ?? 0) > 0 && (
-                              <p className="text-[10px] text-red-500/70">
+                              <p className="text-error/70 text-[10px]">
                                 {(qs.gradingRetryCount ?? 0) >= 3
                                   ? `Retry limit reached (${qs.gradingRetryCount} attempts)`
                                   : `Retried ${qs.gradingRetryCount} time${qs.gradingRetryCount === 1 ? "" : "s"}`}
@@ -945,11 +941,11 @@ export default function GradingReviewPage() {
                       {eval_ && (
                         <>
                           {/* Score + Confidence visual (Task 4.3) */}
-                          <div className="space-y-2 rounded border p-3">
+                          <div className="border-subtle space-y-2 rounded border p-3">
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-muted-foreground text-xs font-medium">Score</p>
-                                <p className="text-lg font-bold">
+                                <p className="font-mono text-lg font-bold">
                                   {eval_.score}/{eval_.maxScore}
                                 </p>
                               </div>
@@ -969,10 +965,10 @@ export default function GradingReviewPage() {
                                 <span
                                   className={`text-[10px] font-medium ${
                                     confidence != null && confidence >= 0.9
-                                      ? "text-green-600 dark:text-green-400"
+                                      ? "text-confidence-high"
                                       : confidence != null && confidence >= 0.7
-                                        ? "text-amber-600 dark:text-amber-400"
-                                        : "text-red-600 dark:text-red-400"
+                                        ? "text-confidence-med"
+                                        : "text-confidence-low"
                                   }`}
                                 >
                                   {confidence != null
@@ -986,12 +982,12 @@ export default function GradingReviewPage() {
                               </div>
                               <div className="bg-muted h-2 overflow-hidden rounded-full">
                                 <div
-                                  className={`h-full rounded-full transition-all ${
+                                  className={`duration-base ease-standard h-full rounded-full transition-all ${
                                     confidence != null && confidence >= 0.9
-                                      ? "bg-green-500"
+                                      ? "bg-confidence-high"
                                       : confidence != null && confidence >= 0.7
-                                        ? "bg-amber-500"
-                                        : "bg-red-500"
+                                        ? "bg-confidence-med"
+                                        : "bg-confidence-low"
                                   }`}
                                   style={{ width: `${Math.round((confidence ?? 0) * 100)}%` }}
                                 />
@@ -1003,9 +999,7 @@ export default function GradingReviewPage() {
                           <div className="grid gap-3 sm:grid-cols-2">
                             {eval_.strengths.length > 0 && (
                               <div>
-                                <p className="mb-1 text-xs font-medium text-green-600 dark:text-green-400">
-                                  Strengths
-                                </p>
+                                <p className="text-success mb-1 text-xs font-medium">Strengths</p>
                                 <ul className="space-y-1">
                                   {eval_.strengths.map((s, idx) => (
                                     <li key={idx} className="text-muted-foreground text-xs">
@@ -1017,9 +1011,7 @@ export default function GradingReviewPage() {
                             )}
                             {eval_.weaknesses.length > 0 && (
                               <div>
-                                <p className="mb-1 text-xs font-medium text-red-600 dark:text-red-400">
-                                  Weaknesses
-                                </p>
+                                <p className="text-error mb-1 text-xs font-medium">Weaknesses</p>
                                 <ul className="space-y-1">
                                   {eval_.weaknesses.map((w, idx) => (
                                     <li key={idx} className="text-muted-foreground text-xs">
@@ -1046,7 +1038,7 @@ export default function GradingReviewPage() {
                                     <span className="min-w-0 flex-1 break-words">
                                       {rb.criterion}
                                     </span>
-                                    <span className="shrink-0 font-medium">
+                                    <span className="shrink-0 font-mono font-medium">
                                       {rb.awarded}/{rb.max}
                                     </span>
                                   </div>
@@ -1073,22 +1065,20 @@ export default function GradingReviewPage() {
 
                   {/* Override Audit Trail Timeline (Task 3.2) */}
                   {qs?.manualOverride && (
-                    <div className="space-y-3 rounded bg-orange-50 p-3 dark:bg-orange-950/30">
+                    <div className="bg-warning-subtle space-y-3 rounded p-3">
                       <div className="flex items-center gap-2">
-                        <History className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                        <p className="text-xs font-medium text-orange-700 dark:text-orange-400">
-                          Override Audit Trail
-                        </p>
+                        <History className="text-warning h-3.5 w-3.5" />
+                        <p className="text-warning text-xs font-medium">Override Audit Trail</p>
                       </div>
                       {/* Timeline */}
-                      <div className="relative space-y-3 border-l-2 border-orange-200 pl-4 dark:border-orange-800">
+                      <div className="border-warning/30 relative space-y-3 border-l-2 pl-4">
                         {/* Step 1: AI Grading */}
                         <div className="relative">
                           <div className="bg-muted-foreground/40 absolute -left-[1.3rem] top-0.5 h-2.5 w-2.5 rounded-full" />
                           <p className="text-muted-foreground text-[10px] font-medium">AI Graded</p>
                           <p className="text-xs">
                             Score:{" "}
-                            <span className="font-medium">
+                            <span className="font-mono font-medium">
                               {qs.manualOverride.originalScore}/{q.maxMarks}
                             </span>
                             {eval_?.confidence != null && (
@@ -1111,15 +1101,15 @@ export default function GradingReviewPage() {
                         </div>
                         {/* Step 2: Manual Override */}
                         <div className="relative">
-                          <div className="absolute -left-[1.3rem] top-0.5 h-2.5 w-2.5 rounded-full bg-orange-500" />
-                          <p className="text-[10px] font-medium text-orange-700 dark:text-orange-400">
-                            Override Applied
-                          </p>
+                          <div className="bg-warning absolute -left-[1.3rem] top-0.5 h-2.5 w-2.5 rounded-full" />
+                          <p className="text-warning text-[10px] font-medium">Override Applied</p>
                           <p className="text-xs">
                             Score changed:{" "}
-                            <span className="line-through">{qs.manualOverride.originalScore}</span>{" "}
+                            <span className="font-mono line-through">
+                              {qs.manualOverride.originalScore}
+                            </span>{" "}
                             →{" "}
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {qs.manualOverride.score}/{q.maxMarks}
                             </span>
                           </p>
@@ -1127,7 +1117,7 @@ export default function GradingReviewPage() {
                             Reason: {qs.manualOverride.reason}
                           </p>
                           {qs.manualOverride.overriddenAt && (
-                            <p className="flex items-center gap-1 text-[10px] text-orange-500/70">
+                            <p className="text-warning/70 flex items-center gap-1 text-[10px]">
                               <Clock className="h-2.5 w-2.5" />
                               {typeof qs.manualOverride.overriddenAt === "object" &&
                               "toDate" in qs.manualOverride.overriddenAt
@@ -1153,7 +1143,7 @@ export default function GradingReviewPage() {
                           qs.gradingStatus === "processing"
                         }
                         size="sm"
-                        className="gap-1.5 bg-violet-600 text-white hover:bg-violet-700"
+                        className="bg-brand text-fg-on-accent hover:bg-brand-hover gap-1.5"
                       >
                         {gradingQuestionId === qs.id || qs.gradingStatus === "processing" ? (
                           <>
@@ -1178,7 +1168,7 @@ export default function GradingReviewPage() {
                           disabled={saving || gradingQuestionId === qs.id}
                           size="sm"
                           variant="outline"
-                          className="border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                          className="border-success text-success hover:bg-success-subtle"
                         >
                           <Check className="h-3 w-3" /> Accept AI Grade ({eval_?.score}/{q.maxMarks}
                           )
@@ -1189,7 +1179,7 @@ export default function GradingReviewPage() {
                       qs.gradingStatus === "failed" &&
                       !qs.manualOverride &&
                       (qs.gradingRetryCount ?? 0) >= 3 && (
-                        <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+                        <span className="text-error inline-flex items-center gap-1 text-xs">
                           <RotateCcw className="h-3 w-3" /> Retry limit reached — use manual
                           override
                         </span>
@@ -1197,7 +1187,7 @@ export default function GradingReviewPage() {
                   </div>
 
                   {gradeError && expandedQ === q.id && (
-                    <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-400">
+                    <div className="border-error/30 bg-error-subtle text-error flex items-start gap-2 rounded border p-2 text-xs">
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>{gradeError}</span>
                     </div>
@@ -1205,7 +1195,7 @@ export default function GradingReviewPage() {
 
                   {/* Override form */}
                   {qs && !qs.manualOverride && (
-                    <div className="space-y-2 rounded border p-3">
+                    <div className="border-subtle space-y-2 rounded border p-3">
                       <p className="text-xs font-medium">Manual Override</p>
                       <div className="flex items-center gap-2">
                         <Input
@@ -1247,7 +1237,7 @@ export default function GradingReviewPage() {
                           onClick={() => handleOverride(qs.id)}
                           disabled={saving || !override?.reason?.trim()}
                           size="sm"
-                          className="bg-orange-600 text-white hover:bg-orange-700"
+                          className="bg-warning text-fg-on-accent hover:bg-warning/90"
                         >
                           <Save className="h-3 w-3" /> Override
                         </Button>
@@ -1285,7 +1275,7 @@ export default function GradingReviewPage() {
             <AlertDialogDescription>
               This will accept all AI-graded answers for this submission.
               {needsReviewCount > 0 && (
-                <span className="mt-2 block font-medium text-amber-600 dark:text-amber-400">
+                <span className="text-warning mt-2 block font-medium">
                   {needsReviewCount} question{needsReviewCount === 1 ? "" : "s"} still need
                   {needsReviewCount === 1 ? "s" : ""} review.
                 </span>
@@ -1299,7 +1289,7 @@ export default function GradingReviewPage() {
                 setShowBulkApproveConfirm(false);
                 handleBulkApprove();
               }}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
               Approve All
             </AlertDialogAction>

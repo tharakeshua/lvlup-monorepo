@@ -100,7 +100,7 @@ export default function QuestionBankPage() {
         <div className="flex items-center gap-3">
           <Library className="text-primary h-6 w-6" />
           <div>
-            <h1 className="text-2xl font-bold">Question Bank</h1>
+            <h1 className="font-display text-2xl font-semibold">Question Bank</h1>
             <p className="text-muted-foreground text-sm">
               Reusable questions across all your spaces
             </p>
@@ -197,7 +197,7 @@ export default function QuestionBankPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-muted/50 rounded-lg border p-8 text-center">
+        <div className="bg-muted/50 border-subtle rounded-lg border p-8 text-center">
           <Library className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
             {search ? "No questions match your search." : "No questions in the bank yet."}
@@ -212,7 +212,7 @@ export default function QuestionBankPage() {
             <button
               key={item.id}
               onClick={() => setSelectedItem(item)}
-              className="bg-card w-full rounded-lg border p-4 text-left transition-shadow hover:shadow-sm"
+              className="bg-card border-subtle shadow-e1 hover:shadow-e2 duration-fast ease-standard w-full rounded-lg border p-4 text-left transition-shadow"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -221,23 +221,29 @@ export default function QuestionBankPage() {
                   </p>
                   <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{item.content}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge
+                      variant="outline"
+                      className="rounded-pill bg-surface-sunken text-fg-secondary border-transparent text-xs"
+                    >
                       {QUESTION_TYPE_LABELS[item.questionType] ?? item.questionType}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className={`text-xs ${
+                      className={`rounded-pill text-xs ${
                         item.difficulty === "easy"
-                          ? "border-emerald-300 text-emerald-700"
+                          ? "border-success/40 text-success"
                           : item.difficulty === "hard"
-                            ? "border-red-300 text-red-700"
-                            : "border-amber-300 text-amber-700"
+                            ? "border-error/40 text-error"
+                            : "border-warning/40 text-warning"
                       }`}
                     >
                       {item.difficulty}
                     </Badge>
                     {item.bloomsLevel && (
-                      <Badge variant="outline" className="border-blue-300 text-xs text-blue-700">
+                      <Badge
+                        variant="outline"
+                        className="border-info/40 text-info rounded-pill text-xs"
+                      >
                         {item.bloomsLevel}
                       </Badge>
                     )}
@@ -245,7 +251,9 @@ export default function QuestionBankPage() {
                       <span className="text-muted-foreground text-xs">{item.subject}</span>
                     )}
                     {item.usageCount > 0 && (
-                      <span className="text-muted-foreground text-xs">Used {item.usageCount}x</span>
+                      <span className="text-muted-foreground font-mono text-xs">
+                        Used {item.usageCount}x
+                      </span>
                     )}
                   </div>
                 </div>
@@ -300,7 +308,7 @@ export default function QuestionBankPage() {
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Question Preview</DialogTitle>
+            <DialogTitle className="font-display">Question Preview</DialogTitle>
           </DialogHeader>
           {selectedItem && (
             <div className="space-y-4">
@@ -318,7 +326,9 @@ export default function QuestionBankPage() {
                 {selectedItem.bloomsLevel && (
                   <Badge variant="outline">{selectedItem.bloomsLevel}</Badge>
                 )}
-                <Badge variant="outline">{selectedItem.basePoints ?? 1} pts</Badge>
+                <Badge variant="outline" className="font-mono">
+                  {selectedItem.basePoints ?? 1} pts
+                </Badge>
               </div>
               {selectedItem.topics.length > 0 && (
                 <div>
@@ -363,7 +373,7 @@ export default function QuestionBankPage() {
       <Dialog open={!!showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Question?</DialogTitle>
+            <DialogTitle className="font-display">Delete Question?</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">
             This will permanently remove this question from the bank. Questions already imported

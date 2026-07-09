@@ -87,7 +87,7 @@ export default function QuestionBankImportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="font-display flex items-center gap-2">
             <Library className="h-5 w-5" />
             Import from Question Bank
           </DialogTitle>
@@ -105,7 +105,7 @@ export default function QuestionBankImportDialog({
         </div>
 
         {(error || loadError) && (
-          <div className="text-destructive flex items-center gap-2 text-sm">
+          <div className="text-error flex items-center gap-2 text-sm">
             <AlertCircle className="h-4 w-4" />
             {error ?? "Failed to load question bank"}
           </div>
@@ -134,16 +134,16 @@ export default function QuestionBankImportDialog({
                 <button
                   key={q.id}
                   onClick={() => toggleSelect(q.id)}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                    isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                  className={`duration-fast ease-standard w-full rounded-lg border p-3 text-left transition-colors ${
+                    isSelected
+                      ? "border-brand bg-brand-subtle"
+                      : "border-subtle hover:bg-surface-sunken/60"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
                       className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border ${
-                        isSelected
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : "border-muted-foreground/30"
+                        isSelected ? "bg-brand border-brand text-fg-on-accent" : "border-strong"
                       }`}
                     >
                       {isSelected && <Check className="h-3 w-3" />}
@@ -151,7 +151,10 @@ export default function QuestionBankImportDialog({
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-sm font-medium">{q.title || q.content}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className="rounded-pill bg-surface-sunken text-fg-secondary border-transparent text-[10px]"
+                        >
                           {q.questionType}
                         </Badge>
                         {q.difficulty && (
@@ -163,7 +166,7 @@ export default function QuestionBankImportDialog({
                           <span className="text-muted-foreground text-[10px]">{q.subject}</span>
                         )}
                         {q.usageCount > 0 && (
-                          <span className="text-muted-foreground text-[10px]">
+                          <span className="text-muted-foreground font-mono text-[10px]">
                             Used {q.usageCount}x
                           </span>
                         )}

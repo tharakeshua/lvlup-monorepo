@@ -64,7 +64,7 @@ export default function StudentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Students</h1>
+          <h1 className="font-display text-2xl font-semibold">Students</h1>
           <p className="text-muted-foreground text-sm">
             Students enrolled in your classes ({students.length} total)
           </p>
@@ -110,30 +110,46 @@ export default function StudentsPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="border-subtle shadow-e1 overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Roll Number</TableHead>
-                <TableHead>Admission No.</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-strong border-b">
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Name
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Roll Number
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Admission No.
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Grade
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Section
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-xs font-bold uppercase">
+                  Status
+                </TableHead>
+                <TableHead className="tracking-caps text-fg-muted text-right text-xs font-bold uppercase">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((student) => (
                 <TableRow
                   key={student.id}
-                  className={student.status === "archived" ? "opacity-60" : undefined}
+                  className={`border-subtle border-b hover:bg-surface-sunken/60${
+                    student.status === "archived" ? " opacity-60" : ""
+                  }`}
                 >
                   <TableCell className="font-medium">
                     {student.displayName ?? student.uid}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{student.rollNumber ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground font-mono text-xs">
                     {student.admissionNumber ?? "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{student.grade ?? "—"}</TableCell>

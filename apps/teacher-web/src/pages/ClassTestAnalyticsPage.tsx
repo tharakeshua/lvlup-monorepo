@@ -100,7 +100,7 @@ export default function ClassTestAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Class Test Analytics</h1>
+          <h1 className="font-display text-2xl font-semibold">Class Test Analytics</h1>
           <p className="text-muted-foreground text-sm">
             Test performance and student insights per class
           </p>
@@ -150,7 +150,7 @@ export default function ClassTestAnalyticsPage() {
       {gradedExams.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Exam Deep Dive</h2>
+            <h2 className="font-display text-lg font-semibold">Exam Deep Dive</h2>
             <Select
               value={activeExamId ?? "__none__"}
               onValueChange={(v) => setSelectedExamId(v === "__none__" ? null : v)}
@@ -171,7 +171,7 @@ export default function ClassTestAnalyticsPage() {
           {analyticsLoading ? (
             <div className="grid gap-4 md:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-lg" />
+                <Skeleton key={i} className="bg-surface-sunken h-24 rounded-lg" />
               ))}
             </div>
           ) : analytics ? (
@@ -197,10 +197,10 @@ export default function ClassTestAnalyticsPage() {
 
               {/* Weak Topics Alert */}
               {weakTopics.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                <div className="border-warning/40 bg-warning-subtle rounded-lg border p-4">
                   <div className="mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="text-warning h-4 w-4" />
+                    <span className="text-warning text-sm font-semibold">
                       Topics Needing Attention
                     </span>
                   </div>
@@ -209,7 +209,7 @@ export default function ClassTestAnalyticsPage() {
                       <Badge
                         key={topic}
                         variant="outline"
-                        className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                        className="border-warning/50 text-warning"
                       >
                         {topic}: {Math.round(perf.avgPercentage)}%
                       </Badge>
@@ -220,7 +220,7 @@ export default function ClassTestAnalyticsPage() {
 
               {/* Student Performance Distribution */}
               {analytics.scoreDistribution.buckets.length > 0 && (
-                <div className="bg-card rounded-lg border p-4">
+                <div className="bg-card border-subtle shadow-e1 rounded-lg border p-4">
                   <h3 className="mb-3 text-sm font-semibold">Score Distribution</h3>
                   <div className="flex h-32 items-end gap-1">
                     {analytics.scoreDistribution.buckets.map((bucket, i) => {
@@ -231,20 +231,24 @@ export default function ClassTestAnalyticsPage() {
                       const height = (bucket.count / maxCount) * 100;
                       const color =
                         bucket.min >= 70
-                          ? "bg-emerald-500"
+                          ? "bg-grade-a"
                           : bucket.min >= 40
-                            ? "bg-amber-500"
-                            : "bg-red-500";
+                            ? "bg-grade-c"
+                            : "bg-grade-f";
                       return (
                         <div key={i} className="flex flex-1 flex-col items-center gap-1">
                           {bucket.count > 0 && (
-                            <span className="text-[10px] font-medium">{bucket.count}</span>
+                            <span className="font-mono text-[10px] font-medium">
+                              {bucket.count}
+                            </span>
                           )}
                           <div
                             className={`w-full rounded-t ${color}`}
                             style={{ height: `${Math.max(height, 2)}%` }}
                           />
-                          <span className="text-muted-foreground text-[10px]">{bucket.min}%</span>
+                          <span className="text-muted-foreground font-mono text-[10px]">
+                            {bucket.min}%
+                          </span>
                         </div>
                       );
                     })}
@@ -254,7 +258,7 @@ export default function ClassTestAnalyticsPage() {
 
               {/* Per-Question Analysis Table */}
               {Object.keys(analytics.questionAnalytics).length > 0 && (
-                <div className="bg-card rounded-lg border">
+                <div className="bg-card border-subtle shadow-e1 rounded-lg border">
                   <div className="border-b px-4 py-3">
                     <h3 className="text-sm font-semibold">Question-Level Insights</h3>
                   </div>
@@ -276,13 +280,13 @@ export default function ClassTestAnalyticsPage() {
                             <TableCell className="font-medium">Q{q.questionId}</TableCell>
                             <TableCell>
                               <span
-                                className={
+                                className={`font-mono ${
                                   q.avgPercentage >= 70
-                                    ? "text-green-600"
+                                    ? "text-grade-a"
                                     : q.avgPercentage >= 40
-                                      ? "text-amber-600"
-                                      : "text-red-600"
-                                }
+                                      ? "text-grade-c"
+                                      : "text-grade-f"
+                                }`}
                               >
                                 {Math.round(q.avgPercentage)}%
                               </span>
@@ -305,7 +309,7 @@ export default function ClassTestAnalyticsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <span className="text-xs">
+                              <span className="font-mono text-xs">
                                 {q.discriminationIndex != null
                                   ? q.discriminationIndex.toFixed(2)
                                   : "--"}

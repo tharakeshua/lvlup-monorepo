@@ -91,12 +91,12 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
         <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Go back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">Edit Story Point</h1>
+        <h1 className="font-display text-xl font-semibold">Edit Story Point</h1>
       </div>
 
       <div className="max-w-2xl space-y-5">
         <div>
-          <Label>Title</Label>
+          <Label className="text-fg-secondary">Title</Label>
           <Input
             type="text"
             value={title}
@@ -106,7 +106,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
         </div>
 
         <div>
-          <Label>Description</Label>
+          <Label className="text-fg-secondary">Description</Label>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -117,7 +117,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <Label>Type</Label>
+            <Label className="text-fg-secondary">Type</Label>
             <Select value={type} onValueChange={(v) => setType(v as StoryPointType)}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
@@ -133,7 +133,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
           </div>
 
           <div>
-            <Label>Difficulty</Label>
+            <Label className="text-fg-secondary">Difficulty</Label>
             <Select value={difficulty} onValueChange={setDifficulty}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
@@ -148,7 +148,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
           </div>
 
           <div>
-            <Label>Est. Time (min)</Label>
+            <Label className="text-fg-secondary">Est. Time (min)</Label>
             <Input
               type="number"
               value={estimatedTime}
@@ -162,10 +162,10 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
         {/* Assessment Config */}
         {isAssessment && (
           <div className="space-y-4 rounded-lg border p-4">
-            <h3 className="font-medium">Assessment Configuration</h3>
+            <h3 className="font-display font-medium">Assessment Configuration</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label>Duration (min)</Label>
+                <Label className="text-fg-secondary">Duration (min)</Label>
                 <Input
                   type="number"
                   value={assessmentConfig.durationMinutes ?? 0}
@@ -180,7 +180,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                 />
               </div>
               <div>
-                <Label>Max Attempts</Label>
+                <Label className="text-fg-secondary">Max Attempts</Label>
                 <Input
                   type="number"
                   value={assessmentConfig.maxAttempts ?? 1}
@@ -195,7 +195,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                 />
               </div>
               <div>
-                <Label>Passing % (0 = none)</Label>
+                <Label className="text-fg-secondary">Passing % (0 = none)</Label>
                 <Input
                   type="number"
                   value={assessmentConfig.passingPercentage ?? 0}
@@ -212,7 +212,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
               </div>
             </div>
             <div>
-              <Label>Instructions</Label>
+              <Label className="text-fg-secondary">Instructions</Label>
               <Textarea
                 value={assessmentConfig.instructions ?? ""}
                 onChange={(e) =>
@@ -234,7 +234,10 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                   }
                   id="shuffle-questions"
                 />
-                <Label htmlFor="shuffle-questions" className="cursor-pointer text-sm">
+                <Label
+                  htmlFor="shuffle-questions"
+                  className="text-fg-secondary cursor-pointer text-sm"
+                >
                   Shuffle questions
                 </Label>
               </div>
@@ -244,7 +247,10 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                   onCheckedChange={(v) => setAssessmentConfig((p) => ({ ...p, shuffleOptions: v }))}
                   id="shuffle-options"
                 />
-                <Label htmlFor="shuffle-options" className="cursor-pointer text-sm">
+                <Label
+                  htmlFor="shuffle-options"
+                  className="text-fg-secondary cursor-pointer text-sm"
+                >
                   Shuffle options
                 </Label>
               </div>
@@ -256,7 +262,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                   }
                   id="show-results"
                 />
-                <Label htmlFor="show-results" className="cursor-pointer text-sm">
+                <Label htmlFor="show-results" className="text-fg-secondary cursor-pointer text-sm">
                   Show results immediately
                 </Label>
               </div>
@@ -270,7 +276,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label>Available From</Label>
+                  <Label className="text-fg-secondary">Available From</Label>
                   <Input
                     type="datetime-local"
                     value={
@@ -302,7 +308,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                   />
                 </div>
                 <div>
-                  <Label>Available Until</Label>
+                  <Label className="text-fg-secondary">Available Until</Label>
                   <Input
                     type="datetime-local"
                     value={
@@ -335,7 +341,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                 </div>
               </div>
               <div className="max-w-[200px]">
-                <Label>Late Grace (min)</Label>
+                <Label className="text-fg-secondary">Late Grace (min)</Label>
                 <Input
                   type="number"
                   value={assessmentConfig.schedule?.lateSubmissionGraceMinutes ?? 0}
@@ -368,7 +374,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
               <h4 className="text-sm font-medium">Retry Settings</h4>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label>Cooldown (min)</Label>
+                  <Label className="text-fg-secondary">Cooldown (min)</Label>
                   <Input
                     type="number"
                     value={assessmentConfig.retryConfig?.cooldownMinutes ?? 0}
@@ -402,7 +408,10 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                     }
                     id="lock-after-pass"
                   />
-                  <Label htmlFor="lock-after-pass" className="cursor-pointer text-sm">
+                  <Label
+                    htmlFor="lock-after-pass"
+                    className="text-fg-secondary cursor-pointer text-sm"
+                  >
                     Lock after passing
                   </Label>
                 </div>
@@ -427,14 +436,17 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                   }
                   id="adaptive-enabled"
                 />
-                <Label htmlFor="adaptive-enabled" className="cursor-pointer text-sm font-medium">
+                <Label
+                  htmlFor="adaptive-enabled"
+                  className="text-fg-secondary cursor-pointer text-sm font-medium"
+                >
                   Adaptive Testing
                 </Label>
               </div>
               {assessmentConfig.adaptiveConfig?.enabled && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label>Initial Difficulty</Label>
+                    <Label className="text-fg-secondary">Initial Difficulty</Label>
                     <Select
                       value={assessmentConfig.adaptiveConfig?.initialDifficulty ?? "medium"}
                       onValueChange={(v) =>
@@ -458,7 +470,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                     </Select>
                   </div>
                   <div>
-                    <Label>Adjustment Mode</Label>
+                    <Label className="text-fg-secondary">Adjustment Mode</Label>
                     <Select
                       value={assessmentConfig.adaptiveConfig?.difficultyAdjustment ?? "gradual"}
                       onValueChange={(v) =>
@@ -481,7 +493,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                     </Select>
                   </div>
                   <div>
-                    <Label>Min Questions/Difficulty</Label>
+                    <Label className="text-fg-secondary">Min Questions/Difficulty</Label>
                     <Input
                       type="number"
                       value={assessmentConfig.adaptiveConfig?.minQuestionsPerDifficulty ?? 2}
@@ -500,7 +512,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
                     />
                   </div>
                   <div>
-                    <Label>Max Consecutive Same</Label>
+                    <Label className="text-fg-secondary">Max Consecutive Same</Label>
                     <Input
                       type="number"
                       value={assessmentConfig.adaptiveConfig?.maxConsecutiveSameDifficulty ?? 5}
@@ -527,7 +539,7 @@ export default function StoryPointEditor({ storyPoint, onSave, onCancel }: Props
         {/* Sections */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium">Sections ({sections.length})</h3>
+            <h3 className="font-display font-medium">Sections ({sections.length})</h3>
             <Button variant="outline" size="sm" onClick={addSection}>
               <Plus className="h-3 w-3" /> Add Section
             </Button>

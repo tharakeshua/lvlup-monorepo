@@ -154,7 +154,10 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
     return (
       <div className="space-y-3">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-muted h-24 animate-pulse rounded-lg border" />
+          <div
+            key={i}
+            className="bg-surface-sunken border-subtle h-24 animate-pulse rounded-lg border"
+          />
         ))}
       </div>
     );
@@ -164,7 +167,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Agent Configuration</h2>
+          <h2 className="font-display text-lg font-semibold">Agent Configuration</h2>
           <p className="text-muted-foreground text-sm">
             Configure AI evaluators and tutors for this space
           </p>
@@ -181,8 +184,8 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-          <Bot className="text-muted-foreground h-8 w-8" />
-          <p className="text-muted-foreground mt-2 text-sm">No agents configured yet</p>
+          <Bot className="text-fg-muted h-8 w-8" />
+          <p className="font-display mt-2 text-lg">No agents configured yet</p>
           <p className="text-muted-foreground mt-1 text-xs">
             Add an evaluator or tutor to enable AI-powered features
           </p>
@@ -190,7 +193,10 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
       ) : (
         <div className="space-y-4">
           {agents.map((agent) => (
-            <div key={agent.id} className="bg-card space-y-3 rounded-lg border p-4">
+            <div
+              key={agent.id}
+              className="bg-card border-subtle shadow-e1 space-y-3 rounded-lg border p-4"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Bot className="text-primary h-4 w-4" />
@@ -203,7 +209,10 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
                       onCheckedChange={(v) => updateAgent(agent.id, { enabled: v })}
                       id={`enabled-${agent.id}`}
                     />
-                    <Label htmlFor={`enabled-${agent.id}`} className="cursor-pointer text-xs">
+                    <Label
+                      htmlFor={`enabled-${agent.id}`}
+                      className="text-fg-secondary cursor-pointer text-xs"
+                    >
                       Enabled
                     </Label>
                   </div>
@@ -231,7 +240,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <Label className="text-muted-foreground text-xs">Name</Label>
+                  <Label className="text-fg-secondary text-xs">Name</Label>
                   <Input
                     type="text"
                     value={agent.name}
@@ -240,7 +249,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
                   />
                 </div>
                 <div>
-                  <Label className="text-muted-foreground text-xs">Model</Label>
+                  <Label className="text-fg-secondary text-xs">Model</Label>
                   <Select
                     value={agent.model}
                     onValueChange={(v) => updateAgent(agent.id, { model: v })}
@@ -260,7 +269,7 @@ export default function AgentConfigPanel({ spaceId }: AgentConfigPanelProps) {
               </div>
 
               <div>
-                <Label className="text-muted-foreground text-xs">System Prompt</Label>
+                <Label className="text-fg-secondary text-xs">System Prompt</Label>
                 <Textarea
                   value={agent.systemPrompt}
                   onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}

@@ -99,9 +99,9 @@ export default function EnrollStudentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col">
+      <DialogContent className="shadow-e3 flex max-h-[80vh] max-w-2xl flex-col">
         <DialogHeader>
-          <DialogTitle>Enroll students into {className}</DialogTitle>
+          <DialogTitle className="font-display">Enroll students into {className}</DialogTitle>
           <DialogDescription>
             Pick existing students from your tenant to add to this class.
           </DialogDescription>
@@ -119,7 +119,7 @@ export default function EnrollStudentDialog({
         </div>
 
         {selected.size > 0 && (
-          <div className="flex flex-wrap gap-1.5 border-b py-2">
+          <div className="border-subtle flex flex-wrap gap-1.5 border-b py-2">
             {Array.from(selected).map((id) => {
               const s = allStudents.find((stu) => stu.id === id);
               if (!s) return null;
@@ -162,7 +162,7 @@ export default function EnrollStudentDialog({
                     <button
                       type="button"
                       onClick={() => toggle(s.id)}
-                      className="hover:bg-muted flex w-full items-center gap-3 px-2 py-2 text-left"
+                      className="hover:bg-surface-sunken/60 duration-fast ease-standard flex w-full items-center gap-3 px-2 py-2 text-left transition-colors"
                     >
                       <span className="border-input flex h-4 w-4 items-center justify-center rounded border">
                         {isSelected && <Check className="h-3 w-3" />}

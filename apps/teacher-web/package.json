@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "@levelup/eslint-config": "workspace:*",
+    "@levelup/lyceum-preset": "workspace:*",
     "@levelup/tailwind-config": "workspace:*",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",

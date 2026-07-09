@@ -20,12 +20,7 @@ import type {
   RichContentBlock,
   ItemAttachment,
 } from "@levelup/shared-types";
-import {
-  Checkbox,
-  RadioGroup,
-  RadioGroupItem,
-  RichTextViewer,
-} from "@levelup/shared-ui";
+import { Checkbox, RadioGroup, RadioGroupItem, RichTextViewer } from "@levelup/shared-ui";
 import {
   CheckCircle2,
   Circle,
@@ -68,10 +63,8 @@ function QuestionPreview({ item }: { item: UnifiedItem }) {
       <QuestionHeader payload={payload} attachments={item.attachments} />
       <QuestionTypeRenderer type={payload.questionType} data={data} />
       {payload.explanation && (
-        <div className="bg-muted/50 rounded-md border p-3 text-xs">
-          <p className="text-muted-foreground mb-1 font-semibold uppercase tracking-wide">
-            Explanation
-          </p>
+        <div className="bg-muted/50 border-subtle rounded-md border p-3 text-xs">
+          <p className="text-fg-muted tracking-caps mb-1 font-bold uppercase">Explanation</p>
           <p className="whitespace-pre-wrap">{payload.explanation}</p>
         </div>
       )}
@@ -90,29 +83,29 @@ function QuestionHeader({
   return (
     <div className="space-y-2">
       {payload.title && <h4 className="text-sm font-semibold">{payload.title}</h4>}
-      {payload.content && (
-        <div className="text-sm whitespace-pre-wrap">{payload.content}</div>
-      )}
+      {payload.content && <div className="whitespace-pre-wrap text-sm">{payload.content}</div>}
       <div className="flex items-center gap-2">
         {payload.difficulty && (
           <span
-            className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase ${
+            className={`rounded-pill inline-block px-2 py-0.5 text-[10px] font-medium uppercase ${
               payload.difficulty === "easy"
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                ? "bg-success-subtle text-success"
                 : payload.difficulty === "medium"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-500/10 text-red-700 dark:text-red-400"
+                  ? "bg-warning-subtle text-warning"
+                  : "bg-error-subtle text-error"
             }`}
           >
             {payload.difficulty}
           </span>
         )}
         {payload.basePoints != null && payload.basePoints > 0 && (
-          <span className="text-muted-foreground text-xs">{payload.basePoints} pts</span>
+          <span className="text-muted-foreground font-mono text-xs">{payload.basePoints} pts</span>
         )}
       </div>
       {imageAttachments.length > 0 && (
-        <div className={`grid gap-2 ${imageAttachments.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+        <div
+          className={`grid gap-2 ${imageAttachments.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+        >
           {imageAttachments.map((img) => (
             <img
               key={img.id}
@@ -162,9 +155,7 @@ function QuestionTypeRenderer({ type, data }: { type: string; data: unknown }) {
       return <ChatAgentPreview data={data as ChatAgentQuestionData} />;
     default:
       return (
-        <p className="text-muted-foreground text-xs italic">
-          Unsupported question type: {type}
-        </p>
+        <p className="text-muted-foreground text-xs italic">Unsupported question type: {type}</p>
       );
   }
 }
@@ -179,14 +170,12 @@ function MCQPreview({ data }: { data: MCQData }) {
         <label
           key={opt.id}
           className={`flex cursor-default items-start gap-2 rounded-md border p-2 text-sm ${
-            opt.isCorrect ? "border-emerald-500/40 bg-emerald-500/5" : ""
+            opt.isCorrect ? "border-success/40 bg-success-subtle text-success" : ""
           }`}
         >
           <RadioGroupItem value={opt.id} disabled className="mt-0.5" />
           <span className="flex-1">{opt.text}</span>
-          {opt.isCorrect && (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-          )}
+          {opt.isCorrect && <CheckCircle2 className="text-success mt-0.5 h-4 w-4 flex-shrink-0" />}
         </label>
       ))}
     </RadioGroup>
@@ -203,14 +192,12 @@ function MCAQPreview({ data }: { data: MCAQData }) {
         <label
           key={opt.id}
           className={`flex cursor-default items-start gap-2 rounded-md border p-2 text-sm ${
-            opt.isCorrect ? "border-emerald-500/40 bg-emerald-500/5" : ""
+            opt.isCorrect ? "border-success/40 bg-success-subtle text-success" : ""
           }`}
         >
           <Checkbox checked={opt.isCorrect} disabled className="mt-0.5" />
           <span className="flex-1">{opt.text}</span>
-          {opt.isCorrect && (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-          )}
+          {opt.isCorrect && <CheckCircle2 className="text-success mt-0.5 h-4 w-4 flex-shrink-0" />}
         </label>
       ))}
     </div>
@@ -224,11 +211,11 @@ function TrueFalsePreview({ data }: { data: TrueFalseData }) {
         <div
           key={String(v)}
           className={`flex flex-1 items-center justify-center gap-2 rounded-md border p-3 text-sm ${
-            data?.correctAnswer === v ? "border-emerald-500/40 bg-emerald-500/5" : ""
+            data?.correctAnswer === v ? "border-success/40 bg-success-subtle text-success" : ""
           }`}
         >
           {data?.correctAnswer === v ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <CheckCircle2 className="text-success h-4 w-4" />
           ) : (
             <Circle className="text-muted-foreground h-4 w-4" />
           )}
@@ -248,7 +235,7 @@ function NumericalPreview({ data }: { data: NumericalData }) {
         placeholder="Numerical answer"
         className="bg-muted/50 w-full rounded-md border px-3 py-2 text-sm"
       />
-      <div className="text-muted-foreground flex flex-wrap gap-3 text-xs">
+      <div className="text-muted-foreground flex flex-wrap gap-3 font-mono text-xs">
         <span>
           <strong>Answer:</strong> {data?.correctAnswer ?? "—"}
           {data?.unit ? ` ${data.unit}` : ""}
@@ -281,12 +268,9 @@ function TextPreview({ data }: { data: TextData }) {
       {(data?.correctAnswer || (data?.acceptableAnswers ?? []).length > 0) && (
         <div className="text-muted-foreground text-xs">
           <strong>Accepted:</strong>{" "}
-          {[data.correctAnswer, ...(data.acceptableAnswers ?? [])]
-            .filter(Boolean)
-            .join(", ") || "—"}
-          {data.caseSensitive && (
-            <span className="ml-2 italic">(case-sensitive)</span>
-          )}
+          {[data.correctAnswer, ...(data.acceptableAnswers ?? [])].filter(Boolean).join(", ") ||
+            "—"}
+          {data.caseSensitive && <span className="ml-2 italic">(case-sensitive)</span>}
         </div>
       )}
     </div>
@@ -315,10 +299,8 @@ function ParagraphPreview({ data }: { data: ParagraphData }) {
         )}
       </div>
       {data?.modelAnswer && (
-        <div className="bg-muted/50 rounded-md border p-2 text-xs">
-          <p className="text-muted-foreground mb-1 font-semibold uppercase tracking-wide">
-            Model Answer
-          </p>
+        <div className="bg-muted/50 border-subtle rounded-md border p-2 text-xs">
+          <p className="text-fg-muted tracking-caps mb-1 font-bold uppercase">Model Answer</p>
           <p className="whitespace-pre-wrap">{data.modelAnswer}</p>
         </div>
       )}
@@ -333,12 +315,12 @@ function CodePreview({ data }: { data: CodeData }) {
         <span className="font-mono uppercase">{data?.language ?? "code"}</span>
         <span className="text-muted-foreground">read-only</span>
       </div>
-      <pre className="-mt-2 overflow-x-auto rounded-b-md border bg-zinc-900 p-3 text-xs text-zinc-100 dark:bg-zinc-950">
+      <pre className="bg-ink-900 text-paper-100 -mt-2 overflow-x-auto rounded-b-md border p-3 text-xs">
         <code>{data?.starterCode ?? "// no starter code"}</code>
       </pre>
       {(data?.testCases ?? []).length > 0 && (
         <div className="space-y-1">
-          <p className="text-muted-foreground text-xs font-semibold uppercase">
+          <p className="text-fg-muted tracking-caps text-xs font-bold uppercase">
             Test cases ({data.testCases.length})
           </p>
           {data.testCases.slice(0, 3).map((tc) => (
@@ -349,9 +331,7 @@ function CodePreview({ data }: { data: CodeData }) {
               <div className="font-mono">
                 <span className="text-muted-foreground">out:</span> {tc.expectedOutput}
               </div>
-              {tc.isHidden && (
-                <span className="text-muted-foreground italic">(hidden)</span>
-              )}
+              {tc.isHidden && <span className="text-muted-foreground italic">(hidden)</span>}
             </div>
           ))}
           {data.testCases.length > 3 && (
@@ -413,7 +393,7 @@ function FillBlanksDDPreview({ data }: { data: FillBlanksDDData }) {
             return (
               <span
                 key={i}
-                className="bg-emerald-500/5 mx-1 inline-block min-w-[80px] rounded border border-emerald-500/40 px-2 py-0.5 text-center text-xs"
+                className="bg-success-subtle border-success/40 text-success mx-1 inline-block min-w-[80px] rounded border px-2 py-0.5 text-center text-xs"
               >
                 {correct?.text ?? "____"}
               </span>
@@ -425,9 +405,7 @@ function FillBlanksDDPreview({ data }: { data: FillBlanksDDData }) {
       {blanks.length > 0 && (
         <div className="text-muted-foreground text-xs">
           <strong>Word bank:</strong>{" "}
-          {Array.from(
-            new Set(blanks.flatMap((b) => b.options.map((o) => o.text)))
-          ).join(", ")}
+          {Array.from(new Set(blanks.flatMap((b) => b.options.map((o) => o.text)))).join(", ")}
         </div>
       )}
     </div>
@@ -441,13 +419,10 @@ function MatchingPreview({ data }: { data: MatchingData }) {
   return (
     <div className="space-y-1.5">
       {data.pairs.map((pair) => (
-        <div
-          key={pair.id}
-          className="flex items-center gap-2 rounded-md border p-2 text-sm"
-        >
+        <div key={pair.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
           <span className="bg-muted flex-1 rounded px-2 py-1">{pair.left}</span>
           <span className="text-muted-foreground text-xs">↔</span>
-          <span className="bg-emerald-500/5 flex-1 rounded border border-emerald-500/30 px-2 py-1">
+          <span className="bg-success-subtle border-success/40 flex-1 rounded border px-2 py-1">
             {pair.right}
           </span>
         </div>
@@ -466,15 +441,13 @@ function JumbledPreview({ data }: { data: JumbledData }) {
   const items = ordered.length > 0 ? ordered : data.items;
   return (
     <div className="space-y-1.5">
-      <p className="text-muted-foreground text-xs font-semibold uppercase">
-        Correct order
-      </p>
+      <p className="text-fg-muted tracking-caps text-xs font-bold uppercase">Correct order</p>
       {items.map((it, idx) => (
         <div
           key={it.id}
-          className="flex items-center gap-2 rounded-md border bg-emerald-500/5 p-2 text-sm"
+          className="bg-success-subtle border-success/40 flex items-center gap-2 rounded-md border p-2 text-sm"
         >
-          <span className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold">
+          <span className="bg-success/20 text-success rounded-pill flex h-6 w-6 items-center justify-center font-mono text-xs font-semibold">
             {idx + 1}
           </span>
           <span className="flex-1">{it.text}</span>
@@ -534,12 +507,12 @@ function GroupOptionsPreview({ data }: { data: GroupOptionsData }) {
     <div className="grid gap-2 sm:grid-cols-2">
       {data.groups.map((group) => (
         <div key={group.id} className="rounded-md border p-2">
-          <p className="mb-1.5 text-xs font-semibold uppercase">{group.name}</p>
+          <p className="tracking-caps mb-1.5 text-xs font-semibold uppercase">{group.name}</p>
           <div className="space-y-1">
             {group.correctItems.map((itemId) => (
               <div
                 key={itemId}
-                className="bg-emerald-500/5 rounded border border-emerald-500/30 px-2 py-1 text-xs"
+                className="bg-success-subtle border-success/40 rounded border px-2 py-1 text-xs"
               >
                 {itemMap.get(itemId) ?? itemId}
               </div>
@@ -560,7 +533,7 @@ function ChatAgentPreview({ data }: { data: ChatAgentQuestionData }) {
       </div>
       {(data?.objectives ?? []).length > 0 && (
         <div className="text-xs">
-          <p className="text-muted-foreground mb-1 font-semibold uppercase">Objectives</p>
+          <p className="text-fg-muted tracking-caps mb-1 font-bold uppercase">Objectives</p>
           <ul className="list-disc space-y-0.5 pl-5">
             {data.objectives.map((o, i) => (
               <li key={i}>{o}</li>
@@ -570,7 +543,7 @@ function ChatAgentPreview({ data }: { data: ChatAgentQuestionData }) {
       )}
       {(data?.conversationStarters ?? []).length > 0 && (
         <div className="text-xs">
-          <p className="text-muted-foreground mb-1 font-semibold uppercase">Starters</p>
+          <p className="text-fg-muted tracking-caps mb-1 font-bold uppercase">Starters</p>
           <ul className="list-disc space-y-0.5 pl-5">
             {data.conversationStarters!.map((s, i) => (
               <li key={i}>{s}</li>
@@ -620,11 +593,7 @@ function MaterialContent({
       return <VideoMaterialPreview url={payload.url} duration={payload.duration} title={title} />;
     case "pdf":
       return (
-        <PDFMaterialPreview
-          url={payload.url}
-          title={title}
-          downloadable={payload.downloadable}
-        />
+        <PDFMaterialPreview url={payload.url} title={title} downloadable={payload.downloadable} />
       );
     case "link":
       return <LinkMaterialPreview url={payload.url} title={title} />;
@@ -633,11 +602,7 @@ function MaterialContent({
     case "rich":
       return <RichMaterialPreview richContent={payload.richContent} title={title} />;
     default:
-      return (
-        <p className="text-muted-foreground text-xs italic">
-          Unsupported material type.
-        </p>
-      );
+      return <p className="text-muted-foreground text-xs italic">Unsupported material type.</p>;
   }
 }
 
@@ -645,8 +610,7 @@ function TextMaterialPreview({ content, title }: { content: string; title?: stri
   if (!content) {
     return <p className="text-muted-foreground text-xs italic">No content yet.</p>;
   }
-  const isHtml =
-    content.startsWith("<") || content.includes("<p>") || content.includes("<h");
+  const isHtml = content.startsWith("<") || content.includes("<p>") || content.includes("<h");
   return (
     <div>
       {title && <h4 className="mb-2 text-sm font-semibold">{title}</h4>}
@@ -739,7 +703,7 @@ function LinkMaterialPreview({ url, title }: { url?: string; title?: string }) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-primary hover:bg-primary/5 inline-flex items-center gap-2 rounded-md border p-3 text-sm"
+        className="text-brand hover:bg-brand-subtle border-subtle duration-fast ease-standard inline-flex items-center gap-2 rounded-md border p-3 text-sm transition-colors"
       >
         <ExternalLink className="h-4 w-4" />
         <span className="truncate">{url}</span>
@@ -831,7 +795,7 @@ function RichMaterialPreview({
               return (
                 <pre
                   key={block.id}
-                  className="overflow-x-auto rounded bg-zinc-900 p-2 text-xs text-zinc-100 dark:bg-zinc-950"
+                  className="bg-ink-900 text-paper-100 overflow-x-auto rounded p-2 text-xs"
                 >
                   <code>{block.content}</code>
                 </pre>
@@ -849,8 +813,7 @@ function RichMaterialPreview({
               const items: string[] =
                 ((block.metadata as Record<string, unknown>)?.items as string[]) ??
                 (block.content ? block.content.split("\n").filter(Boolean) : []);
-              const isOrdered =
-                (block.metadata as Record<string, unknown>)?.listType === "ordered";
+              const isOrdered = (block.metadata as Record<string, unknown>)?.listType === "ordered";
               const Tag = isOrdered ? "ol" : "ul";
               return (
                 <Tag
@@ -890,7 +853,7 @@ function RichMaterialPreview({
 function MaterialAttachments({ attachments }: { attachments: ItemAttachment[] }) {
   return (
     <div className="space-y-1">
-      <p className="text-muted-foreground text-xs font-semibold uppercase">Attachments</p>
+      <p className="text-fg-muted tracking-caps text-xs font-bold uppercase">Attachments</p>
       <div className="grid gap-2 sm:grid-cols-2">
         {attachments.map((att) => {
           if (att.type === "image") {
