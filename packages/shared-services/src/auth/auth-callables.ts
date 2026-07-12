@@ -1,5 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '../firebase';
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "../firebase";
 import type {
   SaveResponse,
   SaveTenantRequest,
@@ -32,7 +32,7 @@ import type {
   RolloverSessionResponse,
   UploadTenantAssetRequest,
   UploadTenantAssetResponse,
-} from '@levelup/shared-types';
+} from "@levelup/shared-types";
 
 // ---------------------------------------------------------------------------
 // Auth callable types
@@ -45,7 +45,7 @@ export interface SwitchActiveTenantResponse {
 
 export interface CreateOrgUserRequest {
   tenantId: string;
-  role: 'tenantAdmin' | 'teacher' | 'student' | 'parent' | 'scanner' | 'staff';
+  role: "tenantAdmin" | "teacher" | "student" | "parent" | "scanner" | "staff";
   email?: string;
   rollNumber?: string;
   firstName: string;
@@ -106,14 +106,21 @@ function getCallable<Req, Res>(name: string) {
 
 // Auth / tenant management
 
-export async function callSwitchActiveTenant(tenantId: string): Promise<SwitchActiveTenantResponse> {
-  const fn = getCallable<{ tenantId: string }, SwitchActiveTenantResponse>('switchActiveTenant');
-  const result = await fn({ tenantId });
+export async function callSwitchActiveTenant(
+  tenantId: string
+): Promise<SwitchActiveTenantResponse> {
+  // Live identity callable is v1-prefixed and expects `targetTenantId` (api-contract).
+  const fn = getCallable<{ targetTenantId: string }, SwitchActiveTenantResponse>(
+    "v1-identity-switchActiveTenant"
+  );
+  const result = await fn({ targetTenantId: tenantId });
   return result.data;
 }
 
-export async function callCreateOrgUser(data: CreateOrgUserRequest): Promise<CreateOrgUserResponse> {
-  const fn = getCallable<CreateOrgUserRequest, CreateOrgUserResponse>('createOrgUser');
+export async function callCreateOrgUser(
+  data: CreateOrgUserRequest
+): Promise<CreateOrgUserResponse> {
+  const fn = getCallable<CreateOrgUserRequest, CreateOrgUserResponse>("createOrgUser");
   const result = await fn(data);
   return result.data;
 }
@@ -121,51 +128,59 @@ export async function callCreateOrgUser(data: CreateOrgUserRequest): Promise<Cre
 // Identity
 
 export async function callSaveTenant(data: SaveTenantRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveTenantRequest, SaveResponse>('saveTenant');
+  const fn = getCallable<SaveTenantRequest, SaveResponse>("saveTenant");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveClass(data: SaveClassRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveClassRequest, SaveResponse>('saveClass');
+  const fn = getCallable<SaveClassRequest, SaveResponse>("saveClass");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveStudent(data: SaveStudentRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveStudentRequest, SaveResponse>('saveStudent');
+  const fn = getCallable<SaveStudentRequest, SaveResponse>("saveStudent");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveTeacher(data: SaveTeacherRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveTeacherRequest, SaveResponse>('saveTeacher');
+  const fn = getCallable<SaveTeacherRequest, SaveResponse>("saveTeacher");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveParent(data: SaveParentRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveParentRequest, SaveResponse>('saveParent');
+  const fn = getCallable<SaveParentRequest, SaveResponse>("saveParent");
   const result = await fn(data);
   return result.data;
 }
 
-export async function callSaveAcademicSession(data: SaveAcademicSessionRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveAcademicSessionRequest, SaveResponse>('saveAcademicSession');
+export async function callSaveAcademicSession(
+  data: SaveAcademicSessionRequest
+): Promise<SaveResponse> {
+  const fn = getCallable<SaveAcademicSessionRequest, SaveResponse>("saveAcademicSession");
   const result = await fn(data);
   return result.data;
 }
 
-export async function callManageNotifications(data: ManageNotificationsRequest): Promise<ManageNotificationsResponse> {
-  const fn = getCallable<ManageNotificationsRequest, ManageNotificationsResponse>('manageNotifications');
+export async function callManageNotifications(
+  data: ManageNotificationsRequest
+): Promise<ManageNotificationsResponse> {
+  const fn = getCallable<ManageNotificationsRequest, ManageNotificationsResponse>(
+    "manageNotifications"
+  );
   const result = await fn(data);
   return result.data;
 }
 
 export async function callBulkImportStudents(
-  data: BulkImportStudentsRequest,
+  data: BulkImportStudentsRequest
 ): Promise<BulkImportStudentsResponse> {
-  const fn = getCallable<BulkImportStudentsRequest, BulkImportStudentsResponse>('bulkImportStudents');
+  const fn = getCallable<BulkImportStudentsRequest, BulkImportStudentsResponse>(
+    "bulkImportStudents"
+  );
   const result = await fn(data);
   return result.data;
 }
@@ -173,19 +188,19 @@ export async function callBulkImportStudents(
 // LevelUp
 
 export async function callSaveSpace(data: SaveSpaceRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveSpaceRequest, SaveResponse>('saveSpace');
+  const fn = getCallable<SaveSpaceRequest, SaveResponse>("saveSpace");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveStoryPoint(data: SaveStoryPointRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveStoryPointRequest, SaveResponse>('saveStoryPoint');
+  const fn = getCallable<SaveStoryPointRequest, SaveResponse>("saveStoryPoint");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveItem(data: SaveItemRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveItemRequest, SaveResponse>('saveItem');
+  const fn = getCallable<SaveItemRequest, SaveResponse>("saveItem");
   const result = await fn(data);
   return result.data;
 }
@@ -193,25 +208,31 @@ export async function callSaveItem(data: SaveItemRequest): Promise<SaveResponse>
 // Tenant lifecycle
 
 export async function callDeactivateTenant(
-  data: DeactivateTenantRequest,
+  data: DeactivateTenantRequest
 ): Promise<{ success: boolean; membershipsSuspended: number }> {
-  const fn = getCallable<DeactivateTenantRequest, { success: boolean; membershipsSuspended: number }>('deactivateTenant');
+  const fn = getCallable<
+    DeactivateTenantRequest,
+    { success: boolean; membershipsSuspended: number }
+  >("deactivateTenant");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callReactivateTenant(
-  data: ReactivateTenantRequest,
+  data: ReactivateTenantRequest
 ): Promise<{ success: boolean; membershipsReactivated: number }> {
-  const fn = getCallable<ReactivateTenantRequest, { success: boolean; membershipsReactivated: number }>('reactivateTenant');
+  const fn = getCallable<
+    ReactivateTenantRequest,
+    { success: boolean; membershipsReactivated: number }
+  >("reactivateTenant");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callExportTenantData(
-  data: ExportTenantDataRequest,
+  data: ExportTenantDataRequest
 ): Promise<ExportTenantDataResponse> {
-  const fn = getCallable<ExportTenantDataRequest, ExportTenantDataResponse>('exportTenantData');
+  const fn = getCallable<ExportTenantDataRequest, ExportTenantDataResponse>("exportTenantData");
   const result = await fn(data);
   return result.data;
 }
@@ -242,9 +263,11 @@ export interface SaveGlobalPresetResponse {
 }
 
 export async function callSaveGlobalEvaluationPreset(
-  data: SaveGlobalPresetRequest,
+  data: SaveGlobalPresetRequest
 ): Promise<SaveGlobalPresetResponse> {
-  const fn = getCallable<SaveGlobalPresetRequest, SaveGlobalPresetResponse>('saveGlobalEvaluationPreset');
+  const fn = getCallable<SaveGlobalPresetRequest, SaveGlobalPresetResponse>(
+    "saveGlobalEvaluationPreset"
+  );
   const result = await fn(data);
   return result.data;
 }
@@ -261,10 +284,8 @@ export interface JoinTenantResponse {
   role: string;
 }
 
-export async function callJoinTenant(
-  data: JoinTenantRequest,
-): Promise<JoinTenantResponse> {
-  const fn = getCallable<JoinTenantRequest, JoinTenantResponse>('joinTenant');
+export async function callJoinTenant(data: JoinTenantRequest): Promise<JoinTenantResponse> {
+  const fn = getCallable<JoinTenantRequest, JoinTenantResponse>("joinTenant");
   const result = await fn(data);
   return result.data;
 }
@@ -272,17 +293,17 @@ export async function callJoinTenant(
 // Announcements
 
 export async function callSaveAnnouncement(
-  data: SaveAnnouncementRequest,
+  data: SaveAnnouncementRequest
 ): Promise<SaveAnnouncementResponse> {
-  const fn = getCallable<SaveAnnouncementRequest, SaveAnnouncementResponse>('saveAnnouncement');
+  const fn = getCallable<SaveAnnouncementRequest, SaveAnnouncementResponse>("saveAnnouncement");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callListAnnouncements(
-  data: ListAnnouncementsRequest,
+  data: ListAnnouncementsRequest
 ): Promise<ListAnnouncementsResponse> {
-  const fn = getCallable<ListAnnouncementsRequest, ListAnnouncementsResponse>('listAnnouncements');
+  const fn = getCallable<ListAnnouncementsRequest, ListAnnouncementsResponse>("listAnnouncements");
   const result = await fn(data);
   return result.data;
 }
@@ -290,9 +311,11 @@ export async function callListAnnouncements(
 // Bulk teacher import
 
 export async function callBulkImportTeachers(
-  data: BulkImportTeachersRequest,
+  data: BulkImportTeachersRequest
 ): Promise<BulkImportTeachersResponse> {
-  const fn = getCallable<BulkImportTeachersRequest, BulkImportTeachersResponse>('bulkImportTeachers');
+  const fn = getCallable<BulkImportTeachersRequest, BulkImportTeachersResponse>(
+    "bulkImportTeachers"
+  );
   const result = await fn(data);
   return result.data;
 }
@@ -300,9 +323,9 @@ export async function callBulkImportTeachers(
 // Bulk status update
 
 export async function callBulkUpdateStatus(
-  data: BulkUpdateStatusRequest,
+  data: BulkUpdateStatusRequest
 ): Promise<BulkUpdateStatusResponse> {
-  const fn = getCallable<BulkUpdateStatusRequest, BulkUpdateStatusResponse>('bulkUpdateStatus');
+  const fn = getCallable<BulkUpdateStatusRequest, BulkUpdateStatusResponse>("bulkUpdateStatus");
   const result = await fn(data);
   return result.data;
 }
@@ -310,9 +333,9 @@ export async function callBulkUpdateStatus(
 // Session rollover
 
 export async function callRolloverSession(
-  data: RolloverSessionRequest,
+  data: RolloverSessionRequest
 ): Promise<RolloverSessionResponse> {
-  const fn = getCallable<RolloverSessionRequest, RolloverSessionResponse>('rolloverSession');
+  const fn = getCallable<RolloverSessionRequest, RolloverSessionResponse>("rolloverSession");
   const result = await fn(data);
   return result.data;
 }
@@ -320,7 +343,7 @@ export async function callRolloverSession(
 // Staff management
 
 export async function callSaveStaff(data: SaveStaffRequest): Promise<SaveResponse> {
-  const fn = getCallable<SaveStaffRequest, SaveResponse>('saveStaff');
+  const fn = getCallable<SaveStaffRequest, SaveResponse>("saveStaff");
   const result = await fn(data);
   return result.data;
 }
@@ -328,19 +351,17 @@ export async function callSaveStaff(data: SaveStaffRequest): Promise<SaveRespons
 // Tenant asset upload
 
 export async function callUploadTenantAsset(
-  data: UploadTenantAssetRequest,
+  data: UploadTenantAssetRequest
 ): Promise<UploadTenantAssetResponse> {
-  const fn = getCallable<UploadTenantAssetRequest, UploadTenantAssetResponse>('uploadTenantAsset');
+  const fn = getCallable<UploadTenantAssetRequest, UploadTenantAssetResponse>("uploadTenantAsset");
   const result = await fn(data);
   return result.data;
 }
 
 // Global user search (SuperAdmin)
 
-export async function callSearchUsers(
-  data: SearchUsersRequest,
-): Promise<SearchUsersResponse> {
-  const fn = getCallable<SearchUsersRequest, SearchUsersResponse>('searchUsers');
+export async function callSearchUsers(data: SearchUsersRequest): Promise<SearchUsersResponse> {
+  const fn = getCallable<SearchUsersRequest, SearchUsersResponse>("searchUsers");
   const result = await fn(data);
   return result.data;
 }
