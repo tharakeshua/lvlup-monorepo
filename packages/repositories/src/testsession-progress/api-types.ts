@@ -189,25 +189,10 @@ export interface LevelupNamespace {
   [op: string]: (req: never) => Promise<unknown>;
 }
 
-/**
- * Batched student-summary read — the N+1 collapse for parent/teacher dashboards
- * (§4.1 getMany: the client sends the full id list in ONE request; the 10/30-id
- * `in`-chunking + max-ids cap lives SERVER-SIDE in repository-admin, the client
- * never touches Firestore).
- */
-export interface GetStudentSummariesRequest {
-  studentIds: UserId[];
-}
-export interface GetStudentSummariesResponse {
-  items: StudentProgressSummary[];
-}
-
-/** Class roll-up read — class summary + member summaries in one shaped call. */
-export interface GetClassSummaryRequest {
-  classId: string;
-}
+/** Class roll-up read — shaped from `getSummary{scope:'class'}`. */
 export interface GetClassSummaryResponse {
   classSummary: ClassProgressSummary;
+  /** Empty unless the caller separately fans out `getMany` / `getChildSummary`. */
   members: StudentProgressSummary[];
 }
 
@@ -215,10 +200,11 @@ export interface AnalyticsNamespace {
   getChildSummary: Callable<GetChildSummaryRequest, GetChildSummaryResponse>;
   getSummary: Callable<
     GetSummaryRequest,
-    { summary: ClassProgressSummary | StudentProgressSummary }
+    | { scope: "student"; studentSummary: StudentProgressSummary }
+    | { scope: "class"; classSummary: ClassProgressSummary }
+    | { scope: "platform"; platformSummary: unknown }
+    | { scope: "health"; healthSummary: unknown }
   >;
-  getStudentSummaries: Callable<GetStudentSummariesRequest, GetStudentSummariesResponse>;
-  getClassSummary: Callable<GetClassSummaryRequest, GetClassSummaryResponse>;
   [op: string]: (req: never) => Promise<unknown>;
 }
 

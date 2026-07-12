@@ -5,7 +5,7 @@
  *   get(id)              — single getSpace, shaped SpaceView
  *   getMany(ids)         — batched (server fan-in, no client chunking)
  *   save(input)          — metadata only (D2: never injects tenantId)
- *   publish/archive(id)  — explicit lifecycle verbs (DX-5), authoritySensitive
+ *   publish/archive(id)  — lifecycle via saveSpace { status } (no separate callables)
  *   canTransition(f,t)   — pure ALLOWED_TRANSITIONS read (UX)
  *   canPublish(space)    — derived: status is draft/published & publishable
  *   isPublished(space)   — derived boolean
@@ -66,8 +66,9 @@ export function createSpaceRepo(api: ApiClientLike): SpaceRepo {
     get: (id) => lv["getSpace"]!({ spaceId: id }).then((r) => (r as { space: unknown }).space),
     getMany: (ids) => batchGetMany((req) => lv["listSpaces"]!(req), ids),
     save: (input) => lv["saveSpace"]!(input),
-    publish: (input) => lv["publishSpace"]!(input),
-    archive: (input) => lv["archiveSpace"]!(input),
+    // Contract: saveSpace IS the lifecycle verb — there is no publishSpace/archiveSpace.
+    publish: (input) => lv["saveSpace"]!({ id: input.id, data: { status: "published" } }),
+    archive: (input) => lv["saveSpace"]!({ id: input.id, data: { status: "archived" } }),
     canTransition: (from, to) => kitCanTransition("space", from, to),
     canPublish: (space) => {
       // The lifecycle gate is authoritative for the UX button; the content

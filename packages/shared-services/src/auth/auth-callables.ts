@@ -107,8 +107,11 @@ function getCallable<Req, Res>(name: string) {
 // Auth / tenant management
 
 export async function callSwitchActiveTenant(tenantId: string): Promise<SwitchActiveTenantResponse> {
-  const fn = getCallable<{ tenantId: string }, SwitchActiveTenantResponse>('switchActiveTenant');
-  const result = await fn({ tenantId });
+  // Live identity callable is v1-prefixed and expects `targetTenantId` (api-contract).
+  const fn = getCallable<{ targetTenantId: string }, SwitchActiveTenantResponse>(
+    'v1-identity-switchActiveTenant',
+  );
+  const result = await fn({ targetTenantId: tenantId });
   return result.data;
 }
 

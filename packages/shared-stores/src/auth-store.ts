@@ -209,22 +209,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // 3. Sign in
       const cred = await authService.signIn(email, password);
 
-      // 4. Load membership for this tenant
-      const membership = await getMembership(cred.user.uid, tenant.id);
+      // 4. Prefer a membership the user actually holds for this school code.
+      // Seed / v2_ index drift can make lookupTenantByCode resolve a ghost
+      // tenantId with no membership doc → permission-denied noise.
+      const code = schoolCode.trim().toUpperCase();
+      const memberships = await getUserMemberships(cred.user.uid);
+      const active = memberships.filter((m) => m.status === "active");
+      // Prefer the looked-up tenant when the user has that membership — seed drift
+      // leaves multiple GRN001 ghosts; the public code index is the intended tenant.
+      const byLookup = active.find((m) => m.tenantId === tenant.id);
+      const byCode = active.find((m) => (m.tenantCode || "").toUpperCase() === code);
+      const membership =
+        byLookup ?? byCode ?? (await getMembership(cred.user.uid, tenant.id));
       if (!membership || membership.status !== "active") {
         throw new Error("No active membership for this school");
       }
+      const targetTenantId = membership.tenantId;
 
       // 5. Switch active tenant context (sets custom claims server-side)
-      await callSwitchActiveTenant(tenant.id);
+      await callSwitchActiveTenant(targetTenantId);
 
       // 6. Force token refresh so client picks up new claims
       await cred.user.getIdToken(true);
 
       set({
         firebaseUser: cred.user,
-        currentTenantId: tenant.id,
+        currentTenantId: targetTenantId,
         currentMembership: membership,
+        allMemberships: memberships.length ? memberships : [membership],
       });
     } catch (err) {
       const message = getAuthErrorMessage(err, "School login failed");

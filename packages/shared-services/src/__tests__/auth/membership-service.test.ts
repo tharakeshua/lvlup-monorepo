@@ -60,7 +60,10 @@ describe('membership-service', () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(fakeMemberships[0]);
       expect(result[1]).toEqual(fakeMemberships[1]);
-      expect(mockCollection).toHaveBeenCalledWith(fakeDb, 'userMemberships');
+      // Prefers v2_ (lvlup-ff6fa default / explicit prefix) then may fall through.
+      expect(mockCollection).toHaveBeenCalled();
+      const colArgs = mockCollection.mock.calls.map((c) => c[1]);
+      expect(colArgs.some((n) => String(n).endsWith('userMemberships'))).toBe(true);
       expect(mockWhere).toHaveBeenCalledWith('uid', '==', 'user-1');
       expect(mockWhere).toHaveBeenCalledWith('status', '==', 'active');
     });
@@ -114,8 +117,14 @@ describe('membership-service', () => {
 
       const result = await getMembership('user-1', 'tenant-a');
 
-      expect(result).toEqual(membershipData);
-      expect(mockDoc).toHaveBeenCalledWith(fakeDb, 'userMemberships', 'user-1_tenant-a');
+      expect(result).toMatchObject(membershipData);
+      expect(mockDoc).toHaveBeenCalled();
+      const docArgs = mockDoc.mock.calls.map((c) => [c[1], c[2]]);
+      expect(
+        docArgs.some(
+          ([col, id]) => String(col).endsWith('userMemberships') && id === 'user-1_tenant-a',
+        ),
+      ).toBe(true);
     });
 
     it('returns null when document does not exist', async () => {
@@ -142,7 +151,13 @@ describe('membership-service', () => {
 
       await getMembership('abc-123', 'tenant-xyz');
 
-      expect(mockDoc).toHaveBeenCalledWith(fakeDb, 'userMemberships', 'abc-123_tenant-xyz');
+      expect(mockDoc).toHaveBeenCalled();
+      const docArgs = mockDoc.mock.calls.map((c) => [c[1], c[2]]);
+      expect(
+        docArgs.some(
+          ([col, id]) => String(col).endsWith('userMemberships') && id === 'abc-123_tenant-xyz',
+        ),
+      ).toBe(true);
     });
   });
 });

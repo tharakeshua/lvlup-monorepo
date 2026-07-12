@@ -9,12 +9,12 @@
  * duplicate `levelup` read endpoint is added).
  *
  *   • `get(studentId)` → one child-summary read.
- *   • `getMany(studentIds)` collapses the parent/teacher per-child fan-out into
- *     ONE batched read (§4.1 / REVIEW parent fan-out). `getMany([])`
- *     short-circuits — zero ids ⇒ zero wire calls. NO client-side `in`-chunking
- *     of 10/30 ids: the full id list goes in one request; the server fans in.
- *   • `getClassView(classId)` assembles `ClassProgressSummary` + member summaries
- *     in one shaped call (BOUNDED — never one read per member, PC-14).
+ *   • `getMany(studentIds)` fans out `getChildSummary` (no batch callable in the
+ *     v1 contract — `getStudentSummaries` was never registered). Empty id list
+ *     short-circuits with zero wire calls.
+ *   • `getClassView(classId)` uses `getSummary{scope:'class'}` (replaces the
+ *     legacy `getClassSummary` name). Member rows are not in that response —
+ *     callers that need per-student summaries should `getMany` explicitly.
  *
  * Composes only `api` (not sibling repos) — but is still a declared view repo so
  * the R6 import-isolation scan classifies it under views/**.
@@ -39,14 +39,22 @@ export function createStudentSummaryRepo(api: ApiClient): StudentSummaryRepo {
     getMany: async (studentIds) => {
       // Zero ids ⇒ no wire call (DX-14 short-circuit).
       if (studentIds.length === 0) return [];
-      // ONE batched read carrying the FULL id list — the server does the
-      // 10/30-id `in`-chunking + cap (repository-admin), never the client.
-      const res = await api.analytics.getStudentSummaries({
-        studentIds: [...studentIds] as UserId[],
-      });
-      return res.items;
+      // v1 has no batched getStudentSummaries — fan out the live child read.
+      const rows = await Promise.all(
+        studentIds.map((studentId) => api.analytics.getChildSummary({ studentId }))
+      );
+      return rows.map((r) => r.studentSummary);
     },
 
-    getClassView: (classId) => api.analytics.getClassSummary({ classId }),
+    getClassView: async (classId) => {
+      const res = await api.analytics.getSummary({ scope: "class", classId });
+      if (res.scope !== "class") {
+        throw new Error(`getSummary returned scope '${res.scope}', expected 'class'`);
+      }
+      return {
+        classSummary: res.classSummary as GetClassSummaryResponse["classSummary"],
+        members: [],
+      };
+    },
   };
 }
