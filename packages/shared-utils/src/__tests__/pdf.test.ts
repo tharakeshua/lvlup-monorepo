@@ -10,7 +10,7 @@ const mockContext = {
   fillRect: vi.fn(),
 };
 const mockCanvas = {
-  getContext: vi.fn(() => mockContext),
+  getContext: vi.fn((): typeof mockContext | null => mockContext),
   toDataURL: vi.fn(() => "data:image/jpeg;base64,mockBase64Data"),
   height: 0,
   width: 0,

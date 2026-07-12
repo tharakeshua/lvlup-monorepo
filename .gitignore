@@ -99,3 +99,6 @@ packages/seed/verify-admin-reads.mjs
 packages/seed/verify-real-grading.mjs
 packages/seed/verify-teacher-reads.mjs
 tmp-e2e-chaitanya/
+
+.ci-logs/
+
