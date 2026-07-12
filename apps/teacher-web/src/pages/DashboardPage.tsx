@@ -25,6 +25,13 @@ import type { Space } from "@levelup/shared-types";
 import type { Exam } from "@levelup/shared-types";
 import type { Submission, Class, ClassProgressSummary } from "@levelup/shared-types";
 
+/** Soft-fail getSummary 403s for classes not assigned to this teacher (until sdk-v1 redeploy). */
+function isSummaryPermissionDenied(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as { code?: string }).code;
+  return code === "PERMISSION_DENIED" || code === "permission-denied";
+}
+
 // The @levelup/query class summary (domain shape) drops the legacy performer
 // lists and renames metric fields; the dashboard only reads atRiskCount,
 // className, classId and the average exam score, which we map here.
@@ -95,13 +102,24 @@ export default function DashboardPage() {
   const classSummaryResults = useQueries({
     queries: classIds.map((classId) => ({
       queryKey: ["analytics", "classSummary", classId] as const,
-      queryFn: () =>
-        (
-          repos as unknown as {
-            summaryRepo: { getClass(id: string): Promise<unknown> };
-          }
-        ).summaryRepo.getClass(classId),
+      queryFn: async () => {
+        try {
+          return await (
+            repos as unknown as {
+              summaryRepo: { getClass(id: string): Promise<unknown> };
+            }
+          ).summaryRepo.getClass(classId);
+        } catch (err) {
+          // Teachers can list all tenant classes, but getSummary still 403s for
+          // unassigned ones until the backend/sdk scopes the class list. Skip
+          // those so the rest of the dashboard still renders.
+          if (isSummaryPermissionDenied(err)) return null;
+          throw err;
+        }
+      },
       enabled: Boolean(classId),
+      retry: false,
+      throwOnError: false,
     })),
   });
   const classSummaries = classSummaryResults

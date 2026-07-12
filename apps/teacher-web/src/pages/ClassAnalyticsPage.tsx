@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useClasses, useClassSummary } from "@levelup/query";
+import { useQuery } from "@tanstack/react-query";
+import { useClasses, useRepos } from "@levelup/query";
 import type { Class, ClassProgressSummary } from "@levelup/shared-types";
 import { BarChart3, Users, BookOpen, ClipboardList, Trophy } from "lucide-react";
 import {
@@ -11,6 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@levelup/shared-ui";
+
+/** Soft-fail getSummary 403s for classes not assigned to this teacher (until sdk-v1 redeploy). */
+function isSummaryPermissionDenied(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as { code?: string }).code;
+  return code === "PERMISSION_DENIED" || code === "permission-denied";
+}
 
 // The @levelup/query class summary (domain `ClassProgressSummary`) has a leaner
 // shape than the legacy denormalized summary this page renders: it exposes
@@ -63,7 +71,25 @@ export default function ClassAnalyticsPage() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const activeClassId = selectedClassId || classes[0]?.id || null;
-  const { data: rawSummary, isLoading } = useClassSummary((activeClassId ?? "") as never);
+  const repos = useRepos();
+  const { data: rawSummary, isLoading } = useQuery({
+    queryKey: ["analytics", "classSummary", activeClassId ?? ""] as const,
+    queryFn: async () => {
+      try {
+        return await (
+          repos as unknown as {
+            summaryRepo: { getClass(id: string): Promise<unknown> };
+          }
+        ).summaryRepo.getClass(activeClassId ?? "");
+      } catch (err) {
+        if (isSummaryPermissionDenied(err)) return null;
+        throw err;
+      }
+    },
+    enabled: Boolean(activeClassId),
+    retry: false,
+    throwOnError: false,
+  });
   const classSummary = adaptClassSummary(rawSummary);
 
   return (
@@ -109,7 +135,7 @@ export default function ClassAnalyticsPage() {
           <p className="text-muted-foreground mt-3 text-sm">
             {classes.length === 0
               ? "No classes created yet."
-              : "No analytics data yet. Data will appear after exams are graded and spaces are used."}
+              : "No analytics data yet for this class (or it isn't assigned to you). Data appears after exams are graded and spaces are used."}
           </p>
         </div>
       ) : (
