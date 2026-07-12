@@ -603,16 +603,24 @@ export default function SpaceEditorPage() {
   const handleAddStoryPoint = async (spType: StoryPoint["type"] = "standard") => {
     if (!spaceId) return;
     try {
-      await saveStoryPoint.mutateAsync({
+      const result = (await saveStoryPoint.mutateAsync({
         spaceId,
         data: {
           title: `Story Point ${storyPoints.length + 1}`,
           orderIndex: storyPoints.length,
           type: spType,
         },
-      });
-      await reloadStoryPoints();
-      sonnerToast.success("Story point added");
+      })) as { id: string };
+      const next = await reloadStoryPoints();
+      const createdId =
+        result?.id ?? next.find((s) => !storyPoints.some((p) => p.id === s.id))?.id;
+      if (createdId) {
+        setExpandedSP(createdId);
+        setActiveTab("content");
+      }
+      sonnerToast.success(
+        spType === "timed_test" ? "Timed test added — add questions below" : "Story point added"
+      );
     } catch (err) {
       handleError(err, "Failed to add story point");
     }
@@ -778,11 +786,23 @@ export default function SpaceEditorPage() {
 
       // Reload from server and pick up the freshly-created item.
       const loaded = await loadItems(storyPointId);
-      const created = loaded.find((i) => i.id === result.id);
-      if (created) {
-        setEditingItem(created);
-        setEditingItemSPId(storyPointId);
-      }
+      const created =
+        loaded.find((i) => i.id === result.id) ??
+        ({
+          id: result.id,
+          spaceId,
+          storyPointId,
+          type,
+          title,
+          orderIndex,
+          payload,
+          sectionId,
+        } as UnifiedItem);
+
+      // Always open the editor — never leave the teacher on a dead-end row.
+      setExpandedSP(storyPointId);
+      setEditingItem(created);
+      setEditingItemSPId(storyPointId);
     } catch (err) {
       handleError(err, "Failed to add item");
     }
@@ -1225,7 +1245,7 @@ export default function SpaceEditorPage() {
                                                   }
                                                   title="Add question to this section"
                                                 >
-                                                  <HelpCircle className="h-3 w-3" /> Question
+                                                  <HelpCircle className="h-3 w-3" /> Add Question
                                                 </Button>
                                                 <Button
                                                   variant="ghost"
@@ -1236,7 +1256,7 @@ export default function SpaceEditorPage() {
                                                   }
                                                   title="Add material to this section"
                                                 >
-                                                  <FileText className="h-3 w-3" /> Material
+                                                  <FileText className="h-3 w-3" /> Add Material
                                                 </Button>
                                               </div>
                                             </div>
@@ -1275,7 +1295,7 @@ export default function SpaceEditorPage() {
                                                 onClick={() => handleAddItem(sp.id, "question")}
                                                 title="Add question"
                                               >
-                                                <HelpCircle className="h-3 w-3" /> Question
+                                                <HelpCircle className="h-3 w-3" /> Add Question
                                               </Button>
                                               <Button
                                                 variant="ghost"
@@ -1284,7 +1304,7 @@ export default function SpaceEditorPage() {
                                                 onClick={() => handleAddItem(sp.id, "material")}
                                                 title="Add material"
                                               >
-                                                <FileText className="h-3 w-3" /> Material
+                                                <FileText className="h-3 w-3" /> Add Material
                                               </Button>
                                             </div>
                                           </div>
@@ -1437,7 +1457,21 @@ export default function SpaceEditorPage() {
                                 </div>
                               )}
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddItem(sp.id, "question")}
+                              >
+                                <HelpCircle className="h-3 w-3" /> Add Question
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddItem(sp.id, "material")}
+                              >
+                                <FileText className="h-3 w-3" /> Add Material
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
