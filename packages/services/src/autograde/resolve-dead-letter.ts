@@ -23,6 +23,18 @@ const METHOD_TO_RESOLUTION: Record<Req["method"], Res["resolution"]> = {
   dismiss: "dismissed",
 };
 
+const VALID_RESOLUTIONS = new Set<Res["resolution"]>([
+  "retry_success",
+  "manual_grade",
+  "dismissed",
+]);
+
+function asResolution(raw: unknown): Res["resolution"] | undefined {
+  return typeof raw === "string" && VALID_RESOLUTIONS.has(raw as Res["resolution"])
+    ? (raw as Res["resolution"])
+    : undefined;
+}
+
 export async function resolveDeadLetterService(input: Req, ctx: AuthContext): Promise<Res> {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "grade.retry", { tenantId });
@@ -32,20 +44,27 @@ export async function resolveDeadLetterService(input: Req, ctx: AuthContext): Pr
   const entry = entries.find((e) => e["id"] === input.entryId);
   if (!entry) fail("NOT_FOUND", `dead-letter entry ${input.entryId} not found`);
 
-  // Idempotent: already resolved → no-op.
+  const rowId = String(entry["id"] ?? input.entryId);
+
+  // Idempotent: already resolved → no-op (coerce a valid resolution for the wire).
   if (entry["resolvedAt"]) {
-    return { success: true, resolution: entry["resolutionMethod"] as Res["resolution"] } as Res;
+    const prior = asResolution(entry["resolutionMethod"]) ?? "dismissed";
+    return { success: true, resolution: prior } as Res;
   }
 
   const resolution = METHOD_TO_RESOLUTION[input.method];
   const now = ctx.now();
 
   if (input.method === "retry") {
-    const submissionId = entry["submissionId"] as string;
+    const submissionId = entry["submissionId"];
+    if (typeof submissionId !== "string" || !submissionId) {
+      fail("INVALID_ARGUMENT", `dead-letter entry ${rowId} is missing submissionId`);
+    }
     await enqueuePipelineAdvance(ctx, submissionId, "grading");
   }
 
-  await ctx.repos.outbox.update(tenantId, input.entryId, {
+  // Patch by the row's logical id (not a stale client alias) so sibling rows stay.
+  await ctx.repos.outbox.update(tenantId, rowId, {
     resolvedAt: now,
     resolvedBy: ctx.uid,
     resolutionMethod: resolution,

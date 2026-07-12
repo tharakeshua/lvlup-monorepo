@@ -95,4 +95,52 @@ describe("SVC-4 — dead-letter list/resolve are non-destructive", () => {
     const delivery = rows.find((r) => r["id"] === "delivery_keep")!;
     expect(delivery["type"]).toBe("notification.send");
   });
+
+  it("resolveDeadLetter idempotent returns a valid resolution when method is missing", async () => {
+    const ctx = makeAuthContext("tenantAdmin");
+    const tenantId = ctx.tenantId!;
+
+    await ctx.repos.outbox.enqueue(tenantId, {
+      id: "dlq_legacy_resolved",
+      _kind: "gradingDeadLetter",
+      submissionId: "sub_1",
+      pipelineStep: "grading",
+      error: "old",
+      attempts: 1,
+      lastAttemptAt: TS,
+      resolvedAt: TS,
+      // Legacy row: resolved without resolutionMethod.
+      createdAt: TS,
+    });
+
+    const result = await resolveDeadLetterService(
+      { entryId: "dlq_legacy_resolved", method: "dismiss" },
+      ctx
+    );
+    expect(result.success).toBe(true);
+    expect(result.resolution).toBe("dismissed");
+  });
+
+  it("resolveDeadLetter retry fails cleanly when submissionId is missing", async () => {
+    const ctx = makeAuthContext("tenantAdmin");
+    const tenantId = ctx.tenantId!;
+
+    await ctx.repos.outbox.enqueue(tenantId, {
+      id: "dlq_no_sub",
+      _kind: "gradingDeadLetter",
+      pipelineStep: "grading",
+      error: "corrupt",
+      attempts: 1,
+      lastAttemptAt: TS,
+      resolvedAt: null,
+      createdAt: TS,
+    });
+
+    await expect(
+      resolveDeadLetterService({ entryId: "dlq_no_sub", method: "retry" }, ctx)
+    ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+
+    const row = (await ctx.repos.outbox.list(tenantId)).find((r) => r["id"] === "dlq_no_sub")!;
+    expect(row["resolvedAt"]).toBeFalsy();
+  });
 });
