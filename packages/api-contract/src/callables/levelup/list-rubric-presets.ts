@@ -2,7 +2,7 @@
  * v1.levelup.listRubricPresets — tenant rubric presets, optionally filtered.
  */
 import { z } from "zod";
-import { zRubricPresetCategory } from "@levelup/domain";
+import { coerceUnifiedRubric, zRubricPresetCategory } from "@levelup/domain";
 import { defineCallable } from "./_shared.js";
 import { RubricPresetSchema, zQuestionType } from "./_shared.js";
 
@@ -14,8 +14,15 @@ export const ListRubricPresetsRequestSchema = z
   .strict();
 export type ListRubricPresetsRequest = z.infer<typeof ListRubricPresetsRequestSchema>;
 
+/** Coerce legacy seed rubrics (totalPoints / key-label dims) before strict parse. */
+const ListRubricPresetItemSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== "object") return raw;
+  const p = raw as Record<string, unknown>;
+  return { ...p, rubric: coerceUnifiedRubric(p.rubric) };
+}, RubricPresetSchema);
+
 export const ListRubricPresetsResponseSchema = z
-  .object({ items: z.array(RubricPresetSchema) })
+  .object({ items: z.array(ListRubricPresetItemSchema) })
   .strict();
 export type ListRubricPresetsResponse = z.infer<typeof ListRubricPresetsResponseSchema>;
 
