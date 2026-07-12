@@ -46,6 +46,17 @@ export { default as AtRiskStudentsScreen } from "../screens/insights/AtRiskStude
 export { default as ClassTestAnalyticsScreen } from "../screens/insights/ClassTestAnalyticsScreen";
 export { default as SpaceAnalyticsScreen } from "../screens/insights/SpaceAnalyticsScreen";
 
+// ── TAB 6: Create (CC-5 shell + CC-7 editors) ───────────────────────
+export { default as CreateHubScreen } from "../screens/create/CreateHubScreen";
+export { default as ExamWizardScreen } from "../screens/create/ExamWizardScreen";
+export { default as GenerateContentScreen } from "../screens/create/GenerateContentScreen";
+// CC-7 seam — modules landed; placeholders replaced with real re-exports:
+export { default as ItemEditorScreen } from "../screens/create/ItemEditorScreen";
+export { default as StoryPointEditorScreen } from "../screens/create/StoryPointEditorScreen";
+export { default as SpaceEditorScreen } from "../screens/create/SpaceEditorScreen";
+export { default as QuestionBankListScreen } from "../screens/create/QuestionBankListScreen";
+export { default as QuestionBankEditorScreen } from "../screens/create/QuestionBankEditorScreen";
+
 // ── TAB 5: More (lane: M-teacher-more) — LANDED ─────────────────────
 export { default as MoreMenuScreen } from "../screens/more/MoreMenuScreen";
 export { default as AnnouncementsComposeScreen } from "../screens/more/AnnouncementsComposeScreen";

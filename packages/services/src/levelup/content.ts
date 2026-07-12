@@ -368,6 +368,125 @@ export function extractAnswerKey(data: Doc): Doc | null {
   return Object.keys(inline).length > 0 ? inline : null;
 }
 
+// ── duplicateSpace ────────────────────────────────────────────────────────────
+export async function duplicateSpaceService(
+  input: ReqOf<"v1.levelup.duplicateSpace">,
+  ctx: AuthContext
+): Promise<ResOf<"v1.levelup.duplicateSpace">> {
+  const tenantId = requireTenant(ctx);
+  authorize(ctx, "space.write", { tenantId });
+
+  const src = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  if (!src) fail("NOT_FOUND", "source space not found");
+
+  const now = ctx.now();
+  const srcDoc = src as Doc;
+
+  // Write fresh draft space (strip runtime/lifecycle fields, suffix title).
+  const spaceDoc: Doc = {
+    title: `${String(srcDoc["title"] ?? "Untitled")} (Copy)`,
+    type: srcDoc["type"],
+    description: srcDoc["description"],
+    thumbnailUrl: srcDoc["thumbnailUrl"],
+    slug: undefined,
+    subject: srcDoc["subject"],
+    labels: srcDoc["labels"],
+    classIds: [],
+    sectionIds: srcDoc["sectionIds"],
+    teacherIds: srcDoc["teacherIds"],
+    accessType: srcDoc["accessType"] ?? "class_assigned",
+    academicSessionId: srcDoc["academicSessionId"],
+    defaultEvaluatorAgentId: srcDoc["defaultEvaluatorAgentId"],
+    defaultTutorAgentId: srcDoc["defaultTutorAgentId"],
+    defaultRubricId: srcDoc["defaultRubricId"],
+    allowRetakes: srcDoc["allowRetakes"],
+    maxRetakes: srcDoc["maxRetakes"],
+    defaultTimeLimitMinutes: srcDoc["defaultTimeLimitMinutes"],
+    showCorrectAnswers: srcDoc["showCorrectAnswers"],
+    status: "draft",
+    publishedAt: null,
+    archivedAt: null,
+    publishedToStore: false,
+    createdBy: ctx.uid,
+    updatedBy: ctx.uid,
+  };
+  const { id: newSpaceId } = await ctx.repos.spaces.upsert(tenantId, spaceDoc, now);
+
+  // Copy story points + items + answer keys. Cursor loops — a single page
+  // would silently truncate large spaces (convention: autograde cascade delete).
+  let spCursor: string | undefined;
+  do {
+    const spPage = await ctx.repos.storyPoints.list(tenantId, {
+      where: { spaceId: input.spaceId },
+      cursor: spCursor,
+      limit: 200,
+    });
+    for (const sp of spPage.items) {
+      const spDoc = sp as Doc;
+      const { id: newSpId } = await ctx.repos.storyPoints.upsert(
+        tenantId,
+        {
+          ...spDoc,
+          id: undefined,
+          spaceId: newSpaceId,
+          createdBy: ctx.uid,
+          updatedBy: ctx.uid,
+        },
+        now
+      );
+
+      let itCursor: string | undefined;
+      do {
+        const itPage = await ctx.repos.items.list(tenantId, {
+          where: { spaceId: input.spaceId, storyPointId: spDoc["id"] as string },
+          cursor: itCursor,
+          limit: 200,
+        });
+        for (const it of itPage.items) {
+          const itDoc = it as Doc;
+          // Read the server-only answer key for this item.
+          const srcKey = await ctx.repos.answerKeys.get(tenantId, itDoc["id"] as string);
+
+          const strippedItem = stripAnswerFields(itDoc);
+          const { id: newItemId } = await ctx.repos.items.upsert(
+            tenantId,
+            {
+              ...strippedItem,
+              id: undefined,
+              spaceId: newSpaceId,
+              storyPointId: newSpId,
+              archivedAt: null,
+              createdBy: ctx.uid,
+              updatedBy: ctx.uid,
+            },
+            now
+          );
+
+          if (srcKey) {
+            await ctx.repos.answerKeys.put(tenantId, newItemId, {
+              ...(srcKey as Doc),
+              itemId: newItemId,
+              spaceId: newSpaceId,
+              storyPointId: newSpId,
+            });
+          }
+        }
+        itCursor = itPage.nextCursor ?? undefined;
+      } while (itCursor);
+    }
+    spCursor = spPage.nextCursor ?? undefined;
+  } while (spCursor);
+
+  await recordVersion(ctx, tenantId, newSpaceId, {
+    entityType: "space",
+    entityId: newSpaceId,
+    changeType: "created",
+    changeSummary: `duplicated from ${input.spaceId}`,
+  });
+
+  return { id: newSpaceId, created: true } as unknown as ResOf<"v1.levelup.duplicateSpace">;
+}
+
 // ── saveSpace ─────────────────────────────────────────────────────────────────
 export async function saveSpaceService(
   input: ReqOf<"v1.levelup.saveSpace">,

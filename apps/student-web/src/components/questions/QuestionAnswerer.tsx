@@ -65,6 +65,12 @@ export default function QuestionAnswerer({
   savedAnswer,
 }: QuestionAnswererProps) {
   const payload = item.payload as QuestionPayload;
+  // Canonical UnifiedItem reads deliver the question text at TOP-LEVEL
+  // `item.content`/`item.title` (LVL-1 projection); legacy payloads carried it
+  // on the payload itself. Tolerate both so the question is never blank.
+  const itemLike = item as unknown as { title?: string; content?: string };
+  const questionTitle = itemLike.title ?? payload.title;
+  const questionText = itemLike.content ?? payload.content;
   const [answer, setAnswer] = useState<unknown>(savedAnswer ?? undefined);
   const [submitted, setSubmitted] = useState(!!evaluation);
   const [showPrevious, setShowPrevious] = useState(false);
@@ -271,8 +277,8 @@ export default function QuestionAnswerer({
     <div className="space-y-4">
       {/* Question content */}
       <div>
-        {payload.title && <h3 className="mb-1 text-base font-semibold">{payload.title}</h3>}
-        <div className="text-foreground whitespace-pre-wrap text-sm">{payload.content}</div>
+        {questionTitle && <h3 className="mb-1 text-base font-semibold">{questionTitle}</h3>}
+        <div className="text-foreground whitespace-pre-wrap text-base">{questionText}</div>
         {payload.difficulty && (
           <span
             className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${

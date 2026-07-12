@@ -40,7 +40,58 @@ export {
   useSendChatMessage,
   useSaveSpaceReview,
   usePurchaseSpace,
+  useGenerateContent,
 } from "./mutations.js";
+
+// ── duplicate hook ────────────────────────────────────────────────────────────
+export { useDuplicateSpace } from "./duplicate.js";
 
 // ── subscription hooks ────────────────────────────────────────────────────────
 export { useChatStream, useServerTime, type ServerTime } from "./subscriptions.js";
+
+// ── question form helpers (pure TS, RN-safe) ─────────────────────────────────
+export {
+  QUESTION_TYPES,
+  initialQuestionPayload,
+  validateQuestionPayload,
+  // MCQ / MCAQ option ops
+  qfAddOption,
+  qfRemoveOption,
+  qfUpdateOption,
+  qfMoveOptionUp,
+  qfMoveOptionDown,
+  // fill-blanks ops
+  qfAddBlank,
+  qfRemoveBlank,
+  qfUpdateBlank,
+  // fill-blanks-dd ops
+  qfAddBlankDd,
+  qfRemoveBlankDd,
+  qfAddPoolOption,
+  qfRemovePoolOption,
+  qfUpdatePoolOption,
+  // matching ops
+  qfAddPair,
+  qfRemovePair,
+  qfUpdatePair,
+  qfMovePairUp,
+  qfMovePairDown,
+  // jumbled ops
+  qfAddToken,
+  qfRemoveToken,
+  qfUpdateToken,
+  qfMoveTokenUp,
+  qfMoveTokenDown,
+  // group-options ops
+  qfAddGroup,
+  qfRemoveGroup,
+  qfRenameGroup,
+  qfAddGroupItem,
+  qfRemoveGroupItem,
+  qfUpdateGroupItem,
+  // code test case ops
+  qfAddTestCase,
+  qfRemoveTestCase,
+  qfUpdateTestCase,
+} from "./question-forms.js";
+export type { QuestionType, QuestionFormError } from "./question-forms.js";

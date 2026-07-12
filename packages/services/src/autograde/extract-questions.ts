@@ -22,6 +22,30 @@ interface ExtractedQuestionRaw {
   subQuestions?: unknown[];
   extractionConfidence?: number;
   readabilityIssue?: boolean;
+  /** ⚷ answer-bearing guidance from the model — folded into the rubric. */
+  modelAnswer?: string;
+  evaluationGuidance?: string;
+}
+
+/**
+ * Merge extractor-emitted `modelAnswer`/`evaluationGuidance` into the question's
+ * rubric (`rubric.modelAnswer` / `rubric.evaluatorGuidance` — UnifiedRubric's ⚷
+ * server-only fields). Values already inside the rubric win; without a rubric
+ * object the guidance still needs a home, so a minimal rubric is created.
+ */
+function foldGuidanceIntoRubric(q: ExtractedQuestionRaw): unknown {
+  const hasGuidance = q.modelAnswer !== undefined || q.evaluationGuidance !== undefined;
+  const rubric =
+    q.rubric && typeof q.rubric === "object" ? (q.rubric as Record<string, unknown>) : undefined;
+  if (!hasGuidance) return q.rubric;
+  const merged: Record<string, unknown> = { ...(rubric ?? {}) };
+  if (merged["modelAnswer"] === undefined && q.modelAnswer !== undefined) {
+    merged["modelAnswer"] = q.modelAnswer;
+  }
+  if (merged["evaluatorGuidance"] === undefined && q.evaluationGuidance !== undefined) {
+    merged["evaluatorGuidance"] = q.evaluationGuidance;
+  }
+  return merged;
 }
 
 export async function extractQuestionsService(input: Req, ctx: AuthContext): Promise<Res> {
@@ -65,7 +89,11 @@ export async function extractQuestionsService(input: Req, ctx: AuthContext): Pro
     text: q.text ?? "",
     maxMarks: q.maxMarks ?? 0,
     order: q.order ?? i + 1,
-    rubric: q.rubric,
+    // ⚷ answer-bearing guidance lives INSIDE the rubric (`modelAnswer` /
+    // `evaluatorGuidance`) — the one channel `projectRubric` strips for
+    // non-authoring roles (AD-11). Never persist it as top-level doc fields:
+    // the view whitelist drops those for EVERYONE, making them dead data.
+    rubric: foldGuidanceIntoRubric(q),
     questionType: q.questionType,
     subQuestions: q.subQuestions,
     extractionConfidence: q.extractionConfidence,

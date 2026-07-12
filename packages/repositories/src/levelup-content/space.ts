@@ -49,6 +49,7 @@ export interface SpaceRepo {
   get(id: string): Promise<unknown>;
   getMany(ids: readonly string[]): Promise<unknown[]>;
   save(input: SaveSpaceInput): Promise<unknown>;
+  duplicate(input: { spaceId: string }): Promise<unknown>;
   publish(input: { id: string }): Promise<unknown>;
   archive(input: { id: string }): Promise<unknown>;
   canTransition(from: string, to: string): boolean;
@@ -63,6 +64,7 @@ export function createSpaceRepo(api: ApiClientLike): SpaceRepo {
     list: (filter = {}) => lv["listSpaces"]!(filter).then((r) => toPage(r)),
     paginate: (filter = {}) => makePaginator((req) => lv["listSpaces"]!(req), filter),
     get: (id) => lv["getSpace"]!({ spaceId: id }),
+    duplicate: (input) => lv["duplicateSpace"]!(input),
     getMany: (ids) => batchGetMany((req) => lv["listSpaces"]!(req), ids),
     save: (input) => lv["saveSpace"]!(input),
     publish: (input) => lv["publishSpace"]!(input),

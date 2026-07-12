@@ -11,11 +11,12 @@
 import type { JsonValue } from "@levelup/domain";
 import { DEFAULT_PRO_MODEL, DEFAULT_FLASH_MODEL } from "../models.js";
 
-/** The five AI purposes the platform performs (matches `AiRequest.purpose`). */
+/** The six AI purposes the platform performs (matches `AiRequest.purpose`). */
 export type AiPurpose =
   | "question_extraction"
   | "answer_mapping"
   | "answer_grading"
+  | "content_draft"
   | "ai_chat"
   | "insights";
 
@@ -50,7 +51,11 @@ export const PROMPTS = {
       'Extraction mode: {{mode}} — when "single", extract ONLY question number ' +
       "{{questionNumber}}; otherwise extract every question.\n" +
       "For each question: text, maxMarks, order, and a criteria-based " +
-      "rubric whose criteria marks sum to maxMarks.",
+      "rubric whose criteria marks sum to maxMarks.\n" +
+      "Inside each rubric object also emit: modelAnswer (a concise correct/model " +
+      "answer for the question) and evaluatorGuidance (how to judge responses and " +
+      "award partial credit). These are grading secrets shown only to teachers — " +
+      "put them INSIDE the rubric object, nowhere else.",
     requiredVariables: ["examTitle", "examType", "mode"],
     structured: true,
     defaultModel: DEFAULT_PRO_MODEL,
@@ -108,6 +113,44 @@ export const PROMPTS = {
     structured: false,
     defaultModel: DEFAULT_FLASH_MODEL,
     defaultTemperature: 0.6,
+  }),
+
+  /** Teacher content authoring — draft practice items for a lesson. */
+  contentDraft: def({
+    purpose: "content_draft",
+    system:
+      "You are an expert curriculum author drafting practice content for a learning platform. " +
+      "Generate exactly the requested items as valid JSON conforming to the GeneratedItem schema. " +
+      "Rules: use ONLY the listed questionType values; do NOT include correct answers, answer keys, " +
+      "or grading guidance in any field. " +
+      'Respond ONLY with JSON matching this exact shape: {"drafts": [/* array of draft objects */]}',
+    user:
+      "Space (course): {{spaceTitle}} — subject: {{subject}}\n" +
+      "Lesson: {{storyPointTitle}}\n" +
+      "Description: {{storyPointDescription}}\n\n" +
+      "Draft exactly {{count}} item(s) of types: {{types}}\n" +
+      "Difficulty: {{difficulty}}\n" +
+      "Allowed questionType values (use ONLY these): {{questionTypes}}\n\n" +
+      "Each draft must follow this shape:\n" +
+      '  question: {"itemType":"question","questionType":"<allowed>","title":"<short title>","payload":{"type":"question","questionData":{"questionType":"<same>","options":[{"id":"a","text":"..."},...]}}, "bloomsLevel":"<optional>","topics":["<optional>"]}\n' +
+      '  material: {"itemType":"material","title":"<short title>","payload":{"type":"material","materialData":{"materialType":"text","body":"<markdown content>"}}}\n\n' +
+      "EXAMPLES:\n" +
+      'MCQ: {"itemType":"question","questionType":"mcq","title":"What is binary search time complexity?","payload":{"type":"question","questionData":{"questionType":"mcq","options":[{"id":"a","text":"O(1)"},{"id":"b","text":"O(log n)"},{"id":"c","text":"O(n)"},{"id":"d","text":"O(n²)"}]}},"bloomsLevel":"remember","topics":["algorithms"]}\n' +
+      'Material: {"itemType":"material","title":"Binary Search Explained","payload":{"type":"material","materialData":{"materialType":"text","body":"Binary search divides the sorted list in half each step, eliminating half the candidates each iteration."}}}\n\n' +
+      'Respond with ONLY: {"drafts": [...]}',
+    requiredVariables: [
+      "spaceTitle",
+      "subject",
+      "storyPointTitle",
+      "storyPointDescription",
+      "count",
+      "types",
+      "difficulty",
+      "questionTypes",
+    ],
+    structured: true,
+    defaultModel: DEFAULT_PRO_MODEL,
+    defaultTemperature: 0.3,
   }),
 
   /** Learning-insight generation from a student's progress summary. */

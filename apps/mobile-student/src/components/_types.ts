@@ -241,6 +241,8 @@ export interface UnifiedItemLike {
   id?: string;
   type?: string; // ITEM_TYPES: question | material | interactive | assessment | ...
   title?: string;
+  /** Canonical home of the question/body text (UnifiedItemSchema top-level). */
+  content?: string;
   prompt?: string;
   basePoints?: number;
   payload?: Record<string, unknown>;
@@ -316,6 +318,8 @@ export interface ContentRendererProps extends Styleable {
   math?: boolean;
   /** Raw HTML string (best-effort; sanitized to text on RN). */
   html?: string;
+  /** Override the paragraph/list text classes (e.g. question prompts). */
+  textClassName?: string;
 }
 
 export interface TabsItem {

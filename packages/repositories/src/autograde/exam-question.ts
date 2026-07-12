@@ -11,7 +11,13 @@
  * (R6). Reads only the answer-key-stripped projection (the server strips
  * `evaluatorGuidance`/`modelAnswer` for non-authoring roles — §6.7).
  */
-import type { ApiClient, ExamQuestionView, ExtractQuestionsResponse } from "./api-types.js";
+import type {
+  ApiClient,
+  ExamQuestionView,
+  ExtractQuestionsResponse,
+  SaveExamQuestionInput,
+  SaveExamQuestionResponse,
+} from "./api-types.js";
 
 /** Minimal question shape the derived helpers read. */
 interface QuestionLike {
@@ -25,6 +31,7 @@ interface QuestionLike {
 
 export interface ExamQuestionRepo {
   list(examId: string): Promise<ExamQuestionView[]>;
+  saveQuestion(input: SaveExamQuestionInput): Promise<SaveExamQuestionResponse>;
   recordReExtraction(examId: string, questionNumber: string): Promise<ExtractQuestionsResponse>;
 
   // derived (computed once; no wire call)
@@ -41,6 +48,7 @@ export function createExamQuestionRepo(api: ApiClient): ExamQuestionRepo {
 
   return {
     list: async (examId) => (await ag.listQuestions({ examId: examId as never })).questions,
+    saveQuestion: (input) => ag.saveExamQuestion(input as never),
     recordReExtraction: (examId, questionNumber) =>
       ag.extractQuestions({ examId: examId as never, mode: "single", questionNumber }),
 

@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  useSpaces,
-  useSaveSpace,
-  useSaveStoryPoint,
-  useSaveItem,
-  useApiError,
-  useRepos,
-} from "@levelup/query";
+import { useSpaces, useSaveSpace, useDuplicateSpace, useApiError } from "@levelup/query";
 import {
   sonnerToast,
   Button,
@@ -25,7 +18,7 @@ import {
   SelectValue,
 } from "@levelup/shared-ui";
 import { Plus, Search, BookOpen, Copy, Users, Loader2 } from "lucide-react";
-import type { Space, SpaceStatus, SpaceType, StoryPoint, UnifiedItem } from "@levelup/shared-types";
+import type { Space, SpaceStatus, SpaceType } from "@levelup/shared-types";
 
 const STATUS_TABS: { label: string; value: SpaceStatus | "all" }[] = [
   { label: "All", value: "all" },
@@ -60,10 +53,8 @@ export default function SpaceListPage() {
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const { handleError } = useApiError();
 
-  const { spaceRepo, storyPointRepo, itemRepo } = useRepos();
   const createSpace = useSaveSpace();
-  const saveStoryPoint = useSaveStoryPoint();
-  const saveItem = useSaveItem();
+  const duplicateSpace = useDuplicateSpace();
 
   // @levelup/query hooks are tenant-scoped server-side via auth claims; the
   // result is a `{ items }` page, not a bare array.
@@ -99,76 +90,14 @@ export default function SpaceListPage() {
     }
   };
 
-  // No server-side `duplicateSpace` callable exists, so a deep copy is composed
-  // client-side: read the source space + its story points + (answer-bearing)
-  // items, then recreate them under a fresh draft space via the save callables.
   const handleDuplicate = async (e: React.MouseEvent, space: Space) => {
     e.preventDefault();
     e.stopPropagation();
     setDuplicatingId(space.id);
     try {
-      const src = (await spaceRepo.get(space.id)) as Space;
-      const copy = (await createSpace.mutateAsync({
-        data: {
-          title: `${src.title} (Copy)`,
-          type: src.type,
-          description: src.description,
-          subject: src.subject,
-          labels: src.labels,
-          accessType: src.accessType,
-          defaultRubricId: src.defaultRubricId,
-        },
-      })) as { id: string };
-
-      const spPage = (await storyPointRepo.list({ spaceId: space.id })) as { items: StoryPoint[] };
-      for (const sp of spPage.items ?? []) {
-        const newSp = (await saveStoryPoint.mutateAsync({
-          spaceId: copy.id,
-          data: {
-            title: sp.title,
-            description: sp.description,
-            orderIndex: sp.orderIndex,
-            type: sp.type,
-            sections: sp.sections,
-            assessmentConfig: sp.assessmentConfig,
-            difficulty: sp.difficulty,
-            estimatedTimeMinutes: sp.estimatedTimeMinutes,
-          },
-        })) as { id: string };
-
-        const itPage = (await itemRepo.list({
-          spaceId: space.id,
-          storyPointId: sp.id,
-        })) as { items: UnifiedItem[] };
-        for (const it of itPage.items ?? []) {
-          // getForEdit re-merges the answer key so the copy is not answer-stripped.
-          const edit = await itemRepo.getForEdit({
-            spaceId: space.id,
-            storyPointId: sp.id,
-            itemId: it.id,
-          });
-          const full = (edit.item ?? it) as UnifiedItem;
-          await saveItem.mutateAsync({
-            spaceId: copy.id,
-            storyPointId: newSp.id,
-            data: {
-              type: full.type,
-              payload: full.payload,
-              title: full.title,
-              content: full.content,
-              difficulty: full.difficulty,
-              topics: full.topics,
-              labels: full.labels,
-              orderIndex: full.orderIndex,
-              sectionId: full.sectionId,
-              meta: full.meta,
-            },
-          });
-        }
-      }
-
+      const result = (await duplicateSpace.mutateAsync({ spaceId: space.id })) as { id: string };
       sonnerToast.success("Space duplicated successfully");
-      navigate(`/spaces/${copy.id}/edit`);
+      navigate(`/spaces/${result.id}/edit`);
     } catch (err) {
       handleError(err, "Failed to duplicate space");
     } finally {

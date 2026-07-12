@@ -56,6 +56,10 @@ const sysCtx = (ctx: AdapterSystemContext): ServicesSystemContext =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const saveExam = call("v1.autograde.saveExam", services.saveExamService);
+export const saveExamQuestion = call(
+  "v1.autograde.saveExamQuestion",
+  services.saveExamQuestionService
+);
 export const extractQuestions = call(
   "v1.autograde.extractQuestions",
   services.extractQuestionsService

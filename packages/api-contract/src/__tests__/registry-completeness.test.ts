@@ -100,6 +100,7 @@ const COMMON_API_INVENTORY: string[] = [
   "v1.identity.markAnnouncementRead",
   // levelup (content + testsession + gamification folded)
   "v1.levelup.saveSpace",
+  "v1.levelup.duplicateSpace",
   "v1.levelup.saveStoryPoint",
   "v1.levelup.saveItem",
   "v1.levelup.getItemForEdit",

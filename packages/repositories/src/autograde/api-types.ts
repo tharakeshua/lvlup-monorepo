@@ -88,6 +88,29 @@ export type ExamAnalyticsView = ExamAnalytics;
 // ---------------------------------------------------------------------------
 
 /** `saveExam` data payload — metadata only; lifecycle via dedicated verbs (DX-5). */
+/** `saveExamQuestion` data payload. */
+export interface SaveExamQuestionData {
+  text?: string;
+  maxMarks?: number;
+  order?: number;
+  questionType?: string;
+  rubric?: Record<string, unknown>;
+  subQuestions?: unknown[];
+  imageUrls?: string[];
+}
+export interface SaveExamQuestionInput {
+  /** Omit to create. */
+  id?: ExamQuestionId;
+  examId: ExamId;
+  data?: SaveExamQuestionData;
+  delete?: true;
+}
+export interface SaveExamQuestionResponse {
+  id: ExamQuestionId;
+  created: boolean;
+  deleted?: boolean;
+}
+
 export interface SaveExamData {
   title?: string;
   subject?: string;
@@ -298,6 +321,7 @@ export interface ExamGradingOverview {
 
 export interface AutogradeNamespace {
   // writes
+  saveExamQuestion: Callable<SaveExamQuestionInput, SaveExamQuestionResponse>;
   saveExam: Callable<SaveExamInput, SaveResponse>;
   extractQuestions: Callable<ExtractQuestionsRequest, ExtractQuestionsResponse>;
   uploadAnswerSheets: Callable<UploadAnswerSheetsRequest, UploadAnswerSheetsResponse>;

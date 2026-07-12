@@ -6,6 +6,7 @@
 
 // command services
 export { saveExamService, POST_PUBLISH_LOCKED_FIELDS } from "./save-exam.js";
+export { saveExamQuestionService } from "./save-exam-question.js";
 export { releaseResultsService } from "./release-results.js";
 export { extractQuestionsService } from "./extract-questions.js";
 export { uploadAnswerSheetsService, validatePathsInTenant } from "./upload-answer-sheets.js";

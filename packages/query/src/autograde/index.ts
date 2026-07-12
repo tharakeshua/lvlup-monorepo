@@ -18,6 +18,7 @@ export {
   useReleaseResults,
   // exam questions
   useExamQuestions,
+  useSaveExamQuestion,
   useReExtractQuestion,
   // submissions
   useSubmissions,

@@ -13,6 +13,7 @@
 
 // ── writes / mutations ────────────────────────────────────────────────────
 export * from "./save-space.js";
+export * from "./duplicate-space.js";
 export * from "./save-story-point.js";
 export * from "./save-item.js";
 export * from "./import-from-bank.js";
@@ -58,6 +59,7 @@ export * from "./_shared.js";
 import type { CallableDef } from "../../callable-def.js";
 
 import { saveSpaceDef } from "./save-space.js";
+import { duplicateSpaceDef } from "./duplicate-space.js";
 import { saveStoryPointDef } from "./save-story-point.js";
 import { saveItemDef } from "./save-item.js";
 import { importFromBankDef } from "./import-from-bank.js";
@@ -106,6 +108,7 @@ import { listTestSessionsDef } from "./list-test-sessions.js";
  */
 export const LEVELUP_CONTENT_CALLABLES = {
   "v1.levelup.saveSpace": saveSpaceDef,
+  "v1.levelup.duplicateSpace": duplicateSpaceDef,
   "v1.levelup.saveStoryPoint": saveStoryPointDef,
   "v1.levelup.saveItem": saveItemDef,
   "v1.levelup.importFromBank": importFromBankDef,

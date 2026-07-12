@@ -95,7 +95,13 @@ export function QuestionView({
               <Text className="font-ui text-text-muted text-xs">{points} pts</Text>
             )}
           </View>
-          {prompt ? <ContentRenderer body={prompt} math /> : null}
+          {prompt ? (
+            <ContentRenderer
+              body={prompt}
+              math
+              textClassName="font-ui text-text-primary text-lg font-medium leading-7"
+            />
+          ) : null}
         </View>
       </View>
 

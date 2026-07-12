@@ -55,6 +55,11 @@ export const SpaceSchema = zObject({
   defaultTutorAgentId: zAgentId.optional(),
   defaultRubric: UnifiedRubricSchema.optional(),
   defaultRubricId: zRubricPresetId.optional(),
+  // assessment defaults (space-level, applied to timed_test/quiz story points)
+  allowRetakes: z.boolean().optional(),
+  maxRetakes: z.number().int().nonnegative().optional(),
+  defaultTimeLimitMinutes: z.number().int().nonnegative().optional(),
+  showCorrectAnswers: z.boolean().optional(),
   // store fields
   price: zMoney.optional(),
   publishedToStore: z.boolean().optional(),

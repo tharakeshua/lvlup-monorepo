@@ -74,6 +74,8 @@ export type {
   SubmissionFilter,
   DeadLetterFilter,
   SaveExamInput,
+  SaveExamQuestionInput,
+  SaveExamQuestionResponse,
   SaveEvaluationSettingsInput,
   ExtractQuestionsRequest,
   ExtractQuestionsResponse,

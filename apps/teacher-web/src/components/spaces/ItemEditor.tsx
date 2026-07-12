@@ -48,8 +48,10 @@ import {
   Music,
   GripVertical,
   AlertTriangle,
+  ScanSearch,
 } from "lucide-react";
 import { uploadItemMedia, deleteItemMedia, callGetItemForEdit } from "@levelup/shared-services";
+import PdfPagePickerDialog, { type AttachedPageResult } from "./PdfPagePickerDialog";
 import {
   Button,
   Input,
@@ -427,6 +429,7 @@ export default function ItemEditor({
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<ItemAttachment[]>(item.attachments ?? []);
   const [uploading, setUploading] = useState(false);
+  const [pdfPickerOpen, setPdfPickerOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -668,6 +671,35 @@ export default function ItemEditor({
     } catch {
       sonnerToast.error("Failed to remove attachment");
     }
+  };
+
+  // CC-6 Approach B: page picker attaches JPEG page renders via item-media.
+  // For image_evaluation questions, also writes referenceImageUrls into the payload
+  // so the student sees the reference images during assessment.
+  const handlePagesAttached = (pages: AttachedPageResult[]) => {
+    const stamp = Date.now();
+    const newAttachments: ItemAttachment[] = pages.map((p, i) => ({
+      id: `page-${stamp}-${i}`,
+      fileName: `${p.name}.jpg`,
+      url: p.url,
+      type: "image",
+      size: p.sizeBytes,
+      mimeType: "image/jpeg",
+    }));
+    setAttachments((prev) => [...prev, ...newAttachments]);
+
+    if (questionType === "image_evaluation") {
+      const ied = qPayload.questionData as ImageEvaluationData;
+      const existing = ied.referenceImageUrls ?? [];
+      setPayload({
+        ...qPayload,
+        questionData: {
+          ...ied,
+          referenceImageUrls: [...existing, ...pages.map((p) => p.url)],
+        } as ImageEvaluationData,
+      });
+    }
+    markUnsaved();
   };
 
   const handleSave = useCallback(async () => {
@@ -1025,21 +1057,43 @@ export default function ItemEditor({
                   e.target.value = "";
                 }}
               />
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-dashed"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Paperclip className="h-3.5 w-3.5" />
-                {uploading ? "Uploading..." : "Add Attachment"}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                  {uploading ? "Uploading..." : "Add Attachment"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-dashed"
+                  onClick={() => setPdfPickerOpen(true)}
+                  disabled={uploading}
+                >
+                  <ScanSearch className="h-3.5 w-3.5" />
+                  Pick pages from PDF
+                </Button>
+              </div>
               <p className="text-muted-foreground text-xs">
                 Max 10MB per file. Supported: images, PDFs, audio.
               </p>
             </div>
           </div>
+        )}
+
+        {tenantId && spaceId && (
+          <PdfPagePickerDialog
+            open={pdfPickerOpen}
+            onOpenChange={setPdfPickerOpen}
+            spaceId={spaceId}
+            itemId={item.id}
+            onPagesAttached={handlePagesAttached}
+          />
         )}
 
         <div className="flex gap-3">

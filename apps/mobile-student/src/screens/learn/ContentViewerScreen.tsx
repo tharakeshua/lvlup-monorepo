@@ -258,78 +258,28 @@ export default function ContentViewerScreen() {
         ]}
       />
 
-      <View className="flex-row items-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          leadingIcon={<Icon name="chevron-left" size={16} />}
-          onPress={() => router.push(routes.space(spaceId))}
-        >
-          Back
-        </Button>
-      </View>
-
-      {/* header */}
-      <View className="gap-1">
-        <Text className="font-display text-text-primary text-2xl">{spTitle}</Text>
-        <Text className="text-text-secondary text-sm leading-5">
-          Work through each piece at your own pace. Every attempt counts — mistakes are just the
-          next step.
-        </Text>
-      </View>
-
-      {/* SP progress + sibling rail */}
+      {/* compact header: SP title + lesson counter + thin progress */}
       <View className="gap-2">
-        <ProgressBar value={overall} variant="spark" />
-        <View className="flex-row items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            leadingIcon={<Icon name="chevron-left" size={16} />}
-            disabled={!prevSp}
-            onPress={() => prevSp && router.push(routes.spaceContent(spaceId, prevSp.id))}
-          >
-            Prev SP
-          </Button>
+        <View className="flex-row items-baseline justify-between gap-2">
+          <Text className="font-display text-text-primary flex-1 text-lg" numberOfLines={1}>
+            {spTitle}
+          </Text>
           {siblings.length > 0 ? (
             <Text className="text-text-muted text-xs">
-              {spIndex >= 0 ? spIndex + 1 : 1} / {siblings.length}
+              Lesson {spIndex >= 0 ? spIndex + 1 : 1} / {siblings.length}
             </Text>
           ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            trailingIcon={<Icon name="chevron-right" size={16} />}
-            disabled={!nextSp}
-            onPress={() => nextSp && router.push(routes.spaceContent(spaceId, nextSp.id))}
-          >
-            Next SP
-          </Button>
         </View>
+        <ProgressBar value={overall} variant="spark" />
       </View>
-
-      {/* practice CTA */}
-      <Button
-        variant="secondary"
-        block
-        leadingIcon={<Icon name="target" size={16} />}
-        onPress={() => router.push(routes.practice(spaceId, storyPointId))}
-      >
-        Practice this story point
-      </Button>
 
       {/* numbered item navigator */}
       <AttemptBar items={barItems} current={current} onSelect={goTo} />
 
       {/* current item */}
       <Card className="gap-4">
+        {/* the AttemptBar above already shows position — one slim chip row only */}
         <View className="flex-row flex-wrap items-center gap-2">
-          <View className="flex-row items-center gap-1">
-            <Icon name={isMaterial(item) ? "book-open" : "circle-help"} size={13} color="#756E61" />
-            <Text className="text-2xs text-text-muted uppercase tracking-wide">
-              Item {current + 1} of {items.length}
-            </Text>
-          </View>
           <Chip active={isMaterial(item)}>{itemKindLabel(item)}</Chip>
           {sectionTitle ? <Chip>{sectionTitle}</Chip> : null}
           {item?.difficulty ? <Chip>{`Difficulty: ${item.difficulty}`}</Chip> : null}
@@ -496,6 +446,9 @@ export default function ContentViewerScreen() {
         >
           Previous
         </Button>
+        <Text className="text-text-muted text-xs">
+          {current + 1} / {items.length}
+        </Text>
         <Button
           variant="ghost"
           size="sm"
@@ -504,6 +457,36 @@ export default function ContentViewerScreen() {
           onPress={() => goTo(Math.min(items.length - 1, current + 1))}
         >
           Next
+        </Button>
+      </View>
+
+      {/* lesson-level nav + practice (kept below so the question owns the screen) */}
+      <View className="border-border-subtle flex-row flex-wrap items-center justify-between gap-2 border-t pt-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          leadingIcon={<Icon name="chevron-left" size={16} />}
+          disabled={!prevSp}
+          onPress={() => prevSp && router.push(routes.spaceContent(spaceId, prevSp.id))}
+        >
+          Prev lesson
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          leadingIcon={<Icon name="target" size={16} />}
+          onPress={() => router.push(routes.practice(spaceId, storyPointId))}
+        >
+          Practice
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          trailingIcon={<Icon name="chevron-right" size={16} />}
+          disabled={!nextSp}
+          onPress={() => nextSp && router.push(routes.spaceContent(spaceId, nextSp.id))}
+        >
+          Next lesson
         </Button>
       </View>
 

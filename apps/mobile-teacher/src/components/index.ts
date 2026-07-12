@@ -84,3 +84,6 @@ export type * from "./_types";
 
 // alias: Tag === Pill (contract lists "Pill/Tag")
 export { Pill as Tag } from "./data";
+
+// item editor (CC-7 question-creation suite)
+export { QuestionPayloadEditor, MaterialPayloadEditor, CommonItemFields } from "./item-editor";

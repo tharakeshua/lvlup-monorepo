@@ -56,20 +56,32 @@ export async function sendChatMessageService(
   });
   await projectChatBump(ctx, tenantId, { userId: ctx.uid, sessionId, lastMessageAt: now });
 
-  // 2) AI tutor reply (gateway is server-side; emulator stub returns deterministic json).
+  // 2) AI tutor reply (gateway is server-side; emulator stub returns deterministic text).
   let replyText = "Let me help you with that.";
   let tokensUsed: number | undefined;
   try {
     const ai = await ctx.ai.generate(
       {
-        promptKey: "tutorChat",
+        purpose: "ai_chat",
+        promptKey: "aiChat",
         operation: "chat.reply",
-        variables: { text: input.text, spaceId: input.spaceId, itemId: input.itemId },
+        variables: {
+          itemContext: `Space: ${input.spaceId}, Lesson: ${input.storyPointId}, Item: ${input.itemId}`,
+          message: input.text,
+          language: input.language ?? "en",
+        },
       },
-      { tenantId, uid: ctx.uid, now: ctx.now }
+      {
+        tenantId,
+        uid: ctx.uid,
+        role: ctx.role,
+        resourceType: "chatSession",
+        resourceId: sessionId,
+        now: ctx.now,
+      }
     );
-    const raw = (ai.json as Doc | undefined) ?? {};
-    if (typeof raw["text"] === "string" && raw["text"]) replyText = raw["text"] as string;
+    // aiChat is structured:false — adapter maps data (text string) → ai.json (string).
+    if (typeof ai.json === "string" && ai.json) replyText = ai.json;
     else if (typeof ai.text === "string" && ai.text) replyText = ai.text;
     if (typeof ai.tokensUsed === "number") tokensUsed = ai.tokensUsed;
   } catch {

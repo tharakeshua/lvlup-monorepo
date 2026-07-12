@@ -67,6 +67,7 @@ import {
   Clock,
   Eye,
   Pencil,
+  Sparkles,
 } from "lucide-react";
 import SpaceSettingsPanel from "../../components/spaces/SpaceSettingsPanel";
 import StoryPointEditor from "../../components/spaces/StoryPointEditor";
@@ -75,6 +76,7 @@ import ItemPreview from "../../components/spaces/ItemPreview";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import AgentConfigPanel from "../../components/spaces/AgentConfigPanel";
 import QuestionBankImportDialog from "../../components/spaces/QuestionBankImportDialog";
+import GenerateContentPanel from "../../components/spaces/GenerateContentPanel";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
 import {
   DndContext,
@@ -376,6 +378,7 @@ export default function SpaceEditorPage() {
   const [editingItemSPId, setEditingItemSPId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [importBankSPId, setImportBankSPId] = useState<string | null>(null);
+  const [generateAiSPId, setGenerateAiSPId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -522,6 +525,14 @@ export default function SpaceEditorPage() {
     if (!spaceId) return;
     setSaving(true);
     try {
+      // Convert price: panel holds a raw major-unit number (e.g. 10.50 USD);
+      // contract expects zMoney { amountMinor: int, currency } (minor = cents).
+      const rawPrice = data.price as unknown as number | undefined;
+      const rawCurrency = data.currency as string | undefined;
+      const price =
+        rawPrice !== undefined && rawCurrency
+          ? { amountMinor: Math.round(rawPrice * 100), currency: rawCurrency }
+          : undefined;
       await saveSpace.mutateAsync({
         id: spaceId,
         data: {
@@ -532,8 +543,14 @@ export default function SpaceEditorPage() {
           labels: data.labels,
           accessType: data.accessType,
           thumbnailUrl: data.thumbnailUrl,
-          // Store listing fields supported by the contract.
+          // Assessment defaults.
+          allowRetakes: data.allowRetakes,
+          maxRetakes: data.maxRetakes,
+          defaultTimeLimitMinutes: data.defaultTimeLimitMinutes,
+          showCorrectAnswers: data.showCorrectAnswers,
+          // Store listing fields.
           publishedToStore: data.publishedToStore,
+          price,
           storeDescription: data.storeDescription,
           storeThumbnailUrl: data.storeThumbnailUrl,
         },
@@ -1437,6 +1454,14 @@ export default function SpaceEditorPage() {
                               >
                                 <Library className="h-3 w-3" /> Import from Bank
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-brand/40 text-brand border-dashed"
+                                onClick={() => setGenerateAiSPId(sp.id)}
+                              >
+                                <Sparkles className="h-3 w-3" /> Generate with AI
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -1582,6 +1607,21 @@ export default function SpaceEditorPage() {
           storyPointId={importBankSPId}
           onImported={() => {
             if (importBankSPId) loadItems(importBankSPId);
+          }}
+        />
+      )}
+
+      {/* Generate Content with AI Panel */}
+      {spaceId && generateAiSPId && (
+        <GenerateContentPanel
+          open={!!generateAiSPId}
+          onOpenChange={(open) => {
+            if (!open) setGenerateAiSPId(null);
+          }}
+          spaceId={spaceId}
+          storyPointId={generateAiSPId}
+          onAccepted={() => {
+            if (generateAiSPId) loadItems(generateAiSPId);
           }}
         />
       )}

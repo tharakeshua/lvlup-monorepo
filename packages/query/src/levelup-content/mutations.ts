@@ -91,6 +91,13 @@ export const useSendChatMessage = defineMutation<SendChatVars>({
   ),
 });
 
+// ── AI content generation (ai tier; authority-sensitive; no optimistic) ────────
+
+export const useGenerateContent = defineMutation<Record<string, unknown>>({
+  callable: "v1.levelup.generateContent",
+  run: (repos, vars) => call(repos, "aiGenerationRepo", "getGeneration", vars),
+});
+
 // ── B2C store (saveReview round-trips; purchase is purchase-authority ⚷) ──────
 
 export const useSaveSpaceReview = defineMutation<Record<string, unknown>>({

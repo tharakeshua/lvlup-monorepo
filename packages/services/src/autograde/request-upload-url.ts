@@ -25,7 +25,8 @@ interface SignUploadHook {
 export async function requestUploadUrlService(input: Req, ctx: AuthContext): Promise<Res> {
   const tenantId = requireTenant(ctx);
 
-  // Authorize per kind: answer-sheets allow scanner; question-paper is authoring.
+  // Authorize per kind: answer-sheets allow scanner; question-paper is authoring;
+  // content-source / item-media require content-management (item.write) authority.
   if (input.kind === "answer-sheet") {
     authorize(ctx, "answerSheets.upload", {
       examId: input.examId,
@@ -41,8 +42,11 @@ export async function requestUploadUrlService(input: Req, ctx: AuthContext): Pro
     ) {
       fail("PERMISSION_DENIED", `class ${input.classId} is outside the scanner's scope`);
     }
-  } else {
+  } else if (input.kind === "question-paper") {
     authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
+  } else {
+    // content-source / item-media — content authoring authority.
+    authorize(ctx, "item.write", { tenantId });
   }
 
   const path = buildScopedPath(tenantId, input);
@@ -65,8 +69,20 @@ export function buildScopedPath(tenantId: string, input: Req): string {
   const stamp = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 8);
   if (input.kind === "question-paper") {
+    if (!input.examId) fail("INVALID_ARGUMENT", "examId required for question-paper upload");
     return `tenants/${tenantId}/exams/${input.examId}/question-paper/${stamp}-${rand}.${ext}`;
   }
+  if (input.kind === "content-source") {
+    if (!input.spaceId) fail("INVALID_ARGUMENT", "spaceId required for content-source upload");
+    return `tenants/${tenantId}/spaces/${input.spaceId}/sources/${stamp}-${rand}.${ext}`;
+  }
+  if (input.kind === "item-media") {
+    if (!input.spaceId) fail("INVALID_ARGUMENT", "spaceId required for item-media upload");
+    if (!input.itemId) fail("INVALID_ARGUMENT", "itemId required for item-media upload");
+    return `tenants/${tenantId}/spaces/${input.spaceId}/items/${input.itemId}/media/${stamp}-${rand}.${ext}`;
+  }
+  // answer-sheet (default)
+  if (!input.examId) fail("INVALID_ARGUMENT", "examId required for answer-sheet upload");
   if (!input.studentId) fail("INVALID_ARGUMENT", "studentId required for answer-sheet upload");
   return `tenants/${tenantId}/exams/${input.examId}/answer-sheets/${input.studentId}/${stamp}-${rand}.${ext}`;
 }

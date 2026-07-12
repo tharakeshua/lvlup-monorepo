@@ -110,6 +110,15 @@ export function useExamQuestions(
   });
 }
 
+/** Save / create / delete an exam question (⚷ — invalidates exam question list). */
+export const useSaveExamQuestion = defineMutation<
+  Arg0<R["examQuestionRepo"]["saveQuestion"]>,
+  Ret<R["examQuestionRepo"]["saveQuestion"]>
+>({
+  callable: "v1.autograde.saveExamQuestion",
+  run: (repos, vars) => autogradeRepos(repos).examQuestionRepo.saveQuestion(vars),
+});
+
 /** Re-extract one question (⚷ — invalidates that exam's question list). */
 export const useReExtractQuestion = defineMutation<
   { examId: string; questionNumber: string },

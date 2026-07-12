@@ -27,6 +27,7 @@ import type {
 import {
   // content authoring + read slice
   saveSpaceService,
+  duplicateSpaceService,
   saveStoryPointService,
   saveItemService,
   getItemForEditService,
@@ -121,6 +122,7 @@ function schedule(spec: string, service: (ctx: ServicesSystemContext) => Promise
 
 // ── content authoring + reads ────────────────────────────────────────────────
 export const saveSpace = call("v1.levelup.saveSpace", saveSpaceService);
+export const duplicateSpace = call("v1.levelup.duplicateSpace", duplicateSpaceService);
 export const saveStoryPoint = call("v1.levelup.saveStoryPoint", saveStoryPointService);
 export const saveItem = call("v1.levelup.saveItem", saveItemService);
 export const getItemForEdit = call("v1.levelup.getItemForEdit", getItemForEditService);

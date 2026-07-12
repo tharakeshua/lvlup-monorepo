@@ -67,6 +67,26 @@ export const routes = {
   classTests: () => href("/teacher/class-tests"),
   spaceAnalytics: () => href("/teacher/space-analytics"),
 
+  // ── TAB 6: Create (authoring lane — CC-5 shell, CC-7 editors) ───
+  create: () => href("/teacher/create"),
+  /** Exam creation wizard; optional examId to re-enter at question-review step. */
+  examWizard: (examId?: string) => qp("/teacher/exam-wizard", { examId }),
+  /** AI generate-content flow; optional deep-link into space/story point. */
+  generateContent: (spaceId?: string, storyPointId?: string) =>
+    qp("/teacher/generate-content", { spaceId, storyPointId }),
+  /** CC-7 item editor — create/edit an item (all 15 types). */
+  itemEditor: (spaceId?: string, storyPointId?: string, itemId?: string) =>
+    qp("/teacher/item-editor", { spaceId, storyPointId, itemId }),
+  /** CC-7 story point editor. */
+  storyPointEditor: (spaceId?: string, storyPointId?: string) =>
+    qp("/teacher/story-point-editor", { spaceId, storyPointId }),
+  /** CC-7 space editor. */
+  spaceEditor: (spaceId?: string) => qp("/teacher/space-editor", { spaceId }),
+  /** CC-7 question bank list. */
+  questionBank: () => href("/teacher/question-bank"),
+  /** CC-7 question bank item editor. */
+  questionBankEditor: (itemId?: string) => qp("/teacher/question-bank-editor", { itemId }),
+
   // ── TAB 5: More (menu) ──────────────────────────────────────────
   more: () => href("/teacher/more"),
   announcements: () => href("/teacher/announcements"),
@@ -86,6 +106,7 @@ export const TAB_ROUTES = {
   home: "/teacher/home",
   classes: "/teacher/classes",
   review: "/teacher/review",
+  create: "/teacher/create",
   insights: "/teacher/insights",
   more: "/teacher/more",
 } as const;

@@ -39,11 +39,21 @@ export function getQuestionData(item?: UnifiedItemLike, direct?: unknown): Dict 
   );
 }
 
-/** The learner-facing prompt for an item/question. */
+/**
+ * The learner-facing prompt for an item/question. The canonical UnifiedItem read
+ * (LVL-1 projection) delivers the question text at TOP-LEVEL `item.content`
+ * (`normalizeItemPayload` lifts legacy `payload.prompt` there too) — check it
+ * first, then the legacy flat/nested spots, then `title` as a last resort.
+ */
 export function getPrompt(item?: UnifiedItemLike, data?: Dict): string {
+  const payload = asDict(item?.payload);
   return (
+    (typeof item?.content === "string" && item.content) ||
     (typeof item?.prompt === "string" && item.prompt) ||
     (typeof data?.prompt === "string" && (data.prompt as string)) ||
+    (typeof data?.question === "string" && (data.question as string)) ||
+    (typeof payload?.prompt === "string" && (payload.prompt as string)) ||
+    (typeof payload?.content === "string" && (payload.content as string)) ||
     (typeof item?.title === "string" && item.title) ||
     ""
   );

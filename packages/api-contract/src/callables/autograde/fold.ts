@@ -13,12 +13,26 @@ import { SubmissionSchema } from "@levelup/domain";
 import { defineCallable } from "../../callable-def.js";
 
 // ---- C1: Storage signed-upload-URL seam ----
+//
+// kind            | required fields      | path template
+// --------------- | -------------------- | -------------------------------------------------
+// answer-sheet    | examId, studentId    | tenants/{t}/exams/{e}/answer-sheets/{s}/{stamp}.ext
+// question-paper  | examId               | tenants/{t}/exams/{e}/question-paper/{stamp}.ext
+// content-source  | spaceId              | tenants/{t}/spaces/{s}/sources/{stamp}.ext
+// item-media      | spaceId, itemId      | tenants/{t}/spaces/{s}/items/{i}/media/{stamp}.ext
 export const RequestUploadUrlRequestSchema = z
   .object({
-    kind: z.enum(["answer-sheet", "question-paper"]),
-    examId: z.string(),
+    kind: z.enum(["answer-sheet", "question-paper", "content-source", "item-media"]),
+    /** Required for answer-sheet / question-paper kinds. */
+    examId: z.string().optional(),
+    /** Required for answer-sheet kind. */
     studentId: z.string().optional(),
+    /** Required for answer-sheet kind (ownership scope gate). */
     classId: z.string().optional(),
+    /** Required for content-source / item-media kinds. */
+    spaceId: z.string().optional(),
+    /** Required for item-media kind. */
+    itemId: z.string().optional(),
     contentType: z.string(),
   })
   .strict();

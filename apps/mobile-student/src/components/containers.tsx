@@ -165,7 +165,15 @@ export function Alert({ variant = "info", title, icon, children, className }: Al
  * a graceful mono styling of `$…$` / `$$…$$` spans. Full KaTeX needs a WebView;
  * screens needing true LaTeX can wrap this. Pass `body`/`html` string or children.
  */
-export function ContentRenderer({ children, body, html, math, className }: ContentRendererProps) {
+export function ContentRenderer({
+  children,
+  body,
+  html,
+  math,
+  className,
+  textClassName,
+}: ContentRendererProps) {
+  const paragraphClass = textClassName ?? "font-ui text-text-secondary text-base leading-6";
   const raw = body ?? html ?? (typeof children === "string" ? children : "");
   if (!raw)
     return <View className={className}>{typeof children === "string" ? null : children}</View>;
@@ -211,7 +219,7 @@ export function ContentRenderer({ children, body, html, math, className }: Conte
             {trimmed.split("\n").map((l, j) => (
               <View key={j} className="flex-row gap-2">
                 <Text className="font-ui text-text-muted text-base">•</Text>
-                <Text className="font-ui text-text-secondary flex-1 text-base leading-6">
+                <Text className={cx("flex-1", paragraphClass)}>
                   {renderInline(l.replace(/^\s*[-*]\s+/, ""), math)}
                 </Text>
               </View>
@@ -221,7 +229,7 @@ export function ContentRenderer({ children, body, html, math, className }: Conte
         return;
       }
       nodes.push(
-        <Text key={key} className="font-ui text-text-secondary text-base leading-6">
+        <Text key={key} className={paragraphClass}>
           {renderInline(trimmed, math)}
         </Text>
       );

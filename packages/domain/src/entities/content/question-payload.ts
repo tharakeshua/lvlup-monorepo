@@ -11,10 +11,16 @@ export {
   QuestionTypeDataSchema,
   McqOptionSchema,
   QUESTION_TYPE_REGISTRY,
+  QUESTION_TYPES,
+  zQuestionType,
+  minimalQuestionData,
+  AUTO_EVALUATABLE_TYPES,
+  AI_EVALUATABLE_TYPES,
 } from "./question-types/registry.js";
 export type {
   QuestionTypeData,
   McqOption,
   QuestionTypeSpec,
   GradingMode,
+  QuestionType,
 } from "./question-types/registry.js";

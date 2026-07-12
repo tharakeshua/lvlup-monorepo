@@ -21,8 +21,19 @@ import { ready, buildRepos, ALLOWED_VERB_PREFIXES } from "./_harness";
 
 const d = ready() ? describe : describe.skip;
 
-/** Lifecycle verbs (DX-5 §4.5) are sanctioned method names too. */
-const LIFECYCLE_VERBS = ["publish", "archive", "release", "rollover", "deactivate", "reactivate"];
+/** Lifecycle verbs (DX-5 §4.5) are sanctioned method names too.
+ *  `duplicate` added with the server-side v1.levelup.duplicateSpace callable
+ *  (CC-4, Fable ruling): a whole-entity lifecycle operation like `rollover`,
+ *  not an ad-hoc IO verb. */
+const LIFECYCLE_VERBS = [
+  "publish",
+  "archive",
+  "release",
+  "rollover",
+  "deactivate",
+  "reactivate",
+  "duplicate",
+];
 
 function startsWithAllowedVerb(method: string): boolean {
   if (method.startsWith("_")) return true; // private/escape hatch helpers

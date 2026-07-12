@@ -87,6 +87,13 @@ export const SaveEvaluationSettingsResponseSchema = zObject({
 });
 export type SaveEvaluationSettingsResponse = z.infer<typeof SaveEvaluationSettingsResponseSchema>;
 
+export const SaveExamQuestionResponseSchema = zObject({
+  id: zExamQuestionId,
+  created: z.boolean(),
+  deleted: z.boolean().optional(),
+});
+export type SaveExamQuestionResponse = z.infer<typeof SaveExamQuestionResponseSchema>;
+
 // ---------------------------------------------------------------------------
 // EXAM VIEWS
 // ---------------------------------------------------------------------------
@@ -172,6 +179,10 @@ export const ExtractedQuestionSchema = zObject({
   subQuestions: z.array(SubQuestionSchema).optional(),
   extractionConfidence: z.number().optional(),
   readabilityIssue: z.boolean().optional(),
+  // ⚷ server-only rubric guidance — present in the AI extraction response and
+  // persisted to the question doc; stripped from student/scanner projections.
+  modelAnswer: z.string().optional(),
+  evaluationGuidance: z.string().optional(),
 });
 export type ExtractedQuestion = z.infer<typeof ExtractedQuestionSchema>;
 

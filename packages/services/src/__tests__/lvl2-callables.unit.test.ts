@@ -549,42 +549,37 @@ describe("generateContent", () => {
   const SP = { id: "spt_1", spaceId: "sp_1", title: "Fractions", description: "Intro" };
   const SPACES = [{ id: "sp_1", tenantId: T, title: "Math", subject: "math" }];
 
+  const VALID_DRAFT = {
+    itemType: "question",
+    questionType: "mcq",
+    title: "Half of 4?",
+    payload: {
+      type: "question",
+      questionData: {
+        questionType: "mcq",
+        options: [
+          { id: "a", text: "2" },
+          { id: "b", text: "4" },
+        ],
+      },
+    },
+  };
+
+  function makeAiFake(drafts: unknown[] = [VALID_DRAFT, { itemType: "bogus", nonsense: true }]) {
+    return {
+      async generate() {
+        return { json: { drafts }, text: "", tokensUsed: 100, costUsd: 0.001, model: "stub" };
+      },
+    };
+  }
+
   it("returns ONLY schema-valid drafts (invalid model output dropped)", async () => {
     const ctx = makeCtx({
       repos: {
         spaces: makeFakeEntityRepo(SPACES as Doc[]),
         storyPoints: makeFakeEntityRepo([SP as Doc]),
       },
-      ai: {
-        async generate() {
-          return {
-            json: {
-              drafts: [
-                {
-                  itemType: "question",
-                  questionType: "mcq",
-                  title: "Half of 4?",
-                  payload: {
-                    type: "question",
-                    questionData: {
-                      questionType: "mcq",
-                      options: [
-                        { id: "a", text: "2" },
-                        { id: "b", text: "4" },
-                      ],
-                    },
-                  },
-                },
-                { itemType: "bogus", nonsense: true },
-              ],
-            },
-            text: "",
-            tokensUsed: 100,
-            costUsd: 0.001,
-            model: "stub",
-          };
-        },
-      },
+      ai: makeAiFake(),
     });
     const res = await generateContentService(
       { storyPointId: "spt_1", spec: { types: ["mcq"], count: 2 } } as never,
@@ -595,7 +590,64 @@ describe("generateContent", () => {
     expect((res.drafts[0] as Doc)["title"]).toBe("Half of 4?");
   });
 
-  it("fails loud on sourcePdfPath (deferred to the AI-authoring milestone)", async () => {
+  it("uses promptKey 'contentDraft' from the registry (not a raw prompt string)", async () => {
+    const calls: unknown[] = [];
+    const ctx = makeCtx({
+      repos: {
+        spaces: makeFakeEntityRepo(SPACES as Doc[]),
+        storyPoints: makeFakeEntityRepo([SP as Doc]),
+      },
+      ai: {
+        async generate(req: unknown) {
+          calls.push(req);
+          return {
+            json: { drafts: [VALID_DRAFT] },
+            text: "",
+            tokensUsed: 50,
+            costUsd: 0,
+            model: "stub",
+          };
+        },
+      },
+    });
+    await generateContentService(
+      { storyPointId: "spt_1", spec: { types: ["mcq"], count: 1 } } as never,
+      ctx
+    );
+    expect(calls).toHaveLength(1);
+    const req = calls[0] as Doc;
+    expect(req["promptKey"]).toBe("contentDraft");
+    expect(req["prompt"]).toBeUndefined(); // no raw prompt field
+    expect((req["variables"] as Doc)["storyPointTitle"]).toBe("Fractions");
+  });
+
+  it("passes sourcePdfPath as images ref for valid tenant-scoped paths", async () => {
+    const capturedImages: unknown[] = [];
+    const ctx = makeCtx({
+      repos: {
+        spaces: makeFakeEntityRepo(SPACES as Doc[]),
+        storyPoints: makeFakeEntityRepo([SP as Doc]),
+      },
+      ai: {
+        async generate(req: unknown) {
+          capturedImages.push((req as Doc)["images"]);
+          return { json: { drafts: [] }, text: "", tokensUsed: 10, costUsd: 0, model: "stub" };
+        },
+      },
+    });
+    const res = await generateContentService(
+      {
+        storyPointId: "spt_1",
+        spec: { types: ["mcq"], count: 1 },
+        sourcePdfPath: `tenants/${T}/papers/exam.pdf`,
+      } as never,
+      ctx
+    );
+    assertResponseValid("v1.levelup.generateContent", res);
+    expect(capturedImages[0]).toEqual([{ storagePath: `tenants/${T}/papers/exam.pdf` }]);
+  });
+
+  it("fails FAILED_PRECONDITION for sourcePdfPath outside tenant namespace", async () => {
     const ctx = makeCtx({
       repos: {
         spaces: makeFakeEntityRepo(SPACES as Doc[]),

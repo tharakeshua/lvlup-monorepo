@@ -96,6 +96,8 @@ export type {
   SaveEvaluationSettingsInput,
   SaveResponse,
   SaveExamInput,
+  SaveExamQuestionInput,
+  SaveExamQuestionResponse,
   ResolveDeadLetterRequest,
   ResolveDeadLetterResponse,
   ExtractQuestionsRequest,

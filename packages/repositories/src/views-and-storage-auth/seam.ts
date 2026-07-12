@@ -29,7 +29,13 @@ import type { ApiClient as RealApiClient } from "@levelup/api-client";
 export type StoragePath = string;
 
 /** Upload kinds the signed-URL grant supports (§3.7 path grammar + predicates). */
-export type UploadKind = "answer-sheet" | "question-paper" | "avatar" | "tenant-asset";
+export type UploadKind =
+  | "answer-sheet"
+  | "question-paper"
+  | "content-source"
+  | "item-media"
+  | "avatar"
+  | "tenant-asset";
 
 /**
  * `requestUploadUrl` input. Mirrors `v1.autograde.requestUploadUrl` for the exam
@@ -43,6 +49,10 @@ export interface RequestUploadUrlInput {
   examId?: ExamId | string;
   studentId?: StudentId | string;
   classId?: ClassId | string;
+  /** Required for content-source / item-media kinds (§3.7 path grammar). */
+  spaceId?: string;
+  /** Required for item-media kind. */
+  itemId?: string;
 }
 
 /** Signed-PUT-URL grant returned by the server (§3.7). */

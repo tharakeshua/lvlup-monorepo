@@ -12,6 +12,7 @@
 import type { CallableDef } from "../../callable-def.js";
 
 import { saveExamDef } from "./save-exam.js";
+import { saveExamQuestionDef } from "./save-exam-question.js";
 import { extractQuestionsDef } from "./extract-questions.js";
 import { uploadAnswerSheetsDef } from "./upload-answer-sheets.js";
 import { gradeQuestionDef } from "./grade-question.js";
@@ -31,6 +32,7 @@ import { listDeadLetterDef } from "./list-dead-letter.js";
 /** The autograde slice of the callable registry. Spread by core into `CALLABLES`. */
 export const AUTOGRADE_CALLABLES = {
   "v1.autograde.saveExam": saveExamDef,
+  "v1.autograde.saveExamQuestion": saveExamQuestionDef,
   "v1.autograde.extractQuestions": extractQuestionsDef,
   "v1.autograde.uploadAnswerSheets": uploadAnswerSheetsDef,
   "v1.autograde.gradeQuestion": gradeQuestionDef,
@@ -52,6 +54,7 @@ export const AUTOGRADE_CALLABLES = {
 // Per-callable schema + type re-exports (public surface for downstream layers).
 export * from "./_shared.js";
 export * from "./save-exam.js";
+export * from "./save-exam-question.js";
 export * from "./extract-questions.js";
 export * from "./upload-answer-sheets.js";
 export * from "./grade-question.js";

@@ -80,7 +80,14 @@ function makeCtx(opts: { aiThrows?: boolean; withBumpSpy?: boolean } = {}): Auth
   const ai = {
     async generate() {
       if (opts.aiThrows) throw new Error("gateway down");
-      return { json: { text: "What have you tried so far?" }, tokensUsed: 42 };
+      // aiChat is structured:false — makeAiSeam adapter maps data (text) → json (string).
+      return {
+        json: "What have you tried so far?",
+        text: "What have you tried so far?",
+        tokensUsed: 42,
+        costUsd: 0,
+        model: "stub",
+      };
     },
   };
   // CHAT-1: optional levelupProjections port spy — captures the RTDB bump calls
@@ -171,6 +178,36 @@ describe("AI tutor chat round-trip (Issue7)", () => {
     };
     expect(res.message.role).toBe("assistant");
     expect(res.message.text.length).toBeGreaterThan(0);
+  });
+});
+
+describe("AI gateway call contract (promptKey regression)", () => {
+  it("uses promptKey 'aiChat' (not 'tutorChat') with the correct required variables", async () => {
+    const captured: unknown[] = [];
+    const ctx = {
+      ...makeCtx(),
+      ai: {
+        async generate(req: unknown) {
+          captured.push(req);
+          return {
+            json: "Good question!",
+            text: "Good question!",
+            tokensUsed: 15,
+            costUsd: 0,
+            model: "stub",
+          };
+        },
+      } as unknown as AuthContext["ai"],
+    };
+    await sendChatMessageService(baseInput as never, ctx);
+    expect(captured).toHaveLength(1);
+    const req = captured[0] as Record<string, unknown>;
+    expect(req["promptKey"]).toBe("aiChat");
+    expect(req["promptKey"]).not.toBe("tutorChat");
+    const vars = req["variables"] as Record<string, unknown>;
+    expect(vars["message"]).toBe(baseInput.text);
+    expect(typeof vars["itemContext"]).toBe("string");
+    expect(typeof vars["language"]).toBe("string");
   });
 });
 

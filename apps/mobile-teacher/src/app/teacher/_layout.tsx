@@ -27,12 +27,26 @@ const TABS = [
   { key: "home", icon: "layout-dashboard", label: "Home" },
   { key: "classes", icon: "users", label: "Classes" },
   { key: "review", icon: "clipboard-check", label: "Review" },
+  { key: "create", icon: "plus-circle", label: "Create" },
   { key: "insights", icon: "bar-chart-3", label: "Insights" },
   { key: "more", icon: "menu", label: "More" },
 ] as const;
 
 // Routes that present as modals/sheets — tab bar hidden.
-const MODAL_ROUTES = new Set(["assign", "override", "rubric", "release", "tenant"]);
+const MODAL_ROUTES = new Set([
+  "assign",
+  "override",
+  "rubric",
+  "release",
+  "tenant",
+  // Create-lane wizard routes (full-screen, no tab bar)
+  "exam-wizard",
+  "generate-content",
+  "item-editor",
+  "story-point-editor",
+  "space-editor",
+  "question-bank-editor",
+]);
 
 function TeacherTabBar({ state, navigation }: TabBarRenderProps) {
   const current = state.routes[state.index]?.name ?? "home";
@@ -52,13 +66,21 @@ function TeacherTabBar({ state, navigation }: TabBarRenderProps) {
           current === "submission" ||
           current === "exam-analytics"
         ? "review"
-        : current === "at-risk" || current === "class-tests" || current === "space-analytics"
-          ? "insights"
-          : current === "announcements" || current === "notifications" || current === "settings"
-            ? "more"
-            : current === "assignments"
-              ? "home"
-              : "home");
+        : current === "exam-wizard" ||
+            current === "generate-content" ||
+            current === "item-editor" ||
+            current === "story-point-editor" ||
+            current === "space-editor" ||
+            current === "question-bank" ||
+            current === "question-bank-editor"
+          ? "create"
+          : current === "at-risk" || current === "class-tests" || current === "space-analytics"
+            ? "insights"
+            : current === "announcements" || current === "notifications" || current === "settings"
+              ? "more"
+              : current === "assignments"
+                ? "home"
+                : "home");
 
   return (
     <Tabbar
@@ -73,10 +95,11 @@ export default function TeacherLayout() {
   return (
     <View style={{ flex: 1, backgroundColor: "#FBF8F3" }}>
       <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TeacherTabBar {...props} />}>
-        {/* 5 visible tabs */}
+        {/* 6 visible tabs */}
         <Tabs.Screen name="home" />
         <Tabs.Screen name="classes" />
         <Tabs.Screen name="review" />
+        <Tabs.Screen name="create" />
         <Tabs.Screen name="insights" />
         <Tabs.Screen name="more" />
 
@@ -102,6 +125,15 @@ export default function TeacherLayout() {
         <Tabs.Screen name="rubric" options={{ href: null }} />
         <Tabs.Screen name="release" options={{ href: null }} />
         <Tabs.Screen name="tenant" options={{ href: null }} />
+
+        {/* Create lane — wizard + CC-7 editor routes (tab bar hidden) */}
+        <Tabs.Screen name="exam-wizard" options={{ href: null }} />
+        <Tabs.Screen name="generate-content" options={{ href: null }} />
+        <Tabs.Screen name="item-editor" options={{ href: null }} />
+        <Tabs.Screen name="story-point-editor" options={{ href: null }} />
+        <Tabs.Screen name="space-editor" options={{ href: null }} />
+        <Tabs.Screen name="question-bank" options={{ href: null }} />
+        <Tabs.Screen name="question-bank-editor" options={{ href: null }} />
       </Tabs>
     </View>
   );
