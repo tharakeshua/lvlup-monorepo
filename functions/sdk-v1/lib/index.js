@@ -401,7 +401,10 @@ var ChatAgentQuestionPrompt = zObject({
   maxTurns: z.number().int().optional(),
   modelAnswer: z.string().optional(),
 });
-var McqAnswer = zObject({ questionType: z.literal("mcq"), correctOptionIds: z.array(z.string()) });
+var McqAnswer = zObject({
+  questionType: z.literal("mcq"),
+  correctOptionIds: z.array(z.string()),
+});
 var McaqAnswer = zObject({
   questionType: z.literal("mcaq"),
   correctOptionIds: z.array(z.string()),
@@ -446,7 +449,10 @@ var JumbledAnswer = zObject({
   questionType: z.literal("jumbled"),
   correctOrder: z.array(z.number().int()),
 });
-var AudioAnswer = zObject({ questionType: z.literal("audio"), modelAnswer: z.string().optional() });
+var AudioAnswer = zObject({
+  questionType: z.literal("audio"),
+  modelAnswer: z.string().optional(),
+});
 var ImageEvaluationAnswer = zObject({
   questionType: z.literal("image_evaluation"),
   modelAnswer: z.string().optional(),
@@ -3679,7 +3685,7 @@ var FLAT_COLLECTION = {
   classes: "classes",
   exams: "exams",
   submissions: "submissions",
-  testSessions: "testSessions",
+  testSessions: "digitalTestSessions",
   progressDocs: "spaceProgress",
   notifications: "notifications",
   announcements: "announcements",
@@ -8766,7 +8772,7 @@ async function saveStudentService(input, ctx) {
   const res = await saveEntity(ctx, ctx.repos.students, "student", input);
   if (wasCreate && !input.delete) {
     const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-    const tenantCode = tenant?.["code"] ?? "";
+    const tenantCode = tenant?.["tenantCode"] ?? "";
     const authUid = input.data["authUid"];
     if (authUid) {
       await provisionMembership(
@@ -9076,7 +9082,7 @@ async function createOrgUserService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "user.create", { tenantId });
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = tenant?.["code"] ?? "";
+  const tenantCode = tenant?.["tenantCode"] ?? "";
   const { uid, entityId, membershipId } = await provisionOrgUser(
     {
       role: input.role,
@@ -9109,7 +9115,9 @@ async function switchActiveTenantService(input, ctx) {
   };
 }
 async function joinTenantService(input, ctx) {
-  const tenant = await ctx.repos.tenants.get(input.tenantCode, input.tenantCode);
+  const codeRepo = ctx.repos.tenants;
+  const resolvedId = (await codeRepo.resolveCode(input.tenantCode)) ?? input.tenantCode;
+  const tenant = await ctx.repos.tenants.get(resolvedId, resolvedId);
   if (!tenant) fail("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
   const tenantId = tenant["id"];
   authorize(ctx, "tenant.join", { tenantId });
@@ -9242,7 +9250,7 @@ async function bulkImportStudentsService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "user.bulkImport", { tenantId });
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = tenant?.["code"] ?? "";
+  const tenantCode = tenant?.["tenantCode"] ?? "";
   const rows = input.rows.map((row) => ({
     provision: {
       role: "student",
@@ -9267,7 +9275,7 @@ async function bulkImportTeachersService(input, ctx) {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "user.bulkImport", { tenantId });
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = tenant?.["code"] ?? "";
+  const tenantCode = tenant?.["tenantCode"] ?? "";
   const rows = input.rows.map((row) => ({
     provision: {
       role: "teacher",
@@ -13739,7 +13747,10 @@ async function listDeadLetterService(input, ctx) {
     dlq = dlq.filter((e) => canonPipelineStep(e["pipelineStep"]) === f.pipelineStep);
   }
   for (const e of entries) await ctx.repos.outbox.enqueue(tenantId, e);
-  return { items: dlq.map(toDeadLetterView), nextCursor: null };
+  return {
+    items: dlq.map(toDeadLetterView),
+    nextCursor: null,
+  };
 }
 async function getSubmissionForExamService(input, ctx) {
   const tenantId = requireTenant(ctx);

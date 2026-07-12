@@ -93,7 +93,7 @@ export async function saveStudentService(
   // New students with an auth account get a membership + claims (single factory).
   if (wasCreate && !input.delete) {
     const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-    const tenantCode = (tenant?.["code"] as string | undefined) ?? "";
+    const tenantCode = (tenant?.["tenantCode"] as string | undefined) ?? "";
     const authUid = (input.data as Record<string, unknown>)["authUid"] as string | undefined;
     if (authUid) {
       await provisionMembership(
