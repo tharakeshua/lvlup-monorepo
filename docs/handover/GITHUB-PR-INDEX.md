@@ -55,7 +55,7 @@
 
 ## Recommended maintainer actions
 
-1. Review + merge **PR #4** (identity/CI) and topic PRs needed for demo (#19 handover docs, #22 auth, #25 teacher HMR, admin HMR).
+1. Review + merge **PR #4** (identity/CI) and topic PRs needed for demo (#19 handover docs, #22 auth, #25 teacher HMR, #26 admin HMR).
 2. Approve Actions for fork PRs if checks are waiting on first-time contributor approval (`docs/CI-GREEN-PRS.md`).
 3. Grant **ActAs** on `lvlup-ff6fa@appspot.gserviceaccount.com` so Functions deploy does not depend on laptop impersonation.
 
