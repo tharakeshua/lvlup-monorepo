@@ -1,46 +1,46 @@
 # QA Authentic Status — LvlUp
 
-**Packed:** 2026-07-12 (refreshed after PLATFORM 2H DRIVER)  
+**Packed:** 2026-07-13 (authentic live QA refresh)  
 **Rule:** PASS only with screenshot/report evidence. Runner self-labels that contradict body text are **downgraded** here.  
 **No fabricated greens.**  
-**2h bar verdict:** **MET** — see `tmp/PLATFORM-2H-STATUS.md` (updated 2026-07-12T19:54Z).
+**Live suite verdict:** **55 PASS / 0 FAIL / 2 SKIP** — see [`QA-LIVE-EVIDENCE.md`](./QA-LIVE-EVIDENCE.md) + `tmp/QA-HANDOVER-AUTHENTIC.json` (finished 2026-07-12T20:17:54.175Z).
 
 Sources consulted:
 
-- **`tmp/PLATFORM-2H-STATUS.md`** (authoritative for 2h DoD)
-- `tmp/platform-2h-callable-probe2.json`, `tmp/platform-2h-browser-report.json`, `tmp/platform-2h-parent-report.json`
-- Screenshots: `tmp/platform-2h-{teacher,student,admin,parent}.png`
-- Prior packs (historical; superseded where they conflict with PLATFORM-2H): `tmp/qa-swarm-*`, `tmp/qa-teacher-wave2-*`, `tmp/qa-student-journey-*`, `tmp/platform-2h-callable-probe.json` (earlier probe — Admin/Parent FAIL; healed since)
-- Sibling deploy notes: sdk-v1 revision `v1-identity-listclasses-00007-jar` (prior window; no redeploy this 2h pass)
+- **`tmp/QA-HANDOVER-AUTHENTIC.json`** (authoritative machine report)
+- **`docs/handover/QA-LIVE-EVIDENCE.md`** (human-readable per-route)
+- Screenshots: `tmp/qa-handover-*.png` + `tmp/qa-handover-retest-*.png` (61 files)
+- Prior 2h DRIVER pack (historical context): `tmp/PLATFORM-2H-STATUS.md`, `tmp/platform-2h-*`
+- P0 HMR: teacher `apps/teacher-web/src/sdk/session.tsx` (PR #25); admin `apps/admin-web/src/sdk/session.tsx` (dedicated PR + PR #19)
 
 ---
 
-## Role scorecard (honest — 2h bar)
+## Role scorecard (authentic live suite)
 
-| Role | Overall | Summary |
-|------|---------|---------|
-| Teacher (Priya) | **PASS (2h)** | Login + dashboard usable on `:4569`; getMe + switchActiveTenant + listSpaces OK |
-| Student (Aarav) | **PASS (2h)** | Login + **Algebra Foundations** on `:4570`; listSpaces count=1 (supersedes earlier journey FAIL) |
-| Parent (Suresh) | **PASS (2h)** | Browser dashboard shows child Aarav Patel on `:4571` |
-| School Admin | **PASS (2h)** | Dashboard + `/users` Teachers 3 / Students 6; listClasses=3, listStudents=6 on `:4568` |
-| Cross-role / backend | **PARTIAL** | Identity + content callables GREEN; listNotifications 500; occasional analytics 403 |
+| Role | Overall | PASS / FAIL / SKIP | Summary |
+|------|---------|--------------------|---------|
+| Teacher (Priya) | **PASS** | 18 / 0 / 2 | Full sidebar + analytics + class detail; skip space-edit & exam-detail (no link) |
+| Student (Aarav) | **PASS** | 11 / 0 / 0 | Dashboard, spaces, Algebra Foundations viewer, tests/results/profile |
+| School Admin | **PASS** | 16 / 0 / 0 | Users, classes, exams, spaces, analytics, staff, announcements, export |
+| Parent (Suresh) | **PASS** | 10 / 0 / 0 | Dashboard, children, progress, alerts, compare, settings |
+| **TOTAL** | **PASS** | **55 / 0 / 2** | Zero crashes / pageerrors on PASS routes |
 
-**Earlier pack note:** A prior handover snapshot marked Student/Admin FAIL and Parent unverified. That is **stale**. DRIVER heals + `callSwitchActiveTenant` `{ targetTenantId }` fix flipped the 2h DoD rows to GREEN.
+**Earlier pack note:** PLATFORM 2H DoD (login + core surface) remains **MET**. Older FAIL snapshots (student journey, early admin getMe) are **stale**. An intermediate authentic run that reported teacher/student crashes is **superseded** by the 55/0/2 retest after SessionContext HMR fixes.
 
 ---
 
-## Platform 2H — definition of done
+## Authentic suite — definition of done
 
 | # | Criterion | Status | Evidence |
 |---|-----------|--------|----------|
-| 1 | Teacher Priya login + dashboard (`:4569`) | **GREEN** | `tmp/platform-2h-teacher.png` |
-| 2 | Student Aarav + ≥1 learning path (`:4570`) | **GREEN** | Algebra Foundations — `tmp/platform-2h-student.png` |
-| 3 | Admin Greenwood users/classes (`:4568`) | **GREEN** | Users Teachers 3 / Students 6; API listClasses/listStudents |
-| 4 | Parent credentials/data (`:4571`) | **GREEN** | Suresh → Aarav Patel — `tmp/platform-2h-parent.png` |
-| 5 | Backend identity + one content path | **GREEN** | `tmp/platform-2h-callable-probe2.json` |
-| 6 | Vite apps running 4568–4571 | **GREEN** | Bound `127.0.0.1` |
+| 1 | Teacher routes usable (`:4569`) | **GREEN** | 18 PASS · `tmp/qa-handover-teacher-*.png` |
+| 2 | Student routes + Algebra Foundations (`:4570`) | **GREEN** | 11 PASS · space viewer screenshot |
+| 3 | Admin routes (`:4568`) | **GREEN** | 16 PASS · users/classes/staff |
+| 4 | Parent routes + child surfaces (`:4571`) | **GREEN** | 10 PASS · dashboard/progress |
+| 5 | Zero FAIL in suite | **GREEN** | `QA-HANDOVER-AUTHENTIC.json` totals |
+| 6 | Vite apps 4568–4571 | **GREEN** | Bound `127.0.0.1` |
 
-**Verdict:** 2h bar **MET** (all six rows GREEN).
+**Verdict:** Authentic live QA **PASS** (55/0/2).
 
 ---
 
@@ -48,30 +48,32 @@ Sources consulted:
 
 | Item | Severity | Notes |
 |------|----------|-------|
-| `v1-identity-listNotifications` | YELLOW | **500** on admin/parent after login |
+| `v1-identity-listNotifications` | YELLOW | **500** on some roles after login |
 | `v1-analytics-getChildSummary` | YELLOW | Occasional **403**; spaces path OK |
-| Teacher dashboard cards | YELLOW | Shell usable; some widgets empty/slow |
-| Transient getMe 401 | YELLOW | Pre-token race; later 200 |
+| Teacher deep-link skips | SKIP | No visible edit/detail links in list UI |
 | Redeploy / IAM ActAs | YELLOW | Documented; live callables already respond |
 | Ghost GRN001 tenant ids | YELLOW | Prefer canonical `tn_greenwood_524e429639` |
 
 ---
 
-## P0 code fix (this window)
+## P0 code fixes (this window)
 
-`packages/shared-services` — `callSwitchActiveTenant` → **`v1-identity-switchActiveTenant`** with **`{ targetTenantId }`** (was legacy `switchActiveTenant` + `{ tenantId }`). Dist rebuilt. Unblocked student/parent school login against live identity.
+1. **`callSwitchActiveTenant`** — `packages/shared-services` → `v1-identity-switchActiveTenant` + `{ targetTenantId }`.
+2. **Teacher SessionContext HMR** — `globalThis` singleton in `apps/teacher-web/src/sdk/session.tsx` — [PR #25](https://github.com/subhangR/lvlup-monorepo/pull/25).
+3. **Admin SessionContext HMR** — same pattern in `apps/admin-web/src/sdk/session.tsx` — [PR #26](https://github.com/subhangR/lvlup-monorepo/pull/26) + included in [PR #19](https://github.com/subhangR/lvlup-monorepo/pull/19) handover bundle.
 
 ---
 
-## Teacher — detailed (2h + prior depth)
+## Teacher — detailed
 
 | Case | Status | Evidence |
 |------|--------|----------|
-| Login + dashboard (2h) | **PASS** | `tmp/platform-2h-teacher.png`, browser report |
-| getMe / switch / listSpaces (2h) | **PASS** | Callable probe2 |
-| Spaces / timed-test / exam wizard (prior swarm) | PASS | `tmp/qa-swarm-report.json` |
-| Wave2 route sweep (prior) | PARTIAL | 16/18; rubric Loading unstable — `tmp/qa-teacher-wave2-report.json` |
-| Analytics getSummary 403 (prior) | YELLOW | Occasional; soft-fail UX — not 2h DoD fail |
+| Login + dashboard | **PASS** | `qa-handover-teacher-01/02-*.png` |
+| Spaces / QB / rubrics / exams / classes | **PASS** | teacher-03 … 08 |
+| Analytics routes | **PASS** | classes retest + exams/spaces/tests |
+| Assignments / grading / students / settings / notifications | **PASS** | teacher-13 … 17 |
+| Class detail | **PASS** | teacher-18 |
+| Space edit / exam detail deep links | **SKIP** | No link visible |
 
 ---
 
@@ -79,10 +81,10 @@ Sources consulted:
 
 | Case | Status | Evidence |
 |------|--------|----------|
-| Login + Algebra Foundations (2h) | **PASS** | `tmp/platform-2h-student.png`; listSpaces=1 |
-| Identity + listSpaces API (2h) | **PASS** | probe2 |
-| Earlier full journey (spaces fail / Loading / chat 404) | **SUPERSEDED for 2h bar** | `tmp/qa-student-journey-*` still useful for deep gaps (chat 404, notifications) but **not** the 2h verdict |
-| listNotifications / getChildSummary | YELLOW | 500 / occasional 403 |
+| Login + dashboard | **PASS** | student-01 + retest dashboard |
+| Spaces + Algebra Foundations viewer | **PASS** | retest spaces + student-11 |
+| Tests / results / leaderboard / achievements | **PASS** | student-04 … 07 |
+| Profile / settings / notifications | **PASS** | student-08 … 10 |
 
 ---
 
@@ -90,10 +92,9 @@ Sources consulted:
 
 | Case | Status | Evidence |
 |------|--------|----------|
-| Browser dashboard + child Aarav (2h) | **PASS** | `tmp/platform-2h-parent.png`, `tmp/platform-2h-parent-report.json` |
-| Credentials | PASS | `suresh.patel@gmail.com` / GRN001 (see TEST_CREDENTIALS / PLATFORM-2H-STATUS) |
-| Earlier probe FAIL / heal-only | **SUPERSEDED** | Older `tmp/platform-2h-callable-probe.json` parent FAIL is stale |
-| Alt parent Rajesh | NOT browser-verified | Membership healed only |
+| Login + dashboard (child Aarav) | **PASS** | parent-01/02 |
+| Children / results / progress / child-progress | **PASS** | parent-03 … 06 |
+| Alerts / compare / notifications / settings | **PASS** | parent-07 … 10 |
 
 ---
 
@@ -101,23 +102,10 @@ Sources consulted:
 
 | Case | Status | Evidence |
 |------|--------|----------|
-| Login + dashboard + `/users` (2h) | **PASS** | Teachers 3 / Students 6 |
-| listClasses / listStudents (2h) | **PASS** | 3 / 6 |
-| Earlier getMe user-not-found | **SUPERSEDED** | Users docs + claims healed to `tn_greenwood_524e429639` |
-| listNotifications | YELLOW | 500 non-blocking |
-
----
-
-## Backend / platform-2h
-
-| Check | Status | Evidence |
-|-------|--------|----------|
-| Teacher/Student/Admin/Parent identity + content | **PASS** | `tmp/platform-2h-callable-probe2.json` |
-| `PLATFORM-2H-STATUS.md` checklist | **MET** | All six DoD GREEN |
-| Notifications callable | YELLOW / FAIL feature | 500 |
-| getChildSummary | YELLOW | Occasional 403 |
-| sdk-v1 redeploy this window | Not attempted | Live revisions already serving identity/content |
-| IAM ActAs | OPEN | Impersonation workaround still required for direct deploy |
+| Login + dashboard + users + classes | **PASS** | admin-01 … 04 |
+| Exams / spaces / AI usage / settings / sessions | **PASS** | admin-05 … 09 |
+| Reports / analytics / courses / notifications | **PASS** | admin-10 … 13 |
+| Staff / announcements / data-export | **PASS** | admin-14 … 16 |
 
 ---
 
@@ -125,18 +113,17 @@ Sources consulted:
 
 | Suite | Result | Authentic note |
 |-------|--------|----------------|
-| **Platform 2H DoD** | **6/6 GREEN — MET** | Authoritative for tomorrow’s client pack |
-| QA swarm teacher critical | 4 PASS / 0 FAIL | Still valid depth evidence |
-| Teacher wave2 | 16 PASS / 2 FAIL | Rubric unstable |
-| Student journey (older) | Mostly FAIL after override | **Superseded** for 2h login+space; keep for chat/notifications depth |
-| Parent / Admin (2h browser) | PASS | Screenshots + reports in `tmp/platform-2h-*` |
+| **Live handover authentic** | **55 PASS / 0 FAIL / 2 SKIP** | Authoritative for client pack |
+| Platform 2H DoD (prior) | 6/6 GREEN — MET | Still valid for login/core DoD |
+| QA swarm teacher critical | 4 PASS / 0 FAIL | Depth evidence |
+| Teacher wave2 (prior) | Improved via rubric coerce PR #24 | See teacher scorecard |
 
 ---
 
-## What remains after “demo-ready 2h”
+## What remains after demo-ready authentic QA
 
 1. Fix `listNotifications` 500.
 2. Clear or soft-fail remaining analytics 403s.
-3. PR #4 merged (or client clones fork tip knowingly).
+3. Merge open fork PRs (#4 mega + topic #5–#26) or have client clone fork tip knowingly.
 4. Maintainer IAM ActAs for non-impersonated deploys.
-5. Optional: re-verify student chat route and exam extract E2E before claiming those features.
+5. Optional: surface space-edit / exam-detail links so SKIP routes become testable.
