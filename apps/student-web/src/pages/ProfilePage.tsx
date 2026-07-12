@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
 import { useStudentSummary, useStudentAchievements, useStudentLevel } from "@levelup/query";
-import type { UserId } from "@levelup/domain";
+import type { UserId, StudentProgressSummary } from "@levelup/domain";
 import { LevelBadge, StreakWidget, Card, CardContent, Skeleton, FadeIn } from "@levelup/shared-ui";
 import { sonnerToast as toast } from "@levelup/shared-ui";
 import { User, Award, Star, School, Camera, IdCard } from "lucide-react";
@@ -111,9 +111,8 @@ export default function ProfilePage() {
   const { data: summaryRaw, isLoading: summaryLoading } = useStudentSummary(
     (user?.uid ?? "") as UserId
   );
-  const summary = summaryRaw as
-    | { levelup: { streakDays: number; totalPointsEarned: number }; overallScore: number }
-    | undefined;
+  const summary = (summaryRaw as { studentSummary?: StudentProgressSummary } | undefined)
+    ?.studentSummary;
 
   const { data: achievementsRaw, isLoading: achievementsLoading } = useStudentAchievements({
     userId,

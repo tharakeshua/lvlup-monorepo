@@ -1,8 +1,15 @@
 import { useMemo, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSpace, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
+import {
+  spaceHref,
+  spacesListHref,
+  storyPointHref,
+  testHref,
+  practiceHref,
+} from "../lib/space-paths";
 import ProgressBar from "../components/common/ProgressBar";
 import {
   Button,
@@ -44,14 +51,16 @@ import SpaceReviewSection from "../components/spaces/SpaceReviewSection";
 export default function SpaceViewerPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     data: spaceData,
     isLoading: spaceLoading,
     isError: spaceError,
     refetch: refetchSpace,
-  } = useSpace<{ space: Space }>(spaceId ?? "");
-  const space = spaceData?.space;
+  } = useSpace<Space>(spaceId ?? "");
+  // Repo unwraps `{ space }` — hook data IS the SpaceView.
+  const space = spaceData;
   const { data: storyPoints, isLoading: spLoading } = useStoryPoints(null, spaceId ?? null);
   const { data: progressData } = useSpaceProgress(asSpaceId(spaceId ?? ""));
   const progress = (progressData ?? null) as SpaceProgress | null;
@@ -63,20 +72,19 @@ export default function SpaceViewerPage() {
 
   // Find the first incomplete item for resume
   const resumeTarget = useMemo(() => {
-    if (!storyPoints?.length || !progress) return null;
+    if (!storyPoints?.length || !progress || !spaceId) return null;
     for (const sp of storyPoints) {
       const spProgress = progress.storyPoints[sp.id];
       if (!spProgress || spProgress.status !== "completed") {
         const isTest = sp.type === "timed_test" || sp.type === "test";
         const isPractice = sp.type === "practice";
-        const base = `/spaces/${spaceId}`;
-        if (isTest) return `${base}/test/${sp.id}`;
-        if (isPractice) return `${base}/practice/${sp.id}`;
-        return `${base}/story-points/${sp.id}`;
+        if (isTest) return testHref(location.pathname, spaceId, sp.id);
+        if (isPractice) return practiceHref(location.pathname, spaceId, sp.id);
+        return storyPointHref(location.pathname, spaceId, sp.id);
       }
     }
     return null;
-  }, [storyPoints, progress, spaceId]);
+  }, [storyPoints, progress, spaceId, location.pathname]);
 
   if (spaceLoading || spLoading) {
     return (
@@ -109,7 +117,7 @@ export default function SpaceViewerPage() {
         <BookOpen className="text-muted-foreground/30 mx-auto mb-2 h-10 w-10" />
         <p className="text-muted-foreground text-sm">Space not found or has been removed.</p>
         <Button variant="outline" size="sm" asChild className="mt-3">
-          <a href="/spaces">Back to Spaces</a>
+          <Link to={spacesListHref(location.pathname)}>Back to Spaces</Link>
         </Button>
       </div>
     );
@@ -130,7 +138,7 @@ export default function SpaceViewerPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/spaces">Spaces</Link>
+                <Link to={spacesListHref(location.pathname)}>Spaces</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -249,18 +257,18 @@ function StoryPointCard({
   total: number;
   progress?: StoryPointProgress;
 }) {
+  const location = useLocation();
   const isTest = storyPoint.type === "timed_test" || storyPoint.type === "test";
   const isPractice = storyPoint.type === "practice";
   const isQuiz = storyPoint.type === "quiz";
   const percentage = progress?.percentage ?? 0;
   const isCompleted = progress?.status === "completed";
 
-  const linkBase = `/spaces/${spaceId}`;
   const link = isTest
-    ? `${linkBase}/test/${storyPoint.id}`
+    ? testHref(location.pathname, spaceId, storyPoint.id)
     : isPractice
-      ? `${linkBase}/practice/${storyPoint.id}`
-      : `${linkBase}/story-points/${storyPoint.id}`;
+      ? practiceHref(location.pathname, spaceId, storyPoint.id)
+      : storyPointHref(location.pathname, spaceId, storyPoint.id);
 
   return (
     <Link
