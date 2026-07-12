@@ -21,6 +21,7 @@ import {
   createFakeApiClient,
   httpsErrorLike,
   makeSpace,
+  makeStoryPoint,
   makeStudent,
   type FakeApiClient,
 } from "../../../../tests/sdk/fakes";
@@ -34,13 +35,27 @@ d("repositories · get/save shape", () => {
     api = createFakeApiClient();
   });
 
-  it("get(id) calls the single get callable and returns the shaped entity", async () => {
+  it("get(id) calls the single get callable and unwraps { space }", async () => {
     const space = makeSpace({ id: "space__dsa" });
-    api.stub("levelup", "getSpace", () => space);
+    // Wire contract is `{ space: SpaceView }` — repo must unwrap for callers.
+    api.stub("levelup", "getSpace", () => ({ space }));
     const r = buildRepos(api);
     const got = (await r["spaceRepo"]!["get"]!("space__dsa")) as { id: string };
     expect(got.id).toBe("space__dsa");
     expect(api.callsTo("v1.levelup.getSpace")).toHaveLength(1);
+  });
+
+  it("storyPointRepo.get requires spaceId and unwraps { storyPoint }", async () => {
+    const sp = makeStoryPoint({ id: "sp__arrays" });
+    api.stub("levelup", "getStoryPoint", () => ({ storyPoint: sp }));
+    const r = buildRepos(api);
+    const got = (await r["storyPointRepo"]!["get"]!({
+      spaceId: "space__dsa",
+      storyPointId: "sp__arrays",
+    })) as { id: string };
+    expect(got.id).toBe("sp__arrays");
+    const call = api.callsTo("v1.levelup.getStoryPoint")[0]!;
+    expect(call.data).toMatchObject({ spaceId: "space__dsa", storyPointId: "sp__arrays" });
   });
 
   it("save() passes the body through and NEVER injects tenantId (D2)", async () => {
