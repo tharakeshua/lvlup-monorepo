@@ -110,12 +110,15 @@ export default function RubricPresetPicker({
           </DialogHeader>
 
           <div className="mb-3">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select
+              value={categoryFilter || "__all__"}
+              onValueChange={(v) => setCategoryFilter(v === "__all__" ? "" : v)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="__all__">All Categories</SelectItem>
                 {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {label}

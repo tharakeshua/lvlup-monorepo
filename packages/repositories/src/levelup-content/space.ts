@@ -62,7 +62,8 @@ export function createSpaceRepo(api: ApiClientLike): SpaceRepo {
   return {
     list: (filter = {}) => lv["listSpaces"]!(filter).then((r) => toPage(r)),
     paginate: (filter = {}) => makePaginator((req) => lv["listSpaces"]!(req), filter),
-    get: (id) => lv["getSpace"]!({ spaceId: id }),
+    // Callable returns `{ space }`; callers/hooks expect the SpaceView itself.
+    get: (id) => lv["getSpace"]!({ spaceId: id }).then((r) => (r as { space: unknown }).space),
     getMany: (ids) => batchGetMany((req) => lv["listSpaces"]!(req), ids),
     save: (input) => lv["saveSpace"]!(input),
     publish: (input) => lv["publishSpace"]!(input),

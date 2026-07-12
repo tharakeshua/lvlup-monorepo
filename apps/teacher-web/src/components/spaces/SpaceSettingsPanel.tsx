@@ -744,7 +744,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
         <p className="text-muted-foreground mr-auto text-xs">
           Changes apply to all teachers and students of this space.
         </p>
-        <Button onClick={handleSave} disabled={saving || !title.trim()}>
+        <Button onClick={handleSave} disabled={saving || !(title ?? "").trim()}>
           <Save className="mr-1 h-4 w-4" />
           {saving ? "Saving..." : "Save settings"}
         </Button>

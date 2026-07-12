@@ -317,11 +317,39 @@ export default function ExamCreatePage() {
             </Select>
           </div>
           <Button
-            onClick={() => {
-              if (validateMetadata()) setStep("upload");
+            onClick={async () => {
+              if (!validateMetadata()) return;
+              // Persist the draft before leaving metadata so Generate/Extract
+              // (and question-paper upload via requestUploadUrl) have an examId.
+              setSaving(true);
+              try {
+                if (!examId) {
+                  const draft = await saveExam.mutateAsync({ data: buildExamData() });
+                  setExamId(draft.id);
+                } else {
+                  await saveExam.mutateAsync({
+                    id: asExamId(examId),
+                    data: buildExamData(),
+                  });
+                }
+                setStep("upload");
+              } catch (err) {
+                handleError(err, "Failed to save exam draft");
+              } finally {
+                setSaving(false);
+              }
             }}
+            disabled={saving}
           >
-            Next <ArrowRight className="h-4 w-4" />
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Saving draft...
+              </>
+            ) : (
+              <>
+                Next <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       )}

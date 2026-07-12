@@ -27,10 +27,9 @@ export async function resolveDeadLetterService(input: Req, ctx: AuthContext): Pr
   const tenantId = requireTenant(ctx);
   authorize(ctx, "grade.retry", { tenantId });
 
-  const entries = await ctx.repos.outbox.drain(tenantId);
-  const entry = entries.find(
-    (e) => e["_kind"] === "gradingDeadLetter" && e["id"] === input.entryId
-  );
+  // SVC-4 / NEW-1: never drain-all — list + single-row update only.
+  const entries = await ctx.repos.outbox.list(tenantId, { kind: "gradingDeadLetter" });
+  const entry = entries.find((e) => e["id"] === input.entryId);
   if (!entry) fail("NOT_FOUND", `dead-letter entry ${input.entryId} not found`);
 
   // Idempotent: already resolved → no-op.
@@ -46,8 +45,7 @@ export async function resolveDeadLetterService(input: Req, ctx: AuthContext): Pr
     await enqueuePipelineAdvance(ctx, submissionId, "grading");
   }
 
-  await ctx.repos.outbox.enqueue(tenantId, {
-    ...entry,
+  await ctx.repos.outbox.update(tenantId, input.entryId, {
     resolvedAt: now,
     resolvedBy: ctx.uid,
     resolutionMethod: resolution,

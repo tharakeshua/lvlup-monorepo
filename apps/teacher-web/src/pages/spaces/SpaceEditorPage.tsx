@@ -76,6 +76,7 @@ import RubricEditor from "../../components/spaces/RubricEditor";
 import AgentConfigPanel from "../../components/spaces/AgentConfigPanel";
 import QuestionBankImportDialog from "../../components/spaces/QuestionBankImportDialog";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import { useAuthSession } from "../../sdk/session";
 import {
   DndContext,
   closestCenter,
@@ -352,7 +353,15 @@ export default function SpaceEditorPage() {
   // tenantId kept only for the ItemEditor child prop (tenant is otherwise
   // implicit in @levelup/query, derived from auth claims server-side).
   const tenantId = useAuthSession((s) => s.currentTenantId);
-  const { data: space, isLoading, refetch } = useSpace<Space>(spaceId ?? "");
+  const { data: spaceRaw, isLoading, refetch } = useSpace<Space | { space: Space }>(spaceId ?? "");
+  // Defensive unwrap: spaceRepo.get should return SpaceView, but tolerate a
+  // leftover `{ space }` envelope from older repo builds / direct callable shapes.
+  const space: Space | undefined =
+    spaceRaw && typeof spaceRaw === "object" && "title" in spaceRaw
+      ? (spaceRaw as Space)
+      : spaceRaw && typeof spaceRaw === "object" && "space" in spaceRaw
+        ? (spaceRaw as { space: Space }).space
+        : undefined;
   const { handleError } = useApiError();
   const { storyPointRepo, itemRepo } = useRepos();
 

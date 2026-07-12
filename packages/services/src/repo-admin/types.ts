@@ -81,7 +81,18 @@ export interface IdempotencyRepo {
 /** Transactional-outbox repo for must-deliver side effects (§5.3). */
 export interface OutboxRepo {
   enqueue(tenantId: string, entry: Record<string, unknown>): Promise<void>;
-  /** Read + clear pending rows (drain worker). */
+  /**
+   * Non-destructive read (SVC-4). Never mutates delivery status — use for
+   * DLQ list/resolve and any other outbox introspection. Optional `kind`
+   * filters on `_kind` (e.g. `'gradingDeadLetter'`).
+   */
+  list(tenantId: string, opts?: { kind?: string }): Promise<Record<string, unknown>[]>;
+  /**
+   * Patch a single outbox row by logical `id` (or Firestore doc id). Used by
+   * `resolveDeadLetter` so sibling pending rows are never drained.
+   */
+  update(tenantId: string, id: string, patch: Record<string, unknown>): Promise<void>;
+  /** Read + clear pending rows (drain worker ONLY). */
   drain(tenantId: string): Promise<Record<string, unknown>[]>;
 }
 

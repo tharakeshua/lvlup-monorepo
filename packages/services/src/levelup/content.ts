@@ -96,6 +96,10 @@ const ANSWER_KEY_FIELDS = [
   "modelAnswer",
   "evaluationGuidance",
   "evaluatorGuidance",
+  // LD-01: canonical MCQ/MCAQ/jumbled/matching answer fields (live leak if omitted).
+  "isCorrect",
+  "correctOrder",
+  "right",
 ] as const;
 
 /** Recursively strip any answer-key/guidance field from a value (deep, by name).

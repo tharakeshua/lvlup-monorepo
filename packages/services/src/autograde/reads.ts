@@ -357,9 +357,10 @@ export async function listDeadLetterService(
 ): Promise<ResOf<"v1.autograde.listDeadLetter">> {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "grade.retry", { tenantId });
-  const entries = await ctx.repos.outbox.drain(tenantId);
+  // SVC-4: non-destructive list — never drain/re-enqueue on a read path.
+  const entries = await ctx.repos.outbox.list(tenantId, { kind: "gradingDeadLetter" });
   const f = input.filter ?? {};
-  let dlq = entries.filter((e) => e["_kind"] === "gradingDeadLetter");
+  let dlq = entries;
   if (f.resolved !== undefined) {
     dlq = dlq.filter((e) => Boolean(e["resolvedAt"]) === f.resolved);
   }
@@ -367,8 +368,6 @@ export async function listDeadLetterService(
     // filter on the CANONICAL step so a legacy 'ocr' entry matches a 'scouting' filter.
     dlq = dlq.filter((e) => canonPipelineStep(e["pipelineStep"]) === f.pipelineStep);
   }
-  // re-enqueue what we drained (drain is a read+clear; keep durable) — best effort.
-  for (const e of entries) await ctx.repos.outbox.enqueue(tenantId, e);
   return {
     items: dlq.map(toDeadLetterView),
     nextCursor: null,

@@ -132,12 +132,15 @@ export default function QuestionBankPage() {
           </div>
         </div>
 
-        <Select value={difficulty} onValueChange={setDifficulty}>
+        <Select
+          value={difficulty || "__all__"}
+          onValueChange={(v) => setDifficulty(v === "__all__" ? "" : v)}
+        >
           <SelectTrigger className="w-[130px]">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="__all__">All</SelectItem>
             {DIFFICULTY_OPTIONS.map((d) => (
               <SelectItem key={d} value={d}>
                 {d.charAt(0).toUpperCase() + d.slice(1)}
@@ -146,12 +149,15 @@ export default function QuestionBankPage() {
           </SelectContent>
         </Select>
 
-        <Select value={bloomsLevel} onValueChange={setBloomsLevel}>
+        <Select
+          value={bloomsLevel || "__all__"}
+          onValueChange={(v) => setBloomsLevel(v === "__all__" ? "" : v)}
+        >
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Bloom's Level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="__all__">All</SelectItem>
             {BLOOMS_LEVELS.map((level) => (
               <SelectItem key={level} value={level}>
                 {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -160,12 +166,15 @@ export default function QuestionBankPage() {
           </SelectContent>
         </Select>
 
-        <Select value={questionType} onValueChange={setQuestionType}>
+        <Select
+          value={questionType || "__all__"}
+          onValueChange={(v) => setQuestionType(v === "__all__" ? "" : v)}
+        >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="__all__">All Types</SelectItem>
             {Object.entries(QUESTION_TYPE_LABELS).map(([type, label]) => (
               <SelectItem key={type} value={type}>
                 {label}

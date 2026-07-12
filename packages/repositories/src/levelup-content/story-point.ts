@@ -2,7 +2,7 @@
  * storyPointRepo (SDK-LAYERS-PLAN §4.1, levelup-content.md).
  *
  *   list(spaceId)        — listStoryPoints (paginated — MERGE-PAGINATION)
- *   get(id)              — getStoryPoint (C20)
+ *   get({spaceId,id})    — getStoryPoint (C20); requires spaceId for authz
  *   getMany(ids)         — batched
  *   save(input)          — metadata only; `delete?` archive convention (D5)
  *   isAssessment(sp)     — derived: type ∈ {timed_test,quiz,practice}
@@ -32,10 +32,15 @@ export interface SaveStoryPointInput {
   delete?: boolean;
 }
 
+export interface GetStoryPointInput {
+  spaceId: string;
+  storyPointId: string;
+}
+
 export interface StoryPointRepo {
   list(filter: StoryPointFilter): Promise<Page<unknown>>;
   paginate(filter: StoryPointFilter): Promise<PageBag<unknown>>;
-  get(id: string): Promise<unknown>;
+  get(input: GetStoryPointInput): Promise<unknown>;
   getMany(ids: readonly string[]): Promise<unknown[]>;
   save(input: SaveStoryPointInput): Promise<unknown>;
   isAssessment(sp: { type?: string }): boolean;
@@ -46,7 +51,12 @@ export function createStoryPointRepo(api: ApiClientLike): StoryPointRepo {
   return {
     list: (filter) => lv["listStoryPoints"]!(filter).then((r) => toPage(r)),
     paginate: (filter) => makePaginator((req) => lv["listStoryPoints"]!(req), filter),
-    get: (id) => lv["getStoryPoint"]!({ storyPointId: id }),
+    // Callable requires spaceId + returns `{ storyPoint }` — unwrap to StoryPointView.
+    get: (input) =>
+      lv["getStoryPoint"]!({
+        spaceId: input.spaceId,
+        storyPointId: input.storyPointId,
+      }).then((r) => (r as { storyPoint: unknown }).storyPoint),
     getMany: (ids) => batchGetMany((req) => lv["listStoryPoints"]!(req), ids),
     save: (input) => lv["saveStoryPoint"]!(input),
     isAssessment: (sp) => ASSESSMENT_TYPES.has(sp.type ?? ""),

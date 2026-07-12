@@ -307,13 +307,31 @@ export function createInMemoryRepos(options: CreateReposOptions = {}): InMemoryR
 
     outbox: {
       async enqueue(tenantId, entry) {
-        outboxFor(tenantId).push({
+        const rows = outboxFor(tenantId);
+        const logicalId =
+          typeof entry["id"] === "string" ? (entry["id"] as string) : `obx_${rows.length + 1}`;
+        const idx = rows.findIndex((r) => r["id"] === logicalId);
+        const next = {
           ...entry,
+          id: logicalId,
           status: "pending",
           // DLQ entries carry their own attempt count — don't clobber it to 0.
           attempts: (entry["attempts"] as number | undefined) ?? 0,
           enqueuedAt: now(),
-        });
+        };
+        if (idx >= 0) rows[idx] = { ...rows[idx], ...next };
+        else rows.push(next);
+      },
+      async list(tenantId, opts = {}) {
+        const rows = outboxStore.get(tenantId) ?? [];
+        if (!opts.kind) return rows.map((r) => ({ ...r }));
+        return rows.filter((r) => r["_kind"] === opts.kind).map((r) => ({ ...r }));
+      },
+      async update(tenantId, id, patch) {
+        const rows = outboxFor(tenantId);
+        const idx = rows.findIndex((r) => r["id"] === id);
+        if (idx < 0) throw new Error(`outbox row ${id} not found`);
+        rows[idx] = { ...rows[idx], ...patch, id };
       },
       async drain(tenantId) {
         const rows = outboxStore.get(tenantId) ?? [];
