@@ -88,11 +88,13 @@ export default function LeaderboardPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Overall</SelectItem>
-              {(spaces ?? []).map((space) => (
-                <SelectItem key={space.id} value={space.id}>
-                  {space.title}
-                </SelectItem>
-              ))}
+              {(spaces ?? [])
+                .filter((space) => !!space.id)
+                .map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.title}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

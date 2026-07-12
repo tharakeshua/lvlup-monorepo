@@ -20,8 +20,9 @@ export default function StoreDetailPage() {
   // projection — labels/subject/stats/content-preview are not part of it, so the
   // story-point content preview that the legacy firestore read provided is no
   // longer available here (flagged as a parity gap).
-  const { data, isLoading, error } = useStoreSpace<{ listing: Space }>(spaceId ?? "");
-  const space = data?.listing;
+  // Repo unwraps `{ listing }` — hook data IS the listing.
+  const { data, isLoading, error } = useStoreSpace<Space>(spaceId ?? "");
+  const space = data;
 
   const purchase = usePurchaseSpace();
 
@@ -148,7 +149,7 @@ export default function StoreDetailPage() {
 
             {enrolled || purchaseSuccess ? (
               <Button
-                onClick={() => navigate(`/spaces/${spaceId}`)}
+                onClick={() => navigate(`/consumer/spaces/${spaceId}`)}
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700"
               >
                 <CheckCircle2 className="h-4 w-4" />

@@ -38,11 +38,11 @@ export default function ChatTutorPanel({
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || !currentTenantId) return;
+    if (!text) return;
     setInput("");
 
     sendMessage.mutate({
-      tenantId: currentTenantId,
+      tenantId: currentTenantId ?? "",
       spaceId,
       storyPointId,
       itemId,

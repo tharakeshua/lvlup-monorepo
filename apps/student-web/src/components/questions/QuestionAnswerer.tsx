@@ -79,7 +79,9 @@ export default function QuestionAnswerer({
   // Handler for ChatAgentAnswerer AI replies
   const handleChatAgentSend = useCallback(
     async (message: string): Promise<string> => {
-      if (!currentTenantId) return "Error: no tenant context";
+      if (!currentTenantId) {
+        return "Chat is unavailable without an active school session. Try signing in with a school code.";
+      }
       const result = await sendChatMessage.mutateAsync({
         tenantId: currentTenantId,
         spaceId: item.spaceId ?? "",
