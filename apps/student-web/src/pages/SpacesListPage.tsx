@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
 import { useSpaces, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
@@ -8,14 +7,14 @@ import { Skeleton, Button } from "@levelup/shared-ui";
 import type { Space, SpaceProgress } from "@levelup/shared-types";
 
 export default function SpacesListPage() {
-  const { currentMembership } = useAuthStore();
-  const classIds = currentMembership?.permissions?.managedClassIds;
+  // listSpaces request is strict: status/type/classId/subject/teacherId only —
+  // do NOT pass classIds[] (Zod rejects). Server scopes by claims.
   const {
     data: spacesPage,
     isLoading,
     isError,
     refetch,
-  } = useSpaces<{ items: Space[] }>({ status: "published", classIds });
+  } = useSpaces<{ items: Space[] }>({ status: "published" });
   const spaces = spacesPage?.items;
 
   if (isLoading) {

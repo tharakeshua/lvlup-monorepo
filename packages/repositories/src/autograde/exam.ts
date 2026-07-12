@@ -75,14 +75,67 @@ function rubricCriteriaSum(q: QuestionLike): number {
   return criteria.reduce((sum, c) => sum + (c.maxPoints ?? c.points ?? 0), 0);
 }
 
+/** Canonical exam statuses — used to fan-out when unconstrained listExams fails
+ *  response validation on legacy `completed` rows still present in prod data. */
+const EXAM_STATUS_FANOUT = [
+  "draft",
+  "question_paper_uploaded",
+  "question_paper_extracted",
+  "published",
+  "grading",
+  "results_released",
+  "archived",
+] as const;
+
 export function createExamRepo(api: ApiClient): ExamRepo {
   const ag = api.autograde;
 
-  const toReq = (filter: ExamFilter = {}): ListExamsRequest => ({ filter });
+  const toReq = (filter: ExamFilter = {}): ListExamsRequest => {
+    const next: ListExamsRequest = {};
+    const f: Record<string, unknown> = {};
+    if (filter.status) f.status = filter.status;
+    if (filter.classId) f.classId = filter.classId;
+    if (filter.academicSessionId) f.academicSessionId = filter.academicSessionId;
+    if (filter.subject) f.subject = filter.subject;
+    if (filter.linkedSpaceId) f.linkedSpaceId = filter.linkedSpaceId;
+    if (Object.keys(f).length > 0) next.filter = f as ListExamsRequest["filter"];
+    return next;
+  };
+
+  const listOnceSafe = async (filter: ExamFilter = {}): Promise<PageResponse<ExamListView>> => {
+    try {
+      return await listOnce<ListExamsRequest, ExamListView>(
+        (req) => ag.listExams(req),
+        toReq(filter),
+      );
+    } catch (err) {
+      // Live listExams response-validates the page; legacy status `completed`
+      // still present in some tenants fails unconstrained reads. Fan-out by
+      // canonical status so admin/teacher overview still loads.
+      if (filter.status) throw err;
+      const pages = await Promise.all(
+        EXAM_STATUS_FANOUT.map((status) =>
+          listOnce<ListExamsRequest, ExamListView>(
+            (req) => ag.listExams(req),
+            toReq({ ...filter, status }),
+          ).catch(() => ({ items: [] as ExamListView[], nextCursor: null })),
+        ),
+      );
+      const seen = new Set<string>();
+      const items: ExamListView[] = [];
+      for (const page of pages) {
+        for (const item of page.items) {
+          if (seen.has(item.id)) continue;
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+      return { items, nextCursor: null };
+    }
+  };
 
   return {
-    list: (filter = {}) =>
-      listOnce<ListExamsRequest, ExamListView>((req) => ag.listExams(req), toReq(filter)),
+    list: (filter = {}) => listOnceSafe(filter),
     paginate: (filter = {}) =>
       paginate<ListExamsRequest, ExamListView>((req) => ag.listExams(req), toReq(filter)),
     get: (id) => ag.getExam({ id: id as never }),

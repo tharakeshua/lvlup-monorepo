@@ -55,7 +55,10 @@ export function createSpaceDetailViewRepo(api: ApiClientLike): SpaceDetailViewRe
 
       // Fallback: a small FIXED set of batched reads. listItems is called ONCE
       // (batched across story points via storyPointIds), never one per story point.
-      const space = await lv["getSpace"]!({ spaceId });
+      // Callables return envelopes (`{ space }`, `{ progress }`) — unwrap to match
+      // the composite shape and spaceRepo/progressRepo consumers (web + mobile).
+      const spaceRes = (await lv["getSpace"]!({ spaceId })) as { space?: unknown };
+      const space = spaceRes?.space ?? spaceRes;
       const spPage = toPage<{ id?: string }>(await lv["listStoryPoints"]!({ spaceId }));
       const storyPointIds = spPage.items
         .map((s) => s.id)
@@ -64,9 +67,13 @@ export function createSpaceDetailViewRepo(api: ApiClientLike): SpaceDetailViewRe
       // Progress is best-effort context — a code-joined "lazy" student may have no
       // progress doc yet (open-Q #6); a missing/denied progress read must not fail
       // the whole space view, so fall back to null.
-      const myProgress = await lv["getSpaceProgress"]!(
+      const progressRes = await lv["getSpaceProgress"]!(
         userId ? { spaceId, userId } : { spaceId }
       ).catch(() => null);
+      const myProgress =
+        progressRes && typeof progressRes === "object" && "progress" in progressRes
+          ? (progressRes as { progress: unknown }).progress
+          : progressRes;
 
       return { space, storyPoints: spPage.items, items, myProgress };
     },

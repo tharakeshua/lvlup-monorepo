@@ -13,6 +13,7 @@
  *                                 callable; named with the sanctioned `save*` IO
  *                                 prefix per the method-naming convention)
  */
+import { ApiError } from "@levelup/api-client";
 import {
   type ApiClientLike,
   type Page,
@@ -76,7 +77,26 @@ export function createItemRepo(api: ApiClientLike): ItemRepo {
   return {
     list: (filter) => lv["listItems"]!(filter).then((r) => toPage(r)),
     paginate: (filter) => makePaginator((req) => lv["listItems"]!(req), filter),
-    get: (input) => lv["getItem"]!(input),
+    // No v1.levelup.getItem — answer-stripped reads go through listItems.
+    get: async (input) => {
+      let cursor: string | undefined;
+      for (;;) {
+        const page = (await lv["listItems"]!({
+          spaceId: input.spaceId,
+          storyPointId: input.storyPointId,
+          ...(cursor ? { cursor } : {}),
+        })) as { items?: Array<{ id?: string }>; nextCursor?: string | null };
+        const found = (page.items ?? []).find((i) => i.id === input.itemId);
+        if (found) return found;
+        if (!page.nextCursor) break;
+        cursor = page.nextCursor;
+      }
+      throw new ApiError({
+        code: "NOT_FOUND",
+        message: "Item not found",
+        meta: { resource: "item", id: input.itemId },
+      });
+    },
     getForEdit: async (input) => {
       // ⚷ authoring-only — re-merges the AnswerKey server-side. We never persist
       // this under a shared key; the caller binds it to `editItemKey(itemId)`

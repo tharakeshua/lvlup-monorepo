@@ -31,7 +31,7 @@ const MUST_BE_AUTHORITY = [
   "v1.levelup.evaluateAnswer",
   "v1.levelup.recordItemAttempt",
   "v1.levelup.purchaseSpace",
-  "v1.levelup.publishSpace",
+  "v1.levelup.saveSpace", // lifecycle publish/archive rides saveSpace.status
   "v1.autograde.gradeQuestion",
   "v1.autograde.releaseResults",
   "v1.autograde.publishExam",

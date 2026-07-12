@@ -21,12 +21,11 @@ import type { Space, SpaceProgress } from "@levelup/shared-types";
 type TabId = "overall" | "exams" | "spaces";
 
 export default function ProgressPage() {
-  const { user, currentMembership } = useAuthStore();
+  const { user } = useAuthStore();
   const userId = user?.uid ?? "";
-  const classIds = currentMembership?.permissions?.managedClassIds;
+  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
-    classIds,
   });
   const spaces = spacesPage?.items;
   const { data: summaryData } = useStudentSummary(userId as UserId);

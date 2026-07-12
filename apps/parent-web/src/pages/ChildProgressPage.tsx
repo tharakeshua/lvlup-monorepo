@@ -69,7 +69,7 @@ export default function ChildProgressPage() {
   const selectedStudent = linkedStudents?.find((s) => s.uid === activeStudentId);
 
   // Subject breakdown chart for exams
-  const examSubjectData = selectedSummary
+  const examSubjectData = selectedSummary?.autograde?.subjectBreakdown
     ? Object.entries(selectedSummary.autograde.subjectBreakdown)
         .map(([subject, data]) => ({
           label: subject,
@@ -79,7 +79,7 @@ export default function ChildProgressPage() {
     : [];
 
   // Subject breakdown chart for spaces
-  const spaceSubjectData = selectedSummary
+  const spaceSubjectData = selectedSummary?.levelup?.subjectBreakdown
     ? Object.entries(selectedSummary.levelup.subjectBreakdown)
         .map(([subject, data]) => ({
           label: subject,
@@ -163,27 +163,37 @@ export default function ChildProgressPage() {
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <ScoreCard
                   label="Overall Score"
-                  value={`${Math.round(selectedSummary.overallScore * 100)}%`}
+                  value={`${Math.round((selectedSummary.overallScore ?? 0) * 100)}%`}
                   icon={Target}
                 />
                 <ScoreCard
                   label="Exam Average"
-                  value={`${Math.round(selectedSummary.autograde.averagePercentage)}%`}
+                  value={
+                    selectedSummary.autograde
+                      ? `${Math.round(selectedSummary.autograde.averagePercentage)}%`
+                      : "--"
+                  }
                   icon={ClipboardList}
                 />
                 <ScoreCard
                   label="Space Completion"
-                  value={`${Math.round(selectedSummary.levelup.averageCompletion)}%`}
+                  value={
+                    selectedSummary.levelup
+                      ? `${Math.round(selectedSummary.levelup.averageCompletion)}%`
+                      : "--"
+                  }
                   icon={BookOpen}
                 />
                 <ScoreCard
                   label="Streak"
-                  value={`${selectedSummary.levelup.streakDays}d`}
+                  value={
+                    selectedSummary.levelup ? `${selectedSummary.levelup.streakDays}d` : "--"
+                  }
                   icon={Flame}
                 />
                 <ScoreCard
                   label="Points Earned"
-                  value={selectedSummary.levelup.totalPointsEarned}
+                  value={selectedSummary.levelup?.totalPointsEarned ?? "--"}
                   icon={TrendingUp}
                 />
               </div>
@@ -196,7 +206,7 @@ export default function ChildProgressPage() {
                     <h3 className="text-destructive font-semibold">At-Risk Alert</h3>
                   </div>
                   <ul className="text-destructive mt-2 space-y-1 text-sm">
-                    {selectedSummary.atRiskReasons.map((reason, i) => (
+                    {(selectedSummary.atRiskReasons ?? []).map((reason, i) => (
                       <li key={i}>- {reason}</li>
                     ))}
                   </ul>
@@ -205,11 +215,11 @@ export default function ChildProgressPage() {
 
               {/* Strengths & Weaknesses */}
               <div className="grid gap-4 md:grid-cols-2">
-                {selectedSummary.strengthAreas.length > 0 && (
+                {(selectedSummary.strengthAreas?.length ?? 0) > 0 && (
                   <div className="bg-card rounded-lg border p-4">
                     <h3 className="text-success mb-2 font-semibold">Strengths</h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedSummary.strengthAreas.map((area) => (
+                      {selectedSummary.strengthAreas!.map((area) => (
                         <span
                           key={area}
                           className="bg-success/10 text-success rounded-full px-3 py-1 text-xs font-medium"
@@ -220,11 +230,11 @@ export default function ChildProgressPage() {
                     </div>
                   </div>
                 )}
-                {selectedSummary.weaknessAreas.length > 0 && (
+                {(selectedSummary.weaknessAreas?.length ?? 0) > 0 && (
                   <div className="bg-card rounded-lg border p-4">
                     <h3 className="text-warning mb-2 font-semibold">Areas for Improvement</h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedSummary.weaknessAreas.map((area) => (
+                      {selectedSummary.weaknessAreas!.map((area) => (
                         <span
                           key={area}
                           className="bg-warning/10 text-warning rounded-full px-3 py-1 text-xs font-medium"
@@ -238,14 +248,14 @@ export default function ChildProgressPage() {
               </div>
 
               {/* Improvement Recommendations */}
-              {selectedSummary.weaknessAreas.length > 0 && (
+              {(selectedSummary.weaknessAreas?.length ?? 0) > 0 && (
                 <div className="border-info/20 bg-info/5 rounded-lg border p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Lightbulb className="text-info h-4 w-4" />
                     <h3 className="text-info font-semibold">Recommendations for Improvement</h3>
                   </div>
                   <ul className="text-info space-y-2 text-sm">
-                    {selectedSummary.weaknessAreas.map((area) => (
+                    {selectedSummary.weaknessAreas!.map((area) => (
                       <li key={area} className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
@@ -254,7 +264,7 @@ export default function ChildProgressPage() {
                         </span>
                       </li>
                     ))}
-                    {selectedSummary.autograde.averagePercentage < 40 && (
+                    {(selectedSummary.autograde?.averagePercentage ?? 100) < 40 && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
@@ -263,7 +273,7 @@ export default function ChildProgressPage() {
                         </span>
                       </li>
                     )}
-                    {selectedSummary.levelup.averageCompletion < 50 && (
+                    {(selectedSummary.levelup?.averageCompletion ?? 100) < 50 && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
@@ -271,7 +281,7 @@ export default function ChildProgressPage() {
                         </span>
                       </li>
                     )}
-                    {selectedSummary.levelup.streakDays < 3 && (
+                    {(selectedSummary.levelup?.streakDays ?? 99) < 3 && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 flex-shrink-0">-</span>
                         <span>
@@ -318,9 +328,9 @@ export default function ChildProgressPage() {
                 {/* Recent Exams */}
                 <div className="bg-card rounded-lg border p-5">
                   <h3 className="mb-3 font-semibold">Recent Exam Results</h3>
-                  {selectedSummary.autograde.recentExams.length > 0 ? (
+                  {(selectedSummary.autograde?.recentExams?.length ?? 0) > 0 ? (
                     <div className="space-y-2">
-                      {selectedSummary.autograde.recentExams.map((exam) => (
+                      {selectedSummary.autograde!.recentExams.map((exam) => (
                         <div
                           key={exam.examId}
                           className="bg-muted/50 flex items-center justify-between rounded px-3 py-2"
@@ -367,19 +377,19 @@ export default function ChildProgressPage() {
                     <p className="text-muted-foreground text-sm">No exam results yet</p>
                   )}
                   <div className="text-muted-foreground mt-3 text-xs">
-                    {selectedSummary.autograde.completedExams}/
-                    {selectedSummary.autograde.totalExams} exams completed | Total marks:{" "}
-                    {selectedSummary.autograde.totalMarksObtained}/
-                    {selectedSummary.autograde.totalMarksAvailable}
+                    {selectedSummary.autograde?.completedExams ?? 0}/
+                    {selectedSummary.autograde?.totalExams ?? 0} exams completed | Total marks:{" "}
+                    {selectedSummary.autograde?.totalMarksObtained ?? 0}/
+                    {selectedSummary.autograde?.totalMarksAvailable ?? 0}
                   </div>
                 </div>
 
                 {/* Recent Space Activity */}
                 <div className="bg-card rounded-lg border p-5">
                   <h3 className="mb-3 font-semibold">Recent Activity</h3>
-                  {selectedSummary.levelup.recentActivity.length > 0 ? (
+                  {(selectedSummary.levelup?.recentActivity?.length ?? 0) > 0 ? (
                     <div className="space-y-2">
-                      {selectedSummary.levelup.recentActivity.slice(0, 6).map((activity, idx) => (
+                      {selectedSummary.levelup!.recentActivity.slice(0, 6).map((activity, idx) => (
                         <div
                           key={`${activity.spaceId}-${idx}`}
                           className="bg-muted/50 flex items-center justify-between rounded px-3 py-2"
@@ -397,9 +407,9 @@ export default function ChildProgressPage() {
                     <p className="text-muted-foreground text-sm">No recent activity</p>
                   )}
                   <div className="text-muted-foreground mt-3 text-xs">
-                    {selectedSummary.levelup.completedSpaces}/{selectedSummary.levelup.totalSpaces}{" "}
-                    spaces completed | Accuracy:{" "}
-                    {Math.round(selectedSummary.levelup.averageAccuracy * 100)}%
+                    {selectedSummary.levelup?.completedSpaces ?? 0}/
+                    {selectedSummary.levelup?.totalSpaces ?? 0} spaces completed | Accuracy:{" "}
+                    {Math.round((selectedSummary.levelup?.averageAccuracy ?? 0) * 100)}%
                   </div>
                 </div>
               </div>

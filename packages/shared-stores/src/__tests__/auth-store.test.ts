@@ -204,6 +204,7 @@ describe('auth-store', () => {
 
       vi.mocked(lookupTenantByCode).mockResolvedValueOnce(tenant as any);
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
+      vi.mocked(getUserMemberships).mockResolvedValueOnce([membership] as any);
       vi.mocked(getMembership).mockResolvedValueOnce(membership as any);
 
       await getState().loginWithSchoolCode('SPR001', 'STU-001', 'pass');
@@ -239,6 +240,7 @@ describe('auth-store', () => {
         status: 'active',
       } as any);
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
+      vi.mocked(getUserMemberships).mockResolvedValueOnce([]);
       vi.mocked(getMembership).mockResolvedValueOnce(null);
 
       await expect(

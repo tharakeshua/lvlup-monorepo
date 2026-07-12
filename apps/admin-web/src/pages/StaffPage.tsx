@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { Shield, Search, UserCog } from "lucide-react";
 import StaffTab from "../components/staff/StaffTab";
+import { pageItems } from "@/lib/utils";
 
 interface TeacherDoc {
   id: string;
@@ -51,7 +52,7 @@ export default function StaffPage() {
   const tenantId = useCurrentTenantId();
   const { handleError } = useApiError();
   const { data: teachersData, isLoading } = useTeachers({});
-  const teachers = (teachersData as { items?: TeacherDoc[] } | undefined)?.items ?? [];
+  const teachers = pageItems<TeacherDoc>(teachersData);
 
   const [activeTab, setActiveTab] = useState<"teachers" | "staff">("teachers");
   const [searchQuery, setSearchQuery] = useState("");

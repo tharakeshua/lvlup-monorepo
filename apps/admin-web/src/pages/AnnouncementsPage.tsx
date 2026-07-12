@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useCurrentTenantId } from "@/sdk/identity";
 import { useClasses, useAnnouncements, useSaveAnnouncement } from "@levelup/query";
 import type { Class } from "@levelup/shared-types";
+import { pageItems } from "@/lib/utils";
 import {
   Button,
   Input,
@@ -96,7 +97,7 @@ function statusBadgeVariant(status: AnnouncementStatus) {
 export default function AnnouncementsPage() {
   const tenantId = useCurrentTenantId();
   const { data: classesData } = useClasses({});
-  const classes = (classesData as { items?: Class[] } | undefined)?.items;
+  const classes = pageItems<Class>(classesData);
   const saveAnnouncement = useSaveAnnouncement();
   const [statusFilter, setStatusFilter] = useState<StatusTab>("all");
   const [dialogOpen, setDialogOpen] = useState(false);

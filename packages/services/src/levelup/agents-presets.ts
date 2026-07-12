@@ -10,7 +10,7 @@
  *   • saveRubricPreset — strict-canonical upsert (`rubricPreset.write`)
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
-import { AGENT_TYPES, RUBRIC_PRESET_CATEGORIES } from "@levelup/domain";
+import { AGENT_TYPES, RUBRIC_PRESET_CATEGORIES, coerceUnifiedRubric } from "@levelup/domain";
 import { authorize } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
@@ -125,7 +125,9 @@ export async function saveAgentService(
 // ── listRubricPresets ────────────────────────────────────────────────────────
 
 /** Whitelist a stored preset to the strict RubricPresetSchema view (full rubric —
- *  the read itself is gated behind `rubric.guidance.read`). */
+ *  the read itself is gated behind `rubric.guidance.read`).
+ *  Coerces legacy seed shapes (totalPoints / key-label dimensions) so clients
+ *  with DEV response validation do not drop the whole list. */
 function projectRubricPreset(p: Doc, tenantId: string): Doc {
   const category = String(p["category"] ?? "general");
   return compact({
@@ -133,7 +135,7 @@ function projectRubricPreset(p: Doc, tenantId: string): Doc {
     tenantId: String(p["tenantId"] ?? tenantId),
     name: String(p["name"] ?? ""),
     description: optStr(p["description"]),
-    rubric: (p["rubric"] as Doc | undefined) ?? {},
+    rubric: coerceUnifiedRubric(p["rubric"]),
     category: PRESET_CATEGORY_SET.has(category) ? category : "general",
     questionTypes: optStrArr(p["questionTypes"]),
     isDefault: p["isDefault"] === true,
