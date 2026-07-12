@@ -89,15 +89,30 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   "auth/network-request-failed": "Network error. Please check your connection.",
 };
 function authErrorMessage(err: unknown, fallback: string): string {
+  // Firebase Auth codes → friendly copy. ApiError / HttpsError also carry a
+  // `code` (e.g. PERMISSION_DENIED) that is NOT an auth code — prefer their
+  // message so switchTenant/membership failures are not hidden behind the
+  // generic "School login failed" fallback.
   if (
     err &&
     typeof err === "object" &&
     "code" in err &&
     typeof (err as { code: unknown }).code === "string"
   ) {
-    return AUTH_ERROR_MESSAGES[(err as { code: string }).code] ?? fallback;
+    const code = (err as { code: string }).code;
+    const mapped = AUTH_ERROR_MESSAGES[code];
+    if (mapped) return mapped;
   }
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error && err.message) return err.message;
+  if (
+    err &&
+    typeof err === "object" &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string" &&
+    (err as { message: string }).message
+  ) {
+    return (err as { message: string }).message;
+  }
   return fallback;
 }
 
@@ -106,7 +121,29 @@ interface SessionRepos {
   tenantRepo: {
     lookupByCode(code: string): Promise<{ tenantId: string; name: string; status: string } | null>;
   };
-  meRepo: { switchTenant(targetTenantId: string): Promise<unknown> };
+  meRepo: {
+    get(): Promise<GetMeLike>;
+    switchTenant(targetTenantId: string): Promise<unknown>;
+  };
+}
+
+/**
+ * Prefer a membership the signed-in user actually holds for this school code.
+ * Seed / v2_ index drift can make lookupTenantByCode resolve a ghost tenantId
+ * that has no membership → switchActiveTenant or Access Denied.
+ */
+function resolveTenantIdForSchoolLogin(
+  lookedUpTenantId: string,
+  schoolCode: string,
+  memberships: MembershipLike[]
+): string {
+  const code = schoolCode.trim().toUpperCase();
+  const active = memberships.filter((m) => m.status === "active");
+  const byCode = active.find((m) => (m.tenantCode || "").toUpperCase() === code);
+  if (byCode) return byCode.tenantId;
+  const byLookup = active.find((m) => m.tenantId === lookedUpTenantId);
+  if (byLookup) return byLookup.tenantId;
+  return lookedUpTenantId;
 }
 
 const SessionContext = createContext<AuthSessionValue | null>(null);
@@ -149,16 +186,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const me = (firebaseUser ? (meQuery.data as GetMeLike | undefined) : undefined) ?? undefined;
 
   const allMemberships = me?.memberships ?? [];
-  const currentTenantId = me?.claims?.tenantId ?? me?.user?.activeTenantId ?? null;
-  const currentMembership = currentTenantId
-    ? (allMemberships.find((m) => m.tenantId === currentTenantId) ?? null)
-    : allMemberships.length === 1
+  const claimTenantId = me?.claims?.tenantId ?? me?.user?.activeTenantId ?? null;
+  const membershipForClaim = claimTenantId
+    ? (allMemberships.find((m) => m.tenantId === claimTenantId) ?? null)
+    : null;
+  // If claims point at a ghost/drifted tenant with no membership, fall back so
+  // RequireAuth does not flash Access Denied after a successful school login.
+  const currentMembership =
+    membershipForClaim ??
+    (allMemberships.length === 1
       ? allMemberships[0]!
-      : null;
+      : (allMemberships.find((m) => m.status === "active") ?? null));
+  const currentTenantId = currentMembership?.tenantId ?? claimTenantId;
   const currentTenantName = me?.activeTenant?.name ?? null;
   const user = me?.user ?? null;
 
-  const loading = authLoading || (!!firebaseUser && meQuery.isLoading);
+  const loading =
+    authLoading ||
+    (!!firebaseUser &&
+      // Treat initial load AND post-login refetch as loading. An early pre-auth
+      // getMe 401 leaves status=error; isLoading is then false during refetch,
+      // which made RequireAuth flash Access Denied before memberships arrived.
+      (meQuery.isPending || meQuery.isLoading || (meQuery.isFetching && !me)));
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -193,9 +242,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const email = credential.trim();
         await handle.signIn(email, password);
 
+        // Prefer a membership the user actually holds for this school code when the
+        // public code index drifts (legacy vs v2_ duplicate GRN001). getMe can fail
+        // validation on partial/legacy-shaped docs — fall back to lookup tenantId.
+        let targetTenantId = tenant.tenantId;
+        try {
+          const me = await sessionRepos.meRepo.get();
+          targetTenantId = resolveTenantIdForSchoolLogin(
+            tenant.tenantId,
+            schoolCode,
+            me.memberships ?? []
+          );
+        } catch {
+          // keep lookup tenantId
+        }
+
         // Set the active-tenant claims server-side, then force a fresh ID token
         // (meRepo.switchTenant calls api.refreshToken) before refetching getMe.
-        await sessionRepos.meRepo.switchTenant(tenant.tenantId);
+        await sessionRepos.meRepo.switchTenant(targetTenantId);
         await qc.invalidateQueries();
       } catch (e) {
         setError(authErrorMessage(e, "School login failed"));
