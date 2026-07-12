@@ -132,8 +132,8 @@ const G = () => Q.INVALIDATION_GRAPH!;
     it("uploadAnswerSheets → {submissions, exams}", () => {
       expectRoots("v1.autograde.uploadAnswerSheets", ["submissions", "exams"]);
     });
-    it("saveStudent → {students, classes, memberships}", () => {
-      expectRoots("v1.identity.saveStudent", ["students", "classes", "memberships"]);
+    it("saveStudent → {students, classes}", () => {
+      expectRoots("v1.identity.saveStudent", ["students", "classes"]);
     });
     it("saveClass → {classes, students, teachers}", () => {
       expectRoots("v1.identity.saveClass", ["classes", "students", "teachers"]);
