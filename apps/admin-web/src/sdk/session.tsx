@@ -78,7 +78,15 @@ function parseClaims(raw: Record<string, unknown>): SessionClaims {
   return { tenantId, role, isSuperAdmin };
 }
 
-const SessionContext = createContext<SessionState | null>(null);
+const SessionContext = (() => {
+  const g = globalThis as typeof globalThis & {
+    __levelupAdminSessionCtx?: ReturnType<typeof createContext<SessionState | null>>;
+  };
+  if (!g.__levelupAdminSessionCtx) {
+    g.__levelupAdminSessionCtx = createContext<SessionState | null>(null);
+  }
+  return g.__levelupAdminSessionCtx;
+})();
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { auth } = getFirebaseServices();
