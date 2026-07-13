@@ -6,6 +6,7 @@ import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import {
   useTestSessions,
+  useTestSession,
   useStartTest,
   useSubmitTest,
   useSaveAnswer,
@@ -102,6 +103,27 @@ function useCountUp(target: number, duration = 1200): number {
 
 type View = "landing" | "test" | "results";
 
+type StoryItemLike = {
+  id: string;
+  type?: string;
+  payload?: { kind?: string };
+};
+
+/** Prefer session.questionOrder; rebuild from story-point question items when missing. */
+function resolveQuestionOrder(
+  session: { questionOrder?: string[] | null } | null | undefined,
+  storyItems: StoryItemLike[] | null | undefined
+): string[] {
+  if (Array.isArray(session?.questionOrder) && session!.questionOrder!.length > 0) {
+    return session!.questionOrder as string[];
+  }
+  return (
+    storyItems
+      ?.filter((i) => i.type === "question" || i.payload?.kind === "question")
+      .map((i) => i.id) ?? []
+  );
+}
+
 export default function TimedTestPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
   const { currentTenantId, user } = useAuthStore();
@@ -128,10 +150,13 @@ export default function TimedTestPage() {
   const { handleError } = useApiError();
 
   const storyPoint = storyPoints?.find((sp) => sp.id === storyPointId);
-  const activeSession = sessions?.find((s) => s.status === "in_progress");
+  const listActive = sessions?.find((s) => s.status === "in_progress");
   const completedSessions = sessions?.filter((s) => s.status === "completed") ?? [];
 
-  const [view, setView] = useState<View>(activeSession ? "test" : "landing");
+  // listTestSessions returns summaries WITHOUT questionOrder — keep the full
+  // session from startTest / getTestSession so Start Test never crashes.
+  const [liveSession, setLiveSession] = useState<DigitalTestSession | null>(null);
+  const [view, setView] = useState<View>(listActive || liveSession ? "test" : "landing");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [questionStatuses, setQuestionStatuses] = useState<Record<string, QuestionStatus>>({});
@@ -150,53 +175,74 @@ export default function TimedTestPage() {
   // Auto-submit notification
   const [autoSubmitNotice, setAutoSubmitNotice] = useState(false);
 
+  const activeSessionId =
+    (liveSession?.status === "in_progress" ? liveSession.id : null) ?? listActive?.id ?? null;
+  const { data: fullActiveSession } = useTestSession(currentTenantId, activeSessionId);
+
+  const activeSession = useMemo((): DigitalTestSession | null => {
+    const base =
+      (fullActiveSession && Array.isArray(fullActiveSession.questionOrder)
+        ? fullActiveSession
+        : null) ??
+      (liveSession && Array.isArray(liveSession.questionOrder) ? liveSession : null) ??
+      liveSession ??
+      fullActiveSession ??
+      listActive ??
+      null;
+    if (!base) return null;
+    return {
+      ...base,
+      questionOrder: resolveQuestionOrder(base, items as StoryItemLike[] | undefined),
+      submissions: base.submissions ?? {},
+      visitedQuestions: base.visitedQuestions ?? {},
+      markedForReview: base.markedForReview ?? {},
+    } as DigitalTestSession;
+  }, [fullActiveSession, liveSession, listActive, items]);
+
   // Sections from story point
   const sections: StoryPointSection[] = useMemo(
     () => storyPoint?.sections ?? [],
     [storyPoint?.sections]
   );
 
-  // Initialize from active session
+  // Initialize from active session (questionOrder always normalized to an array)
   useEffect(() => {
-    if (activeSession) {
-      setView("test");
-      const statuses: Record<string, QuestionStatus> = {};
-      for (const qId of activeSession.questionOrder) {
-        if (activeSession.submissions[qId]) {
-          statuses[qId] = activeSession.markedForReview[qId] ? "answered_and_marked" : "answered";
-        } else if (activeSession.visitedQuestions[qId]) {
-          statuses[qId] = activeSession.markedForReview[qId] ? "marked_for_review" : "not_answered";
-        } else {
-          statuses[qId] = "not_visited";
-        }
+    if (!activeSession) return;
+    const order = Array.isArray(activeSession.questionOrder) ? activeSession.questionOrder : [];
+    setView("test");
+    const statuses: Record<string, QuestionStatus> = {};
+    const visited = activeSession.visitedQuestions ?? {};
+    const marked = activeSession.markedForReview ?? {};
+    const submissions = activeSession.submissions ?? {};
+    for (const qId of order) {
+      if (submissions[qId]) {
+        statuses[qId] = marked[qId] ? "answered_and_marked" : "answered";
+      } else if (visited[qId]) {
+        statuses[qId] = marked[qId] ? "marked_for_review" : "not_answered";
+      } else {
+        statuses[qId] = "not_visited";
       }
-      setQuestionStatuses(statuses);
-
-      // Restore saved answers
-      const saved: Record<string, unknown> = {};
-      for (const [qId, sub] of Object.entries(activeSession.submissions)) {
-        saved[qId] = sub.answer;
-      }
-      setAnswers(saved);
-
-      // Restore section mapping
-      if (activeSession.sectionMapping) {
-        setSectionMapping(activeSession.sectionMapping);
-      }
-
-      // Resume to last visited position or first unanswered
-      const resumeIndex = activeSession.lastVisitedIndex ?? 0;
-      const firstUnanswered = activeSession.questionOrder.findIndex(
-        (qId) => !activeSession.submissions[qId]
-      );
-      setCurrentIndex(firstUnanswered >= 0 ? firstUnanswered : resumeIndex);
     }
+    setQuestionStatuses(statuses);
+
+    const saved: Record<string, unknown> = {};
+    for (const [qId, sub] of Object.entries(submissions)) {
+      saved[qId] = (sub as { answer?: unknown }).answer;
+    }
+    setAnswers(saved);
+
+    if (activeSession.sectionMapping) {
+      setSectionMapping(activeSession.sectionMapping);
+    }
+
+    const resumeIndex = activeSession.lastVisitedIndex ?? 0;
+    const firstUnanswered = order.findIndex((qId) => !submissions[qId]);
+    setCurrentIndex(firstUnanswered >= 0 ? firstUnanswered : resumeIndex);
   }, [activeSession]);
 
-  const questionOrder =
-    activeSession?.questionOrder ??
-    items?.filter((i) => i.type === "question").map((i) => i.id) ??
-    [];
+  const questionOrder = Array.isArray(activeSession?.questionOrder)
+    ? activeSession.questionOrder
+    : resolveQuestionOrder(activeSession, items as StoryItemLike[] | undefined);
   const itemsMap = new Map((items ?? []).map((item) => [item.id, item]));
   const currentQuestionId = questionOrder[currentIndex];
   const currentItem = currentQuestionId ? itemsMap.get(currentQuestionId) : null;
@@ -237,6 +283,13 @@ export default function TimedTestPage() {
         spaceId,
         storyPointId,
       });
+      // Persist full session locally — list summaries omit questionOrder.
+      if (result?.id) {
+        setLiveSession({
+          ...result,
+          questionOrder: resolveQuestionOrder(result, items as StoryItemLike[] | undefined),
+        });
+      }
       // Store section mapping from response
       if (result.sectionMapping) {
         setSectionMapping(result.sectionMapping);
@@ -1116,7 +1169,7 @@ export default function TimedTestPage() {
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <BarChart3 className="h-5 w-5" /> Question Breakdown
           </h2>
-          {session.questionOrder.map((qId, index) => {
+          {(Array.isArray(session.questionOrder) ? session.questionOrder : []).map((qId, index) => {
             const submission = session.submissions[qId];
             const item = itemsMap.get(qId);
             const payload = item?.payload as QuestionPayload | undefined;

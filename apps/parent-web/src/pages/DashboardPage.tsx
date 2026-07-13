@@ -147,7 +147,7 @@ export default function DashboardPage() {
           <ScoreCard label="Children" value={linkedStudents?.length ?? 0} icon={Users} />
           <ScoreCard
             label="Avg Performance"
-            value={summaries.length > 0 ? `${Math.round(avgScore * 100)}%` : "--"}
+            value={childRows.length > 0 ? `${Math.round(avgScore * 100)}%` : "--"}
             icon={TrendingUp}
           />
           <ScoreCard label="School" value={membership?.tenantCode || "--"} icon={BookOpen} />

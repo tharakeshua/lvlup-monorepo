@@ -45,6 +45,7 @@ export default function QuestionNavigator({
   sectionMapping,
   sections,
 }: QuestionNavigatorProps) {
+  const order = Array.isArray(questionOrder) ? questionOrder : [];
   // Group questions by section if section mapping is available
   const hasSections = sectionMapping && sections && sections.length > 0;
   const sectionMap = new Map(sections?.map((s) => [s.id, s]) ?? []);
@@ -60,7 +61,7 @@ export default function QuestionNavigator({
     const groupMap = new Map<string | null, number[]>();
     const groupOrder: Array<string | null> = [];
 
-    questionOrder.forEach((qId, index) => {
+    order.forEach((qId, index) => {
       const sectionId = sectionMapping[qId] ?? null;
       if (!groupMap.has(sectionId)) {
         groupMap.set(sectionId, []);
@@ -80,7 +81,7 @@ export default function QuestionNavigator({
   }
 
   // Find first unanswered question
-  const firstUnansweredIndex = questionOrder.findIndex((qId) => {
+  const firstUnansweredIndex = order.findIndex((qId) => {
     const status = questionStatuses[qId] ?? "not_visited";
     return status === "not_visited" || status === "not_answered" || status === "marked_for_review";
   });
@@ -113,7 +114,7 @@ export default function QuestionNavigator({
 
   const renderSectionProgress = (indices: number[]) => {
     const answered = indices.filter((i) => {
-      const status = questionStatuses[questionOrder[i]] ?? "not_visited";
+      const status = questionStatuses[order[i]] ?? "not_visited";
       return status === "answered" || status === "answered_and_marked";
     }).length;
     return (
@@ -149,9 +150,7 @@ export default function QuestionNavigator({
                 {renderSectionProgress(group.questionIndices)}
               </div>
               <div className="grid grid-cols-5 gap-1.5">
-                {group.questionIndices.map((index) =>
-                  renderQuestionButton(questionOrder[index], index)
-                )}
+                {group.questionIndices.map((index) => renderQuestionButton(order[index], index))}
               </div>
             </div>
           ))}
@@ -159,7 +158,7 @@ export default function QuestionNavigator({
       ) : (
         // Flat view (no sections)
         <div className="grid grid-cols-5 gap-1.5">
-          {questionOrder.map((qId, index) => renderQuestionButton(qId, index))}
+          {order.map((qId, index) => renderQuestionButton(qId, index))}
         </div>
       )}
 
