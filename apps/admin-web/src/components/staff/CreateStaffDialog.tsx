@@ -31,7 +31,7 @@ interface CreateStaffDialogProps {
 }
 
 export default function CreateStaffDialog({
-  tenantId,
+  tenantId: _tenantId,
   open,
   onOpenChange,
   onCreated,

@@ -112,7 +112,9 @@ describe("pdf utilities", () => {
     it("skips pages without canvas context", async () => {
       mockPdf.numPages = 2;
       // First page returns null context, second page works fine
-      mockCanvas.getContext.mockReturnValueOnce(null).mockReturnValueOnce(mockContext);
+      mockCanvas.getContext
+        .mockReturnValueOnce(null as unknown as typeof mockContext)
+        .mockReturnValueOnce(mockContext);
 
       const file = new File(["pdf-content"], "test.pdf", { type: "application/pdf" });
 

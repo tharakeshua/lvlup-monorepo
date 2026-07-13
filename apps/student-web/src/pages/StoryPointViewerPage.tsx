@@ -13,9 +13,7 @@ import ChatTutorPanel from "../components/chat/ChatTutorPanel";
 import type {
   UnifiedItem,
   UnifiedEvaluationResult,
-  StoredEvaluation,
   StoryPointProgressDoc,
-  AttemptRecord,
 } from "@levelup/shared-types";
 import AttemptHistoryPanel from "../components/common/AttemptHistoryPanel";
 import {
@@ -39,48 +37,6 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@levelup/shared-ui";
-
-/**
- * Convert a StoredEvaluation (from Firestore) to a UnifiedEvaluationResult
- * so it can be passed to FeedbackPanel/QuestionAnswerer.
- */
-function storedToEvaluation(stored: StoredEvaluation): UnifiedEvaluationResult {
-  return {
-    score: stored.score,
-    maxScore: stored.maxScore,
-    correctness: stored.correctness,
-    percentage: stored.percentage,
-    strengths: stored.strengths,
-    weaknesses: stored.weaknesses,
-    missingConcepts: stored.missingConcepts,
-    summary: stored.summary,
-    mistakeClassification: stored.mistakeClassification,
-    confidence: 1,
-    gradedAt: {
-      seconds: Math.floor(Date.now() / 1000),
-      nanoseconds: 0,
-      toDate: () => new Date(),
-      toMillis: () => Date.now(),
-    },
-  };
-}
-
-/**
- * Convert a UnifiedEvaluationResult to a compact StoredEvaluation for persistence.
- */
-function evaluationToStored(eval_: UnifiedEvaluationResult): StoredEvaluation {
-  return {
-    score: eval_.score,
-    maxScore: eval_.maxScore,
-    correctness: eval_.correctness,
-    percentage: eval_.percentage,
-    strengths: eval_.strengths ?? [],
-    weaknesses: eval_.weaknesses ?? [],
-    missingConcepts: eval_.missingConcepts ?? [],
-    summary: eval_.summary,
-    mistakeClassification: eval_.mistakeClassification,
-  };
-}
 
 /** Practice-style navigator: numbered buttons + one item at a time + prev/next */
 function ItemNavigator({
@@ -230,8 +186,7 @@ function ItemNavigator({
 export default function StoryPointViewerPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
   const navigate = useNavigate();
-  const { currentTenantId, user } = useAuthStore();
-  const userId = user?.uid ?? null;
+  const { currentTenantId } = useAuthStore();
 
   const { data: spaceData } = useSpace<{ space: { title?: string } }>(spaceId ?? "");
   const space = spaceData?.space;

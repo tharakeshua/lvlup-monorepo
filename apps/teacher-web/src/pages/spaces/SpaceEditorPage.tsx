@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   useSpace,
@@ -76,6 +76,7 @@ import RubricEditor from "../../components/spaces/RubricEditor";
 import AgentConfigPanel from "../../components/spaces/AgentConfigPanel";
 import QuestionBankImportDialog from "../../components/spaces/QuestionBankImportDialog";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import { useAuthSession } from "../../sdk/session";
 import {
   DndContext,
   closestCenter,
@@ -354,7 +355,7 @@ export default function SpaceEditorPage() {
   const tenantId = useAuthSession((s) => s.currentTenantId);
   const { data: space, isLoading, refetch } = useSpace<Space>(spaceId ?? "");
   const { handleError } = useApiError();
-  const { storyPointRepo, itemRepo } = useRepos();
+  const { itemRepo } = useRepos();
 
   // Mutation hooks. saveSpace IS the lifecycle transition verb (publish/archive/
   // unpublish = a status change in data) — there is no separate publish/archive

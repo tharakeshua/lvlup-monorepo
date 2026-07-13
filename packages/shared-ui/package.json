@@ -18,7 +18,7 @@
     "src"
   ],
   "scripts": {
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

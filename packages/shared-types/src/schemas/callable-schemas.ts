@@ -733,7 +733,7 @@ export const SaveRubricPresetRequestSchema = z.object({
 // ── Analytics module ───────────────────────────────────────────────────────
 
 export const GetSummaryRequestSchema = z.object({
-  tenantId: firestoreId.optional(),
+  tenantId: firestoreId,
   scope: z.enum(["student", "class", "platform", "health"]),
   studentId: firestoreId.optional(),
   classId: firestoreId.optional(),

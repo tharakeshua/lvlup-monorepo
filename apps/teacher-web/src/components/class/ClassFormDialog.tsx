@@ -29,7 +29,7 @@ interface ClassFormDialogProps {
 export default function ClassFormDialog({
   open,
   onOpenChange,
-  tenantId,
+  tenantId: _tenantId,
   editing,
   onSaved,
 }: ClassFormDialogProps) {
