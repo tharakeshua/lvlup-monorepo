@@ -206,7 +206,7 @@ jobs:
         run: |
           firebase emulators:exec \
             --only auth,firestore,functions \
-            --project demo-levelup \
+            --project lvlup-ff6fa \
             "pnpm run test:integration"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

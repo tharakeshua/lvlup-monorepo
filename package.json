@@ -43,6 +43,7 @@
     "deploy:functions:cleanup": "tsx scripts/prepare-functions-deploy.ts cleanup"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@playwright/test": "^1.58.2",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
