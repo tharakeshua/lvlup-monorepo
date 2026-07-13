@@ -37,7 +37,7 @@ test.describe("Auth – Login", () => {
     await page.goto("/login");
   });
 
-  test("redirects unauthenticated users to /login", async ({ page }) => {
+  test("redirects unauthenticated users to /login @smoke", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login/);
   });
@@ -111,7 +111,7 @@ test.describe("Dashboard @mobile", () => {
     await loginAsAdmin(page);
   });
 
-  test('shows "School Admin Dashboard" heading', async ({ page }) => {
+  test('shows "School Admin Dashboard" heading @smoke', async ({ page }) => {
     await expect(page.locator("h1")).toContainText("School Admin Dashboard");
   });
 
@@ -119,7 +119,7 @@ test.describe("Dashboard @mobile", () => {
     await expect(page.locator('button:has-text("Sign Out")')).toBeVisible();
   });
 
-  test("renders Total Students scorecard", async ({ page }) => {
+  test("renders Total Students scorecard @smoke", async ({ page }) => {
     await expect(page.locator("text=Total Students")).toBeVisible();
   });
 

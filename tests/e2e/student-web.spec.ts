@@ -236,7 +236,7 @@ test.describe("Dashboard Page @mobile", () => {
     await loginAsStudent(page);
   });
 
-  test("renders Dashboard heading", async ({ page }) => {
+  test("renders Dashboard heading @smoke", async ({ page }) => {
     await expect(page.locator("h1")).toContainText("Dashboard");
   });
 
@@ -246,7 +246,7 @@ test.describe("Dashboard Page @mobile", () => {
     await expect(welcome).toBeVisible();
   });
 
-  test("Sign Out button is visible", async ({ page }) => {
+  test("Sign Out button is visible @smoke", async ({ page }) => {
     await expect(page.locator('button:has-text("Sign Out")')).toBeVisible();
   });
 

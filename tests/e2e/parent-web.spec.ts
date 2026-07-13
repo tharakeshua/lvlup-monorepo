@@ -39,7 +39,7 @@ test.describe("Authentication", () => {
     await page.goto("/login");
   });
 
-  test("redirects unauthenticated user to /login", async ({ page }) => {
+  test("redirects unauthenticated user to /login @smoke", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login/);
   });
@@ -133,7 +133,7 @@ test.describe("Dashboard @mobile", () => {
     await loginAsParent(page);
   });
 
-  test("shows Parent Dashboard heading", async ({ page }) => {
+  test("shows Parent Dashboard heading @smoke", async ({ page }) => {
     await expect(page.locator("h1")).toContainText("Parent Dashboard");
   });
 
@@ -143,7 +143,7 @@ test.describe("Dashboard @mobile", () => {
     await expect(welcomeText).toBeVisible({ timeout: 10000 });
   });
 
-  test("renders four overview score cards", async ({ page }) => {
+  test("renders four overview score cards @smoke", async ({ page }) => {
     // Cards: Children, Avg Performance, School, Status/At-Risk Alerts
     await expect(page.locator("text=Children").first()).toBeVisible({ timeout: 10000 });
     await expect(page.locator("text=Avg Performance").first()).toBeVisible();

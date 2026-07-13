@@ -99,7 +99,7 @@ async function isVisible(page: Page, selector: string, timeout = 5000): Promise<
 // ── 1. Authentication Boundary Checks (original tests, preserved) ──────────
 
 test.describe("Cross-Role: Authentication Boundary Checks", () => {
-  test("P0: Teacher cannot access admin dashboard", async ({ page }) => {
+  test("P0: Teacher cannot access admin dashboard @smoke", async ({ page }) => {
     await loginAsTeacher(page);
 
     // Navigate to admin URL directly
@@ -108,7 +108,7 @@ test.describe("Cross-Role: Authentication Boundary Checks", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("P0: Student cannot access teacher dashboard", async ({ page }) => {
+  test("P0: Student cannot access teacher dashboard @smoke", async ({ page }) => {
     await loginAsStudent(page);
 
     // Navigate to teacher URL directly
@@ -117,7 +117,7 @@ test.describe("Cross-Role: Authentication Boundary Checks", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("P1: SuperAdmin can access platform-wide data", async ({ page }) => {
+  test("P1: SuperAdmin can access platform-wide data @smoke", async ({ page }) => {
     await loginAsSuperAdmin(page);
 
     // Super admin should see tenant management
@@ -152,7 +152,7 @@ test.describe("Cross-Role: Admin → Teacher → Student Data Flow", () => {
     }
   });
 
-  test("P1: Parent can view their child's progress after logging in", async ({ page }) => {
+  test("P1: Parent can view their child's progress after logging in @smoke", async ({ page }) => {
     await loginAsParent(page);
 
     // Parent should see child-related data

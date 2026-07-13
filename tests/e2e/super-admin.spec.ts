@@ -37,7 +37,7 @@ test.describe("Authentication", () => {
     await page.goto("/login");
   });
 
-  test("redirects to /login when not authenticated", async ({ page }) => {
+  test("redirects to /login when not authenticated @smoke", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login/);
   });
@@ -95,7 +95,7 @@ test.describe("Dashboard Page", () => {
     await loginAsSuperAdmin(page);
   });
 
-  test("dashboard heading is visible", async ({ page }) => {
+  test("dashboard heading is visible @smoke", async ({ page }) => {
     await expect(page.locator("h1")).toContainText("Super Admin Dashboard");
   });
 
@@ -104,7 +104,7 @@ test.describe("Dashboard Page", () => {
     await expect(welcomeText).toBeVisible();
   });
 
-  test("shows stat cards: Total Tenants, Total Users, Total Exams, Total Spaces", async ({
+  test("shows stat cards: Total Tenants, Total Users, Total Exams, Total Spaces @smoke", async ({
     page,
   }) => {
     await expect(page.getByText("Total Tenants")).toBeVisible();

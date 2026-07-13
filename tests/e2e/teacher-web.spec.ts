@@ -104,7 +104,7 @@ test.describe("Teacher Web App", () => {
       await expect(page).toHaveURL(/\/login/);
     });
 
-    test("unauthenticated access to dashboard redirects to login", async ({ page }) => {
+    test("unauthenticated access to dashboard redirects to login @smoke", async ({ page }) => {
       await page.goto("/");
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
     });
@@ -254,7 +254,7 @@ test.describe("Teacher Web App", () => {
   // DASHBOARD
   // ===========================================================================
   test.describe("Dashboard @mobile", () => {
-    test("shows Teacher Dashboard heading", async ({ page }) => {
+    test("shows Teacher Dashboard heading @smoke", async ({ page }) => {
       await loginAsTeacher1(page);
       await expect(page.locator('h1:has-text("Teacher Dashboard")')).toBeVisible();
     });
@@ -265,7 +265,7 @@ test.describe("Teacher Web App", () => {
       await expect(page.locator("text=Welcome back")).toBeVisible();
     });
 
-    test("shows Total Students score card", async ({ page }) => {
+    test("shows Total Students score card @smoke", async ({ page }) => {
       await loginAsTeacher1(page);
       await expect(page.locator("text=Total Students")).toBeVisible();
     });

@@ -243,10 +243,11 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run E2E smoke tests
-        run: pnpm run test:e2e:smoke
+      - name: Run E2E smoke tests (~25 tests, ci-smoke projects)
+        run: pnpm exec playwright test --grep @smoke --project=ci-smoke-super-admin --project=ci-smoke-admin-web --project=ci-smoke-teacher-web --project=ci-smoke-student-web --project=ci-smoke-parent-web --project=ci-smoke-cross-role --workers=4
         env:
           CI: true
+          PW_E2E_SUITE: smoke
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
