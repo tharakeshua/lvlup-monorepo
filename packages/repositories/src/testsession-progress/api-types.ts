@@ -215,10 +215,11 @@ export interface AnalyticsNamespace {
   getChildSummary: Callable<GetChildSummaryRequest, GetChildSummaryResponse>;
   getSummary: Callable<
     GetSummaryRequest,
-    { summary: ClassProgressSummary | StudentProgressSummary }
+    | { scope: "student"; studentSummary: StudentProgressSummary }
+    | { scope: "class"; classSummary: ClassProgressSummary }
+    | { scope: "platform"; platformSummary: unknown }
+    | { scope: "health"; healthSummary: unknown }
   >;
-  getStudentSummaries: Callable<GetStudentSummariesRequest, GetStudentSummariesResponse>;
-  getClassSummary: Callable<GetClassSummaryRequest, GetClassSummaryResponse>;
   [op: string]: (req: never) => Promise<unknown>;
 }
 

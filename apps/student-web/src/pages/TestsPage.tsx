@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpaces } from "@levelup/query";
@@ -32,6 +33,12 @@ function getScheduleStatus(config: StoryPoint["assessmentConfig"]): {
   return null;
 }
 
+function questionCount(sp: StoryPoint): number | null {
+  const stats = sp.stats as { totalQuestions?: number; itemCount?: number } | undefined;
+  const n = stats?.totalQuestions ?? stats?.itemCount;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
+}
+
 function TestCard({
   storyPoint,
   spaceId,
@@ -43,6 +50,7 @@ function TestCard({
 }) {
   const config = storyPoint.assessmentConfig;
   const scheduleStatus = getScheduleStatus(config);
+  const qCount = questionCount(storyPoint);
 
   return (
     <Link
@@ -75,9 +83,7 @@ function TestCard({
               {config.durationMinutes} min
             </span>
           )}
-          {storyPoint.stats?.totalQuestions != null && (
-            <span>{storyPoint.stats.totalQuestions} questions</span>
-          )}
+          {qCount != null && <span>{qCount} questions</span>}
           {config?.maxAttempts && <span>Max {config.maxAttempts} attempts</span>}
           {scheduleStatus?.label === "Scheduled" && config?.schedule?.startAt && (
             <span className="text-blue-600 dark:text-blue-400">
@@ -97,12 +103,19 @@ function TestCard({
 function SpaceTests({
   tenantId,
   space,
+  onTestsLoaded,
 }: {
   tenantId: string;
   space: { id: string; title: string };
+  onTestsLoaded?: (spaceId: string, count: number) => void;
 }) {
-  const { data: storyPoints } = useStoryPoints(tenantId, space.id);
+  const { data: storyPoints, isLoading, isFetched } = useStoryPoints(tenantId, space.id);
   const tests = storyPoints?.filter((sp) => sp.type === "timed_test" || sp.type === "test") ?? [];
+
+  useEffect(() => {
+    if (!isFetched || isLoading) return;
+    onTestsLoaded?.(space.id, tests.length);
+  }, [isFetched, isLoading, space.id, tests.length, onTestsLoaded]);
 
   if (tests.length === 0) return null;
 
@@ -116,12 +129,25 @@ function SpaceTests({
 }
 
 export default function TestsPage() {
-  const { currentTenantId, currentMembership } = useAuthStore();
-  const classIds = currentMembership?.permissions?.managedClassIds;
-  const { data: spaces, isLoading } = useSpaces<Array<{ id: string; title: string }>>({
+  const { currentTenantId } = useAuthStore();
+  // listSpaces schema is strict — no classIds[]; Zod rejects and the query fails empty.
+  // Server scopes published spaces by the learner's claims / class membership.
+  const { data: spacesPage, isLoading } = useSpaces<{
+    items: Array<{ id: string; title: string }>;
+  }>({
     status: "published",
-    classIds,
   });
+  const spaces = spacesPage?.items ?? [];
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  const onTestsLoaded = useCallback((spaceId: string, count: number) => {
+    setCounts((prev) => (prev[spaceId] === count ? prev : { ...prev, [spaceId]: count }));
+  }, []);
+
+  const allSpacesReported =
+    spaces.length > 0 && spaces.every((s) => Object.prototype.hasOwnProperty.call(counts, s.id));
+  const totalTests = Object.values(counts).reduce((a, b) => a + b, 0);
+  const showEmpty = !isLoading && (spaces.length === 0 || (allSpacesReported && totalTests === 0));
 
   return (
     <div className="space-y-6">
@@ -141,7 +167,7 @@ export default function TestsPage() {
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
-      ) : !spaces || spaces.length === 0 ? (
+      ) : showEmpty ? (
         <div className="bg-muted/50 text-muted-foreground rounded-lg border p-8 text-center">
           <ClipboardList className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" />
           <p className="text-sm">No tests available yet.</p>
@@ -149,7 +175,12 @@ export default function TestsPage() {
       ) : (
         <div className="space-y-3">
           {spaces.map((space) => (
-            <SpaceTests key={space.id} tenantId={currentTenantId!} space={space} />
+            <SpaceTests
+              key={space.id}
+              tenantId={currentTenantId!}
+              space={space}
+              onTestsLoaded={onTestsLoaded}
+            />
           ))}
         </div>
       )}
