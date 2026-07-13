@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   useSpace,
@@ -363,7 +363,7 @@ export default function SpaceEditorPage() {
         ? (spaceRaw as { space: Space }).space
         : undefined;
   const { handleError } = useApiError();
-  const { storyPointRepo, itemRepo } = useRepos();
+  const { itemRepo } = useRepos();
 
   // Mutation hooks. saveSpace IS the lifecycle transition verb (publish/archive/
   // unpublish = a status change in data) — there is no separate publish/archive
