@@ -141,30 +141,13 @@ export const startTestSession = onCall({ region: "asia-south1", cors: true }, as
   // Check for active in-progress session
   const activeSessions = existingSessions.docs.filter((d) => d.data().status === "in_progress");
   if (activeSessions.length > 0) {
-    const activeDoc = activeSessions[0];
-    const activeSession = activeDoc.data();
-    let questionOrder = Array.isArray(activeSession.questionOrder)
-      ? (activeSession.questionOrder as string[])
-      : [];
-    if (questionOrder.length === 0) {
-      const items = await loadItems(data.tenantId, data.spaceId, data.storyPointId);
-      questionOrder = items
-        .filter((i: UnifiedItem) => i.type === "question")
-        .map((i: UnifiedItem) => i.id);
-      if (questionOrder.length > 0) {
-        await activeDoc.ref.update({
-          questionOrder,
-          totalQuestions: questionOrder.length,
-          updatedAt: isoNow(),
-        });
-      }
-    }
+    const activeSession = activeSessions[0].data();
     return {
       sessionId: activeSession.id,
       startedAt: activeSession.startedAt,
       serverDeadline: activeSession.serverDeadline,
-      questionOrder,
-      totalQuestions: questionOrder.length || activeSession.totalQuestions || 0,
+      questionOrder: activeSession.questionOrder,
+      totalQuestions: activeSession.totalQuestions,
       attemptNumber: activeSession.attemptNumber,
       sectionMapping: activeSession.sectionMapping ?? {},
       lastVisitedIndex: activeSession.lastVisitedIndex ?? 0,

@@ -19,12 +19,13 @@ import {
 } from "../components/leaderboard/LeaderboardTable";
 
 export default function LeaderboardPage() {
-  const { user } = useAuthStore();
+  const { user, currentMembership } = useAuthStore();
   const userId = user?.uid ?? null;
+  const classIds = currentMembership?.permissions?.managedClassIds;
 
-  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
+    classIds,
   });
   const spaces = spacesPage?.items;
 

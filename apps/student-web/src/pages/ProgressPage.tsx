@@ -14,7 +14,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  EmptyState,
 } from "@levelup/shared-ui";
 import { BarChart3, BookOpen, Award, ClipboardList, Target } from "lucide-react";
 import type { Space, SpaceProgress } from "@levelup/shared-types";
@@ -23,21 +22,19 @@ type TabId = "overall" | "exams" | "spaces";
 
 export default function ProgressPage() {
   const { user, currentMembership } = useAuthStore();
-  // Analytics getSummary asserts student entity id (stu_*), not Firebase uid.
-  const studentEntityId = currentMembership?.studentId ?? user?.uid ?? "";
-  // listSpaces schema is strict — no classIds[]; server scopes by claims.
+  const userId = user?.uid ?? "";
+  const classIds = currentMembership?.permissions?.managedClassIds;
   const { data: spacesPage, isLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
+    classIds,
   });
   const spaces = spacesPage?.items;
-  const { data: summaryData, isLoading: summaryLoading } = useStudentSummary(
-    studentEntityId as UserId
-  );
+  const { data: summaryData } = useStudentSummary(userId as UserId);
   const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
     ?.studentSummary;
   const [activeTab, setActiveTab] = useState<TabId>("overall");
 
-  if (isLoading || summaryLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Progress</h1>
@@ -126,62 +123,12 @@ export default function ProgressPage() {
                     </div>
                   </div>
                 )}
-
-                {Object.keys(summary.levelup.subjectBreakdown).length > 0 && (
-                  <div className="bg-card rounded-lg border p-5">
-                    <h3 className="mb-3 text-sm font-semibold">Space Progress by Subject</h3>
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      {Object.entries(summary.levelup.subjectBreakdown).map(
-                        ([subject, completion]) => (
-                          <div
-                            key={subject}
-                            className="flex items-center gap-3 rounded-md border p-3"
-                          >
-                            <ProgressRing value={completion} size={50} strokeWidth={5} />
-                            <div>
-                              <p className="text-sm font-medium">{subject}</p>
-                              <p className="text-muted-foreground text-xs">
-                                {Math.round(completion)}% complete
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback when summary exists but subject maps are empty — still show space cards */}
-                {Object.keys(summary.autograde.subjectBreakdown).length === 0 &&
-                  Object.keys(summary.levelup.subjectBreakdown).length === 0 &&
-                  (spaces?.length ?? 0) > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold">Your Spaces</h3>
-                      {spaces!.slice(0, 5).map((space) => (
-                        <SpaceProgressCard key={space.id} space={space} />
-                      ))}
-                    </div>
-                  )}
               </>
             ) : (
-              <div className="space-y-4">
-                {(spaces?.length ?? 0) > 0 ? (
-                  <>
-                    <p className="text-muted-foreground text-sm">
-                      Combined analytics are still computing. Space progress below is live.
-                    </p>
-                    {spaces!.map((space) => (
-                      <SpaceProgressCard key={space.id} space={space} />
-                    ))}
-                  </>
-                ) : (
-                  <EmptyState
-                    icon={BarChart3}
-                    title="No overall progress yet"
-                    description="Complete exams and spaces to see your combined metrics."
-                  />
-                )}
-              </div>
+              <p className="text-muted-foreground text-sm">
+                No overall progress data yet. Complete exams and spaces to see your combined
+                metrics.
+              </p>
             )}
           </div>
         )}
@@ -225,11 +172,7 @@ export default function ProgressPage() {
                 </Table>
               </div>
             ) : (
-              <EmptyState
-                icon={ClipboardList}
-                title="No exam results yet"
-                description="Completed exams will appear here with scores and percentages."
-              />
+              <p className="text-muted-foreground text-sm">No exam results yet.</p>
             )}
           </div>
         )}
@@ -238,11 +181,7 @@ export default function ProgressPage() {
         {activeTab === "spaces" && (
           <div className="space-y-4">
             {!spaces?.length ? (
-              <EmptyState
-                icon={BookOpen}
-                title="No spaces to track"
-                description="Assigned learning spaces will show completion progress here."
-              />
+              <p className="text-muted-foreground">No spaces to track.</p>
             ) : (
               spaces.map((space) => <SpaceProgressCard key={space.id} space={space} />)
             )}
@@ -264,10 +203,6 @@ function SpaceProgressCard({ space }: { space: Space }) {
   const completedSPs = Object.values(progress?.storyPoints ?? {}).filter(
     (sp) => sp.status === "completed"
   ).length;
-  const modulesLabel =
-    typeof space.stats?.totalStoryPoints === "number" && space.stats.totalStoryPoints > 0
-      ? space.stats.totalStoryPoints
-      : spCount;
 
   return (
     <Link
@@ -300,9 +235,8 @@ function SpaceProgressCard({ space }: { space: Space }) {
           <Award className="h-3 w-3" /> {pointsEarned}/{totalPoints} pts
         </span>
         <span className="flex items-center gap-1">
-          <BookOpen className="h-3 w-3" /> {completedSPs}/{modulesLabel || "—"} sections
+          <BookOpen className="h-3 w-3" /> {completedSPs}/{spCount} sections
         </span>
-        <span className="ml-auto font-medium tabular-nums">{Math.round(percentage)}%</span>
       </div>
     </Link>
   );

@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCurrentUser, useCurrentMembership, useCurrentTenantId } from "@levelup/shared-stores";
 import {
@@ -12,7 +11,6 @@ import {
 import type { UserId, StudentProgressSummary, StudentAchievement } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
 import RecommendationsSection from "../components/dashboard/RecommendationsSection";
-import { useStoryPoints } from "../hooks/useStoryPoints";
 import {
   ScoreCard,
   AtRiskBadge,
@@ -38,69 +36,21 @@ import {
   Target,
   Lightbulb,
   Calendar,
-  PlayCircle,
 } from "lucide-react";
-
-function studentDisplayName(
-  user: {
-    displayName?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    email?: string | null;
-  } | null
-): string {
-  if (!user) return "Student";
-  if (user.displayName?.trim()) return user.displayName.trim();
-  const fromParts = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-  if (fromParts) return fromParts;
-  return user.email ?? "Student";
-}
-
-function spaceStatLabel(
-  count: number | undefined | null,
-  singular: string,
-  plural: string
-): string | null {
-  if (typeof count !== "number" || !Number.isFinite(count) || count <= 0) return null;
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function AssignedTestsCounter({
-  tenantId,
-  space,
-  onCount,
-}: {
-  tenantId: string;
-  space: { id: string };
-  onCount: (spaceId: string, count: number) => void;
-}) {
-  const { data: storyPoints, isLoading, isFetched } = useStoryPoints(tenantId, space.id);
-  const count =
-    storyPoints?.filter((sp) => sp.type === "timed_test" || sp.type === "test").length ?? 0;
-
-  useEffect(() => {
-    if (!isFetched || isLoading) return;
-    onCount(space.id, count);
-  }, [isFetched, isLoading, space.id, count, onCount]);
-
-  return null;
-}
 
 export default function DashboardPage() {
   const user = useCurrentUser();
   const membership = useCurrentMembership();
   const tenantId = useCurrentTenantId();
-  const firstName = studentDisplayName(user).split(" ")[0] || "Student";
 
-  // listSpaces schema is strict — no classIds[]; server scopes by claims.
+  const classIds = membership?.permissions?.managedClassIds;
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
+    classIds,
   });
   const spaces = spacesPage?.items;
-  // Analytics getSummary asserts student entity id (stu_*), not Firebase uid.
-  const studentEntityId = membership?.studentId ?? user?.uid ?? "";
   const { data: summaryData, isLoading: summaryLoading } = useStudentSummary(
-    studentEntityId as UserId
+    (user?.uid ?? "") as UserId
   );
   const summary = (summaryData as { studentSummary?: StudentProgressSummary } | undefined)
     ?.studentSummary;
@@ -114,15 +64,6 @@ export default function DashboardPage() {
     achData as { pages?: Array<{ items?: StudentAchievement[] }> } | undefined
   )?.pages?.flatMap((p) => p.items ?? []);
   const { data: level } = useStudentLevel();
-
-  const [testCounts, setTestCounts] = useState<Record<string, number>>({});
-  const onTestCount = useCallback((spaceId: string, count: number) => {
-    setTestCounts((prev) => (prev[spaceId] === count ? prev : { ...prev, [spaceId]: count }));
-  }, []);
-  const assignedTestsCount = useMemo(
-    () => Object.values(testCounts).reduce((a, b) => a + b, 0),
-    [testCounts]
-  );
 
   // Helper to safely extract a timestamp (ms) from an exam's date (ISO string at
   // rest; legacy {seconds} shape tolerated).
@@ -155,59 +96,9 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const recentSpaces = spaces?.slice(0, 4) ?? [];
-  const continueSpace =
-    (spaces ?? []).find((s) => /algebra/i.test(s.title)) ??
-    (spaces ?? []).find((s) => summary?.levelup.recentActivity?.some((a) => a.spaceId === s.id)) ??
-    recentSpaces[0];
 
   return (
     <div className="space-y-6">
-      {tenantId &&
-        (spaces ?? []).map((space) => (
-          <AssignedTestsCounter
-            key={`count-${space.id}`}
-            tenantId={tenantId}
-            space={space}
-            onCount={onTestCount}
-          />
-        ))}
-
-      <FadeIn>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Welcome back, {firstName}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/tests"
-              className="bg-card hover:bg-muted/60 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-            >
-              <ClipboardList className="text-destructive h-4 w-4" />
-              Assigned tests
-              <span className="bg-muted rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums">
-                {assignedTestsCount}
-              </span>
-            </Link>
-            {continueSpace && (
-              <Link
-                to={`/spaces/${continueSpace.id}`}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Continue learning
-              </Link>
-            )}
-          </div>
-        </div>
-      </FadeIn>
-
-      {continueSpace && (
-        <FadeIn delay={0.05}>
-          <ContinueLearningCard space={continueSpace} />
-        </FadeIn>
-      )}
-
       {/* Cross-system summary */}
       {summary ? (
         <>
@@ -238,36 +129,30 @@ export default function DashboardPage() {
             </div>
           </FadeIn>
 
-          {/* Recent progress from summary activity */}
-          {summary.levelup.recentActivity.length > 0 && (
-            <FadeIn delay={0.12}>
-              <div className="bg-card rounded-lg border">
-                <div className="flex items-center justify-between border-b px-5 py-3">
-                  <h2 className="text-sm font-semibold">Recent Progress</h2>
-                  <Link
-                    to="/results"
-                    className="text-primary flex items-center gap-1 text-xs hover:underline"
-                  >
-                    View analytics <ChevronRight className="h-3 w-3" />
-                  </Link>
-                </div>
-                <div className="divide-y">
-                  {summary.levelup.recentActivity.slice(0, 4).map((activity, idx) => (
-                    <Link
-                      key={`${activity.spaceId}-${idx}`}
-                      to={`/spaces/${activity.spaceId}`}
-                      className="hover:bg-muted/40 flex items-center justify-between px-5 py-3 transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{activity.spaceTitle}</p>
-                        <p className="text-muted-foreground text-xs">
-                          +{activity.pointsEarned} pts earned
-                        </p>
-                      </div>
-                      <ChevronRight className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-                    </Link>
-                  ))}
-                </div>
+          {/* Resume Learning — show most recent in-progress space */}
+          {recentSpaces.length > 0 && (
+            <FadeIn delay={0.15}>
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <BookOpen className="text-primary h-4 w-4" />
+                  Resume Learning
+                </h3>
+                <Link
+                  to={`/spaces/${recentSpaces[0].id}`}
+                  className="bg-primary/5 hover:bg-primary/10 flex items-center gap-4 rounded-lg p-3 transition-colors"
+                >
+                  <div className="bg-primary/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
+                    <BookOpen className="text-primary h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{recentSpaces[0].title}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {recentSpaces[0].subject && `${recentSpaces[0].subject} · `}
+                      Continue where you left off
+                    </p>
+                  </div>
+                  <ChevronRight className="text-muted-foreground h-5 w-5 flex-shrink-0" />
+                </Link>
               </div>
             </FadeIn>
           )}
@@ -368,12 +253,6 @@ export default function DashboardPage() {
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Assigned Tests</span>
-                    <span className="font-medium">
-                      <CountUp end={assignedTestsCount} duration={0.5} />
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Points</span>
                     <span className="font-medium">
                       <CountUp end={summary.levelup.totalPointsEarned} duration={0.8} />/
@@ -435,20 +314,13 @@ export default function DashboardPage() {
         </>
       ) : !summaryLoading ? (
         /* Fallback to basic stats when no summary */
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="bg-card rounded-lg border p-4">
             <div className="mb-1 flex items-center gap-2">
               <BookOpen className="text-primary h-4 w-4" />
               <p className="text-muted-foreground text-sm">Active Spaces</p>
             </div>
             <p className="text-2xl font-bold">{spaces?.length ?? "--"}</p>
-          </div>
-          <div className="bg-card rounded-lg border p-4">
-            <div className="mb-1 flex items-center gap-2">
-              <ClipboardList className="text-destructive h-4 w-4" />
-              <p className="text-muted-foreground text-sm">Assigned Tests</p>
-            </div>
-            <p className="text-2xl font-bold">{assignedTestsCount}</p>
           </div>
           <div className="bg-card rounded-lg border p-4">
             <div className="mb-1 flex items-center gap-2">
@@ -460,17 +332,7 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-      ) : (
-        <div
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-          role="status"
-          aria-label="Loading stats"
-        >
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
-          ))}
-        </div>
-      )}
+      ) : null}
 
       {/* Upcoming Exams & Deadlines */}
       {upcomingExams.length > 0 && (
@@ -519,7 +381,7 @@ export default function DashboardPage() {
       )}
 
       {/* Recommendations */}
-      {tenantId && studentEntityId && <RecommendationsSection studentId={studentEntityId} />}
+      {tenantId && user?.uid && <RecommendationsSection studentId={user.uid} />}
 
       {/* My Spaces */}
       <FadeIn delay={0.4}>
@@ -559,52 +421,9 @@ export default function DashboardPage() {
   );
 }
 
-function ContinueLearningCard({ space }: { space: Space }) {
-  const { data } = useSpaceProgress(space.id);
-  const percentage = (data as SpaceProgress | null)?.percentage ?? 0;
-  return (
-    <div className="bg-card rounded-lg border p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <BookOpen className="text-primary h-4 w-4" />
-          Continue Learning
-        </h3>
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {Math.round(percentage)}%
-        </span>
-      </div>
-      <Link
-        to={`/spaces/${space.id}`}
-        className="bg-primary/5 hover:bg-primary/10 flex items-center gap-4 rounded-lg p-3 transition-colors"
-      >
-        <div className="bg-primary/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
-          <PlayCircle className="text-primary h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{space.title}</p>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            {space.subject && `${space.subject} · `}
-            Pick up where you left off
-          </p>
-          <div className="mt-2">
-            <ProgressBar
-              value={percentage}
-              size="sm"
-              color={percentage === 100 ? "green" : "blue"}
-            />
-          </div>
-        </div>
-        <ChevronRight className="text-muted-foreground h-5 w-5 flex-shrink-0" />
-      </Link>
-    </div>
-  );
-}
-
 function DashboardSpaceCard({ space }: { space: Space }) {
   const { data } = useSpaceProgress(space.id);
   const percentage = (data as SpaceProgress | null)?.percentage ?? 0;
-  const modulesLabel = spaceStatLabel(space.stats?.totalStoryPoints, "module", "modules");
-  const itemsLabel = spaceStatLabel(space.stats?.totalItems, "item", "items");
   return (
     <AnimatedCard>
       <Link
@@ -626,8 +445,12 @@ function DashboardSpaceCard({ space }: { space: Space }) {
         )}
         <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
           {space.subject && <span>{space.subject}</span>}
-          {modulesLabel && <span>{modulesLabel}</span>}
-          {itemsLabel && <span>{itemsLabel}</span>}
+          {space.stats && (
+            <>
+              <span>{space.stats.totalStoryPoints} modules</span>
+              <span>{space.stats.totalItems} items</span>
+            </>
+          )}
         </div>
         <div className="mt-3">
           <ProgressBar value={percentage} size="sm" color={percentage === 100 ? "green" : "blue"} />

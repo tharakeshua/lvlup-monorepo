@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { useCurrentUser, useCurrentTenantId } from "@levelup/shared-stores";
 import { useStudentSummary, useStudentAchievements, useStudentLevel } from "@levelup/query";
-import type { UserId, StudentProgressSummary } from "@levelup/domain";
+import type { UserId } from "@levelup/domain";
 import { LevelBadge, StreakWidget, Card, CardContent, Skeleton, FadeIn } from "@levelup/shared-ui";
 import { sonnerToast as toast } from "@levelup/shared-ui";
-import { User, Award, Star, School, Camera, IdCard, BookOpen, ClipboardList } from "lucide-react";
+import { User, Award, Star, School, Camera, IdCard } from "lucide-react";
 import { useTenantStore, useAuthStore } from "@levelup/shared-stores";
 import { callUploadTenantAsset } from "@levelup/shared-services/auth";
 import { updateProfile } from "firebase/auth";
@@ -37,21 +37,6 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-}
-
-function resolveDisplayName(
-  user: {
-    displayName?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    email?: string | null;
-  } | null
-): string {
-  if (!user) return "Student";
-  if (user.displayName?.trim()) return user.displayName.trim();
-  const fromParts = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-  if (fromParts) return fromParts;
-  return user.email ?? "Student";
 }
 
 function StudentIDCard({
@@ -121,14 +106,14 @@ export default function ProfilePage() {
   const tenantId = useCurrentTenantId();
   const tenantName = useTenantStore((s) => s.tenant?.name);
 
-  const studentEntityId = currentMembership?.studentId ?? user?.uid ?? "";
   const userId = (user?.uid ?? undefined) as UserId | undefined;
 
   const { data: summaryRaw, isLoading: summaryLoading } = useStudentSummary(
-    studentEntityId as UserId
+    (user?.uid ?? "") as UserId
   );
-  const summary = (summaryRaw as { studentSummary?: StudentProgressSummary } | undefined)
-    ?.studentSummary;
+  const summary = summaryRaw as
+    | { levelup: { streakDays: number; totalPointsEarned: number }; overallScore: number }
+    | undefined;
 
   const { data: achievementsRaw, isLoading: achievementsLoading } = useStudentAchievements({
     userId,
@@ -184,7 +169,7 @@ export default function ProfilePage() {
   );
 
   const isLoading = summaryLoading || achievementsLoading || levelLoading;
-  const displayName = resolveDisplayName(user);
+  const displayName = user?.displayName ?? user?.email ?? "Student";
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -312,42 +297,6 @@ export default function ProfilePage() {
                   {Math.round((summary?.overallScore ?? 0) * 100)}%
                 </p>
                 <p className="text-muted-foreground text-xs">Overall Score</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30"
-                aria-hidden="true"
-              >
-                <BookOpen className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {summary
-                    ? `${summary.levelup.completedSpaces}/${summary.levelup.totalSpaces}`
-                    : "—"}
-                </p>
-                <p className="text-muted-foreground text-xs">Spaces Completed</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30"
-                aria-hidden="true"
-              >
-                <ClipboardList className="h-5 w-5 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {summary
-                    ? `${summary.autograde.completedExams}/${summary.autograde.totalExams}`
-                    : "—"}
-                </p>
-                <p className="text-muted-foreground text-xs">Exams Completed</p>
               </div>
             </CardContent>
           </Card>

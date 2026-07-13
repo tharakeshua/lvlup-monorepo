@@ -115,7 +115,7 @@ export function createTestSessionRepo(api: ApiClient): TestSessionRepo {
         : 0,
 
     computeRuntimeView: (session) =>
-      (Array.isArray(session.questionOrder) ? session.questionOrder : []).map((itemId, index) => {
+      session.questionOrder.map((itemId, index) => {
         const view: RuntimeQuestionView = {
           itemId,
           index,
