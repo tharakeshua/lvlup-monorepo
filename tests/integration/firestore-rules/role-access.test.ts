@@ -393,7 +393,7 @@ describe("student access is scoped to enrolled resources", () => {
     const db = student("stu1").firestore();
     await assertSucceeds(
       setDoc(doc(db, `tenants/${T}/spaceProgress`, "stu1_space1"), {
-        studentId: "stu1",
+        userId: "student1",
         spaceId: "space1",
         status: "in_progress",
       })
@@ -404,7 +404,7 @@ describe("student access is scoped to enrolled resources", () => {
     const db = student("stu1").firestore();
     await assertFails(
       setDoc(doc(db, `tenants/${T}/spaceProgress`, "stu2_space1"), {
-        studentId: "stu2",
+        userId: "student2",
         spaceId: "space1",
         status: "in_progress",
       })
