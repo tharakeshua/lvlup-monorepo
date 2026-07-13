@@ -28,6 +28,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
   await notifRef.set({
     id: notifRef.id,
     tenantId: payload.tenantId,
+    recipientUid: payload.recipientId,
     recipientId: payload.recipientId,
     recipientRole: payload.recipientRole,
     type: payload.type,
@@ -37,6 +38,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<st
     entityId: payload.entityId ?? null,
     actionUrl: payload.actionUrl ?? null,
     isRead: false,
+    readAt: null,
     createdAt: now,
   });
 
@@ -85,6 +87,7 @@ export async function sendBulkNotifications(
       batch.set(notifRef, {
         id: notifRef.id,
         tenantId: basePayload.tenantId,
+        recipientUid: recipientId,
         recipientId,
         recipientRole: role,
         type: basePayload.type,
@@ -94,6 +97,7 @@ export async function sendBulkNotifications(
         entityId: basePayload.entityId ?? null,
         actionUrl: basePayload.actionUrl ?? null,
         isRead: false,
+        readAt: null,
         createdAt: now,
       });
 

@@ -12,6 +12,7 @@ import { authorize, assertTransition } from "@levelup/access";
 import type { AuthContext, SystemContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import { xrepos } from "../shared/extended-repos.js";
+import { projectNotification } from "../shared/projections.js";
 
 type Doc = Record<string, unknown>;
 
@@ -19,10 +20,15 @@ type Doc = Record<string, unknown>;
 export interface EmitNotificationInput {
   tenantId: string;
   recipientUids: string[];
+  /** Canonical recipient role (defaults to student). */
+  recipientRole?: "teacher" | "student" | "parent" | "tenantAdmin";
   type: string;
   title: string;
   body: string;
   payload?: Doc;
+  entityType?: "exam" | "space" | "submission" | "student" | "class";
+  entityId?: string;
+  actionUrl?: string;
   /** Dedupe key so at-least-once outbox delivery yields one notification. */
   dedupeKey?: string;
 }
@@ -33,26 +39,41 @@ export async function emitNotificationService(
 ): Promise<{ created: number }> {
   const now = ctx.now();
   let created = 0;
+  const role = input.recipientRole ?? "student";
 
   for (const uid of input.recipientUids) {
-    // Per-recipient preference check (muted types are skipped).
+    if (!uid) continue;
+    // Empty enabledTypes = all types allowed (empty allow-list must not mute everything).
     const prefs = await xrepos(ctx).notificationReads.getPreferences(input.tenantId, uid);
     const enabledTypes = prefs?.["enabledTypes"] as string[] | undefined;
-    if (enabledTypes && !enabledTypes.includes(input.type)) continue;
+    if (
+      Array.isArray(enabledTypes) &&
+      enabledTypes.length > 0 &&
+      !enabledTypes.includes(input.type)
+    ) {
+      continue;
+    }
     const muteUntil = prefs?.["muteUntil"] as string | null | undefined;
     if (muteUntil && Date.parse(muteUntil) > Date.parse(now)) continue;
 
-    // Single transactional write: notification doc + badge increment (atomic).
+    // Dual-write recipientUid (canonical) + recipientId (legacy indexes/readers).
     await ctx.repos.tx(async (tx) => {
       tx.upsert("notifications", input.tenantId, {
+        tenantId: input.tenantId,
         recipientUid: uid,
+        recipientId: uid,
+        recipientRole: role,
         type: input.type,
         title: input.title,
         body: input.body,
-        payload: input.payload ?? {},
+        entityType: input.entityType ?? null,
+        entityId: input.entityId ?? null,
+        actionUrl: input.actionUrl ?? null,
         isRead: false,
+        readAt: null,
         createdAt: now,
         dedupeKey: input.dedupeKey,
+        ...(input.payload ? { payload: input.payload } : {}),
       });
     });
     const unread = await xrepos(ctx).notificationReads.unreadCount(input.tenantId, uid);
@@ -72,15 +93,51 @@ export async function listNotificationsService(
 ): Promise<ResOf<"v1.identity.listNotifications">> {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "notification.read", { tenantId });
-  const page = await ctx.repos.notifications.list(tenantId, {
-    where: { recipientUid: ctx.uid },
-    cursor: input.cursor,
-    limit: input.limit ?? 20,
-    orderBy: "createdAt",
-  });
+  const limit = input.limit ?? 20;
+
+  // Avoid orderBy(createdAt): deployed composites still key on legacy `recipientId`,
+  // so recipientUid+createdAt queries 500 (FAILED_PRECONDITION → INTERNAL_ERROR).
+  // Equality-only queries are index-safe; we merge legacy recipientId rows and sort.
+  const fetchLimit = Math.min(Math.max(limit * 2, 40), 100);
+  const [byUid, byLegacy] = await Promise.all([
+    ctx.repos.notifications.list(tenantId, {
+      where: { recipientUid: ctx.uid },
+      limit: fetchLimit,
+    }),
+    ctx.repos.notifications.list(tenantId, {
+      where: { recipientId: ctx.uid },
+      limit: fetchLimit,
+    }),
+  ]);
+
+  const seen = new Set<string>();
+  const merged: Doc[] = [];
+  for (const item of [...byUid.items, ...byLegacy.items]) {
+    const id = String(item["id"] ?? "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    merged.push(item);
+  }
+  merged.sort((a, b) => String(b["createdAt"] ?? "").localeCompare(String(a["createdAt"] ?? "")));
+
+  let start = 0;
+  if (input.cursor) {
+    try {
+      const cur = ctx.repos.decodeCursor(input.cursor) as { id?: string };
+      const idx = merged.findIndex((m) => String(m["id"]) === String(cur.id ?? ""));
+      if (idx >= 0) start = idx + 1;
+    } catch {
+      /* ignore bad cursor */
+    }
+  }
+
+  const page = merged.slice(start, start + limit);
+  const hasMore = merged.length > start + limit;
+  const last = page[page.length - 1];
   return {
-    items: page.items,
-    nextCursor: page.nextCursor,
+    items: page.map((n) => projectNotification(n, tenantId, ctx.now())),
+    nextCursor:
+      hasMore && last ? ctx.repos.encodeCursor({ v: last["createdAt"], id: last["id"] }) : null,
   } as unknown as ResOf<"v1.identity.listNotifications">;
 }
 
@@ -162,7 +219,6 @@ export async function saveAnnouncementService(
   authorize(ctx, "announcement.write", { tenantId });
 
   if (input.delete && input.id) {
-    // Announcements truly delete (D5); `archived` is reached only via transition.
     await ctx.repos.announcements.delete(tenantId, input.id);
     return { id: input.id, deleted: true } as ResOf<"v1.identity.saveAnnouncement">;
   }
@@ -203,14 +259,6 @@ export async function listAnnouncementsService(
     limit: input.limit ?? 20,
   });
   const items = await Promise.all(
-    // Project the stored Announcement doc → the strict SLIM `AnnouncementListItem`
-    // (id/title/body/scope/status/authorName/publishedAt/expiresAt + caller-relative
-    // isReadByMe). Defensive canonicalization (like projectSpace): drop every
-    // non-slim key the full doc carries (tenantId/authorUid/targetRoles/audit…),
-    // coerce a legacy/targeted `scope` (e.g. seed 'class') to the canonical
-    // platform|tenant vocabulary (only an explicit 'platform' stays platform; any
-    // tenant-internal/targeted announcement is 'tenant'), and null-fill the
-    // nullable timestamps so an absent value validates.
     page.items.map(async (a) => ({
       id: a["id"],
       title: (a["title"] as string | undefined) ?? "",
@@ -251,7 +299,6 @@ export async function estimateAudienceService(
 ): Promise<ResOf<"v1.identity.estimateAudience">> {
   const tenantId = requireTenant(ctx);
   authorize(ctx, "announcement.write", { tenantId });
-  // Count distinct recipients matching roles/classes (server-side estimate).
   let recipientCount = 0;
   const classIds = input.targetClassIds ?? [];
   for (const classId of classIds) {
@@ -306,7 +353,7 @@ export async function sendDirectMessageService(
     {
       tenantId,
       recipientUids: input.recipientUids as string[],
-      type: "direct_message",
+      type: "system_announcement",
       title: input.title,
       body: input.body,
     },
