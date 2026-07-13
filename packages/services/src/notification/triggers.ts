@@ -44,13 +44,17 @@ async function deliver(row: OutboxRow, ctx: SystemContext): Promise<void> {
     case "exam.published":
     case "results.released":
     case "exam.results.released": {
+      const isExamPublish = row.type === "exam.published";
       await emitNotificationService(
         {
           tenantId: row.tenantId,
           recipientUids: (p["recipientUids"] as string[]) ?? [],
-          type: row.type === "exam.published" ? "exam_published" : "results_released",
-          title: row.type === "exam.published" ? "New exam" : "Results released",
+          recipientRole: (p["recipientRole"] as "student" | "parent" | undefined) ?? "student",
+          type: isExamPublish ? "new_exam_assigned" : "exam_results_released",
+          title: isExamPublish ? "New exam" : "Results released",
           body: String(p["title"] ?? ""),
+          entityType: "exam",
+          entityId: String(p["examId"] ?? ""),
           payload: { examId: p["examId"] },
           dedupeKey: `${row.type}:${String(p["examId"])}`,
         },
@@ -65,9 +69,10 @@ async function deliver(row: OutboxRow, ctx: SystemContext): Promise<void> {
           tenantId: row.tenantId,
           recipientUids:
             (p["recipientUids"] as string[]) ?? [String(p["recipientUid"] ?? "")].filter(Boolean),
-          type: "graded",
+          type: "submission_graded",
           title: "Grading complete",
           body: String(p["body"] ?? "Your submission has been graded"),
+          entityType: "submission",
           payload: p,
           dedupeKey: `${row.type}:${String(p["id"] ?? p["sessionId"] ?? "")}`,
         },
@@ -80,7 +85,7 @@ async function deliver(row: OutboxRow, ctx: SystemContext): Promise<void> {
         {
           tenantId: row.tenantId,
           recipientUids: [String(p["recipientUid"] ?? "")].filter(Boolean),
-          type: "progress_milestone",
+          type: "system_announcement",
           title: "Milestone reached",
           body: String(p["body"] ?? ""),
           payload: p,
@@ -95,7 +100,7 @@ async function deliver(row: OutboxRow, ctx: SystemContext): Promise<void> {
         {
           tenantId: row.tenantId,
           recipientUids: (p["recipientUids"] as string[]) ?? [],
-          type: "announcement",
+          type: "system_announcement",
           title: String(p["title"] ?? "Announcement"),
           body: String(p["body"] ?? ""),
           payload: { announcementId: p["announcementId"] },

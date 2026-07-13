@@ -165,6 +165,74 @@ export function projectSpaceProgress(p: Doc, nowFallback?: string): Doc {
   return out;
 }
 
+const NOTIFICATION_TYPES = new Set([
+  "exam_results_released",
+  "new_exam_assigned",
+  "new_space_assigned",
+  "submission_graded",
+  "grading_complete",
+  "student_at_risk",
+  "deadline_reminder",
+  "space_published",
+  "bulk_import_complete",
+  "ai_budget_alert",
+  "system_announcement",
+]);
+
+const NOTIFICATION_ROLES = new Set(["teacher", "student", "parent", "tenantAdmin"]);
+const NOTIFICATION_ENTITY_TYPES = new Set(["exam", "space", "submission", "student", "class"]);
+
+/** Legacy / outbox type aliases → canonical NotificationType. */
+const LEGACY_NOTIFICATION_TYPE: Record<string, string> = {
+  exam_published: "new_exam_assigned",
+  results_released: "exam_results_released",
+  "exam.results.released": "exam_results_released",
+  graded: "submission_graded",
+  progress_milestone: "system_announcement",
+  announcement: "system_announcement",
+  direct_message: "system_announcement",
+  assignment: "new_exam_assigned",
+};
+
+/**
+ * Project a stored notification doc → strict NotificationSchema.
+ * Accepts legacy `recipientId`, free-form `payload`, and outbox type aliases.
+ */
+export function projectNotification(n: Doc, tenantIdFallback: string, nowFallback?: string): Doc {
+  const payload = (n["payload"] ?? {}) as Doc;
+  const typeRaw = String(n["type"] ?? "system_announcement");
+  const type = NOTIFICATION_TYPES.has(typeRaw)
+    ? typeRaw
+    : (LEGACY_NOTIFICATION_TYPE[typeRaw] ?? "system_announcement");
+  const roleRaw = String(n["recipientRole"] ?? "student");
+  const entityTypeRaw = n["entityType"] ?? payload["entityType"];
+  const entityIdRaw =
+    n["entityId"] ?? payload["entityId"] ?? payload["examId"] ?? payload["spaceId"];
+
+  const out: Doc = {
+    id: String(n["id"] ?? ""),
+    tenantId: String(n["tenantId"] ?? tenantIdFallback),
+    recipientUid: String(n["recipientUid"] ?? n["recipientId"] ?? ""),
+    recipientRole: NOTIFICATION_ROLES.has(roleRaw) ? roleRaw : "student",
+    type,
+    title: String(n["title"] ?? "").slice(0, 200),
+    body: String(n["body"] ?? "").slice(0, 1000),
+    isRead: Boolean(n["isRead"]),
+    createdAt: tsRequired(n["createdAt"], nowFallback),
+    readAt: tsOrNull(n["readAt"]),
+  };
+  if (typeof entityTypeRaw === "string" && NOTIFICATION_ENTITY_TYPES.has(entityTypeRaw)) {
+    out["entityType"] = entityTypeRaw;
+  }
+  if (typeof entityIdRaw === "string" && entityIdRaw.length > 0) {
+    out["entityId"] = entityIdRaw;
+  }
+  if (typeof n["actionUrl"] === "string" && n["actionUrl"]) {
+    out["actionUrl"] = n["actionUrl"];
+  }
+  return out;
+}
+
 /**
  * Strip the EvaluationSettings ⚷ thresholds + dimension prompt-guidance for
  * non-authoring roles.
