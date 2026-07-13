@@ -63,6 +63,8 @@ function tenantAdmin(): RulesTestContext {
   return testEnv.authenticatedContext("admin1", {
     tenantId: T,
     role: "tenantAdmin",
+    classIds: [],
+    classIdsOverflow: false,
   });
 }
 
@@ -71,6 +73,7 @@ function teacher(classIds: string[] = ["class1"]): RulesTestContext {
     tenantId: T,
     role: "teacher",
     classIds,
+    classIdsOverflow: false,
   });
 }
 
@@ -80,6 +83,7 @@ function student(studentId = "stu1", classIds: string[] = ["class1"]): RulesTest
     role: "student",
     studentId,
     classIds,
+    classIdsOverflow: false,
   });
 }
 
@@ -90,6 +94,7 @@ function parent(parentId = "par1", studentIds: string[] = ["stu1"]): RulesTestCo
     parentId,
     studentIds,
     classIds: ["class1"],
+    classIdsOverflow: false,
   });
 }
 
@@ -177,7 +182,7 @@ describe("tenantAdmin has full tenant access", () => {
 
     const db = tenantAdmin().firestore();
     await assertSucceeds(getDoc(doc(db, "tenants", T)));
-    await assertSucceeds(updateDoc(doc(db, "tenants", T), { name: "Renamed" }));
+    await assertFails(updateDoc(doc(db, "tenants", T), { name: "Renamed" }));
   });
 
   it("can CRUD students in own tenant", async () => {
@@ -237,6 +242,7 @@ describe("teacher access is scoped to owned resources", () => {
   });
 
   it("can create spaces in own tenant", async () => {
+    await seed(`tenants/${T}`, { id: T, name: "School", status: "active" });
     const db = teacher().firestore();
     await assertSucceeds(
       setDoc(doc(db, `tenants/${T}/spaces`, "newSpace"), {
@@ -250,6 +256,7 @@ describe("teacher access is scoped to owned resources", () => {
   });
 
   it("can update own space but not another teacher space", async () => {
+    await seed(`tenants/${T}`, { id: T, name: "School", status: "active" });
     await seed(`tenants/${T}/spaces/mySpace`, {
       id: "mySpace",
       tenantId: T,
@@ -359,6 +366,7 @@ describe("student access is scoped to enrolled resources", () => {
   });
 
   it("can create own submission", async () => {
+    await seed(`tenants/${T}`, { id: T, name: "School", status: "active" });
     const db = student("stu1").firestore();
     await assertSucceeds(
       setDoc(doc(db, `tenants/${T}/submissions`, "sub1"), {
@@ -381,6 +389,7 @@ describe("student access is scoped to enrolled resources", () => {
   });
 
   it("can write own space progress", async () => {
+    await seed(`tenants/${T}`, { id: T, name: "School", status: "active" });
     const db = student("stu1").firestore();
     await assertSucceeds(
       setDoc(doc(db, `tenants/${T}/spaceProgress`, "stu1_space1"), {

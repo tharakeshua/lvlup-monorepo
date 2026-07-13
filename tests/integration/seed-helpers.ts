@@ -152,7 +152,7 @@ export async function seedMembership(opts: SeedMembershipOptions) {
     role: opts.role,
     status: opts.status ?? "active",
     joinSource: "admin_created",
-    permissions,
+    ...(permissions !== undefined ? { permissions } : {}),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

@@ -227,19 +227,19 @@ describe("/tenants/{tenantId}", () => {
     await assertSucceeds(getDoc(doc(db, "tenants", "tenant1")));
   });
 
-  it("non-member cannot read tenant", async () => {
+  it("non-member can get tenant doc (pre-auth flow)", async () => {
     await seedViaAdmin("tenants/tenant1", tenantDoc);
     const db = authedUser("stranger").firestore();
-    await assertFails(getDoc(doc(db, "tenants", "tenant1")));
+    await assertSucceeds(getDoc(doc(db, "tenants", "tenant1")));
   });
 
-  it("tenantAdmin can update tenant", async () => {
+  it("tenantAdmin cannot update tenant directly", async () => {
     await seedViaAdmin("tenants/tenant1", tenantDoc);
     const db = authedUser("user1", {
       tenantId: "tenant1",
       role: "tenantAdmin",
     }).firestore();
-    await assertSucceeds(updateDoc(doc(db, "tenants", "tenant1"), { name: "Updated School" }));
+    await assertFails(updateDoc(doc(db, "tenants", "tenant1"), { name: "Updated School" }));
   });
 
   it("teacher cannot update tenant", async () => {

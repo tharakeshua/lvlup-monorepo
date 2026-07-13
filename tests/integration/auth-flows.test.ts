@@ -161,9 +161,19 @@ describe("Full School-Code Login Flow", () => {
     const auth = getClientAuth();
     await signInWithEmailAndPassword(auth, "student@a.com", "stu123");
 
-    // Cannot read other tenant
+    // Tenant doc get is allowed for school-code lookup; student data in other tenant is not
+    const otherUser = await seedUser({
+      email: "other@b.com",
+      password: "oth123",
+      displayName: "Other",
+    });
+    const otherStuId = await seedStudentEntity(t2, otherUser.uid, {
+      firstName: "Other",
+      lastName: "Student",
+      rollNumber: "R099",
+    });
     const clientDb = getClientFirestore();
-    await expect(getDoc(doc(clientDb, "tenants", t2))).rejects.toThrow();
+    await expect(getDoc(doc(clientDb, "tenants", t2, "students", otherStuId))).rejects.toThrow();
 
     await signOut(auth);
   });
@@ -429,8 +439,20 @@ describe("Unauthorized Access", () => {
     const auth = getClientAuth();
     await signInWithEmailAndPassword(auth, "stu@my.com", "stu123");
 
+    const otherStuOwner = await seedUser({
+      email: "otherstu@school.com",
+      password: "oth123",
+      displayName: "Other Stu",
+    });
+    const otherStuId = await seedStudentEntity(otherTenant, otherStuOwner.uid, {
+      firstName: "Other",
+      lastName: "Stu",
+      rollNumber: "R002",
+    });
     const clientDb = getClientFirestore();
-    await expect(getDoc(doc(clientDb, "tenants", otherTenant))).rejects.toThrow();
+    await expect(
+      getDoc(doc(clientDb, "tenants", otherTenant, "students", otherStuId))
+    ).rejects.toThrow();
 
     await signOut(auth);
   });
@@ -481,7 +503,7 @@ describe("Unauthorized Access", () => {
     await signOut(auth);
   });
 
-  it("non-member gets permission denied on tenant read", async () => {
+  it("non-member gets permission denied on tenant student data", async () => {
     const owner = await seedUser({
       email: "owner@test.com",
       password: "testpw123",
@@ -502,8 +524,13 @@ describe("Unauthorized Access", () => {
     const auth = getClientAuth();
     await signInWithEmailAndPassword(auth, "outsider@test.com", "out123");
 
+    const stuId = await seedStudentEntity(tenantId, owner.uid, {
+      firstName: "Private",
+      lastName: "Student",
+      rollNumber: "P001",
+    });
     const clientDb = getClientFirestore();
-    await expect(getDoc(doc(clientDb, "tenants", tenantId))).rejects.toThrow();
+    await expect(getDoc(doc(clientDb, "tenants", tenantId, "students", stuId))).rejects.toThrow();
 
     await signOut(auth);
   });

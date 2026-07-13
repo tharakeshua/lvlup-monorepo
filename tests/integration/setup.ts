@@ -12,7 +12,8 @@ import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator, type Functions } from "firebase/functions";
 
-export const PROJECT_ID = "lvlup-ff6fa";
+export const PROJECT_ID =
+  process.env.FIREBASE_EMULATOR_PROJECT ?? process.env.GCLOUD_PROJECT ?? "lvlup-ff6fa";
 
 export const EMULATOR_HOST = "127.0.0.1";
 export const PORTS = {
