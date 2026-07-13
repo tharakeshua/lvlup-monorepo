@@ -383,6 +383,7 @@ vi.mock("firebase-admin", () => {
 
 vi.mock("firebase-admin/firestore", () => ({
   Timestamp: harness.firestoreFn.Timestamp,
+  FieldValue: harness.firestoreFn.FieldValue,
 }));
 
 vi.mock("firebase-functions/v2/https", () => ({
