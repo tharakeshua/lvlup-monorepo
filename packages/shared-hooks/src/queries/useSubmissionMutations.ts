@@ -1,7 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { SaveExamRequest, SaveResponse, GradeQuestionRequest, GradeQuestionResponse } from '@levelup/shared-types';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type {
+  SaveExamRequest,
+  SaveResponse,
+  GradeQuestionRequest,
+  GradeQuestionResponse,
+} from "@levelup/shared-types";
 
 interface UploadAnswerSheetsParams {
   tenantId: string;
@@ -20,7 +25,7 @@ export function useUploadAnswerSheets() {
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<UploadAnswerSheetsParams, UploadAnswerSheetsResponse>(
     functions,
-    'uploadAnswerSheets',
+    "uploadAnswerSheets"
   );
 
   return useMutation({
@@ -29,8 +34,10 @@ export function useUploadAnswerSheets() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'submissions'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "submissions"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "exams", variables.examId],
+      });
     },
   });
 }
@@ -40,7 +47,7 @@ export function useGradeQuestion() {
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<GradeQuestionRequest, GradeQuestionResponse>(
     functions,
-    'gradeQuestion',
+    "gradeQuestion"
   );
 
   return useMutation({
@@ -49,7 +56,7 @@ export function useGradeQuestion() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'submissions'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "submissions"] });
     },
   });
 }
@@ -57,20 +64,20 @@ export function useGradeQuestion() {
 export function useReleaseResults() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, 'saveExam');
+  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, "saveExam");
 
   return useMutation({
     mutationFn: async (params: { tenantId: string; examId: string; classIds?: string[] }) => {
       const result = await callable({
         id: params.examId,
         tenantId: params.tenantId,
-        data: { status: 'results_released', classIds: params.classIds },
+        data: { status: "results_released", classIds: params.classIds },
       });
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'submissions'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "exams"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "submissions"] });
     },
   });
 }

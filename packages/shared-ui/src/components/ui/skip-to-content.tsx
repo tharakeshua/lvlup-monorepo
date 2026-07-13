@@ -9,17 +9,14 @@ export interface SkipToContentProps {
  * Visually hidden link that becomes visible on focus.
  * Place at the top of each app layout for keyboard users.
  */
-export function SkipToContent({
-  targetId = "main-content",
-  className,
-}: SkipToContentProps) {
+export function SkipToContent({ targetId = "main-content", className }: SkipToContentProps) {
   return (
     <a
       href={`#${targetId}`}
       className={cn(
         "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50",
-        "focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow-lg",
-        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:px-4 focus:py-2 focus:shadow-lg",
+        "focus:ring-ring focus:outline-none focus:ring-2 focus:ring-offset-2",
         className
       )}
     >

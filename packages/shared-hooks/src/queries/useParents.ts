@@ -1,26 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, where, orderBy, QueryConstraint } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Parent } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { collection, getDocs, query, where, orderBy, QueryConstraint } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Parent } from "@levelup/shared-types";
 
-export type { Parent } from '@levelup/shared-types';
+export type { Parent } from "@levelup/shared-types";
 
-export function useParents(
-  tenantId: string | null,
-  options?: { status?: string },
-) {
+export function useParents(tenantId: string | null, options?: { status?: string }) {
   return useQuery<Parent[]>({
-    queryKey: ['tenants', tenantId, 'parents', options ?? {}],
+    queryKey: ["tenants", tenantId, "parents", options ?? {}],
     queryFn: async () => {
       if (!tenantId) return [];
       const { db } = getFirebaseServices();
       const colRef = collection(db, `tenants/${tenantId}/parents`);
       const constraints: QueryConstraint[] = [];
       if (options?.status) {
-        constraints.push(where('status', '==', options.status));
+        constraints.push(where("status", "==", options.status));
       }
-      constraints.push(orderBy('uid', 'asc'));
+      constraints.push(orderBy("uid", "asc"));
       const q = query(colRef, ...constraints);
       const snap = await getDocs(q);
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Parent);
@@ -36,19 +33,15 @@ export function useCreateParent() {
   const callable = httpsCallable<
     { tenantId: string; uid: string; childStudentIds?: string[] },
     { parentId: string }
-  >(functions, 'createParent');
+  >(functions, "createParent");
 
   return useMutation({
-    mutationFn: async (params: {
-      tenantId: string;
-      uid: string;
-      childStudentIds?: string[];
-    }) => {
+    mutationFn: async (params: { tenantId: string; uid: string; childStudentIds?: string[] }) => {
       const result = await callable(params);
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'parents'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "parents"] });
     },
   });
 }

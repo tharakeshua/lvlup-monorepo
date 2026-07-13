@@ -8,12 +8,12 @@
  *   GOOGLE_APPLICATION_CREDENTIALS=./lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json npx tsx scripts/migrate-items-to-storypoints.ts
  */
 
-import admin from 'firebase-admin';
+import admin from "firebase-admin";
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const TENANT_ID = 'UVrLA2eNZXwzu1GzyXpF';
+const TENANT_ID = "UVrLA2eNZXwzu1GzyXpF";
 
 async function migrate() {
   // Get all spaces
@@ -72,7 +72,7 @@ async function migrate() {
     }
   }
 
-  console.log('\nMigration complete!');
+  console.log("\nMigration complete!");
 }
 
 migrate().catch(console.error);

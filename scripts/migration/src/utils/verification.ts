@@ -3,8 +3,8 @@
  * Compare source vs target counts and spot-check data integrity.
  */
 
-import * as admin from 'firebase-admin';
-import { MigrationLogger } from './logger.js';
+import * as admin from "firebase-admin";
+import { MigrationLogger } from "./logger.js";
 
 export interface VerificationResult {
   collection: string;
@@ -54,7 +54,9 @@ export async function verifyCollectionCounts(
     );
   }
 
-  logger.info(`Verification [${label}]: source=${sourceCount}, target=${targetCount}, match=${match}`);
+  logger.info(
+    `Verification [${label}]: source=${sourceCount}, target=${targetCount}, match=${match}`
+  );
   return result;
 }
 
@@ -103,8 +105,8 @@ export async function spotCheckDocument(
 }
 
 function getNestedField(obj: Record<string, unknown>, path: string): unknown {
-  return path.split('.').reduce<unknown>((acc, key) => {
-    if (acc && typeof acc === 'object') return (acc as Record<string, unknown>)[key];
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object") return (acc as Record<string, unknown>)[key];
     return undefined;
   }, obj);
 }
@@ -113,18 +115,18 @@ function getNestedField(obj: Record<string, unknown>, path: string): unknown {
  * Print verification results summary.
  */
 export function printVerificationResults(results: VerificationResult[]): void {
-  console.log('\n========== Verification Results ==========');
+  console.log("\n========== Verification Results ==========");
   let allPassed = true;
 
   for (const r of results) {
-    const status = r.match && r.spotCheckPassed ? 'PASS' : 'FAIL';
-    if (status === 'FAIL') allPassed = false;
+    const status = r.match && r.spotCheckPassed ? "PASS" : "FAIL";
+    if (status === "FAIL") allPassed = false;
     console.log(`[${status}] ${r.collection}: source=${r.sourceCount}, target=${r.targetCount}`);
     for (const err of r.errors) {
       console.log(`       ${err}`);
     }
   }
 
-  console.log(`\nOverall: ${allPassed ? 'ALL PASSED' : 'SOME FAILED'}`);
-  console.log('==========================================\n');
+  console.log(`\nOverall: ${allPassed ? "ALL PASSED" : "SOME FAILED"}`);
+  console.log("==========================================\n");
 }

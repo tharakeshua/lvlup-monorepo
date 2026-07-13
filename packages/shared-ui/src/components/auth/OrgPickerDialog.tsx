@@ -14,11 +14,7 @@ export interface OrgPickerDialogProps {
   onSelect: (tenantId: string) => Promise<void>;
 }
 
-export function OrgPickerDialog({
-  open,
-  memberships,
-  onSelect,
-}: OrgPickerDialogProps) {
+export function OrgPickerDialog({ open, memberships, onSelect }: OrgPickerDialogProps) {
   const [selecting, setSelecting] = React.useState<string | null>(null);
 
   if (!open) return null;
@@ -33,11 +29,11 @@ export function OrgPickerDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
       <div className="w-full max-w-lg space-y-6 p-6">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Select Organization</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             You belong to multiple organizations. Choose one to continue.
           </p>
         </div>
@@ -48,16 +44,16 @@ export function OrgPickerDialog({
               key={m.tenantId}
               onClick={() => handleSelect(m.tenantId)}
               disabled={selecting !== null}
-              className="flex items-center justify-between rounded-lg border bg-card p-4 text-left shadow-card transition-colors hover:bg-accent disabled:opacity-50"
+              className="bg-card shadow-card hover:bg-accent flex items-center justify-between rounded-lg border p-4 text-left transition-colors disabled:opacity-50"
             >
               <div>
                 <p className="font-semibold">{m.tenantName}</p>
-                <p className="text-sm text-muted-foreground capitalize">
+                <p className="text-muted-foreground text-sm capitalize">
                   {m.role} &middot; {m.tenantCode}
                 </p>
               </div>
               {selecting === m.tenantId ? (
-                <span className="text-sm text-muted-foreground">Loading...</span>
+                <span className="text-muted-foreground text-sm">Loading...</span>
               ) : (
                 <Button variant="outline" size="sm" tabIndex={-1}>
                   Select

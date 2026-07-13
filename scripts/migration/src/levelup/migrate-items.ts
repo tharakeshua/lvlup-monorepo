@@ -5,10 +5,10 @@
  * They get moved under the tenant's space.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyItem {
   _docId: string;
@@ -42,7 +42,7 @@ export async function migrateItems(options: {
   logger.info(`Migrating LevelUp items for org ${orgId}`);
 
   // Get all courses belonging to this org to know which items to migrate
-  const coursesSnap = await db.collection('courses').where('orgId', '==', orgId).get();
+  const coursesSnap = await db.collection("courses").where("orgId", "==", orgId).get();
   const courseIds = coursesSnap.docs.map((d) => d.id);
   logger.info(`Found ${courseIds.length} courses to migrate items from`);
 
@@ -50,7 +50,7 @@ export async function migrateItems(options: {
     const spaceId = courseId; // 1:1 mapping
 
     const items = await readAllDocs<LegacyItem>(
-      db.collection('items').where('courseId', '==', courseId) as admin.firestore.Query
+      db.collection("items").where("courseId", "==", courseId) as admin.firestore.Query
     );
     logger.info(`Course ${courseId}: ${items.length} items`);
 
@@ -62,7 +62,7 @@ export async function migrateItems(options: {
 
         if (await docExists(db, targetPath)) {
           logger.debug(`Item ${itemId} already migrated, skipping`);
-          return { action: 'skipped', id: itemId };
+          return { action: "skipped", id: itemId };
         }
 
         const newItem = {
@@ -82,9 +82,9 @@ export async function migrateItems(options: {
           meta: {
             ...(item.meta || {}),
             migrationSource: {
-              type: 'levelup_item' as const,
+              type: "levelup_item" as const,
               sourceId: itemId,
-              sourceCollection: 'items',
+              sourceCollection: "items",
             },
           },
           analytics: item.analytics || null,
@@ -95,17 +95,17 @@ export async function migrateItems(options: {
             ? admin.firestore.Timestamp.fromMillis(item.createdAt)
             : admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'levelup',
+          _migratedFrom: "levelup",
           _migrationSourcePath: `items/${itemId}`,
         };
 
         if (dryRun) {
           logger.info(`[DRY RUN] Would migrate item: ${itemId} (${item.type})`);
-          return { action: 'created', id: itemId };
+          return { action: "created", id: itemId };
         }
 
         batch.set(db.doc(targetPath), newItem);
-        return { action: 'created', id: itemId };
+        return { action: "created", id: itemId };
       },
       { dryRun, logger }
     );

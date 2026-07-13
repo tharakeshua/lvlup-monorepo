@@ -1,6 +1,7 @@
 # Accessibility Essentials
 
-Accessibility enables creativity - it's a foundation, not a limitation. WCAG 2.1 AA compliance.
+Accessibility enables creativity - it's a foundation, not a limitation. WCAG 2.1
+AA compliance.
 
 ## Core Principles (POUR)
 
@@ -11,11 +12,11 @@ Accessibility enables creativity - it's a foundation, not a limitation. WCAG 2.1
 
 ## Contrast Requirements
 
-| Element | Minimum Ratio |
-|---------|---------------|
-| Normal text | 4.5:1 |
-| Large text (18pt+) | 3:1 |
-| UI components | 3:1 |
+| Element            | Minimum Ratio |
+| ------------------ | ------------- |
+| Normal text        | 4.5:1         |
+| Large text (18pt+) | 3:1           |
+| UI components      | 3:1           |
 
 **Tools**: Chrome DevTools Accessibility tab, WebAIM Contrast Checker
 
@@ -38,6 +39,7 @@ Accessibility enables creativity - it's a foundation, not a limitation. WCAG 2.1
 ```
 
 **Essentials:**
+
 - Tab through entire interface
 - Enter/Space activates elements
 - Escape closes modals

@@ -3,13 +3,13 @@
  * @module content/evaluation
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface FeedbackItem {
   issue: string;
   whyItMatters?: string;
   howToFix: string;
-  severity: 'critical' | 'major' | 'minor';
+  severity: "critical" | "major" | "minor";
   relatedConcept?: string;
 }
 
@@ -50,7 +50,7 @@ export interface UnifiedEvaluationResult {
 
   // Metadata
   confidence: number;
-  mistakeClassification?: 'Conceptual' | 'Silly Error' | 'Knowledge Gap' | 'None';
+  mistakeClassification?: "Conceptual" | "Silly Error" | "Knowledge Gap" | "None";
 
   // Cost tracking
   tokensUsed?: { input: number; output: number };

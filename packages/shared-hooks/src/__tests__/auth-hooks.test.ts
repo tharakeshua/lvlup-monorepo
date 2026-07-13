@@ -1,22 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
 
 // Mock firebase/auth
 const mockOnAuthStateChanged = vi.fn();
-vi.mock('firebase/auth', () => ({
+vi.mock("firebase/auth", () => ({
   onAuthStateChanged: (...args: unknown[]) => mockOnAuthStateChanged(...args),
 }));
 
 // Mock shared-services
-vi.mock('@levelup/shared-services', () => ({
+vi.mock("@levelup/shared-services", () => ({
   getFirebaseServices: () => ({
     auth: { currentUser: null },
   }),
 }));
 
-import { useAuth, useUserId, useUserEmail } from '../auth/useAuth';
+import { useAuth, useUserId, useUserEmail } from "../auth/useAuth";
 
-describe('useAuth', () => {
+describe("useAuth", () => {
   let authCallback: (user: unknown) => void;
   let errorCallback: (error: Error) => void;
   const mockUnsubscribe = vi.fn();
@@ -30,7 +30,7 @@ describe('useAuth', () => {
     });
   });
 
-  it('should start in loading state', () => {
+  it("should start in loading state", () => {
     const { result } = renderHook(() => useAuth());
 
     expect(result.current.loading).toBe(true);
@@ -39,10 +39,10 @@ describe('useAuth', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('should set user when authenticated', () => {
+  it("should set user when authenticated", () => {
     const { result } = renderHook(() => useAuth());
 
-    const mockUser = { uid: 'user-123', email: 'test@example.com' };
+    const mockUser = { uid: "user-123", email: "test@example.com" };
     act(() => {
       authCallback(mockUser);
     });
@@ -53,7 +53,7 @@ describe('useAuth', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('should handle signed-out user (null)', () => {
+  it("should handle signed-out user (null)", () => {
     const { result } = renderHook(() => useAuth());
 
     act(() => {
@@ -65,10 +65,10 @@ describe('useAuth', () => {
     expect(result.current.isAuthenticated).toBe(false);
   });
 
-  it('should handle auth error', () => {
+  it("should handle auth error", () => {
     const { result } = renderHook(() => useAuth());
 
-    const error = new Error('Auth failed');
+    const error = new Error("Auth failed");
     act(() => {
       errorCallback(error);
     });
@@ -77,7 +77,7 @@ describe('useAuth', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it('should unsubscribe on unmount', () => {
+  it("should unsubscribe on unmount", () => {
     const { unmount } = renderHook(() => useAuth());
 
     unmount();
@@ -85,19 +85,19 @@ describe('useAuth', () => {
     expect(mockUnsubscribe).toHaveBeenCalled();
   });
 
-  it('should subscribe to onAuthStateChanged on mount', () => {
+  it("should subscribe to onAuthStateChanged on mount", () => {
     renderHook(() => useAuth());
 
     expect(mockOnAuthStateChanged).toHaveBeenCalledTimes(1);
     expect(mockOnAuthStateChanged).toHaveBeenCalledWith(
       expect.anything(), // auth
       expect.any(Function), // success callback
-      expect.any(Function), // error callback
+      expect.any(Function) // error callback
     );
   });
 });
 
-describe('useUserId', () => {
+describe("useUserId", () => {
   beforeEach(() => {
     mockOnAuthStateChanged.mockImplementation((_auth, onUser) => {
       onUser(null);
@@ -105,25 +105,25 @@ describe('useUserId', () => {
     });
   });
 
-  it('should return null when no user', () => {
+  it("should return null when no user", () => {
     const { result } = renderHook(() => useUserId());
 
     expect(result.current).toBeNull();
   });
 
-  it('should return uid when user exists', () => {
+  it("should return uid when user exists", () => {
     mockOnAuthStateChanged.mockImplementation((_auth, onUser) => {
-      onUser({ uid: 'user-456', email: 'test@example.com' });
+      onUser({ uid: "user-456", email: "test@example.com" });
       return vi.fn();
     });
 
     const { result } = renderHook(() => useUserId());
 
-    expect(result.current).toBe('user-456');
+    expect(result.current).toBe("user-456");
   });
 });
 
-describe('useUserEmail', () => {
+describe("useUserEmail", () => {
   beforeEach(() => {
     mockOnAuthStateChanged.mockImplementation((_auth, onUser) => {
       onUser(null);
@@ -131,20 +131,20 @@ describe('useUserEmail', () => {
     });
   });
 
-  it('should return null when no user', () => {
+  it("should return null when no user", () => {
     const { result } = renderHook(() => useUserEmail());
 
     expect(result.current).toBeNull();
   });
 
-  it('should return email when user exists', () => {
+  it("should return email when user exists", () => {
     mockOnAuthStateChanged.mockImplementation((_auth, onUser) => {
-      onUser({ uid: 'user-789', email: 'hello@world.com' });
+      onUser({ uid: "user-789", email: "hello@world.com" });
       return vi.fn();
     });
 
     const { result } = renderHook(() => useUserEmail());
 
-    expect(result.current).toBe('hello@world.com');
+    expect(result.current).toBe("hello@world.com");
   });
 });

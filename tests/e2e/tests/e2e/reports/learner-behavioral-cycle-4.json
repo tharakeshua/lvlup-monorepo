@@ -117,17 +117,11 @@
     "storyTemplateVisible": true,
     "hintsVisible": false,
     "modelAnswerVisible": false,
-    "notes": [
-      "Mock Interview: h1=\"Mock Interview Practice\", textareas=4, submit=true"
-    ]
+    "notes": ["Mock Interview: h1=\"Mock Interview Practice\", textareas=4, submit=true"]
   },
   "quizMode": {
     "tested": true,
-    "questionTypesFound": [
-      "MCQ",
-      "MCAQ",
-      "TrueFalse"
-    ],
+    "questionTypesFound": ["MCQ", "MCAQ", "TrueFalse"],
     "resultsDisplayed": false,
     "submitWorks": true,
     "notes": [

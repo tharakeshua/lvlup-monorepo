@@ -58,52 +58,49 @@ export interface CSVWarning {
  */
 export function generateCSVTemplate(): string {
   const headers = [
-    'rollNumber',
-    'firstName',
-    'lastName',
-    'email',
-    'classIds',
-    'parentFirstName',
-    'parentLastName',
-    'parentEmail',
-    'parentPhone',
-    'dateOfBirth',
-    'phone',
+    "rollNumber",
+    "firstName",
+    "lastName",
+    "email",
+    "classIds",
+    "parentFirstName",
+    "parentLastName",
+    "parentEmail",
+    "parentPhone",
+    "dateOfBirth",
+    "phone",
   ];
 
   const exampleRows = [
     [
-      '001',
-      'John',
-      'Doe',
-      'john.doe@student.school.com',
-      'class1,class2',
-      'Jane',
-      'Doe',
-      'jane.doe@parent.com',
-      '+1234567890',
-      '2010-01-15',
-      '+1234567891',
+      "001",
+      "John",
+      "Doe",
+      "john.doe@student.school.com",
+      "class1,class2",
+      "Jane",
+      "Doe",
+      "jane.doe@parent.com",
+      "+1234567890",
+      "2010-01-15",
+      "+1234567891",
     ],
     [
-      '002',
-      'Alice',
-      'Smith',
-      'alice.smith@student.school.com',
-      'class1',
-      'Bob',
-      'Smith',
-      'bob.smith@parent.com',
-      '+1234567892',
-      '2010-03-20',
-      '',
+      "002",
+      "Alice",
+      "Smith",
+      "alice.smith@student.school.com",
+      "class1",
+      "Bob",
+      "Smith",
+      "bob.smith@parent.com",
+      "+1234567892",
+      "2010-03-20",
+      "",
     ],
   ];
 
-  const csvContent = [
-    headers.join(','),
-    ...exampleRows.map((row) => row.join(',')),
-  ].join('\n');
+  const csvContent = [headers.join(","), ...exampleRows.map((row) => row.join(","))].join("\n");
 
   return csvContent;
 }
@@ -113,13 +110,13 @@ export function generateCSVTemplate(): string {
  */
 export function downloadCSVTemplate(): void {
   const content = generateCSVTemplate();
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
 
-  link.setAttribute('href', url);
-  link.setAttribute('download', 'student_import_template.csv');
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute("download", "student_import_template.csv");
+  link.style.visibility = "hidden";
 
   document.body.appendChild(link);
   link.click();
@@ -144,7 +141,7 @@ export async function parseCSVFile(file: File): Promise<CSVParseResult> {
     };
 
     reader.onerror = () => {
-      reject(new Error('Failed to read CSV file'));
+      reject(new Error("Failed to read CSV file"));
     };
 
     reader.readAsText(file);
@@ -155,13 +152,13 @@ export async function parseCSVFile(file: File): Promise<CSVParseResult> {
  * Parse CSV content string
  */
 export function parseCSVContent(content: string): CSVParseResult {
-  const lines = content.split('\n').filter((line) => line.trim());
+  const lines = content.split("\n").filter((line) => line.trim());
 
   if (lines.length < 2) {
     return {
       students: [],
       parents: [],
-      errors: [{ row: 0, field: 'file', message: 'CSV file is empty or has no data rows' }],
+      errors: [{ row: 0, field: "file", message: "CSV file is empty or has no data rows" }],
       warnings: [],
     };
   }
@@ -173,14 +170,14 @@ export function parseCSVContent(content: string): CSVParseResult {
   const warnings: CSVWarning[] = [];
 
   // Validate headers
-  const requiredHeaders = ['rollNumber', 'firstName', 'lastName', 'email', 'classIds'];
+  const requiredHeaders = ["rollNumber", "firstName", "lastName", "email", "classIds"];
   const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h));
 
   if (missingHeaders.length > 0) {
     errors.push({
       row: 0,
-      field: 'headers',
-      message: `Missing required headers: ${missingHeaders.join(', ')}`,
+      field: "headers",
+      message: `Missing required headers: ${missingHeaders.join(", ")}`,
     });
     return { students, parents: [], errors, warnings };
   }
@@ -191,41 +188,41 @@ export function parseCSVContent(content: string): CSVParseResult {
     const row: Record<string, string> = {};
 
     headers.forEach((header, index) => {
-      row[header] = values[index] || '';
+      row[header] = values[index] || "";
     });
 
     // Validate required student fields
     const rowNumber = i + 1;
     let hasError = false;
 
-    if (!row['rollNumber']?.trim()) {
-      errors.push({ row: rowNumber, field: 'rollNumber', message: 'Roll number is required' });
+    if (!row["rollNumber"]?.trim()) {
+      errors.push({ row: rowNumber, field: "rollNumber", message: "Roll number is required" });
       hasError = true;
     }
 
-    if (!row['firstName']?.trim()) {
-      errors.push({ row: rowNumber, field: 'firstName', message: 'First name is required' });
+    if (!row["firstName"]?.trim()) {
+      errors.push({ row: rowNumber, field: "firstName", message: "First name is required" });
       hasError = true;
     }
 
-    if (!row['lastName']?.trim()) {
-      errors.push({ row: rowNumber, field: 'lastName', message: 'Last name is required' });
+    if (!row["lastName"]?.trim()) {
+      errors.push({ row: rowNumber, field: "lastName", message: "Last name is required" });
       hasError = true;
     }
 
-    if (!row['email']?.trim()) {
-      errors.push({ row: rowNumber, field: 'email', message: 'Email is required' });
+    if (!row["email"]?.trim()) {
+      errors.push({ row: rowNumber, field: "email", message: "Email is required" });
       hasError = true;
-    } else if (!isValidEmail(row['email']!)) {
-      errors.push({ row: rowNumber, field: 'email', message: 'Invalid email format' });
+    } else if (!isValidEmail(row["email"]!)) {
+      errors.push({ row: rowNumber, field: "email", message: "Invalid email format" });
       hasError = true;
     }
 
-    if (!row['classIds']?.trim()) {
+    if (!row["classIds"]?.trim()) {
       warnings.push({
         row: rowNumber,
-        field: 'classIds',
-        message: 'No classes assigned to student',
+        field: "classIds",
+        message: "No classes assigned to student",
       });
     }
 
@@ -235,50 +232,53 @@ export function parseCSVContent(content: string): CSVParseResult {
 
     // Parse student
     const student: ParsedStudent = {
-      rollNumber: row['rollNumber']!.trim(),
-      firstName: row['firstName']!.trim(),
-      lastName: row['lastName']!.trim(),
-      email: row['email']!.trim().toLowerCase(),
-      classIds: row['classIds']
-        ? row['classIds'].split(',').map((id) => id.trim()).filter(Boolean)
+      rollNumber: row["rollNumber"]!.trim(),
+      firstName: row["firstName"]!.trim(),
+      lastName: row["lastName"]!.trim(),
+      email: row["email"]!.trim().toLowerCase(),
+      classIds: row["classIds"]
+        ? row["classIds"]
+            .split(",")
+            .map((id) => id.trim())
+            .filter(Boolean)
         : [],
       metadata: {},
     };
 
-    if (row['dateOfBirth']?.trim()) {
-      student.metadata!.dateOfBirth = row['dateOfBirth'].trim();
+    if (row["dateOfBirth"]?.trim()) {
+      student.metadata!.dateOfBirth = row["dateOfBirth"].trim();
     }
 
-    if (row['phone']?.trim()) {
-      student.metadata!.phone = row['phone'].trim();
+    if (row["phone"]?.trim()) {
+      student.metadata!.phone = row["phone"].trim();
     }
 
     students.push(student);
 
     // Parse parent if provided
-    if (row['parentEmail']?.trim()) {
-      const parentEmail = row['parentEmail'].trim().toLowerCase();
+    if (row["parentEmail"]?.trim()) {
+      const parentEmail = row["parentEmail"].trim().toLowerCase();
 
       if (!isValidEmail(parentEmail)) {
         warnings.push({
           row: rowNumber,
-          field: 'parentEmail',
-          message: 'Invalid parent email format',
+          field: "parentEmail",
+          message: "Invalid parent email format",
         });
       } else {
         if (!parentsMap.has(parentEmail)) {
-          if (!row['parentFirstName']?.trim() || !row['parentLastName']?.trim()) {
+          if (!row["parentFirstName"]?.trim() || !row["parentLastName"]?.trim()) {
             warnings.push({
               row: rowNumber,
-              field: 'parent',
-              message: 'Parent first name and last name required when parent email is provided',
+              field: "parent",
+              message: "Parent first name and last name required when parent email is provided",
             });
           } else {
             parentsMap.set(parentEmail, {
-              firstName: row['parentFirstName'].trim(),
-              lastName: row['parentLastName'].trim(),
+              firstName: row["parentFirstName"].trim(),
+              lastName: row["parentLastName"].trim(),
               email: parentEmail,
-              phone: row['parentPhone']?.trim(),
+              phone: row["parentPhone"]?.trim(),
               studentEmails: [student.email],
             });
           }
@@ -306,7 +306,7 @@ export function parseCSVContent(content: string): CSVParseResult {
  */
 export function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
@@ -314,9 +314,9 @@ export function parseCSVLine(line: string): string[] {
 
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       result.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += char;
     }
@@ -341,16 +341,13 @@ export function generateCredentialsCSV(
   students: Array<{ email: string; tempPassword: string }>,
   parents: Array<{ email: string; tempPassword: string }>
 ): string {
-  const headers = ['Type', 'Email', 'Temporary Password'];
+  const headers = ["Type", "Email", "Temporary Password"];
   const rows = [
-    ...students.map((s) => ['Student', s.email, s.tempPassword]),
-    ...parents.map((p) => ['Parent', p.email, p.tempPassword]),
+    ...students.map((s) => ["Student", s.email, s.tempPassword]),
+    ...parents.map((p) => ["Parent", p.email, p.tempPassword]),
   ];
 
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((row) => row.join(',')),
-  ].join('\n');
+  const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
 
   return csvContent;
 }
@@ -363,14 +360,14 @@ export function downloadCredentialsCSV(
   parents: Array<{ email: string; tempPassword: string }>
 ): void {
   const content = generateCredentialsCSV(students, parents);
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
 
-  const timestamp = new Date().toISOString().split('T')[0];
-  link.setAttribute('href', url);
-  link.setAttribute('download', `credentials_${timestamp}.csv`);
-  link.style.visibility = 'hidden';
+  const timestamp = new Date().toISOString().split("T")[0];
+  link.setAttribute("href", url);
+  link.setAttribute("download", `credentials_${timestamp}.csv`);
+  link.style.visibility = "hidden";
 
   document.body.appendChild(link);
   link.click();

@@ -12,66 +12,72 @@
 
 ## Apps & Ports
 
-| App | Port | URL | Description |
-|-----|------|-----|-------------|
-| **Super Admin** | 4567 | http://localhost:4567 | Platform-wide super admin — manages all schools |
-| **School Admin** | 4568 | http://localhost:4568 | Tenant / school admin portal |
-| **Teacher Portal** | 4569 | http://localhost:4569 | Teacher dashboard & class management |
-| **Student Portal** | 4570 | http://localhost:4570 | Student learning portal |
-| **Parent Portal** | 4571 | http://localhost:4571 | Parent progress tracking |
-| **Autograde Super Admin** | 4572 | http://localhost:4572 | Autograde platform admin |
-| **Autograde Client Admin** | 4573 | http://localhost:4573 | Autograde school-level admin |
-| **Autograde Scanner** | 4574 | http://localhost:4574 | Answer-sheet scanner app |
+| App                        | Port | URL                   | Description                                     |
+| -------------------------- | ---- | --------------------- | ----------------------------------------------- |
+| **Super Admin**            | 4567 | http://localhost:4567 | Platform-wide super admin — manages all schools |
+| **School Admin**           | 4568 | http://localhost:4568 | Tenant / school admin portal                    |
+| **Teacher Portal**         | 4569 | http://localhost:4569 | Teacher dashboard & class management            |
+| **Student Portal**         | 4570 | http://localhost:4570 | Student learning portal                         |
+| **Parent Portal**          | 4571 | http://localhost:4571 | Parent progress tracking                        |
+| **Autograde Super Admin**  | 4572 | http://localhost:4572 | Autograde platform admin                        |
+| **Autograde Client Admin** | 4573 | http://localhost:4573 | Autograde school-level admin                    |
+| **Autograde Scanner**      | 4574 | http://localhost:4574 | Answer-sheet scanner app                        |
 
 ---
 
 ## Default Credentials
 
-> **Prerequisites:** Firebase emulators must be running and seeded before these credentials work.
+> **Prerequisites:** Firebase emulators must be running and seeded before these
+> credentials work.
 >
-> Start emulators: `firebase emulators:start`
-> Seed test data:  `pnpm run seed:emulator`
+> Start emulators: `firebase emulators:start` Seed test data:
+> `pnpm run seed:emulator`
 
 ### Super Admin
-| Field | Value |
-|-------|-------|
-| URL | http://localhost:4567 |
-| Email | `superadmin@levelup.test` |
-| Password | `SuperAdmin123!` |
-| Role | Platform super admin (all schools, all data) |
+
+| Field    | Value                                        |
+| -------- | -------------------------------------------- |
+| URL      | http://localhost:4567                        |
+| Email    | `superadmin@levelup.test`                    |
+| Password | `SuperAdmin123!`                             |
+| Role     | Platform super admin (all schools, all data) |
 
 ### School Admin — Springfield Academy (SPR001)
-| Field | Value |
-|-------|-------|
-| URL | http://localhost:4568 |
-| Email | `admin@springfield.test` |
-| Password | `TenantAdmin123!` |
-| School | Springfield Academy |
-| Tenant Code | `SPR001` |
+
+| Field       | Value                    |
+| ----------- | ------------------------ |
+| URL         | http://localhost:4568    |
+| Email       | `admin@springfield.test` |
+| Password    | `TenantAdmin123!`        |
+| School      | Springfield Academy      |
+| Tenant Code | `SPR001`                 |
 
 ### Teacher — Springfield Academy
-| Field | Value |
-|-------|-------|
-| URL | http://localhost:4569 |
-| Email | `teacher1@springfield.test` |
-| Password | `Teacher123!` |
-| School | Springfield Academy |
+
+| Field    | Value                       |
+| -------- | --------------------------- |
+| URL      | http://localhost:4569       |
+| Email    | `teacher1@springfield.test` |
+| Password | `Teacher123!`               |
+| School   | Springfield Academy         |
 
 ### Student — Springfield Academy
-| Field | Value |
-|-------|-------|
-| URL | http://localhost:4570 |
-| Email | `student1@springfield.test` |
-| Password | `Student123!` |
-| School | Springfield Academy |
+
+| Field    | Value                       |
+| -------- | --------------------------- |
+| URL      | http://localhost:4570       |
+| Email    | `student1@springfield.test` |
+| Password | `Student123!`               |
+| School   | Springfield Academy         |
 
 ### Parent — Springfield Academy
-| Field | Value |
-|-------|-------|
-| URL | http://localhost:4571 |
-| Email | `parent1@springfield.test` |
-| Password | `Parent123!` |
-| School | Springfield Academy |
+
+| Field    | Value                      |
+| -------- | -------------------------- |
+| URL      | http://localhost:4571      |
+| Email    | `parent1@springfield.test` |
+| Password | `Parent123!`               |
+| School   | Springfield Academy        |
 
 ---
 
@@ -90,6 +96,7 @@ firebase emulators:start
 ```
 
 This starts:
+
 - Auth emulator on port `9099`
 - Firestore emulator on port `8080`
 - Firebase UI on port `4000`
@@ -112,16 +119,16 @@ All 8 apps will start in the background. Logs are written to `.start-logs/`.
 
 ### 5. Open the app you need
 
-| You want to... | Open |
-|----------------|------|
-| Manage the whole platform | http://localhost:4567 (Super Admin) |
-| Manage a school / teachers / students | http://localhost:4568 (School Admin) |
-| Manage classes and assignments | http://localhost:4569 (Teacher) |
-| See student experience | http://localhost:4570 (Student) |
-| See parent experience | http://localhost:4571 (Parent) |
-| Manage Autograde platform | http://localhost:4572 (Autograde Super Admin) |
-| Manage Autograde for a school | http://localhost:4573 (Autograde Client Admin) |
-| Scan answer sheets | http://localhost:4574 (Autograde Scanner) |
+| You want to...                        | Open                                           |
+| ------------------------------------- | ---------------------------------------------- |
+| Manage the whole platform             | http://localhost:4567 (Super Admin)            |
+| Manage a school / teachers / students | http://localhost:4568 (School Admin)           |
+| Manage classes and assignments        | http://localhost:4569 (Teacher)                |
+| See student experience                | http://localhost:4570 (Student)                |
+| See parent experience                 | http://localhost:4571 (Parent)                 |
+| Manage Autograde platform             | http://localhost:4572 (Autograde Super Admin)  |
+| Manage Autograde for a school         | http://localhost:4573 (Autograde Client Admin) |
+| Scan answer sheets                    | http://localhost:4574 (Autograde Scanner)      |
 
 ---
 

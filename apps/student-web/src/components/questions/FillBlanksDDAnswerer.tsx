@@ -1,4 +1,4 @@
-import type { FillBlanksDDData } from '@levelup/shared-types';
+import type { FillBlanksDDData } from "@levelup/shared-types";
 
 interface FillBlanksDDAnswererProps {
   data: FillBlanksDDData;
@@ -7,7 +7,12 @@ interface FillBlanksDDAnswererProps {
   disabled?: boolean;
 }
 
-export default function FillBlanksDDAnswerer({ data, value = {}, onChange, disabled }: FillBlanksDDAnswererProps) {
+export default function FillBlanksDDAnswerer({
+  data,
+  value = {},
+  onChange,
+  disabled,
+}: FillBlanksDDAnswererProps) {
   const blanksMap = new Map(data.blanks.map((b) => [b.id, b]));
 
   const handleChange = (blankId: string, optionId: string) => {
@@ -17,7 +22,7 @@ export default function FillBlanksDDAnswerer({ data, value = {}, onChange, disab
   const parts = data.textWithBlanks.split(/(\{\{[^}]+\}\})/g);
 
   return (
-    <div className="leading-loose text-sm">
+    <div className="text-sm leading-loose">
       {parts.map((part, index) => {
         const match = part.match(/^\{\{(.+)\}\}$/);
         if (match) {
@@ -28,10 +33,10 @@ export default function FillBlanksDDAnswerer({ data, value = {}, onChange, disab
           return (
             <select
               key={index}
-              value={value[blankId] ?? ''}
+              value={value[blankId] ?? ""}
               onChange={(e) => handleChange(blankId, e.target.value)}
               disabled={disabled}
-              className="inline-block mx-1 rounded border border-input bg-background px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring focus:outline-none disabled:opacity-60"
+              className="border-input bg-background focus-visible:ring-ring mx-1 inline-block rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 disabled:opacity-60"
             >
               <option value="">Select...</option>
               {blank.options.map((opt) => (

@@ -5,15 +5,15 @@
  * Triggers on: /tenants/{tenantId}/exams/{examId}
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
-import { sendBulkNotifications } from '../utils/notification-sender';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { logger } from "firebase-functions/v2";
+import { sendBulkNotifications } from "../utils/notification-sender";
 
 export const onExamPublished = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/exams/{examId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}/exams/{examId}",
+    region: "asia-south1",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -21,14 +21,14 @@ export const onExamPublished = onDocumentUpdated(
     if (!before || !after) return;
 
     // Only trigger when status changes to published
-    if (before.status === 'published' || after.status !== 'published') {
+    if (before.status === "published" || after.status !== "published") {
       return;
     }
 
     const { tenantId, examId } = event.params;
     const db = admin.firestore();
-    const examTitle = after.title ?? 'Untitled Exam';
-    const subject = after.subject ?? '';
+    const examTitle = after.title ?? "Untitled Exam";
+    const subject = after.subject ?? "";
     const classIds: string[] = after.classIds ?? [];
     const totalMarks = after.totalMarks ?? 0;
 
@@ -43,9 +43,7 @@ export const onExamPublished = onDocumentUpdated(
     for (let i = 0; i < classIds.length; i += 10) {
       const batch = classIds.slice(i, i + 10);
       const classSnaps = await Promise.all(
-        batch.map((classId) =>
-          db.doc(`tenants/${tenantId}/classes/${classId}`).get(),
-        ),
+        batch.map((classId) => db.doc(`tenants/${tenantId}/classes/${classId}`).get())
       );
       for (const snap of classSnaps) {
         if (!snap.exists) continue;
@@ -67,21 +65,19 @@ export const onExamPublished = onDocumentUpdated(
     const bodyParts = [`"${examTitle}"`];
     if (subject) bodyParts.push(`(${subject})`);
     if (totalMarks > 0) bodyParts.push(`— ${totalMarks} marks`);
-    bodyParts.push('has been assigned to you.');
+    bodyParts.push("has been assigned to you.");
 
     const sent = await sendBulkNotifications(studentIds, {
       tenantId,
-      recipientRole: 'student',
-      type: 'new_exam_assigned',
-      title: 'New Exam Assigned',
-      body: bodyParts.join(' '),
-      entityType: 'exam',
+      recipientRole: "student",
+      type: "new_exam_assigned",
+      title: "New Exam Assigned",
+      body: bodyParts.join(" "),
+      entityType: "exam",
       entityId: examId,
       actionUrl: `/exams/${examId}`,
     });
 
-    logger.info(
-      `onExamPublished: Sent ${sent} notifications for exam ${examId} "${examTitle}"`,
-    );
-  },
+    logger.info(`onExamPublished: Sent ${sent} notifications for exam ${examId} "${examTitle}"`);
+  }
 );

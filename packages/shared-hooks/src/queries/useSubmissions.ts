@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   collection,
   onSnapshot,
@@ -7,15 +7,15 @@ import {
   orderBy,
   QueryConstraint,
   FirestoreError,
-} from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Submission } from '@levelup/shared-types';
+} from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Submission } from "@levelup/shared-types";
 
-export type { Submission } from '@levelup/shared-types';
+export type { Submission } from "@levelup/shared-types";
 
 export function useSubmissions(
   tenantId: string | null,
-  options?: { examId?: string; studentId?: string; status?: string },
+  options?: { examId?: string; studentId?: string; status?: string }
 ) {
   const examId = options?.examId;
   const studentId = options?.studentId;
@@ -37,10 +37,10 @@ export function useSubmissions(
     const { db } = getFirebaseServices();
     const colRef = collection(db, `tenants/${tenantId}/submissions`);
     const constraints: QueryConstraint[] = [];
-    if (examId) constraints.push(where('examId', '==', examId));
-    if (studentId) constraints.push(where('studentId', '==', studentId));
-    if (status) constraints.push(where('status', '==', status));
-    constraints.push(orderBy('createdAt', 'desc'));
+    if (examId) constraints.push(where("examId", "==", examId));
+    if (studentId) constraints.push(where("studentId", "==", studentId));
+    if (status) constraints.push(where("status", "==", status));
+    constraints.push(orderBy("createdAt", "desc"));
     const q = query(colRef, ...constraints);
 
     const unsubscribe = onSnapshot(
@@ -53,7 +53,7 @@ export function useSubmissions(
       (err) => {
         setError(err);
         setIsLoading(false);
-      },
+      }
     );
 
     return () => unsubscribe();

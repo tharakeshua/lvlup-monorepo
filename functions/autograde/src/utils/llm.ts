@@ -8,12 +8,12 @@
  * once the package builds and publishes declaration files.
  */
 
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 // ─── LLMWrapper types (mirror of shared-services/src/ai/llm-wrapper.ts) ─────
 
 export interface LLMWrapperConfig {
-  provider: 'gemini';
+  provider: "gemini";
   apiKey: string;
   defaultModel?: string;
   enableLogging?: boolean;
@@ -75,7 +75,7 @@ interface LLMWrapperInstance {
   call<T = unknown>(
     prompt: string,
     metadata: LLMCallMetadata,
-    options?: LLMCallOptions,
+    options?: LLMCallOptions
   ): Promise<LLMCallResult<T>>;
 }
 
@@ -84,17 +84,17 @@ function getLLMWrapperClass(): new (config: LLMWrapperConfig) => LLMWrapperInsta
     try {
       // Try workspace import
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = require('@levelup/shared-services/ai');
+      const mod = require("@levelup/shared-services/ai");
       _LLMWrapperClass = mod.LLMWrapper;
     } catch {
       // Fallback: try relative path (development)
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require('../../../../packages/shared-services/src/ai');
+        const mod = require("../../../../packages/shared-services/src/ai");
         _LLMWrapperClass = mod.LLMWrapper;
       } catch {
         throw new Error(
-          'Could not load LLMWrapper from @levelup/shared-services. Ensure the package is built.',
+          "Could not load LLMWrapper from @levelup/shared-services. Ensure the package is built."
         );
       }
     }
@@ -116,7 +116,7 @@ export class LLMWrapper implements LLMWrapperInstance {
   async call<T = unknown>(
     prompt: string,
     metadata: LLMCallMetadata,
-    options?: LLMCallOptions,
+    options?: LLMCallOptions
   ): Promise<LLMCallResult<T>> {
     return this.instance.call<T>(prompt, metadata, options);
   }
@@ -137,9 +137,9 @@ function getSmClient(): SecretManagerServiceClient {
  * Retrieve a tenant's Gemini API key from Secret Manager.
  */
 export async function getGeminiApiKey(tenantId: string): Promise<string> {
-  const project = process.env['GCLOUD_PROJECT'] ?? process.env['GCP_PROJECT'];
+  const project = process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"];
   if (!project) {
-    throw new Error('No GCP project ID. Set GCLOUD_PROJECT or GCP_PROJECT env var.');
+    throw new Error("No GCP project ID. Set GCLOUD_PROJECT or GCP_PROJECT env var.");
   }
 
   const secretName = `tenant-${tenantId}-gemini`;
@@ -152,7 +152,8 @@ export async function getGeminiApiKey(tenantId: string): Promise<string> {
     throw new Error(`Secret "${secretName}" has no payload data.`);
   }
 
-  const key = typeof payload === 'string' ? payload : new TextDecoder().decode(payload as Uint8Array);
+  const key =
+    typeof payload === "string" ? payload : new TextDecoder().decode(payload as Uint8Array);
   if (!key.trim()) throw new Error(`Secret "${secretName}" is empty.`);
 
   return key.trim();

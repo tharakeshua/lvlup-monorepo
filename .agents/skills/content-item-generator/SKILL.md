@@ -1,12 +1,16 @@
 ---
 name: content-item-generator
-description: Schemas, templates, and AI generation patterns for all Auto-LevelUp content item types. Covers 15 question types, 7 material types, 4 story point types, and AI-powered content generation from topics.
+description:
+  Schemas, templates, and AI generation patterns for all Auto-LevelUp content
+  item types. Covers 15 question types, 7 material types, 4 story point types,
+  and AI-powered content generation from topics.
 origin: custom
 ---
 
 # Content Item Generator
 
-Complete reference for creating content items (questions + materials) for the Auto-LevelUp learning platform.
+Complete reference for creating content items (questions + materials) for the
+Auto-LevelUp learning platform.
 
 ## When to Activate
 
@@ -19,26 +23,37 @@ Complete reference for creating content items (questions + materials) for the Au
 ## Type System Reference
 
 ### Item Types (7)
-`question` | `material` | `interactive` | `assessment` | `discussion` | `project` | `checkpoint`
+
+`question` | `material` | `interactive` | `assessment` | `discussion` |
+`project` | `checkpoint`
 
 ### Question Types (15)
-`mcq` | `mcaq` | `true-false` | `numerical` | `text` | `paragraph` | `code` | `fill-blanks` | `fill-blanks-dd` | `matching` | `jumbled` | `audio` | `image_evaluation` | `group-options` | `chat_agent_question`
+
+`mcq` | `mcaq` | `true-false` | `numerical` | `text` | `paragraph` | `code` |
+`fill-blanks` | `fill-blanks-dd` | `matching` | `jumbled` | `audio` |
+`image_evaluation` | `group-options` | `chat_agent_question`
 
 ### Material Types (7)
+
 `text` | `video` | `pdf` | `link` | `interactive` | `story` | `rich`
 
 ### Story Point Types (4)
+
 `standard` | `practice` | `quiz` | `timed_test`
 
 ### Auto-evaluatable (instant grading)
-`mcq`, `mcaq`, `true-false`, `numerical`, `fill-blanks`, `fill-blanks-dd`, `matching`, `jumbled`, `group-options`
+
+`mcq`, `mcaq`, `true-false`, `numerical`, `fill-blanks`, `fill-blanks-dd`,
+`matching`, `jumbled`, `group-options`
 
 ### AI-evaluatable (requires LLM)
+
 `text`, `paragraph`, `code`, `audio`, `image_evaluation`, `chat_agent_question`
 
 ## Item Payload Templates
 
 ### MCQ (Multiple Choice)
+
 ```typescript
 {
   type: 'question',
@@ -62,6 +77,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### MCAQ (Multiple Correct Answers)
+
 ```typescript
 {
   type: 'question',
@@ -85,6 +101,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### True/False
+
 ```typescript
 {
   type: 'question',
@@ -102,6 +119,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Numerical
+
 ```typescript
 {
   type: 'question',
@@ -121,6 +139,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Text (Short Answer)
+
 ```typescript
 {
   type: 'question',
@@ -140,6 +159,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Paragraph (Long Answer)
+
 ```typescript
 {
   type: 'question',
@@ -159,6 +179,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Fill-in-the-Blanks
+
 ```typescript
 {
   type: 'question',
@@ -178,6 +199,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Matching
+
 ```typescript
 {
   type: 'question',
@@ -199,6 +221,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Jumbled (Ordering/Sequencing)
+
 ```typescript
 {
   type: 'question',
@@ -221,6 +244,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Rich Material
+
 ```typescript
 {
   type: 'material',
@@ -246,6 +270,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Video Material
+
 ```typescript
 {
   type: 'material',
@@ -262,6 +287,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ## Story Point Configurations
 
 ### Standard (Learning)
+
 ```typescript
 {
   type: 'standard',
@@ -274,6 +300,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Practice
+
 ```typescript
 {
   type: 'practice',
@@ -286,6 +313,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Quiz
+
 ```typescript
 {
   type: 'quiz',
@@ -300,6 +328,7 @@ Complete reference for creating content items (questions + materials) for the Au
 ```
 
 ### Timed Test
+
 ```typescript
 {
   type: 'timed_test',
@@ -340,17 +369,17 @@ interface SpaceConfig {
   title: string;
   description: string;
   subject: string;
-  type: 'learning' | 'practice' | 'assessment' | 'hybrid';
+  type: "learning" | "practice" | "assessment" | "hybrid";
   classIds: string[];
   teacherIds: string[];
-  accessType: 'class_assigned' | 'tenant_wide' | 'public_store';
+  accessType: "class_assigned" | "tenant_wide" | "public_store";
   storyPoints: StoryPointConfig[];
 }
 
 interface StoryPointConfig {
   title: string;
   description: string;
-  type: 'standard' | 'practice' | 'quiz' | 'timed_test';
+  type: "standard" | "practice" | "quiz" | "timed_test";
   sections: { id: string; title: string; orderIndex: number }[];
   assessmentConfig?: AssessmentConfig;
   items: ItemConfig[];
@@ -358,9 +387,9 @@ interface StoryPointConfig {
 
 interface ItemConfig {
   title: string;
-  type: 'question' | 'material';
+  type: "question" | "material";
   sectionId?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   payload: QuestionPayload | MaterialPayload;
 }
 ```
@@ -368,7 +397,7 @@ interface ItemConfig {
 ## Points Allocation Guidelines
 
 | Difficulty | MCQ/TF | MCAQ/Matching | Numerical/Fill | Text | Paragraph/Code |
-|-----------|--------|---------------|----------------|------|----------------|
-| Easy      | 10     | 15            | 10             | 10   | 15             |
-| Medium    | 10     | 15            | 15             | 15   | 25             |
-| Hard      | 15     | 20            | 20             | 20   | 30             |
+| ---------- | ------ | ------------- | -------------- | ---- | -------------- |
+| Easy       | 10     | 15            | 10             | 10   | 15             |
+| Medium     | 10     | 15            | 15             | 15   | 25             |
+| Hard       | 15     | 20            | 20             | 20   | 30             |

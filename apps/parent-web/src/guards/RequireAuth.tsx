@@ -13,7 +13,7 @@ export default function RequireAuth({ allowedRoles }: RequireAuthProps) {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground text-sm">Loading...</div>
       </div>
     );
   }
@@ -27,7 +27,7 @@ export default function RequireAuth({ allowedRoles }: RequireAuthProps) {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-lg font-semibold">Access Denied</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             You don&apos;t have permission to access this page.
           </p>
         </div>

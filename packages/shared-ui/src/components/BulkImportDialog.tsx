@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { parseCSVLine } from '@levelup/shared-utils/csv';
-import { Upload, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import * as React from "react";
+import { parseCSVLine } from "@levelup/shared-utils/csv";
+import { Upload, AlertCircle, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,18 +8,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from './ui/table';
-import { Badge } from './ui/badge';
-import { ScrollArea } from './ui/scroll-area';
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Badge } from "./ui/badge";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface ParsedRow {
   [key: string]: string;
@@ -43,7 +36,7 @@ interface BulkImportDialogProps {
 }
 
 function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
-  const lines = text.split('\n').filter((line) => line.trim());
+  const lines = text.split("\n").filter((line) => line.trim());
   if (lines.length < 2) return { headers: [], rows: [] };
 
   const headers = parseCSVLine(lines[0]!);
@@ -53,7 +46,7 @@ function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
     const values = parseCSVLine(lines[i]!);
     const row: ParsedRow = {};
     headers.forEach((header, idx) => {
-      row[header] = values[idx] ?? '';
+      row[header] = values[idx] ?? "";
     });
     rows.push(row);
   }
@@ -64,8 +57,8 @@ function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
 export function BulkImportDialog({
   open,
   onOpenChange,
-  title = 'Bulk Import',
-  description = 'Upload a CSV file to import records.',
+  title = "Bulk Import",
+  description = "Upload a CSV file to import records.",
   requiredColumns,
   optionalColumns = [],
   onSubmit,
@@ -101,14 +94,14 @@ export function BulkImportDialog({
 
     // Validate required columns
     const missingColumns = requiredColumns.filter(
-      (col) => !h.map((x) => x.toLowerCase()).includes(col.toLowerCase()),
+      (col) => !h.map((x) => x.toLowerCase()).includes(col.toLowerCase())
     );
     const validationErrors: ValidationError[] = [];
     if (missingColumns.length > 0) {
       validationErrors.push({
         rowIndex: -1,
-        field: 'headers',
-        message: `Missing required columns: ${missingColumns.join(', ')}`,
+        field: "headers",
+        message: `Missing required columns: ${missingColumns.join(", ")}`,
       });
     }
 
@@ -129,7 +122,7 @@ export function BulkImportDialog({
       await onSubmit(rows);
       setSubmitted(true);
     } catch {
-      setErrors([{ rowIndex: -1, field: 'submit', message: 'Import failed. Please try again.' }]);
+      setErrors([{ rowIndex: -1, field: "submit", message: "Import failed. Please try again." }]);
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +147,7 @@ export function BulkImportDialog({
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
             <p className="text-lg font-semibold">Import Successful</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {rows.length} record(s) imported successfully.
             </p>
           </div>
@@ -163,18 +156,18 @@ export function BulkImportDialog({
             {/* File upload area */}
             {!file ? (
               <div
-                className="flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors hover:border-primary/50 hover:bg-muted/50"
+                className="hover:border-primary/50 hover:bg-muted/50 flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-10 w-10 text-muted-foreground" />
+                <Upload className="text-muted-foreground h-10 w-10" />
                 <div className="text-center">
                   <p className="font-medium">Click to upload CSV</p>
-                  <p className="text-sm text-muted-foreground">
-                    Required: {requiredColumns.join(', ')}
+                  <p className="text-muted-foreground text-sm">
+                    Required: {requiredColumns.join(", ")}
                   </p>
                   {optionalColumns.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Optional: {optionalColumns.join(', ')}
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Optional: {optionalColumns.join(", ")}
                     </p>
                   )}
                 </div>
@@ -189,40 +182,33 @@ export function BulkImportDialog({
             ) : (
               <>
                 {/* File info */}
-                <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-                  <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                <div className="bg-muted/50 flex items-center gap-2 rounded-md px-3 py-2">
+                  <FileSpreadsheet className="text-muted-foreground h-4 w-4" />
                   <span className="text-sm font-medium">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({rows.length} rows)
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto h-7 text-xs"
-                    onClick={reset}
-                  >
+                  <span className="text-muted-foreground text-xs">({rows.length} rows)</span>
+                  <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs" onClick={reset}>
                     Change file
                   </Button>
                 </div>
 
                 {/* Errors */}
                 {errors.length > 0 && (
-                  <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="h-4 w-4 text-destructive" />
-                      <span className="text-sm font-medium text-destructive">
+                  <div className="border-destructive/50 bg-destructive/5 rounded-md border p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <AlertCircle className="text-destructive h-4 w-4" />
+                      <span className="text-destructive text-sm font-medium">
                         {errors.length} validation error(s)
                       </span>
                     </div>
                     <ul className="space-y-1">
                       {errors.slice(0, 10).map((err, i) => (
-                        <li key={i} className="text-xs text-destructive">
-                          {err.rowIndex >= 0 ? `Row ${err.rowIndex + 1}: ` : ''}
+                        <li key={i} className="text-destructive text-xs">
+                          {err.rowIndex >= 0 ? `Row ${err.rowIndex + 1}: ` : ""}
                           {err.message}
                         </li>
                       ))}
                       {errors.length > 10 && (
-                        <li className="text-xs text-muted-foreground">
+                        <li className="text-muted-foreground text-xs">
                           ...and {errors.length - 10} more errors
                         </li>
                       )}
@@ -238,7 +224,9 @@ export function BulkImportDialog({
                         <TableRow>
                           <TableHead className="w-12">#</TableHead>
                           {allColumns
-                            .filter((col) => headers.map((h) => h.toLowerCase()).includes(col.toLowerCase()))
+                            .filter((col) =>
+                              headers.map((h) => h.toLowerCase()).includes(col.toLowerCase())
+                            )
                             .map((col) => (
                               <TableHead key={col}>
                                 {col}
@@ -257,20 +245,22 @@ export function BulkImportDialog({
                           return (
                             <TableRow
                               key={idx}
-                              className={rowErrors.length > 0 ? 'bg-destructive/5' : ''}
+                              className={rowErrors.length > 0 ? "bg-destructive/5" : ""}
                             >
-                              <TableCell className="text-xs text-muted-foreground">
+                              <TableCell className="text-muted-foreground text-xs">
                                 {idx + 1}
                               </TableCell>
                               {allColumns
-                                .filter((col) => headers.map((h) => h.toLowerCase()).includes(col.toLowerCase()))
+                                .filter((col) =>
+                                  headers.map((h) => h.toLowerCase()).includes(col.toLowerCase())
+                                )
                                 .map((col) => {
                                   const matchingHeader = headers.find(
-                                    (h) => h.toLowerCase() === col.toLowerCase(),
+                                    (h) => h.toLowerCase() === col.toLowerCase()
                                   );
                                   return (
                                     <TableCell key={col} className="text-xs">
-                                      {matchingHeader ? row[matchingHeader] ?? '' : ''}
+                                      {matchingHeader ? (row[matchingHeader] ?? "") : ""}
                                     </TableCell>
                                   );
                                 })}
@@ -280,7 +270,7 @@ export function BulkImportDialog({
                       </TableBody>
                     </Table>
                     {rows.length > 20 && (
-                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                      <p className="text-muted-foreground mt-2 text-center text-xs">
                         Showing first 20 of {rows.length} rows
                       </p>
                     )}
@@ -293,14 +283,14 @@ export function BulkImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>
-            {submitted ? 'Close' : 'Cancel'}
+            {submitted ? "Close" : "Cancel"}
           </Button>
           {!submitted && (
             <Button
               onClick={handleSubmit}
               disabled={submitting || errors.length > 0 || rows.length === 0}
             >
-              {submitting ? 'Importing...' : `Import ${rows.length} Record(s)`}
+              {submitting ? "Importing..." : `Import ${rows.length} Record(s)`}
             </Button>
           )}
         </DialogFooter>

@@ -1,10 +1,13 @@
 # SVG Examples Reference
 
-These examples show how to construct icons correctly using the Clean preset (24px grid, 1.5px stroke, round caps/joins, 2px padding). Study the patterns before generating your set.
+These examples show how to construct icons correctly using the Clean preset
+(24px grid, 1.5px stroke, round caps/joins, 2px padding). Study the patterns
+before generating your set.
 
 ## Key Principles Demonstrated
 
-1. All coordinates stay within the padding zone (2–22 for 24px grid with 2px padding)
+1. All coordinates stay within the padding zone (2–22 for 24px grid with 2px
+   padding)
 2. Coordinates use at most 2 decimal places, preferring whole and half numbers
 3. Paths are minimal — no unnecessary points or elements
 4. Icons are visually centred, not just mathematically centred
@@ -13,7 +16,9 @@ These examples show how to construct icons correctly using the Clean preset (24p
 
 ## Simple Icon: Chevron Right
 
-A basic directional indicator. Note the optical overshoot — the chevron extends slightly beyond what pure math would suggest, so it feels the same visual weight as boxier icons.
+A basic directional indicator. Note the optical overshoot — the chevron extends
+slightly beyond what pure math would suggest, so it feels the same visual weight
+as boxier icons.
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -21,7 +26,9 @@ A basic directional indicator. Note the optical overshoot — the chevron extend
 </svg>
 ```
 
-**Why it works**: Single element. Points are clean whole numbers. The chevron occupies 6px horizontally (9→15) and 12px vertically (6→18) — slightly taller than wide, which is correct for a chevron that needs to feel balanced.
+**Why it works**: Single element. Points are clean whole numbers. The chevron
+occupies 6px horizontally (9→15) and 12px vertically (6→18) — slightly taller
+than wide, which is correct for a chevron that needs to feel balanced.
 
 ---
 
@@ -36,13 +43,17 @@ Two diagonal lines crossing. Symmetrical and centred.
 </svg>
 ```
 
-**Why it works**: Perfectly symmetrical. Uses `<line>` elements because that's the simplest representation. Coordinates are all whole numbers. The X spans 12px in each direction (6→18), leaving 6px of padding on each side — generous, which gives the icon breathing room.
+**Why it works**: Perfectly symmetrical. Uses `<line>` elements because that's
+the simplest representation. Coordinates are all whole numbers. The X spans 12px
+in each direction (6→18), leaving 6px of padding on each side — generous, which
+gives the icon breathing room.
 
 ---
 
 ## Medium Icon: Home
 
-A house shape combining a roof (triangle) and body (rectangle). Demonstrates combining multiple elements.
+A house shape combining a roof (triangle) and body (rectangle). Demonstrates
+combining multiple elements.
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -52,7 +63,11 @@ A house shape combining a roof (triangle) and body (rectangle). Demonstrates com
 </svg>
 ```
 
-**Why it works**: Three paths — roof line, house body, door. The roof peak (12, 3) is at the top padding boundary. The house bottom (20.5) leaves room for the baseline. The door is centred horizontally. Corner radius on the house body (`a1 1 0 001 1`) matches the preset's cornerRadius of 2px (approximated as 1 in the arc for this scale).
+**Why it works**: Three paths — roof line, house body, door. The roof peak
+(12, 3) is at the top padding boundary. The house bottom (20.5) leaves room for
+the baseline. The door is centred horizontally. Corner radius on the house body
+(`a1 1 0 001 1`) matches the preset's cornerRadius of 2px (approximated as 1 in
+the arc for this scale).
 
 ---
 
@@ -67,13 +82,17 @@ An envelope shape. Shows how to handle a recognisable real-world object.
 </svg>
 ```
 
-**Why it works**: Two elements — rectangle body and V-shaped flap line. The `rx="2"` on the rect matches the preset's corner radius. The envelope flap's peak (12, 13) is slightly above centre, which matches how real envelopes look. The rect spans the full usable width (3–21) because envelopes are wide.
+**Why it works**: Two elements — rectangle body and V-shaped flap line. The
+`rx="2"` on the rect matches the preset's corner radius. The envelope flap's
+peak (12, 13) is slightly above centre, which matches how real envelopes look.
+The rect spans the full usable width (3–21) because envelopes are wide.
 
 ---
 
 ## Medium Icon: Phone
 
-A phone handset. Demonstrates curved paths and the curved stroke compensation principle.
+A phone handset. Demonstrates curved paths and the curved stroke compensation
+principle.
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -81,13 +100,17 @@ A phone handset. Demonstrates curved paths and the curved stroke compensation pr
 </svg>
 ```
 
-**Why it works**: Single path for the complete handset shape. The curves create a recognisable phone silhouette. Because this icon is almost entirely curved, the path is sized slightly more generously within the grid — it extends close to the edges to compensate for the visual thinning effect of curves.
+**Why it works**: Single path for the complete handset shape. The curves create
+a recognisable phone silhouette. Because this icon is almost entirely curved,
+the path is sized slightly more generously within the grid — it extends close to
+the edges to compensate for the visual thinning effect of curves.
 
 ---
 
 ## Complex Icon: Shield Check
 
-A shield with a checkmark inside. Shows layering meaning (protection + verification).
+A shield with a checkmark inside. Shows layering meaning (protection +
+verification).
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -96,7 +119,11 @@ A shield with a checkmark inside. Shows layering meaning (protection + verificat
 </svg>
 ```
 
-**Why it works**: Two elements — shield outline and checkmark. The shield is vertically asymmetric (taller below centre than above) which matches how real shields look. The checkmark is positioned slightly above the shield's visual centre. The shield's top point (12, 2) is at the padding boundary, and its bottom (implicit from the curve, ~22) fills the vertical space.
+**Why it works**: Two elements — shield outline and checkmark. The shield is
+vertically asymmetric (taller below centre than above) which matches how real
+shields look. The checkmark is positioned slightly above the shield's visual
+centre. The shield's top point (12, 2) is at the padding boundary, and its
+bottom (implicit from the curve, ~22) fills the vertical space.
 
 ---
 
@@ -110,13 +137,17 @@ A five-pointed star. Demonstrates precise geometric construction.
 </svg>
 ```
 
-**Why it works**: Single `<polygon>` element. The star is calculated from proper geometry (inner/outer radius ratios) so it looks regular. The top point (12, 2) is at the padding boundary. The star is wider than it is tall, which is correct for five-pointed stars. Points use max 2 decimal places.
+**Why it works**: Single `<polygon>` element. The star is calculated from proper
+geometry (inner/outer radius ratios) so it looks regular. The top point (12, 2)
+is at the padding boundary. The star is wider than it is tall, which is correct
+for five-pointed stars. Points use max 2 decimal places.
 
 ---
 
 ## Icon with Fill: Location Pin
 
-Some icons need a filled element alongside stroked elements. Use `fill="currentColor"` on the specific element, not globally.
+Some icons need a filled element alongside stroked elements. Use
+`fill="currentColor"` on the specific element, not globally.
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -125,19 +156,25 @@ Some icons need a filled element alongside stroked elements. Use `fill="currentC
 </svg>
 ```
 
-**Why it works**: The pin body is stroked (outline). The inner dot uses `fill="currentColor"` to appear solid while still respecting the `currentColor` system. The pin extends from y=2 (top) to an implied y=22 (bottom of the teardrop), using the full vertical space because pins are naturally tall and narrow.
+**Why it works**: The pin body is stroked (outline). The inner dot uses
+`fill="currentColor"` to appear solid while still respecting the `currentColor`
+system. The pin extends from y=2 (top) to an implied y=22 (bottom of the
+teardrop), using the full vertical space because pins are naturally tall and
+narrow.
 
 ---
 
 ## What to Avoid
 
 ### Bad: Hardcoded colours
+
 ```xml
 <!-- WRONG -->
 <circle cx="12" cy="12" r="8" stroke="#333" fill="#eee"/>
 ```
 
 ### Bad: Excessive precision
+
 ```xml
 <!-- WRONG -->
 <line x1="5.333333" y1="7.142857" x2="18.666667" y2="16.857143"/>
@@ -146,6 +183,7 @@ Some icons need a filled element alongside stroked elements. Use `fill="currentC
 ```
 
 ### Bad: Transform instead of coordinates
+
 ```xml
 <!-- WRONG -->
 <g transform="translate(2, 3) rotate(45)">
@@ -156,6 +194,7 @@ Some icons need a filled element alongside stroked elements. Use `fill="currentC
 ```
 
 ### Bad: Inconsistent padding
+
 ```xml
 <!-- WRONG: One icon uses full bleed, another has generous padding -->
 <!-- Icon A: path starts at x=1 (too close to edge) -->

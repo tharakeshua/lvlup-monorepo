@@ -1,6 +1,8 @@
 ---
 name: tailwindcss-advanced-design-systems
-description: Tailwind CSS advanced design systems with design tokens and @theme configuration
+description:
+  Tailwind CSS advanced design systems with design tokens and @theme
+  configuration
 ---
 
 # Tailwind CSS Advanced Design Systems
@@ -138,10 +140,14 @@ description: Tailwind CSS advanced design systems with design tokens and @theme 
   --shadow-*: initial;
 
   --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.1), 0 1px 2px -1px oklch(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0 0 0 / 0.1), 0 1px 2px -1px oklch(0 0 0 / 0.1);
+  --shadow-md:
+    0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
   --shadow-2xl: 0 25px 50px -12px oklch(0 0 0 / 0.25);
   --shadow-inner: inset 0 2px 4px 0 oklch(0 0 0 / 0.05);
 
@@ -338,19 +344,19 @@ description: Tailwind CSS advanced design systems with design tokens and @theme 
 ### JavaScript Theme Switcher
 
 ```javascript
-const themes = ['default', 'ocean', 'forest', 'sunset'];
+const themes = ["default", "ocean", "forest", "sunset"];
 
 function setTheme(theme) {
-  if (theme === 'default') {
-    document.documentElement.removeAttribute('data-theme');
+  if (theme === "default") {
+    document.documentElement.removeAttribute("data-theme");
   } else {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
   }
-  localStorage.setItem('theme', theme);
+  localStorage.setItem("theme", theme);
 }
 
 function initTheme() {
-  const saved = localStorage.getItem('theme') || 'default';
+  const saved = localStorage.getItem("theme") || "default";
   setTheme(saved);
 }
 
@@ -358,7 +364,7 @@ function initTheme() {
 function ThemePicker() {
   return `
     <select onchange="setTheme(this.value)">
-      ${themes.map(t => `<option value="${t}">${t}</option>`).join('')}
+      ${themes.map((t) => `<option value="${t}">${t}</option>`).join("")}
     </select>
   `;
 }
@@ -448,14 +454,30 @@ initTheme();
   --text-fluid-4xl: clamp(3rem, 2rem + 4vw, 5rem);
 }
 
-@utility text-fluid-xs { font-size: var(--text-fluid-xs); }
-@utility text-fluid-sm { font-size: var(--text-fluid-sm); }
-@utility text-fluid-base { font-size: var(--text-fluid-base); }
-@utility text-fluid-lg { font-size: var(--text-fluid-lg); }
-@utility text-fluid-xl { font-size: var(--text-fluid-xl); }
-@utility text-fluid-2xl { font-size: var(--text-fluid-2xl); }
-@utility text-fluid-3xl { font-size: var(--text-fluid-3xl); }
-@utility text-fluid-4xl { font-size: var(--text-fluid-4xl); }
+@utility text-fluid-xs {
+  font-size: var(--text-fluid-xs);
+}
+@utility text-fluid-sm {
+  font-size: var(--text-fluid-sm);
+}
+@utility text-fluid-base {
+  font-size: var(--text-fluid-base);
+}
+@utility text-fluid-lg {
+  font-size: var(--text-fluid-lg);
+}
+@utility text-fluid-xl {
+  font-size: var(--text-fluid-xl);
+}
+@utility text-fluid-2xl {
+  font-size: var(--text-fluid-2xl);
+}
+@utility text-fluid-3xl {
+  font-size: var(--text-fluid-3xl);
+}
+@utility text-fluid-4xl {
+  font-size: var(--text-fluid-4xl);
+}
 ```
 
 ### Fluid Spacing
@@ -471,16 +493,34 @@ initTheme();
   --space-fluid-2xl: clamp(6rem, 4rem + 6vw, 12rem);
 }
 
-@utility p-fluid-xs { padding: var(--space-fluid-xs); }
-@utility p-fluid-sm { padding: var(--space-fluid-sm); }
-@utility p-fluid-md { padding: var(--space-fluid-md); }
-@utility p-fluid-lg { padding: var(--space-fluid-lg); }
-@utility p-fluid-xl { padding: var(--space-fluid-xl); }
+@utility p-fluid-xs {
+  padding: var(--space-fluid-xs);
+}
+@utility p-fluid-sm {
+  padding: var(--space-fluid-sm);
+}
+@utility p-fluid-md {
+  padding: var(--space-fluid-md);
+}
+@utility p-fluid-lg {
+  padding: var(--space-fluid-lg);
+}
+@utility p-fluid-xl {
+  padding: var(--space-fluid-xl);
+}
 
-@utility gap-fluid-xs { gap: var(--space-fluid-xs); }
-@utility gap-fluid-sm { gap: var(--space-fluid-sm); }
-@utility gap-fluid-md { gap: var(--space-fluid-md); }
-@utility gap-fluid-lg { gap: var(--space-fluid-lg); }
+@utility gap-fluid-xs {
+  gap: var(--space-fluid-xs);
+}
+@utility gap-fluid-sm {
+  gap: var(--space-fluid-sm);
+}
+@utility gap-fluid-md {
+  gap: var(--space-fluid-md);
+}
+@utility gap-fluid-lg {
+  gap: var(--space-fluid-lg);
+}
 ```
 
 ## Brand Color Generation
@@ -494,17 +534,35 @@ initTheme();
   --brand-chroma: 0.2;
 
   /* Generate full scale */
-  --color-brand-50: oklch(0.97 calc(var(--brand-chroma) * 0.1) var(--brand-hue));
-  --color-brand-100: oklch(0.93 calc(var(--brand-chroma) * 0.2) var(--brand-hue));
-  --color-brand-200: oklch(0.87 calc(var(--brand-chroma) * 0.4) var(--brand-hue));
-  --color-brand-300: oklch(0.78 calc(var(--brand-chroma) * 0.6) var(--brand-hue));
-  --color-brand-400: oklch(0.68 calc(var(--brand-chroma) * 0.8) var(--brand-hue));
+  --color-brand-50: oklch(
+    0.97 calc(var(--brand-chroma) * 0.1) var(--brand-hue)
+  );
+  --color-brand-100: oklch(
+    0.93 calc(var(--brand-chroma) * 0.2) var(--brand-hue)
+  );
+  --color-brand-200: oklch(
+    0.87 calc(var(--brand-chroma) * 0.4) var(--brand-hue)
+  );
+  --color-brand-300: oklch(
+    0.78 calc(var(--brand-chroma) * 0.6) var(--brand-hue)
+  );
+  --color-brand-400: oklch(
+    0.68 calc(var(--brand-chroma) * 0.8) var(--brand-hue)
+  );
   --color-brand-500: oklch(0.58 var(--brand-chroma) var(--brand-hue));
   --color-brand-600: oklch(0.5 var(--brand-chroma) var(--brand-hue));
-  --color-brand-700: oklch(0.42 calc(var(--brand-chroma) * 0.9) var(--brand-hue));
-  --color-brand-800: oklch(0.35 calc(var(--brand-chroma) * 0.75) var(--brand-hue));
-  --color-brand-900: oklch(0.28 calc(var(--brand-chroma) * 0.6) var(--brand-hue));
-  --color-brand-950: oklch(0.2 calc(var(--brand-chroma) * 0.4) var(--brand-hue));
+  --color-brand-700: oklch(
+    0.42 calc(var(--brand-chroma) * 0.9) var(--brand-hue)
+  );
+  --color-brand-800: oklch(
+    0.35 calc(var(--brand-chroma) * 0.75) var(--brand-hue)
+  );
+  --color-brand-900: oklch(
+    0.28 calc(var(--brand-chroma) * 0.6) var(--brand-hue)
+  );
+  --color-brand-950: oklch(
+    0.2 calc(var(--brand-chroma) * 0.4) var(--brand-hue)
+  );
 }
 ```
 
@@ -526,6 +584,7 @@ apps/
 ```
 
 **packages/design-tokens/tokens.css:**
+
 ```css
 /* Exportable design tokens */
 @theme {
@@ -536,6 +595,7 @@ apps/
 ```
 
 **packages/design-tokens/package.json:**
+
 ```json
 {
   "name": "@mycompany/design-tokens",
@@ -547,6 +607,7 @@ apps/
 ```
 
 **apps/web/app.css:**
+
 ```css
 @import "tailwindcss";
 @import "@mycompany/design-tokens";

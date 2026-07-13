@@ -9,18 +9,16 @@ export function formatDate(
   date: Date | string | number,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    year: "numeric",
+    month: "long",
+    day: "numeric",
     ...options,
   };
 
-  return dateObj.toLocaleDateString('en-US', defaultOptions);
+  return dateObj.toLocaleDateString("en-US", defaultOptions);
 }
 
 /**
@@ -30,17 +28,15 @@ export function formatTime(
   date: Date | string | number,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
     ...options,
   };
 
-  return dateObj.toLocaleTimeString('en-US', defaultOptions);
+  return dateObj.toLocaleTimeString("en-US", defaultOptions);
 }
 
 /**
@@ -50,34 +46,30 @@ export function formatDateTime(
   date: Date | string | number,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
     ...options,
   };
 
-  return dateObj.toLocaleString('en-US', defaultOptions);
+  return dateObj.toLocaleString("en-US", defaultOptions);
 }
 
 /**
  * Get relative time string (e.g., "2 hours ago")
  */
 export function getRelativeTime(date: Date | string | number): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
 
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
 
-  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 60) return "just now";
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
@@ -90,9 +82,7 @@ export function getRelativeTime(date: Date | string | number): string {
  * Check if date is today
  */
 export function isToday(date: Date | string | number): boolean {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
   const today = new Date();
   return (
     dateObj.getDate() === today.getDate() &&
@@ -105,9 +95,7 @@ export function isToday(date: Date | string | number): boolean {
  * Check if date is in the past
  */
 export function isPast(date: Date | string | number): boolean {
-  const dateObj = typeof date === 'string' || typeof date === 'number'
-    ? new Date(date)
-    : date;
+  const dateObj = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
   return dateObj < new Date();
 }
 

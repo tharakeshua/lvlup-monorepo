@@ -7,51 +7,51 @@ module.exports = {
     collect: {
       numberOfRuns: 3,
       startServerCommand:
-        'pnpm run preview --filter @levelup/student-web -- --port 4570 & ' +
-        'pnpm run preview --filter @levelup/admin-web -- --port 4571 & ' +
-        'pnpm run preview --filter @levelup/teacher-web -- --port 4572 & ' +
-        'pnpm run preview --filter @levelup/parent-web -- --port 4573 & ' +
-        'pnpm run preview --filter @levelup/super-admin -- --port 4574',
-      startServerReadyPattern: 'Local',
+        "pnpm run preview --filter @levelup/student-web -- --port 4570 & " +
+        "pnpm run preview --filter @levelup/admin-web -- --port 4571 & " +
+        "pnpm run preview --filter @levelup/teacher-web -- --port 4572 & " +
+        "pnpm run preview --filter @levelup/parent-web -- --port 4573 & " +
+        "pnpm run preview --filter @levelup/super-admin -- --port 4574",
+      startServerReadyPattern: "Local",
       url: [
         // Student Web
-        'http://localhost:4570/',
-        'http://localhost:4570/login',
+        "http://localhost:4570/",
+        "http://localhost:4570/login",
         // Admin Web
-        'http://localhost:4571/',
-        'http://localhost:4571/login',
+        "http://localhost:4571/",
+        "http://localhost:4571/login",
         // Teacher Web
-        'http://localhost:4572/',
-        'http://localhost:4572/login',
+        "http://localhost:4572/",
+        "http://localhost:4572/login",
         // Parent Web
-        'http://localhost:4573/',
-        'http://localhost:4573/login',
+        "http://localhost:4573/",
+        "http://localhost:4573/login",
         // Super Admin
-        'http://localhost:4574/',
-        'http://localhost:4574/login',
+        "http://localhost:4574/",
+        "http://localhost:4574/login",
       ],
       settings: {
         // Run desktop preset by default; mobile overrides below
-        preset: 'desktop',
-        chromeFlags: '--no-sandbox --headless',
+        preset: "desktop",
+        chromeFlags: "--no-sandbox --headless",
       },
     },
     assert: {
       assertions: {
         // Desktop thresholds
-        'categories:performance': ['warn', { minScore: 0.7 }],
-        'categories:accessibility': ['warn', { minScore: 0.85 }],
-        'categories:best-practices': ['warn', { minScore: 0.85 }],
-        'categories:seo': ['warn', { minScore: 0.8 }],
-        'first-contentful-paint': ['warn', { maxNumericValue: 1500 }],
-        'interactive': ['warn', { maxNumericValue: 3000 }],
-        'largest-contentful-paint': ['warn', { maxNumericValue: 2500 }],
-        'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],
-        'total-blocking-time': ['warn', { maxNumericValue: 300 }],
+        "categories:performance": ["warn", { minScore: 0.7 }],
+        "categories:accessibility": ["warn", { minScore: 0.85 }],
+        "categories:best-practices": ["warn", { minScore: 0.85 }],
+        "categories:seo": ["warn", { minScore: 0.8 }],
+        "first-contentful-paint": ["warn", { maxNumericValue: 1500 }],
+        interactive: ["warn", { maxNumericValue: 3000 }],
+        "largest-contentful-paint": ["warn", { maxNumericValue: 2500 }],
+        "cumulative-layout-shift": ["warn", { maxNumericValue: 0.1 }],
+        "total-blocking-time": ["warn", { maxNumericValue: 300 }],
       },
     },
     upload: {
-      target: 'temporary-public-storage',
+      target: "temporary-public-storage",
     },
   },
 };

@@ -27,9 +27,9 @@ export function OfflineBanner({ className }: OfflineBannerProps) {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-md",
+        "fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-md",
         "animate-in slide-in-from-top duration-300",
-        className,
+        className
       )}
       role="alert"
       aria-live="polite"
@@ -38,7 +38,7 @@ export function OfflineBanner({ className }: OfflineBannerProps) {
       <span>You're offline. Some data may be outdated.</span>
       <button
         onClick={() => setDismissed(true)}
-        className="ml-2 rounded-full p-0.5 hover:bg-white/20 transition-colors"
+        className="ml-2 rounded-full p-0.5 transition-colors hover:bg-white/20"
         aria-label="Dismiss offline notification"
       >
         <X className="h-3.5 w-3.5" />

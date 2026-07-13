@@ -4,10 +4,10 @@
  * Also migrates students and teachers references into the new class document.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyClass {
   _docId: string;
@@ -76,7 +76,7 @@ export async function migrateClasses(options: {
 
       if (await docExists(db, targetPath)) {
         logger.debug(`Class ${classId} already migrated, skipping`);
-        return { action: 'skipped', id: classId };
+        return { action: "skipped", id: classId };
       }
 
       const studentIds = classStudents.get(classId) || [];
@@ -86,16 +86,16 @@ export async function migrateClasses(options: {
         id: classId,
         tenantId,
         name: cls.name,
-        grade: '', // Not in legacy schema, will need manual mapping
+        grade: "", // Not in legacy schema, will need manual mapping
         section: null,
         academicSessionId: null,
         teacherIds,
         studentIds,
         studentCount: studentIds.length || cls.studentCount,
-        status: 'active' as const,
+        status: "active" as const,
         createdAt: cls.createdAt || admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'autograde',
+        _migratedFrom: "autograde",
         _legacySubject: cls.subject,
         _legacyAcademicYear: cls.academicYear,
       };
@@ -104,7 +104,7 @@ export async function migrateClasses(options: {
         logger.info(
           `[DRY RUN] Would migrate class: ${classId} (${cls.name}) - ${studentIds.length} students, ${teacherIds.length} teachers`
         );
-        return { action: 'created', id: classId };
+        return { action: "created", id: classId };
       }
 
       batch.set(db.doc(targetPath), newClass);
@@ -121,10 +121,10 @@ export async function migrateClasses(options: {
           uid: studentDoc?.authUid || studentId,
           classIds: studentDoc?.classIds || [classId],
           parentIds: [],
-          status: 'active',
+          status: "active",
           createdAt: admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'autograde',
+          _migratedFrom: "autograde",
         });
       }
 
@@ -140,14 +140,14 @@ export async function migrateClasses(options: {
           uid: teacherDoc?.authUid || teacherId,
           subjects: [],
           classIds: teacherDoc?.classIds || [classId],
-          status: 'active',
+          status: "active",
           createdAt: admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'autograde',
+          _migratedFrom: "autograde",
         });
       }
 
-      return { action: 'created', id: classId };
+      return { action: "created", id: classId };
     },
     { dryRun, logger }
   );

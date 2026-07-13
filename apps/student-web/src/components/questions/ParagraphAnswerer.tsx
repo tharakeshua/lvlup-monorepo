@@ -1,4 +1,4 @@
-import type { ParagraphData } from '@levelup/shared-types';
+import type { ParagraphData } from "@levelup/shared-types";
 
 interface ParagraphAnswererProps {
   data: ParagraphData;
@@ -7,7 +7,12 @@ interface ParagraphAnswererProps {
   disabled?: boolean;
 }
 
-export default function ParagraphAnswerer({ data, value = '', onChange, disabled }: ParagraphAnswererProps) {
+export default function ParagraphAnswerer({
+  data,
+  value = "",
+  onChange,
+  disabled,
+}: ParagraphAnswererProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
 
   return (
@@ -18,13 +23,13 @@ export default function ParagraphAnswerer({ data, value = '', onChange, disabled
         disabled={disabled}
         rows={6}
         placeholder="Write your answer..."
-        className="w-full rounded-md border border-input px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus:outline-none disabled:opacity-60 resize-y"
+        className="border-input focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 disabled:opacity-60"
       />
-      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+      <div className="text-muted-foreground mt-1 flex justify-between text-xs">
         <span>{wordCount} words</span>
         <span>
           {data.minLength && `Min: ${data.minLength}`}
-          {data.minLength && data.maxLength && ' | '}
+          {data.minLength && data.maxLength && " | "}
           {data.maxLength && `Max: ${data.maxLength} chars`}
         </span>
       </div>

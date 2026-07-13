@@ -5,21 +5,21 @@
  * that wires config, logging, batch processing, and verification together.
  */
 
-import { initFirebase, getFirestore, getAuth, serverTimestamp, toTimestamp } from './config.js';
-import { MigrationLogger, generateRunId } from './utils/logger.js';
+import { initFirebase, getFirestore, getAuth, serverTimestamp, toTimestamp } from "./config.js";
+import { MigrationLogger, generateRunId } from "./utils/logger.js";
 import {
   processBatch,
   readAllDocs,
   docExists,
   type BatchProcessorOptions,
-} from './utils/batch-processor.js';
+} from "./utils/batch-processor.js";
 import {
   countDocs,
   verifyCollectionCounts,
   spotCheckDocument,
   printVerificationResults,
   type VerificationResult,
-} from './utils/verification.js';
+} from "./utils/verification.js";
 
 // ── Re-exports ──────────────────────────────────────
 export {
@@ -52,7 +52,7 @@ export {
 
 export interface MigrationOptions {
   /** Source system identifier: 'autograde' | 'levelup' */
-  source: 'autograde' | 'levelup';
+  source: "autograde" | "levelup";
   /** Client or org ID being migrated */
   clientId: string;
   /** If true, logs operations without writing to Firestore */
@@ -69,7 +69,7 @@ export interface MigrationOptions {
  */
 export interface MigrationContext {
   runId: string;
-  source: 'autograde' | 'levelup';
+  source: "autograde" | "levelup";
   clientId: string;
   tenantId: string;
   dryRun: boolean;
@@ -90,7 +90,7 @@ export function createMigrationContext(options: MigrationOptions): MigrationCont
   const db = getFirestore();
 
   if (options.dryRun) {
-    logger.info('=== DRY RUN MODE -- no data will be written ===');
+    logger.info("=== DRY RUN MODE -- no data will be written ===");
   }
 
   return {
@@ -117,13 +117,12 @@ const ROLLBACK_BATCH_SIZE = 500;
 export async function deleteMarkedDocs(
   db: FirebaseFirestore.Firestore,
   collectionPath: string,
-  migratedFrom: 'autograde' | 'levelup',
+  migratedFrom: "autograde" | "levelup",
   logger: MigrationLogger,
   dryRun: boolean
 ): Promise<number> {
   let deleted = 0;
-  const query = db.collection(collectionPath)
-    .where('_migratedFrom', '==', migratedFrom);
+  const query = db.collection(collectionPath).where("_migratedFrom", "==", migratedFrom);
 
   while (true) {
     const snapshot = await query.limit(ROLLBACK_BATCH_SIZE).get();
@@ -159,9 +158,10 @@ export async function deleteMigrationMemberships(
   logger: MigrationLogger,
   dryRun: boolean
 ): Promise<number> {
-  const membershipsSnap = await db.collection('userMemberships')
-    .where('tenantId', '==', tenantId)
-    .where('joinSource', '==', 'migration')
+  const membershipsSnap = await db
+    .collection("userMemberships")
+    .where("tenantId", "==", tenantId)
+    .where("joinSource", "==", "migration")
     .get();
 
   if (!dryRun && membershipsSnap.size > 0) {
@@ -176,7 +176,9 @@ export async function deleteMigrationMemberships(
     }
   }
 
-  logger.info(`${dryRun ? '[DRY RUN] Would delete' : 'Deleted'} ${membershipsSnap.size} migration memberships for tenant ${tenantId}`);
+  logger.info(
+    `${dryRun ? "[DRY RUN] Would delete" : "Deleted"} ${membershipsSnap.size} migration memberships for tenant ${tenantId}`
+  );
   return membershipsSnap.size;
 }
 

@@ -22,52 +22,52 @@ export type Brand<T, B extends string> = T & { readonly [__brand]: B };
 // ── Entity ID types ─────────────────────────────────────────────────────────
 
 /** Tenant (school/institution) document ID. */
-export type TenantId = Brand<string, 'TenantId'>;
+export type TenantId = Brand<string, "TenantId">;
 
 /** Class document ID within a tenant. */
-export type ClassId = Brand<string, 'ClassId'>;
+export type ClassId = Brand<string, "ClassId">;
 
 /** Student profile document ID within a tenant. */
-export type StudentId = Brand<string, 'StudentId'>;
+export type StudentId = Brand<string, "StudentId">;
 
 /** Teacher profile document ID within a tenant. */
-export type TeacherId = Brand<string, 'TeacherId'>;
+export type TeacherId = Brand<string, "TeacherId">;
 
 /** Parent profile document ID within a tenant. */
-export type ParentId = Brand<string, 'ParentId'>;
+export type ParentId = Brand<string, "ParentId">;
 
 /** Learning Space document ID within a tenant. */
-export type SpaceId = Brand<string, 'SpaceId'>;
+export type SpaceId = Brand<string, "SpaceId">;
 
 /** StoryPoint (section) document ID within a Space. */
-export type StoryPointId = Brand<string, 'StoryPointId'>;
+export type StoryPointId = Brand<string, "StoryPointId">;
 
 /** UnifiedItem document ID within a StoryPoint. */
-export type ItemId = Brand<string, 'ItemId'>;
+export type ItemId = Brand<string, "ItemId">;
 
 /** Exam document ID within a tenant. */
-export type ExamId = Brand<string, 'ExamId'>;
+export type ExamId = Brand<string, "ExamId">;
 
 /** Submission document ID within a tenant. */
-export type SubmissionId = Brand<string, 'SubmissionId'>;
+export type SubmissionId = Brand<string, "SubmissionId">;
 
 /** Firebase Auth UID — platform-wide user identifier. */
-export type UserId = Brand<string, 'UserId'>;
+export type UserId = Brand<string, "UserId">;
 
 /** Test or Chat session document ID. */
-export type SessionId = Brand<string, 'SessionId'>;
+export type SessionId = Brand<string, "SessionId">;
 
 /** AI Agent document ID within a Space. */
-export type AgentId = Brand<string, 'AgentId'>;
+export type AgentId = Brand<string, "AgentId">;
 
 /** Academic Session document ID within a tenant. */
-export type AcademicSessionId = Brand<string, 'AcademicSessionId'>;
+export type AcademicSessionId = Brand<string, "AcademicSessionId">;
 
 /** Notification document ID. */
-export type NotificationId = Brand<string, 'NotificationId'>;
+export type NotificationId = Brand<string, "NotificationId">;
 
 /** Question Bank Item document ID. */
-export type QuestionBankItemId = Brand<string, 'QuestionBankItemId'>;
+export type QuestionBankItemId = Brand<string, "QuestionBankItemId">;
 
 // ── Factory helpers ─────────────────────────────────────────────────────────
 // Use these at trust boundaries (Firestore reads, URL params, request data)

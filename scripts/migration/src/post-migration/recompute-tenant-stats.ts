@@ -9,11 +9,11 @@
  *   npx tsx src/run-migration.ts --post-migration stats   # all tenants
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { countDocs } from '../utils/verification.js';
-import { readAllDocs } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { countDocs } from "../utils/verification.js";
+import { readAllDocs } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 export async function recomputeTenantStats(options: {
   tenantId?: string;
@@ -23,7 +23,7 @@ export async function recomputeTenantStats(options: {
   const { tenantId, dryRun, logger } = options;
   const db = getFirestore();
 
-  logger.info('Recomputing tenant stats');
+  logger.info("Recomputing tenant stats");
 
   // Get tenants to process
   let tenantsSnap: admin.firestore.QuerySnapshot;
@@ -33,11 +33,12 @@ export async function recomputeTenantStats(options: {
       logger.error(`Tenant ${tenantId} does not exist`);
       return;
     }
-    tenantsSnap = await db.collection('tenants')
-      .where(admin.firestore.FieldPath.documentId(), '==', tenantId)
+    tenantsSnap = await db
+      .collection("tenants")
+      .where(admin.firestore.FieldPath.documentId(), "==", tenantId)
       .get();
   } else {
-    tenantsSnap = await db.collection('tenants').get();
+    tenantsSnap = await db.collection("tenants").get();
   }
 
   logger.info(`Processing ${tenantsSnap.size} tenant(s)`);
@@ -46,29 +47,26 @@ export async function recomputeTenantStats(options: {
     const tId = tenantDoc.id;
     logger.info(`Computing stats for tenant ${tId}`);
 
-    const [
-      totalStudents,
-      totalTeachers,
-      totalClasses,
-      totalSpaces,
-      totalExams,
-    ] = await Promise.all([
-      countDocs(db.collection(`tenants/${tId}/students`)),
-      countDocs(db.collection(`tenants/${tId}/teachers`)),
-      countDocs(db.collection(`tenants/${tId}/classes`)),
-      countDocs(db.collection(`tenants/${tId}/spaces`)),
-      countDocs(db.collection(`tenants/${tId}/exams`)),
-    ]);
+    const [totalStudents, totalTeachers, totalClasses, totalSpaces, totalExams] = await Promise.all(
+      [
+        countDocs(db.collection(`tenants/${tId}/students`)),
+        countDocs(db.collection(`tenants/${tId}/teachers`)),
+        countDocs(db.collection(`tenants/${tId}/classes`)),
+        countDocs(db.collection(`tenants/${tId}/spaces`)),
+        countDocs(db.collection(`tenants/${tId}/exams`)),
+      ]
+    );
 
     // Count active students in last 30 days (from memberships)
     const thirtyDaysAgo = admin.firestore.Timestamp.fromDate(
       new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     );
     const activeMemberships = await countDocs(
-      db.collection('userMemberships')
-        .where('tenantId', '==', tId)
-        .where('role', '==', 'student')
-        .where('lastActive', '>=', thirtyDaysAgo)
+      db
+        .collection("userMemberships")
+        .where("tenantId", "==", tId)
+        .where("role", "==", "student")
+        .where("lastActive", ">=", thirtyDaysAgo)
     );
 
     const stats = {
@@ -108,8 +106,7 @@ export async function recomputeTenantStats(options: {
 
       // Count students with space progress
       const progressCount = await countDocs(
-        db.collection(`tenants/${tId}/spaceProgress`)
-          .where('spaceId', '==', sId)
+        db.collection(`tenants/${tId}/spaceProgress`).where("spaceId", "==", sId)
       );
 
       const spaceStats = {

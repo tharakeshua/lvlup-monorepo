@@ -1,4 +1,4 @@
-import type { MCQData } from '@levelup/shared-types';
+import type { MCQData } from "@levelup/shared-types";
 
 interface MCQAnswererProps {
   data: MCQData;
@@ -8,7 +8,13 @@ interface MCQAnswererProps {
   showCorrect?: boolean;
 }
 
-export default function MCQAnswerer({ data, value, onChange, disabled, showCorrect }: MCQAnswererProps) {
+export default function MCQAnswerer({
+  data,
+  value,
+  onChange,
+  disabled,
+  showCorrect,
+}: MCQAnswererProps) {
   return (
     <div className="space-y-2">
       {data.options.map((option) => {
@@ -19,15 +25,15 @@ export default function MCQAnswerer({ data, value, onChange, disabled, showCorre
         return (
           <label
             key={option.id}
-            className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
               isSelected
                 ? isWrong
-                  ? 'border-destructive bg-destructive/10'
-                  : 'border-primary bg-primary/10'
+                  ? "border-destructive bg-destructive/10"
+                  : "border-primary bg-primary/10"
                 : isCorrectOption
-                  ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-500/10'
-                  : 'border-input hover:bg-accent'
-            } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                  ? "border-emerald-400 bg-emerald-500/10 dark:border-emerald-600"
+                  : "border-input hover:bg-accent"
+            } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
           >
             <input
               type="radio"
@@ -41,7 +47,7 @@ export default function MCQAnswerer({ data, value, onChange, disabled, showCorre
             <div>
               <span className="text-sm">{option.text}</span>
               {showCorrect && isSelected && option.explanation && (
-                <p className="mt-1 text-xs text-muted-foreground">{option.explanation}</p>
+                <p className="text-muted-foreground mt-1 text-xs">{option.explanation}</p>
               )}
             </div>
           </label>

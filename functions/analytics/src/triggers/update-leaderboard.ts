@@ -12,14 +12,14 @@
  * ranking displays.
  */
 
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
 
 export const updateLeaderboard = onDocumentWritten(
   {
-    document: 'tenants/{tenantId}/studentProgressSummaries/{studentId}',
-    region: 'asia-south1',
-    memory: '256MiB',
+    document: "tenants/{tenantId}/studentProgressSummaries/{studentId}",
+    region: "asia-south1",
+    memory: "256MiB",
   },
   async (event) => {
     const afterData = event.data?.after.data();
@@ -64,7 +64,7 @@ export const updateLeaderboard = onDocumentWritten(
     // Fetch the student's space progress to update per-space boards
     const spaceProgressSnap = await db
       .collection(`tenants/${tenantId}/spaceProgress`)
-      .where('userId', '==', studentId)
+      .where("userId", "==", studentId)
       .get();
 
     for (const doc of spaceProgressSnap.docs) {
@@ -75,7 +75,7 @@ export const updateLeaderboard = onDocumentWritten(
         score: progress.pointsEarned ?? 0,
         totalPoints: progress.totalPoints ?? 0,
         percentage: progress.percentage ?? 0,
-        status: progress.status ?? 'not_started',
+        status: progress.status ?? "not_started",
         updatedAt: admin.database.ServerValue.TIMESTAMP,
       };
     }
@@ -85,9 +85,9 @@ export const updateLeaderboard = onDocumentWritten(
 
     console.log(
       `Updated leaderboard for student ${studentId} in tenant ${tenantId}: ` +
-      `overall=${overallScore.toFixed(2)}, spaces=${spaceProgressSnap.size}`,
+        `overall=${overallScore.toFixed(2)}, spaces=${spaceProgressSnap.size}`
     );
-  },
+  }
 );
 
 /**
@@ -95,7 +95,7 @@ export const updateLeaderboard = onDocumentWritten(
  * Tiers are based on percentage: diamond >= 90, platinum >= 75, gold >= 50, silver >= 25
  */
 function computeTierCounts(
-  levelup: Record<string, unknown> | undefined,
+  levelup: Record<string, unknown> | undefined
 ): Record<string, number> | null {
   if (!levelup?.subjectBreakdown) return null;
 
@@ -116,9 +116,7 @@ function computeTierCounts(
 /**
  * Clean up leaderboard entries when a student summary is deleted.
  */
-async function handleDeletion(
-  params: { tenantId: string; studentId: string },
-): Promise<void> {
+async function handleDeletion(params: { tenantId: string; studentId: string }): Promise<void> {
   const { tenantId, studentId } = params;
   const rtdb = admin.database();
 

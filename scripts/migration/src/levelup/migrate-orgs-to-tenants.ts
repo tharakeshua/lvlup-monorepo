@@ -4,10 +4,10 @@
  * Maps /orgs/{orgId} documents to the new Tenant schema.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyOrg {
   _docId: string;
@@ -43,11 +43,11 @@ export async function migrateOrgsToTenants(options: {
   const { orgId, dryRun, logger } = options;
   const db = getFirestore();
 
-  logger.info('Starting LevelUp orgs → tenants migration');
+  logger.info("Starting LevelUp orgs → tenants migration");
 
-  let query: admin.firestore.Query = db.collection('orgs');
+  let query: admin.firestore.Query = db.collection("orgs");
   if (orgId) {
-    query = query.where(admin.firestore.FieldPath.documentId(), '==', orgId);
+    query = query.where(admin.firestore.FieldPath.documentId(), "==", orgId);
   }
 
   const orgs = await readAllDocs<LegacyOrg>(query as admin.firestore.CollectionReference);
@@ -61,27 +61,27 @@ export async function migrateOrgsToTenants(options: {
 
       if (await docExists(db, tenantPath)) {
         logger.debug(`Tenant ${tenantId} already exists, skipping`);
-        return { action: 'skipped', id: tenantId };
+        return { action: "skipped", id: tenantId };
       }
 
       const tenant = {
         id: tenantId,
-        name: org.name || org.title || '',
+        name: org.name || org.title || "",
         shortName: null,
         slug: org.slug,
         description: org.description || null,
         tenantCode: org.code,
         ownerUid: org.ownerUid,
-        contactEmail: org.contactEmail || '',
+        contactEmail: org.contactEmail || "",
         contactPhone: org.contactPhone || null,
         contactPerson: null,
         logoUrl: org.imageUrl || null,
         bannerUrl: org.bannerUrl || null,
         website: org.website || null,
         address: org.address || null,
-        status: 'active' as const,
+        status: "active" as const,
         subscription: {
-          plan: 'basic' as const,
+          plan: "basic" as const,
           expiresAt: null,
           maxStudents: null,
           maxTeachers: null,
@@ -113,13 +113,13 @@ export async function migrateOrgsToTenants(options: {
           ? admin.firestore.Timestamp.fromMillis(org.createdAt)
           : admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'levelup',
+        _migratedFrom: "levelup",
         _migrationSourceId: org._docId,
       };
 
       if (dryRun) {
         logger.info(`[DRY RUN] Would create tenant: ${tenantId} (${org.name})`);
-        return { action: 'created', id: tenantId };
+        return { action: "created", id: tenantId };
       }
 
       batch.set(db.doc(tenantPath), tenant);
@@ -139,21 +139,21 @@ export async function migrateOrgsToTenants(options: {
         const membershipPath = `userMemberships/${membershipId}`;
         if (await docExists(db, membershipPath)) continue;
 
-        const role = adminUid === org.ownerUid ? 'tenantAdmin' : 'teacher';
+        const role = adminUid === org.ownerUid ? "tenantAdmin" : "teacher";
         batch.set(db.doc(membershipPath), {
           id: membershipId,
           uid: adminUid,
           tenantId,
           tenantCode: org.code,
           role,
-          status: 'active',
-          joinSource: 'migration',
+          status: "active",
+          joinSource: "migration",
           createdAt: admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
         });
       }
 
-      return { action: 'created', id: tenantId };
+      return { action: "created", id: tenantId };
     },
     { dryRun, logger }
   );

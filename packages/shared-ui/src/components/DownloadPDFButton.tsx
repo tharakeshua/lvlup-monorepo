@@ -6,30 +6,28 @@
  * keeping firebase imports out of shared-ui.
  */
 
-import { useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { Download, Loader2 } from "lucide-react";
 
 export interface DownloadPDFButtonProps {
   /** Async callback that calls the appropriate Cloud Function and returns the download URL. */
   onGenerate: () => Promise<{ downloadUrl: string }>;
   label?: string;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'sm' | 'md';
+  variant?: "default" | "outline" | "ghost";
+  size?: "sm" | "md";
 }
 
 const VARIANT_CLASSES: Record<string, string> = {
-  default:
-    'bg-primary text-primary-foreground hover:bg-primary/90',
-  outline:
-    'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-  ghost: 'hover:bg-accent hover:text-accent-foreground',
+  default: "bg-primary text-primary-foreground hover:bg-primary/90",
+  outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+  ghost: "hover:bg-accent hover:text-accent-foreground",
 };
 
 export function DownloadPDFButton({
   onGenerate,
-  label = 'Download PDF',
-  variant = 'outline',
-  size = 'sm',
+  label = "Download PDF",
+  variant = "outline",
+  size = "sm",
 }: DownloadPDFButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +38,17 @@ export function DownloadPDFButton({
 
     try {
       const result = await onGenerate();
-      window.open(result.downloadUrl, '_blank');
+      window.open(result.downloadUrl, "_blank");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to generate PDF';
+      const message = err instanceof Error ? err.message : "Failed to generate PDF";
       setError(message);
-      console.error('[DownloadPDFButton]', err);
+      console.error("[DownloadPDFButton]", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const sizeClasses = size === 'sm' ? 'h-8 px-3 text-xs' : 'h-9 px-4 text-sm';
+  const sizeClasses = size === "sm" ? "h-8 px-3 text-xs" : "h-9 px-4 text-sm";
 
   return (
     <div className="inline-flex flex-col items-start">
@@ -64,11 +62,9 @@ export function DownloadPDFButton({
         ) : (
           <Download className="h-3.5 w-3.5" />
         )}
-        {loading ? 'Generating...' : label}
+        {loading ? "Generating..." : label}
       </button>
-      {error && (
-        <p className="mt-1 text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
     </div>
   );
 }

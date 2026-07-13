@@ -1,6 +1,9 @@
 ---
 name: brochure-design-generation
-description: Generate professional brochure designs using each::sense AI. Create tri-fold, bi-fold, corporate, travel, product, real estate, healthcare, educational, event, and service brochures with print-ready layouts.
+description:
+  Generate professional brochure designs using each::sense AI. Create tri-fold,
+  bi-fold, corporate, travel, product, real estate, healthcare, educational,
+  event, and service brochures with print-ready layouts.
 metadata:
   author: eachlabs
   version: "1.0"
@@ -8,7 +11,9 @@ metadata:
 
 # Brochure Design Generation
 
-Generate professional brochure designs using each::sense. This skill creates visually appealing brochure layouts for various industries and purposes, from corporate communications to travel marketing.
+Generate professional brochure designs using each::sense. This skill creates
+visually appealing brochure layouts for various industries and purposes, from
+corporate communications to travel marketing.
 
 ## Features
 
@@ -38,14 +43,14 @@ curl -X POST https://sense.eachlabs.run/chat \
 
 ## Brochure Formats & Sizes
 
-| Type | Dimensions (Flat) | Panels | Use Case |
-|------|-------------------|--------|----------|
-| Tri-Fold | 11" x 8.5" | 3 panels | Marketing, services overview |
-| Bi-Fold | 11" x 8.5" | 2 panels | Simple messaging, menus |
-| Z-Fold | 11" x 8.5" | 3 panels | Sequential information |
-| Gate Fold | 17" x 11" | 4 panels | Premium presentations |
-| Accordion | Variable | 4+ panels | Detailed catalogs |
-| A4 Single | 8.27" x 11.69" | 1 panel | Flyers, single-page info |
+| Type      | Dimensions (Flat) | Panels    | Use Case                     |
+| --------- | ----------------- | --------- | ---------------------------- |
+| Tri-Fold  | 11" x 8.5"        | 3 panels  | Marketing, services overview |
+| Bi-Fold   | 11" x 8.5"        | 2 panels  | Simple messaging, menus      |
+| Z-Fold    | 11" x 8.5"        | 3 panels  | Sequential information       |
+| Gate Fold | 17" x 11"         | 4 panels  | Premium presentations        |
+| Accordion | Variable          | 4+ panels | Detailed catalogs            |
+| A4 Single | 8.27" x 11.69"    | 1 panel   | Flyers, single-page info     |
 
 ## Use Case Examples
 
@@ -254,6 +259,7 @@ curl -X POST https://sense.eachlabs.run/chat \
 ## Best Practices
 
 ### Layout & Design
+
 - **Visual Hierarchy**: Guide the reader's eye with clear heading structure
 - **White Space**: Avoid overcrowding - let content breathe
 - **Fold Awareness**: Place key content considering how the brochure unfolds
@@ -261,18 +267,21 @@ curl -X POST https://sense.eachlabs.run/chat \
 - **Safe Zones**: Keep important text 5mm from fold lines
 
 ### Typography
+
 - **Font Pairing**: Use maximum 2-3 font families
 - **Readability**: Body text should be 9-12pt minimum
 - **Headlines**: Make them bold and scannable
 - **Contrast**: Ensure text is readable against backgrounds
 
 ### Imagery
+
 - **High Resolution**: Use 300 DPI for print-ready output
 - **Consistent Style**: Maintain visual cohesion across panels
 - **Brand Colors**: Apply consistent color palette
 - **Photo Quality**: Use professional or high-quality stock imagery
 
 ### Content Structure
+
 - **Cover Appeal**: Front panel should create immediate interest
 - **Logical Flow**: Information should progress naturally
 - **Call-to-Action**: Include clear next steps
@@ -306,18 +315,18 @@ Ask your users before generating:
 
 **"Do you want fast & cheap, or high quality?"**
 
-| Mode | Best For | Speed | Quality |
-|------|----------|-------|---------|
-| `max` | Final print-ready designs, client presentations | Slower | Highest |
-| `eco` | Quick drafts, concept exploration, layout testing | Faster | Good |
+| Mode  | Best For                                          | Speed  | Quality |
+| ----- | ------------------------------------------------- | ------ | ------- |
+| `max` | Final print-ready designs, client presentations   | Slower | Highest |
+| `eco` | Quick drafts, concept exploration, layout testing | Faster | Good    |
 
 ## Error Handling
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Failed to create prediction: HTTP 422` | Insufficient balance | Top up at eachlabs.ai |
-| Content policy violation | Prohibited content | Adjust prompt to comply with content policies |
-| Timeout | Complex generation | Set client timeout to minimum 10 minutes |
+| Error                                   | Cause                | Solution                                      |
+| --------------------------------------- | -------------------- | --------------------------------------------- |
+| `Failed to create prediction: HTTP 422` | Insufficient balance | Top up at eachlabs.ai                         |
+| Content policy violation                | Prohibited content   | Adjust prompt to comply with content policies |
+| Timeout                                 | Complex generation   | Set client timeout to minimum 10 minutes      |
 
 ## Related Skills
 

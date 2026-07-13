@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}/students/{studentId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 /** Student profile document within a tenant's student subcollection. */
 export interface Student {
@@ -27,7 +27,7 @@ export interface Student {
   admissionNumber?: string;
   /** Date of birth in ISO format (YYYY-MM-DD). */
   dateOfBirth?: string;
-  status: 'active' | 'archived';
+  status: "active" | "archived";
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

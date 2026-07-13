@@ -1,12 +1,16 @@
 ---
 name: firebase-seed-engine
-description: Patterns for building config-driven, reusable Firebase Admin SDK seeding systems. Covers BatchWriter, ensureAuthUser, custom claims, idempotent entity creation, and config-to-database pipelines.
+description:
+  Patterns for building config-driven, reusable Firebase Admin SDK seeding
+  systems. Covers BatchWriter, ensureAuthUser, custom claims, idempotent entity
+  creation, and config-to-database pipelines.
 origin: custom
 ---
 
 # Firebase Seed Engine Patterns
 
-Conventions and patterns for building reusable data seeding systems using Firebase Admin SDK for the Auto-LevelUp EdTech platform.
+Conventions and patterns for building reusable data seeding systems using
+Firebase Admin SDK for the Auto-LevelUp EdTech platform.
 
 ## When to Activate
 
@@ -23,31 +27,32 @@ Conventions and patterns for building reusable data seeding systems using Fireba
 - **Auth**: Firebase Authentication
 - **Existing scripts**: `scripts/seed-emulator.ts`, `scripts/seed-production.ts`
 - **Types**: `packages/shared-types/src/`
-- **Service account**: `lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json` (root)
+- **Service account**: `lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json`
+  (root)
 
 ## Core Patterns
 
 ### 1. Firebase Admin Initialization
 
 ```typescript
-import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import admin from "firebase-admin";
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SERVICE_ACCOUNT_PATH = resolve(
   __dirname,
-  '../lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json',
+  "../lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json"
 );
-const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf-8'));
+const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, "utf-8"));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  projectId: 'lvlup-ff6fa',
-  databaseURL: 'https://lvlup-ff6fa-default-rtdb.firebaseio.com',
+  projectId: "lvlup-ff6fa",
+  databaseURL: "https://lvlup-ff6fa-default-rtdb.firebaseio.com",
 });
 
 const db = admin.firestore();
@@ -62,7 +67,7 @@ const Timestamp = admin.firestore.Timestamp;
 async function ensureAuthUser(
   email: string,
   password: string,
-  displayName: string,
+  displayName: string
 ): Promise<string> {
   try {
     const existing = await auth.getUserByEmail(email);
@@ -84,7 +89,10 @@ class BatchWriter {
   private count = 0;
   private totalWrites = 0;
 
-  async set(ref: admin.firestore.DocumentReference, data: Record<string, unknown>): Promise<void> {
+  async set(
+    ref: admin.firestore.DocumentReference,
+    data: Record<string, unknown>
+  ): Promise<void> {
     this.batch.set(ref, data);
     this.count++;
     this.totalWrites++;
@@ -94,7 +102,9 @@ class BatchWriter {
   async flush(): Promise<void> {
     if (this.count > 0) {
       await this.batch.commit();
-      console.log(`  Batch committed (${this.count} writes, total: ${this.totalWrites})`);
+      console.log(
+        `  Batch committed (${this.count} writes, total: ${this.totalWrites})`
+      );
       this.batch = db.batch();
       this.count = 0;
     }
@@ -115,21 +125,21 @@ function buildClaimsForMembership(m: MembershipLike): Record<string, unknown> {
     tenantCode: m.tenantCode,
   };
   switch (m.role) {
-    case 'teacher':
+    case "teacher":
       claims.teacherId = m.teacherId;
       claims.classIds = classIds.slice(0, MAX_CLAIM_CLASS_IDS);
       claims.classIdsOverflow = classIds.length > MAX_CLAIM_CLASS_IDS;
       break;
-    case 'student':
+    case "student":
       claims.studentId = m.studentId;
       claims.classIds = classIds.slice(0, MAX_CLAIM_CLASS_IDS);
       claims.classIdsOverflow = classIds.length > MAX_CLAIM_CLASS_IDS;
       break;
-    case 'parent':
+    case "parent":
       claims.parentId = m.parentId;
       claims.studentIds = m.parentLinkedStudentIds ?? [];
       break;
-    case 'tenantAdmin':
+    case "tenantAdmin":
       break;
   }
   return claims;
@@ -160,6 +170,7 @@ Always create entities in this order to satisfy references:
 ### 6. Firestore Document Patterns
 
 #### Tenant Document
+
 ```typescript
 {
   id: tenantId,
@@ -177,6 +188,7 @@ Always create entities in this order to satisfy references:
 ```
 
 #### User Membership
+
 ```typescript
 // Doc ID: `${uid}_${tenantId}`
 {
@@ -233,6 +245,7 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:909
 ### 10. Validation Checklist
 
 After seeding, verify:
+
 - [ ] All auth users exist (`firebase auth:export`)
 - [ ] Custom claims are set correctly
 - [ ] All tenant sub-collections populated

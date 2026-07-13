@@ -4,9 +4,9 @@
  * @module levelup/chat
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
-export type ChatMessageRole = 'user' | 'assistant' | 'system';
+export type ChatMessageRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;

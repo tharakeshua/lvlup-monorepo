@@ -1,4 +1,4 @@
-import { defineWorkspace } from 'vitest/config';
+import { defineWorkspace } from "vitest/config";
 
 /**
  * Vitest workspace configuration for monorepo
@@ -6,11 +6,11 @@ import { defineWorkspace } from 'vitest/config';
  */
 export default defineWorkspace([
   // Root level tests (if any)
-  '.',
+  ".",
   // All packages
-  'packages/*',
+  "packages/*",
   // All apps (if they have tests)
-  'apps/*',
+  "apps/*",
   // Cloud functions (if they have tests)
-  'functions/*',
+  "functions/*",
 ]);

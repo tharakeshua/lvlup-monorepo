@@ -124,11 +124,9 @@ describe("onSpaceProgressUpdated", () => {
     // Transaction
     mockRunTransaction.mockImplementation(async (fn: any) => {
       const txn = {
-        get: vi
-          .fn()
-          .mockResolvedValue({
-            data: () => ({ autograde: { subjectBreakdown: {}, averageScore: 70 } }),
-          }),
+        get: vi.fn().mockResolvedValue({
+          data: () => ({ autograde: { subjectBreakdown: {}, averageScore: 70 } }),
+        }),
         set: vi.fn(),
       };
       await fn(txn);
@@ -325,11 +323,9 @@ describe("onSpaceProgressUpdated", () => {
     let capturedOverallScore: number | undefined;
     mockRunTransaction.mockImplementation(async (fn: any) => {
       const txn = {
-        get: vi
-          .fn()
-          .mockResolvedValue({
-            data: () => ({ autograde: { averageScore: 70, subjectBreakdown: {} } }),
-          }),
+        get: vi.fn().mockResolvedValue({
+          data: () => ({ autograde: { averageScore: 70, subjectBreakdown: {} } }),
+        }),
         set: vi.fn((_, data: any) => {
           capturedOverallScore = data.overallScore;
         }),

@@ -11,7 +11,7 @@ export interface QuestionProgressData {
 
 export interface ItemProgressEntry {
   itemId: string;
-  itemType: 'question' | 'content' | 'video' | 'activity';
+  itemType: "question" | "content" | "video" | "activity";
   completed: boolean;
   interactions: number;
   questionData?: QuestionProgressData;

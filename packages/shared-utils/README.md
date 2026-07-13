@@ -21,7 +21,7 @@ pnpm add @levelup/shared-utils
 ### CSV Utilities
 
 ```typescript
-import { parseStudentCSV } from '@levelup/shared-utils/csv';
+import { parseStudentCSV } from "@levelup/shared-utils/csv";
 
 const result = await parseStudentCSV(csvContent);
 console.log(result.students); // Parsed students
@@ -33,7 +33,7 @@ console.log(result.warnings); // Warnings
 ### PDF Utilities
 
 ```typescript
-import { convertPdfToImages, fileToBase64 } from '@levelup/shared-utils/pdf';
+import { convertPdfToImages, fileToBase64 } from "@levelup/shared-utils/pdf";
 
 // Convert PDF to images
 const images = await convertPdfToImages(pdfFile);
@@ -50,22 +50,23 @@ import {
   isValidPhone,
   isValidURL,
   validateRequiredFields,
-} from '@levelup/shared-utils/validation';
+} from "@levelup/shared-utils/validation";
 
 // Email validation
-isValidEmail('user@example.com'); // true
+isValidEmail("user@example.com"); // true
 
 // Phone validation
-isValidPhone('+1-555-123-4567'); // true
+isValidPhone("+1-555-123-4567"); // true
 
 // URL validation
-isValidURL('https://example.com'); // true
+isValidURL("https://example.com"); // true
 
 // Required fields validation
-const result = validateRequiredFields(
-  { name: 'John', email: '' },
-  ['name', 'email', 'phone']
-);
+const result = validateRequiredFields({ name: "John", email: "" }, [
+  "name",
+  "email",
+  "phone",
+]);
 console.log(result.valid); // false
 console.log(result.missing); // ['email', 'phone']
 ```
@@ -81,7 +82,7 @@ import {
   toTitleCase,
   formatBytes,
   getInitials,
-} from '@levelup/shared-utils/formatting';
+} from "@levelup/shared-utils/formatting";
 
 // Currency
 formatCurrency(1234.56); // "$1,234.56"
@@ -93,16 +94,16 @@ formatNumber(1234567.89, 2); // "1,234,567.89"
 formatPercentage(85.5, 1); // "85.5%"
 
 // Text truncation
-truncate('Long text here', 10); // "Long te..."
+truncate("Long text here", 10); // "Long te..."
 
 // Title case
-toTitleCase('hello world'); // "Hello World"
+toTitleCase("hello world"); // "Hello World"
 
 // Bytes
 formatBytes(1024 * 1024); // "1 MB"
 
 // Initials
-getInitials('John Doe'); // "JD"
+getInitials("John Doe"); // "JD"
 ```
 
 ### Date Utilities
@@ -116,7 +117,7 @@ import {
   isToday,
   isPast,
   addDays,
-} from '@levelup/shared-utils/date';
+} from "@levelup/shared-utils/date";
 
 const date = new Date();
 

@@ -4,11 +4,7 @@ import sharedSafelist from "@levelup/tailwind-config/safelist";
 
 export default {
   presets: [sharedConfig],
-  content: [
-    "./index.html",
-    "./src/**/*.{ts,tsx}",
-    "../../packages/shared-ui/src/**/*.{ts,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{ts,tsx}", "../../packages/shared-ui/src/**/*.{ts,tsx}"],
   safelist: sharedSafelist,
   theme: {
     extend: {

@@ -5,7 +5,7 @@
  * Provides soft warnings and hard limits.
  */
 
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 export interface QuotaCheckResult {
   allowed: boolean;
@@ -39,18 +39,20 @@ export async function checkUsageQuota(tenantId: string): Promise<QuotaCheckResul
   const tenantData = tenantDoc.data();
   const quota: QuotaConfig = {
     ...DEFAULT_QUOTA,
-    ...(tenantData?.['settings'] as Record<string, unknown> | undefined)?.['usageQuota'] as Partial<QuotaConfig>,
+    ...((tenantData?.["settings"] as Record<string, unknown> | undefined)?.[
+      "usageQuota"
+    ] as Partial<QuotaConfig>),
   };
 
   const now = new Date();
-  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const today = `${yearMonth}-${String(now.getDate()).padStart(2, '0')}`;
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const today = `${yearMonth}-${String(now.getDate()).padStart(2, "0")}`;
 
   // Get current month's cost summaries
   const summariesSnap = await db
     .collection(`tenants/${tenantId}/costSummaries`)
-    .where('__name__', '>=', `${yearMonth}-01`)
-    .where('__name__', '<=', `${yearMonth}-31`)
+    .where("__name__", ">=", `${yearMonth}-01`)
+    .where("__name__", "<=", `${yearMonth}-31`)
     .get();
 
   let currentSpendUsd = 0;
@@ -59,10 +61,10 @@ export async function checkUsageQuota(tenantId: string): Promise<QuotaCheckResul
 
   for (const summaryDoc of summariesSnap.docs) {
     const data = summaryDoc.data();
-    currentSpendUsd += (data['totalCostUsd'] as number) ?? 0;
-    totalCalls += (data['totalCalls'] as number) ?? 0;
+    currentSpendUsd += (data["totalCostUsd"] as number) ?? 0;
+    totalCalls += (data["totalCalls"] as number) ?? 0;
     if (summaryDoc.id === today) {
-      todayCalls = (data['totalCalls'] as number) ?? 0;
+      todayCalls = (data["totalCalls"] as number) ?? 0;
     }
   }
 
@@ -80,7 +82,8 @@ export async function checkUsageQuota(tenantId: string): Promise<QuotaCheckResul
 
     if (usagePercent >= 100) {
       result.allowed = false;
-      result.warningMessage = 'AI grading quota reached for this month. Contact your administrator to increase the limit.';
+      result.warningMessage =
+        "AI grading quota reached for this month. Contact your administrator to increase the limit.";
       return result;
     }
 
@@ -109,16 +112,16 @@ export async function incrementDailyCostSummary(
   inputTokens: number,
   outputTokens: number,
   purpose: string,
-  model?: string,
+  model?: string
 ): Promise<void> {
   const db = admin.firestore();
   const now = new Date();
-  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const summaryRef = db.doc(`tenants/${tenantId}/costSummaries/${dateKey}`);
 
   // Sanitize model name for Firestore field path (replace dots/slashes)
-  const safeModelKey = (model ?? 'unknown').replace(/[./]/g, '_');
+  const safeModelKey = (model ?? "unknown").replace(/[./]/g, "_");
 
   // Use FieldValue.increment for atomic updates
   await summaryRef.set(
@@ -134,6 +137,6 @@ export async function incrementDailyCostSummary(
       [`byModel.${safeModelKey}.costUsd`]: admin.firestore.FieldValue.increment(costUsd),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
-    { merge: true },
+    { merge: true }
   );
 }

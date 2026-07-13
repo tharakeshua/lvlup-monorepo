@@ -16,7 +16,7 @@ export interface FirestoreTimestamp {
 }
 
 /** Firebase Auth provider identifier. */
-export type AuthProvider = 'email' | 'phone' | 'google' | 'apple';
+export type AuthProvider = "email" | "phone" | "google" | "apple";
 
 /** A single consumer space purchase record. */
 export interface PurchaseRecord {
@@ -30,7 +30,7 @@ export interface PurchaseRecord {
 
 /** Consumer (B2C) profile, optional for school users. */
 export interface ConsumerProfile {
-  plan: 'free' | 'pro' | 'premium';
+  plan: "free" | "pro" | "premium";
   enrolledSpaceIds: string[];
   purchaseHistory: PurchaseRecord[];
   totalSpend: number;
@@ -69,5 +69,5 @@ export interface UnifiedUser {
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
   lastLogin?: FirestoreTimestamp;
-  status: 'active' | 'suspended' | 'deleted';
+  status: "active" | "suspended" | "deleted";
 }

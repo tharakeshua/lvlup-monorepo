@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { cn } from '../../lib/utils';
-import { SkeletonShimmer } from '../motion/SkeletonShimmer';
+import * as React from "react";
+import { cn } from "../../lib/utils";
+import { SkeletonShimmer } from "../motion/SkeletonShimmer";
 
 export interface ProgressRingProps {
   value: number; // 0–100
@@ -25,7 +25,7 @@ export function ProgressRing({
   loading = false,
 }: ProgressRingProps) {
   const prevValueRef = React.useRef(value);
-  const [announcement, setAnnouncement] = React.useState('');
+  const [announcement, setAnnouncement] = React.useState("");
 
   React.useEffect(() => {
     if (prevValueRef.current !== value) {
@@ -43,7 +43,12 @@ export function ProgressRing({
   const offset = circumference - (clamped / 100) * circumference;
 
   const resolvedColor =
-    color ?? (clamped >= 70 ? 'hsl(var(--success))' : clamped >= 40 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))');
+    color ??
+    (clamped >= 70
+      ? "hsl(var(--success))"
+      : clamped >= 40
+        ? "hsl(var(--warning))"
+        : "hsl(var(--destructive))");
 
   return (
     <div
@@ -52,7 +57,7 @@ export function ProgressRing({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={label ?? `${Math.round(clamped)}% complete`}
-      className={cn('relative inline-flex items-center justify-center', className)}
+      className={cn("relative inline-flex items-center justify-center", className)}
     >
       <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle
@@ -80,9 +85,7 @@ export function ProgressRing({
       {showValue && (
         <div className="absolute flex flex-col items-center" aria-hidden="true">
           <span className="text-sm font-bold">{Math.round(clamped)}%</span>
-          {label && (
-            <span className="text-[10px] text-muted-foreground">{label}</span>
-          )}
+          {label && <span className="text-muted-foreground text-[10px]">{label}</span>}
         </div>
       )}
       {announcement && (

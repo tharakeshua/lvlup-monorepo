@@ -5,10 +5,10 @@
  * into the unified user model. Also creates the client admin's user + membership.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore, toTimestamp } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore, toTimestamp } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyStudent {
   _docId: string;
@@ -22,7 +22,7 @@ interface LegacyStudent {
   classIds: string[];
   parentIds: string[];
   createdAt: admin.firestore.Timestamp;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   metadata?: { dateOfBirth?: admin.firestore.Timestamp; phone?: string };
 }
 
@@ -38,7 +38,7 @@ interface LegacyTeacher {
   subjects: string[];
   phone?: string;
   createdAt: admin.firestore.Timestamp;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 }
 
 interface LegacyParent {
@@ -52,7 +52,7 @@ interface LegacyParent {
   studentIds: string[];
   phone?: string;
   createdAt: admin.firestore.Timestamp;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 }
 
 export async function migrateAutogradeUsers(options: {
@@ -84,13 +84,13 @@ export async function migrateAutogradeUsers(options: {
         lastName: student.lastName,
         phone: student.metadata?.phone || null,
         tenantId,
-        role: 'student',
-        joinSource: 'migration',
+        role: "student",
+        joinSource: "migration",
         studentId: student._docId,
         classIds: student.classIds,
         parentIds: student.parentIds,
         createdAt: student.createdAt,
-        status: student.status === 'active' ? 'active' : 'inactive',
+        status: student.status === "active" ? "active" : "inactive",
         dryRun,
         logger,
       });
@@ -116,13 +116,13 @@ export async function migrateAutogradeUsers(options: {
         lastName: teacher.lastName,
         phone: teacher.phone || null,
         tenantId,
-        role: 'teacher',
-        joinSource: 'migration',
+        role: "teacher",
+        joinSource: "migration",
         teacherId: teacher._docId,
         classIds: teacher.classIds,
         subjects: teacher.subjects,
         createdAt: teacher.createdAt,
-        status: teacher.status === 'active' ? 'active' : 'inactive',
+        status: teacher.status === "active" ? "active" : "inactive",
         dryRun,
         logger,
       });
@@ -148,12 +148,12 @@ export async function migrateAutogradeUsers(options: {
         lastName: parent.lastName,
         phone: parent.phone || null,
         tenantId,
-        role: 'parent',
-        joinSource: 'migration',
+        role: "parent",
+        joinSource: "migration",
         parentId: parent._docId,
         studentIds: parent.studentIds,
         createdAt: parent.createdAt,
-        status: parent.status === 'active' ? 'active' : 'inactive',
+        status: parent.status === "active" ? "active" : "inactive",
         dryRun,
         logger,
       });
@@ -175,7 +175,7 @@ async function migrateUserDoc(
     lastName: string;
     phone: string | null;
     tenantId: string;
-    role: 'student' | 'teacher' | 'parent';
+    role: "student" | "teacher" | "parent";
     joinSource: string;
     studentId?: string;
     teacherId?: string;
@@ -185,11 +185,11 @@ async function migrateUserDoc(
     studentIds?: string[];
     subjects?: string[];
     createdAt: admin.firestore.Timestamp;
-    status: 'active' | 'inactive';
+    status: "active" | "inactive";
     dryRun: boolean;
     logger: MigrationLogger;
   }
-): Promise<{ action: 'created' | 'skipped' | 'error'; id: string }> {
+): Promise<{ action: "created" | "skipped" | "error"; id: string }> {
   const { uid, dryRun, logger } = params;
 
   // Create or merge /users/{uid}
@@ -197,19 +197,19 @@ async function migrateUserDoc(
   const userExists = await docExists(db, userPath);
 
   if (dryRun) {
-    logger.info(`[DRY RUN] Would ${userExists ? 'merge' : 'create'} user ${uid} (${params.role})`);
+    logger.info(`[DRY RUN] Would ${userExists ? "merge" : "create"} user ${uid} (${params.role})`);
   } else {
     const userData = {
       uid,
       email: params.email || null,
       phone: params.phone,
-      authProviders: params.email ? ['email'] : [],
+      authProviders: params.email ? ["email"] : [],
       displayName: params.displayName,
       firstName: params.firstName,
       lastName: params.lastName,
       photoURL: null,
       isSuperAdmin: false,
-      status: params.status === 'active' ? 'active' : 'suspended',
+      status: params.status === "active" ? "active" : "suspended",
       updatedAt: admin.firestore.Timestamp.now(),
       ...(!userExists && {
         createdAt: params.createdAt || admin.firestore.Timestamp.now(),
@@ -224,22 +224,22 @@ async function migrateUserDoc(
 
   if (await docExists(db, membershipPath)) {
     logger.debug(`Membership ${membershipId} already exists, skipping`);
-    return { action: 'skipped', id: uid };
+    return { action: "skipped", id: uid };
   }
 
   if (dryRun) {
     logger.info(`[DRY RUN] Would create membership ${membershipId}`);
-    return { action: 'created', id: uid };
+    return { action: "created", id: uid };
   }
 
   const membership: Record<string, unknown> = {
     id: membershipId,
     uid,
     tenantId: params.tenantId,
-    tenantCode: '', // Will be populated by tenant lookup if needed
+    tenantCode: "", // Will be populated by tenant lookup if needed
     role: params.role,
     status: params.status,
-    joinSource: 'migration',
+    joinSource: "migration",
     createdAt: params.createdAt || admin.firestore.Timestamp.now(),
     updatedAt: admin.firestore.Timestamp.now(),
   };
@@ -249,7 +249,7 @@ async function migrateUserDoc(
   if (params.parentId) membership.parentId = params.parentId;
   if (params.studentIds) membership.parentLinkedStudentIds = params.studentIds;
 
-  if (params.role === 'teacher' && params.classIds) {
+  if (params.role === "teacher" && params.classIds) {
     membership.permissions = {
       canCreateExams: true,
       canEditRubrics: true,
@@ -265,5 +265,5 @@ async function migrateUserDoc(
   }
 
   batch.set(db.doc(membershipPath), membership);
-  return { action: 'created', id: uid };
+  return { action: "created", id: uid };
 }

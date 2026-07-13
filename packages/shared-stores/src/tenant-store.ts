@@ -1,7 +1,13 @@
-import { create } from 'zustand';
-import { doc, onSnapshot } from 'firebase/firestore';
-import type { Tenant, TenantSettings, TenantFeatures, TenantBranding, TenantUsage } from '@levelup/shared-types';
-import { getFirebaseServices } from '@levelup/shared-services';
+import { create } from "zustand";
+import { doc, onSnapshot } from "firebase/firestore";
+import type {
+  Tenant,
+  TenantSettings,
+  TenantFeatures,
+  TenantBranding,
+  TenantUsage,
+} from "@levelup/shared-types";
+import { getFirebaseServices } from "@levelup/shared-services";
 
 // ---------------------------------------------------------------------------
 // State interface
@@ -41,7 +47,7 @@ export const useTenantStore = create<TenantState>((set) => ({
     set({ loading: true, error: null });
 
     const { db } = getFirebaseServices();
-    const tenantRef = doc(db, 'tenants', tenantId);
+    const tenantRef = doc(db, "tenants", tenantId);
 
     const unsubscribe = onSnapshot(
       tenantRef,
@@ -65,16 +71,16 @@ export const useTenantStore = create<TenantState>((set) => ({
             branding: null,
             usage: null,
             loading: false,
-            error: 'Tenant not found',
+            error: "Tenant not found",
           });
         }
       },
       (err) => {
         set({
-          error: err instanceof Error ? err.message : 'Failed to load tenant',
+          error: err instanceof Error ? err.message : "Failed to load tenant",
           loading: false,
         });
-      },
+      }
     );
 
     return unsubscribe;

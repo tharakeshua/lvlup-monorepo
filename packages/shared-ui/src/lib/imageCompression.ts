@@ -23,8 +23,8 @@ export async function compressImage(
   maxDimensions: { width: number; height: number } = { width: 1920, height: 1920 }
 ): Promise<string> {
   // Validate input
-  if (!file.type.startsWith('image/')) {
-    throw new Error('File must be an image');
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File must be an image");
   }
 
   // Load image
@@ -68,7 +68,7 @@ export async function compressImage(
 
     // Ensure minimum dimensions
     if (currentWidth < 100 || currentHeight < 100) {
-      throw new Error('Image cannot be compressed to target size while maintaining quality');
+      throw new Error("Image cannot be compressed to target size while maintaining quality");
     }
 
     result = compressToCanvas(img, currentWidth, currentHeight, minQuality);
@@ -88,12 +88,12 @@ function loadImage(file: File): Promise<HTMLImageElement> {
       const img = new Image();
 
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error("Failed to load image"));
 
       img.src = e.target?.result as string;
     };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
 }
@@ -129,20 +129,20 @@ function compressToCanvas(
   height: number,
   quality: number
 ): string {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (!ctx) {
-    throw new Error('Failed to get canvas context');
+    throw new Error("Failed to get canvas context");
   }
 
   // Draw image to canvas
   ctx.drawImage(img, 0, 0, width, height);
 
   // Export as JPEG with specified quality
-  return canvas.toDataURL('image/jpeg', quality);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 /**
@@ -150,7 +150,7 @@ function compressToCanvas(
  */
 function estimateSizeKB(dataUrl: string): number {
   // Remove data URL prefix to get base64 string
-  const base64 = dataUrl.split(',')[1] || dataUrl;
+  const base64 = dataUrl.split(",")[1] || dataUrl;
 
   // Base64 encoding: 4 characters per 3 bytes
   // Actual size = (base64_length * 3) / 4
@@ -164,7 +164,7 @@ function estimateSizeKB(dataUrl: string): number {
  * Extract base64 string without data URL prefix
  */
 export function extractBase64(dataUrl: string): string {
-  const parts = dataUrl.split(',');
+  const parts = dataUrl.split(",");
   return parts.length > 1 ? parts[1]! : dataUrl;
 }
 
@@ -185,7 +185,7 @@ export async function compressImages(
       return {
         base64,
         originalName: file.name,
-        sizeKB
+        sizeKB,
       };
     })
   );

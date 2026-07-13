@@ -26,18 +26,13 @@
         "name": "regression-cycle-1",
         "testDir": "/Users/subhang/Desktop/Projects/auto-levleup/tests/e2e",
         "testIgnore": [],
-        "testMatch": [
-          "regression-cycle-1*.spec.ts"
-        ],
+        "testMatch": ["regression-cycle-1*.spec.ts"],
         "timeout": 120000
       }
     ],
     "quiet": false,
     "reporter": [
-      [
-        "list",
-        null
-      ],
+      ["list", null],
       [
         "json",
         {

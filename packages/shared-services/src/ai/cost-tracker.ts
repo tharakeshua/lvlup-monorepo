@@ -11,16 +11,16 @@ interface ModelPricing {
 }
 
 // Conservative fallback for unknown models (uses mid-tier pricing to avoid undercounting)
-const FALLBACK_PRICING: ModelPricing = { inputPer1M: 1.25, outputPer1M: 5.00 };
+const FALLBACK_PRICING: ModelPricing = { inputPer1M: 1.25, outputPer1M: 5.0 };
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
-  'gemini-2.5-flash': { inputPer1M: 0.15, outputPer1M: 0.60 },
-  'gemini-2.5-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.30 },
-  'gemini-2.5-pro': { inputPer1M: 1.25, outputPer1M: 5.00 },
-  'gemini-2.0-flash': { inputPer1M: 0.10, outputPer1M: 0.40 },
-  'gemini-2.0-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.30 },
-  'gemini-1.5-flash': { inputPer1M: 0.075, outputPer1M: 0.30 },
-  'gemini-1.5-pro': { inputPer1M: 1.25, outputPer1M: 5.00 },
+  "gemini-2.5-flash": { inputPer1M: 0.15, outputPer1M: 0.6 },
+  "gemini-2.5-flash-lite": { inputPer1M: 0.075, outputPer1M: 0.3 },
+  "gemini-2.5-pro": { inputPer1M: 1.25, outputPer1M: 5.0 },
+  "gemini-2.0-flash": { inputPer1M: 0.1, outputPer1M: 0.4 },
+  "gemini-2.0-flash-lite": { inputPer1M: 0.075, outputPer1M: 0.3 },
+  "gemini-1.5-flash": { inputPer1M: 0.075, outputPer1M: 0.3 },
+  "gemini-1.5-pro": { inputPer1M: 1.25, outputPer1M: 5.0 },
 };
 
 export interface TokenUsage {
@@ -33,7 +33,7 @@ export interface CostBreakdown {
   input: number;
   output: number;
   total: number;
-  currency: 'USD';
+  currency: "USD";
 }
 
 /**
@@ -43,7 +43,9 @@ export function estimateCost(model: string, tokens: TokenUsage): CostBreakdown {
   let pricing = MODEL_PRICING[model];
   if (!pricing) {
     // Unknown model — use a conservative fallback pricing tier to avoid undercounting
-    console.error(`[CostTracker] Unknown model "${model}"; using fallback pricing. Add this model to MODEL_PRICING.`);
+    console.error(
+      `[CostTracker] Unknown model "${model}"; using fallback pricing. Add this model to MODEL_PRICING.`
+    );
     pricing = FALLBACK_PRICING;
   }
 
@@ -54,7 +56,7 @@ export function estimateCost(model: string, tokens: TokenUsage): CostBreakdown {
     input: parseFloat(inputCost.toFixed(8)),
     output: parseFloat(outputCost.toFixed(8)),
     total: parseFloat((inputCost + outputCost).toFixed(8)),
-    currency: 'USD',
+    currency: "USD",
   };
 }
 

@@ -55,7 +55,8 @@ module.exports = {
 
 ## Color System
 
-All colors use HSL format and are defined as CSS variables. Define these in your global CSS:
+All colors use HSL format and are defined as CSS variables. Define these in your
+global CSS:
 
 ```css
 :root {

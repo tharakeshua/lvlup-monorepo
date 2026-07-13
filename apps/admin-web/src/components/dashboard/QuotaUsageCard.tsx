@@ -25,19 +25,22 @@ export default function QuotaUsageCard({ label, current, max }: QuotaUsageCardPr
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
         <span className="text-sm font-medium">{label}</span>
-        <span className={`text-xs ${isUnlimited ? "text-muted-foreground" : getUsageTextColor(ratio)}`}>
-          {current}{isUnlimited ? "" : ` / ${max}`}
+        <span
+          className={`text-xs ${isUnlimited ? "text-muted-foreground" : getUsageTextColor(ratio)}`}
+        >
+          {current}
+          {isUnlimited ? "" : ` / ${max}`}
         </span>
       </div>
       {isUnlimited ? (
         <div className="flex items-center gap-1.5">
-          <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-            <div className="h-full w-1/4 rounded-full bg-primary/30" />
+          <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
+            <div className="bg-primary/30 h-full w-1/4 rounded-full" />
           </div>
-          <span className="text-[10px] text-muted-foreground">Unlimited</span>
+          <span className="text-muted-foreground text-[10px]">Unlimited</span>
         </div>
       ) : (
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
           <div
             className={`h-full rounded-full transition-all ${getUsageColor(ratio)}`}
             style={{ width: `${percentage}%` }}

@@ -13,7 +13,15 @@
  *
  * Triggers on: /tenants/{tenantId}/studentProgressSummaries/{studentId}
  */
-export declare const onProgressMilestone: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").Change<import("firebase-functions/firestore").QueryDocumentSnapshot> | undefined, {
-    tenantId: string;
-    studentId: string;
-}>>;
+export declare const onProgressMilestone: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    | import("firebase-functions/firestore").Change<
+        import("firebase-functions/firestore").QueryDocumentSnapshot
+      >
+    | undefined,
+    {
+      tenantId: string;
+      studentId: string;
+    }
+  >
+>;

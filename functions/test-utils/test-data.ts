@@ -9,7 +9,7 @@
 const mockTimestamp = {
   seconds: 1700000000,
   nanoseconds: 0,
-  toDate: () => new Date('2023-11-14T22:13:20Z'),
+  toDate: () => new Date("2023-11-14T22:13:20Z"),
   toMillis: () => 1700000000000,
 };
 
@@ -28,12 +28,12 @@ export function fakeTimestamp(dateStr?: string) {
 
 export function makeUser(overrides: Record<string, unknown> = {}) {
   return {
-    uid: 'user-1',
-    email: 'test@example.com',
-    displayName: 'Test User',
-    authProviders: ['email'],
+    uid: "user-1",
+    email: "test@example.com",
+    displayName: "Test User",
+    authProviders: ["email"],
     isSuperAdmin: false,
-    status: 'active',
+    status: "active",
     createdAt: mockTimestamp,
     updatedAt: mockTimestamp,
     ...overrides,
@@ -42,18 +42,18 @@ export function makeUser(overrides: Record<string, unknown> = {}) {
 
 export function makeMembership(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'user-1_tenant-1',
-    uid: 'user-1',
-    tenantId: 'tenant-1',
-    tenantCode: 'TST001',
-    role: 'teacher',
-    status: 'active',
-    joinSource: 'admin_created',
+    id: "user-1_tenant-1",
+    uid: "user-1",
+    tenantId: "tenant-1",
+    tenantCode: "TST001",
+    role: "teacher",
+    status: "active",
+    joinSource: "admin_created",
     permissions: {
       canCreateExams: true,
       canEditRubrics: true,
       canManuallyGrade: true,
-      managedClassIds: ['class-1'],
+      managedClassIds: ["class-1"],
     },
     createdAt: mockTimestamp,
     updatedAt: mockTimestamp,
@@ -63,14 +63,14 @@ export function makeMembership(overrides: Record<string, unknown> = {}) {
 
 export function makeTenant(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'tenant-1',
-    name: 'Test School',
-    slug: 'test-school',
-    tenantCode: 'TST001',
-    ownerUid: 'owner-1',
-    contactEmail: 'admin@test.com',
-    status: 'active',
-    subscription: { plan: 'trial' },
+    id: "tenant-1",
+    name: "Test School",
+    slug: "test-school",
+    tenantCode: "TST001",
+    ownerUid: "owner-1",
+    contactEmail: "admin@test.com",
+    status: "active",
+    subscription: { plan: "trial" },
     features: {
       autoGradeEnabled: true,
       levelUpEnabled: true,
@@ -100,12 +100,12 @@ export function makeTenant(overrides: Record<string, unknown> = {}) {
 
 export function makeExam(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'exam-1',
-    tenantId: 'tenant-1',
-    title: 'Math Mid-Term',
-    subject: 'Mathematics',
-    topics: ['Algebra', 'Geometry'],
-    classIds: ['class-1'],
+    id: "exam-1",
+    tenantId: "tenant-1",
+    title: "Math Mid-Term",
+    subject: "Mathematics",
+    topics: ["Algebra", "Geometry"],
+    classIds: ["class-1"],
     sectionIds: [],
     examDate: mockTimestamp,
     duration: 120,
@@ -121,18 +121,18 @@ export function makeExam(overrides: Record<string, unknown> = {}) {
       evaluationSettingsId: null,
     },
     questionPaper: {
-      images: ['tenants/tenant-1/exams/exam-1/qp/page1.jpg'],
+      images: ["tenants/tenant-1/exams/exam-1/qp/page1.jpg"],
       questionCount: 5,
       extractedAt: mockTimestamp,
     },
-    status: 'published',
+    status: "published",
     stats: {
       totalSubmissions: 0,
       gradedSubmissions: 0,
       avgScore: 0,
       passRate: 0,
     },
-    createdBy: 'user-1',
+    createdBy: "user-1",
     createdAt: mockTimestamp,
     updatedAt: mockTimestamp,
     ...overrides,
@@ -141,22 +141,27 @@ export function makeExam(overrides: Record<string, unknown> = {}) {
 
 export function makeExamQuestion(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'Q1',
-    examId: 'exam-1',
-    text: 'Solve for x: 2x + 3 = 7',
+    id: "Q1",
+    examId: "exam-1",
+    text: "Solve for x: 2x + 3 = 7",
     maxMarks: 10,
     order: 0,
     rubric: {
       criteria: [
-        { id: 'c1', name: 'Correct Setup', description: 'Sets up equation correctly', maxPoints: 4 },
-        { id: 'c2', name: 'Solution', description: 'Arrives at x = 2', maxPoints: 6 },
+        {
+          id: "c1",
+          name: "Correct Setup",
+          description: "Sets up equation correctly",
+          maxPoints: 4,
+        },
+        { id: "c2", name: "Solution", description: "Arrives at x = 2", maxPoints: 6 },
       ],
-      scoringMode: 'criteria_based',
+      scoringMode: "criteria_based",
       dimensions: [],
     },
-    questionType: 'standard',
+    questionType: "standard",
     subQuestions: [],
-    extractedBy: 'ai',
+    extractedBy: "ai",
     extractedAt: mockTimestamp,
     createdAt: mockTimestamp,
     updatedAt: mockTimestamp,
@@ -166,31 +171,31 @@ export function makeExamQuestion(overrides: Record<string, unknown> = {}) {
 
 export function makeSubmission(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'sub-1',
-    tenantId: 'tenant-1',
-    examId: 'exam-1',
-    studentId: 'student-1',
-    studentName: 'Alice Smith',
-    rollNumber: '001',
-    classId: 'class-1',
+    id: "sub-1",
+    tenantId: "tenant-1",
+    examId: "exam-1",
+    studentId: "student-1",
+    studentName: "Alice Smith",
+    rollNumber: "001",
+    classId: "class-1",
     answerSheets: {
       images: [
-        'tenants/tenant-1/submissions/sub-1/page1.jpg',
-        'tenants/tenant-1/submissions/sub-1/page2.jpg',
+        "tenants/tenant-1/submissions/sub-1/page1.jpg",
+        "tenants/tenant-1/submissions/sub-1/page2.jpg",
       ],
       uploadedAt: mockTimestamp,
-      uploadedBy: 'user-1',
-      uploadSource: 'web',
+      uploadedBy: "user-1",
+      uploadSource: "web",
     },
     summary: {
       totalScore: 0,
       maxScore: 100,
       percentage: 0,
-      grade: '',
+      grade: "",
       questionsGraded: 0,
       totalQuestions: 5,
     },
-    pipelineStatus: 'uploaded',
+    pipelineStatus: "uploaded",
     retryCount: 0,
     resultsReleased: false,
     createdAt: mockTimestamp,
@@ -201,16 +206,16 @@ export function makeSubmission(overrides: Record<string, unknown> = {}) {
 
 export function makeQuestionSubmission(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'Q1',
-    submissionId: 'sub-1',
-    questionId: 'Q1',
-    examId: 'exam-1',
+    id: "Q1",
+    submissionId: "sub-1",
+    questionId: "Q1",
+    examId: "exam-1",
     mapping: {
       pageIndices: [0],
-      imageUrls: ['tenants/tenant-1/submissions/sub-1/page1.jpg'],
+      imageUrls: ["tenants/tenant-1/submissions/sub-1/page1.jpg"],
       scoutedAt: mockTimestamp,
     },
-    gradingStatus: 'pending',
+    gradingStatus: "pending",
     gradingRetryCount: 0,
     evaluation: null,
     manualOverride: null,
@@ -224,18 +229,18 @@ export function makeQuestionSubmission(overrides: Record<string, unknown> = {}) 
 
 export function makeSpace(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'space-1',
-    tenantId: 'tenant-1',
-    title: 'Algebra Basics',
-    description: 'Learn algebra fundamentals',
-    slug: 'algebra-basics',
-    type: 'learn',
-    subject: 'Mathematics',
+    id: "space-1",
+    tenantId: "tenant-1",
+    title: "Algebra Basics",
+    description: "Learn algebra fundamentals",
+    slug: "algebra-basics",
+    type: "learn",
+    subject: "Mathematics",
     labels: [],
-    classIds: ['class-1'],
+    classIds: ["class-1"],
     sectionIds: [],
-    teacherIds: ['user-1'],
-    accessType: 'class_assigned',
+    teacherIds: ["user-1"],
+    accessType: "class_assigned",
     defaultTimeLimitMinutes: null,
     allowRetakes: true,
     maxRetakes: 0,
@@ -243,7 +248,7 @@ export function makeSpace(overrides: Record<string, unknown> = {}) {
     defaultRubric: null,
     defaultEvaluatorAgentId: null,
     defaultTutorAgentId: null,
-    status: 'published',
+    status: "published",
     publishedAt: mockTimestamp,
     archivedAt: null,
     stats: {
@@ -252,7 +257,7 @@ export function makeSpace(overrides: Record<string, unknown> = {}) {
       totalStudents: 5,
       avgCompletionRate: 0,
     },
-    createdBy: 'user-1',
+    createdBy: "user-1",
     createdAt: mockTimestamp,
     updatedAt: mockTimestamp,
     ...overrides,
@@ -261,11 +266,11 @@ export function makeSpace(overrides: Record<string, unknown> = {}) {
 
 export function makeStoryPoint(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'sp-1',
-    spaceId: 'space-1',
-    tenantId: 'tenant-1',
-    title: 'Introduction',
-    type: 'standard',
+    id: "sp-1",
+    spaceId: "space-1",
+    tenantId: "tenant-1",
+    title: "Introduction",
+    type: "standard",
     order: 0,
     assessmentConfig: {
       durationMinutes: 0,
@@ -281,20 +286,20 @@ export function makeStoryPoint(overrides: Record<string, unknown> = {}) {
 
 export function makeItem(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'item-1',
-    spaceId: 'space-1',
-    storyPointId: 'sp-1',
-    tenantId: 'tenant-1',
-    title: 'What is 2+2?',
-    type: 'question',
+    id: "item-1",
+    spaceId: "space-1",
+    storyPointId: "sp-1",
+    tenantId: "tenant-1",
+    title: "What is 2+2?",
+    type: "question",
     order: 0,
     payload: {
-      questionType: 'mcq',
+      questionType: "mcq",
       questionData: {
         options: [
-          { id: 'a', text: '3', isCorrect: false },
-          { id: 'b', text: '4', isCorrect: true },
-          { id: 'c', text: '5', isCorrect: false },
+          { id: "a", text: "3", isCorrect: false },
+          { id: "b", text: "4", isCorrect: true },
+          { id: "c", text: "5", isCorrect: false },
         ],
       },
       basePoints: 1,
@@ -310,9 +315,9 @@ export function makeItem(overrides: Record<string, unknown> = {}) {
 
 export function makeCallerMembership(overrides: Record<string, unknown> = {}) {
   return {
-    uid: 'user-1',
-    tenantId: 'tenant-1',
-    role: 'teacher',
+    uid: "user-1",
+    tenantId: "tenant-1",
+    role: "teacher",
     permissions: { canCreateExams: true, canEditRubrics: true, canManuallyGrade: true },
     ...overrides,
   };
@@ -324,15 +329,15 @@ export function makeCallableRequest(
   auth?: {
     uid: string;
     token: Record<string, unknown>;
-  },
+  }
 ) {
   return {
     data,
     auth: auth ?? {
-      uid: 'user-1',
+      uid: "user-1",
       token: {
-        tenantId: 'tenant-1',
-        role: 'teacher',
+        tenantId: "tenant-1",
+        role: "teacher",
         permissions: { canCreateExams: true },
       },
     },

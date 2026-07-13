@@ -4,54 +4,66 @@
  * @module content/item
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { UnifiedRubric } from './rubric';
-import type { ItemMetadata, ItemAnalytics } from './item-metadata';
-import type { BloomsLevel } from '../constants/grades';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { UnifiedRubric } from "./rubric";
+import type { ItemMetadata, ItemAnalytics } from "./item-metadata";
+import type { BloomsLevel } from "../constants/grades";
 
 // ─────────────────────────────────────────────────────
 // 7 Top-Level Item Types
 // ─────────────────────────────────────────────────────
 
 export type ItemType =
-  | 'question'
-  | 'material'
-  | 'interactive'
-  | 'assessment'
-  | 'discussion'
-  | 'project'
-  | 'checkpoint';
+  | "question"
+  | "material"
+  | "interactive"
+  | "assessment"
+  | "discussion"
+  | "project"
+  | "checkpoint";
 
 // ─────────────────────────────────────────────────────
 // 15 Question Subtypes
 // ─────────────────────────────────────────────────────
 
 export type QuestionType =
-  | 'mcq'
-  | 'mcaq'
-  | 'true-false'
-  | 'numerical'
-  | 'text'
-  | 'paragraph'
-  | 'code'
-  | 'fill-blanks'
-  | 'fill-blanks-dd'
-  | 'matching'
-  | 'jumbled'
-  | 'audio'
-  | 'image_evaluation'
-  | 'group-options'
-  | 'chat_agent_question';
+  | "mcq"
+  | "mcaq"
+  | "true-false"
+  | "numerical"
+  | "text"
+  | "paragraph"
+  | "code"
+  | "fill-blanks"
+  | "fill-blanks-dd"
+  | "matching"
+  | "jumbled"
+  | "audio"
+  | "image_evaluation"
+  | "group-options"
+  | "chat_agent_question";
 
 /** Auto-evaluatable question types (no AI needed) */
 export const AUTO_EVALUATABLE_TYPES: QuestionType[] = [
-  'mcq', 'mcaq', 'true-false', 'numerical',
-  'fill-blanks', 'fill-blanks-dd', 'matching', 'jumbled', 'group-options',
+  "mcq",
+  "mcaq",
+  "true-false",
+  "numerical",
+  "fill-blanks",
+  "fill-blanks-dd",
+  "matching",
+  "jumbled",
+  "group-options",
 ];
 
 /** AI-evaluatable question types */
 export const AI_EVALUATABLE_TYPES: QuestionType[] = [
-  'text', 'paragraph', 'code', 'audio', 'image_evaluation', 'chat_agent_question',
+  "text",
+  "paragraph",
+  "code",
+  "audio",
+  "image_evaluation",
+  "chat_agent_question",
 ];
 
 // ── Question type-specific data ──────────────────────
@@ -228,7 +240,7 @@ export interface QuestionPayload {
   content: string;
   explanation?: string;
   basePoints?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   bloomsLevel?: BloomsLevel;
   questionData: QuestionTypeData;
 }
@@ -237,19 +249,20 @@ export interface QuestionPayload {
 // 7 Material Subtypes
 // ─────────────────────────────────────────────────────
 
-export type MaterialType =
-  | 'text'
-  | 'video'
-  | 'pdf'
-  | 'link'
-  | 'interactive'
-  | 'story'
-  | 'rich';
+export type MaterialType = "text" | "video" | "pdf" | "link" | "interactive" | "story" | "rich";
 
 export interface RichContentBlockItem {
   id: string;
-  type: 'heading' | 'paragraph' | 'image' | 'video' | 'audio'
-    | 'code' | 'quote' | 'list' | 'divider';
+  type:
+    | "heading"
+    | "paragraph"
+    | "image"
+    | "video"
+    | "audio"
+    | "code"
+    | "quote"
+    | "list"
+    | "divider";
   content: string;
   metadata?: Record<string, unknown>;
   styles?: Record<string, unknown>;
@@ -279,7 +292,7 @@ export interface MaterialPayload {
 // ─────────────────────────────────────────────────────
 
 export interface InteractivePayload {
-  interactiveType: 'simulation' | 'demo' | 'tool' | 'game';
+  interactiveType: "simulation" | "demo" | "tool" | "game";
   url: string;
   embeddable?: boolean;
   parameters?: Record<string, unknown>;
@@ -293,7 +306,7 @@ export interface AssessmentRubricItem {
 }
 
 export interface AssessmentPayload {
-  assessmentType: 'quiz' | 'exam' | 'project' | 'peer_review';
+  assessmentType: "quiz" | "exam" | "project" | "peer_review";
   timeLimit?: number;
   attempts?: number;
   passingScore?: number;
@@ -303,7 +316,7 @@ export interface AssessmentPayload {
 
 export interface DiscussionPayload {
   prompt: string;
-  threadType: 'open' | 'guided';
+  threadType: "open" | "guided";
   moderationEnabled?: boolean;
 }
 
@@ -341,7 +354,7 @@ export interface ItemAttachment {
   id: string;
   fileName: string;
   url: string;
-  type: 'image' | 'pdf' | 'audio';
+  type: "image" | "pdf" | "audio";
   size: number;
   mimeType: string;
 }
@@ -367,7 +380,7 @@ export interface UnifiedItem {
   content?: string;
 
   // Classification
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   topics?: string[];
   labels?: string[];
 

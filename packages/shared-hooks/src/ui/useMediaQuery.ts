@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 /**
  * Hook to detect media query matches
@@ -18,10 +18,10 @@ export function useMediaQuery(query: string): boolean {
     };
 
     // Add listener
-    mediaQuery.addEventListener('change', handler);
+    mediaQuery.addEventListener("change", handler);
 
     // Cleanup
-    return () => mediaQuery.removeEventListener('change', handler);
+    return () => mediaQuery.removeEventListener("change", handler);
   }, [query]);
 
   return matches;
@@ -38,9 +38,7 @@ export function useIsMobile(breakpoint = 768): boolean {
  * Hook to detect if viewport is tablet size
  */
 export function useIsTablet(minBreakpoint = 768, maxBreakpoint = 1024): boolean {
-  return useMediaQuery(
-    `(min-width: ${minBreakpoint}px) and (max-width: ${maxBreakpoint - 1}px)`
-  );
+  return useMediaQuery(`(min-width: ${minBreakpoint}px) and (max-width: ${maxBreakpoint - 1}px)`);
 }
 
 /**
@@ -54,5 +52,5 @@ export function useIsDesktop(breakpoint = 1024): boolean {
  * Hook to detect if user prefers dark mode
  */
 export function usePrefersDarkMode(): boolean {
-  return useMediaQuery('(prefers-color-scheme: dark)');
+  return useMediaQuery("(prefers-color-scheme: dark)");
 }

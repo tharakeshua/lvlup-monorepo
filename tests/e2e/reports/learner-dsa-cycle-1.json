@@ -90,10 +90,7 @@
   },
   "quizMode": {
     "tested": true,
-    "questionTypesFound": [
-      "MCQ",
-      "MCAQ"
-    ],
+    "questionTypesFound": ["MCQ", "MCAQ"],
     "resultsDisplayed": false,
     "notes": []
   },
@@ -102,9 +99,7 @@
     "timerVisible": false,
     "autoSubmit": null,
     "analyticsShown": false,
-    "notes": [
-      "Timer not visible on landing page (may appear after starting test)"
-    ]
+    "notes": ["Timer not visible on landing page (may appear after starting test)"]
   },
   "learningEffectiveness": {
     "score": 4.3,

@@ -1,12 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import {
-  collection,
-  query,
-  onSnapshot,
-  QueryConstraint,
-  DocumentData,
-} from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
+import { useState, useEffect, useRef } from "react";
+import { collection, query, onSnapshot, QueryConstraint, DocumentData } from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
 
 /**
  * Hook to subscribe to a Firestore collection

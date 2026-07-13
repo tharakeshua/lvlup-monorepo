@@ -8,10 +8,10 @@
  * do NOT have any userOrg membership and adds the consumerProfile.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyUser {
   _docId: string;
@@ -37,17 +37,17 @@ export async function migrateConsumerUsers(options: {
   const { dryRun, logger } = options;
   const db = getFirestore();
 
-  logger.info('Migrating LevelUp consumer (B2C) users');
+  logger.info("Migrating LevelUp consumer (B2C) users");
 
   // Read all users
   const allUsers = await readAllDocs<LegacyUser>(
-    db.collection('users') as admin.firestore.CollectionReference
+    db.collection("users") as admin.firestore.CollectionReference
   );
   logger.info(`Found ${allUsers.length} total users`);
 
   // Read all userOrgs to find org-affiliated users
   const allUserOrgs = await readAllDocs<{ _docId: string; userId: string }>(
-    db.collection('userOrgs') as admin.firestore.CollectionReference
+    db.collection("userOrgs") as admin.firestore.CollectionReference
   );
   const orgUserIds = new Set(allUserOrgs.map((uo) => uo.userId));
 
@@ -60,8 +60,8 @@ export async function migrateConsumerUsers(options: {
   // We'll look at progress records to determine enrolled courses
   for (const user of consumerUsers) {
     const progressSnap = await db
-      .collection('userStoryPointProgress')
-      .where('userId', '==', user._docId)
+      .collection("userStoryPointProgress")
+      .where("userId", "==", user._docId)
       .limit(100)
       .get();
 
@@ -86,7 +86,7 @@ export async function migrateConsumerUsers(options: {
       const existingData = existingSnap.data();
       if (existingData?.consumerProfile) {
         logger.debug(`User ${uid} already has consumerProfile, skipping`);
-        return { action: 'skipped', id: uid };
+        return { action: "skipped", id: uid };
       }
 
       const enrolled = enrolledCourses.get(uid) || [];
@@ -95,8 +95,8 @@ export async function migrateConsumerUsers(options: {
         uid,
         email: user.email || null,
         phone: user.phone || null,
-        authProviders: user.email ? ['email'] : user.phone ? ['phone'] : [],
-        displayName: user.displayName || user.fullName || '',
+        authProviders: user.email ? ["email"] : user.phone ? ["phone"] : [],
+        displayName: user.displayName || user.fullName || "",
         firstName: null,
         lastName: null,
         photoURL: user.photoURL || null,
@@ -106,10 +106,10 @@ export async function migrateConsumerUsers(options: {
         onboardingCompleted: user.onboardingCompleted || false,
         isSuperAdmin: false,
         consumerProfile: {
-          plan: 'free',
+          plan: "free",
           enrolledSpaceIds: enrolled,
         },
-        status: 'active',
+        status: "active",
         updatedAt: admin.firestore.Timestamp.now(),
       };
 
@@ -117,11 +117,11 @@ export async function migrateConsumerUsers(options: {
         logger.info(
           `[DRY RUN] Would update consumer user: ${uid} (enrolled in ${enrolled.length} courses)`
         );
-        return { action: 'created', id: uid };
+        return { action: "created", id: uid };
       }
 
       batch.set(db.doc(userPath), updates, { merge: true });
-      return { action: 'created', id: uid };
+      return { action: "created", id: uid };
     },
     { dryRun, logger }
   );

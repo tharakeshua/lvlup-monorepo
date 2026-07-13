@@ -18,67 +18,66 @@ const secret_manager_1 = require("@google-cloud/secret-manager");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 let _LLMWrapperClass;
 function getLLMWrapperClass() {
-    if (!_LLMWrapperClass) {
-        try {
-            // Try workspace import
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const mod = require('@levelup/shared-services/ai');
-            _LLMWrapperClass = mod.LLMWrapper;
-        }
-        catch {
-            // Fallback: try relative path (development)
-            try {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                const mod = require('../../../../packages/shared-services/src/ai');
-                _LLMWrapperClass = mod.LLMWrapper;
-            }
-            catch {
-                throw new Error('Could not load LLMWrapper from @levelup/shared-services. Ensure the package is built.');
-            }
-        }
+  if (!_LLMWrapperClass) {
+    try {
+      // Try workspace import
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mod = require("@levelup/shared-services/ai");
+      _LLMWrapperClass = mod.LLMWrapper;
+    } catch {
+      // Fallback: try relative path (development)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require("../../../../packages/shared-services/src/ai");
+        _LLMWrapperClass = mod.LLMWrapper;
+      } catch {
+        throw new Error(
+          "Could not load LLMWrapper from @levelup/shared-services. Ensure the package is built."
+        );
+      }
     }
-    return _LLMWrapperClass;
+  }
+  return _LLMWrapperClass;
 }
 /**
  * LLMWrapper class — proxy to shared-services implementation.
  */
 class LLMWrapper {
-    instance;
-    constructor(config) {
-        const Cls = getLLMWrapperClass();
-        this.instance = new Cls(config);
-    }
-    async call(prompt, metadata, options) {
-        return this.instance.call(prompt, metadata, options);
-    }
+  instance;
+  constructor(config) {
+    const Cls = getLLMWrapperClass();
+    this.instance = new Cls(config);
+  }
+  async call(prompt, metadata, options) {
+    return this.instance.call(prompt, metadata, options);
+  }
 }
 exports.LLMWrapper = LLMWrapper;
 // ─── Secret Manager helper ───────────────────────────────────────────────────
 let smClient = null;
 function getSmClient() {
-    if (!smClient) {
-        smClient = new secret_manager_1.SecretManagerServiceClient();
-    }
-    return smClient;
+  if (!smClient) {
+    smClient = new secret_manager_1.SecretManagerServiceClient();
+  }
+  return smClient;
 }
 /**
  * Retrieve a tenant's Gemini API key from Secret Manager.
  */
 async function getGeminiApiKey(tenantId) {
-    const project = process.env['GCLOUD_PROJECT'] ?? process.env['GCP_PROJECT'];
-    if (!project) {
-        throw new Error('No GCP project ID. Set GCLOUD_PROJECT or GCP_PROJECT env var.');
-    }
-    const secretName = `tenant-${tenantId}-gemini`;
-    const versionPath = `projects/${project}/secrets/${secretName}/versions/latest`;
-    const [version] = await getSmClient().accessSecretVersion({ name: versionPath });
-    const payload = version.payload?.data;
-    if (!payload) {
-        throw new Error(`Secret "${secretName}" has no payload data.`);
-    }
-    const key = typeof payload === 'string' ? payload : new TextDecoder().decode(payload);
-    if (!key.trim())
-        throw new Error(`Secret "${secretName}" is empty.`);
-    return key.trim();
+  const project = process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"];
+  if (!project) {
+    throw new Error("No GCP project ID. Set GCLOUD_PROJECT or GCP_PROJECT env var.");
+  }
+  const secretName = `tenant-${tenantId}-gemini`;
+  const versionPath = `projects/${project}/secrets/${secretName}/versions/latest`;
+  const [version] = await getSmClient().accessSecretVersion({ name: versionPath });
+  const payload = version.payload?.data;
+  if (!payload) {
+    throw new Error(`Secret "${secretName}" has no payload data.`);
+  }
+  const key = typeof payload === "string" ? payload : new TextDecoder().decode(payload);
+  if (!key.trim()) throw new Error(`Secret "${secretName}" is empty.`);
+  return key.trim();
 }
 //# sourceMappingURL=llm.js.map

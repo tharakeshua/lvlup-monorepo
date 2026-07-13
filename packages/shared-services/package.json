@@ -43,12 +43,24 @@
   },
   "typesVersions": {
     "*": {
-      "ai": ["./dist/ai/index.d.ts"],
-      "firebase": ["./dist/firebase/index.d.ts"],
-      "auth": ["./dist/auth/index.d.ts"],
-      "firestore": ["./dist/firestore/index.d.ts"],
-      "storage": ["./dist/storage/index.d.ts"],
-      "realtime-db": ["./dist/realtime-db/index.d.ts"]
+      "ai": [
+        "./dist/ai/index.d.ts"
+      ],
+      "firebase": [
+        "./dist/firebase/index.d.ts"
+      ],
+      "auth": [
+        "./dist/auth/index.d.ts"
+      ],
+      "firestore": [
+        "./dist/firestore/index.d.ts"
+      ],
+      "storage": [
+        "./dist/storage/index.d.ts"
+      ],
+      "realtime-db": [
+        "./dist/realtime-db/index.d.ts"
+      ]
     }
   },
   "scripts": {

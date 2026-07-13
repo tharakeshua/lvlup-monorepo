@@ -40,8 +40,7 @@ export function LogoutButton({ onLogout, className, children }: LogoutButtonProp
         <AlertDialogHeader>
           <AlertDialogTitle>Sign out?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to sign out? You'll need to sign in again to
-            access your account.
+            Are you sure you want to sign out? You'll need to sign in again to access your account.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

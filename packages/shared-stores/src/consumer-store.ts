@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 // ---------------------------------------------------------------------------
 // Cart item type
@@ -66,21 +66,19 @@ export const useConsumerStore = create<ConsumerState>()(
       markPurchased: (spaceIds) => {
         set((state) => ({
           cart: state.cart.filter((c) => !spaceIds.includes(c.spaceId)),
-          recentlyPurchased: [
-            ...new Set([...state.recentlyPurchased, ...spaceIds]),
-          ],
+          recentlyPurchased: [...new Set([...state.recentlyPurchased, ...spaceIds])],
         }));
       },
 
       resetConsumerState: () => set({ cart: [], recentlyPurchased: [] }),
     }),
     {
-      name: 'levelup-consumer',
+      name: "levelup-consumer",
       partialize: (state) => ({
         cart: state.cart,
       }),
-    },
-  ),
+    }
+  )
 );
 
 // ---------------------------------------------------------------------------

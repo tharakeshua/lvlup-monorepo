@@ -1,16 +1,17 @@
 # Responsive Design Essentials
 
-Mobile-first approach: start with mobile, progressively enhance for larger screens.
+Mobile-first approach: start with mobile, progressively enhance for larger
+screens.
 
 ## Breakpoints
 
-| Range | Pixels | Devices | Strategy |
-|-------|--------|---------|----------|
-| **XS** | 0-479px | Small phones | Single column, stacked nav, 44px touch targets |
-| **SM** | 480-767px | Large phones | Single column, bottom nav, simplified UI |
-| **MD** | 768-1023px | Tablets | 2 columns possible, sidebar nav |
-| **LG** | 1024-1439px | Laptops | Multi-column, full nav, desktop UI |
-| **XL** | 1440px+ | Desktop | Max-width containers, multi-panel layouts |
+| Range  | Pixels      | Devices      | Strategy                                       |
+| ------ | ----------- | ------------ | ---------------------------------------------- |
+| **XS** | 0-479px     | Small phones | Single column, stacked nav, 44px touch targets |
+| **SM** | 480-767px   | Large phones | Single column, bottom nav, simplified UI       |
+| **MD** | 768-1023px  | Tablets      | 2 columns possible, sidebar nav                |
+| **LG** | 1024-1439px | Laptops      | Multi-column, full nav, desktop UI             |
+| **XL** | 1440px+     | Desktop      | Max-width containers, multi-panel layouts      |
 
 ## Tailwind Responsive
 
@@ -37,8 +38,12 @@ Mobile-first approach: start with mobile, progressively enhance for larger scree
 ## Fluid Typography
 
 ```css
-h1 { font-size: clamp(2rem, 5vw, 4rem); }
-p { font-size: clamp(1rem, 2.5vw, 1.25rem); }
+h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+p {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+}
 ```
 
 ## Touch Targets
@@ -53,14 +58,14 @@ p { font-size: clamp(1rem, 2.5vw, 1.25rem); }
 
 ## Mobile Simplification
 
-| Desktop | Mobile |
-|---------|--------|
-| Full nav bar | Hamburger menu |
-| Side-by-side fields | Stacked fields |
-| Multi-column grid | Single column |
-| Inline buttons | Fixed bottom bar |
-| Data table | Collapsed cards |
-| Visible sidebar | Hidden/collapsible |
+| Desktop             | Mobile             |
+| ------------------- | ------------------ |
+| Full nav bar        | Hamburger menu     |
+| Side-by-side fields | Stacked fields     |
+| Multi-column grid   | Single column      |
+| Inline buttons      | Fixed bottom bar   |
+| Data table          | Collapsed cards    |
+| Visible sidebar     | Hidden/collapsible |
 
 ## Images
 
@@ -79,6 +84,7 @@ p { font-size: clamp(1rem, 2.5vw, 1.25rem); }
 ## Testing
 
 Test at these widths:
+
 - 375px (iPhone SE)
 - 390px (iPhone 14)
 - 768px (iPad)

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
 const mockDelete = vi.fn().mockResolvedValue({});
@@ -19,10 +19,10 @@ const stableDb: any = {
 
 const mockRtdbRef = { remove: vi.fn().mockResolvedValue({}) };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
   fsFn.FieldValue = {
-    serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
+    serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP"),
     increment: vi.fn((n: number) => `INCREMENT(${n})`),
   };
   return {
@@ -36,38 +36,38 @@ vi.mock('firebase-admin', () => {
   };
 });
 
-vi.mock('firebase-functions/v2/firestore', () => ({
+vi.mock("firebase-functions/v2/firestore", () => ({
   onDocumentDeleted: vi.fn((_opts: any, handler: any) => handler),
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('../../utils/firestore', () => ({
+vi.mock("../../utils/firestore", () => ({
   deleteCollection: vi.fn(),
   deleteDocs: vi.fn(),
 }));
 
-import { onSpaceDeleted } from '../../triggers/on-space-deleted';
+import { onSpaceDeleted } from "../../triggers/on-space-deleted";
 const handler = onSpaceDeleted as any;
 
-describe('onSpaceDeleted', () => {
+describe("onSpaceDeleted", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should cascade delete all related data when space is deleted', async () => {
+  it("should cascade delete all related data when space is deleted", async () => {
     const event = {
-      params: { tenantId: 'tenant-1', spaceId: 'space-1' },
+      params: { tenantId: "tenant-1", spaceId: "space-1" },
       data: {
-        data: () => ({ title: 'Deleted Space', tenantId: 'tenant-1' }),
+        data: () => ({ title: "Deleted Space", tenantId: "tenant-1" }),
       },
     };
 
     // Story points query
     mockGet.mockResolvedValueOnce({
-      docs: [{ id: 'sp-1', ref: { path: 'tenants/tenant-1/spaces/space-1/storyPoints/sp-1' } }],
+      docs: [{ id: "sp-1", ref: { path: "tenants/tenant-1/spaces/space-1/storyPoints/sp-1" } }],
     });
 
     // Items query
@@ -91,11 +91,11 @@ describe('onSpaceDeleted', () => {
     expect(stableDb.batch).toHaveBeenCalled();
   });
 
-  it('should update tenant stats', async () => {
+  it("should update tenant stats", async () => {
     const event = {
-      params: { tenantId: 'tenant-1', spaceId: 'space-1' },
+      params: { tenantId: "tenant-1", spaceId: "space-1" },
       data: {
-        data: () => ({ title: 'Deleted Space', tenantId: 'tenant-1' }),
+        data: () => ({ title: "Deleted Space", tenantId: "tenant-1" }),
       },
     };
 

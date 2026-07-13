@@ -2,8 +2,8 @@
  * Seed helpers for integration tests.
  * Uses the Admin SDK to create test data directly in emulators.
  */
-import * as admin from 'firebase-admin';
-import { getAdminAuth, getAdminFirestore } from './setup';
+import * as admin from "firebase-admin";
+import { getAdminAuth, getAdminFirestore } from "./setup";
 
 const db = () => getAdminFirestore();
 const auth = () => getAdminAuth();
@@ -17,24 +17,24 @@ export interface SeedTenantOptions {
   name: string;
   tenantCode: string;
   ownerUid: string;
-  status?: 'active' | 'suspended' | 'trial' | 'expired';
+  status?: "active" | "suspended" | "trial" | "expired";
 }
 
 export async function seedTenant(opts: SeedTenantOptions) {
   const ref = opts.tenantId
     ? db().doc(`tenants/${opts.tenantId}`)
-    : db().collection('tenants').doc();
+    : db().collection("tenants").doc();
   const tenantId = ref.id;
 
   const tenantDoc = {
     id: tenantId,
     name: opts.name,
-    slug: opts.name.toLowerCase().replace(/\s+/g, '-'),
+    slug: opts.name.toLowerCase().replace(/\s+/g, "-"),
     tenantCode: opts.tenantCode.toUpperCase(),
     ownerUid: opts.ownerUid,
-    contactEmail: 'admin@test.com',
-    status: opts.status ?? 'active',
-    subscription: { plan: 'trial' },
+    contactEmail: "admin@test.com",
+    status: opts.status ?? "active",
+    subscription: { plan: "trial" },
     features: {
       autoGradeEnabled: true,
       levelUpEnabled: true,
@@ -61,12 +61,10 @@ export async function seedTenant(opts: SeedTenantOptions) {
   await ref.set(tenantDoc);
 
   // Create tenant code index
-  await db()
-    .doc(`tenantCodes/${opts.tenantCode.toUpperCase()}`)
-    .set({
-      tenantId,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  await db().doc(`tenantCodes/${opts.tenantCode.toUpperCase()}`).set({
+    tenantId,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 
   return { tenantId, tenantCode: opts.tenantCode.toUpperCase() };
 }
@@ -90,20 +88,22 @@ export async function seedUser(opts: SeedUserOptions) {
   });
 
   // Create /users/{uid} doc
-  await db().doc(`users/${userRecord.uid}`).set({
-    uid: userRecord.uid,
-    email: opts.email,
-    displayName: opts.displayName,
-    authProviders: ['email'],
-    isSuperAdmin: opts.isSuperAdmin ?? false,
-    status: 'active',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  await db()
+    .doc(`users/${userRecord.uid}`)
+    .set({
+      uid: userRecord.uid,
+      email: opts.email,
+      displayName: opts.displayName,
+      authProviders: ["email"],
+      isSuperAdmin: opts.isSuperAdmin ?? false,
+      status: "active",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
   if (opts.isSuperAdmin) {
     await auth().setCustomUserClaims(userRecord.uid, {
-      role: 'superAdmin',
+      role: "superAdmin",
     });
   }
 
@@ -114,8 +114,8 @@ export interface SeedMembershipOptions {
   uid: string;
   tenantId: string;
   tenantCode: string;
-  role: 'tenantAdmin' | 'teacher' | 'student' | 'parent' | 'scanner';
-  status?: 'active' | 'inactive' | 'suspended';
+  role: "tenantAdmin" | "teacher" | "student" | "parent" | "scanner";
+  status?: "active" | "inactive" | "suspended";
   teacherId?: string;
   studentId?: string;
   parentId?: string;
@@ -127,7 +127,7 @@ export interface SeedMembershipOptions {
 export async function seedMembership(opts: SeedMembershipOptions) {
   const membershipId = `${opts.uid}_${opts.tenantId}`;
   const permissions =
-    opts.role === 'teacher'
+    opts.role === "teacher"
       ? {
           canCreateExams: true,
           canEditRubrics: true,
@@ -140,7 +140,7 @@ export async function seedMembership(opts: SeedMembershipOptions) {
           managedSpaceIds: [],
           managedClassIds: opts.classIds ?? [],
         }
-      : opts.role === 'student'
+      : opts.role === "student"
         ? { managedClassIds: opts.classIds ?? [] }
         : undefined;
 
@@ -150,19 +150,19 @@ export async function seedMembership(opts: SeedMembershipOptions) {
     tenantId: opts.tenantId,
     tenantCode: opts.tenantCode,
     role: opts.role,
-    status: opts.status ?? 'active',
-    joinSource: 'admin_created',
+    status: opts.status ?? "active",
+    joinSource: "admin_created",
     permissions,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  if (opts.teacherId) membershipDoc['teacherId'] = opts.teacherId;
-  if (opts.studentId) membershipDoc['studentId'] = opts.studentId;
-  if (opts.parentId) membershipDoc['parentId'] = opts.parentId;
-  if (opts.scannerId) membershipDoc['scannerId'] = opts.scannerId;
+  if (opts.teacherId) membershipDoc["teacherId"] = opts.teacherId;
+  if (opts.studentId) membershipDoc["studentId"] = opts.studentId;
+  if (opts.parentId) membershipDoc["parentId"] = opts.parentId;
+  if (opts.scannerId) membershipDoc["scannerId"] = opts.scannerId;
   if (opts.parentLinkedStudentIds) {
-    membershipDoc['parentLinkedStudentIds'] = opts.parentLinkedStudentIds;
+    membershipDoc["parentLinkedStudentIds"] = opts.parentLinkedStudentIds;
   }
 
   await db().doc(`userMemberships/${membershipId}`).set(membershipDoc);
@@ -174,10 +174,7 @@ export async function seedMembership(opts: SeedMembershipOptions) {
  * Set custom claims on a user to simulate the state after
  * switchActiveTenant has been called.
  */
-export async function setUserClaims(
-  uid: string,
-  claims: Record<string, unknown>,
-) {
+export async function setUserClaims(uid: string, claims: Record<string, unknown>) {
   await auth().setCustomUserClaims(uid, claims);
 }
 
@@ -188,7 +185,7 @@ export async function setUserClaims(
 export async function seedTeacherEntity(
   tenantId: string,
   uid: string,
-  opts: { firstName: string; lastName: string; subjects?: string[] },
+  opts: { firstName: string; lastName: string; subjects?: string[] }
 ) {
   const ref = db().collection(`tenants/${tenantId}/teachers`).doc();
   await ref.set({
@@ -201,7 +198,7 @@ export async function seedTeacherEntity(
     email: null,
     phone: null,
     subjects: opts.subjects ?? [],
-    status: 'active',
+    status: "active",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
@@ -216,7 +213,7 @@ export async function seedStudentEntity(
     lastName: string;
     rollNumber: string;
     classIds?: string[];
-  },
+  }
 ) {
   const ref = db().collection(`tenants/${tenantId}/students`).doc();
   await ref.set({
@@ -230,7 +227,7 @@ export async function seedStudentEntity(
     phone: null,
     rollNumber: opts.rollNumber,
     classIds: opts.classIds ?? [],
-    status: 'active',
+    status: "active",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });

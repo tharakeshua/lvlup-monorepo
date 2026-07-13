@@ -4,7 +4,9 @@ Shared shadcn/ui components library for the LevelUp monorepo.
 
 ## Overview
 
-This package contains 50 shadcn/ui components copied from the LevelUp-App, configured as a shared package with Tailwind CSS and all required Radix UI dependencies.
+This package contains 50 shadcn/ui components copied from the LevelUp-App,
+configured as a shared package with Tailwind CSS and all required Radix UI
+dependencies.
 
 ## Components Included
 
@@ -16,7 +18,7 @@ This package contains 50 shadcn/ui components copied from the LevelUp-App, confi
 ## Usage
 
 ```typescript
-import { Button, Card, Dialog } from '@levelup/shared-ui';
+import { Button, Card, Dialog } from "@levelup/shared-ui";
 ```
 
 ## Installation
@@ -26,10 +28,13 @@ This package is part of the LevelUp monorepo and uses workspace dependencies.
 ## Dependencies
 
 ### Radix UI Components
+
 - All 27 Radix UI primitives used by shadcn/ui
-- Includes: accordion, alert-dialog, avatar, checkbox, dialog, dropdown-menu, and more
+- Includes: accordion, alert-dialog, avatar, checkbox, dialog, dropdown-menu,
+  and more
 
 ### Supporting Libraries
+
 - `class-variance-authority`: Component variants
 - `clsx` & `tailwind-merge`: Class name utilities
 - `lucide-react`: Icons
@@ -44,7 +49,9 @@ This package is part of the LevelUp monorepo and uses workspace dependencies.
 ## Configuration
 
 ### Tailwind CSS
+
 The package includes a complete Tailwind configuration with:
+
 - HSL-based color system
 - Custom animations (glow, float, pulse-glow, slide-up, cosmic-spin)
 - LevelUp-specific colors (tier colors, state colors)
@@ -52,7 +59,9 @@ The package includes a complete Tailwind configuration with:
 - Custom shadows and gradients
 
 ### TypeScript
+
 Configured with path aliases:
+
 - `@/*` maps to `src/*`
 - Proper type definitions for all components
 

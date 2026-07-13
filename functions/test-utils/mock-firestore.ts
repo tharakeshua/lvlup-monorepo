@@ -5,12 +5,12 @@
  * without requiring the emulator.
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 /** A minimal mock DocumentSnapshot. */
 export function mockDocumentSnapshot(
   data: Record<string, unknown> | undefined,
-  id = 'mock-doc-id',
+  id = "mock-doc-id"
 ) {
   return {
     exists: data !== undefined,
@@ -22,16 +22,13 @@ export function mockDocumentSnapshot(
 }
 
 /** A minimal mock QuerySnapshot. */
-export function mockQuerySnapshot(
-  docs: Array<{ id: string; data: Record<string, unknown> }>,
-) {
+export function mockQuerySnapshot(docs: Array<{ id: string; data: Record<string, unknown> }>) {
   const mapped = docs.map((d) => mockDocumentSnapshot(d.data, d.id));
   return {
     empty: docs.length === 0,
     size: docs.length,
     docs: mapped,
-    forEach: (cb: (doc: ReturnType<typeof mockDocumentSnapshot>) => void) =>
-      mapped.forEach(cb),
+    forEach: (cb: (doc: ReturnType<typeof mockDocumentSnapshot>) => void) => mapped.forEach(cb),
   };
 }
 
@@ -55,11 +52,9 @@ export function createMockFirestore() {
   };
 
   const mockDoc = vi.fn((path: string) => ({
-    id: path.split('/').pop() ?? 'auto-id',
+    id: path.split("/").pop() ?? "auto-id",
     path,
-    get: vi.fn().mockResolvedValue(
-      mockDocumentSnapshot(docData.get(path), path.split('/').pop()),
-    ),
+    get: vi.fn().mockResolvedValue(mockDocumentSnapshot(docData.get(path), path.split("/").pop())),
     set: vi.fn().mockResolvedValue(undefined),
     update: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined),
@@ -72,9 +67,7 @@ export function createMockFirestore() {
       const docId = id ?? `auto-${Date.now()}`;
       return mockDoc(`${path}/${docId}`);
     }),
-    get: vi.fn().mockResolvedValue(
-      mockQuerySnapshot(collectionData.get(path) ?? []),
-    ),
+    get: vi.fn().mockResolvedValue(mockQuerySnapshot(collectionData.get(path) ?? [])),
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),

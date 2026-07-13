@@ -37,7 +37,7 @@ export function StatCard({
   if (loading) {
     return (
       <Card className={cn("", className)}>
-        <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-1 pt-4 px-4">
+        <CardHeader className="flex flex-row items-center gap-2 space-y-0 px-4 pb-1 pt-4">
           <Skeleton className="h-4 w-4 rounded" />
           <Skeleton className="h-4 w-20" />
         </CardHeader>
@@ -51,9 +51,9 @@ export function StatCard({
 
   return (
     <Card className={cn("", className)}>
-      <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-1 pt-4 px-4">
-        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">{label}</p>
+      <CardHeader className="flex flex-row items-center gap-2 space-y-0 px-4 pb-1 pt-4">
+        <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+        <p className="text-muted-foreground text-sm">{label}</p>
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-0">
         <div className="flex items-baseline gap-2">
@@ -73,9 +73,7 @@ export function StatCard({
             </span>
           )}
         </div>
-        {subtext && (
-          <p className="text-xs text-muted-foreground">{subtext}</p>
-        )}
+        {subtext && <p className="text-muted-foreground text-xs">{subtext}</p>}
       </CardContent>
     </Card>
   );

@@ -7,16 +7,16 @@
  * Also notifies the teacher who created the exam.
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
-import { sendBulkNotifications, sendNotification } from '../utils/notification-sender';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { logger } from "firebase-functions/v2";
+import { sendBulkNotifications, sendNotification } from "../utils/notification-sender";
 
 export const onResultsReleased = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/exams/{examId}',
-    region: 'asia-south1',
-    memory: '512MiB',
+    document: "tenants/{tenantId}/exams/{examId}",
+    region: "asia-south1",
+    memory: "512MiB",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -24,19 +24,19 @@ export const onResultsReleased = onDocumentUpdated(
     if (!before || !after) return;
 
     // Only trigger when status changes to results_released
-    if (before.status === 'results_released' || after.status !== 'results_released') {
+    if (before.status === "results_released" || after.status !== "results_released") {
       return;
     }
 
     const { tenantId, examId } = event.params;
     const db = admin.firestore();
-    const examTitle = after.title ?? 'Untitled Exam';
-    const subject = after.subject ?? '';
+    const examTitle = after.title ?? "Untitled Exam";
+    const subject = after.subject ?? "";
 
     // Fetch all submissions for this exam to get student IDs
     const submissionsSnap = await db
       .collection(`tenants/${tenantId}/submissions`)
-      .where('examId', '==', examId)
+      .where("examId", "==", examId)
       .get();
 
     if (submissionsSnap.empty) {
@@ -55,11 +55,11 @@ export const onResultsReleased = onDocumentUpdated(
 
     const sentStudents = await sendBulkNotifications(uniqueStudentIds, {
       tenantId,
-      recipientRole: 'student',
-      type: 'exam_results_released',
-      title: 'Exam Results Released',
+      recipientRole: "student",
+      type: "exam_results_released",
+      title: "Exam Results Released",
       body: bodyText,
-      entityType: 'exam',
+      entityType: "exam",
       entityId: examId,
       actionUrl: `/exams/${examId}/results`,
     });
@@ -70,7 +70,7 @@ export const onResultsReleased = onDocumentUpdated(
       const batch = uniqueStudentIds.slice(i, i + 30);
       const studentsSnap = await db
         .collection(`tenants/${tenantId}/students`)
-        .where(admin.firestore.FieldPath.documentId(), 'in', batch)
+        .where(admin.firestore.FieldPath.documentId(), "in", batch)
         .get();
       for (const doc of studentsSnap.docs) {
         const parentIds: string[] = doc.data().parentIds ?? [];
@@ -84,11 +84,11 @@ export const onResultsReleased = onDocumentUpdated(
     if (parentIdSet.size > 0) {
       sentParents = await sendBulkNotifications(Array.from(parentIdSet), {
         tenantId,
-        recipientRole: 'parent',
-        type: 'exam_results_released',
-        title: 'Exam Results Released',
+        recipientRole: "parent",
+        type: "exam_results_released",
+        title: "Exam Results Released",
         body: `Results for "${examTitle}" have been released for your child.`,
-        entityType: 'exam',
+        entityType: "exam",
         entityId: examId,
         actionUrl: `/results`,
       });
@@ -99,11 +99,11 @@ export const onResultsReleased = onDocumentUpdated(
       await sendNotification({
         tenantId,
         recipientId: after.createdBy,
-        recipientRole: 'teacher',
-        type: 'exam_results_released',
-        title: 'Results Released Successfully',
+        recipientRole: "teacher",
+        type: "exam_results_released",
+        title: "Results Released Successfully",
         body: `Results for "${examTitle}" have been released to ${sentStudents} students.`,
-        entityType: 'exam',
+        entityType: "exam",
         entityId: examId,
         actionUrl: `/exams/${examId}`,
       });
@@ -111,7 +111,7 @@ export const onResultsReleased = onDocumentUpdated(
 
     logger.info(
       `onResultsReleased: Exam ${examId} "${examTitle}" — ` +
-      `${sentStudents} student notifs, ${sentParents} parent notifs`,
+        `${sentStudents} student notifs, ${sentParents} parent notifs`
     );
-  },
+  }
 );

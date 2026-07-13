@@ -9,8 +9,8 @@ import {
   StorageReference,
   UploadMetadata,
   UploadResult,
-} from 'firebase/storage';
-import { getFirebaseServices } from '../firebase';
+} from "firebase/storage";
+import { getFirebaseServices } from "../firebase";
 
 /**
  * Storage Service
@@ -57,7 +57,7 @@ export class StorageService {
     orgId: string,
     path: string,
     data: string,
-    format?: 'raw' | 'base64' | 'base64url' | 'data_url',
+    format?: "raw" | "base64" | "base64url" | "data_url",
     metadata?: UploadMetadata
   ): Promise<UploadResult> {
     const storageRef = ref(this.storage, this.getOrgPath(orgId, path));
@@ -115,23 +115,23 @@ export { ref as storageRef, type StorageReference, type UploadMetadata, type Upl
 // ─────────────────────────────────────────────────────
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['image/', 'application/pdf', 'audio/'];
+const ALLOWED_TYPES = ["image/", "application/pdf", "audio/"];
 
 function isAllowedType(mimeType: string): boolean {
   return ALLOWED_TYPES.some((prefix) => mimeType.startsWith(prefix));
 }
 
-function getAttachmentType(mimeType: string): 'image' | 'pdf' | 'audio' {
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType === 'application/pdf') return 'pdf';
-  return 'audio';
+function getAttachmentType(mimeType: string): "image" | "pdf" | "audio" {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType === "application/pdf") return "pdf";
+  return "audio";
 }
 
 export interface UploadItemMediaResult {
   id: string;
   fileName: string;
   url: string;
-  type: 'image' | 'pdf' | 'audio';
+  type: "image" | "pdf" | "audio";
   size: number;
   mimeType: string;
 }
@@ -144,14 +144,16 @@ export async function uploadItemMedia(
   tenantId: string,
   spaceId: string,
   itemId: string,
-  file: File,
+  file: File
 ): Promise<UploadItemMediaResult> {
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds limit of 10MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
   }
 
   if (!isAllowedType(file.type)) {
-    throw new Error(`File type "${file.type}" is not supported. Allowed: images, PDFs, audio files.`);
+    throw new Error(
+      `File type "${file.type}" is not supported. Allowed: images, PDFs, audio files.`
+    );
   }
 
   const { storage } = getFirebaseServices();
@@ -180,7 +182,7 @@ export async function deleteItemMedia(
   spaceId: string,
   itemId: string,
   fileName: string,
-  fileId: string,
+  fileId: string
 ): Promise<void> {
   const { storage } = getFirebaseServices();
   const storagePath = `tenants/${tenantId}/spaces/${spaceId}/items/${itemId}/attachments/${fileId}_${fileName}`;

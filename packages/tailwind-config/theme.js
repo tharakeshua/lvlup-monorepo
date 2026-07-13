@@ -159,7 +159,7 @@ const levelUpKeyframes = {
       transform: "scale(1)",
     },
   },
-  "wiggle": {
+  wiggle: {
     "0%, 100%": { transform: "rotate(0deg)" },
     "25%": { transform: "rotate(-3deg)" },
     "75%": { transform: "rotate(3deg)" },

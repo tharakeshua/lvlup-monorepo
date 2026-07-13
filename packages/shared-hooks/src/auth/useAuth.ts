@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { getFirebaseServices } from '@levelup/shared-services';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { getFirebaseServices } from "@levelup/shared-services";
 
 /**
  * Hook to manage Firebase authentication state using React Query.
@@ -11,8 +11,12 @@ import { getFirebaseServices } from '@levelup/shared-services';
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading: loading, error } = useQuery<User | null>({
-    queryKey: ['auth', 'currentUser'],
+  const {
+    data: user,
+    isLoading: loading,
+    error,
+  } = useQuery<User | null>({
+    queryKey: ["auth", "currentUser"],
     queryFn: () =>
       new Promise<User | null>((resolve, reject) => {
         const { auth } = getFirebaseServices();
@@ -25,7 +29,7 @@ export function useAuth() {
           (error) => {
             unsubscribe();
             reject(error);
-          },
+          }
         );
       }),
     staleTime: Infinity, // Auth state is managed by the listener below
@@ -37,7 +41,7 @@ export function useAuth() {
       onSettled: () => {
         const { auth } = getFirebaseServices();
         onAuthStateChanged(auth, (user) => {
-          queryClient.setQueryData(['auth', 'currentUser'], user);
+          queryClient.setQueryData(["auth", "currentUser"], user);
         });
       },
     },

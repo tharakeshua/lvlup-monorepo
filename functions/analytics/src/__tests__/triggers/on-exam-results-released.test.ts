@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Stable mocks ────────────────────────────────────────────────────────────
 const mockGet = vi.fn();
@@ -15,27 +15,31 @@ const stableDb: any = {
   })),
 };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
   fsFn.FieldValue = {
-    serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
+    serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP"),
   };
-  return { default: { firestore: fsFn, initializeApp: vi.fn() }, firestore: fsFn, initializeApp: vi.fn() };
+  return {
+    default: { firestore: fsFn, initializeApp: vi.fn() },
+    firestore: fsFn,
+    initializeApp: vi.fn(),
+  };
 });
 
-vi.mock('firebase-functions/v2/firestore', () => ({
+vi.mock("firebase-functions/v2/firestore", () => ({
   onDocumentUpdated: vi.fn((_opts: any, handler: any) => handler),
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { onExamResultsReleased } from '../../triggers/on-exam-results-released';
+import { onExamResultsReleased } from "../../triggers/on-exam-results-released";
 const handler = onExamResultsReleased as any;
 
-const TENANT = 'tenant-1';
-const EXAM_ID = 'exam-1';
+const TENANT = "tenant-1";
+const EXAM_ID = "exam-1";
 
 function makeEvent(beforeData: any, afterData: any) {
   return {
@@ -47,47 +51,44 @@ function makeEvent(beforeData: any, afterData: any) {
   };
 }
 
-describe('onExamResultsReleased', () => {
+describe("onExamResultsReleased", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should skip when status has not changed to results_released', async () => {
-    const event = makeEvent(
-      { status: 'draft' },
-      { status: 'published' },
-    );
+  it("should skip when status has not changed to results_released", async () => {
+    const event = makeEvent({ status: "draft" }, { status: "published" });
     await handler(event);
     expect(mockSet).not.toHaveBeenCalled();
   });
 
-  it('should process when status transitions to results_released', async () => {
+  it("should process when status transitions to results_released", async () => {
     const event = makeEvent(
-      { status: 'published' },
-      { status: 'results_released', maxScore: 100, subject: 'Math', title: 'Unit Test Exam' },
+      { status: "published" },
+      { status: "results_released", maxScore: 100, subject: "Math", title: "Unit Test Exam" }
     );
 
     // Mock submissions query
     mockGet.mockResolvedValueOnce({
       docs: [
         {
-          id: 'sub-1',
+          id: "sub-1",
           data: () => ({
-            studentUid: 'stu-1',
+            studentUid: "stu-1",
             totalScore: 85,
             maxScore: 100,
-            classId: 'class-1',
-            pipelineStatus: 'graded',
+            classId: "class-1",
+            pipelineStatus: "graded",
           }),
         },
         {
-          id: 'sub-2',
+          id: "sub-2",
           data: () => ({
-            studentUid: 'stu-2',
+            studentUid: "stu-2",
             totalScore: 70,
             maxScore: 100,
-            classId: 'class-1',
-            pipelineStatus: 'graded',
+            classId: "class-1",
+            pipelineStatus: "graded",
           }),
         },
       ],
@@ -101,11 +102,8 @@ describe('onExamResultsReleased', () => {
     expect(mockSet).toHaveBeenCalled();
   });
 
-  it('should handle exam with no submissions', async () => {
-    const event = makeEvent(
-      { status: 'published' },
-      { status: 'results_released', maxScore: 100 },
-    );
+  it("should handle exam with no submissions", async () => {
+    const event = makeEvent({ status: "published" }, { status: "results_released", maxScore: 100 });
 
     mockGet.mockResolvedValueOnce({ docs: [] });
 

@@ -9,7 +9,7 @@ export function getInitials(name: string): string {
 export function getStudentDisplayName(
   studentNames: Record<string, string> | undefined,
   student: { uid: string; studentId?: string },
-  fallbackIndex?: number,
+  fallbackIndex?: number
 ): string {
   return (
     studentNames?.[student.uid] ||

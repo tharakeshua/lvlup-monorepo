@@ -5,6 +5,14 @@
  * This prevents orphaned active memberships from allowing access
  * to a deactivated tenant's resources.
  */
-export declare const onTenantDeactivated: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").Change<import("firebase-functions/firestore").QueryDocumentSnapshot> | undefined, {
-    tenantId: string;
-}>>;
+export declare const onTenantDeactivated: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    | import("firebase-functions/firestore").Change<
+        import("firebase-functions/firestore").QueryDocumentSnapshot
+      >
+    | undefined,
+    {
+      tenantId: string;
+    }
+  >
+>;

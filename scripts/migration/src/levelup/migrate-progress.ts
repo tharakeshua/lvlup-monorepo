@@ -6,10 +6,10 @@
  *   - userCourseProgress/{userId}/{courseId} (RTDB, if accessible)
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyStoryPointProgress {
   _docId: string;
@@ -37,7 +37,7 @@ export async function migrateProgress(options: {
   logger.info(`Migrating LevelUp progress for org ${orgId}`);
 
   // Get all courses belonging to this org
-  const coursesSnap = await db.collection('courses').where('orgId', '==', orgId).get();
+  const coursesSnap = await db.collection("courses").where("orgId", "==", orgId).get();
   const courseIds = coursesSnap.docs.map((d) => d.id);
   logger.info(`Found ${courseIds.length} courses to migrate progress from`);
 
@@ -46,7 +46,9 @@ export async function migrateProgress(options: {
 
     // Read story point progress for this course
     const progressDocs = await readAllDocs<LegacyStoryPointProgress>(
-      db.collection('userStoryPointProgress').where('courseId', '==', courseId) as admin.firestore.Query
+      db
+        .collection("userStoryPointProgress")
+        .where("courseId", "==", courseId) as admin.firestore.Query
     );
     logger.info(`Course ${courseId}: ${progressDocs.length} story point progress records`);
 
@@ -71,7 +73,7 @@ export async function migrateProgress(options: {
 
         if (await docExists(db, targetPath)) {
           logger.debug(`SpaceProgress ${progressId} already migrated, skipping`);
-          return { action: 'skipped', id: progressId };
+          return { action: "skipped", id: progressId };
         }
 
         // Aggregate story point progress
@@ -79,7 +81,7 @@ export async function migrateProgress(options: {
         let totalPointsMax = 0;
         const storyPoints: Record<string, unknown> = {};
         const allItems: Record<string, unknown> = {};
-        let overallStatus = 'not_started';
+        let overallStatus = "not_started";
         let latestUpdate = 0;
 
         for (const entry of entries) {
@@ -103,17 +105,17 @@ export async function migrateProgress(options: {
           }
 
           if (entry.updatedAt > latestUpdate) latestUpdate = entry.updatedAt;
-          if (entry.status === 'completed' || entry.status === 'in_progress') {
-            if (overallStatus === 'not_started') overallStatus = entry.status;
-            if (entry.status === 'in_progress' && overallStatus === 'completed') {
-              overallStatus = 'in_progress';
+          if (entry.status === "completed" || entry.status === "in_progress") {
+            if (overallStatus === "not_started") overallStatus = entry.status;
+            if (entry.status === "in_progress" && overallStatus === "completed") {
+              overallStatus = "in_progress";
             }
           }
         }
 
         // Check if all story points are completed
-        const allCompleted = entries.every((e) => e.status === 'completed');
-        if (allCompleted && entries.length > 0) overallStatus = 'completed';
+        const allCompleted = entries.every((e) => e.status === "completed");
+        if (allCompleted && entries.length > 0) overallStatus = "completed";
 
         const percentage = totalPointsMax > 0 ? totalPointsEarned / totalPointsMax : 0;
 
@@ -131,18 +133,18 @@ export async function migrateProgress(options: {
           updatedAt: latestUpdate
             ? admin.firestore.Timestamp.fromMillis(latestUpdate)
             : admin.firestore.Timestamp.now(),
-          _migratedFrom: 'levelup',
+          _migratedFrom: "levelup",
         };
 
         if (dryRun) {
           logger.info(
             `[DRY RUN] Would migrate space progress: ${progressId} (${entries.length} story points, ${percentage.toFixed(1)}%)`
           );
-          return { action: 'created', id: progressId };
+          return { action: "created", id: progressId };
         }
 
         batch.set(db.doc(targetPath), spaceProgress);
-        return { action: 'created', id: progressId };
+        return { action: "created", id: progressId };
       },
       { dryRun, logger }
     );

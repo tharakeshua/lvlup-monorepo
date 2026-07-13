@@ -1,12 +1,12 @@
-import { test, expect, Page } from '@playwright/test';
-import { loginAsStudent } from './helpers';
+import { test, expect, Page } from "@playwright/test";
+import { loginAsStudent } from "./helpers";
 
 // ════════════════════════════════════════════════════════════════════════════
 // PRACTICE MODE PAGE
 // ════════════════════════════════════════════════════════════════════════════
 
 async function navigateToPractice(page: Page): Promise<boolean> {
-  await page.goto('/spaces');
+  await page.goto("/spaces");
   await page.waitForTimeout(2_000);
   const spaceLinks = page.locator('a[href^="/spaces/"]');
   if ((await spaceLinks.count()) === 0) return false;
@@ -20,36 +20,36 @@ async function navigateToPractice(page: Page): Promise<boolean> {
   return true;
 }
 
-test.describe('Practice Mode Page', () => {
+test.describe("Practice Mode Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsStudent(page);
   });
 
-  test('practice mode page renders with h1', async ({ page }) => {
+  test("practice mode page renders with h1", async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
-    await expect(page.locator('h1').first()).toBeVisible();
+    await expect(page.locator("h1").first()).toBeVisible();
   });
 
   test('shows "Practice Mode" subtitle', async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
-    await expect(page.locator('text=Practice Mode')).toBeVisible();
+    await expect(page.locator("text=Practice Mode")).toBeVisible();
   });
 
   test('shows "Unlimited retries" label', async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
-    await expect(page.locator('text=Unlimited retries')).toBeVisible();
+    await expect(page.locator("text=Unlimited retries")).toBeVisible();
   });
 
   test('shows "Solved" counter', async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
-    await expect(page.locator('text=Solved')).toBeVisible();
+    await expect(page.locator("text=Solved")).toBeVisible();
   });
 
-  test('shows difficulty filter buttons', async ({ page }) => {
+  test("shows difficulty filter buttons", async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
     await expect(page.locator('button:has-text("easy")')).toBeVisible();
@@ -57,7 +57,7 @@ test.describe('Practice Mode Page', () => {
     await expect(page.locator('button:has-text("hard")')).toBeVisible();
   });
 
-  test('difficulty filter is toggleable', async ({ page }) => {
+  test("difficulty filter is toggleable", async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
     const easyBtn = page.locator('button:has-text("easy")');
@@ -83,12 +83,18 @@ test.describe('Practice Mode Page', () => {
   test('shows question number indicator or "no questions" message', async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
-    const hasQ = await page.locator('text=Question 1 of').isVisible().catch(() => false);
-    const hasNone = await page.locator('text=No questions match the filter').isVisible().catch(() => false);
+    const hasQ = await page
+      .locator("text=Question 1 of")
+      .isVisible()
+      .catch(() => false);
+    const hasNone = await page
+      .locator("text=No questions match the filter")
+      .isVisible()
+      .catch(() => false);
     expect(hasQ || hasNone).toBeTruthy();
   });
 
-  test('breadcrumb shows Spaces link', async ({ page }) => {
+  test("breadcrumb shows Spaces link", async ({ page }) => {
     const ok = await navigateToPractice(page);
     if (!ok) test.skip();
     await expect(page.locator('a:has-text("Spaces")')).toBeVisible();
@@ -102,7 +108,7 @@ test.describe('Practice Mode Page', () => {
     if (isEnabled) {
       await nextBtn.click();
       await page.waitForTimeout(500);
-      await expect(page.locator('text=Question 2 of')).toBeVisible();
+      await expect(page.locator("text=Question 2 of")).toBeVisible();
     }
   });
 });

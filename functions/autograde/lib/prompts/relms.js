@@ -22,25 +22,30 @@ Core principles:
  * Build a dynamic RELMS user prompt from question data and rubric.
  */
 function buildRELMSUserPrompt(question, rubric, enabledDimensions) {
-    const criteriaBlock = rubric.criteria
-        ?.map((c, i) => `  ${i + 1}. ${c.description ?? c.name} [${c.maxPoints} marks]`)
-        .join('\n') ?? '  (No criteria defined)';
-    const sortedDimensions = [...enabledDimensions].sort((a, b) => {
-        const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-        return order[a.priority] - order[b.priority];
-    });
-    const dimensionsBlock = sortedDimensions.length > 0
-        ? sortedDimensions
-            .map((d) => `  - **${d.name}** [${d.priority}]: ${d.description}\n    Guidance: ${d.promptGuidance}\n    Expected feedback items: ${d.expectedFeedbackCount ?? 'any'}`)
-            .join('\n')
-        : '  (No dimensions configured — provide general feedback)';
-    const guidanceBlock = rubric.evaluatorGuidance
-        ? `\nAdditional evaluator guidance from the teacher:\n${rubric.evaluatorGuidance}\n`
-        : '';
-    const modelAnswerBlock = rubric.modelAnswer
-        ? `\nModel answer (for reference, do not penalize valid alternatives):\n${rubric.modelAnswer}\n`
-        : '';
-    return `Grade the student's answer for the following question.
+  const criteriaBlock =
+    rubric.criteria
+      ?.map((c, i) => `  ${i + 1}. ${c.description ?? c.name} [${c.maxPoints} marks]`)
+      .join("\n") ?? "  (No criteria defined)";
+  const sortedDimensions = [...enabledDimensions].sort((a, b) => {
+    const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    return order[a.priority] - order[b.priority];
+  });
+  const dimensionsBlock =
+    sortedDimensions.length > 0
+      ? sortedDimensions
+          .map(
+            (d) =>
+              `  - **${d.name}** [${d.priority}]: ${d.description}\n    Guidance: ${d.promptGuidance}\n    Expected feedback items: ${d.expectedFeedbackCount ?? "any"}`
+          )
+          .join("\n")
+      : "  (No dimensions configured — provide general feedback)";
+  const guidanceBlock = rubric.evaluatorGuidance
+    ? `\nAdditional evaluator guidance from the teacher:\n${rubric.evaluatorGuidance}\n`
+    : "";
+  const modelAnswerBlock = rubric.modelAnswer
+    ? `\nModel answer (for reference, do not penalize valid alternatives):\n${rubric.modelAnswer}\n`
+    : "";
+  return `Grade the student's answer for the following question.
 
 ## Question
 ${question.text}
@@ -69,7 +74,7 @@ ${guidanceBlock}${modelAnswerBlock}
     { "criterion": "<description>", "awarded": <number>, "max": <number>, "feedback": "<brief explanation>" }
   ],
   "structuredFeedback": {
-${sortedDimensions.map((d) => `    "${d.id}": [{ "issue": "...", "whyItMatters": "...", "howToFix": "...", "severity": "critical|major|minor" }]`).join(',\n') || '    "general": [{ "issue": "...", "howToFix": "...", "severity": "..." }]'}
+${sortedDimensions.map((d) => `    "${d.id}": [{ "issue": "...", "whyItMatters": "...", "howToFix": "...", "severity": "critical|major|minor" }]`).join(",\n") || '    "general": [{ "issue": "...", "howToFix": "...", "severity": "..." }]'}
   },
   "strengths": ["..."],
   "weaknesses": ["..."],
@@ -85,17 +90,20 @@ ${sortedDimensions.map((d) => `    "${d.id}": [{ "issue": "...", "whyItMatters":
  * Parse and validate RELMS grading response.
  */
 function parseRELMSResponse(text, maxMarks) {
-    const cleaned = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-    const parsed = JSON.parse(cleaned);
-    if (typeof parsed.rubric_score !== 'number') {
-        throw new Error('Missing rubric_score in RELMS response.');
-    }
-    // Clamp score to valid range
-    parsed.rubric_score = Math.max(0, Math.min(parsed.rubric_score, maxMarks));
-    // Ensure arrays exist
-    parsed.strengths = parsed.strengths ?? [];
-    parsed.weaknesses = parsed.weaknesses ?? [];
-    parsed.missingConcepts = parsed.missingConcepts ?? [];
-    return parsed;
+  const cleaned = text
+    .replace(/^```(?:json)?\n?/m, "")
+    .replace(/\n?```$/m, "")
+    .trim();
+  const parsed = JSON.parse(cleaned);
+  if (typeof parsed.rubric_score !== "number") {
+    throw new Error("Missing rubric_score in RELMS response.");
+  }
+  // Clamp score to valid range
+  parsed.rubric_score = Math.max(0, Math.min(parsed.rubric_score, maxMarks));
+  // Ensure arrays exist
+  parsed.strengths = parsed.strengths ?? [];
+  parsed.weaknesses = parsed.weaknesses ?? [];
+  parsed.missingConcepts = parsed.missingConcepts ?? [];
+  return parsed;
 }
 //# sourceMappingURL=relms.js.map

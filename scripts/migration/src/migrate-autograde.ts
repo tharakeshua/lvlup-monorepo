@@ -54,25 +54,25 @@
  *   npx tsx src/migrate-autograde.ts --client-id abc123 --rollback --dry-run
  */
 
-import { Command } from 'commander';
-import { createMigrationContext, type MigrationContext } from './migration-utils.js';
-import { MigrationLogger, generateRunId } from './utils/logger.js';
-import { initFirebase } from './config.js';
+import { Command } from "commander";
+import { createMigrationContext, type MigrationContext } from "./migration-utils.js";
+import { MigrationLogger, generateRunId } from "./utils/logger.js";
+import { initFirebase } from "./config.js";
 
 // Migration steps
-import { migrateClientsToTenants } from './autograde/migrate-clients-to-tenants.js';
-import { migrateAutogradeUsers } from './autograde/migrate-users.js';
-import { migrateClasses } from './autograde/migrate-classes.js';
-import { migrateExams } from './autograde/migrate-exams.js';
-import { migrateSubmissions } from './autograde/migrate-submissions.js';
-import { migrateEvaluationSettings } from './autograde/migrate-evaluation-settings.js';
+import { migrateClientsToTenants } from "./autograde/migrate-clients-to-tenants.js";
+import { migrateAutogradeUsers } from "./autograde/migrate-users.js";
+import { migrateClasses } from "./autograde/migrate-classes.js";
+import { migrateExams } from "./autograde/migrate-exams.js";
+import { migrateSubmissions } from "./autograde/migrate-submissions.js";
+import { migrateEvaluationSettings } from "./autograde/migrate-evaluation-settings.js";
 
 // Verification & Rollback
-import { verifyAutograde } from './verify/verify-autograde.js';
-import { rollbackAutograde } from './rollback/rollback-autograde.js';
+import { verifyAutograde } from "./verify/verify-autograde.js";
+import { rollbackAutograde } from "./rollback/rollback-autograde.js";
 
 // Post-migration
-import { recomputeTenantStats } from './post-migration/recompute-tenant-stats.js';
+import { recomputeTenantStats } from "./post-migration/recompute-tenant-stats.js";
 
 // ── Migration step registry ────────────────────────
 
@@ -84,8 +84,8 @@ type MigrationStep = {
 
 const MIGRATION_STEPS: MigrationStep[] = [
   {
-    name: 'tenants',
-    description: 'Migrate /clients/{clientId} → /tenants/{tenantId}',
+    name: "tenants",
+    description: "Migrate /clients/{clientId} → /tenants/{tenantId}",
     run: async (ctx) => {
       await migrateClientsToTenants({
         clientId: ctx.clientId,
@@ -95,8 +95,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'users',
-    description: 'Migrate students/teachers/parents → /users + /userMemberships',
+    name: "users",
+    description: "Migrate students/teachers/parents → /users + /userMemberships",
     run: async (ctx) => {
       await migrateAutogradeUsers({
         clientId: ctx.clientId,
@@ -106,8 +106,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'classes',
-    description: 'Migrate classes + create tenant student/teacher docs',
+    name: "classes",
+    description: "Migrate classes + create tenant student/teacher docs",
     run: async (ctx) => {
       await migrateClasses({
         clientId: ctx.clientId,
@@ -117,8 +117,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'exams',
-    description: 'Migrate exams + questions subcollection',
+    name: "exams",
+    description: "Migrate exams + questions subcollection",
     run: async (ctx) => {
       await migrateExams({
         clientId: ctx.clientId,
@@ -128,8 +128,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'submissions',
-    description: 'Migrate submissions + questionSubmissions subcollection',
+    name: "submissions",
+    description: "Migrate submissions + questionSubmissions subcollection",
     run: async (ctx) => {
       await migrateSubmissions({
         clientId: ctx.clientId,
@@ -139,8 +139,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'evaluation-settings',
-    description: 'Migrate evaluation settings',
+    name: "evaluation-settings",
+    description: "Migrate evaluation settings",
     run: async (ctx) => {
       await migrateEvaluationSettings({
         clientId: ctx.clientId,
@@ -156,15 +156,18 @@ const MIGRATION_STEPS: MigrationStep[] = [
 const program = new Command();
 
 program
-  .name('migrate-autograde')
-  .description('Migrate legacy AutoGrade data to unified tenant structure')
-  .version('1.0.0')
-  .requiredOption('--client-id <id>', 'AutoGrade client ID to migrate')
-  .option('--type <type>', 'Migrate specific type: tenants | users | classes | exams | submissions | evaluation-settings')
-  .option('--dry-run', 'Log what would be migrated without writing', false)
-  .option('--verify', 'Run verification after migration', false)
-  .option('--rollback', 'Roll back migration for this client', false)
-  .option('--recompute-stats', 'Recompute tenant stats after migration', false);
+  .name("migrate-autograde")
+  .description("Migrate legacy AutoGrade data to unified tenant structure")
+  .version("1.0.0")
+  .requiredOption("--client-id <id>", "AutoGrade client ID to migrate")
+  .option(
+    "--type <type>",
+    "Migrate specific type: tenants | users | classes | exams | submissions | evaluation-settings"
+  )
+  .option("--dry-run", "Log what would be migrated without writing", false)
+  .option("--verify", "Run verification after migration", false)
+  .option("--rollback", "Roll back migration for this client", false)
+  .option("--recompute-stats", "Recompute tenant stats after migration", false);
 
 program.parse(process.argv);
 
@@ -183,7 +186,7 @@ async function main(): Promise<void> {
 
   // Handle rollback
   if (opts.rollback) {
-    const logger = new MigrationLogger(runId, 'autograde-rollback');
+    const logger = new MigrationLogger(runId, "autograde-rollback");
     console.log(`\n=== Rolling back AutoGrade migration for client ${opts.clientId} ===\n`);
     await rollbackAutograde({
       clientId: opts.clientId,
@@ -195,7 +198,7 @@ async function main(): Promise<void> {
 
   // Handle verification only
   if (opts.verify && !opts.type) {
-    const logger = new MigrationLogger(runId, 'autograde-verify');
+    const logger = new MigrationLogger(runId, "autograde-verify");
     console.log(`\n=== Verifying AutoGrade migration for client ${opts.clientId} ===\n`);
     const passed = await verifyAutograde({ clientId: opts.clientId, logger });
     process.exit(passed ? 0 : 1);
@@ -203,7 +206,7 @@ async function main(): Promise<void> {
 
   // Create migration context
   const ctx = createMigrationContext({
-    source: 'autograde',
+    source: "autograde",
     clientId: opts.clientId,
     dryRun: opts.dryRun,
   });
@@ -215,13 +218,13 @@ async function main(): Promise<void> {
 
   if (stepsToRun.length === 0) {
     console.error(`Unknown migration type: ${opts.type}`);
-    console.error(`Valid types: ${MIGRATION_STEPS.map((s) => s.name).join(', ')}`);
+    console.error(`Valid types: ${MIGRATION_STEPS.map((s) => s.name).join(", ")}`);
     process.exit(1);
   }
 
   // Run migration steps
   console.log(`\n=== AutoGrade Migration: ${opts.clientId} ===`);
-  console.log(`Steps: ${stepsToRun.map((s) => s.name).join(' → ')}`);
+  console.log(`Steps: ${stepsToRun.map((s) => s.name).join(" → ")}`);
   console.log(`Dry run: ${ctx.dryRun}\n`);
 
   for (const step of stepsToRun) {
@@ -236,15 +239,15 @@ async function main(): Promise<void> {
         stack: err instanceof Error ? err.stack : undefined,
       });
       console.error(`\nMigration failed at step "${step.name}". Subsequent steps skipped.`);
-      console.error('Run with --verify to check partial migration state.');
-      console.error('Run with --rollback to undo the migration.');
+      console.error("Run with --verify to check partial migration state.");
+      console.error("Run with --rollback to undo the migration.");
       process.exit(1);
     }
   }
 
   // Post-migration stats
   if (opts.recomputeStats) {
-    console.log('\n--- Post-migration: Recomputing tenant stats ---\n');
+    console.log("\n--- Post-migration: Recomputing tenant stats ---\n");
     await recomputeTenantStats({
       tenantId: opts.clientId,
       dryRun: opts.dryRun,
@@ -254,20 +257,20 @@ async function main(): Promise<void> {
 
   // Auto-verify if requested
   if (opts.verify) {
-    console.log('\n--- Running verification ---\n');
-    const logger = new MigrationLogger(runId, 'autograde-verify');
+    console.log("\n--- Running verification ---\n");
+    const logger = new MigrationLogger(runId, "autograde-verify");
     const passed = await verifyAutograde({ clientId: opts.clientId, logger });
     if (!passed) {
-      console.error('\nVerification FAILED. Review the results above.');
+      console.error("\nVerification FAILED. Review the results above.");
       process.exit(1);
     }
   }
 
   ctx.logger.printSummary();
-  console.log('\nAutoGrade migration complete.');
+  console.log("\nAutoGrade migration complete.");
 }
 
 main().catch((err) => {
-  console.error('Migration failed:', err);
+  console.error("Migration failed:", err);
   process.exit(1);
 });

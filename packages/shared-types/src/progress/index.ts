@@ -9,17 +9,8 @@ export type {
   LevelupSubjectBreakdown,
   RecentExamEntry,
   RecentActivityEntry,
-} from './summary';
+} from "./summary";
 
-export type {
-  DailyCostSummary,
-  AtRiskReason,
-  AtRiskDetectionResult,
-} from './analytics';
+export type { DailyCostSummary, AtRiskReason, AtRiskDetectionResult } from "./analytics";
 
-export type {
-  LearningInsight,
-  InsightType,
-  InsightActionType,
-  InsightPriority,
-} from './insight';
+export type { LearningInsight, InsightType, InsightActionType, InsightPriority } from "./insight";

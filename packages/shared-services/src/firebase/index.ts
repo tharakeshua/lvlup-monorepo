@@ -5,4 +5,4 @@ export {
   resetFirebaseServices,
   type FirebaseConfig,
   type FirebaseServices,
-} from './config';
+} from "./config";

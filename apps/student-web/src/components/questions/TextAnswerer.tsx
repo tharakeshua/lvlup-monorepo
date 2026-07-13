@@ -1,4 +1,4 @@
-import type { TextData } from '@levelup/shared-types';
+import type { TextData } from "@levelup/shared-types";
 
 interface TextAnswererProps {
   data: TextData;
@@ -7,7 +7,7 @@ interface TextAnswererProps {
   disabled?: boolean;
 }
 
-export default function TextAnswerer({ data, value = '', onChange, disabled }: TextAnswererProps) {
+export default function TextAnswerer({ data, value = "", onChange, disabled }: TextAnswererProps) {
   return (
     <div>
       <input
@@ -17,10 +17,10 @@ export default function TextAnswerer({ data, value = '', onChange, disabled }: T
         disabled={disabled}
         maxLength={data.maxLength}
         placeholder="Type your answer"
-        className="w-full rounded-md border border-input px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus:outline-none disabled:opacity-60"
+        className="border-input focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 disabled:opacity-60"
       />
       {data.maxLength && (
-        <p className="mt-1 text-xs text-muted-foreground text-right">
+        <p className="text-muted-foreground mt-1 text-right text-xs">
           {value.length}/{data.maxLength}
         </p>
       )}

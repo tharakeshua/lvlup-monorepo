@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface RouteAnnouncerProps {
   /** Current pathname to announce changes for */
@@ -11,7 +11,7 @@ export interface RouteAnnouncerProps {
  * (or a fallback derived from the path) is announced to assistive technology.
  */
 export function RouteAnnouncer({ pathname }: RouteAnnouncerProps) {
-  const [announcement, setAnnouncement] = useState('');
+  const [announcement, setAnnouncement] = useState("");
   const previousPathname = useRef(pathname);
 
   useEffect(() => {
@@ -22,22 +22,17 @@ export function RouteAnnouncer({ pathname }: RouteAnnouncerProps) {
     const pageName =
       document.title ||
       pathname
-        .split('/')
+        .split("/")
         .filter(Boolean)
-        .map((segment) => segment.replace(/[-_]/g, ' '))
-        .join(' - ') ||
-      'Home';
+        .map((segment) => segment.replace(/[-_]/g, " "))
+        .join(" - ") ||
+      "Home";
 
     setAnnouncement(`Navigated to ${pageName}`);
   }, [pathname]);
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      className="sr-only"
-    >
+    <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
       {announcement}
     </div>
   );

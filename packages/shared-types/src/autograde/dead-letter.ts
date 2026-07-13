@@ -4,11 +4,11 @@
  * @module autograde/dead-letter
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
-export type DeadLetterPipelineStep = 'ocr' | 'scouting' | 'grading';
+export type DeadLetterPipelineStep = "ocr" | "scouting" | "grading";
 
-export type DeadLetterResolutionMethod = 'retry_success' | 'manual_grade' | 'dismissed';
+export type DeadLetterResolutionMethod = "retry_success" | "manual_grade" | "dismissed";
 
 export interface GradingDeadLetterEntry {
   id: string;

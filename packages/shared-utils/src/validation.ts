@@ -15,7 +15,7 @@ export function isValidEmail(email: string): boolean {
  */
 export function isValidPhone(phone: string): boolean {
   const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-  return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
+  return phoneRegex.test(phone) && phone.replace(/\D/g, "").length >= 10;
 }
 
 /**
@@ -40,11 +40,7 @@ export function isNotEmpty(value: string): boolean {
 /**
  * Validate if value is within range
  */
-export function isInRange(
-  value: number,
-  min: number,
-  max: number
-): boolean {
+export function isInRange(value: number, min: number, max: number): boolean {
   return value >= min && value <= max;
 }
 
@@ -53,12 +49,12 @@ export function isInRange(
  */
 export function sanitizeString(input: string): string {
   const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#x27;',
-    '/': '&#x2F;',
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
   };
   return input.replace(/[&<>"'/]/g, (char) => map[char] ?? char);
 }
@@ -72,7 +68,7 @@ export function validateRequiredFields<T extends Record<string, unknown>>(
 ): { valid: boolean; missing: string[] } {
   const missing = requiredFields.filter((field) => {
     const value = data[field];
-    return value === undefined || value === null || value === '';
+    return value === undefined || value === null || value === "";
   });
 
   return {

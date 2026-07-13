@@ -8,7 +8,15 @@
  *
  * Triggers on: /tenants/{tenantId}/studentProgressSummaries/{studentId}
  */
-export declare const onStudentSummaryUpdated: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").Change<import("firebase-functions/firestore").DocumentSnapshot> | undefined, {
-    tenantId: string;
-    studentId: string;
-}>>;
+export declare const onStudentSummaryUpdated: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    | import("firebase-functions/firestore").Change<
+        import("firebase-functions/firestore").DocumentSnapshot
+      >
+    | undefined,
+    {
+      tenantId: string;
+      studentId: string;
+    }
+  >
+>;

@@ -8,11 +8,13 @@
  * Returns null if the question type has no extractable answer key (e.g., AI-evaluated types).
  */
 export declare function extractAnswerKey(payload: Record<string, unknown>): {
-    correctAnswer: unknown;
-    acceptableAnswers?: unknown[];
+  correctAnswer: unknown;
+  acceptableAnswers?: unknown[];
 } | null;
 /**
  * Strips answer information from the payload so clients cannot see correct answers.
  * Returns a new payload object with answer data removed.
  */
-export declare function stripAnswerFromPayload(payload: Record<string, unknown>): Record<string, unknown>;
+export declare function stripAnswerFromPayload(
+  payload: Record<string, unknown>
+): Record<string, unknown>;

@@ -41,8 +41,15 @@
       "details": "Content items or proper empty state now renders (test passed). However, h1 heading visibility test failed on first run (timed out waiting for h1 to be visible). Second run was inconclusive due to Firebase Auth rate limiting. The fix added error handling in StoryPointViewerPage and a fallback h1 title, but useSpaceItems.ts still lacks try-catch on getDocs(). The h1 may be delayed or hidden during loading states.",
       "affectedTests": ["L3", "Q1-Q15"],
       "verificationTests": [
-        { "name": "L3: Story point viewer shows h1 heading", "result": "fail", "note": "h1 not visible within 10s timeout. May be a timing/loading state issue." },
-        { "name": "L3: Story point viewer renders content items or proper empty state", "result": "pass" }
+        {
+          "name": "L3: Story point viewer shows h1 heading",
+          "result": "fail",
+          "note": "h1 not visible within 10s timeout. May be a timing/loading state issue."
+        },
+        {
+          "name": "L3: Story point viewer renders content items or proper empty state",
+          "result": "pass"
+        }
       ],
       "remainingIssues": [
         "useSpaceItems.ts: getDocs() call at line 21 still NOT wrapped in try-catch",
@@ -76,9 +83,7 @@
       "testsPassed": 1,
       "details": "Wrong password now shows a destructive error message. Fix: Firebase Auth error code mapper added to auth-store.ts with user-friendly messages for auth/wrong-password, auth/invalid-credential, etc.",
       "affectedTests": ["A4"],
-      "verificationTests": [
-        { "name": "A4: Wrong password shows error message", "result": "pass" }
-      ]
+      "verificationTests": [{ "name": "A4: Wrong password shows error message", "result": "pass" }]
     },
     {
       "id": "BUG-005",
@@ -91,7 +96,10 @@
       "details": "Clicking Leaderboard sidebar link navigates correctly without crash. Fixed automatically by BUG-001 fix.",
       "affectedTests": ["N1"],
       "verificationTests": [
-        { "name": "N1: Clicking Leaderboard sidebar link navigates without crash", "result": "pass" }
+        {
+          "name": "N1: Clicking Leaderboard sidebar link navigates without crash",
+          "result": "pass"
+        }
       ]
     }
   ],
@@ -104,42 +112,263 @@
     "passed": 37,
     "failed": 0,
     "results": [
-      { "id": "A1", "feature": "School Code Login", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "A3", "feature": "Consumer Login", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "D1", "feature": "Dashboard Load", "previousStatus": "partial", "currentStatus": "working", "result": "pass" },
-      { "id": "D3", "feature": "Resume Learning", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "D6", "feature": "Upcoming Exams", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "D7", "feature": "My Spaces Grid", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "L1", "feature": "Spaces List", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "L2", "feature": "Space Viewer", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "L12", "feature": "Space Progress", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "P1", "feature": "Enter Practice", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "P2", "feature": "Answer Question", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "P3", "feature": "Retry Question", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "P5", "feature": "Question Navigator", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "T1", "feature": "Start Test", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "R1", "feature": "Progress Page - Overall", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "R2", "feature": "Progress Page - Exams", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "R3", "feature": "Progress Page - Spaces", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "G1", "feature": "Achievements Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "G2", "feature": "Achievement Filtering", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "G5", "feature": "Study Planner", "previousStatus": "working", "currentStatus": "working", "result": "pass", "note": "Failed in initial run (server overload), failed in re-run (Firebase rate limit). Verified working via screenshot of other tests showing sidebar with Study Planner link. Classified as infrastructure issue, not regression." },
-      { "id": "X1", "feature": "Chat Tutor Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "X2", "feature": "Chat Session", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "X3", "feature": "Tests Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "X4", "feature": "Notifications Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "X6", "feature": "Profile Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "X7", "feature": "Settings Page", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "B1", "feature": "Consumer Dashboard", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "B5", "feature": "Checkout Flow", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "B6", "feature": "Consumer Spaces", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "N2", "feature": "Mobile Bottom Nav", "previousStatus": "working", "currentStatus": "working", "result": "pass", "note": "Failed in initial run (server overload), passed in re-run." },
-      { "id": "N5", "feature": "Notification Bell", "previousStatus": "working", "currentStatus": "working", "result": "pass", "note": "Test selector didn't match but screenshot confirmed bell icon IS visible in header top-right. Not a regression." },
-      { "id": "N6", "feature": "Sign Out", "previousStatus": "working", "currentStatus": "working", "result": "pass", "note": "Failed in initial run (server overload), passed in re-run." },
-      { "id": "E1", "feature": "404 Page", "previousStatus": "working", "currentStatus": "working", "result": "pass", "note": "Test selector didn't match but screenshot confirmed 404 page renders correctly: '404', 'Page Not Found', 'Go Home' button. Not a regression." },
-      { "id": "E2", "feature": "Empty Space", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "E3", "feature": "Loading States", "previousStatus": "working", "currentStatus": "working", "result": "pass" },
-      { "id": "E4", "feature": "Error Boundaries", "previousStatus": "working", "currentStatus": "working", "result": "pass" }
+      {
+        "id": "A1",
+        "feature": "School Code Login",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "A3",
+        "feature": "Consumer Login",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "D1",
+        "feature": "Dashboard Load",
+        "previousStatus": "partial",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "D3",
+        "feature": "Resume Learning",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "D6",
+        "feature": "Upcoming Exams",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "D7",
+        "feature": "My Spaces Grid",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "L1",
+        "feature": "Spaces List",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "L2",
+        "feature": "Space Viewer",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "L12",
+        "feature": "Space Progress",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "P1",
+        "feature": "Enter Practice",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "P2",
+        "feature": "Answer Question",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "P3",
+        "feature": "Retry Question",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "P5",
+        "feature": "Question Navigator",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "T1",
+        "feature": "Start Test",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "R1",
+        "feature": "Progress Page - Overall",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "R2",
+        "feature": "Progress Page - Exams",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "R3",
+        "feature": "Progress Page - Spaces",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "G1",
+        "feature": "Achievements Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "G2",
+        "feature": "Achievement Filtering",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "G5",
+        "feature": "Study Planner",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass",
+        "note": "Failed in initial run (server overload), failed in re-run (Firebase rate limit). Verified working via screenshot of other tests showing sidebar with Study Planner link. Classified as infrastructure issue, not regression."
+      },
+      {
+        "id": "X1",
+        "feature": "Chat Tutor Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "X2",
+        "feature": "Chat Session",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "X3",
+        "feature": "Tests Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "X4",
+        "feature": "Notifications Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "X6",
+        "feature": "Profile Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "X7",
+        "feature": "Settings Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "B1",
+        "feature": "Consumer Dashboard",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "B5",
+        "feature": "Checkout Flow",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "B6",
+        "feature": "Consumer Spaces",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "N2",
+        "feature": "Mobile Bottom Nav",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass",
+        "note": "Failed in initial run (server overload), passed in re-run."
+      },
+      {
+        "id": "N5",
+        "feature": "Notification Bell",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass",
+        "note": "Test selector didn't match but screenshot confirmed bell icon IS visible in header top-right. Not a regression."
+      },
+      {
+        "id": "N6",
+        "feature": "Sign Out",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass",
+        "note": "Failed in initial run (server overload), passed in re-run."
+      },
+      {
+        "id": "E1",
+        "feature": "404 Page",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass",
+        "note": "Test selector didn't match but screenshot confirmed 404 page renders correctly: '404', 'Page Not Found', 'Go Home' button. Not a regression."
+      },
+      {
+        "id": "E2",
+        "feature": "Empty Space",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "E3",
+        "feature": "Loading States",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      },
+      {
+        "id": "E4",
+        "feature": "Error Boundaries",
+        "previousStatus": "working",
+        "currentStatus": "working",
+        "result": "pass"
+      }
     ]
   },
 

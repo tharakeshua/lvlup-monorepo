@@ -8,7 +8,7 @@ export function useSort<T>(items: T[], defaultKey = "", defaultDirection: SortDi
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
-      setSortDirection(d => d === "asc" ? "desc" : d === "desc" ? null : "asc");
+      setSortDirection((d) => (d === "asc" ? "desc" : d === "desc" ? null : "asc"));
       if (sortDirection === "desc") setSortKey("");
     } else {
       setSortKey(key);

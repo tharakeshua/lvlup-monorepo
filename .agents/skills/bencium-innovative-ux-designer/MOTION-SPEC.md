@@ -1,35 +1,36 @@
 # Motion Specification
 
-Motion should surprise and delight while serving function. Animation is a creative tool.
+Motion should surprise and delight while serving function. Animation is a
+creative tool.
 
 ## Easing Curves
 
-| Easing | CSS | Use For |
-|--------|-----|---------|
-| **Ease-out** | `cubic-bezier(0.0, 0.0, 0.2, 1)` | Entrances, appearing |
-| **Ease-in** | `cubic-bezier(0.4, 0.0, 1, 1)` | Exits, disappearing |
-| **Ease-in-out** | `cubic-bezier(0.4, 0.0, 0.2, 1)` | State changes, transforms |
-| **Spring** | `cubic-bezier(0.68, -0.55, 0.265, 1.55)` | Playful, attention-grabbing |
-| **Linear** | `linear` | Spinners, continuous loops |
+| Easing          | CSS                                      | Use For                     |
+| --------------- | ---------------------------------------- | --------------------------- |
+| **Ease-out**    | `cubic-bezier(0.0, 0.0, 0.2, 1)`         | Entrances, appearing        |
+| **Ease-in**     | `cubic-bezier(0.4, 0.0, 1, 1)`           | Exits, disappearing         |
+| **Ease-in-out** | `cubic-bezier(0.4, 0.0, 0.2, 1)`         | State changes, transforms   |
+| **Spring**      | `cubic-bezier(0.68, -0.55, 0.265, 1.55)` | Playful, attention-grabbing |
+| **Linear**      | `linear`                                 | Spinners, continuous loops  |
 
 ## Duration by Element Weight
 
-| Weight | Duration | Examples |
-|--------|----------|----------|
-| **Lightweight** | 150ms | Icons, badges, chips |
-| **Standard** | 300ms | Cards, panels, list items |
-| **Weighty** | 500ms | Modals, page transitions |
+| Weight          | Duration | Examples                  |
+| --------------- | -------- | ------------------------- |
+| **Lightweight** | 150ms    | Icons, badges, chips      |
+| **Standard**    | 300ms    | Cards, panels, list items |
+| **Weighty**     | 500ms    | Modals, page transitions  |
 
 ## Duration by Interaction
 
-| Interaction | Duration |
-|-------------|----------|
-| Button press | 100ms |
-| Hover state | 150ms |
-| Tooltip appear | 200ms |
-| Tab switch | 250ms |
-| Modal open | 300ms |
-| Page transition | 400ms |
+| Interaction     | Duration |
+| --------------- | -------- |
+| Button press    | 100ms    |
+| Hover state     | 150ms    |
+| Tooltip appear  | 200ms    |
+| Tab switch      | 250ms    |
+| Modal open      | 300ms    |
+| Page transition | 400ms    |
 
 ## Common Patterns
 
@@ -59,7 +60,9 @@ Motion should surprise and delight while serving function. Animation is a creati
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

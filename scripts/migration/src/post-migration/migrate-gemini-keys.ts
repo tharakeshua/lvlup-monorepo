@@ -18,9 +18,9 @@
  *   npx tsx src/run-migration.ts --post-migration gemini-keys --client-id <tenantId>
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 // Using dynamic import for Secret Manager since it may not be installed.
 // The @google-cloud/secret-manager package is an optional peer dependency.
@@ -50,27 +50,28 @@ export async function migrateGeminiKeys(options: {
   const { tenantId, dryRun, logger } = options;
   const db = getFirestore();
 
-  logger.info('Migrating Gemini API keys to Secret Manager');
+  logger.info("Migrating Gemini API keys to Secret Manager");
 
   const client = await getSecretManagerClient();
   if (!client && !dryRun) {
     logger.error(
-      'Secret Manager client not available. Install @google-cloud/secret-manager or use --dry-run'
+      "Secret Manager client not available. Install @google-cloud/secret-manager or use --dry-run"
     );
     return;
   }
 
-  const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || '';
+  const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || "";
   if (!projectId && !dryRun) {
-    logger.error('GCP_PROJECT environment variable is required');
+    logger.error("GCP_PROJECT environment variable is required");
     return;
   }
 
   // Get tenants that were migrated from AutoGrade (they may have gemini keys)
-  let query: admin.firestore.Query = db.collection('tenants')
-    .where('_migratedFrom', '==', 'autograde');
+  let query: admin.firestore.Query = db
+    .collection("tenants")
+    .where("_migratedFrom", "==", "autograde");
   if (tenantId) {
-    query = query.where(admin.firestore.FieldPath.documentId(), '==', tenantId);
+    query = query.where(admin.firestore.FieldPath.documentId(), "==", tenantId);
   }
 
   const tenantsSnap = await query.get();
@@ -111,8 +112,8 @@ export async function migrateGeminiKeys(options: {
         secret: {
           replication: { automatic: {} },
           labels: {
-            'tenant-id': tId,
-            'migrated-from': 'autograde',
+            "tenant-id": tId,
+            "migrated-from": "autograde",
           },
         },
       });
@@ -121,14 +122,14 @@ export async function migrateGeminiKeys(options: {
       await client!.addSecretVersion({
         parent: secret.name!,
         payload: {
-          data: Buffer.from(rawKey, 'utf8'),
+          data: Buffer.from(rawKey, "utf8"),
         },
       });
 
       // Update tenant doc
       await db.doc(`tenants/${tId}`).update({
-        'settings.geminiKeyRef': secretPath,
-        'settings.geminiKeySet': true,
+        "settings.geminiKeyRef": secretPath,
+        "settings.geminiKeySet": true,
         updatedAt: admin.firestore.Timestamp.now(),
       });
 

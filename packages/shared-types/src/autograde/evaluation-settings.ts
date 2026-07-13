@@ -4,8 +4,8 @@
  * @module autograde/evaluation-settings
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { EvaluationDimension } from '../content/rubric';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { EvaluationDimension } from "../content/rubric";
 
 export interface EvaluationDisplaySettings {
   showStrengths: boolean;

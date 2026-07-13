@@ -5,10 +5,10 @@
  * clientId as tenantId for traceability.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore, toTimestamp } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore, toTimestamp } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyClient {
   _docId: string;
@@ -18,8 +18,8 @@ interface LegacyClient {
   email: string;
   adminUid: string;
   geminiApiKey?: string;
-  status: 'active' | 'suspended' | 'trial';
-  subscriptionPlan: 'trial' | 'basic' | 'premium';
+  status: "active" | "suspended" | "trial";
+  subscriptionPlan: "trial" | "basic" | "premium";
   createdAt: admin.firestore.Timestamp;
   updatedAt: admin.firestore.Timestamp;
   metadata?: {
@@ -37,12 +37,12 @@ export async function migrateClientsToTenants(options: {
   const { clientId, dryRun, logger } = options;
   const db = getFirestore();
 
-  logger.info('Starting AutoGrade clients → tenants migration');
+  logger.info("Starting AutoGrade clients → tenants migration");
 
   // Read source clients
-  let query: admin.firestore.Query = db.collection('clients');
+  let query: admin.firestore.Query = db.collection("clients");
   if (clientId) {
-    query = query.where(admin.firestore.FieldPath.documentId(), '==', clientId);
+    query = query.where(admin.firestore.FieldPath.documentId(), "==", clientId);
   }
 
   const clients = await readAllDocs<LegacyClient>(query as admin.firestore.CollectionReference);
@@ -57,13 +57,13 @@ export async function migrateClientsToTenants(options: {
       // Idempotency: skip if already migrated
       if (await docExists(db, tenantPath)) {
         logger.debug(`Tenant ${tenantId} already exists, skipping`);
-        return { action: 'skipped', id: tenantId };
+        return { action: "skipped", id: tenantId };
       }
 
       const tenant = {
         id: tenantId,
         name: client.name,
-        slug: client.schoolCode.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        slug: client.schoolCode.toLowerCase().replace(/[^a-z0-9]/g, "-"),
         tenantCode: client.schoolCode,
         ownerUid: client.adminUid,
         contactEmail: client.email,
@@ -72,9 +72,7 @@ export async function migrateClientsToTenants(options: {
         logoUrl: null,
         bannerUrl: null,
         website: null,
-        address: client.metadata?.address
-          ? { street: client.metadata.address }
-          : null,
+        address: client.metadata?.address ? { street: client.metadata.address } : null,
         status: client.status,
         subscription: {
           plan: client.subscriptionPlan,
@@ -99,10 +97,10 @@ export async function migrateClientsToTenants(options: {
           // NOTE: Raw geminiApiKey must be moved to Secret Manager post-migration.
           // Store a reference path; actual secret rotation is a separate step.
           geminiKeyRef: client.geminiApiKey
-            ? `projects/${process.env.GCP_PROJECT || 'levelup-prod'}/secrets/tenant-${tenantId}-gemini`
+            ? `projects/${process.env.GCP_PROJECT || "levelup-prod"}/secrets/tenant-${tenantId}-gemini`
             : null,
           geminiKeySet: !!client.geminiApiKey,
-          defaultEvaluationSettingsId: 'default',
+          defaultEvaluationSettingsId: "default",
           defaultAiModel: null,
           timezone: null,
           locale: null,
@@ -117,13 +115,13 @@ export async function migrateClientsToTenants(options: {
         },
         createdAt: client.createdAt || admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'autograde',
+        _migratedFrom: "autograde",
         _migrationSourceId: client._docId,
       };
 
       if (dryRun) {
         logger.info(`[DRY RUN] Would create tenant: ${tenantId} (${client.name})`);
-        return { action: 'created', id: tenantId };
+        return { action: "created", id: tenantId };
       }
 
       batch.set(db.doc(tenantPath), tenant);
@@ -137,7 +135,7 @@ export async function migrateClientsToTenants(options: {
         });
       }
 
-      return { action: 'created', id: tenantId };
+      return { action: "created", id: tenantId };
     },
     { dryRun, logger }
   );

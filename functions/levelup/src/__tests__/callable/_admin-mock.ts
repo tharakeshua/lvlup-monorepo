@@ -5,7 +5,7 @@
  * because source code calls it on every invocation. If vi.fn creates a new
  * object each time, the mocks set up in beforeEach won't apply.
  */
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Stable Firestore DB instance — shared across all calls to admin.firestore()
 export const mockDb = {
@@ -27,15 +27,12 @@ export const mockRtdb = {
 };
 
 // firestore function that also has FieldValue
-export const mockFirestore = Object.assign(
-  () => mockDb,
-  {
-    FieldValue: {
-      serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
-      increment: vi.fn((n: number) => `INCREMENT(${n})`),
-    },
+export const mockFirestore = Object.assign(() => mockDb, {
+  FieldValue: {
+    serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP"),
+    increment: vi.fn((n: number) => `INCREMENT(${n})`),
   },
-);
+});
 
 export const mockDatabase = () => mockRtdb;
 

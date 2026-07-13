@@ -39,10 +39,11 @@ deployed under **bare** names).
   a hard cutover where every app must ship the v1 client in the same release as
   the v1 functions deploy. The plan never specifies which. As written, the
   apparent "dual-run via versioning" is a hard big-bang per codebase: the moment
-  `functions/levelup` is redeployed with `v1.*` names, every live app that still
-  calls bare `saveSpace` breaks, and vice-versa. The `apiVersion`/`v2` dual-run
-  note (api-contract-core.md:641) addresses a \_future* v1→v2, not the _current_
-  live→v1 cutover, which is the only migration that actually happens now.
+  `functions/levelup` is redeployed with
+  `v1.*`names, every live app that still calls bare`saveSpace`breaks, and vice-versa. The`apiVersion`/`v2`
+  dual-run note (api-contract-core.md:641) addresses a \_future\* v1→v2, not the
+  _current_ live→v1 cutover, which is the only migration that actually happens
+  now.
 - **Resolution:** Make the live→v1 cutover mechanism explicit and pick one of:
   (a) **export each service under BOTH the bare legacy name and the `v1.*` name
   from the same `functions/*` index for one release**

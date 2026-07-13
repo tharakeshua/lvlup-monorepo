@@ -78,7 +78,7 @@ export interface ExtractedQuestion {
   text: string;
   maxMarks: number;
   hasDiagram: boolean;
-  questionType?: 'standard' | 'diagram' | 'multi-part';
+  questionType?: "standard" | "diagram" | "multi-part";
   extractionConfidence?: number;
   readabilityIssue?: boolean;
   rubric: {
@@ -103,7 +103,10 @@ export interface ExtractionResult {
  */
 export function parseExtractionResponse(text: string): ExtractionResult {
   // Strip markdown fences if present
-  const cleaned = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\n?/m, "")
+    .replace(/\n?```$/m, "")
+    .trim();
 
   let parsed: ExtractionResult;
   try {
@@ -117,10 +120,10 @@ export function parseExtractionResponse(text: string): ExtractionResult {
   } catch (err) {
     // Check if response appears truncated
     const trimmed = cleaned.trimEnd();
-    if (!trimmed.endsWith('}') && !trimmed.endsWith(']')) {
+    if (!trimmed.endsWith("}") && !trimmed.endsWith("]")) {
       throw new Error(
         `Extraction response appears truncated (${cleaned.length} chars, ends with: "${trimmed.slice(-30)}"). ` +
-        `This usually means maxOutputTokens is too low. Raw start: ${trimmed.slice(0, 200)}...`,
+          `This usually means maxOutputTokens is too low. Raw start: ${trimmed.slice(0, 200)}...`
       );
     }
     throw err;
@@ -128,17 +131,23 @@ export function parseExtractionResponse(text: string): ExtractionResult {
 
   // Log response structure for diagnostics
   const topKeys = Object.keys(parsed);
-  console.log(`[parseExtractionResponse] Parsed keys: ${topKeys.join(', ')}. questions type: ${typeof parsed.questions}, isArray: ${Array.isArray(parsed.questions)}, length: ${Array.isArray(parsed.questions) ? parsed.questions.length : 'N/A'}`);
+  console.log(
+    `[parseExtractionResponse] Parsed keys: ${topKeys.join(", ")}. questions type: ${typeof parsed.questions}, isArray: ${Array.isArray(parsed.questions)}, length: ${Array.isArray(parsed.questions) ? parsed.questions.length : "N/A"}`
+  );
 
   if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-    throw new Error(`No questions extracted from response. Top-level keys: [${topKeys.join(', ')}]. First 500 chars: ${cleaned.slice(0, 500)}`);
+    throw new Error(
+      `No questions extracted from response. Top-level keys: [${topKeys.join(", ")}]. First 500 chars: ${cleaned.slice(0, 500)}`
+    );
   }
 
   // Validate each question - skip invalid ones instead of throwing
   const validQuestions: ExtractedQuestion[] = [];
   for (const q of parsed.questions) {
     if (!q.text || !q.maxMarks || !q.rubric?.criteria?.length) {
-      console.warn(`Skipping invalid question: ${q.questionNumber ?? 'unknown'} — missing required fields (text: ${!!q.text}, maxMarks: ${q.maxMarks}, criteria: ${q.rubric?.criteria?.length ?? 0}).`);
+      console.warn(
+        `Skipping invalid question: ${q.questionNumber ?? "unknown"} — missing required fields (text: ${!!q.text}, maxMarks: ${q.maxMarks}, criteria: ${q.rubric?.criteria?.length ?? 0}).`
+      );
       continue;
     }
     validQuestions.push(q);
@@ -151,7 +160,7 @@ export function parseExtractionResponse(text: string): ExtractionResult {
         const lastCriterion = q.rubric.criteria[q.rubric.criteria.length - 1];
         console.warn(
           `Extraction auto-fix: Question ${q.questionNumber} rubric criteria sum (${criteriaSum}) != maxMarks (${q.maxMarks}). ` +
-          `Adjusting last criterion "${lastCriterion.name}" by ${diff > 0 ? '+' : ''}${diff} (${lastCriterion.maxPoints} -> ${lastCriterion.maxPoints + diff}).`,
+            `Adjusting last criterion "${lastCriterion.name}" by ${diff > 0 ? "+" : ""}${diff} (${lastCriterion.maxPoints} -> ${lastCriterion.maxPoints + diff}).`
         );
         q.rubric.criteria[q.rubric.criteria.length - 1].maxPoints += diff;
       }
@@ -159,7 +168,7 @@ export function parseExtractionResponse(text: string): ExtractionResult {
   }
 
   if (validQuestions.length === 0) {
-    throw new Error('No valid questions extracted from response.');
+    throw new Error("No valid questions extracted from response.");
   }
 
   return { questions: validQuestions };
