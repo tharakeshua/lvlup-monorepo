@@ -43,7 +43,7 @@ test.describe("Student Web App", () => {
   // ── Email Login ────────────────────────────────────────────────────────────
 
   test.describe("Email Login", () => {
-    test("successful login with email", async ({ page }) => {
+    test("successful login with email @smoke", async ({ page }) => {
       await loginStudentWithEmail(
         page,
         SCHOOL_CODE,

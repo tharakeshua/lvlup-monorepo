@@ -96,7 +96,7 @@ test.describe("Authentication", () => {
     await expect(page.locator("#schoolCode")).toBeVisible();
   });
 
-  test("successful login navigates to dashboard", async ({ page }) => {
+  test("successful login navigates to dashboard @smoke", async ({ page }) => {
     await loginWithSchoolCode(
       page,
       SCHOOL_CODE,

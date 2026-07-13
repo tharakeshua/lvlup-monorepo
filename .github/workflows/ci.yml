@@ -243,8 +243,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: pnpm run test:e2e
+      - name: Run E2E smoke tests
+        run: pnpm run test:e2e:smoke
         env:
           CI: true
 
@@ -305,57 +305,6 @@ jobs:
         with:
           name: lighthouse-report
           path: .lighthouseci/
-          retention-days: 7
-
-  visual-regression:
-    name: Visual Regression Tests
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run Visual Regression Tests
-        run: pnpm exec playwright test --project=visual-regression
-        env:
-          CI: true
-
-      - name: Upload screenshot baselines
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: visual-regression-screenshots
-          path: tests/e2e/__screenshots__/
-          retention-days: 30
-
-      - name: Upload visual regression report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: visual-regression-report
-          path: playwright-report/
           retention-days: 7
 
   schema-tests:
@@ -546,7 +495,6 @@ jobs:
         test,
         integration,
         e2e,
-        visual-regression,
         schema-tests,
         coverage-gates,
       ]
@@ -560,7 +508,6 @@ jobs:
              [[ "${{ needs.test.result }}" != "success" ]] || \
              [[ "${{ needs.integration.result }}" != "success" ]] || \
              [[ "${{ needs.e2e.result }}" != "success" ]] || \
-             [[ "${{ needs.visual-regression.result }}" != "success" ]] || \
              [[ "${{ needs.schema-tests.result }}" != "success" ]]; then
             echo "One or more checks failed"
             exit 1

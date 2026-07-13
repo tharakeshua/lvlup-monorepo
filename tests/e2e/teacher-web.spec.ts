@@ -71,7 +71,7 @@ test.describe("Teacher Web App", () => {
       await expect(page.locator("#schoolCode")).toBeVisible();
     });
 
-    test("successful login navigates to Teacher Dashboard", async ({ page }) => {
+    test("successful login navigates to Teacher Dashboard @smoke", async ({ page }) => {
       await loginWithSchoolCode(
         page,
         SCHOOL_CODE,

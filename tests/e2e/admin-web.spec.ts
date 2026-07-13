@@ -92,7 +92,7 @@ test.describe("Auth – Login", () => {
     });
   });
 
-  test("successful login navigates to dashboard", async ({ page }) => {
+  test("successful login navigates to dashboard @smoke", async ({ page }) => {
     await loginAsAdmin(page);
     await expect(page).not.toHaveURL(/\/login/);
   });

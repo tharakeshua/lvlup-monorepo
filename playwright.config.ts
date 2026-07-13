@@ -8,6 +8,14 @@ const previewApps = [
   { pkg: "@levelup/parent-web", port: 4571 },
 ] as const;
 
+const smokeProjects = [
+  { name: "smoke-super-admin", port: 4567, testMatch: "super-admin.spec.ts" },
+  { name: "smoke-admin-web", port: 4568, testMatch: "admin-web.spec.ts" },
+  { name: "smoke-teacher-web", port: 4569, testMatch: "teacher-web.spec.ts" },
+  { name: "smoke-student-web", port: 4570, testMatch: "student-web.spec.ts" },
+  { name: "smoke-parent-web", port: 4571, testMatch: "parent-web.spec.ts" },
+] as const;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -35,6 +43,15 @@ export default defineConfig({
     actionTimeout: 15000,
   },
   projects: [
+    // ── CI smoke (one login per app; tagged @smoke in spec files) ───────────
+    ...smokeProjects.map(({ name, port, testMatch }) => ({
+      name,
+      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${port}` },
+      testMatch,
+      grep: /@smoke/,
+      timeout: 120000,
+    })),
+
     // ── Desktop Chrome ──────────────────────────────────────────────────────
     {
       name: "super-admin",
@@ -165,9 +182,11 @@ export default defineConfig({
     },
   ],
   webServer: previewApps.map(({ pkg, port }) => ({
-    command: `pnpm --filter ${pkg} exec vite preview --host 127.0.0.1 --port ${port} --strictPort`,
+    command: `pnpm --filter ${pkg} run preview -- --host 127.0.0.1 --port ${port} --strictPort`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    stdout: "pipe",
+    stderr: "pipe",
   })),
 });

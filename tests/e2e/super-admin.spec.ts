@@ -53,7 +53,7 @@ test.describe("Authentication", () => {
     await expect(page.locator('button[type="submit"]:has-text("Sign In")')).toBeVisible();
   });
 
-  test("successful login with valid credentials", async ({ page }) => {
+  test("successful login with valid credentials @smoke", async ({ page }) => {
     await loginDirect(page, CREDENTIALS.superAdmin.email, CREDENTIALS.superAdmin.password);
     await expectDashboard(page, SELECTORS.dashboards.superAdmin);
   });

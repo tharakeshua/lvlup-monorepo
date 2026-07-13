@@ -1,0 +1,109 @@
+# Visual regression runs in GitHub Actions (ubuntu-latest) — closing your laptop
+# does NOT stop this workflow. Trigger manually or wait for the nightly schedule.
+#
+# Local optional: pnpm run test:e2e:visual
+name: Visual Regression
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:00 UTC daily — off-peak, does not block PR CI
+    - cron: "0 4 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "tests/e2e/visual-regression.spec.ts"
+      - "tests/e2e/__screenshots__/**"
+      - "playwright.config.ts"
+      - ".github/workflows/visual-regression.yml"
+
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-build
+          path: |
+            packages/*/dist
+            apps/*/dist
+          retention-days: 1
+
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: visual-regression-build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Visual Regression Tests
+        run: pnpm exec playwright test --project=visual-regression
+        env:
+          CI: true
+
+      - name: Upload screenshot baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-regression-screenshots
+          path: tests/e2e/__screenshots__/
+          retention-days: 30
+
+      - name: Upload visual regression report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-regression-report
+          path: playwright-report/
+          retention-days: 7

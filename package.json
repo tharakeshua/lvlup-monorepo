@@ -22,6 +22,7 @@
     "prepare": "husky",
     "seed:emulator": "tsx scripts/seed-emulator.ts",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --project=smoke-super-admin --project=smoke-admin-web --project=smoke-teacher-web --project=smoke-student-web --project=smoke-parent-web",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:super-admin": "playwright test --project=super-admin",
