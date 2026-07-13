@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const previewApps = [
+  { pkg: "@levelup/super-admin", port: 4567 },
+  { pkg: "@levelup/admin-web", port: 4568 },
+  { pkg: "@levelup/teacher-web", port: 4569 },
+  { pkg: "@levelup/student-web", port: 4570 },
+  { pkg: "@levelup/parent-web", port: 4571 },
+] as const;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -156,4 +164,10 @@ export default defineConfig({
       timeout: 90000,
     },
   ],
+  webServer: previewApps.map(({ pkg, port }) => ({
+    command: `pnpm --filter ${pkg} exec vite preview --host 127.0.0.1 --port ${port} --strictPort`,
+    url: `http://127.0.0.1:${port}`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  })),
 });
