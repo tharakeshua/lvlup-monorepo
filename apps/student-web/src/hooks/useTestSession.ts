@@ -94,7 +94,9 @@ export function useStartTest() {
       spaceId: asSpaceId(params.spaceId),
       storyPointId: asStoryPointId(params.storyPointId),
     });
-    return (result as { session: unknown }).session as DigitalTestSession;
+    // Contract is `{ session, resuming }` — tolerate already-unwrapped session.
+    const wrapped = result as { session?: DigitalTestSession };
+    return (wrapped.session ?? (result as DigitalTestSession)) as DigitalTestSession;
   };
 
   return { ...mutation, mutateAsync };
