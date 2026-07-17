@@ -26,17 +26,41 @@ export function getMaterialData(item?: UnifiedItemLike, direct?: unknown): Dict 
   );
 }
 
-/** Pull the questionData payload (with nested `questionType`) from an item. */
+/** Pull the questionData payload (with nested `questionType`) from an item.
+ *
+ * Handles both Firestore schemas:
+ *  - v2_ seed schema:      payload.questionData = { questionType, options, … }
+ *  - old hand-authored:    payload.questionType = "mcq", payload.questionData = { options, … }
+ *
+ * When payload.questionData exists but lacks `questionType` (old schema), we
+ * merge payload.questionType into the returned dict so callers always find it.
+ */
 export function getQuestionData(item?: UnifiedItemLike, direct?: unknown): Dict | undefined {
   const directDict = asDict(direct);
   if (directDict) return directDict;
   if (!item) return undefined;
   const payload = asDict(item.payload);
-  return (
-    asDict(item.questionData) ??
-    asDict(payload?.questionData) ??
-    (payload && "questionType" in payload ? payload : undefined)
-  );
+
+  // (1) top-level questionData on the item (some flat projections)
+  const topLevel = asDict(item.questionData);
+  if (topLevel) return topLevel;
+
+  // (2) payload.questionData — present in both v2_ and old schemas
+  const nested = asDict(payload?.questionData);
+  if (nested) {
+    // v2_ schema: questionType is already inside nested; nothing to do.
+    // Old schema: questionType lives at payload top-level — merge it in so
+    // callers always find data.questionType.
+    if (!("questionType" in nested) && payload && "questionType" in payload) {
+      return { ...nested, questionType: payload.questionType };
+    }
+    return nested;
+  }
+
+  // (3) old schema with questionType on payload directly and no questionData key
+  if (payload && "questionType" in payload) return payload;
+
+  return undefined;
 }
 
 /**

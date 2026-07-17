@@ -272,13 +272,20 @@ export function isQuestion(item?: ItemView): boolean {
   return payloadKind(item) === "question";
 }
 
-/** Pull the question subtype off an answer-stripped item, if any. */
+/** Pull the question subtype off an answer-stripped item, if any.
+ *
+ * Handles both schemas:
+ *  - v2_ seed:          payload.questionData.questionType
+ *  - old hand-authored: payload.questionType (top of payload)
+ */
 export function questionTypeOf(item?: ItemView): string | undefined {
   if (!isQuestion(item)) return undefined;
   const payload = item?.payload as
-    | { questionData?: { questionType?: string; type?: string } }
+    | { questionType?: string; questionData?: { questionType?: string; type?: string } }
     | undefined;
-  return payload?.questionData?.questionType ?? payload?.questionData?.type;
+  return (
+    payload?.questionData?.questionType ?? payload?.questionData?.type ?? payload?.questionType
+  );
 }
 
 /** Points an item is worth (question basePoints/points, else 0). */

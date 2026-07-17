@@ -110,7 +110,8 @@ export default function QuestionAnswerer({
   };
 
   const isDisabled = disabled || (submitted && mode !== "test");
-  const questionType = payload.questionType;
+  const questionData = payload.questionData as Record<string, unknown> | undefined;
+  const questionType = (payload.questionType ?? questionData?.questionType) as string | undefined;
 
   // Runtime type guard helpers to prevent crashes from corrupted answer state
   const asString = (v: unknown): string => (typeof v === "string" ? v : "");
