@@ -23,7 +23,8 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
 const ClassesPage = lazy(() => import("./pages/ClassesPage"));
 const SpaceAnalyticsPage = lazy(() => import("./pages/SpaceAnalyticsPage"));
-const QuestionBankPage = lazy(() => import("./pages/spaces/QuestionBankPage"));
+// TODO(question-bank): re-enable when module returns
+// const QuestionBankPage = lazy(() => import("./pages/spaces/QuestionBankPage"));
 const AssignmentTrackerPage = lazy(() => import("./pages/AssignmentTrackerPage"));
 const StudentReportPage = lazy(() => import("./pages/StudentReportPage"));
 const ClassTestAnalyticsPage = lazy(() => import("./pages/ClassTestAnalyticsPage"));
@@ -76,14 +77,15 @@ export default function App() {
                 </RouteErrorBoundary>
               }
             />
-            <Route
+            {/* TODO(question-bank): re-enable when module returns */}
+            {/* <Route
               path="/question-bank"
               element={
                 <RouteErrorBoundary>
                   <QuestionBankPage />
                 </RouteErrorBoundary>
               }
-            />
+            /> */}
             <Route
               path="/rubric-presets"
               element={

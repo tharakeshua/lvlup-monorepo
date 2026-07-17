@@ -73,12 +73,13 @@ export default function AppLayout() {
           icon: BookOpen,
           isActive: location.pathname.startsWith("/spaces"),
         },
-        {
-          title: "Question Bank",
-          url: "/question-bank",
-          icon: Library,
-          isActive: location.pathname === "/question-bank",
-        },
+        // TODO(question-bank): re-enable when module returns
+        // {
+        //   title: "Question Bank",
+        //   url: "/question-bank",
+        //   icon: Library,
+        //   isActive: location.pathname === "/question-bank",
+        // },
         {
           title: "Exams",
           url: "/exams",

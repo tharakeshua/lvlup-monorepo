@@ -273,7 +273,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <span className="text-muted-foreground text-xs">
-                        {space.stats?.totalStoryPoints ?? 0} story points
+                        {space.stats?.storyPointCount ?? 0} story points
                       </span>
                     </Link>
                   ))}

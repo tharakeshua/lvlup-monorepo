@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [codeError, setCodeError] = useState("");
   const [codeLoading, setCodeLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSchoolCodeSubmit = async (e: FormEvent) => {
@@ -64,12 +65,15 @@ export default function LoginPage() {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     clearError();
+    setSubmitting(true);
 
     try {
       await loginWithSchoolCode(schoolCode.trim(), email, password);
       navigate(from, { replace: true });
     } catch {
       // Error is already set in the store
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -165,9 +169,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Signing in..." : "Sign In"}
+            <Button type="submit" disabled={loading || submitting} className="w-full">
+              {(loading || submitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading || submitting ? "Signing in..." : "Sign In"}
             </Button>
           </form>
         )}

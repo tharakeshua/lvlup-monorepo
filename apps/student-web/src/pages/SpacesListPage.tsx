@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useAuthStore } from "@levelup/shared-stores";
 import { useSpaces, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
@@ -8,14 +7,12 @@ import { Skeleton, Button } from "@levelup/shared-ui";
 import type { Space, SpaceProgress } from "@levelup/shared-types";
 
 export default function SpacesListPage() {
-  const { currentMembership } = useAuthStore();
-  const classIds = currentMembership?.permissions?.managedClassIds;
   const {
     data: spacesPage,
     isLoading,
     isError,
     refetch,
-  } = useSpaces<{ items: Space[] }>({ status: "published", classIds });
+  } = useSpaces<{ items: Space[] }>({ status: "published" });
   const spaces = spacesPage?.items;
 
   if (isLoading) {
@@ -92,8 +89,8 @@ function SpaceCard({ space }: { space: Space }) {
         {space.subject && <span>{space.subject}</span>}
         {space.stats && (
           <>
-            <span>{space.stats.totalStoryPoints} sections</span>
-            <span>{space.stats.totalItems} items</span>
+            <span>{space.stats.storyPointCount} sections</span>
+            <span>{space.stats.itemCount} items</span>
           </>
         )}
         {space.ratingAggregate && space.ratingAggregate.totalReviews > 0 && (
