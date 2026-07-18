@@ -6,6 +6,15 @@ import { BookOpen, AlertCircle, RefreshCw, Star } from "lucide-react";
 import { Skeleton, Button } from "@levelup/shared-ui";
 import type { Space, SpaceProgress } from "@levelup/shared-types";
 
+function spaceStatLabel(
+  count: number | undefined | null,
+  singular: string,
+  plural: string
+): string | null {
+  if (typeof count !== "number" || !Number.isFinite(count) || count <= 0) return null;
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export default function SpacesListPage() {
   const {
     data: spacesPage,
@@ -87,12 +96,16 @@ function SpaceCard({ space }: { space: Space }) {
       )}
       <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
         {space.subject && <span>{space.subject}</span>}
-        {space.stats && (
-          <>
-            <span>{space.stats.storyPointCount} sections</span>
-            <span>{space.stats.itemCount} items</span>
-          </>
-        )}
+        {(() => {
+          const sections = spaceStatLabel(space.stats?.storyPointCount, "section", "sections");
+          const items = spaceStatLabel(space.stats?.itemCount, "item", "items");
+          return (
+            <>
+              {sections && <span>{sections}</span>}
+              {items && <span>{items}</span>}
+            </>
+          );
+        })()}
         {space.ratingAggregate && space.ratingAggregate.totalReviews > 0 && (
           <span className="flex items-center gap-0.5">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />

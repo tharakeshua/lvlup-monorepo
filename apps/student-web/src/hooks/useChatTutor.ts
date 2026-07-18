@@ -23,7 +23,7 @@ export function useChatSession(
   itemId: string | null,
   sessionId?: string | null
 ) {
-  const ready = !!tenantId && !!userId && !!itemId;
+  const ready = !!userId && !!itemId;
 
   const detail = useSdkChatSession<ChatSession | null>(sessionId ?? "", {
     enabled: ready && !!sessionId,
@@ -48,7 +48,7 @@ export function useItemChatSessions(
   userId: string | null,
   itemId: string | null
 ) {
-  const ready = !!tenantId && !!userId && !!itemId;
+  const ready = !!userId && !!itemId;
   const query = useSdkChatSessions<ChatSessionPage>(
     { itemId: itemId ?? undefined },
     { enabled: ready }

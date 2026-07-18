@@ -28,6 +28,7 @@ const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const TestAnalyticsPage = lazy(() => import("./pages/TestAnalyticsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 
 export default function App() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -169,6 +170,14 @@ export default function App() {
                 </RouteErrorBoundary>
               }
             />
+            <Route
+              path="/achievements"
+              element={
+                <RouteErrorBoundary>
+                  <AchievementsPage />
+                </RouteErrorBoundary>
+              }
+            />
           </Route>
         </Route>
         {/* Consumer routes (B2C — no tenant role needed) */}
@@ -216,6 +225,14 @@ export default function App() {
               }
             />
             <Route
+              path="/consumer/spaces/:spaceId/test/:storyPointId/analytics"
+              element={
+                <RouteErrorBoundary>
+                  <TestAnalyticsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
               path="/consumer/spaces/:spaceId/practice/:storyPointId"
               element={
                 <RouteErrorBoundary>
@@ -248,10 +265,18 @@ export default function App() {
               }
             />
             <Route
-              path="/profile"
+              path="/consumer/profile"
               element={
                 <RouteErrorBoundary>
                   <ConsumerProfilePage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/consumer/notifications"
+              element={
+                <RouteErrorBoundary>
+                  <NotificationsPage />
                 </RouteErrorBoundary>
               }
             />

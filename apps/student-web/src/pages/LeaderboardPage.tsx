@@ -19,13 +19,12 @@ import {
 } from "../components/leaderboard/LeaderboardTable";
 
 export default function LeaderboardPage() {
-  const { user, currentMembership } = useAuthStore();
+  const { user } = useAuthStore();
   const userId = user?.uid ?? null;
-  const classIds = currentMembership?.permissions?.managedClassIds;
 
+  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
-    classIds,
   });
   const spaces = spacesPage?.items;
 
@@ -88,11 +87,13 @@ export default function LeaderboardPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Overall</SelectItem>
-              {(spaces ?? []).map((space) => (
-                <SelectItem key={space.id} value={space.id}>
-                  {space.title}
-                </SelectItem>
-              ))}
+              {(spaces ?? [])
+                .filter((space) => !!space.id)
+                .map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.title}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useRecordItemAttempt, useApiError } from "@levelup/query";
 import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import { useEvaluateAnswer } from "../hooks/useEvaluateAnswer";
+import { spacesListHref, spaceHref } from "../lib/space-paths";
 import { QuestionAnswerer } from "../components/questions";
 import { autoEvaluateClient } from "../utils/auto-evaluate-client";
 import ChatTutorPanel from "../components/chat/ChatTutorPanel";
@@ -26,6 +27,7 @@ import {
 
 export default function PracticeModePage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
+  const location = useLocation();
   const { currentTenantId } = useAuthStore();
 
   const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
@@ -71,7 +73,7 @@ export default function PracticeModePage() {
   const totalSolved = Object.values(evaluations).filter((e) => e.correctness >= 1).length;
 
   const handleSubmit = async (item: UnifiedItem, answer: unknown) => {
-    if (!currentTenantId || !spaceId || !storyPointId) return;
+    if (!spaceId || !storyPointId) return;
     try {
       let evaluationResult: UnifiedEvaluationResult;
 
@@ -82,7 +84,7 @@ export default function PracticeModePage() {
       } else {
         // Fall back to cloud function for AI-evaluatable types
         evaluationResult = await evaluateAnswer.mutateAsync({
-          tenantId: currentTenantId,
+          tenantId: currentTenantId ?? "",
           spaceId,
           storyPointId,
           itemId: item.id,
@@ -118,13 +120,21 @@ export default function PracticeModePage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/spaces">Spaces</Link>
+              <Link to={spacesListHref(location.pathname)}>Spaces</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
+              <Link
+                to={
+                  spaceId
+                    ? spaceHref(location.pathname, spaceId)
+                    : spacesListHref(location.pathname)
+                }
+              >
+                {space?.title ?? "Space"}
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

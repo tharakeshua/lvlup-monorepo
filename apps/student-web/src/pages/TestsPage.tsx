@@ -116,12 +116,15 @@ function SpaceTests({
 }
 
 export default function TestsPage() {
-  const { currentTenantId, currentMembership } = useAuthStore();
-  const classIds = currentMembership?.permissions?.managedClassIds;
-  const { data: spaces, isLoading } = useSpaces<Array<{ id: string; title: string }>>({
+  const { currentTenantId } = useAuthStore();
+  // listSpaces request is strict — classIds[] is Zod-rejected and empties the
+  // list. Server scopes by claims; unwrap the `{ items }` page envelope.
+  const { data: spacesPage, isLoading } = useSpaces<{
+    items: Array<{ id: string; title: string }>;
+  }>({
     status: "published",
-    classIds,
   });
+  const spaces = spacesPage?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -141,7 +144,7 @@ export default function TestsPage() {
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
-      ) : !spaces || spaces.length === 0 ? (
+      ) : spaces.length === 0 ? (
         <div className="bg-muted/50 text-muted-foreground rounded-lg border p-8 text-center">
           <ClipboardList className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" />
           <p className="text-sm">No tests available yet.</p>
