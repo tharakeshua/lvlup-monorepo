@@ -395,9 +395,20 @@ export default function ExamDetailPage() {
     if (!examId) return;
     setExtracting(true);
     try {
+      // If images exist but status is still draft (early wizard save), promote
+      // first so extract's lifecycle transition is valid.
+      if (exam?.status === "draft" && (exam.questionPaper?.images?.length ?? 0) > 0) {
+        await saveExam.mutateAsync({
+          id: asExamId(examId),
+          data: { status: "question_paper_uploaded" },
+        });
+      }
       await extractQuestions.mutateAsync({ examId: asExamId(examId) });
       await refetchQuestions();
-      refetch();
+      await refetch();
+      toast.success("Questions extracted — review them below");
+    } catch (err) {
+      handleError(err, "Failed to extract questions");
     } finally {
       setExtracting(false);
     }
@@ -425,6 +436,9 @@ export default function ExamDetailPage() {
         questionNumber,
       });
       await refetchQuestions();
+      toast.success("Question re-extracted");
+    } catch (err) {
+      handleError(err, "Failed to re-extract question");
     } finally {
       setReExtracting(null);
     }
@@ -523,6 +537,9 @@ export default function ExamDetailPage() {
   }
 
   const pendingReview = submissions.filter((s) => s.pipelineStatus === "ready_for_review");
+  const hasQuestionPaper = (exam.questionPaper?.images?.length ?? 0) > 0;
+  const canExtractQuestions =
+    exam.status === "question_paper_uploaded" || (exam.status === "draft" && hasQuestionPaper);
 
   return (
     <div className="space-y-6">
@@ -572,7 +589,7 @@ export default function ExamDetailPage() {
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
-          {exam.status === "question_paper_uploaded" && (
+          {canExtractQuestions && (
             <Button
               onClick={handleExtractQuestions}
               disabled={extracting}
@@ -775,9 +792,48 @@ export default function ExamDetailPage() {
             {questions.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
                 <FileText className="text-muted-foreground h-8 w-8" />
-                <p className="text-muted-foreground mt-2 text-sm">
-                  No questions yet. Upload a question paper to extract questions automatically.
-                </p>
+                {hasQuestionPaper ? (
+                  <>
+                    <p className="text-muted-foreground mt-2 text-sm">
+                      Question paper uploaded. Extract questions to continue.
+                    </p>
+                    {canExtractQuestions && (
+                      <Button
+                        onClick={handleExtractQuestions}
+                        disabled={extracting}
+                        size="sm"
+                        className="bg-brand text-fg-on-accent hover:bg-brand-hover mt-4"
+                      >
+                        {extracting ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5" /> Extract Questions
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground mt-2 max-w-sm text-center text-sm">
+                      No questions yet. Upload a question paper when creating the exam, then use
+                      Extract Questions.
+                    </p>
+                    {exam.status === "draft" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => setShowEditMeta(true)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit exam details
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
             ) : (
               questions.map((q) => {

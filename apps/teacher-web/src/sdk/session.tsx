@@ -109,7 +109,17 @@ interface SessionRepos {
   meRepo: { switchTenant(targetTenantId: string): Promise<unknown> };
 }
 
-const SessionContext = createContext<AuthSessionValue | null>(null);
+const SessionContext = (() => {
+  // Survive Vite HMR so Provider/consumer don't get split across module instances
+  // (otherwise useAuthSession throws "must be used within <SessionProvider>").
+  const g = globalThis as typeof globalThis & {
+    __levelupTeacherSessionCtx?: ReturnType<typeof createContext<AuthSessionValue | null>>;
+  };
+  if (!g.__levelupTeacherSessionCtx) {
+    g.__levelupTeacherSessionCtx = createContext<AuthSessionValue | null>(null);
+  }
+  return g.__levelupTeacherSessionCtx;
+})();
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const handleRef = useRef<FirebaseAuthHandle>();
