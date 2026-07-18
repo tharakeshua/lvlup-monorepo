@@ -32,12 +32,31 @@ const GRADE_JSON = {
   breakdown: [],
 };
 
+// Scout v2 is per-page: page 0 → q1, page 1 → q2, page 2 → q1 (⇒ q1:[0,2], q2:[1],
+// the same routing the old monolithic scout produced).
+const PER_PAGE_Q: Record<number, string | null> = { 0: "q1", 1: "q2", 2: "q1" };
+
+function pageResponder(perPage: Record<number, string | null>) {
+  return (input: { variables?: unknown }) => {
+    const pageIndex = (input.variables as { pageIndex: number }).pageIndex;
+    const qid = perPage[pageIndex] ?? null;
+    return {
+      json: {
+        pageIndex,
+        foundContent: qid
+          ? [{ questionId: qid, matchType: "explicit_marker", confidence: 0.9, isPartial: false }]
+          : [],
+        hasUnknownContent: qid === null,
+      },
+    };
+  };
+}
+
 function makeCtx() {
   const ctx = makeSystemContext(TENANT, { clockIso: TS });
-  ctx.ai.onGenerate("answerMapping", {
-    json: { routingMap: { q1: [0, 2], q2: [1] }, confidence: { q1: 0.9, q2: 0.8 } },
-  });
-  ctx.ai.onGenerate("answerGrading", { json: GRADE_JSON });
+  ctx.ai.onGenerate("answerMappingPage", pageResponder(PER_PAGE_Q));
+  // Grading converged on the `unifiedEvaluation` prompt (evaluation session).
+  ctx.ai.onGenerate("unifiedEvaluation", { json: GRADE_JSON });
   return ctx;
 }
 
@@ -72,20 +91,66 @@ async function seed(ctx: ReturnType<typeof makeCtx>, opts: { pages?: string[] } 
 }
 
 describe("FIX-1 — scouting (processAnswerMapping)", () => {
-  it("P0-B: pages reach the gateway as { storagePath } refs + payload satisfies requiredVariables", async () => {
+  it("P0-B: scout runs ONE call per page, each { storagePath } ref + satisfies requiredVariables", async () => {
     const ctx = makeCtx();
     await seed(ctx);
     await processAnswerMappingService({ submissionId: "sub_1" }, ctx);
 
-    const call = ctx.ai.calls.find((c) => c.promptKey === "answerMapping")!;
-    const variables = call["variables"] as Record<string, unknown>;
-    for (const required of PROMPTS.answerMapping.requiredVariables) {
-      expect(variables[required], `variable "${required}"`).not.toBeUndefined();
+    const calls = ctx.ai.calls.filter((c) => c.promptKey === "answerMappingPage");
+    expect(calls).toHaveLength(PAGES.length); // per-page fan-out, not one monolithic call
+
+    for (const call of calls) {
+      const variables = call["variables"] as Record<string, unknown>;
+      for (const required of PROMPTS.answerMappingPage.requiredVariables) {
+        expect(variables[required], `variable "${required}"`).not.toBeUndefined();
+      }
+      expect(variables["pageCount"]).toBe(3);
+      const images = call["images"] as Record<string, unknown>[];
+      expect(images).toHaveLength(1); // exactly the one page for this call
+      for (const img of images) expect(img["base64"]).toBeUndefined();
     }
-    expect(variables["pageCount"]).toBe(3);
-    const images = call["images"] as Record<string, unknown>[];
-    expect(images.map((i) => i["storagePath"])).toEqual(PAGES);
-    for (const img of images) expect(img["base64"]).toBeUndefined();
+    // Every page (by zero-based index) got exactly one call carrying its real path.
+    const seen = new Map<number, string>();
+    for (const call of calls) {
+      const idx = (call["variables"] as Record<string, unknown>)["pageIndex"] as number;
+      const img = (call["images"] as Record<string, unknown>[])[0]!;
+      seen.set(idx, img["storagePath"] as string);
+    }
+    expect([...seen.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1])).toEqual(PAGES);
+  });
+
+  it("the scout requests a REAL structured schema (not empty `{type:object}`) so Gemini can emit foundContent", async () => {
+    // A bare `{ type: "object" }` schema makes Gemini's constrained JSON decoder
+    // return an empty `{}` for every page → the scout maps nothing and every page
+    // orphans (prod regression). The schema MUST describe the foundContent shape.
+    const ctx = makeCtx();
+    await seed(ctx);
+    await processAnswerMappingService({ submissionId: "sub_1" }, ctx);
+
+    const call = ctx.ai.calls.find((c) => c.promptKey === "answerMappingPage")!;
+    const schema = call["responseSchema"] as Record<string, unknown>;
+    const props = schema?.["properties"] as Record<string, unknown> | undefined;
+    expect(props, "responseSchema.properties must be defined").not.toBeUndefined();
+    // foundContent must be an array of {questionId, matchType(enum), confidence, isPartial}.
+    const found = props!["foundContent"] as Record<string, unknown>;
+    expect(found["type"]).toBe("array");
+    const itemProps = (found["items"] as Record<string, unknown>)["properties"] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(itemProps).sort()).toEqual([
+      "confidence",
+      "isPartial",
+      "matchType",
+      "questionId",
+    ]);
+    expect((itemProps["matchType"] as Record<string, unknown>)["enum"]).toEqual([
+      "explicit_marker",
+      "semantic_context",
+      "continuation",
+      "mixed",
+    ]);
+    expect(props!["hasUnknownContent"]).toEqual({ type: "boolean" });
   });
 
   it("P0-C invariant: mapping.imageUrls = the REAL storage paths of the routed pages", async () => {
@@ -123,6 +188,79 @@ describe("FIX-1 — scouting (processAnswerMapping)", () => {
   });
 });
 
+describe("MAPSNIPE-1 — scout v2 per-page fan-out + aggregation", () => {
+  it("a per-page scout failure degrades that page to unmapped — the scout never fails wholesale", async () => {
+    const ctx = makeCtx();
+    // page 1 ALWAYS throws (both attempts) → orphan; page 0→q1, page 2→q2 differ ⇒ no sandwich.
+    ctx.ai.onGenerate("answerMappingPage", (input) => {
+      const pageIndex = (input.variables as { pageIndex: number }).pageIndex;
+      if (pageIndex === 1) throw new Error("scout page 1 boom");
+      const qid = pageIndex === 0 ? "q1" : "q2";
+      return {
+        json: {
+          pageIndex,
+          foundContent: [
+            { questionId: qid, matchType: "explicit_marker", confidence: 0.9, isPartial: false },
+          ],
+          hasUnknownContent: false,
+        },
+      };
+    });
+    await seed(ctx);
+
+    // Does NOT throw despite a page failing.
+    await processAnswerMappingService({ submissionId: "sub_1" }, ctx);
+
+    const sub = (await ctx.repos.submissions.get(TENANT, "sub_1"))!;
+    const scouting = sub["scoutingResult"] as Record<string, unknown>;
+    expect(scouting["unmappedPages"]).toEqual([1]);
+    expect(sub["needsScoutReview"]).toBe(true);
+
+    // Both retry attempts ran for the failing page (1 good call each for 0 and 2, 2 for 1).
+    expect(ctx.ai.calls.filter((c) => c.promptKey === "answerMappingPage")).toHaveLength(4);
+
+    const qsubs = await listQuestionSubmissions(ctx, TENANT, "sub_1");
+    const byQ = new Map(
+      qsubs.map((q) => [q["questionId"], q["mapping"] as Record<string, unknown>])
+    );
+    expect(byQ.get("q1")!["imageUrls"]).toEqual([PAGES[0]]); // still REAL storage paths
+    expect(byQ.get("q2")!["imageUrls"]).toEqual([PAGES[2]]);
+  });
+
+  it("mixed pages populate mapping.otherQuestionIds on each rider", async () => {
+    const ctx = makeCtx();
+    // page 0 = mixed q1+q2 ; page 1 = q1 ; page 2 = q2.
+    ctx.ai.onGenerate("answerMappingPage", (input) => {
+      const pageIndex = (input.variables as { pageIndex: number }).pageIndex;
+      const perPage: Record<number, string[]> = { 0: ["q1", "q2"], 1: ["q1"], 2: ["q2"] };
+      return {
+        json: {
+          pageIndex,
+          foundContent: (perPage[pageIndex] ?? []).map((questionId) => ({
+            questionId,
+            matchType: "mixed",
+            confidence: 0.9,
+            isPartial: false,
+          })),
+          hasUnknownContent: false,
+        },
+      };
+    });
+    await seed(ctx);
+    await processAnswerMappingService({ submissionId: "sub_1" }, ctx);
+
+    const qsubs = await listQuestionSubmissions(ctx, TENANT, "sub_1");
+    const byQ = new Map(
+      qsubs.map((q) => [q["questionId"], q["mapping"] as Record<string, unknown>])
+    );
+    expect(byQ.get("q1")!["otherQuestionIds"]).toEqual(["q2"]);
+    expect(byQ.get("q2")!["otherQuestionIds"]).toEqual(["q1"]);
+    // imageUrls still the real page paths the scout routed.
+    expect(byQ.get("q1")!["imageUrls"]).toEqual([PAGES[0], PAGES[1]]);
+    expect(byQ.get("q2")!["imageUrls"]).toEqual([PAGES[0], PAGES[2]]);
+  });
+});
+
 describe("FIX-1 — RELMS grading (processAnswerGrading)", () => {
   async function scoutThenGrade() {
     const ctx = makeCtx();
@@ -134,12 +272,12 @@ describe("FIX-1 — RELMS grading (processAnswerGrading)", () => {
 
   it("P0-C: the grading call receives the MAPPED pages as images + valid variables", async () => {
     const { ctx } = await scoutThenGrade();
-    const gradeCalls = ctx.ai.calls.filter((c) => c.promptKey === "answerGrading");
+    const gradeCalls = ctx.ai.calls.filter((c) => c.promptKey === "unifiedEvaluation");
     expect(gradeCalls).toHaveLength(2);
 
     for (const call of gradeCalls) {
       const variables = call["variables"] as Record<string, unknown>;
-      for (const required of PROMPTS.answerGrading.requiredVariables) {
+      for (const required of PROMPTS.unifiedEvaluation.requiredVariables) {
         expect(variables[required], `variable "${required}"`).not.toBeUndefined();
         expect(variables[required], `variable "${required}"`).not.toBeNull();
       }
@@ -151,8 +289,9 @@ describe("FIX-1 — RELMS grading (processAnswerGrading)", () => {
       }
     }
     // q1 was routed pages [0,2] — its grading call carries exactly those pages.
+    // The question text ("Question q1") is embedded in the composed evaluationPrompt.
     const q1Call = gradeCalls.find((c) =>
-      String((c["variables"] as Record<string, unknown>)["question"]).includes("q1")
+      String((c["variables"] as Record<string, unknown>)["evaluationPrompt"]).includes("q1")
     )!;
     expect((q1Call["images"] as Record<string, unknown>[]).map((i) => i["storagePath"])).toEqual([
       PAGES[0],
@@ -173,10 +312,8 @@ describe("FIX-1 — RELMS grading (processAnswerGrading)", () => {
 
   it("an UNMAPPED question routes to needs_review — never AI-graded blind", async () => {
     const ctx = makeCtx();
-    // q2 gets no pages from the scout this time.
-    ctx.ai.onGenerate("answerMapping", {
-      json: { routingMap: { q1: [0] }, confidence: { q1: 0.9 } },
-    });
+    // q2 gets no pages from the scout this time — only page 0 maps (to q1).
+    ctx.ai.onGenerate("answerMappingPage", pageResponder({ 0: "q1", 1: null, 2: null }));
     await seed(ctx);
     await processAnswerMappingService({ submissionId: "sub_1" }, ctx);
     const result = await processAnswerGradingService({ submissionId: "sub_1" }, ctx);
@@ -184,7 +321,7 @@ describe("FIX-1 — RELMS grading (processAnswerGrading)", () => {
     expect(result.gradedCount).toBe(1);
     expect(result.needsReviewCount).toBe(1);
     // Only ONE AI grading call was made (for the mapped q1).
-    expect(ctx.ai.calls.filter((c) => c.promptKey === "answerGrading")).toHaveLength(1);
+    expect(ctx.ai.calls.filter((c) => c.promptKey === "unifiedEvaluation")).toHaveLength(1);
 
     const qsubs = await listQuestionSubmissions(ctx, TENANT, "sub_1");
     const q2 = qsubs.find((q) => q["questionId"] === "q2")!;
