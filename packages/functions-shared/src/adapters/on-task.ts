@@ -18,6 +18,13 @@ export interface TaskHandlerOpts {
   tenantField?: string;
   retryConfig?: { maxAttempts?: number; minBackoffSeconds?: number };
   rateLimits?: { maxConcurrentDispatches?: number; maxDispatchesPerSecond?: number };
+  /**
+   * Per-dispatch wall-clock budget. `onTaskDispatched` defaults to 60s — far too
+   * short for the fat pipeline steps (scouting fans out one AI call PER PAGE;
+   * grading runs one Pro evaluation PER QUESTION, sequentially), which 504 at 60s
+   * and only limp forward on Cloud Tasks retries. Set generously per queue.
+   */
+  timeoutSeconds?: number;
 }
 
 export function makeTaskHandler<P extends Record<string, unknown>>(
@@ -30,6 +37,7 @@ export function makeTaskHandler<P extends Record<string, unknown>>(
       region: REGION,
       retryConfig: opts.retryConfig,
       rateLimits: opts.rateLimits,
+      ...(opts.timeoutSeconds !== undefined ? { timeoutSeconds: opts.timeoutSeconds } : {}),
     },
     async (req: TaskRequest<P>): Promise<void> => {
       try {

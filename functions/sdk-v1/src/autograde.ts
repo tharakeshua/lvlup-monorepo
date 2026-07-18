@@ -112,6 +112,10 @@ export const listEvaluationSettings = call(
   services.listEvaluationSettingsService
 );
 export const listDeadLetter = call("v1.autograde.listDeadLetter", services.listDeadLetterService);
+export const getEvaluationConfig = call(
+  "v1.autograde.getEvaluationConfig",
+  services.getAutogradeEvaluationConfigService
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Triggers (thin firestore-event → service-event adapters)
@@ -252,6 +256,10 @@ export const advancePipeline = makeTaskHandler<PipelineTaskPayload>(
     tenantField: "tenantId",
     retryConfig: { maxAttempts: 5, minBackoffSeconds: 10 },
     rateLimits: { maxConcurrentDispatches: 6 },
+    // The grading step evaluates every question of a submission sequentially
+    // (one Pro call each), and scouting fans out one call per answer-sheet page —
+    // both blow past the 60s default and 504. 9 min covers a full submission.
+    timeoutSeconds: 540,
   }
 );
 
