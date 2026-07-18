@@ -9,6 +9,9 @@ const isAnalyze = process.env.ANALYZE === 'true';
 export default defineConfig({
   server: {
     port: 4571,
+    strictPort: true,
+    // Bind IPv4 so http://127.0.0.1 and tools that skip ::1 work on Windows
+    host: "127.0.0.1",
   },
   plugins: [
     react(),

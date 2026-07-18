@@ -6,6 +6,7 @@ import { useLinkedStudents } from "../hooks/useLinkedStudents";
 import { useStudentNames } from "../hooks/useStudentNames";
 import { useChildProgress } from "../hooks/useChildProgress";
 import { useSpaceNames } from "../hooks/useSpaceNames";
+import { getStudentDisplayName } from "../lib/helpers";
 
 function SpaceProgressSkeleton() {
   return (
@@ -28,9 +29,12 @@ function SpaceProgressSkeleton() {
 export default function SpaceProgressPage() {
   const user = useCurrentUser();
   const tenantId = useCurrentTenantId();
-  const { data: linkedStudents } = useLinkedStudents(tenantId, user?.uid ?? null);
+  const { data: linkedStudents, isLoading: studentsLoading } = useLinkedStudents(
+    tenantId,
+    user?.uid ?? null,
+  );
   const studentIds = linkedStudents?.map((s) => s.uid) ?? [];
-  const { data: progressList, isLoading } = useChildProgress(
+  const { data: progressList, isLoading: progressLoading, isError } = useChildProgress(
     tenantId,
     studentIds.length > 0 ? studentIds : undefined,
   );
@@ -45,8 +49,12 @@ export default function SpaceProgressPage() {
   // Build a name lookup from linked students membership data
   const studentNameFromMembership = (studentId: string): string => {
     const membership = linkedStudents?.find((s) => s.uid === studentId);
-    if (studentNames?.[studentId]) return studentNames[studentId];
-    if (membership?.studentId) return membership.studentId;
+    if (membership) {
+      return getStudentDisplayName(studentNames, membership);
+    }
+    if (studentNames?.[studentId] && studentNames[studentId] !== "Unknown") {
+      return studentNames[studentId]!;
+    }
     return `Student ${studentId.slice(0, 8)}`;
   };
 
@@ -61,6 +69,8 @@ export default function SpaceProgressPage() {
     {} as Record<string, SpaceProgress[]>,
   );
 
+  const isLoading = studentsLoading || (studentIds.length > 0 && progressLoading);
+
   return (
     <div className="space-y-6">
       <div>
@@ -72,6 +82,12 @@ export default function SpaceProgressPage() {
 
       {isLoading ? (
         <SpaceProgressSkeleton />
+      ) : isError ? (
+        <EmptyState
+          icon={BookOpen}
+          title="Could not load progress"
+          description="Something went wrong loading space progress. Try refreshing the page."
+        />
       ) : !progressList?.length ? (
         <EmptyState
           icon={BookOpen}

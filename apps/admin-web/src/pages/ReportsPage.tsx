@@ -13,11 +13,12 @@ import {
   CardContent,
 } from "@levelup/shared-ui";
 import { FileText, Users } from "lucide-react";
+import { pageItems } from "@/lib/utils";
 
 export default function ReportsPage() {
   const tenantId = useCurrentTenantId();
-  const exams = (useExams({}).data ?? []) as Exam[];
-  const classes = (useClasses({}).data ?? []) as Class[];
+  const exams = pageItems<Exam>(useExams({}).data);
+  const classes = pageItems<Class>(useClasses({}).data);
   const generateReport = useGenerateReport();
   const [activeTab, setActiveTab] = useState<"exams" | "classes">("exams");
 

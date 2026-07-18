@@ -19,23 +19,41 @@ import { TableSkeleton } from "../components/skeletons/TableSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import { useSort } from "../hooks/useSort";
 import { STATUS_VARIANT } from "../lib/constants";
+import { pageItems } from "@/lib/utils";
 
 export default function ExamsOverviewPage() {
   const examsQuery = useExams({});
-  const exams = (examsQuery.data ?? []) as Exam[];
+  const exams = pageItems<Exam>(examsQuery.data);
   const { isLoading, isError, refetch } = examsQuery;
-  const teachers = (useTeachers({}).data ?? []) as Teacher[];
+  const teachers = pageItems<Teacher>(useTeachers({}).data);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const teacherMap = useMemo(
-    () => new Map(teachers.map((t) => [t.uid, t.displayName ?? t.email ?? t.uid.slice(0, 8)])),
-    [teachers]
+    () =>
+      new Map(
+        teachers.map((t) => {
+          const id = t.uid || (t as { id?: string }).id || "";
+          return [id, t.displayName ?? t.email ?? (id ? id.slice(0, 8) : "Teacher")] as const;
+        }),
+      ),
+    [teachers],
   );
 
-  const statuses = ["all", "draft", "scheduled", "active", "grading", "completed"];
+  // Match live zExamStatus (legacy "completed"/"scheduled"/"active" are not valid filters).
+  const statuses = [
+    "all",
+    "draft",
+    "question_paper_uploaded",
+    "question_paper_extracted",
+    "published",
+    "grading",
+    "results_released",
+    "archived",
+  ];
 
-  const filtered = exams?.filter((exam) => {
+  // Client-side filter; server list is unconstrained (repo fans out if needed).
+  const filtered = exams.filter((exam) => {
     if (statusFilter !== "all" && exam.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
@@ -73,7 +91,7 @@ export default function ExamsOverviewPage() {
               onClick={() => setStatusFilter(s)}
               className="shrink-0 capitalize"
             >
-              {s}
+              {s === "all" ? "All" : s.replaceAll("_", " ")}
             </Button>
           ))}
         </div>

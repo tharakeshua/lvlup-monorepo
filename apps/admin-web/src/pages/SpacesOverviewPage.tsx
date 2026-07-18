@@ -14,10 +14,11 @@ import {
 import { Search } from "lucide-react";
 import { CardGridSkeleton } from "../components/skeletons/CardGridSkeleton";
 import { STATUS_VARIANT, TYPE_VARIANT } from "../lib/constants";
+import { pageItems } from "@/lib/utils";
 
 export default function SpacesOverviewPage() {
   const spacesQuery = useSpaces({});
-  const spaces = (spacesQuery.data ?? []) as Space[];
+  const spaces = pageItems<Space>(spacesQuery.data);
   const { isLoading, isError, refetch } = spacesQuery;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

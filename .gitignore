@@ -9,6 +9,10 @@ functions/sdk-v1/.env.lvlup-ff6fa
 *.env.lvlup-*
 **/serviceAccountKey.json
 **/service-account*.json
+**/*-service-account*.json
+**/serviceAccount*.json
+**/*firebase-adminsdk*.json
+**/*-adminsdk-*.json
 
 # Build outputs
 dist
@@ -21,6 +25,15 @@ out
 # Testing
 coverage
 .nyc_output
+
+# Test & CI artifacts (never commit generated test/report output)
+test-results/
+playwright-report/
+blob-report/
+.lighthouseci/
+tmp/
+tmp-*/
+.ci-logs/
 
 # Environment files
 .env

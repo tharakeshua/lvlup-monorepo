@@ -34,6 +34,7 @@ import {
   BreadcrumbSeparator,
 } from "@levelup/shared-ui";
 import { ArrowLeft, Users, GraduationCap, FileText, BookOpen } from "lucide-react";
+import { pageItems } from "@/lib/utils";
 
 function formatTimestamp(timestamp: unknown): string {
   if (!timestamp) return "\u2014";
@@ -47,13 +48,13 @@ export default function ClassDetailPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const classesQuery = useClasses({});
-  const classes = (classesQuery.data ?? []) as Class[];
+  const classes = pageItems<Class>(classesQuery.data);
   const classesLoading = classesQuery.isLoading;
-  const teachers = (useTeachers({}).data ?? []) as Teacher[];
-  const students = (useStudents({}).data ?? []) as Student[];
-  const exams = (useExams({}).data ?? []) as Exam[];
-  const spaces = (useSpaces({}).data ?? []) as Space[];
-  const sessions = (useAcademicSessions({}).data ?? []) as AcademicSession[];
+  const teachers = pageItems<Teacher>(useTeachers({}).data);
+  const students = pageItems<Student>(useStudents({}).data);
+  const exams = pageItems<Exam>(useExams({}).data);
+  const spaces = pageItems<Space>(useSpaces({}).data);
+  const sessions = pageItems<AcademicSession>(useAcademicSessions({}).data);
 
   const classData = classes?.find((c) => c.id === classId);
 

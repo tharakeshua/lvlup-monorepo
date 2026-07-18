@@ -6,6 +6,7 @@ import {
   useSpaces,
   useClasses,
   useStudents,
+  useTeachers,
   useCostSummary,
   useApi,
   analyticsQueryKeys,
@@ -16,6 +17,7 @@ import type {
   Space,
   Class,
   Student,
+  Teacher,
   ClassProgressSummary,
 } from "@levelup/shared-types";
 import { ScoreCard, SimpleBarChart, Badge } from "@levelup/shared-ui";
@@ -31,6 +33,7 @@ import {
   Settings,
 } from "lucide-react";
 import QuotaUsageCard from "../components/dashboard/QuotaUsageCard";
+import { pageItems } from "@/lib/utils";
 
 /**
  * Per-class progress summaries via the query SDK (tenant-implicit / claims-scoped).
@@ -57,10 +60,11 @@ export default function DashboardPage() {
   const user = useCurrentUser();
   const tenantId = useCurrentTenantId();
   const tenant = useCurrentTenant().data as Tenant | undefined;
-  const exams = useExams({}).data as Exam[] | undefined;
-  const spaces = useSpaces({}).data as Space[] | undefined;
-  const classes = (useClasses({}).data ?? []) as Class[];
-  const students = (useStudents({}).data ?? []) as Student[];
+  const exams = pageItems<Exam>(useExams({}).data);
+  const spaces = pageItems<Space>(useSpaces({}).data);
+  const classes = pageItems<Class>(useClasses({}).data);
+  const students = pageItems<Student>(useStudents({}).data);
+  const teachers = pageItems<Teacher>(useTeachers({}).data);
 
   // Fetch class summaries for at-risk count and chart
   const classIds = classes.map((c) => c.id);
@@ -128,7 +132,7 @@ export default function DashboardPage() {
         <Link to="/users" className="block">
           <ScoreCard
             label="Total Teachers"
-            value={stats?.totalTeachers ?? 0}
+            value={teachers.length || stats?.totalTeachers || 0}
             icon={GraduationCap}
           />
         </Link>
@@ -138,14 +142,14 @@ export default function DashboardPage() {
         <Link to="/spaces" className="block">
           <ScoreCard
             label="Total Spaces"
-            value={spaces?.length ?? stats?.totalSpaces ?? 0}
+            value={spaces.length || stats?.totalSpaces || 0}
             icon={BookOpen}
           />
         </Link>
         <Link to="/exams" className="block">
           <ScoreCard
             label="Total Exams"
-            value={exams?.length ?? stats?.totalExams ?? 0}
+            value={exams.length || stats?.totalExams || 0}
             icon={ClipboardList}
           />
         </Link>
