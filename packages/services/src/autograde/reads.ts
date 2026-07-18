@@ -171,7 +171,7 @@ function toSubmissionDetailView(d: Record<string, unknown>): Record<string, unkn
       uploadedBy: ans["uploadedBy"] ?? d["uploadedBy"],
       uploadSource: canonUploadSource(ans["uploadSource"] ?? "web"),
     }),
-    scoutingResult: d["scoutingResult"],
+    scoutingResult: canonScoutingResult(d["scoutingResult"]),
     summary: toSubmissionSummary(d),
     pipelineStatus: canonPipelineStatus(d["pipelineStatus"]),
     pipelineError: d["pipelineError"],
@@ -278,11 +278,7 @@ function toQuestionSubmissionView(
     submissionId: d["submissionId"],
     questionId: d["questionId"],
     examId: (d["examId"] as string | undefined) ?? examId,
-    mapping: (d["mapping"] as Record<string, unknown> | undefined) ?? {
-      pageIndices: [],
-      imageUrls: [],
-      scoutedAt: d["createdAt"],
-    },
+    mapping: canonQuestionMapping(d["mapping"], d["createdAt"]),
     evaluation: ev ? toUnifiedEvaluation(ev, d, maxScore) : undefined,
     gradingStatus: d["gradingStatus"] ?? "pending",
     gradingError: d["gradingError"],
@@ -433,6 +429,65 @@ function canonGrade(v: unknown): string {
   return v ? zLegacyGradeLetterRead.parse(v) : "F";
 }
 
+/** Project a stored questionPaper → the strict ExamQuestionPaper view shape
+ *  ({ images, extractedAt, questionCount, examType }). Older writes (and the
+ *  legacy `{ images, uploadedAt }` shape) omitted the REQUIRED-nullable
+ *  `extractedAt` and carried stray keys — which made the strict getExam response
+ *  validation throw client-side ("Exam not found"). Whitelisting to the 4 canon
+ *  fields (extractedAt defaulting to null / legacy `uploadedAt`) keeps already-
+ *  created exams readable. */
+function canonQuestionPaper(v: unknown): unknown {
+  if (v == null || typeof v !== "object") return v ?? undefined;
+  const p = v as Record<string, unknown>;
+  // `rubricsGeneratedAt` is OPTIONAL (set only once Pass-2 rubric generation
+  // completes — teacher-web gates the upload/grade UI on it). Passed through when
+  // present; omitted (not null) otherwise, matching the `.optional()` view schema.
+  const rubricsGeneratedAt = p["rubricsGeneratedAt"] as string | undefined;
+  return {
+    images: Array.isArray(p["images"]) ? p["images"] : [],
+    extractedAt: (p["extractedAt"] as string | null | undefined) ?? null,
+    ...(rubricsGeneratedAt ? { rubricsGeneratedAt } : {}),
+    questionCount: (p["questionCount"] as number | undefined) ?? 0,
+    examType: "standard",
+  };
+}
+
+/** Project a stored `scoutingResult` embed → the strict ScoutingResult view shape
+ *  ({ routingMap, confidence, completedAt }). The answer-mapping pipeline ALSO
+ *  persists server-only routing DETAIL on the same embed (`pageMappings`,
+ *  `unmappedPages`, `edgeCases`, `aggregateConfidence`); those stray keys made the
+ *  strict getSubmission response validation throw client-side ("Submission not
+ *  found" — the list view has no `scoutingResult` field so it stayed readable).
+ *  Whitelisting to the 3 contract fields keeps already-scouted submissions readable;
+ *  returns undefined when absent or lacking the required `completedAt` timestamp
+ *  (matches the `.optional()` view — `compact` then drops the key). */
+function canonScoutingResult(v: unknown): unknown {
+  if (v == null || typeof v !== "object") return undefined;
+  const s = v as Record<string, unknown>;
+  const completedAt = s["completedAt"];
+  if (typeof completedAt !== "string") return undefined;
+  return {
+    routingMap: (s["routingMap"] as Record<string, number[]> | undefined) ?? {},
+    confidence: (s["confidence"] as Record<string, number> | undefined) ?? {},
+    completedAt,
+  };
+}
+
+/** Project a stored question `mapping` embed → the strict QuestionMapping view shape
+ *  ({ pageIndices, imageUrls, scoutedAt }). The mapping pipeline also persists an
+ *  additive `otherQuestionIds` seam (consumed server-side by the evaluation
+ *  session, never by the client) — a stray key the strict listQuestionSubmissions
+ *  response validation rejects. Whitelisting keeps the grading-review page's
+ *  per-question section readable. `scoutedAt` falls back to the doc `createdAt`. */
+function canonQuestionMapping(v: unknown, createdAt: unknown): Record<string, unknown> {
+  const m = (v ?? {}) as Record<string, unknown>;
+  return {
+    pageIndices: Array.isArray(m["pageIndices"]) ? m["pageIndices"] : [],
+    imageUrls: Array.isArray(m["imageUrls"]) ? m["imageUrls"] : [],
+    scoutedAt: (m["scoutedAt"] as string | undefined) ?? (createdAt as string | undefined),
+  };
+}
+
 function toExamListView(d: Record<string, unknown>): Record<string, unknown> {
   return compact({
     id: d["id"],
@@ -472,7 +527,7 @@ function toExamDetailView(d: Record<string, unknown>): Record<string, unknown> {
     totalMarks: d["totalMarks"] ?? 0,
     passingMarks: d["passingMarks"] ?? 0,
     status: canonExamStatus(d["status"]),
-    questionPaper: d["questionPaper"],
+    questionPaper: canonQuestionPaper(d["questionPaper"]),
     gradingConfig: d["gradingConfig"],
     // Canonical reader precedence (U1.3): top-level wins; nested is @deprecated read-only.
     evaluationSettingsId: d["evaluationSettingsId"] ?? gradingConfig["evaluationSettingsId"],
@@ -504,6 +559,7 @@ function toExamQuestionView(
     subQuestions: d["subQuestions"],
     extractionConfidence: d["extractionConfidence"],
     readabilityIssue: d["readabilityIssue"],
+    rubricStatus: d["rubricStatus"],
     createdAt: d["createdAt"],
     updatedAt: d["updatedAt"] ?? d["createdAt"],
   });
@@ -533,7 +589,7 @@ function toExamAnalyticsView(d: Record<string, unknown>): Record<string, unknown
  *  (drops `_kind`/`tenantId`/`createdBy` wrapper keys; nested content is written
  *  canonically by the v1 save path). Guidance/threshold stripping stays in
  *  `projectEvaluationSettings`, applied by the caller. */
-function toEvaluationSettingsView(d: Record<string, unknown>): Record<string, unknown> {
+export function toEvaluationSettingsView(d: Record<string, unknown>): Record<string, unknown> {
   return compact({
     id: d["id"],
     name: d["name"] ?? "",

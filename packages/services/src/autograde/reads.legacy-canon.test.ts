@@ -32,6 +32,7 @@ import {
   listSubmissionsService,
   getSubmissionService,
   getSubmissionForExamService,
+  listQuestionSubmissionsService,
   listDeadLetterService,
 } from "./reads";
 import { gradeFor } from "./pipeline/finalize-submission";
@@ -120,6 +121,7 @@ describe("AG-3 — v1 autograde reads canonicalize legacy drift", () => {
         maxMarks: 5,
         orderIndex: 3, // legacy key — canonical view uses `order`
         rubric: RUBRIC,
+        rubricStatus: "pending",
         linkedItemId: "item_x", // entity-only — MUST be dropped
         extractedBy: "uid_author", // entity-only — MUST be dropped
         createdAt: TS,
@@ -128,6 +130,7 @@ describe("AG-3 — v1 autograde reads canonicalize legacy drift", () => {
       const res = await listQuestionsService({ examId: "exam_legacy" }, ctx);
       const q = res.questions.find((x) => x.id === "examq_legacy")!;
       expect(q.order).toBe(3);
+      expect(q.rubricStatus).toBe("pending");
       expect("orderIndex" in q).toBe(false);
       expect("linkedItemId" in q).toBe(false);
       expect("extractedBy" in q).toBe(false);
@@ -252,6 +255,141 @@ describe("AG-3 — v1 autograde reads canonicalize legacy drift", () => {
       expect(getCallable("v1.autograde.listDeadLetter").responseSchema.safeParse(res).success).toBe(
         true
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // SUBMISSION DETAIL EMBEDS — pipeline writes RICHER embeds than the strict view
+  // (the answer-mapping pipeline persists server-only routing detail on
+  // `scoutingResult`, and an additive `otherQuestionIds` seam on question
+  // `mapping`). The RAW blobs made the strict getSubmission /
+  // listQuestionSubmissions response validation throw client-side ("Submission
+  // not found" on the grading-review page). The projection must whitelist to the
+  // contract fields so the views pass `validateResponses:true`.
+  // -------------------------------------------------------------------------
+  describe("submission embeds: rich pipeline detail whitelisted to the strict view", () => {
+    /** A submission whose `scoutingResult` carries the pipeline's server-only detail. */
+    function scoutedSubmission(ctx: ReturnType<typeof makeAuthContext>): Record<string, unknown> {
+      return {
+        id: "sub_scouted",
+        examId: "exam_scouted",
+        studentId: "student_1",
+        studentName: "Unknown",
+        rollNumber: "R1",
+        classId: ctx.classIds[0],
+        answerSheets: {
+          images: ["tenants/t/exams/e/sheets/s1.jpg"],
+          uploadedAt: TS,
+          uploadedBy: "uid_scanner",
+          uploadSource: "web",
+        },
+        // The EXACT shape process-answer-mapping.ts writes: the 3 contract fields
+        // PLUS server-only routing detail that the strict view schema forbids.
+        scoutingResult: {
+          routingMap: {},
+          confidence: {},
+          completedAt: TS,
+          pageMappings: [{ pageIndex: 0, foundContent: [], hasUnknownContent: false }],
+          unmappedPages: [0, 1, 2],
+          edgeCases: [
+            { type: "orphan_page", needsReview: true, affectedPages: [0], affectedQuestions: [] },
+          ],
+          aggregateConfidence: 0,
+        },
+        // Another stray top-level key the pipeline sets (not in the view schema).
+        needsScoutReview: true,
+        summary: {
+          totalScore: 0,
+          maxScore: 100,
+          percentage: 0,
+          grade: "F",
+          questionsGraded: 0,
+          totalQuestions: 24,
+          completedAt: TS,
+        },
+        pipelineStatus: "ready_for_review",
+        retryCount: 0,
+        resultsReleased: false,
+        resultsReleasedAt: null,
+        createdAt: TS,
+        updatedAt: TS,
+      };
+    }
+
+    it("documents the drift: the RAW scoutingResult FAILS the strict view schema", () => {
+      const raw = scoutedSubmission(makeAuthContext("teacher")).scoutingResult as unknown;
+      // The full SubmissionDetailView carrying the raw embed would not validate;
+      // ScoutingResultSchema is `.strict()` (only routingMap/confidence/completedAt).
+      const detail = getCallable("v1.autograde.getSubmission").responseSchema;
+      const withRaw = {
+        id: "sub_scouted",
+        examId: "exam_scouted",
+        studentId: "student_1",
+        studentName: "Unknown",
+        rollNumber: "R1",
+        classId: makeAuthContext("teacher").classIds[0],
+        answerSheets: {
+          images: [],
+          uploadedAt: TS,
+          uploadedBy: "uid_scanner",
+          uploadSource: "web",
+        },
+        scoutingResult: raw,
+        pipelineStatus: "ready_for_review",
+        retryCount: 0,
+        resultsReleased: false,
+        resultsReleasedAt: null,
+        createdAt: TS,
+        updatedAt: TS,
+      };
+      expect(detail.safeParse(withRaw).success).toBe(false);
+    });
+
+    it("getSubmission whitelists scoutingResult to the 3 contract fields and passes the view", async () => {
+      const ctx = makeAuthContext("teacher");
+      await ctx.repos.submissions.upsert(ctx.tenantId!, scoutedSubmission(ctx));
+      const view = await getSubmissionService({ id: "sub_scouted" }, ctx);
+      // The server-only routing detail is stripped; only the contract shape remains.
+      expect(Object.keys(view.scoutingResult!).sort()).toEqual([
+        "completedAt",
+        "confidence",
+        "routingMap",
+      ]);
+      expect("needsScoutReview" in view).toBe(false);
+      expect(getCallable("v1.autograde.getSubmission").responseSchema.safeParse(view).success).toBe(
+        true
+      );
+    });
+
+    it("listQuestionSubmissions strips the additive mapping.otherQuestionIds seam and passes the view", async () => {
+      const ctx = makeAuthContext("teacher");
+      // Parent submission (listQuestionSubmissions gates on it existing).
+      await ctx.repos.submissions.upsert(ctx.tenantId!, scoutedSubmission(ctx));
+      // A flat `_kind:'questionSubmission'` row whose `mapping` carries the seam.
+      await ctx.repos.submissions.upsert(ctx.tenantId!, {
+        id: "sub_scouted_q1",
+        _kind: "questionSubmission",
+        submissionId: "sub_scouted",
+        questionId: "exam_scouted_q1",
+        examId: "exam_scouted",
+        mapping: {
+          pageIndices: [],
+          imageUrls: [],
+          scoutedAt: TS,
+          otherQuestionIds: ["exam_scouted_q2"], // additive seam — not in the view schema
+        },
+        evaluation: { score: 0, maxScore: 2, confidence: 0, feedback: "needs review" },
+        gradingStatus: "needs_review",
+        gradingRetryCount: 0,
+        createdAt: TS,
+        updatedAt: TS,
+      });
+      const res = await listQuestionSubmissionsService({ submissionId: "sub_scouted" }, ctx);
+      const row = res.questionSubmissions.find((q) => q.id === "sub_scouted_q1")!;
+      expect(Object.keys(row.mapping).sort()).toEqual(["imageUrls", "pageIndices", "scoutedAt"]);
+      expect(
+        getCallable("v1.autograde.listQuestionSubmissions").responseSchema.safeParse(res).success
+      ).toBe(true);
     });
   });
 });
