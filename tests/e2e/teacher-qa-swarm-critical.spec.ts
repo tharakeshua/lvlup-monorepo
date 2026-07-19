@@ -150,8 +150,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
     page.on("response", async (res) => {
       if (!res.url().includes("cloudfunctions.net")) return;
       try {
-        const name =
-          new URL(res.url()).pathname.split("/").filter(Boolean).pop() || res.url();
+        const name = new URL(res.url()).pathname.split("/").filter(Boolean).pop() || res.url();
         callables.push({ name, status: res.status() });
       } catch {
         /* ignore */
@@ -188,12 +187,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
         const n = await links.count();
         for (let i = 0; i < n; i++) {
           const h = await links.nth(i).getAttribute("href");
-          if (
-            h &&
-            /\/spaces\/[^/]+/.test(h) &&
-            !h.endsWith("/spaces") &&
-            !h.includes("/new")
-          ) {
+          if (h && /\/spaces\/[^/]+/.test(h) && !h.endsWith("/spaces") && !h.includes("/new")) {
             href = h;
             notes.push(`fallback first space ${h}`);
             break;
@@ -202,9 +196,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       }
       expect(href).toBeTruthy();
 
-      const editHref = href!.includes("/edit")
-        ? href!
-        : `${href!.replace(/\/$/, "")}/edit`;
+      const editHref = href!.includes("/edit") ? href! : `${href!.replace(/\/$/, "")}/edit`;
       notes.push(`edit=${editHref}`);
       await page.goto(`${BASE}${editHref}`, { waitUntil: "domcontentloaded" });
       await settle(page, 3500);
@@ -234,7 +226,10 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       const combos = page.getByRole("combobox");
       const cc = await combos.count();
       for (let i = 0; i < cc; i++) {
-        await combos.nth(i).click().catch(() => undefined);
+        await combos
+          .nth(i)
+          .click()
+          .catch(() => undefined);
         await page.waitForTimeout(350);
         const opt = page.getByRole("option", { name: /timed test/i });
         if (await opt.count()) {
@@ -272,8 +267,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       const shot = await snap(page, "03-after-timed-test");
       const bodyAfter = await page.locator("body").innerText();
       const hasTimed =
-        /timed test/i.test(bodyAfter) ||
-        (await page.getByText(/timed test/i).count()) > 0;
+        /timed test/i.test(bodyAfter) || (await page.getByText(/timed test/i).count()) > 0;
       notes.push(`added=${added} hasTimedLabel=${hasTimed}`);
 
       const ok = added && !/something went wrong/i.test(bodyAfter);
@@ -309,8 +303,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
         /* ignore */
       }
       try {
-        const name =
-          new URL(res.url()).pathname.split("/").filter(Boolean).pop() || res.url();
+        const name = new URL(res.url()).pathname.split("/").filter(Boolean).pop() || res.url();
         callables.push({ name, status: res.status(), body });
       } catch {
         /* ignore */
@@ -322,9 +315,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       await settle(page, 2000);
       await snap(page, "04-exams-new");
 
-      const crashed = /something went wrong/i.test(
-        await page.locator("body").innerText()
-      );
+      const crashed = /something went wrong/i.test(await page.locator("body").innerText());
       if (crashed) {
         record({
           case: "4. Create draft exam",
@@ -368,9 +359,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
         await math.click();
         notes.push(`class=${(await math.innerText()).slice(0, 60)}`);
       } else {
-        const row = page
-          .locator("[data-radix-popper-content-wrapper] button")
-          .first();
+        const row = page.locator("[data-radix-popper-content-wrapper] button").first();
         if (await row.count()) {
           await row.click();
           notes.push(`classRow=${(await row.innerText()).slice(0, 60)}`);
@@ -401,9 +390,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       }
 
       const calls = callables.slice(before);
-      notes.push(
-        `callables: ${calls.map((c) => `${c.name}→${c.status}`).join(", ") || "none"}`
-      );
+      notes.push(`callables: ${calls.map((c) => `${c.name}→${c.status}`).join(", ") || "none"}`);
       for (const c of calls.filter((x) => x.status >= 400)) {
         notes.push(`FAIL ${c.name}: ${(c.body || "").slice(0, 200)}`);
       }
@@ -411,9 +398,7 @@ test.describe("Teacher critical paths (qa-swarm)", () => {
       const shot = await snap(page, "04-exam-after-next");
       const url = page.url();
       const progressed =
-        onUpload ||
-        /\/exams\/[^/]+/.test(url) ||
-        /upload|questions|draft|review/i.test(body);
+        onUpload || /\/exams\/[^/]+/.test(url) || /upload|questions|draft|review/i.test(body);
       const noHardFail =
         !calls.some((c) => c.status >= 500) &&
         !/something went wrong/i.test(body) &&
