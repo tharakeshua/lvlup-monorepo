@@ -9,6 +9,7 @@ export { saveExamService, POST_PUBLISH_LOCKED_FIELDS } from "./save-exam.js";
 export { saveExamQuestionService } from "./save-exam-question.js";
 export { releaseResultsService, listAllSubmissions } from "./release-results.js";
 export { createSpaceFromExamService } from "./create-space-from-exam.js";
+export { PRACTICE_FROM_MISTAKES_TODO } from "./practice-from-mistakes.js";
 export { extractQuestionsService } from "./extract-questions.js";
 export { uploadAnswerSheetsService, validatePathsInTenant } from "./upload-answer-sheets.js";
 export { gradeQuestionService } from "./grade-question.js";

@@ -10,6 +10,7 @@ import {
   useSaveExam,
   useExtractQuestions,
   useReleaseResults,
+  useCreateSpaceFromExam,
   useExtractionProgress,
 } from "@levelup/query";
 import type { ExtractionStatus } from "@levelup/api-contract";
@@ -37,6 +38,7 @@ import {
   DollarSign,
   ClipboardCheck,
   Image as ImageIcon,
+  BookOpen,
 } from "lucide-react";
 import {
   DownloadPDFButton,
@@ -100,6 +102,9 @@ type RubricCriterionView = NonNullable<UnifiedRubric["criteria"]>[number] & {
 function rubricCriterionMaxScore(criterion: RubricCriterionView): number {
   return criterion.maxScore ?? criterion.maxPoints ?? criterion.points ?? 0;
 }
+
+/** Exam statuses eligible for `v1.autograde.createSpaceFromExam` (mirrors server). */
+const CONVERTIBLE_TO_PRACTICE_SPACE = new Set(["published", "grading", "results_released"]);
 
 function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
   if (!rubric) {
@@ -322,6 +327,7 @@ export default function ExamDetailPage() {
   const saveExam = useSaveExam();
   const extractQuestions = useExtractQuestions();
   const releaseResults = useReleaseResults();
+  const createSpaceFromExam = useCreateSpaceFromExam();
   const { data: examData, isLoading, refetch } = useExam(examId ?? "");
   const exam = examData as Exam | undefined;
   const { data: submissionsData } = useSubmissions({ examId });
@@ -335,6 +341,7 @@ export default function ExamDetailPage() {
   const [editingRubric, setEditingRubric] = useState<string | null>(null);
   const [showSpacePicker, setShowSpacePicker] = useState(false);
   const [linkingSpace, setLinkingSpace] = useState(false);
+  const [creatingPracticeSpace, setCreatingPracticeSpace] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [reExtracting, setReExtracting] = useState<string | null>(null);
   // Live extraction pipeline status (RTDB). onPayload only touches stable refs
@@ -534,6 +541,24 @@ export default function ExamDetailPage() {
     }
   };
 
+  const handleCreatePracticeSpace = async () => {
+    if (!examId) return;
+    setCreatingPracticeSpace(true);
+    try {
+      const result = await createSpaceFromExam.mutateAsync({ examId: asExamId(examId) });
+      toast.success(
+        result.created
+          ? `Practice space created with ${result.itemsCreated} question${result.itemsCreated === 1 ? "" : "s"}`
+          : "Exam is already linked to a practice space"
+      );
+      await refetch();
+    } catch (err) {
+      handleError(err, "Could not create practice space");
+    } finally {
+      setCreatingPracticeSpace(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -569,6 +594,9 @@ export default function ExamDetailPage() {
   // FAILED_PRECONDITION in uploadAnswerSheets — this is the matching UI gate.
   const rubricsReady = !!(exam.questionPaper as { rubricsGeneratedAt?: unknown } | undefined)
     ?.rubricsGeneratedAt;
+
+  const canCreatePracticeSpace =
+    !exam.linkedSpaceId && questions.length > 0 && CONVERTIBLE_TO_PRACTICE_SPACE.has(exam.status);
 
   return (
     <div className="space-y-6">
@@ -662,10 +690,27 @@ export default function ExamDetailPage() {
             </Button>
           )}
           {exam.linkedSpaceId ? (
-            <span className="border-subtle bg-brand-subtle text-brand inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium">
-              <LinkIcon className="h-3.5 w-3.5" />
-              {exam.linkedSpaceTitle || "Linked Space"}
-            </span>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/spaces/${exam.linkedSpaceId}/edit`}>
+                <LinkIcon className="h-3.5 w-3.5" />
+                {exam.linkedSpaceTitle || "Practice Space"}
+              </Link>
+            </Button>
+          ) : canCreatePracticeSpace ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCreatePracticeSpace}
+              disabled={creatingPracticeSpace}
+              title="Create a practice space with one story point and one item per exam question"
+            >
+              {creatingPracticeSpace ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BookOpen className="h-3.5 w-3.5" />
+              )}
+              Create Practice Space
+            </Button>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setShowSpacePicker(true)}>
               <LinkIcon className="h-3.5 w-3.5" /> Link to Space
@@ -1258,9 +1303,22 @@ export default function ExamDetailPage() {
                   <dt className="text-muted-foreground">Linked Space</dt>
                   <dd>
                     {exam.linkedSpaceId ? (
-                      <span className="text-brand">
+                      <Link
+                        to={`/spaces/${exam.linkedSpaceId}/edit`}
+                        className="text-brand hover:underline"
+                      >
                         {exam.linkedSpaceTitle || exam.linkedSpaceId}
-                      </span>
+                      </Link>
+                    ) : canCreatePracticeSpace ? (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={handleCreatePracticeSpace}
+                        disabled={creatingPracticeSpace}
+                      >
+                        Create practice space from exam
+                      </Button>
                     ) : (
                       <Button
                         variant="link"
