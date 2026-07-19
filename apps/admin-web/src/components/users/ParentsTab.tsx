@@ -22,7 +22,13 @@ interface Props {
   onEditParent: (parent: Parent) => void;
 }
 
-export function ParentsTab({ isLoading, filteredParents, pagination, students, onEditParent }: Props) {
+export function ParentsTab({
+  isLoading,
+  filteredParents,
+  pagination,
+  students,
+  onEditParent,
+}: Props) {
   return (
     <div className="rounded-lg border">
       <div className="overflow-x-auto">
@@ -38,35 +44,50 @@ export function ParentsTab({ isLoading, filteredParents, pagination, students, o
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="p-0"><TableSkeleton columns={4} /></TableCell>
+                <TableCell colSpan={4} className="p-0">
+                  <TableSkeleton columns={4} />
+                </TableCell>
               </TableRow>
             ) : !filteredParents?.length ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No parents found</TableCell>
+                <TableCell colSpan={4} className="text-muted-foreground py-8 text-center text-sm">
+                  No parents found
+                </TableCell>
               </TableRow>
             ) : (
               pagination.paginatedItems.map((p: Parent) => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm font-medium">
-                    {[p.firstName, p.lastName].filter(Boolean).join(" ") || p.displayName || p.email || p.uid.slice(0, 12)}
+                    {[p.firstName, p.lastName].filter(Boolean).join(" ") ||
+                      p.displayName ||
+                      p.email ||
+                      p.uid.slice(0, 12)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {p.childStudentIds?.length ? p.childStudentIds.map((sId) => {
-                        const student = students?.find((s: Student) => s.id === sId);
-                        const studentName = student
-                          ? [student.firstName, student.lastName].filter(Boolean).join(" ") || student.rollNumber || sId.slice(0, 8)
-                          : sId.slice(0, 8);
-                        return (
-                          <Badge key={sId} variant="outline" className="text-xs">
-                            {studentName}
-                          </Badge>
-                        );
-                      }) : <span className="text-xs text-muted-foreground">None</span>}
+                      {p.childStudentIds?.length ? (
+                        p.childStudentIds.map((sId) => {
+                          const student = students?.find((s: Student) => s.id === sId);
+                          const studentName = student
+                            ? [student.firstName, student.lastName].filter(Boolean).join(" ") ||
+                              student.rollNumber ||
+                              sId.slice(0, 8)
+                            : sId.slice(0, 8);
+                          return (
+                            <Badge key={sId} variant="outline" className="text-xs">
+                              {studentName}
+                            </Badge>
+                          );
+                        })
+                      ) : (
+                        <span className="text-muted-foreground text-xs">None</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                    <Badge variant={p.status === "active" ? "default" : "secondary"}>
+                      {p.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => onEditParent(p)}>

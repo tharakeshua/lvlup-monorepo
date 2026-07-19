@@ -3,10 +3,10 @@
  *   /clients/{cId}/evaluationSettings/{esId} → /tenants/{tId}/evaluationSettings/{esId}
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyEvaluationSettings {
   _docId: string;
@@ -62,7 +62,7 @@ export async function migrateEvaluationSettings(options: {
 
       if (await docExists(db, targetPath)) {
         logger.debug(`EvaluationSettings ${settingsId} already migrated, skipping`);
-        return { action: 'skipped', id: settingsId };
+        return { action: "skipped", id: settingsId };
       }
 
       const newSettings = {
@@ -81,16 +81,16 @@ export async function migrateEvaluationSettings(options: {
         createdBy: setting.createdBy || null,
         createdAt: setting.createdAt || admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'autograde',
+        _migratedFrom: "autograde",
       };
 
       if (dryRun) {
         logger.info(`[DRY RUN] Would migrate evaluation settings: ${settingsId} (${setting.name})`);
-        return { action: 'created', id: settingsId };
+        return { action: "created", id: settingsId };
       }
 
       batch.set(db.doc(targetPath), newSettings);
-      return { action: 'created', id: settingsId };
+      return { action: "created", id: settingsId };
     },
     { dryRun, logger }
   );

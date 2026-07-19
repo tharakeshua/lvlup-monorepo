@@ -3,7 +3,7 @@
  * Verifies nightly insight generation: per-student rules, MAX_ACTIVE_INSIGHTS = 5 limit,
  * deduplication, pagination (500 per batch), and multi-tenant support.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Stable mocks (hoisted for vi.mock factory access) ───────────────────────
 const {
@@ -30,7 +30,7 @@ const stableDb: any = {
     limit: vi.fn().mockReturnThis(),
     startAfter: vi.fn().mockReturnThis(),
     get: mockGet,
-    doc: vi.fn(() => ({ id: 'auto-id', get: mockGet, set: mockSet })),
+    doc: vi.fn(() => ({ id: "auto-id", get: mockGet, set: mockSet })),
   })),
   batch: vi.fn(() => ({
     set: mockBatchSet,
@@ -39,34 +39,38 @@ const stableDb: any = {
   })),
 };
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const fsFn: any = () => stableDb;
   fsFn.FieldValue = {
-    serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
+    serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP"),
   };
   fsFn.FieldPath = {
-    documentId: vi.fn(() => '__documentId__'),
+    documentId: vi.fn(() => "__documentId__"),
   };
-  return { default: { firestore: fsFn, initializeApp: vi.fn() }, firestore: fsFn, initializeApp: vi.fn() };
+  return {
+    default: { firestore: fsFn, initializeApp: vi.fn() },
+    firestore: fsFn,
+    initializeApp: vi.fn(),
+  };
 });
 
-vi.mock('firebase-functions/v2/scheduler', () => ({
+vi.mock("firebase-functions/v2/scheduler", () => ({
   onSchedule: vi.fn((_opts: any, handler: any) => handler),
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock('../../utils/insight-rules', () => ({
+vi.mock("../../utils/insight-rules", () => ({
   generateInsightsForStudent: mockGenerateInsightsForStudent,
 }));
 
 // ── Import handler ──────────────────────────────────────────────────────────
-import { generateInsights } from '../../schedulers/generate-insights';
+import { generateInsights } from "../../schedulers/generate-insights";
 const handler = generateInsights as any;
 
-describe('generateInsights', () => {
+describe("generateInsights", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGet.mockReset();
@@ -77,32 +81,46 @@ describe('generateInsights', () => {
     mockGenerateInsightsForStudent.mockReset();
   });
 
-  it('should generate insights for students with progress', async () => {
+  it("should generate insights for students with progress", async () => {
     // Tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }] });
     // Exams
     mockGet.mockResolvedValueOnce({
-      docs: [{ id: 'exam-1', data: () => ({ title: 'Math Test', classIds: ['c1'], topics: [] }) }],
+      docs: [{ id: "exam-1", data: () => ({ title: "Math Test", classIds: ["c1"], topics: [] }) }],
     });
     // Spaces
     mockGet.mockResolvedValueOnce({
-      docs: [{ id: 'space-1', data: () => ({ title: 'Algebra', subject: 'Math', status: 'published' }) }],
+      docs: [
+        { id: "space-1", data: () => ({ title: "Algebra", subject: "Math", status: "published" }) },
+      ],
     });
     // Student progress summaries (page 1)
     mockGet.mockResolvedValueOnce({
       empty: false,
       size: 1,
-      docs: [{ id: 'stu-1', data: () => ({ overallScore: 60 }) }],
+      docs: [{ id: "stu-1", data: () => ({ overallScore: 60 }) }],
     });
     // Space progress for student
     mockGet.mockResolvedValueOnce({
-      docs: [{ data: () => ({ spaceId: 'space-1', percentage: 75 }) }],
+      docs: [{ data: () => ({ spaceId: "space-1", percentage: 75 }) }],
     });
 
     // Generate insights returns 2 seeds
     mockGenerateInsightsForStudent.mockReturnValueOnce([
-      { type: 'improvement', priority: 'medium', title: 'Keep it up', description: 'desc', actionType: 'view_space' },
-      { type: 'warning', priority: 'high', title: 'Falling behind', description: 'desc2', actionType: 'view_exam' },
+      {
+        type: "improvement",
+        priority: "medium",
+        title: "Keep it up",
+        description: "desc",
+        actionType: "view_space",
+      },
+      {
+        type: "warning",
+        priority: "high",
+        title: "Falling behind",
+        description: "desc2",
+        actionType: "view_exam",
+      },
     ]);
 
     // Existing active insights: empty
@@ -118,9 +136,9 @@ describe('generateInsights', () => {
     expect(mockBatchCommit).toHaveBeenCalled();
   });
 
-  it('should limit to 5 active insights per student', async () => {
+  it("should limit to 5 active insights per student", async () => {
     // Tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }] });
     // Exams
     mockGet.mockResolvedValueOnce({ docs: [] });
     // Spaces
@@ -129,7 +147,7 @@ describe('generateInsights', () => {
     mockGet.mockResolvedValueOnce({
       empty: false,
       size: 1,
-      docs: [{ id: 'stu-1', data: () => ({ overallScore: 50 }) }],
+      docs: [{ id: "stu-1", data: () => ({ overallScore: 50 }) }],
     });
     // Space progress
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -137,12 +155,12 @@ describe('generateInsights', () => {
     // Generate 8 insight seeds
     mockGenerateInsightsForStudent.mockReturnValueOnce(
       Array.from({ length: 8 }, (_, i) => ({
-        type: 'tip',
-        priority: 'low',
+        type: "tip",
+        priority: "low",
         title: `Insight ${i}`,
         description: `Desc ${i}`,
-        actionType: 'view_space',
-      })),
+        actionType: "view_space",
+      }))
     );
 
     // Existing active insights: already 3
@@ -161,9 +179,9 @@ describe('generateInsights', () => {
     expect(mockBatchDelete).toHaveBeenCalled();
   });
 
-  it('should deduplicate by removing oldest existing insights when over limit', async () => {
+  it("should deduplicate by removing oldest existing insights when over limit", async () => {
     // Tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }] });
     // Exams + Spaces
     mockGet.mockResolvedValueOnce({ docs: [] });
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -171,16 +189,16 @@ describe('generateInsights', () => {
     mockGet.mockResolvedValueOnce({
       empty: false,
       size: 1,
-      docs: [{ id: 'stu-1', data: () => ({}) }],
+      docs: [{ id: "stu-1", data: () => ({}) }],
     });
     // Space progress
     mockGet.mockResolvedValueOnce({ docs: [] });
 
     // 3 new seeds
     mockGenerateInsightsForStudent.mockReturnValueOnce([
-      { type: 'tip', priority: 'low', title: 'New 1', description: 'd', actionType: 'none' },
-      { type: 'tip', priority: 'low', title: 'New 2', description: 'd', actionType: 'none' },
-      { type: 'tip', priority: 'low', title: 'New 3', description: 'd', actionType: 'none' },
+      { type: "tip", priority: "low", title: "New 1", description: "d", actionType: "none" },
+      { type: "tip", priority: "low", title: "New 2", description: "d", actionType: "none" },
+      { type: "tip", priority: "low", title: "New 3", description: "d", actionType: "none" },
     ]);
 
     // 4 existing active insights (4 + 3 = 7 > MAX 5 => delete 2)
@@ -201,9 +219,9 @@ describe('generateInsights', () => {
     expect(mockBatchDelete.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('should paginate through student batches', async () => {
+  it("should paginate through student batches", async () => {
     // Tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }] });
     // Exams + Spaces
     mockGet.mockResolvedValueOnce({ docs: [] });
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -229,7 +247,7 @@ describe('generateInsights', () => {
     expect(mockGenerateInsightsForStudent).toHaveBeenCalledTimes(3);
   });
 
-  it('should handle no students gracefully', async () => {
+  it("should handle no students gracefully", async () => {
     // No tenants at all
     mockGet.mockResolvedValueOnce({ docs: [] });
 
@@ -239,9 +257,9 @@ describe('generateInsights', () => {
     expect(mockBatchSet).not.toHaveBeenCalled();
   });
 
-  it('should skip students without progress data', async () => {
+  it("should skip students without progress data", async () => {
     // Tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }] });
     // Exams + Spaces
     mockGet.mockResolvedValueOnce({ docs: [] });
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -249,7 +267,7 @@ describe('generateInsights', () => {
     mockGet.mockResolvedValueOnce({
       empty: false,
       size: 1,
-      docs: [{ id: 'stu-1', data: () => ({}) }],
+      docs: [{ id: "stu-1", data: () => ({}) }],
     });
     // Space progress: empty
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -265,9 +283,9 @@ describe('generateInsights', () => {
     expect(mockBatchSet).not.toHaveBeenCalled();
   });
 
-  it('should handle multiple tenants', async () => {
+  it("should handle multiple tenants", async () => {
     // 2 tenants
-    mockGet.mockResolvedValueOnce({ docs: [{ id: 'tenant-1' }, { id: 'tenant-2' }] });
+    mockGet.mockResolvedValueOnce({ docs: [{ id: "tenant-1" }, { id: "tenant-2" }] });
 
     // Tenant-1: exams + spaces
     mockGet.mockResolvedValueOnce({ docs: [] });
@@ -287,17 +305,15 @@ describe('generateInsights', () => {
     expect(stableDb.collection).toHaveBeenCalled();
   });
 
-  it('should log summary after completion', async () => {
+  it("should log summary after completion", async () => {
     // No tenants
     mockGet.mockResolvedValueOnce({ docs: [] });
 
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await handler({});
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Insight generation complete'),
-    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Insight generation complete"));
 
     consoleSpy.mockRestore();
   });

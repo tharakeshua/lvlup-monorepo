@@ -143,6 +143,15 @@ export default function ExamCreatePage() {
         });
         paths.push(path);
       }
+      // Persist images + lifecycle status immediately so Extract works even if
+      // the teacher leaves the wizard before the final "Create Exam" step.
+      await saveExam.mutateAsync({
+        id: asExamId(id),
+        data: {
+          questionPaperImages: paths,
+          status: "question_paper_uploaded",
+        },
+      });
       setUploadedPaths(paths);
       setStep("review");
     } catch (err) {
@@ -156,16 +165,21 @@ export default function ExamCreatePage() {
     if (!firebaseUser) return;
     setSaving(true);
     try {
+      const hasPaper = uploadedPaths.length > 0;
       const result = await saveExam.mutateAsync({
         // If a draft was already created during upload, update it in place;
         // otherwise create it fresh (server assigns the id).
         ...(examId ? { id: asExamId(examId) } : {}),
         data: {
           ...buildExamData(),
-          questionPaperImages: uploadedPaths.length > 0 ? uploadedPaths : undefined,
+          questionPaperImages: hasPaper ? uploadedPaths : undefined,
+          // Extract requires question_paper_uploaded (draft → extracted is invalid).
+          ...(hasPaper ? { status: "question_paper_uploaded" as const } : {}),
         },
       });
       navigate(`/exams/${result.id}`);
+    } catch (err) {
+      handleError(err, "Failed to create exam");
     } finally {
       setSaving(false);
     }
@@ -317,11 +331,39 @@ export default function ExamCreatePage() {
             </Select>
           </div>
           <Button
-            onClick={() => {
-              if (validateMetadata()) setStep("upload");
+            onClick={async () => {
+              if (!validateMetadata()) return;
+              // Persist the draft before leaving metadata so Generate/Extract
+              // (and question-paper upload via requestUploadUrl) have an examId.
+              setSaving(true);
+              try {
+                if (!examId) {
+                  const draft = await saveExam.mutateAsync({ data: buildExamData() });
+                  setExamId(draft.id);
+                } else {
+                  await saveExam.mutateAsync({
+                    id: asExamId(examId),
+                    data: buildExamData(),
+                  });
+                }
+                setStep("upload");
+              } catch (err) {
+                handleError(err, "Failed to save exam draft");
+              } finally {
+                setSaving(false);
+              }
             }}
+            disabled={saving}
           >
-            Next <ArrowRight className="h-4 w-4" />
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Saving draft...
+              </>
+            ) : (
+              <>
+                Next <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       )}

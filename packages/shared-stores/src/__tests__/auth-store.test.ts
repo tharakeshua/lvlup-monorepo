@@ -2,16 +2,16 @@
  * Unit tests for auth-store.ts
  * Mocks Firebase Auth, Firestore, and shared-services to test auth state management.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mock setup
 // ---------------------------------------------------------------------------
 
-const mockGetIdToken = vi.fn().mockResolvedValue('token');
+const mockGetIdToken = vi.fn().mockResolvedValue("token");
 const mockFirebaseUser = {
-  uid: 'user-1',
-  email: 'test@test.com',
+  uid: "user-1",
+  email: "test@test.com",
   getIdToken: mockGetIdToken,
 };
 
@@ -20,7 +20,7 @@ const _callbacks: { userDoc: ((snap: any) => void) | null } = { userDoc: null };
 const mockAuthUnsub = vi.fn();
 const mockUserDocUnsub = vi.fn();
 
-vi.mock('firebase/firestore', () => ({
+vi.mock("firebase/firestore", () => ({
   doc: vi.fn(),
   onSnapshot: vi.fn((_ref: any, onNext: any) => {
     _callbacks.userDoc = onNext;
@@ -28,7 +28,7 @@ vi.mock('firebase/firestore', () => ({
   }),
 }));
 
-vi.mock('firebase/auth', () => ({
+vi.mock("firebase/auth", () => ({
   getIdTokenResult: vi.fn().mockResolvedValue({
     claims: {},
   }),
@@ -42,9 +42,9 @@ const mockOnAuthStateChange = vi.fn((cb: any) => {
   return mockAuthUnsub;
 });
 
-vi.mock('@levelup/shared-services', () => ({
+vi.mock("@levelup/shared-services", () => ({
   getFirebaseServices: vi.fn(() => ({
-    db: { type: 'firestore' },
+    db: { type: "firestore" },
   })),
   authService: {
     signIn: (...args: unknown[]) => mockSignIn(...(args as [any])),
@@ -55,18 +55,20 @@ vi.mock('@levelup/shared-services', () => ({
   getUserMemberships: vi.fn().mockResolvedValue([]),
   getMembership: vi.fn().mockResolvedValue(null),
   lookupTenantByCode: vi.fn().mockResolvedValue(null),
-  deriveStudentEmail: vi.fn((roll: string, tenantId: string) => `${roll}@${tenantId}.levelup.internal`),
-  callSwitchActiveTenant: vi.fn().mockResolvedValue({ success: true, role: 'student' }),
+  deriveStudentEmail: vi.fn(
+    (roll: string, tenantId: string) => `${roll}@${tenantId}.levelup.internal`
+  ),
+  callSwitchActiveTenant: vi.fn().mockResolvedValue({ success: true, role: "student" }),
 }));
 
-import { getIdTokenResult } from 'firebase/auth';
-import { useAuthStore } from '../auth-store';
+import { getIdTokenResult } from "firebase/auth";
+import { useAuthStore } from "../auth-store";
 import {
   getUserMemberships,
   getMembership,
   lookupTenantByCode,
   callSwitchActiveTenant,
-} from '@levelup/shared-services';
+} from "@levelup/shared-services";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -88,13 +90,13 @@ function resetStore() {
   });
 }
 
-const mockMembership = (tenantId: string, role = 'student') => ({
-  uid: 'user-1',
+const mockMembership = (tenantId: string, role = "student") => ({
+  uid: "user-1",
   tenantId,
-  tenantCode: 'TST',
+  tenantCode: "TST",
   role,
-  status: 'active' as const,
-  joinSource: 'admin_created',
+  status: "active" as const,
+  joinSource: "admin_created",
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -103,7 +105,7 @@ const mockMembership = (tenantId: string, role = 'student') => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('auth-store', () => {
+describe("auth-store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authStateCallback = null;
@@ -115,7 +117,7 @@ describe('auth-store', () => {
   // Initial state
   // -------------------------------------------------------------------------
 
-  it('has correct initial state', () => {
+  it("has correct initial state", () => {
     const state = getState();
     expect(state.user).toBeNull();
     expect(state.firebaseUser).toBeNull();
@@ -130,41 +132,41 @@ describe('auth-store', () => {
   // login
   // -------------------------------------------------------------------------
 
-  describe('login', () => {
-    it('calls authService.signIn and sets firebaseUser on success', async () => {
+  describe("login", () => {
+    it("calls authService.signIn and sets firebaseUser on success", async () => {
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
 
-      await getState().login('test@test.com', 'password');
+      await getState().login("test@test.com", "password");
 
-      expect(mockSignIn).toHaveBeenCalledWith('test@test.com', 'password');
+      expect(mockSignIn).toHaveBeenCalledWith("test@test.com", "password");
       expect(getState().firebaseUser).toBe(mockFirebaseUser);
     });
 
-    it('sets loading true during login', async () => {
+    it("sets loading true during login", async () => {
       mockSignIn.mockImplementationOnce(() => {
         expect(getState().loading).toBe(true);
         return Promise.resolve({ user: mockFirebaseUser });
       });
 
-      await getState().login('test@test.com', 'password');
+      await getState().login("test@test.com", "password");
     });
 
-    it('sets error and re-throws on failure', async () => {
-      mockSignIn.mockRejectedValueOnce(new Error('Invalid credentials'));
+    it("sets error and re-throws on failure", async () => {
+      mockSignIn.mockRejectedValueOnce(new Error("Invalid credentials"));
 
-      await expect(
-        getState().login('bad@test.com', 'wrong'),
-      ).rejects.toThrow('Invalid credentials');
+      await expect(getState().login("bad@test.com", "wrong")).rejects.toThrow(
+        "Invalid credentials"
+      );
 
-      expect(getState().error).toBe('Invalid credentials');
+      expect(getState().error).toBe("Invalid credentials");
       expect(getState().loading).toBe(false);
     });
 
-    it('clears previous error on new login attempt', async () => {
-      useAuthStore.setState({ error: 'Old error' });
+    it("clears previous error on new login attempt", async () => {
+      useAuthStore.setState({ error: "Old error" });
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
 
-      await getState().login('test@test.com', 'password');
+      await getState().login("test@test.com", "password");
 
       expect(getState().error).toBeNull();
     });
@@ -174,8 +176,8 @@ describe('auth-store', () => {
   // loginWithGoogle
   // -------------------------------------------------------------------------
 
-  describe('loginWithGoogle', () => {
-    it('calls authService.signInWithGoogle and sets firebaseUser', async () => {
+  describe("loginWithGoogle", () => {
+    it("calls authService.signInWithGoogle and sets firebaseUser", async () => {
       mockSignInWithGoogle.mockResolvedValueOnce({ user: mockFirebaseUser });
 
       await getState().loginWithGoogle();
@@ -184,12 +186,12 @@ describe('auth-store', () => {
       expect(getState().firebaseUser).toBe(mockFirebaseUser);
     });
 
-    it('sets error on failure', async () => {
-      mockSignInWithGoogle.mockRejectedValueOnce(new Error('Popup closed'));
+    it("sets error on failure", async () => {
+      mockSignInWithGoogle.mockRejectedValueOnce(new Error("Popup closed"));
 
-      await expect(getState().loginWithGoogle()).rejects.toThrow('Popup closed');
+      await expect(getState().loginWithGoogle()).rejects.toThrow("Popup closed");
 
-      expect(getState().error).toBe('Popup closed');
+      expect(getState().error).toBe("Popup closed");
     });
   });
 
@@ -197,53 +199,55 @@ describe('auth-store', () => {
   // loginWithSchoolCode
   // -------------------------------------------------------------------------
 
-  describe('loginWithSchoolCode', () => {
-    it('resolves tenant, signs in, and sets membership', async () => {
-      const tenant = { id: 'tenant-1', name: 'School', status: 'active' };
-      const membership = mockMembership('tenant-1');
+  describe("loginWithSchoolCode", () => {
+    it("resolves tenant, signs in, and sets membership", async () => {
+      const tenant = { id: "tenant-1", name: "School", status: "active" };
+      const membership = mockMembership("tenant-1");
 
       vi.mocked(lookupTenantByCode).mockResolvedValueOnce(tenant as any);
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
+      vi.mocked(getUserMemberships).mockResolvedValueOnce([membership] as any);
       vi.mocked(getMembership).mockResolvedValueOnce(membership as any);
 
-      await getState().loginWithSchoolCode('SPR001', 'STU-001', 'pass');
+      await getState().loginWithSchoolCode("SPR001", "STU-001", "pass");
 
-      expect(lookupTenantByCode).toHaveBeenCalledWith('SPR001');
-      expect(callSwitchActiveTenant).toHaveBeenCalledWith('tenant-1');
-      expect(getState().currentTenantId).toBe('tenant-1');
+      expect(lookupTenantByCode).toHaveBeenCalledWith("SPR001");
+      expect(callSwitchActiveTenant).toHaveBeenCalledWith("tenant-1");
+      expect(getState().currentTenantId).toBe("tenant-1");
       expect(getState().currentMembership).toBe(membership);
     });
 
-    it('throws when school code is invalid', async () => {
+    it("throws when school code is invalid", async () => {
       vi.mocked(lookupTenantByCode).mockResolvedValueOnce(null);
 
-      await expect(
-        getState().loginWithSchoolCode('BAD', 'stu', 'pass'),
-      ).rejects.toThrow('Invalid school code');
+      await expect(getState().loginWithSchoolCode("BAD", "stu", "pass")).rejects.toThrow(
+        "Invalid school code"
+      );
     });
 
-    it('throws when school is not active', async () => {
+    it("throws when school is not active", async () => {
       vi.mocked(lookupTenantByCode).mockResolvedValueOnce({
-        id: 't1',
-        status: 'suspended',
+        id: "t1",
+        status: "suspended",
       } as any);
 
-      await expect(
-        getState().loginWithSchoolCode('SPR', 'stu', 'pass'),
-      ).rejects.toThrow('School is not active');
+      await expect(getState().loginWithSchoolCode("SPR", "stu", "pass")).rejects.toThrow(
+        "School is not active"
+      );
     });
 
-    it('throws when no active membership exists', async () => {
+    it("throws when no active membership exists", async () => {
       vi.mocked(lookupTenantByCode).mockResolvedValueOnce({
-        id: 't1',
-        status: 'active',
+        id: "t1",
+        status: "active",
       } as any);
       mockSignIn.mockResolvedValueOnce({ user: mockFirebaseUser });
+      vi.mocked(getUserMemberships).mockResolvedValueOnce([]);
       vi.mocked(getMembership).mockResolvedValueOnce(null);
 
-      await expect(
-        getState().loginWithSchoolCode('SPR', 'stu', 'pass'),
-      ).rejects.toThrow('No active membership for this school');
+      await expect(getState().loginWithSchoolCode("SPR", "stu", "pass")).rejects.toThrow(
+        "No active membership for this school"
+      );
     });
   });
 
@@ -251,8 +255,8 @@ describe('auth-store', () => {
   // logout
   // -------------------------------------------------------------------------
 
-  describe('logout', () => {
-    it('calls authService.signOut', async () => {
+  describe("logout", () => {
+    it("calls authService.signOut", async () => {
       mockSignOut.mockResolvedValueOnce(undefined);
 
       await getState().logout();
@@ -260,12 +264,12 @@ describe('auth-store', () => {
       expect(mockSignOut).toHaveBeenCalled();
     });
 
-    it('sets error on failure but does not throw', async () => {
-      mockSignOut.mockRejectedValueOnce(new Error('Network error'));
+    it("sets error on failure but does not throw", async () => {
+      mockSignOut.mockRejectedValueOnce(new Error("Network error"));
 
       await getState().logout();
 
-      expect(getState().error).toBe('Network error');
+      expect(getState().error).toBe("Network error");
     });
   });
 
@@ -273,39 +277,37 @@ describe('auth-store', () => {
   // switchTenant
   // -------------------------------------------------------------------------
 
-  describe('switchTenant', () => {
-    it('switches to a valid tenant and updates state', async () => {
-      const membership = mockMembership('tenant-2', 'teacher');
+  describe("switchTenant", () => {
+    it("switches to a valid tenant and updates state", async () => {
+      const membership = mockMembership("tenant-2", "teacher");
       useAuthStore.setState({
         firebaseUser: mockFirebaseUser as any,
-        allMemberships: [mockMembership('tenant-1'), membership] as any[],
+        allMemberships: [mockMembership("tenant-1"), membership] as any[],
       });
 
-      await getState().switchTenant('tenant-2');
+      await getState().switchTenant("tenant-2");
 
-      expect(callSwitchActiveTenant).toHaveBeenCalledWith('tenant-2');
+      expect(callSwitchActiveTenant).toHaveBeenCalledWith("tenant-2");
       expect(mockGetIdToken).toHaveBeenCalledWith(true);
-      expect(getState().currentTenantId).toBe('tenant-2');
+      expect(getState().currentTenantId).toBe("tenant-2");
       expect(getState().currentMembership).toBe(membership);
       expect(getState().loading).toBe(false);
     });
 
-    it('throws when not authenticated', async () => {
+    it("throws when not authenticated", async () => {
       useAuthStore.setState({ firebaseUser: null });
 
-      await expect(getState().switchTenant('t1')).rejects.toThrow(
-        'Not authenticated',
-      );
+      await expect(getState().switchTenant("t1")).rejects.toThrow("Not authenticated");
     });
 
-    it('throws when user has no membership for target tenant', async () => {
+    it("throws when user has no membership for target tenant", async () => {
       useAuthStore.setState({
         firebaseUser: mockFirebaseUser as any,
-        allMemberships: [mockMembership('tenant-1')] as any[],
+        allMemberships: [mockMembership("tenant-1")] as any[],
       });
 
-      await expect(getState().switchTenant('tenant-999')).rejects.toThrow(
-        'No membership for this tenant',
+      await expect(getState().switchTenant("tenant-999")).rejects.toThrow(
+        "No membership for this tenant"
       );
     });
   });
@@ -314,20 +316,20 @@ describe('auth-store', () => {
   // loadMemberships
   // -------------------------------------------------------------------------
 
-  describe('loadMemberships', () => {
-    it('fetches memberships and updates store', async () => {
-      const memberships = [mockMembership('t1'), mockMembership('t2')];
+  describe("loadMemberships", () => {
+    it("fetches memberships and updates store", async () => {
+      const memberships = [mockMembership("t1"), mockMembership("t2")];
       vi.mocked(getUserMemberships).mockResolvedValueOnce(memberships as any);
       useAuthStore.setState({ firebaseUser: mockFirebaseUser as any });
 
       const result = await getState().loadMemberships();
 
-      expect(getUserMemberships).toHaveBeenCalledWith('user-1');
+      expect(getUserMemberships).toHaveBeenCalledWith("user-1");
       expect(result).toHaveLength(2);
       expect(getState().allMemberships).toBe(memberships);
     });
 
-    it('returns empty array when not authenticated', async () => {
+    it("returns empty array when not authenticated", async () => {
       useAuthStore.setState({ firebaseUser: null });
 
       const result = await getState().loadMemberships();
@@ -341,8 +343,8 @@ describe('auth-store', () => {
   // refreshToken
   // -------------------------------------------------------------------------
 
-  describe('refreshToken', () => {
-    it('forces token refresh when authenticated', async () => {
+  describe("refreshToken", () => {
+    it("forces token refresh when authenticated", async () => {
       useAuthStore.setState({ firebaseUser: mockFirebaseUser as any });
 
       await getState().refreshToken();
@@ -350,7 +352,7 @@ describe('auth-store', () => {
       expect(mockGetIdToken).toHaveBeenCalledWith(true);
     });
 
-    it('does nothing when not authenticated', async () => {
+    it("does nothing when not authenticated", async () => {
       useAuthStore.setState({ firebaseUser: null });
 
       await getState().refreshToken();
@@ -363,9 +365,9 @@ describe('auth-store', () => {
   // clearError
   // -------------------------------------------------------------------------
 
-  describe('clearError', () => {
-    it('clears the error state', () => {
-      useAuthStore.setState({ error: 'Something failed' });
+  describe("clearError", () => {
+    it("clears the error state", () => {
+      useAuthStore.setState({ error: "Something failed" });
 
       getState().clearError();
 
@@ -377,19 +379,19 @@ describe('auth-store', () => {
   // initialize
   // -------------------------------------------------------------------------
 
-  describe('initialize', () => {
-    it('subscribes to auth state and returns cleanup function', () => {
+  describe("initialize", () => {
+    it("subscribes to auth state and returns cleanup function", () => {
       const cleanup = getState().initialize();
 
       expect(mockOnAuthStateChange).toHaveBeenCalled();
-      expect(typeof cleanup).toBe('function');
+      expect(typeof cleanup).toBe("function");
     });
 
-    it('clears state when user signs out (null auth state)', async () => {
+    it("clears state when user signs out (null auth state)", async () => {
       useAuthStore.setState({
-        user: { uid: 'x' } as any,
+        user: { uid: "x" } as any,
         firebaseUser: mockFirebaseUser as any,
-        currentTenantId: 'old-tenant',
+        currentTenantId: "old-tenant",
       });
 
       getState().initialize();
@@ -403,11 +405,11 @@ describe('auth-store', () => {
       expect(getState().loading).toBe(false);
     });
 
-    it('loads memberships and restores tenant from claims on sign-in', async () => {
-      const memberships = [mockMembership('tenant-claimed')];
+    it("loads memberships and restores tenant from claims on sign-in", async () => {
+      const memberships = [mockMembership("tenant-claimed")];
       vi.mocked(getUserMemberships).mockResolvedValueOnce(memberships as any);
       vi.mocked(getIdTokenResult).mockResolvedValueOnce({
-        claims: { tenantId: 'tenant-claimed' },
+        claims: { tenantId: "tenant-claimed" },
       } as any);
 
       getState().initialize();
@@ -415,13 +417,13 @@ describe('auth-store', () => {
 
       // Allow microtasks to settle
       await vi.waitFor(() => {
-        expect(getState().currentTenantId).toBe('tenant-claimed');
+        expect(getState().currentTenantId).toBe("tenant-claimed");
       });
       expect(getState().allMemberships).toBe(memberships);
     });
 
-    it('auto-selects tenant when user has exactly one membership', async () => {
-      const memberships = [mockMembership('only-tenant')];
+    it("auto-selects tenant when user has exactly one membership", async () => {
+      const memberships = [mockMembership("only-tenant")];
       vi.mocked(getUserMemberships).mockResolvedValueOnce(memberships as any);
       vi.mocked(getIdTokenResult).mockResolvedValueOnce({
         claims: {},
@@ -431,12 +433,12 @@ describe('auth-store', () => {
       await authStateCallback!(mockFirebaseUser);
 
       await vi.waitFor(() => {
-        expect(getState().currentTenantId).toBe('only-tenant');
+        expect(getState().currentTenantId).toBe("only-tenant");
       });
     });
 
-    it('does not auto-select when user has multiple memberships and no claim', async () => {
-      const memberships = [mockMembership('t1'), mockMembership('t2')];
+    it("does not auto-select when user has multiple memberships and no claim", async () => {
+      const memberships = [mockMembership("t1"), mockMembership("t2")];
       vi.mocked(getUserMemberships).mockResolvedValueOnce(memberships as any);
       vi.mocked(getIdTokenResult).mockResolvedValueOnce({
         claims: {},
@@ -451,21 +453,19 @@ describe('auth-store', () => {
       expect(getState().currentTenantId).toBeNull();
     });
 
-    it('sets error when initialization fails', async () => {
-      vi.mocked(getUserMemberships).mockRejectedValueOnce(
-        new Error('Firestore unavailable'),
-      );
+    it("sets error when initialization fails", async () => {
+      vi.mocked(getUserMemberships).mockRejectedValueOnce(new Error("Firestore unavailable"));
 
       getState().initialize();
       await authStateCallback!(mockFirebaseUser);
 
       await vi.waitFor(() => {
-        expect(getState().error).toBe('Firestore unavailable');
+        expect(getState().error).toBe("Firestore unavailable");
       });
       expect(getState().loading).toBe(false);
     });
 
-    it('cleanup function unsubscribes from auth listener', () => {
+    it("cleanup function unsubscribes from auth listener", () => {
       const cleanup = getState().initialize();
       cleanup();
       expect(mockAuthUnsub).toHaveBeenCalled();

@@ -45,7 +45,10 @@ export default function SettingsPage() {
   const tenantId = useCurrentTenantId();
   const userId = user?.uid ?? null;
 
-  const { data: savedPrefs, isLoading: prefsLoading } = useNotificationPreferences(tenantId, userId);
+  const { data: savedPrefs, isLoading: prefsLoading } = useNotificationPreferences(
+    tenantId,
+    userId
+  );
   const saveMutation = useSaveNotificationPreferences();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
@@ -58,13 +61,10 @@ export default function SettingsPage() {
     }
   }, [savedPrefs]);
 
-  const updatePref = useCallback(
-    (key: keyof NotificationPreferences, value: boolean) => {
-      setPrefs((prev) => ({ ...prev, [key]: value }));
-      setIsDirty(true);
-    },
-    [],
-  );
+  const updatePref = useCallback((key: keyof NotificationPreferences, value: boolean) => {
+    setPrefs((prev) => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  }, []);
 
   const handleSave = () => {
     if (!tenantId || !userId) return;
@@ -78,7 +78,7 @@ export default function SettingsPage() {
         onError: () => {
           toast.error("Failed to save preferences. Please try again.");
         },
-      },
+      }
     );
   };
 
@@ -86,7 +86,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Manage your profile and notification preferences
         </p>
       </div>
@@ -104,22 +104,14 @@ export default function SettingsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Display Name</Label>
-              <Input
-                value={user?.displayName ?? ""}
-                readOnly
-                className="bg-muted"
-              />
+              <Input value={user?.displayName ?? ""} readOnly className="bg-muted" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input
-                value={user?.email ?? ""}
-                readOnly
-                className="bg-muted"
-              />
+              <Input value={user?.email ?? ""} readOnly className="bg-muted" />
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-3 text-xs">
             Contact your school admin to update your profile information.
           </p>
         </CardContent>
@@ -134,11 +126,7 @@ export default function SettingsPage() {
               <CardTitle className="text-base">Notification Preferences</CardTitle>
             </div>
             {isDirty && (
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={saveMutation.isPending}
-              >
+              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? (
                   <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                 ) : saveMutation.isSuccess && !isDirty ? (
@@ -148,9 +136,7 @@ export default function SettingsPage() {
               </Button>
             )}
           </div>
-          <CardDescription>
-            Choose how and when you receive notifications
-          </CardDescription>
+          <CardDescription>Choose how and when you receive notifications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {prefsLoading ? (
@@ -164,7 +150,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Email Notifications</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Receive notifications via email
                       </p>
                     </div>
@@ -176,7 +162,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Push Notifications</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Receive browser push notifications
                       </p>
                     </div>
@@ -195,7 +181,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Exam Results</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         When exam results are released
                       </p>
                     </div>
@@ -207,7 +193,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Progress Milestones</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         When your child reaches a learning milestone
                       </p>
                     </div>
@@ -219,7 +205,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Teacher Messages</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Messages from your child's teachers
                       </p>
                     </div>
@@ -241,7 +227,10 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Account</CardTitle>
         </CardHeader>
         <CardContent>
-          <LogoutButton onLogout={logout}>
+          <LogoutButton
+            onLogout={logout}
+            className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-10 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium"
+          >
             Sign Out
           </LogoutButton>
         </CardContent>

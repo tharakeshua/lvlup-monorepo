@@ -1,6 +1,6 @@
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
-export type DayHealthStatus = 'healthy' | 'degraded' | 'down';
+export type DayHealthStatus = "healthy" | "degraded" | "down";
 
 export interface HealthSnapshot {
   id: string;

@@ -42,7 +42,10 @@ export default function SettingsPage() {
   const tenantId = useCurrentTenantId();
   const userId = user?.uid ?? null;
 
-  const { data: savedPrefs, isLoading: prefsLoading } = useNotificationPreferences(tenantId, userId);
+  const { data: savedPrefs, isLoading: prefsLoading } = useNotificationPreferences(
+    tenantId,
+    userId
+  );
   const saveMutation = useSaveNotificationPreferences();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
@@ -55,13 +58,10 @@ export default function SettingsPage() {
     }
   }, [savedPrefs]);
 
-  const updatePref = useCallback(
-    (key: keyof NotificationPreferences, value: boolean) => {
-      setPrefs((prev) => ({ ...prev, [key]: value }));
-      setIsDirty(true);
-    },
-    [],
-  );
+  const updatePref = useCallback((key: keyof NotificationPreferences, value: boolean) => {
+    setPrefs((prev) => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  }, []);
 
   const handleSave = () => {
     if (!tenantId || !userId) return;
@@ -75,7 +75,7 @@ export default function SettingsPage() {
         onError: () => {
           toast.error("Failed to save preferences. Please try again.");
         },
-      },
+      }
     );
   };
 
@@ -83,7 +83,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Manage your profile and notification preferences
         </p>
       </div>
@@ -97,11 +97,7 @@ export default function SettingsPage() {
               <CardTitle className="text-base">Notification Preferences</CardTitle>
             </div>
             {isDirty && (
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={saveMutation.isPending}
-              >
+              <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? (
                   <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                 ) : saveMutation.isSuccess && !isDirty ? (
@@ -111,9 +107,7 @@ export default function SettingsPage() {
               </Button>
             )}
           </div>
-          <CardDescription>
-            Choose how and when you receive notifications
-          </CardDescription>
+          <CardDescription>Choose how and when you receive notifications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {prefsLoading ? (
@@ -127,7 +121,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Email Notifications</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Receive notifications via email
                       </p>
                     </div>
@@ -139,7 +133,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Push Notifications</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Receive browser push notifications
                       </p>
                     </div>
@@ -158,7 +152,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Exam Results</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         When your exam results are released
                       </p>
                     </div>
@@ -170,7 +164,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Achievement Alerts</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         When you earn a new achievement or badge
                       </p>
                     </div>
@@ -182,7 +176,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Leaderboard Updates</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         When your rank changes on the leaderboard
                       </p>
                     </div>
@@ -194,7 +188,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">Streak Reminders</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Daily reminders to maintain your learning streak
                       </p>
                     </div>
@@ -223,15 +217,12 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Theme</p>
-              <p className="text-xs text-muted-foreground">
-                Switch between light and dark mode
-              </p>
+              <p className="text-muted-foreground text-xs">Switch between light and dark mode</p>
             </div>
             <ThemeToggle />
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

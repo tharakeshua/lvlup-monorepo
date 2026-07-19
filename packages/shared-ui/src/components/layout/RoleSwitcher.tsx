@@ -5,10 +5,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { ChevronsUpDown, Check, Building2 } from 'lucide-react';
+} from "../ui/dropdown-menu";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { ChevronsUpDown, Check, Building2 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,12 +32,7 @@ export interface RoleSwitcherProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function RoleSwitcher({
-  currentTenantId,
-  tenants,
-  onSwitch,
-  loading,
-}: RoleSwitcherProps) {
+export function RoleSwitcher({ currentTenantId, tenants, onSwitch, loading }: RoleSwitcherProps) {
   const currentTenant = tenants.find((t) => t.tenantId === currentTenantId);
 
   if (tenants.length <= 1) return null;
@@ -45,15 +40,9 @@ export function RoleSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 px-2"
-          disabled={loading}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-2 px-2" disabled={loading}>
           <Building2 className="size-4 shrink-0" />
-          <span className="truncate text-sm">
-            {currentTenant?.tenantName ?? 'Select school'}
-          </span>
+          <span className="truncate text-sm">{currentTenant?.tenantName ?? "Select school"}</span>
           <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -83,9 +72,7 @@ export function RoleSwitcher({
                 {t.role}
               </Badge>
             </div>
-            {t.tenantId === currentTenantId && (
-              <Check className="ml-auto size-4 text-primary" />
-            )}
+            {t.tenantId === currentTenantId && <Check className="text-primary ml-auto size-4" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

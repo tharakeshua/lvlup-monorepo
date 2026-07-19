@@ -32,7 +32,7 @@ interface StudentFormDialogProps {
 export default function StudentFormDialog({
   open,
   onOpenChange,
-  tenantId,
+  tenantId: _tenantId,
   editing,
 }: StudentFormDialogProps) {
   const isEdit = !!editing;

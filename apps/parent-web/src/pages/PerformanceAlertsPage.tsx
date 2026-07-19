@@ -81,7 +81,7 @@ export default function PerformanceAlertsPage() {
 }
 
 function ChildAlertSection({
-  tenantId,
+  tenantId: _tenantId,
   studentId,
   studentName,
   submissions,
@@ -121,7 +121,7 @@ function ChildAlertSection({
   }
 
   // Low streak
-  if (summary && summary.levelup.streakDays === 0) {
+  if (summary?.levelup && summary.levelup.streakDays === 0) {
     alerts.push({
       type: "info",
       icon: Clock,
@@ -130,7 +130,11 @@ function ChildAlertSection({
   }
 
   // Low space completion
-  if (summary && summary.levelup.averageCompletion < 20 && summary.levelup.totalSpaces > 0) {
+  if (
+    summary?.levelup &&
+    summary.levelup.averageCompletion < 20 &&
+    summary.levelup.totalSpaces > 0
+  ) {
     alerts.push({
       type: "warning",
       icon: ClipboardList,
@@ -159,9 +163,9 @@ function ChildAlertSection({
         </div>
         {summary && (
           <div className="text-muted-foreground flex gap-4 text-xs">
-            <span>Score: {Math.round(summary.overallScore * 100)}%</span>
-            <span>Streak: {summary.levelup.streakDays}d</span>
-            <span>Exams: {summary.autograde.completedExams}</span>
+            <span>Score: {Math.round((summary.overallScore ?? 0) * 100)}%</span>
+            <span>Streak: {summary.levelup?.streakDays ?? 0}d</span>
+            <span>Exams: {summary.autograde?.completedExams ?? 0}</span>
           </div>
         )}
       </CardHeader>

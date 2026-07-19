@@ -3,8 +3,8 @@
  * Covers: listStoreSpaces, purchaseSpace
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '../firebase';
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "../firebase";
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -56,17 +56,17 @@ function getCallable<Req, Res>(name: string) {
 }
 
 export async function callListStoreSpaces(
-  data: ListStoreSpacesRequest,
+  data: ListStoreSpacesRequest
 ): Promise<ListStoreSpacesResponse> {
-  const fn = getCallable<ListStoreSpacesRequest, ListStoreSpacesResponse>('listStoreSpaces');
+  const fn = getCallable<ListStoreSpacesRequest, ListStoreSpacesResponse>("listStoreSpaces");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callPurchaseSpace(
-  data: PurchaseSpaceRequest,
+  data: PurchaseSpaceRequest
 ): Promise<PurchaseSpaceResponse> {
-  const fn = getCallable<PurchaseSpaceRequest, PurchaseSpaceResponse>('purchaseSpace');
+  const fn = getCallable<PurchaseSpaceRequest, PurchaseSpaceResponse>("purchaseSpace");
   const result = await fn(data);
   return result.data;
 }

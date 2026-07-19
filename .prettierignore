@@ -9,6 +9,7 @@ build
 .turbo
 out
 coverage
+functions/**/lib/**
 
 # Package managers
 pnpm-lock.yaml

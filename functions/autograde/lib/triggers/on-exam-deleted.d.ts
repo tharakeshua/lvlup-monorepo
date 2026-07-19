@@ -7,7 +7,12 @@
  * - All examQuestions (subcollection of exam)
  * - Exam analytics document
  */
-export declare const onExamDeleted: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").QueryDocumentSnapshot | undefined, {
-    tenantId: string;
-    examId: string;
-}>>;
+export declare const onExamDeleted: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    import("firebase-functions/firestore").QueryDocumentSnapshot | undefined,
+    {
+      tenantId: string;
+      examId: string;
+    }
+  >
+>;

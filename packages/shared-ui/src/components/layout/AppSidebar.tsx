@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,8 +12,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
-} from '../ui/sidebar';
-import type { LucideIcon } from 'lucide-react';
+} from "../ui/sidebar";
+import type { LucideIcon } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,12 +50,7 @@ export interface AppSidebarProps {
 // Role-based navigation configs
 // ---------------------------------------------------------------------------
 
-export type AppRole =
-  | 'tenantAdmin'
-  | 'teacher'
-  | 'student'
-  | 'parent'
-  | 'superAdmin';
+export type AppRole = "tenantAdmin" | "teacher" | "student" | "parent" | "superAdmin";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -80,10 +75,8 @@ export function AppSidebar({
             <SidebarMenuButton size="lg" asChild>
               <Link to="/" className="flex items-center gap-2">
                 {appLogo ?? (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <span className="text-sm font-bold">
-                      {appName.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <span className="text-sm font-bold">{appName.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
                 <span className="truncate font-semibold">{appName}</span>
@@ -95,25 +88,21 @@ export function AppSidebar({
 
       <SidebarContent>
         {navGroups.map((group) => (
-          <SidebarGroup key={group.label || '_flat'}>
+          <SidebarGroup key={group.label || "_flat"}>
             {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={item.isActive}
-                      tooltip={item.title}
-                    >
+                    <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
                       <Link to={item.url}>
                         {item.icon &&
                           React.createElement(item.icon, {
-                            className: 'size-4',
+                            className: "size-4",
                           })}
                         <span>{item.title}</span>
                         {item.badge != null && (
-                          <span className="ml-auto text-xs text-muted-foreground">
+                          <span className="text-muted-foreground ml-auto text-xs">
                             {item.badge}
                           </span>
                         )}

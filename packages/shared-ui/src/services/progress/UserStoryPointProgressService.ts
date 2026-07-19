@@ -3,7 +3,7 @@
  * Implementation will subscribe to Firestore progress docs.
  */
 
-import type { ItemProgressEntry } from '../../types/items';
+import type { ItemProgressEntry } from "../../types/items";
 
 export interface UserStoryPointProgressDoc {
   userId: string;
@@ -16,7 +16,7 @@ const UserStoryPointProgressService = {
   subscribe(
     _userId: string,
     _storyPointId: string,
-    _onUpdate: (doc: UserStoryPointProgressDoc | null) => void,
+    _onUpdate: (doc: UserStoryPointProgressDoc | null) => void
   ): () => void {
     return () => {};
   },

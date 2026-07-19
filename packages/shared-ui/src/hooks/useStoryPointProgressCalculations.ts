@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { UserStoryPointProgressDoc } from '../services/progress/UserStoryPointProgressService';
-import { ItemProgressEntry } from '../types/items';
+import { useMemo } from "react";
+import { UserStoryPointProgressDoc } from "../services/progress/UserStoryPointProgressService";
+import { ItemProgressEntry } from "../types/items";
 
 export interface StoryPointProgressSummary {
   pointsEarned: number;
@@ -29,7 +29,7 @@ export const useStoryPointProgressCalculations = (
     }
 
     const items = Object.values(progressDoc.items || {});
-    
+
     // Calculate totals from all items in the progress document
     let pointsEarned = 0;
     let totalPoints = 0;
@@ -37,14 +37,14 @@ export const useStoryPointProgressCalculations = (
     const totalItems = items.length;
 
     items.forEach((item: ItemProgressEntry) => {
-      if (item.itemType === 'question' && item.questionData) {
+      if (item.itemType === "question" && item.questionData) {
         const q = item.questionData;
         totalPoints += q.totalPoints || 0;
         pointsEarned += q.pointsEarned || 0;
         if (q.solved || item.completed) {
           completedItems++;
         }
-      } else if (item.itemType !== 'question') {
+      } else if (item.itemType !== "question") {
         // For non-question items, count completion but no points for now
         if (item.completed) {
           completedItems++;

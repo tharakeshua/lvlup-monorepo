@@ -4,10 +4,10 @@
  * @module levelup/adaptive-engine
  */
 
-import type { AdaptiveConfig } from '@levelup/shared-types';
+import type { AdaptiveConfig } from "@levelup/shared-types";
 
 export interface AdaptiveState {
-  currentDifficulty: 'easy' | 'medium' | 'hard';
+  currentDifficulty: "easy" | "medium" | "hard";
   consecutiveCorrect: number;
   consecutiveIncorrect: number;
   answeredByDifficulty: Record<string, number>;
@@ -15,17 +15,15 @@ export interface AdaptiveState {
 
 export interface QuestionMeta {
   id: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
 }
 
-const DIFFICULTY_ORDER: ReadonlyArray<'easy' | 'medium' | 'hard'> = ['easy', 'medium', 'hard'];
+const DIFFICULTY_ORDER: ReadonlyArray<"easy" | "medium" | "hard"> = ["easy", "medium", "hard"];
 
 /**
  * Creates the initial adaptive state based on config.
  */
-export function createInitialAdaptiveState(
-  config: AdaptiveConfig,
-): AdaptiveState {
+export function createInitialAdaptiveState(config: AdaptiveConfig): AdaptiveState {
   return {
     currentDifficulty: config.initialDifficulty,
     consecutiveCorrect: 0,
@@ -41,9 +39,9 @@ export function createInitialAdaptiveState(
 export function getNextDifficulty(
   state: AdaptiveState,
   config: AdaptiveConfig,
-  wasCorrect: boolean,
-): 'easy' | 'medium' | 'hard' {
-  const threshold = config.difficultyAdjustment === 'aggressive' ? 2 : 3;
+  wasCorrect: boolean
+): "easy" | "medium" | "hard" {
+  const threshold = config.difficultyAdjustment === "aggressive" ? 2 : 3;
   const minPerDifficulty = config.minQuestionsPerDifficulty ?? 2;
   const maxConsecutive = config.maxConsecutiveSameDifficulty ?? 5;
 
@@ -62,21 +60,21 @@ export function getNextDifficulty(
   // Force shift if stuck at same difficulty too long
   if (currentAnswered >= maxConsecutive) {
     if (wasCorrect && currentIdx < 2) {
-      return DIFFICULTY_ORDER[currentIdx + 1] as 'easy' | 'medium' | 'hard';
+      return DIFFICULTY_ORDER[currentIdx + 1] as "easy" | "medium" | "hard";
     }
     if (!wasCorrect && currentIdx > 0) {
-      return DIFFICULTY_ORDER[currentIdx - 1] as 'easy' | 'medium' | 'hard';
+      return DIFFICULTY_ORDER[currentIdx - 1] as "easy" | "medium" | "hard";
     }
   }
 
   // Shift up on consecutive correct
   if (consecutiveCorrect >= threshold && currentIdx < 2) {
-    return DIFFICULTY_ORDER[currentIdx + 1] as 'easy' | 'medium' | 'hard';
+    return DIFFICULTY_ORDER[currentIdx + 1] as "easy" | "medium" | "hard";
   }
 
   // Shift down on consecutive incorrect
   if (consecutiveIncorrect >= threshold && currentIdx > 0) {
-    return DIFFICULTY_ORDER[currentIdx - 1] as 'easy' | 'medium' | 'hard';
+    return DIFFICULTY_ORDER[currentIdx - 1] as "easy" | "medium" | "hard";
   }
 
   return state.currentDifficulty;
@@ -88,23 +86,15 @@ export function getNextDifficulty(
 export function updateAdaptiveState(
   state: AdaptiveState,
   config: AdaptiveConfig,
-  wasCorrect: boolean,
+  wasCorrect: boolean
 ): AdaptiveState {
   const newDifficulty = getNextDifficulty(state, config, wasCorrect);
   const difficultyChanged = newDifficulty !== state.currentDifficulty;
 
   return {
     currentDifficulty: newDifficulty,
-    consecutiveCorrect: difficultyChanged
-      ? 0
-      : wasCorrect
-        ? state.consecutiveCorrect + 1
-        : 0,
-    consecutiveIncorrect: difficultyChanged
-      ? 0
-      : wasCorrect
-        ? 0
-        : state.consecutiveIncorrect + 1,
+    consecutiveCorrect: difficultyChanged ? 0 : wasCorrect ? state.consecutiveCorrect + 1 : 0,
+    consecutiveIncorrect: difficultyChanged ? 0 : wasCorrect ? 0 : state.consecutiveIncorrect + 1,
     answeredByDifficulty: {
       ...state.answeredByDifficulty,
       [state.currentDifficulty]: (state.answeredByDifficulty[state.currentDifficulty] ?? 0) + 1,
@@ -119,14 +109,12 @@ export function updateAdaptiveState(
  */
 export function selectNextQuestion(
   state: AdaptiveState,
-  remainingQuestions: QuestionMeta[],
+  remainingQuestions: QuestionMeta[]
 ): string | null {
   if (remainingQuestions.length === 0) return null;
 
   // Try exact difficulty match first
-  const exactMatch = remainingQuestions.find(
-    (q) => q.difficulty === state.currentDifficulty,
-  );
+  const exactMatch = remainingQuestions.find((q) => q.difficulty === state.currentDifficulty);
   if (exactMatch) return exactMatch.id;
 
   // Fallback: find nearest difficulty
@@ -134,13 +122,13 @@ export function selectNextQuestion(
   for (let offset = 1; offset <= 2; offset++) {
     if (currentIdx + offset < 3) {
       const up = remainingQuestions.find(
-        (q) => q.difficulty === DIFFICULTY_ORDER[currentIdx + offset],
+        (q) => q.difficulty === DIFFICULTY_ORDER[currentIdx + offset]
       );
       if (up) return up.id;
     }
     if (currentIdx - offset >= 0) {
       const down = remainingQuestions.find(
-        (q) => q.difficulty === DIFFICULTY_ORDER[currentIdx - offset],
+        (q) => q.difficulty === DIFFICULTY_ORDER[currentIdx - offset]
       );
       if (down) return down.id;
     }

@@ -58,11 +58,7 @@ export function DataLoadingWrapper({
   if (error) {
     return (
       <div className={cn(className)}>
-        <ErrorState
-          title={errorTitle}
-          description={error}
-          onRetry={onRetry}
-        />
+        <ErrorState title={errorTitle} description={error} onRetry={onRetry} />
       </div>
     );
   }

@@ -11,7 +11,7 @@ export interface TrendDataPoint {
 export function usePerformanceTrends(
   tenantId: string | null,
   studentId: string | null,
-  range: "7d" | "30d" | "90d" | "all" = "30d",
+  range: "7d" | "30d" | "90d" | "all" = "30d"
 ) {
   return useQuery<TrendDataPoint[]>({
     queryKey: ["tenants", tenantId, "performanceTrends", studentId, range],
@@ -36,21 +36,30 @@ export function usePerformanceTrends(
       const q = query(colRef, ...constraints);
       const snap = await getDocs(q);
 
-      const cutoff = range === "all" ? 0 : now.getTime() - rangeMs[range];
+      const cutoff = range === "all" ? 0 : now.getTime() - (rangeMs[range] ?? 0);
 
       const points: TrendDataPoint[] = [];
-      for (const doc of snap.docs) {
-        const data = doc.data();
-        const createdAt = data.createdAt?.toMillis?.() ?? data.createdAt?.seconds * 1000 ?? 0;
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data() as Record<string, unknown>;
+        const createdAtRaw = data["createdAt"] as
+          | { toMillis?: () => number; seconds?: number }
+          | number
+          | undefined;
+        const createdAt =
+          typeof createdAtRaw === "number"
+            ? createdAtRaw
+            : (createdAtRaw?.toMillis?.() ??
+              (typeof createdAtRaw?.seconds === "number" ? createdAtRaw.seconds * 1000 : 0));
         if (createdAt < cutoff) continue;
 
-        const maxScore = data.totalMarks ?? data.maxScore ?? 1;
-        const score = maxScore > 0 ? ((data.totalScore ?? 0) / maxScore) * 100 : 0;
+        const maxScore = Number(data["totalMarks"] ?? data["maxScore"] ?? 1) || 1;
+        const score = maxScore > 0 ? (Number(data["totalScore"] ?? 0) / maxScore) * 100 : 0;
+        const date = new Date(createdAt).toISOString().split("T")[0] ?? "";
 
         points.push({
-          date: new Date(createdAt).toISOString().split("T")[0],
+          date,
           score: Math.round(score),
-          subject: data.subject ?? "General",
+          subject: String(data["subject"] ?? "General"),
         });
       }
 

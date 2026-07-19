@@ -104,6 +104,8 @@ export type {
   ExtractQuestionsResponse,
   ReleaseResultsRequest,
   ReleaseResultsResponse,
+  CreateSpaceFromExamRequest,
+  CreateSpaceFromExamResponse,
   UploadAnswerSheetsRequest,
   UploadAnswerSheetsResponse,
   ListEvaluationSettingsResponse,

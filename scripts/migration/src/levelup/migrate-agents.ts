@@ -5,10 +5,10 @@
  * This script checks both patterns and migrates to the tenant-scoped structure.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyAgent {
   _docId: string;
@@ -48,7 +48,7 @@ export async function migrateAgents(options: {
   logger.info(`Migrating LevelUp agents for org ${orgId}`);
 
   // Get all courses belonging to this org
-  const coursesSnap = await db.collection('courses').where('orgId', '==', orgId).get();
+  const coursesSnap = await db.collection("courses").where("orgId", "==", orgId).get();
   const courseIds = coursesSnap.docs.map((d) => d.id);
   logger.info(`Found ${courseIds.length} courses to migrate agents from`);
 
@@ -62,7 +62,7 @@ export async function migrateAgents(options: {
 
     // Also try global agents collection filtered by courseId
     const globalAgents = await readAllDocs<LegacyAgent>(
-      db.collection('agents').where('courseId', '==', courseId) as admin.firestore.Query
+      db.collection("agents").where("courseId", "==", courseId) as admin.firestore.Query
     );
 
     const allAgents = [...agents, ...globalAgents];
@@ -85,42 +85,44 @@ export async function migrateAgents(options: {
 
         if (await docExists(db, targetPath)) {
           logger.debug(`Agent ${agentId} already migrated, skipping`);
-          return { action: 'skipped', id: agentId };
+          return { action: "skipped", id: agentId };
         }
 
         const newAgent = {
           id: agentId,
           spaceId,
           tenantId,
-          type: agent.type || 'tutor',
+          type: agent.type || "tutor",
           name: agent.name,
-          identity: agent.identity || '',
+          identity: agent.identity || "",
           systemPrompt: agent.systemPrompt || null,
           supportedLanguages: agent.supportedLanguages || [],
-          defaultLanguage: agent.defaultLanguage || 'en',
+          defaultLanguage: agent.defaultLanguage || "en",
           maxConversationTurns: agent.maxConversationTurns || null,
           rules: agent.rules || null,
           evaluationObjectives: agent.evaluationObjectives || [],
-          strictness: agent.strictness || 'moderate',
-          feedbackStyle: agent.feedbackStyle || 'detailed',
+          strictness: agent.strictness || "moderate",
+          feedbackStyle: agent.feedbackStyle || "detailed",
           modelOverride: agent.modelOverride || null,
           temperatureOverride: agent.temperatureOverride ?? null,
-          createdBy: agent.createdBy || '',
+          createdBy: agent.createdBy || "",
           createdAt: agent.createdAt
             ? admin.firestore.Timestamp.fromMillis(agent.createdAt)
             : admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'levelup',
+          _migratedFrom: "levelup",
           _migrationSourcePath: `agents/${agentId}`,
         };
 
         if (dryRun) {
-          logger.info(`[DRY RUN] Would migrate agent: ${agentId} (${agent.name}, type=${agent.type})`);
-          return { action: 'created', id: agentId };
+          logger.info(
+            `[DRY RUN] Would migrate agent: ${agentId} (${agent.name}, type=${agent.type})`
+          );
+          return { action: "created", id: agentId };
         }
 
         batch.set(db.doc(targetPath), newAgent);
-        return { action: 'created', id: agentId };
+        return { action: "created", id: agentId };
       },
       { dryRun, logger }
     );

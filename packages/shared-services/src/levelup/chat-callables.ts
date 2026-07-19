@@ -3,8 +3,8 @@
  * Covers: sendChatMessage
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '../firebase';
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "../firebase";
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -36,9 +36,9 @@ function getCallable<Req, Res>(name: string) {
 }
 
 export async function callSendChatMessage(
-  data: SendChatMessageRequest,
+  data: SendChatMessageRequest
 ): Promise<SendChatMessageResponse> {
-  const fn = getCallable<SendChatMessageRequest, SendChatMessageResponse>('sendChatMessage');
+  const fn = getCallable<SendChatMessageRequest, SendChatMessageResponse>("sendChatMessage");
   const result = await fn(data);
   return result.data;
 }

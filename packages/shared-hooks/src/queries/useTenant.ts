@@ -1,18 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Tenant, SaveTenantRequest, SaveResponse } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Tenant, SaveTenantRequest, SaveResponse } from "@levelup/shared-types";
 
-export type { Tenant } from '@levelup/shared-types';
+export type { Tenant } from "@levelup/shared-types";
 
 export function useTenant(tenantId: string | null) {
   return useQuery<Tenant | null>({
-    queryKey: ['tenants', tenantId],
+    queryKey: ["tenants", tenantId],
     queryFn: async () => {
       if (!tenantId) return null;
       const { db } = getFirebaseServices();
-      const docRef = doc(db, 'tenants', tenantId);
+      const docRef = doc(db, "tenants", tenantId);
       const snap = await getDoc(docRef);
       if (!snap.exists()) return null;
       return { id: snap.id, ...snap.data() } as Tenant;
@@ -23,12 +23,12 @@ export function useTenant(tenantId: string | null) {
 }
 
 export function useTenantSettings(tenantId: string | null) {
-  return useQuery<Tenant['settings'] | null>({
-    queryKey: ['tenants', tenantId, 'settings'],
+  return useQuery<Tenant["settings"] | null>({
+    queryKey: ["tenants", tenantId, "settings"],
     queryFn: async () => {
       if (!tenantId) return null;
       const { db } = getFirebaseServices();
-      const docRef = doc(db, 'tenants', tenantId);
+      const docRef = doc(db, "tenants", tenantId);
       const snap = await getDoc(docRef);
       if (!snap.exists()) return null;
       return (snap.data() as Tenant).settings ?? null;
@@ -41,7 +41,7 @@ export function useTenantSettings(tenantId: string | null) {
 export function useUpdateTenant() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveTenantRequest, SaveResponse>(functions, 'saveTenant');
+  const callable = httpsCallable<SaveTenantRequest, SaveResponse>(functions, "saveTenant");
 
   return useMutation({
     mutationFn: async (params: SaveTenantRequest & { id: string }) => {
@@ -49,7 +49,7 @@ export function useUpdateTenant() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.id] });
     },
   });
 }

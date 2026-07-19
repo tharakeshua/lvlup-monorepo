@@ -1,4 +1,8 @@
-export declare const bulkUpdateStatus: import("firebase-functions/https").CallableFunction<any, Promise<{
+export declare const bulkUpdateStatus: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<{
     success: boolean;
     updated: number;
-}>, unknown>;
+  }>,
+  unknown
+>;

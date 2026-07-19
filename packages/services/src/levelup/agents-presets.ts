@@ -10,7 +10,7 @@
  *   • saveRubricPreset — strict-canonical upsert (`rubricPreset.write`)
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
-import { AGENT_TYPES, MODEL_POLICY_IDS, RUBRIC_PRESET_CATEGORIES } from "@levelup/domain";
+import { AGENT_TYPES, RUBRIC_PRESET_CATEGORIES, coerceUnifiedRubric } from "@levelup/domain";
 import { authorize } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
@@ -20,7 +20,6 @@ import { xrepos } from "../shared/extended-repos.js";
 type Doc = Record<string, unknown>;
 
 const AGENT_TYPE_SET = new Set<string>(AGENT_TYPES);
-const MODEL_POLICY_SET = new Set<string>(MODEL_POLICY_IDS);
 const PRESET_CATEGORY_SET = new Set<string>(RUBRIC_PRESET_CATEGORIES);
 
 const optStr = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
@@ -35,20 +34,16 @@ function compact(o: Doc): Doc {
 }
 
 /** Whitelist a stored agent doc to the strict AgentSchema view; ⚷ prompt/rules
- *  fields survive ONLY for authoring callers. Exported for getEvaluationConfig. */
-export function projectAgent(a: Doc, tenantId: string, spaceId: string, authoring: boolean): Doc {
+ *  fields survive ONLY for authoring callers. */
+function projectAgent(a: Doc, tenantId: string, spaceId: string, authoring: boolean): Doc {
   const type = String(a["type"] ?? "tutor");
-  const canonicalType = AGENT_TYPE_SET.has(type) ? type : "tutor";
-  const modelPolicyId = optStr(a["modelPolicyId"]);
   return compact({
     id: String(a["id"] ?? ""),
     spaceId: String(a["spaceId"] ?? spaceId),
     tenantId: String(a["tenantId"] ?? tenantId),
-    type: canonicalType,
+    type: AGENT_TYPE_SET.has(type) ? type : "tutor",
     name: String(a["name"] ?? ""),
-    publicDescription: optStr(a["publicDescription"]),
     identity: optStr(a["identity"]),
-    openingMessage: optStr(a["openingMessage"]),
     isActive: typeof a["isActive"] === "boolean" ? a["isActive"] : true,
     ...(authoring ? { systemPrompt: optStr(a["systemPrompt"]) } : {}),
     supportedLanguages: optStrArr(a["supportedLanguages"]),
@@ -65,19 +60,8 @@ export function projectAgent(a: Doc, tenantId: string, spaceId: string, authorin
       : {}),
     strictness: optNum(a["strictness"]),
     feedbackStyle: optStr(a["feedbackStyle"]),
-    // Persisted policy IDs are stable application policy, never a provider model
-    // name. Legacy records receive the read-adapter's deterministic default.
-    modelPolicyId:
-      modelPolicyId && MODEL_POLICY_SET.has(modelPolicyId)
-        ? modelPolicyId
-        : canonicalType === "evaluator"
-          ? "evaluation.quality"
-          : "conversation.quality",
+    modelOverride: optStr(a["modelOverride"]),
     temperatureOverride: optNum(a["temperatureOverride"]),
-    version:
-      typeof a["version"] === "number" && a["version"] >= 1
-        ? Math.trunc(a["version"] as number)
-        : 1,
     createdAt: tsRequired(a["createdAt"], a["updatedAt"]),
     updatedAt: tsRequired(a["updatedAt"], a["createdAt"]),
     createdBy: String(a["createdBy"] ?? ""),
@@ -112,94 +96,38 @@ export async function saveAgentService(
   authorize(ctx, "agent.write", { spaceId: input.spaceId, tenantId });
 
   const data = input.data as Doc;
-  const type = optStr(data["type"]);
-  const name = optStr(data["name"]);
-  const modelPolicyId = optStr(data["modelPolicyId"]);
-  if (!type || !AGENT_TYPE_SET.has(type)) {
-    fail("VALIDATION_ERROR", "agent type must be tutor, interviewer, or evaluator");
-  }
-  if (!name || name.trim().length === 0) fail("VALIDATION_ERROR", "agent name is required");
-  if (!modelPolicyId || !MODEL_POLICY_SET.has(modelPolicyId)) {
-    fail("VALIDATION_ERROR", "agent modelPolicyId is not a supported model policy");
-  }
-  if (type === "evaluator" && modelPolicyId !== "evaluation.quality") {
-    fail("VALIDATION_ERROR", "evaluator agents must use the evaluation.quality model policy");
-  }
-  if (type !== "evaluator" && modelPolicyId === "evaluation.quality") {
-    fail("VALIDATION_ERROR", "tutor and interviewer agents must use a conversation model policy");
-  }
-  if (typeof data["isActive"] !== "boolean") {
-    fail("VALIDATION_ERROR", "agent isActive must be supplied as a boolean");
+  if (data["deleted"] === true) {
+    // AgentSchema carries no tombstone field (strict) → delete is a hard delete.
+    if (!input.id) fail("VALIDATION_ERROR", "id is required to delete an agent");
+    await xrepos(ctx).agents.delete(tenantId, input.id);
+    return { id: input.id, deleted: true } as unknown as ResOf<"v1.levelup.saveAgent">;
   }
 
-  const expectedVersion = (input as { expectedVersion?: unknown }).expectedVersion;
-  if (input.id) {
-    if (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 1) {
-      fail("VALIDATION_ERROR", "expectedVersion >= 1 is required to update an agent");
-    }
-  } else if (expectedVersion !== undefined && expectedVersion !== 0) {
-    fail("VALIDATION_ERROR", "expectedVersion must be omitted or 0 when creating an agent");
-  }
+  const existing = input.id ? await xrepos(ctx).agents.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "agent not found");
 
-  if (data["deleted"] === true && data["isActive"] !== false) {
-    fail("VALIDATION_ERROR", "deleted:true deactivates an agent and requires isActive:false");
-  }
-
-  // Deliberately construct the canonical semantic payload instead of spreading
-  // request data: the repo rejects identity/audit/version fields and is the sole
-  // authority that writes them transactionally with a CAS version increment.
-  const semantic = compact({
+  const { deleted: _drop, ...rest } = data;
+  void _drop;
+  const { id, created } = await xrepos(ctx).agents.upsert(tenantId, {
+    ...(input.id ? { id: input.id } : {}),
+    ...rest,
     spaceId: input.spaceId,
-    type,
-    name: name.trim(),
-    publicDescription: optStr(data["publicDescription"]),
-    identity: optStr(data["identity"]),
-    isActive: data["isActive"],
-    systemPrompt: optStr(data["systemPrompt"]),
-    openingMessage: optStr(data["openingMessage"]),
-    supportedLanguages: optStrArr(data["supportedLanguages"]),
-    defaultLanguage: optStr(data["defaultLanguage"]),
-    maxConversationTurns:
-      typeof data["maxConversationTurns"] === "number"
-        ? Math.trunc(data["maxConversationTurns"] as number)
-        : undefined,
-    rules: optStrArr(data["rules"]),
-    evaluationObjectives: optStrArr(data["evaluationObjectives"]),
-    strictness: optNum(data["strictness"]),
-    feedbackStyle: optStr(data["feedbackStyle"]),
-    modelPolicyId,
-    temperatureOverride: optNum(data["temperatureOverride"]),
+    isActive:
+      (data["isActive"] as boolean | undefined) ??
+      (existing?.["isActive"] as boolean | undefined) ??
+      true,
+    createdBy: (existing?.["createdBy"] as string | undefined) ?? ctx.uid,
+    updatedBy: ctx.uid,
   });
-
-  const result = await ctx.repos.agentVersions.save(
-    tenantId,
-    input.id
-      ? {
-          id: input.id,
-          expectedVersion: expectedVersion as number,
-          actorUid: ctx.uid,
-          data: semantic,
-        }
-      : {
-          expectedVersion: expectedVersion as 0 | undefined,
-          actorUid: ctx.uid,
-          data: semantic,
-        },
-    ctx.now()
-  );
-  return {
-    id: result.id,
-    created: result.created,
-    semanticChanged: result.semanticChanged,
-    version: result.version,
-    ...(data["deleted"] === true ? { deleted: true as const } : {}),
-  } as unknown as ResOf<"v1.levelup.saveAgent">;
+  return { id, created } as unknown as ResOf<"v1.levelup.saveAgent">;
 }
 
 // ── listRubricPresets ────────────────────────────────────────────────────────
 
 /** Whitelist a stored preset to the strict RubricPresetSchema view (full rubric —
- *  the read itself is gated behind `rubric.guidance.read`). */
+ *  the read itself is gated behind `rubric.guidance.read`).
+ *  Coerces legacy seed shapes (totalPoints / key-label dimensions) so clients
+ *  with DEV response validation do not drop the whole list. */
 function projectRubricPreset(p: Doc, tenantId: string): Doc {
   const category = String(p["category"] ?? "general");
   return compact({
@@ -207,7 +135,7 @@ function projectRubricPreset(p: Doc, tenantId: string): Doc {
     tenantId: String(p["tenantId"] ?? tenantId),
     name: String(p["name"] ?? ""),
     description: optStr(p["description"]),
-    rubric: (p["rubric"] as Doc | undefined) ?? {},
+    rubric: coerceUnifiedRubric(p["rubric"]),
     category: PRESET_CATEGORY_SET.has(category) ? category : "general",
     questionTypes: optStrArr(p["questionTypes"]),
     isDefault: p["isDefault"] === true,

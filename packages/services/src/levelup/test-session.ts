@@ -25,6 +25,35 @@ import { projectTestSessionLive } from "./levelup-projection.js";
 
 type Doc = Record<string, unknown>;
 
+function isQuestionItem(it: Doc): boolean {
+  const payload = it["payload"];
+  if (payload && typeof payload === "object" && (payload as Doc)["kind"] === "question") {
+    return true;
+  }
+  return it["type"] === "question" || it["kind"] === "question";
+}
+
+/** Build a stable questionOrder from story-point items (questions only). */
+async function buildQuestionOrderFromItems(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string,
+  storyPointId: string
+): Promise<string[]> {
+  const itemsPage = await ctx.repos.items.list(tenantId, {
+    where: { spaceId, storyPointId },
+    limit: 200,
+  });
+  return itemsPage.items
+    .filter((it) => isQuestionItem(it as Doc))
+    .sort((a, b) => {
+      const ao = (a as Doc)["orderIndex"] ?? (a as Doc)["order"] ?? 0;
+      const bo = (b as Doc)["orderIndex"] ?? (b as Doc)["order"] ?? 0;
+      return Number(ao) - Number(bo);
+    })
+    .map((it) => (it as Doc)["id"] as string);
+}
+
 /** Default session window (overridable per story point). */
 const DEFAULT_SESSION_MINUTES = 30;
 
@@ -130,7 +159,40 @@ export async function startTestSessionService(
     limit: 1,
   });
   if (existing.items.length > 0) {
-    const resumed = existing.items[0] as Doc;
+    let resumed = existing.items[0] as Doc;
+    // Heal missing/empty questionOrder on resume (legacy sessions / empty SPs
+    // that later gained items). Always return an array so clients never crash.
+    let questionOrder = Array.isArray(resumed["questionOrder"])
+      ? (resumed["questionOrder"] as string[])
+      : [];
+    if (questionOrder.length === 0) {
+      questionOrder = await buildQuestionOrderFromItems(
+        ctx,
+        tenantId,
+        input.spaceId,
+        input.storyPointId
+      );
+      if (questionOrder.length > 0) {
+        const healedAt = ctx.now();
+        await ctx.repos.testSessions.upsert(
+          tenantId,
+          {
+            id: resumed["id"],
+            questionOrder,
+            totalQuestions: questionOrder.length,
+            updatedAt: healedAt,
+          },
+          healedAt
+        );
+        resumed = {
+          ...resumed,
+          questionOrder,
+          totalQuestions: questionOrder.length,
+        };
+      } else {
+        resumed = { ...resumed, questionOrder: [] };
+      }
+    }
     // Re-project the live countdown on resume (crash-safe: the node may be
     // missing if the original start's best-effort projection was lost).
     if (typeof resumed["serverDeadline"] === "string") {
@@ -161,12 +223,16 @@ export async function startTestSessionService(
     limit: 200,
   });
 
-  // Question set = the story point's items (drives totalQuestions + questionOrder).
-  const itemsPage = await ctx.repos.items.list(tenantId, {
-    where: { spaceId: input.spaceId, storyPointId: input.storyPointId },
-    limit: 200,
-  });
-  const questionOrder = itemsPage.items.map((it) => (it as Doc)["id"] as string);
+  // Question set = the story point's QUESTION items (drives totalQuestions + questionOrder).
+  const questionOrder = await buildQuestionOrderFromItems(
+    ctx,
+    tenantId,
+    input.spaceId,
+    input.storyPointId
+  );
+  if (questionOrder.length === 0) {
+    fail("FAILED_PRECONDITION", "No questions found in this story point");
+  }
 
   const session: Doc = {
     tenantId,

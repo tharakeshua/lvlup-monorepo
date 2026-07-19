@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useReducedMotion } from '../../hooks/use-reduced-motion';
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "../../hooks/use-reduced-motion";
 
 export interface CelebrationBurstProps {
   /** Whether to trigger the celebration animation */
@@ -10,19 +10,27 @@ export interface CelebrationBurstProps {
   /** Number of particles to emit (default 24) */
   particleCount?: number;
   /** Type of celebration effect */
-  variant?: 'confetti' | 'stars' | 'sparkle';
+  variant?: "confetti" | "stars" | "sparkle";
   /** Called when the animation finishes */
   onComplete?: () => void;
   className?: string;
 }
 
 const CONFETTI_COLORS = [
-  '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE',
+  "#FFD700",
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FFEAA7",
+  "#DDA0DD",
+  "#98D8C8",
+  "#F7DC6F",
+  "#BB8FCE",
 ];
 
-const STAR_COLORS = ['#FFD700', '#FFA500', '#FF8C00', '#FFDF00', '#F0E68C'];
-const SPARKLE_COLORS = ['#E8DAEF', '#D5F5E3', '#FADBD8', '#D6EAF8', '#FCF3CF'];
+const STAR_COLORS = ["#FFD700", "#FFA500", "#FF8C00", "#FFDF00", "#F0E68C"];
+const SPARKLE_COLORS = ["#E8DAEF", "#D5F5E3", "#FADBD8", "#D6EAF8", "#FCF3CF"];
 
 interface Particle {
   id: number;
@@ -33,7 +41,7 @@ interface Particle {
   rotation: number;
   velocityX: number;
   velocityY: number;
-  shape: 'rect' | 'circle';
+  shape: "rect" | "circle";
 }
 
 function pickColor(colors: string[]): string {
@@ -42,7 +50,7 @@ function pickColor(colors: string[]): string {
 
 function generateParticles(count: number, variant: string): Particle[] {
   const colors =
-    variant === 'stars' ? STAR_COLORS : variant === 'sparkle' ? SPARKLE_COLORS : CONFETTI_COLORS;
+    variant === "stars" ? STAR_COLORS : variant === "sparkle" ? SPARKLE_COLORS : CONFETTI_COLORS;
 
   const result: Particle[] = [];
   for (let i = 0; i < count; i++) {
@@ -51,11 +59,11 @@ function generateParticles(count: number, variant: string): Particle[] {
       x: (Math.random() - 0.5) * 2,
       y: (Math.random() - 0.5) * 2,
       color: pickColor(colors),
-      size: variant === 'sparkle' ? Math.random() * 6 + 3 : Math.random() * 8 + 4,
+      size: variant === "sparkle" ? Math.random() * 6 + 3 : Math.random() * 8 + 4,
       rotation: Math.random() * 360,
       velocityX: (Math.random() - 0.5) * 300,
       velocityY: -(Math.random() * 200 + 100),
-      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      shape: Math.random() > 0.5 ? "rect" : "circle",
     });
   }
   return result;
@@ -65,7 +73,7 @@ export function CelebrationBurst({
   trigger,
   duration = 2000,
   particleCount = 24,
-  variant = 'confetti',
+  variant = "confetti",
   onComplete,
   className,
 }: CelebrationBurstProps) {
@@ -106,11 +114,11 @@ export function CelebrationBurst({
       className={className}
       aria-hidden="true"
       style={{
-        position: 'fixed',
+        position: "fixed",
         inset: 0,
-        pointerEvents: 'none',
+        pointerEvents: "none",
         zIndex: 9999,
-        overflow: 'hidden',
+        overflow: "hidden",
       }}
     >
       <AnimatePresence>
@@ -118,8 +126,8 @@ export function CelebrationBurst({
           <motion.div
             key={p.id}
             initial={{
-              x: '50vw',
-              y: '40vh',
+              x: "50vw",
+              y: "40vh",
               scale: 0,
               rotate: 0,
               opacity: 1,
@@ -133,14 +141,14 @@ export function CelebrationBurst({
             }}
             transition={{
               duration: durationSec,
-              ease: 'easeOut',
+              ease: "easeOut",
             }}
             style={{
-              position: 'absolute',
+              position: "absolute",
               width: p.size,
-              height: p.shape === 'rect' ? p.size * 0.6 : p.size,
+              height: p.shape === "rect" ? p.size * 0.6 : p.size,
               backgroundColor: p.color,
-              borderRadius: p.shape === 'circle' ? '50%' : '2px',
+              borderRadius: p.shape === "circle" ? "50%" : "2px",
             }}
           />
         ))}

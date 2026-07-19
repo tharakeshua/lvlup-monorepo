@@ -157,9 +157,7 @@
   },
   "quizMode": {
     "tested": true,
-    "questionTypesFound": [
-      "MCQ"
-    ],
+    "questionTypesFound": ["MCQ"],
     "resultsDisplayed": false,
     "submitWorks": true,
     "notes": [

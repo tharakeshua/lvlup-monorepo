@@ -14,11 +14,7 @@ export interface OrgSwitcherProps {
   onSwitch: (tenantId: string) => Promise<void>;
 }
 
-export function OrgSwitcher({
-  currentTenantId,
-  memberships,
-  onSwitch,
-}: OrgSwitcherProps) {
+export function OrgSwitcher({ currentTenantId, memberships, onSwitch }: OrgSwitcherProps) {
   const [open, setOpen] = React.useState(false);
   const [switching, setSwitching] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -62,23 +58,21 @@ export function OrgSwitcher({
         disabled={switching}
         className="max-w-[200px] truncate"
       >
-        {switching ? "Switching..." : currentOrg?.tenantName ?? "Select org"}
+        {switching ? "Switching..." : (currentOrg?.tenantName ?? "Select org")}
       </Button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border bg-popover p-1 shadow-md">
+        <div className="bg-popover absolute left-0 top-full z-50 mt-1 w-64 rounded-md border p-1 shadow-md">
           {memberships.map((m) => (
             <button
               key={m.tenantId}
               onClick={() => handleSwitch(m.tenantId)}
-              className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm transition-colors hover:bg-accent ${
+              className={`hover:bg-accent flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm transition-colors ${
                 m.tenantId === currentTenantId ? "bg-accent font-medium" : ""
               }`}
             >
               <span className="truncate">{m.tenantName}</span>
-              <span className="ml-2 text-xs text-muted-foreground capitalize">
-                {m.role}
-              </span>
+              <span className="text-muted-foreground ml-2 text-xs capitalize">{m.role}</span>
             </button>
           ))}
         </div>

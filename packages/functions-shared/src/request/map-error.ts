@@ -2,6 +2,7 @@
  * `mapError` — the ONLY place an error becomes an `HttpsError` (server-shared.md §2.5).
  *
  *   AccessError(code) → HttpsError(APP_ERROR_TO_HTTPS[code], message, ApiErrorDetails)
+ *   AiGatewayError    → HttpsError(APP_ERROR_TO_HTTPS[code], message, ApiErrorDetails)
  *   ZodError          → VALIDATION_ERROR
  *   HttpsError        → passthrough
  *   unknown           → INTERNAL_ERROR (no internal leak)
@@ -38,10 +39,22 @@ function isServiceErrorLike(e: unknown): e is AppErrorLike {
   );
 }
 
+/** `@levelup/ai` gateway errors — duck-typed to avoid a hard dependency here. */
+function isAiGatewayErrorLike(
+  e: unknown
+): e is AppErrorLike & { retryable?: boolean; meta?: Record<string, JsonValue> } {
+  return (
+    e instanceof Error &&
+    e.name === "AiGatewayError" &&
+    typeof (e as { code?: unknown }).code === "string"
+  );
+}
+
 /** Map alias error codes some services throw to the canonical `AppErrorCode` set. */
 const CODE_ALIASES: Record<string, AppErrorCode> = {
   FAILED_PRECONDITION: "PRECONDITION_FAILED",
   INVALID_ARGUMENT: "VALIDATION_ERROR",
+  INVALID_API_KEY: "VALIDATION_ERROR",
   TENANT_REQUIRED: "PERMISSION_DENIED",
   ALREADY_EXISTS: "CONFLICT",
   ABORTED: "CONFLICT",
@@ -92,7 +105,7 @@ export function mapError(e: unknown): HttpsError {
   // already mapped
   if (e instanceof HttpsError) return e;
 
-  if (isAccessError(e) || isServiceErrorLike(e)) {
+  if (isAccessError(e) || isServiceErrorLike(e) || isAiGatewayErrorLike(e)) {
     // Normalize the alias codes some services throw to the canonical AppErrorCode
     // set so they map cleanly instead of degrading to INTERNAL.
     const code = normalizeCode(String(e.code));
@@ -100,11 +113,12 @@ export function mapError(e: unknown): HttpsError {
     // INTERNAL rather than crashing the lookup).
     const httpsCode = APP_ERROR_TO_HTTPS[code];
     if (httpsCode) {
-      const details = buildDetails(
-        code,
-        e.message,
-        e.meta as Record<string, JsonValue> | undefined
-      );
+      const gatewayRetryable =
+        isAiGatewayErrorLike(e) && typeof e.retryable === "boolean" ? e.retryable : undefined;
+      const details = buildDetails(code, e.message, {
+        ...(e.meta as Record<string, JsonValue> | undefined),
+        ...(gatewayRetryable !== undefined ? { retryable: gatewayRetryable } : {}),
+      });
       return new HttpsError(httpsCode, details.message, details);
     }
   }

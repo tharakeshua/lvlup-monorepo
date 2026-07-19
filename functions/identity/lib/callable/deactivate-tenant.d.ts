@@ -4,7 +4,11 @@
  * - Suspends all active user memberships
  * - Preserves data for potential reactivation
  */
-export declare const deactivateTenant: import("firebase-functions/https").CallableFunction<any, Promise<{
+export declare const deactivateTenant: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<{
     success: boolean;
     membershipsSuspended: number;
-}>, unknown>;
+  }>,
+  unknown
+>;

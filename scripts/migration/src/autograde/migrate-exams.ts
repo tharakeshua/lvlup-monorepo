@@ -3,10 +3,10 @@
  * Also migrates subcollection: /exams/{eId}/questions/{qId}
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyExam {
   _docId: string;
@@ -48,12 +48,12 @@ interface LegacyQuestion {
 /** Map old exam status to new ExamStatus. */
 function mapExamStatus(old: string): string {
   const mapping: Record<string, string> = {
-    draft: 'draft',
-    question_paper_uploaded: 'question_paper_uploaded',
-    in_progress: 'grading',
-    completed: 'completed',
+    draft: "draft",
+    question_paper_uploaded: "question_paper_uploaded",
+    in_progress: "grading",
+    completed: "completed",
   };
-  return mapping[old] || 'draft';
+  return mapping[old] || "draft";
 }
 
 export async function migrateExams(options: {
@@ -80,14 +80,14 @@ export async function migrateExams(options: {
 
       if (await docExists(db, targetPath)) {
         logger.debug(`Exam ${examId} already migrated, skipping`);
-        return { action: 'skipped', id: examId };
+        return { action: "skipped", id: examId };
       }
 
       const newExam = {
         id: examId,
         tenantId,
         title: exam.title,
-        subject: exam.subject || '',
+        subject: exam.subject || "",
         topics: exam.topics || [],
         classIds: exam.classIds || [],
         sectionIds: [],
@@ -101,13 +101,13 @@ export async function migrateExams(options: {
               images: exam.questionPaper.images,
               extractedAt: exam.questionPaper.extractedAt,
               questionCount: exam.questionPaper.questionCount,
-              examType: 'standard',
+              examType: "standard",
             }
           : null,
         gradingConfig: {
           autoGrade: exam.gradingConfig?.autoGrade ?? true,
           allowRubricEdit: exam.gradingConfig?.allowRubricEdit ?? true,
-          evaluationSettingsId: 'default',
+          evaluationSettingsId: "default",
           allowManualOverride: true,
           requireOverrideReason: false,
           releaseResultsAutomatically: false,
@@ -116,12 +116,12 @@ export async function migrateExams(options: {
         linkedSpaceTitle: null,
         linkedStoryPointId: null,
         status: mapExamStatus(exam.status),
-        evaluationSettingsId: 'default',
+        evaluationSettingsId: "default",
         stats: null,
-        createdBy: '', // Will need to be populated from client admin
+        createdBy: "", // Will need to be populated from client admin
         createdAt: exam.createdAt || admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'autograde',
+        _migratedFrom: "autograde",
         _migrationSourcePath: `clients/${clientId}/exams/${examId}`,
       };
 
@@ -133,7 +133,9 @@ export async function migrateExams(options: {
 
       // Migrate questions subcollection
       const questions = await readAllDocs<LegacyQuestion>(
-        db.collection(`clients/${clientId}/exams/${examId}/questions`) as admin.firestore.CollectionReference
+        db.collection(
+          `clients/${clientId}/exams/${examId}/questions`
+        ) as admin.firestore.CollectionReference
       );
 
       for (const q of questions) {
@@ -148,14 +150,14 @@ export async function migrateExams(options: {
           maxMarks: q.maxMarks,
           order: q.order,
           rubric: q.rubric,
-          questionType: 'standard' as const,
+          questionType: "standard" as const,
           subQuestions: [],
           linkedItemId: null,
           extractedBy: null,
           extractedAt: null,
           createdAt: q.createdAt || admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'autograde',
+          _migratedFrom: "autograde",
         };
 
         if (dryRun) {
@@ -165,7 +167,7 @@ export async function migrateExams(options: {
         }
       }
 
-      return { action: 'created', id: examId };
+      return { action: "created", id: examId };
     },
     { dryRun, logger }
   );

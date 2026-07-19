@@ -75,9 +75,9 @@ export default function ConsumerLayout() {
           : []),
         {
           title: "Profile",
-          url: "/profile",
+          url: "/consumer/profile",
           icon: User,
-          isActive: location.pathname === "/profile",
+          isActive: location.pathname === "/consumer/profile",
         },
       ],
     },
@@ -147,7 +147,7 @@ export default function ConsumerLayout() {
         onMarkAllRead={() => {
           markAllRead.mutate();
         }}
-        onViewAll={() => navigate("/notifications")}
+        onViewAll={() => navigate("/consumer/notifications")}
       />
     </div>
   );
@@ -176,7 +176,12 @@ export default function ConsumerLayout() {
           },
         ]
       : []),
-    { icon: User, label: "Profile", to: "/profile", isActive: location.pathname === "/profile" },
+    {
+      icon: User,
+      label: "Profile",
+      to: "/consumer/profile",
+      isActive: location.pathname === "/consumer/profile",
+    },
   ];
 
   return (

@@ -57,7 +57,8 @@ const BlankSlotSchema = zObject({
   acceptableAnswers: z.array(z.string()).optional(),
 });
 
-const MatchPairSchema = zObject({ left: z.string(), right: z.string() });
+const MatchPairPromptSchema = zObject({ left: z.string(), right: z.string().optional() });
+const MatchPairAnswerSchema = zObject({ left: z.string(), right: z.string() });
 
 const GroupOptionItemSchema = zObject({
   id: z.string(),
@@ -127,7 +128,7 @@ const FillBlanksDdPrompt = zObject({
 });
 const MatchingPrompt = zObject({
   questionType: z.literal("matching"),
-  pairs: z.array(MatchPairSchema),
+  pairs: z.array(MatchPairPromptSchema),
   shufflePairs: z.boolean().optional(),
 });
 const JumbledPrompt = zObject({
@@ -206,7 +207,7 @@ const FillBlanksDdAnswer = zObject({
 });
 const MatchingAnswer = zObject({
   questionType: z.literal("matching"),
-  pairs: z.array(MatchPairSchema),
+  pairs: z.array(MatchPairAnswerSchema),
 });
 const JumbledAnswer = zObject({
   questionType: z.literal("jumbled"),
@@ -257,7 +258,7 @@ const FillBlanksDdLearner = zObject({
 });
 const MatchingLearner = zObject({
   questionType: z.literal("matching"),
-  matches: z.array(MatchPairSchema),
+  matches: z.array(MatchPairAnswerSchema),
 });
 const JumbledLearner = zObject({
   questionType: z.literal("jumbled"),

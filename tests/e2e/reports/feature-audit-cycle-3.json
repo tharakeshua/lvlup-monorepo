@@ -17,16 +17,8 @@
     "baseline": "cycle-0",
     "baselinePassRate": "63%",
     "currentPassRate": "99%",
-    "regressions": [
-      "G5"
-    ],
-    "improvements": [
-      "A4",
-      "L3",
-      "G3",
-      "G4",
-      "B2"
-    ]
+    "regressions": ["G5"],
+    "improvements": ["A4", "L3", "G3", "G4", "B2"]
   },
   "results": [
     {

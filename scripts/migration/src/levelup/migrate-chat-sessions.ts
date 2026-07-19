@@ -5,10 +5,10 @@
  * They get moved under the tenant's scope.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyChatSession {
   _docId: string;
@@ -49,7 +49,7 @@ export async function migrateChatSessions(options: {
   logger.info(`Migrating LevelUp chat sessions for org ${orgId}`);
 
   // Get all courses belonging to this org to know which sessions to migrate
-  const coursesSnap = await db.collection('courses').where('orgId', '==', orgId).get();
+  const coursesSnap = await db.collection("courses").where("orgId", "==", orgId).get();
   const courseIds = new Set(coursesSnap.docs.map((d) => d.id));
   logger.info(`Found ${courseIds.size} courses to migrate chat sessions from`);
 
@@ -59,7 +59,7 @@ export async function migrateChatSessions(options: {
     const spaceId = courseId;
 
     const sessions = await readAllDocs<LegacyChatSession>(
-      db.collection('chatSessions').where('courseId', '==', courseId) as admin.firestore.Query
+      db.collection("chatSessions").where("courseId", "==", courseId) as admin.firestore.Query
     );
     logger.info(`Course ${courseId}: ${sessions.length} chat sessions`);
 
@@ -73,7 +73,7 @@ export async function migrateChatSessions(options: {
 
         if (await docExists(db, targetPath)) {
           logger.debug(`ChatSession ${sessionId} already migrated, skipping`);
-          return { action: 'skipped', id: sessionId };
+          return { action: "skipped", id: sessionId };
         }
 
         const newSession = {
@@ -89,27 +89,27 @@ export async function migrateChatSessions(options: {
           sessionTitle: session.sessionTitle,
           previewMessage: session.previewMessage,
           messageCount: session.messageCount,
-          language: session.language || 'en',
+          language: session.language || "en",
           isActive: session.isActive,
           messages: session.messages || [],
-          systemPrompt: session.systemPrompt || '',
+          systemPrompt: session.systemPrompt || "",
           createdAt: session.createdAt
             ? admin.firestore.Timestamp.fromMillis(session.createdAt)
             : admin.firestore.Timestamp.now(),
           updatedAt: session.updatedAt
             ? admin.firestore.Timestamp.fromMillis(session.updatedAt)
             : admin.firestore.Timestamp.now(),
-          _migratedFrom: 'levelup',
+          _migratedFrom: "levelup",
           _migrationSourcePath: `chatSessions/${sessionId}`,
         };
 
         if (dryRun) {
           logger.info(`[DRY RUN] Would migrate chat session: ${sessionId}`);
-          return { action: 'created', id: sessionId };
+          return { action: "created", id: sessionId };
         }
 
         batch.set(db.doc(targetPath), newSession);
-        return { action: 'created', id: sessionId };
+        return { action: "created", id: sessionId };
       },
       { dryRun, logger }
     );

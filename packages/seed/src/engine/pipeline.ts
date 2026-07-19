@@ -752,17 +752,43 @@ export class SeedPipeline {
     for (const sp of space.storyPoints ?? []) {
       const storyPointId = r.storyPointId(space.key, sp.key);
       const items = sp.items ?? [];
+      const spType = sp.type ?? "standard";
+      const durationMinutes =
+        typeof sp.durationSeconds === "number" && sp.durationSeconds > 0
+          ? Math.max(1, Math.round(sp.durationSeconds / 60))
+          : typeof (sp as { durationMinutes?: number }).durationMinutes === "number"
+            ? Math.max(1, (sp as { durationMinutes: number }).durationMinutes)
+            : undefined;
+      // Timed tests need assessmentConfig.durationMinutes for startTestSession
+      // (callable rejects durationMinutes <= 0) and for student /tests cards.
+      const assessmentConfig =
+        spType === "timed_test" || spType === "test"
+          ? {
+              durationMinutes: durationMinutes ?? 30,
+              maxAttempts: 3,
+              shuffle: false,
+              passingPercentage: 50,
+            }
+          : undefined;
       const storyPointDoc = {
         id: storyPointId,
         tenantId,
         spaceId,
         title: sp.title,
         description: sp.description,
-        type: sp.type ?? "standard",
+        type: spType,
         // canonical StoryPointSchema: `orderIndex` (int, required); legacy `order` +
         // `durationSeconds` are NOT schema keys (the read mapper also drops them).
         orderIndex: sp.order ?? spOrder++,
-        stats: { itemCount: items.length, completionCount: 0 },
+        ...(durationMinutes != null ? { durationMinutes } : {}),
+        ...(assessmentConfig ? { assessmentConfig } : {}),
+        stats: {
+          itemCount: items.length,
+          completionCount: 0,
+          ...(assessmentConfig
+            ? { totalQuestions: items.filter((i) => i.kind === "question").length }
+            : {}),
+        },
         ...this.audit(ownerUid),
       };
       // CANONICAL doc: the runtime (saveStoryPoint / listStoryPoints / getStoryPoint via

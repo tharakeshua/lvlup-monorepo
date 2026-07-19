@@ -1,17 +1,6 @@
 import { Button } from "./button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
 export interface DataTablePaginationProps {
   totalItems: number;
@@ -43,22 +32,17 @@ export function DataTablePagination({
   return (
     <div className="flex items-center justify-between border-t px-4 py-3">
       <p
-        className="text-sm text-muted-foreground tabular-nums"
+        className="text-muted-foreground text-sm tabular-nums"
         aria-live="polite"
         aria-atomic="true"
       >
-        Showing{" "}
-        <span className="font-medium text-foreground">{start}</span>
+        Showing <span className="text-foreground font-medium">{start}</span>
         {"\u2013"}
-        <span className="font-medium text-foreground">{end}</span>
-        {" "}of{" "}
-        <span className="font-medium text-foreground">{totalItems}</span>
+        <span className="text-foreground font-medium">{end}</span> of{" "}
+        <span className="text-foreground font-medium">{totalItems}</span>
       </p>
       <div className="flex items-center gap-2">
-        <Select
-          value={String(pageSize)}
-          onValueChange={(v) => onPageSizeChange(Number(v))}
-        >
+        <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
           <SelectTrigger className="h-8 w-[70px]" aria-label="Rows per page">
             <SelectValue />
           </SelectTrigger>
@@ -74,7 +58,7 @@ export function DataTablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="h-9 min-h-[44px] w-9 min-w-[44px]"
             disabled={currentPage <= 1}
             onClick={() => onPageChange(1)}
             aria-label="Go to first page"
@@ -84,20 +68,20 @@ export function DataTablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="h-9 min-h-[44px] w-9 min-w-[44px]"
             disabled={currentPage <= 1}
             onClick={() => onPageChange(currentPage - 1)}
             aria-label="Go to previous page"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <span className="flex h-9 items-center px-2.5 text-sm tabular-nums font-medium">
+          <span className="flex h-9 items-center px-2.5 text-sm font-medium tabular-nums">
             {currentPage} / {totalPages}
           </span>
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="h-9 min-h-[44px] w-9 min-w-[44px]"
             disabled={currentPage >= totalPages}
             onClick={() => onPageChange(currentPage + 1)}
             aria-label="Go to next page"
@@ -107,7 +91,7 @@ export function DataTablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9 min-h-[44px] min-w-[44px]"
+            className="h-9 min-h-[44px] w-9 min-w-[44px]"
             disabled={currentPage >= totalPages}
             onClick={() => onPageChange(totalPages)}
             aria-label="Go to last page"

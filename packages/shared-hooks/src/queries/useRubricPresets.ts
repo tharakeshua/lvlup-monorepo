@@ -1,18 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { RubricPreset, RubricPresetCategory, UnifiedRubric, QuestionType } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type {
+  RubricPreset,
+  RubricPresetCategory,
+  UnifiedRubric,
+  QuestionType,
+} from "@levelup/shared-types";
 
 export function useRubricPresets(tenantId: string | null) {
   return useQuery<RubricPreset[]>({
-    queryKey: ['tenants', tenantId, 'rubricPresets'],
+    queryKey: ["tenants", tenantId, "rubricPresets"],
     queryFn: async () => {
       if (!tenantId) return [];
       const { db } = getFirebaseServices();
       const q = query(
         collection(db, `tenants/${tenantId}/rubricPresets`),
-        orderBy('createdAt', 'desc'),
+        orderBy("createdAt", "desc")
       );
       const snap = await getDocs(q);
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as RubricPreset);
@@ -39,13 +44,13 @@ export function useSaveRubricPreset() {
       };
     }) => {
       const { functions } = getFirebaseServices();
-      const callable = httpsCallable(functions, 'saveRubricPreset');
+      const callable = httpsCallable(functions, "saveRubricPreset");
       const result = await callable(params);
       return result.data as { id: string; created?: boolean; deleted?: boolean };
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'rubricPresets'],
+        queryKey: ["tenants", variables.tenantId, "rubricPresets"],
       });
     },
   });

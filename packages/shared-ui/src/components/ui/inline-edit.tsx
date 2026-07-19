@@ -98,7 +98,7 @@ export function InlineEdit({
             aria-describedby={error ? "inline-edit-error" : undefined}
           />
           {error && (
-            <p id="inline-edit-error" className="mt-1 text-xs text-destructive" role="alert">
+            <p id="inline-edit-error" className="text-destructive mt-1 text-xs" role="alert">
               {error}
             </p>
           )}
@@ -106,7 +106,7 @@ export function InlineEdit({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 text-success"
+          className="text-success h-8 w-8 shrink-0"
           onClick={save}
           aria-label="Save"
           type="button"
@@ -116,7 +116,7 @@ export function InlineEdit({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground"
+          className="text-muted-foreground h-8 w-8 shrink-0"
           onClick={cancel}
           aria-label="Cancel"
           type="button"
@@ -134,19 +134,19 @@ export function InlineEdit({
         onClick={startEditing}
         disabled={disabled}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          disabled && "cursor-not-allowed opacity-50",
+          "hover:bg-muted focus-visible:ring-ring inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2",
+          disabled && "cursor-not-allowed opacity-50"
         )}
         aria-label={`Edit ${ariaLabel}: ${value}`}
       >
         <span>{value || placeholder}</span>
         <Pencil
-          className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="text-muted-foreground h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100"
           aria-hidden="true"
         />
       </button>
       {saved && (
-        <span className="text-xs text-success" aria-live="polite">
+        <span className="text-success text-xs" aria-live="polite">
           Saved
         </span>
       )}

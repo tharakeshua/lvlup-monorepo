@@ -1,20 +1,20 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { SaveSpaceRequest, SaveResponse } from '@levelup/shared-types';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { SaveSpaceRequest, SaveResponse } from "@levelup/shared-types";
 
 export function useCreateSpace() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, 'saveSpace');
+  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, "saveSpace");
 
   return useMutation({
-    mutationFn: async (params: Omit<SaveSpaceRequest, 'id'>) => {
+    mutationFn: async (params: Omit<SaveSpaceRequest, "id">) => {
       const result = await callable(params);
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "spaces"] });
     },
   });
 }
@@ -22,7 +22,7 @@ export function useCreateSpace() {
 export function useUpdateSpace() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, 'saveSpace');
+  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, "saveSpace");
 
   return useMutation({
     mutationFn: async (params: SaveSpaceRequest & { id: string }) => {
@@ -30,8 +30,10 @@ export function useUpdateSpace() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "spaces"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "spaces", variables.id],
+      });
     },
   });
 }
@@ -39,20 +41,22 @@ export function useUpdateSpace() {
 export function usePublishSpace() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, 'saveSpace');
+  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, "saveSpace");
 
   return useMutation({
     mutationFn: async (params: { tenantId: string; spaceId: string }) => {
       const result = await callable({
         id: params.spaceId,
         tenantId: params.tenantId,
-        data: { status: 'published' },
+        data: { status: "published" },
       });
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces', variables.spaceId] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "spaces"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "spaces", variables.spaceId],
+      });
     },
   });
 }
@@ -60,20 +64,22 @@ export function usePublishSpace() {
 export function useArchiveSpace() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, 'saveSpace');
+  const callable = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, "saveSpace");
 
   return useMutation({
     mutationFn: async (params: { tenantId: string; spaceId: string }) => {
       const result = await callable({
         id: params.spaceId,
         tenantId: params.tenantId,
-        data: { status: 'archived' },
+        data: { status: "archived" },
       });
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces', variables.spaceId] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "spaces"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "spaces", variables.spaceId],
+      });
     },
   });
 }
@@ -81,16 +87,22 @@ export function useArchiveSpace() {
 export function useDuplicateSpace() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const saveSpace = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, 'saveSpace');
-  const saveStoryPoint = httpsCallable<import('@levelup/shared-types').SaveStoryPointRequest, SaveResponse>(functions, 'saveStoryPoint');
-  const saveItem = httpsCallable<import('@levelup/shared-types').SaveItemRequest, SaveResponse>(functions, 'saveItem');
+  const saveSpace = httpsCallable<SaveSpaceRequest, SaveResponse>(functions, "saveSpace");
+  const saveStoryPoint = httpsCallable<
+    import("@levelup/shared-types").SaveStoryPointRequest,
+    SaveResponse
+  >(functions, "saveStoryPoint");
+  const saveItem = httpsCallable<import("@levelup/shared-types").SaveItemRequest, SaveResponse>(
+    functions,
+    "saveItem"
+  );
 
   return useMutation({
     mutationFn: async (params: {
       tenantId: string;
-      sourceSpace: import('@levelup/shared-types').Space;
-      storyPoints: import('@levelup/shared-types').StoryPoint[];
-      itemsByStoryPoint: Record<string, import('@levelup/shared-types').UnifiedItem[]>;
+      sourceSpace: import("@levelup/shared-types").Space;
+      storyPoints: import("@levelup/shared-types").StoryPoint[];
+      itemsByStoryPoint: Record<string, import("@levelup/shared-types").UnifiedItem[]>;
     }) => {
       const { tenantId, sourceSpace, storyPoints, itemsByStoryPoint } = params;
 
@@ -158,7 +170,7 @@ export function useDuplicateSpace() {
       return { id: newSpaceId, created: true };
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'spaces'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "spaces"] });
     },
   });
 }

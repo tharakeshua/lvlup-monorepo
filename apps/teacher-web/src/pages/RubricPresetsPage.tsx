@@ -78,7 +78,13 @@ const EMPTY_FORM: FormState = {
 
 export default function RubricPresetsPage() {
   // @levelup/query is tenant-scoped server-side; result is a `{ items }` page.
-  const { data: presetsPage, isLoading } = useRubricPresets<{ items: RubricPreset[] }>();
+  const {
+    data: presetsPage,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useRubricPresets<{ items: RubricPreset[] }>();
   const presets = presetsPage?.items;
   const savePreset = useSaveRubricPreset();
   const { handleError } = useApiError();
@@ -170,6 +176,22 @@ export default function RubricPresetsPage() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
+        <FileText className="text-muted-foreground h-8 w-8" />
+        <p className="font-display mt-3 text-lg">Failed to load presets</p>
+        <p className="text-muted-foreground mt-1 max-w-md text-center text-sm">
+          {(error as { message?: string } | null)?.message ??
+            "Could not load rubric presets. Retry or create a new preset."}
+        </p>
+        <Button onClick={() => void refetch()} size="sm" variant="outline" className="mt-4">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <ConfirmDialog
@@ -244,8 +266,10 @@ export default function RubricPresetsPage() {
                   <div>
                     <h3 className="text-sm font-medium">{preset.name}</h3>
                     <p className="text-muted-foreground text-xs capitalize">
-                      {CATEGORY_LABELS[preset.category]} &middot;{" "}
-                      {preset.rubric.scoringMode.replace("_", " ")}
+                      {CATEGORY_LABELS[preset.category] ?? preset.category}
+                      {preset.rubric?.scoringMode
+                        ? ` · ${preset.rubric.scoringMode.replace(/_/g, " ")}`
+                        : ""}
                     </p>
                   </div>
                 </div>

@@ -36,17 +36,94 @@ export default function App() {
         </Route>
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
-            <Route path="/tenants" element={<RouteErrorBoundary><TenantsPage /></RouteErrorBoundary>} />
-            <Route path="/tenants/:tenantId" element={<RouteErrorBoundary><TenantDetailPage /></RouteErrorBoundary>} />
-            <Route path="/analytics" element={<RouteErrorBoundary><UserAnalyticsPage /></RouteErrorBoundary>} />
-            <Route path="/feature-flags" element={<RouteErrorBoundary><FeatureFlagsPage /></RouteErrorBoundary>} />
-            <Route path="/presets" element={<RouteErrorBoundary><GlobalPresetsPage /></RouteErrorBoundary>} />
-            <Route path="/llm-usage" element={<RouteErrorBoundary><LLMUsagePage /></RouteErrorBoundary>} />
-            <Route path="/system" element={<RouteErrorBoundary><SystemHealthPage /></RouteErrorBoundary>} />
-            <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
-            <Route path="/announcements" element={<RouteErrorBoundary><AnnouncementsPage /></RouteErrorBoundary>} />
-            <Route path="/users" element={<RouteErrorBoundary><GlobalUsersPage /></RouteErrorBoundary>} />
+            <Route
+              path="/"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/tenants"
+              element={
+                <RouteErrorBoundary>
+                  <TenantsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/tenants/:tenantId"
+              element={
+                <RouteErrorBoundary>
+                  <TenantDetailPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <RouteErrorBoundary>
+                  <UserAnalyticsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/feature-flags"
+              element={
+                <RouteErrorBoundary>
+                  <FeatureFlagsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/presets"
+              element={
+                <RouteErrorBoundary>
+                  <GlobalPresetsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/llm-usage"
+              element={
+                <RouteErrorBoundary>
+                  <LLMUsagePage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/system"
+              element={
+                <RouteErrorBoundary>
+                  <SystemHealthPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RouteErrorBoundary>
+                  <SettingsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/announcements"
+              element={
+                <RouteErrorBoundary>
+                  <AnnouncementsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <RouteErrorBoundary>
+                  <GlobalUsersPage />
+                </RouteErrorBoundary>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

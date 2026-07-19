@@ -1,11 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Space } from '@levelup/shared-types';
+import { useQuery } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Space } from "@levelup/shared-types";
 
 export function useSpace(tenantId: string | null, spaceId: string | null) {
   return useQuery<Space | null>({
-    queryKey: ['tenants', tenantId, 'spaces', spaceId],
+    queryKey: ["tenants", tenantId, "spaces", spaceId],
     queryFn: async () => {
       if (!tenantId || !spaceId) return null;
       const { db } = getFirebaseServices();

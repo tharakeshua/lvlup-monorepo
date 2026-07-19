@@ -1,5 +1,5 @@
-import { getDb } from './firestore';
-import type { UnifiedItem, UnifiedRubric, StoryPoint, Space } from '../types';
+import { getDb } from "./firestore";
+import type { UnifiedItem, UnifiedRubric, StoryPoint, Space } from "../types";
 
 /**
  * Resolve rubric using the inheritance chain: item > storyPoint > space > tenant.
@@ -8,7 +8,7 @@ import type { UnifiedItem, UnifiedRubric, StoryPoint, Space } from '../types';
 export async function resolveRubric(
   tenantId: string,
   spaceId: string,
-  item: UnifiedItem,
+  item: UnifiedItem
 ): Promise<UnifiedRubric | null> {
   // 1. Item-level rubric
   if (item.rubric) return item.rubric;

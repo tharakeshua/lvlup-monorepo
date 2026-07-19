@@ -9,7 +9,9 @@
  * - Adaptive difficulty ordering (if enabled)
  * - Max attempts enforcement
  */
-export declare const startTestSession: import("firebase-functions/https").CallableFunction<any, Promise<{
+export declare const startTestSession: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<{
     sessionId: any;
     startedAt: any;
     serverDeadline: any;
@@ -19,4 +21,6 @@ export declare const startTestSession: import("firebase-functions/https").Callab
     sectionMapping: any;
     lastVisitedIndex: any;
     resuming: boolean;
-}>, unknown>;
+  }>,
+  unknown
+>;

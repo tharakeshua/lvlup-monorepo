@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import { TableSkeleton } from "../components/skeletons/TableSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import { useSort } from "../hooks/useSort";
+import { pageItems } from "@/lib/utils";
 
 const GRADES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 
@@ -63,10 +64,10 @@ interface ClassFormData {
 
 export default function ClassesPage() {
   const classesQuery = useClasses({});
-  const classes = (classesQuery.data ?? []) as Class[];
+  const classes = pageItems<Class>(classesQuery.data);
   const isLoading = classesQuery.isLoading;
-  const teachers = (useTeachers({}).data ?? []) as Teacher[];
-  const students = (useStudents({}).data ?? []) as Student[];
+  const teachers = pageItems<Teacher>(useTeachers({}).data);
+  const students = pageItems<Student>(useStudents({}).data);
   const saveClass = useSaveClass();
   const saveStudent = useSaveStudent();
   const bulkUpdateStatus = useBulkUpdateStatus();

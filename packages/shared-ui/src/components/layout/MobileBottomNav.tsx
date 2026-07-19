@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { cn } from '../../lib/utils';
+import * as React from "react";
+import { cn } from "../../lib/utils";
 
 export interface MobileNavItem {
   icon: React.ElementType;
@@ -28,11 +28,11 @@ function NavTab({
   isActive,
   onClick,
   LinkComponent,
-}: MobileNavItem & { LinkComponent: MobileBottomNavProps['LinkComponent'] }) {
+}: MobileNavItem & { LinkComponent: MobileBottomNavProps["LinkComponent"] }) {
   const Link = LinkComponent ?? DefaultLink;
   const sharedClassName = cn(
-    'flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 px-3 py-1 text-xs transition-colors',
-    isActive ? 'text-primary' : 'text-muted-foreground',
+    "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 px-3 py-1 text-xs transition-colors",
+    isActive ? "text-primary" : "text-muted-foreground"
   );
 
   const content = (
@@ -40,8 +40,8 @@ function NavTab({
       <div className="relative">
         <Icon className="h-5 w-5" />
         {badge != null && badge > 0 && (
-          <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-            {badge > 99 ? '99+' : badge}
+          <span className="bg-destructive text-destructive-foreground absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
+            {badge > 99 ? "99+" : badge}
           </span>
         )}
       </div>
@@ -67,8 +67,8 @@ function NavTab({
 export function MobileBottomNav({ items, LinkComponent }: MobileBottomNavProps) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="bg-background fixed bottom-0 left-0 right-0 z-40 border-t md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex h-14 items-center justify-around">
         {items.map((item) => (

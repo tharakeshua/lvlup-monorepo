@@ -17,6 +17,7 @@ import { extractQuestionsDef } from "./extract-questions.js";
 import { uploadAnswerSheetsDef } from "./upload-answer-sheets.js";
 import { gradeQuestionDef } from "./grade-question.js";
 import { releaseResultsDef } from "./release-results.js";
+import { createSpaceFromExamDef } from "./create-space-from-exam.js";
 import { saveEvaluationSettingsDef } from "./save-evaluation-settings.js";
 import { resolveDeadLetterDef } from "./resolve-dead-letter.js";
 import { listExamsDef } from "./list-exams.js";
@@ -38,6 +39,7 @@ export const AUTOGRADE_CALLABLES = {
   "v1.autograde.uploadAnswerSheets": uploadAnswerSheetsDef,
   "v1.autograde.gradeQuestion": gradeQuestionDef,
   "v1.autograde.releaseResults": releaseResultsDef,
+  "v1.autograde.createSpaceFromExam": createSpaceFromExamDef,
   "v1.autograde.saveEvaluationSettings": saveEvaluationSettingsDef,
   "v1.autograde.resolveDeadLetter": resolveDeadLetterDef,
   "v1.autograde.listExams": listExamsDef,
@@ -61,6 +63,7 @@ export * from "./extract-questions.js";
 export * from "./upload-answer-sheets.js";
 export * from "./grade-question.js";
 export * from "./release-results.js";
+export * from "./create-space-from-exam.js";
 export * from "./save-evaluation-settings.js";
 export * from "./resolve-dead-letter.js";
 export * from "./list-exams.js";

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 /**
  * Hook to detect service worker updates and allow users to refresh.
@@ -10,15 +10,15 @@ export function useSWUpdate() {
 
   useEffect(() => {
     const handler = () => setUpdateAvailable(true);
-    window.addEventListener('sw-update-available', handler);
-    return () => window.removeEventListener('sw-update-available', handler);
+    window.addEventListener("sw-update-available", handler);
+    return () => window.removeEventListener("sw-update-available", handler);
   }, []);
 
   const applyUpdate = useCallback(() => {
-    if (!('serviceWorker' in navigator)) return;
+    if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.getRegistration().then((registration) => {
       if (registration?.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
       }
     });
   }, []);

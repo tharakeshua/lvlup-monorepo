@@ -163,6 +163,36 @@ function projectUnifiedUser(user: Doc, uid: string): Doc {
  * `tenantCodeByTenant` supplies the authoritative code for empty/missing ones
  * (falls back to the tenantId — same brand rules — so getMe never hard-fails).
  */
+/**
+ * Canonicalize membership.permissions to domain `TeacherPermissions`:
+ * `{ permissions?: Record<key,boolean>, managedClassIds?, managedSpaceIds? }`.
+ * Writers historically flattened boolean keys onto the wrapper (and/or nested a
+ * second `permissions` bag) — strict UserMembershipSchema rejects the flat
+ * siblings, which made getMe fail client-side `validateResponses:true` and
+ * surface as Access Denied / "invalid data" after school login.
+ */
+function projectTeacherPermissions(raw: unknown): Doc | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Doc;
+  const nestedSrc =
+    r["permissions"] && typeof r["permissions"] === "object" && !Array.isArray(r["permissions"])
+      ? (r["permissions"] as Doc)
+      : {};
+  const bag: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(nestedSrc)) {
+    if (TEACHER_PERMISSION_KEYS.has(k) && typeof v === "boolean") bag[k] = v;
+  }
+  for (const [k, v] of Object.entries(r)) {
+    if (k === "permissions" || k === "managedClassIds" || k === "managedSpaceIds") continue;
+    if (TEACHER_PERMISSION_KEYS.has(k) && typeof v === "boolean") bag[k] = v;
+  }
+  const out: Doc = {};
+  if (Object.keys(bag).length) out["permissions"] = bag;
+  if (Array.isArray(r["managedClassIds"])) out["managedClassIds"] = r["managedClassIds"];
+  if (Array.isArray(r["managedSpaceIds"])) out["managedSpaceIds"] = r["managedSpaceIds"];
+  return Object.keys(out).length ? out : undefined;
+}
+
 function projectMembership(m: Doc, tenantCodeByTenant: Map<string, string>): Doc {
   const out: Doc = {};
   for (const k of MEMBERSHIP_KEYS) {
@@ -177,6 +207,11 @@ function projectMembership(m: Doc, tenantCodeByTenant: Map<string, string>): Doc
   out["updatedBy"] = out["updatedBy"] ?? out["createdBy"];
   out["updatedAt"] = out["updatedAt"] ?? out["createdAt"];
   if (out["lastActive"] === undefined) out["lastActive"] = null;
+  if (out["permissions"] !== undefined) {
+    const cleaned = projectTeacherPermissions(out["permissions"]);
+    if (cleaned) out["permissions"] = cleaned;
+    else delete out["permissions"];
+  }
   return out;
 }
 
@@ -338,6 +373,24 @@ export async function listClassesService(
   input: ReqOf<"v1.identity.listClasses">,
   ctx: AuthContext
 ): Promise<ResOf<"v1.identity.listClasses">> {
+  const tenantId = requireTenant(ctx);
+  // Teachers are claim-scoped to managed classIds — returning the full tenant
+  // roster made the dashboard fan out summary.getClass for every class and
+  // 403 on ones the teacher doesn't own. Admins/staff/super-admin keep the
+  // full paginated list.
+  const teacherScoped = ctx.role === "teacher" && !ctx.isSuperAdmin && Array.isArray(ctx.classIds);
+
+  if (teacherScoped) {
+    const ids = ctx.classIds.map(String).filter(Boolean);
+    if (ids.length === 0) {
+      return { items: [], nextCursor: null } as unknown as ResOf<"v1.identity.listClasses">;
+    }
+    const found = await ctx.repos.classes.getMany(tenantId, ids);
+    const items = found.map((d) => projectEntity(d, CLASS_KEYS));
+    // Claim sets are small (overflow capped); return as a single page.
+    return { items, nextCursor: null } as unknown as ResOf<"v1.identity.listClasses">;
+  }
+
   const res = await listEntity(ctx, ctx.repos.classes, input);
   // ClassSchema (list view) deliberately omits `schedule` (it lives on the detail
   // view / save payload) — the whitelist drops it plus any legacy `archivedAt`.
@@ -350,11 +403,23 @@ export async function getClassService(
   ctx: AuthContext
 ): Promise<ResOf<"v1.identity.getClass">> {
   const tenantId = requireTenant(ctx);
-  const klass = await ctx.repos.classes.get(tenantId, (input as { id: string }).id);
+  const classId = (input as { id: string }).id;
+  // Align with listClasses + analytics.getSummary(class): teachers may only
+  // read classes in their claim-scoped classIds (admins/staff keep tenant-wide).
+  // Without this, mobile/web teacher dashboards 403 when opening a class card
+  // that listClasses correctly omitted — or worse, leak foreign class rosters.
+  if (
+    ctx.role === "teacher" &&
+    !ctx.isSuperAdmin &&
+    !ctx.classIds.map(String).includes(String(classId))
+  ) {
+    fail("PERMISSION_DENIED", `class ${classId} is not assigned to this teacher`);
+  }
+  const klass = await ctx.repos.classes.get(tenantId, classId);
   if (!klass) fail("NOT_FOUND", "class not found");
   // getClass returns counts + first roster page (the rest pages via listStudents).
   const roster = await ctx.repos.students.list(tenantId, {
-    where: { classIds: (input as { id: string }).id },
+    where: { classIds: classId },
     limit: 20,
   });
   return {

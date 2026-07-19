@@ -34,16 +34,8 @@
     "baselinePassRate": "99%",
     "currentPassRate": "100%",
     "regressions": [],
-    "fixed": [
-      "G5"
-    ],
-    "improved": [
-      "D1",
-      "L10",
-      "X8",
-      "N3",
-      "E1"
-    ]
+    "fixed": ["G5"],
+    "improved": ["D1", "L10", "X8", "N3", "E1"]
   },
   "results": [
     {

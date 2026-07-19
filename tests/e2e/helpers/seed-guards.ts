@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect } from "@playwright/test";
 
 /**
  * Configuration for seed data health checks.
@@ -26,10 +26,7 @@ interface RetryConfig {
  * Perform a health check at test suite `beforeAll` to ensure the app
  * is running and seed data is available. Fails fast if conditions aren't met.
  */
-export async function seedHealthCheck(
-  page: Page,
-  config: SeedHealthCheckConfig,
-): Promise<void> {
+export async function seedHealthCheck(page: Page, config: SeedHealthCheckConfig): Promise<void> {
   const { loginUrl, appTimeout = 30000 } = config;
 
   // 1. Verify app is reachable
@@ -50,7 +47,7 @@ export async function seedHealthCheck(
   if (!appReachable) {
     throw new Error(
       `Seed health check failed: App not reachable at ${loginUrl} after ${appTimeout}ms. ` +
-        'Ensure dev servers are running before E2E tests.',
+        "Ensure dev servers are running before E2E tests."
     );
   }
 }
@@ -62,7 +59,7 @@ export async function seedHealthCheck(
 export async function waitForElement(
   page: Page,
   selector: string,
-  options?: RetryConfig & { description?: string },
+  options?: RetryConfig & { description?: string }
 ): Promise<void> {
   const { maxRetries = 3, retryDelay = 5000, description } = options ?? {};
   const label = description ?? `element "${selector}"`;
@@ -75,9 +72,7 @@ export async function waitForElement(
       return; // Success
     } catch {
       if (attempt === maxRetries) {
-        throw new Error(
-          `waitForElement failed: ${label} not visible after ${maxRetries} attempts`,
-        );
+        throw new Error(`waitForElement failed: ${label} not visible after ${maxRetries} attempts`);
       }
       await page.waitForTimeout(1000); // Brief pause before retry
     }
@@ -91,7 +86,7 @@ export async function waitForElement(
 export async function waitForNavigation(
   page: Page,
   urlPattern: RegExp,
-  options?: RetryConfig,
+  options?: RetryConfig
 ): Promise<void> {
   const { maxRetries = 3, retryDelay = 5000 } = options ?? {};
 
@@ -103,7 +98,7 @@ export async function waitForNavigation(
       if (attempt === maxRetries) {
         throw new Error(
           `waitForNavigation failed: URL did not match ${urlPattern} after ${maxRetries} attempts. ` +
-            `Current URL: ${page.url()}`,
+            `Current URL: ${page.url()}`
         );
       }
       await page.waitForTimeout(1000);
@@ -119,7 +114,7 @@ export async function loginWithRetry(
   page: Page,
   loginFn: (page: Page) => Promise<void>,
   expectedUrlPattern: RegExp,
-  options?: RetryConfig,
+  options?: RetryConfig
 ): Promise<void> {
   const { maxRetries = 3, retryDelay = 5000 } = options ?? {};
 
@@ -130,12 +125,10 @@ export async function loginWithRetry(
       return;
     } catch {
       if (attempt === maxRetries) {
-        throw new Error(
-          `Login failed after ${maxRetries} attempts. Current URL: ${page.url()}`,
-        );
+        throw new Error(`Login failed after ${maxRetries} attempts. Current URL: ${page.url()}`);
       }
       // Reload and try again
-      await page.goto(page.url().replace(/\/.*$/, '/login'), {
+      await page.goto(page.url().replace(/\/.*$/, "/login"), {
         timeout: 10000,
       });
       await page.waitForTimeout(1000);
@@ -153,7 +146,7 @@ export async function waitForDataLoad(
     loadingSelector?: string;
     contentSelector?: string;
     timeout?: number;
-  },
+  }
 ): Promise<void> {
   const {
     loadingSelector = '[data-testid="loading"], .animate-spin, [role="progressbar"]',

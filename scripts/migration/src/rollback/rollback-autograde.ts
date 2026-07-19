@@ -5,9 +5,9 @@
  * This ensures we don't delete any data that was created natively.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 const BATCH_SIZE = 500;
 
@@ -20,11 +20,12 @@ async function deleteCollection(
   filterValue?: string
 ): Promise<number> {
   let deleted = 0;
-  let query: admin.firestore.Query = db.collection(collectionPath)
-    .where('_migratedFrom', '==', 'autograde');
+  let query: admin.firestore.Query = db
+    .collection(collectionPath)
+    .where("_migratedFrom", "==", "autograde");
 
   if (filterField && filterValue) {
-    query = query.where(filterField, '==', filterValue);
+    query = query.where(filterField, "==", filterValue);
   }
 
   while (true) {
@@ -62,13 +63,15 @@ export async function rollbackAutograde(options: {
   const tenantId = clientId;
 
   logger.info(`Rolling back AutoGrade migration for client ${clientId}`);
-  if (dryRun) logger.info('[DRY RUN MODE]');
+  if (dryRun) logger.info("[DRY RUN MODE]");
 
   // Delete in reverse dependency order
 
   // 1. Delete question submissions (subcollections)
-  const submissionsSnap = await db.collection(`tenants/${tenantId}/submissions`)
-    .where('_migratedFrom', '==', 'autograde').get();
+  const submissionsSnap = await db
+    .collection(`tenants/${tenantId}/submissions`)
+    .where("_migratedFrom", "==", "autograde")
+    .get();
   for (const subDoc of submissionsSnap.docs) {
     await deleteCollection(
       db,
@@ -83,15 +86,12 @@ export async function rollbackAutograde(options: {
   logger.info(`Deleted ${total} submissions`);
 
   // 3. Delete exam questions (subcollections)
-  const examsSnap = await db.collection(`tenants/${tenantId}/exams`)
-    .where('_migratedFrom', '==', 'autograde').get();
+  const examsSnap = await db
+    .collection(`tenants/${tenantId}/exams`)
+    .where("_migratedFrom", "==", "autograde")
+    .get();
   for (const examDoc of examsSnap.docs) {
-    await deleteCollection(
-      db,
-      `tenants/${tenantId}/exams/${examDoc.id}/questions`,
-      logger,
-      dryRun
-    );
+    await deleteCollection(db, `tenants/${tenantId}/exams/${examDoc.id}/questions`, logger, dryRun);
   }
 
   // 4. Delete exams
@@ -115,9 +115,10 @@ export async function rollbackAutograde(options: {
   logger.info(`Deleted ${total} classes`);
 
   // 9. Delete memberships for this tenant
-  const membershipsSnap = await db.collection('userMemberships')
-    .where('tenantId', '==', tenantId)
-    .where('joinSource', '==', 'migration')
+  const membershipsSnap = await db
+    .collection("userMemberships")
+    .where("tenantId", "==", tenantId)
+    .where("joinSource", "==", "migration")
     .get();
 
   if (!dryRun) {
@@ -131,7 +132,7 @@ export async function rollbackAutograde(options: {
 
   // 10. Delete tenant
   const tenantDoc = await db.doc(`tenants/${tenantId}`).get();
-  if (tenantDoc.exists && tenantDoc.data()?._migratedFrom === 'autograde') {
+  if (tenantDoc.exists && tenantDoc.data()?._migratedFrom === "autograde") {
     if (!dryRun) {
       await db.doc(`tenants/${tenantId}`).delete();
       // Also delete tenantCode index
@@ -143,6 +144,6 @@ export async function rollbackAutograde(options: {
     logger.info(`Deleted tenant ${tenantId}`);
   }
 
-  logger.info('AutoGrade rollback complete');
+  logger.info("AutoGrade rollback complete");
   logger.printSummary();
 }

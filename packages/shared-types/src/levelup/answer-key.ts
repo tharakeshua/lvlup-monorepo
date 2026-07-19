@@ -4,8 +4,8 @@
  * @module levelup/answer-key
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { QuestionType } from '../content/item';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { QuestionType } from "../content/item";
 
 export interface AnswerKey {
   id: string;

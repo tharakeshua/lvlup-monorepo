@@ -3,10 +3,9 @@
  *
  *   list(filter?)        — paginated, opaque cursor
  *   get(id)              — single getSpace, shaped SpaceView
- *   getMany(ids)         — compatibility fan-out via canonical getSpace calls
- *                          (the API currently has no batched id read)
- *   save(input)          — maps ergonomic delete to data.deleted
- *   publish/archive(id)  — map to saveSpace.data.status (authoritySensitive)
+ *   getMany(ids)         — batched (server fan-in, no client chunking)
+ *   save(input)          — metadata only (D2: never injects tenantId)
+ *   publish/archive(id)  — lifecycle via saveSpace { status } (no separate callables)
  *   canTransition(f,t)   — pure ALLOWED_TRANSITIONS read (UX)
  *   canPublish(space)    — derived: status is draft/published & publishable
  *   isPublished(space)   — derived boolean
@@ -16,41 +15,43 @@ import {
   type ApiClientLike,
   type Page,
   type PageBag,
+  type PageRequest,
   canTransition as kitCanTransition,
-  invokeCallable,
+  batchGetMany,
   makePaginator,
   toPage,
 } from "./_kit";
-import type { ReqOf, ResOf } from "@levelup/api-contract";
-import type { Space, SpaceRatingAggregate, SpaceStats, SpaceStatus } from "@levelup/domain";
 
-type ListSpacesRequest = ReqOf<"v1.levelup.listSpaces">;
-export type SpaceFilter = Omit<ListSpacesRequest, "limit"> & {
-  limit?: ListSpacesRequest["limit"];
-};
+export interface SpaceFilter extends PageRequest {
+  status?: string;
+  type?: string;
+  classId?: string;
+  subject?: string;
+  teacherId?: string;
+}
 
-export type SaveSpaceInput = ReqOf<"v1.levelup.saveSpace"> & {
-  /** Ergonomic soft-delete flag; mapped to the canonical data.deleted field. */
+export interface SaveSpaceInput {
+  id?: string;
+  data?: Record<string, unknown>;
   delete?: boolean;
-};
+}
 
 interface SpaceLike {
   id?: string;
-  status?: SpaceStatus;
-  stats?: Partial<SpaceStats> | null;
-  ratingAggregate?: Partial<SpaceRatingAggregate> | null;
+  status?: string;
+  stats?: { storyPointCount?: number; itemCount?: number } | null;
+  ratingAggregate?: { count?: number; average?: number } | null;
 }
 
 export interface SpaceRepo {
-  list(filter?: SpaceFilter): Promise<Page<Space>>;
-  paginate(filter?: SpaceFilter): Promise<PageBag<Space>>;
-  get(id: string): Promise<Space>;
-  getMany(ids: readonly string[]): Promise<Space[]>;
-  save(input: SaveSpaceInput): Promise<ResOf<"v1.levelup.saveSpace">>;
-  duplicate(input: ReqOf<"v1.levelup.duplicateSpace">): Promise<ResOf<"v1.levelup.duplicateSpace">>;
-  publish(input: { id: string }): Promise<ResOf<"v1.levelup.saveSpace">>;
-  archive(input: { id: string }): Promise<ResOf<"v1.levelup.saveSpace">>;
-  canTransition(from: SpaceStatus, to: SpaceStatus): boolean;
+  list(filter?: SpaceFilter): Promise<Page<unknown>>;
+  paginate(filter?: SpaceFilter): Promise<PageBag<unknown>>;
+  get(id: string): Promise<unknown>;
+  getMany(ids: readonly string[]): Promise<unknown[]>;
+  save(input: SaveSpaceInput): Promise<unknown>;
+  publish(input: { id: string }): Promise<unknown>;
+  archive(input: { id: string }): Promise<unknown>;
+  canTransition(from: string, to: string): boolean;
   canPublish(space: SpaceLike): boolean;
   isPublished(space: SpaceLike): boolean;
   computeAverageRating(space: SpaceLike): number;
@@ -58,48 +59,16 @@ export interface SpaceRepo {
 
 export function createSpaceRepo(api: ApiClientLike): SpaceRepo {
   const lv = api.levelup;
-  const getSpace = async (id: string): Promise<Space> => {
-    const response = await invokeCallable<"v1.levelup.getSpace">(lv["getSpace"]!, {
-      spaceId: id,
-    });
-    return response.space;
-  };
   return {
-    list: (filter = {}) =>
-      invokeCallable<"v1.levelup.listSpaces">(lv["listSpaces"]!, {
-        ...filter,
-        limit: filter.limit ?? 20,
-      }).then((r) => toPage<Space>(r)),
-    paginate: (filter = {}) =>
-      makePaginator<Space, SpaceFilter>(
-        (req) =>
-          invokeCallable<"v1.levelup.listSpaces">(lv["listSpaces"]!, {
-            ...req,
-            limit: req.limit ?? 20,
-          }),
-        { ...filter, limit: filter.limit ?? 20 }
-      ),
-    get: getSpace,
-    duplicate: (input) => invokeCallable<"v1.levelup.duplicateSpace">(lv["duplicateSpace"]!, input),
-    // The API currently exposes no batched space-id filter. Preserve this
-    // convenience without sending the invalid `{ids}` field to listSpaces.
-    getMany: (ids) => Promise.all(ids.map(getSpace)),
-    save: ({ delete: shouldDelete, ...input }) =>
-      invokeCallable<"v1.levelup.saveSpace">(lv["saveSpace"]!, {
-        ...input,
-        data: { ...input.data, ...(shouldDelete ? { deleted: true } : {}) },
-      }),
-    // Lifecycle authority lives in saveSpace.data.status in the canonical API.
-    publish: ({ id }) =>
-      invokeCallable<"v1.levelup.saveSpace">(lv["saveSpace"]!, {
-        id: id as ReqOf<"v1.levelup.saveSpace">["id"],
-        data: { status: "published" },
-      }),
-    archive: ({ id }) =>
-      invokeCallable<"v1.levelup.saveSpace">(lv["saveSpace"]!, {
-        id: id as ReqOf<"v1.levelup.saveSpace">["id"],
-        data: { status: "archived" },
-      }),
+    list: (filter = {}) => lv["listSpaces"]!(filter).then((r) => toPage(r)),
+    paginate: (filter = {}) => makePaginator((req) => lv["listSpaces"]!(req), filter),
+    // Callable returns `{ space }`; callers/hooks expect the SpaceView itself.
+    get: (id) => lv["getSpace"]!({ spaceId: id }).then((r) => (r as { space: unknown }).space),
+    getMany: (ids) => batchGetMany((req) => lv["listSpaces"]!(req), ids),
+    save: (input) => lv["saveSpace"]!(input),
+    // Contract: saveSpace IS the lifecycle verb — there is no publishSpace/archiveSpace.
+    publish: (input) => lv["saveSpace"]!({ id: input.id, data: { status: "published" } }),
+    archive: (input) => lv["saveSpace"]!({ id: input.id, data: { status: "archived" } }),
     canTransition: (from, to) => kitCanTransition("space", from, to),
     canPublish: (space) => {
       // The lifecycle gate is authoritative for the UX button; the content
@@ -113,6 +82,6 @@ export function createSpaceRepo(api: ApiClientLike): SpaceRepo {
       return true;
     },
     isPublished: (space) => space.status === "published",
-    computeAverageRating: (space) => space.ratingAggregate?.averageRating ?? 0,
+    computeAverageRating: (space) => space.ratingAggregate?.average ?? 0,
   };
 }

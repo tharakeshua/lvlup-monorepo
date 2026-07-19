@@ -47,31 +47,31 @@
  *   npx tsx src/migrate-users.ts --verify
  */
 
-import { Command } from 'commander';
-import { initFirebase } from './config.js';
-import { MigrationLogger, generateRunId } from './utils/logger.js';
+import { Command } from "commander";
+import { initFirebase } from "./config.js";
+import { MigrationLogger, generateRunId } from "./utils/logger.js";
 
 // Migration functions
-import { migrateAutogradeUsers } from './autograde/migrate-users.js';
-import { migrateLevelUpUsers } from './levelup/migrate-users.js';
-import { migrateConsumerUsers } from './levelup/migrate-consumer-users.js';
+import { migrateAutogradeUsers } from "./autograde/migrate-users.js";
+import { migrateLevelUpUsers } from "./levelup/migrate-users.js";
+import { migrateConsumerUsers } from "./levelup/migrate-consumer-users.js";
 
 // Verification
-import { verifyUsers } from './verify/verify-users.js';
+import { verifyUsers } from "./verify/verify-users.js";
 
 // ── CLI ─────────────────────────────────────────────
 
 const program = new Command();
 
 program
-  .name('migrate-users')
-  .description('Migrate legacy user accounts to the unified multi-tenant membership model')
-  .version('1.0.0')
-  .option('--source <source>', 'Migration source: autograde | levelup | consumer | all')
-  .option('--client-id <id>', 'AutoGrade client ID (required for source=autograde)')
-  .option('--org-id <id>', 'LevelUp org ID (required for source=levelup)')
-  .option('--dry-run', 'Log what would be migrated without writing', false)
-  .option('--verify', 'Verify user migration integrity', false);
+  .name("migrate-users")
+  .description("Migrate legacy user accounts to the unified multi-tenant membership model")
+  .version("1.0.0")
+  .option("--source <source>", "Migration source: autograde | levelup | consumer | all")
+  .option("--client-id <id>", "AutoGrade client ID (required for source=autograde)")
+  .option("--org-id <id>", "LevelUp org ID (required for source=levelup)")
+  .option("--dry-run", "Log what would be migrated without writing", false)
+  .option("--verify", "Verify user migration integrity", false);
 
 program.parse(process.argv);
 
@@ -89,39 +89,37 @@ async function main(): Promise<void> {
 
   // Handle verification
   if (opts.verify) {
-    const logger = new MigrationLogger(runId, 'verify-users');
-    console.log('\n=== Verifying User Migration Integrity ===\n');
+    const logger = new MigrationLogger(runId, "verify-users");
+    console.log("\n=== Verifying User Migration Integrity ===\n");
     const passed = await verifyUsers({ logger });
     process.exit(passed ? 0 : 1);
   }
 
   if (!opts.source) {
-    console.error('Error: --source is required (autograde | levelup | consumer | all)');
+    console.error("Error: --source is required (autograde | levelup | consumer | all)");
     program.help();
     process.exit(1);
   }
 
   const dryRun = opts.dryRun;
   if (dryRun) {
-    console.log('=== DRY RUN MODE -- no data will be written ===\n');
+    console.log("=== DRY RUN MODE -- no data will be written ===\n");
   }
 
-  const sources = opts.source === 'all'
-    ? ['autograde', 'levelup', 'consumer']
-    : [opts.source];
+  const sources = opts.source === "all" ? ["autograde", "levelup", "consumer"] : [opts.source];
 
   for (const source of sources) {
     const logger = new MigrationLogger(runId, `users-${source}`);
 
     switch (source) {
-      case 'autograde': {
+      case "autograde": {
         if (!opts.clientId) {
-          console.error('Error: --client-id is required for AutoGrade user migration');
+          console.error("Error: --client-id is required for AutoGrade user migration");
           process.exit(1);
         }
         console.log(`\n=== Migrating AutoGrade Users: ${opts.clientId} ===\n`);
-        console.log('Source: /clients/{clientId}/students|teachers|parents');
-        console.log('Target: /users/{uid} + /userMemberships/{uid}_{tenantId}\n');
+        console.log("Source: /clients/{clientId}/students|teachers|parents");
+        console.log("Target: /users/{uid} + /userMemberships/{uid}_{tenantId}\n");
 
         await migrateAutogradeUsers({
           clientId: opts.clientId,
@@ -131,14 +129,14 @@ async function main(): Promise<void> {
         break;
       }
 
-      case 'levelup': {
+      case "levelup": {
         if (!opts.orgId) {
-          console.error('Error: --org-id is required for LevelUp user migration');
+          console.error("Error: --org-id is required for LevelUp user migration");
           process.exit(1);
         }
         console.log(`\n=== Migrating LevelUp Users: ${opts.orgId} ===\n`);
-        console.log('Source: /userOrgs + /userRoles + /users');
-        console.log('Target: /users/{uid} + /userMemberships/{uid}_{tenantId}\n');
+        console.log("Source: /userOrgs + /userRoles + /users");
+        console.log("Target: /users/{uid} + /userMemberships/{uid}_{tenantId}\n");
 
         await migrateLevelUpUsers({
           orgId: opts.orgId,
@@ -148,10 +146,10 @@ async function main(): Promise<void> {
         break;
       }
 
-      case 'consumer': {
-        console.log('\n=== Migrating Consumer (B2C) Users ===\n');
-        console.log('Source: /users (without userOrg membership)');
-        console.log('Target: /users/{uid} with consumerProfile\n');
+      case "consumer": {
+        console.log("\n=== Migrating Consumer (B2C) Users ===\n");
+        console.log("Source: /users (without userOrg membership)");
+        console.log("Target: /users/{uid} with consumerProfile\n");
 
         await migrateConsumerUsers({
           dryRun,
@@ -162,7 +160,7 @@ async function main(): Promise<void> {
 
       default:
         console.error(`Unknown source: ${source}`);
-        console.error('Valid sources: autograde, levelup, consumer, all');
+        console.error("Valid sources: autograde, levelup, consumer, all");
         process.exit(1);
     }
 
@@ -171,11 +169,11 @@ async function main(): Promise<void> {
 
   // Auto-verify at end
   if (sources.length > 0) {
-    console.log('\nUser migration complete. Run with --verify to check integrity.');
+    console.log("\nUser migration complete. Run with --verify to check integrity.");
   }
 }
 
 main().catch((err) => {
-  console.error('Migration failed:', err);
+  console.error("Migration failed:", err);
   process.exit(1);
 });

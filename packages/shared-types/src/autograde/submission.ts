@@ -4,14 +4,14 @@
  * @module autograde/submission
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { SubmissionPipelineStatus } from '../constants/grades';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { SubmissionPipelineStatus } from "../constants/grades";
 
 export interface AnswerSheetData {
   images: string[];
   uploadedAt: FirestoreTimestamp;
   uploadedBy: string;
-  uploadSource: 'web' | 'scanner';
+  uploadSource: "web" | "scanner";
 }
 
 export interface ScoutingResult {

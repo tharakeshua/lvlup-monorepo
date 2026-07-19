@@ -10,7 +10,12 @@
  * - All chatSessions for this space
  * - RTDB leaderboard data
  */
-export declare const onSpaceDeleted: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").QueryDocumentSnapshot | undefined, {
-    tenantId: string;
-    spaceId: string;
-}>>;
+export declare const onSpaceDeleted: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    import("firebase-functions/firestore").QueryDocumentSnapshot | undefined,
+    {
+      tenantId: string;
+      spaceId: string;
+    }
+  >
+>;

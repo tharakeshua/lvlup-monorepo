@@ -4,6 +4,7 @@ import { useClasses, useStudents, useApi, analyticsQueryKeys } from "@levelup/qu
 import type { Class, Student, ClassProgressSummary } from "@levelup/shared-types";
 import { ScoreCard, SimpleBarChart, ProgressRing } from "@levelup/shared-ui";
 import { BarChart3, Users, AlertTriangle, TrendingUp, GraduationCap } from "lucide-react";
+import { pageItems } from "@/lib/utils";
 
 /**
  * Per-class progress summaries via the query SDK (tenant-implicit / claims-scoped).
@@ -27,8 +28,8 @@ function useClassSummaries(classIds: string[]) {
 }
 
 export default function AnalyticsPage() {
-  const classes = (useClasses({}).data ?? []) as Class[];
-  const students = (useStudents({}).data ?? []) as Student[];
+  const classes = pageItems<Class>(useClasses({}).data);
+  const students = pageItems<Student>(useStudents({}).data);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const classIds = classes.map((c) => c.id);

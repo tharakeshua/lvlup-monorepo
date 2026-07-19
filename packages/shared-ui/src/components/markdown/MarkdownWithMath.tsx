@@ -357,7 +357,7 @@ export function MarkdownWithMath({
         rehypePlugins={[rehypeKatex]}
         components={{
           code(props: any) {
-            const { inline, className, children, ...rest } = props;
+            const { inline, className: _className, children, ...rest } = props;
             return inline ? (
               <code
                 className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-800"

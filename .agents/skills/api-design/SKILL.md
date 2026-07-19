@@ -1,12 +1,15 @@
 ---
 name: api-design
-description: REST API design patterns including resource naming, status codes, pagination, filtering, error responses, versioning, and rate limiting for production APIs.
+description:
+  REST API design patterns including resource naming, status codes, pagination,
+  filtering, error responses, versioning, and rate limiting for production APIs.
 origin: ECC
 ---
 
 # API Design Patterns
 
-Conventions and best practices for designing consistent, developer-friendly REST APIs.
+Conventions and best practices for designing consistent, developer-friendly REST
+APIs.
 
 ## When to Activate
 
@@ -59,15 +62,15 @@ POST   /api/v1/auth/refresh
 
 ### Method Semantics
 
-| Method | Idempotent | Safe | Use For |
-|--------|-----------|------|---------|
-| GET | Yes | Yes | Retrieve resources |
-| POST | No | No | Create resources, trigger actions |
-| PUT | Yes | No | Full replacement of a resource |
-| PATCH | No* | No | Partial update of a resource |
-| DELETE | Yes | No | Remove a resource |
+| Method | Idempotent | Safe | Use For                           |
+| ------ | ---------- | ---- | --------------------------------- |
+| GET    | Yes        | Yes  | Retrieve resources                |
+| POST   | No         | No   | Create resources, trigger actions |
+| PUT    | Yes        | No   | Full replacement of a resource    |
+| PATCH  | No\*       | No   | Partial update of a resource      |
+| DELETE | Yes        | No   | Remove a resource                 |
 
-*PATCH can be made idempotent with proper implementation
+\*PATCH can be made idempotent with proper implementation
 
 ### Status Code Reference
 
@@ -208,8 +211,8 @@ ORDER BY created_at DESC
 LIMIT 20 OFFSET 20;
 ```
 
-**Pros:** Easy to implement, supports "jump to page N"
-**Cons:** Slow on large offsets (OFFSET 100000), inconsistent with concurrent inserts
+**Pros:** Easy to implement, supports "jump to page N" **Cons:** Slow on large
+offsets (OFFSET 100000), inconsistent with concurrent inserts
 
 ### Cursor-Based (Scalable)
 
@@ -233,17 +236,17 @@ LIMIT 21;  -- fetch one extra to determine has_next
 }
 ```
 
-**Pros:** Consistent performance regardless of position, stable with concurrent inserts
-**Cons:** Cannot jump to arbitrary page, cursor is opaque
+**Pros:** Consistent performance regardless of position, stable with concurrent
+inserts **Cons:** Cannot jump to arbitrary page, cursor is opaque
 
 ### When to Use Which
 
-| Use Case | Pagination Type |
-|----------|----------------|
-| Admin dashboards, small datasets (<10K) | Offset |
-| Infinite scroll, feeds, large datasets | Cursor |
-| Public APIs | Cursor (default) with offset (optional) |
-| Search results | Offset (users expect page numbers) |
+| Use Case                                | Pagination Type                         |
+| --------------------------------------- | --------------------------------------- |
+| Admin dashboards, small datasets (<10K) | Offset                                  |
+| Infinite scroll, feeds, large datasets  | Cursor                                  |
+| Public APIs                             | Cursor (default) with offset (optional) |
+| Search results                          | Offset (users expect page numbers)      |
 
 ## Filtering, Sorting, and Search
 
@@ -313,7 +316,8 @@ X-API-Key: sk_live_abc123
 app.get("/api/v1/orders/:id", async (req, res) => {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: { code: "not_found" } });
-  if (order.userId !== req.user.id) return res.status(403).json({ error: { code: "forbidden" } });
+  if (order.userId !== req.user.id)
+    return res.status(403).json({ error: { code: "forbidden" } });
   return res.json({ data: order });
 });
 
@@ -347,12 +351,12 @@ Retry-After: 60
 
 ### Rate Limit Tiers
 
-| Tier | Limit | Window | Use Case |
-|------|-------|--------|----------|
-| Anonymous | 30/min | Per IP | Public endpoints |
-| Authenticated | 100/min | Per user | Standard API access |
-| Premium | 1000/min | Per API key | Paid API plans |
-| Internal | 10000/min | Per service | Service-to-service |
+| Tier          | Limit     | Window      | Use Case            |
+| ------------- | --------- | ----------- | ------------------- |
+| Anonymous     | 30/min    | Per IP      | Public endpoints    |
+| Authenticated | 100/min   | Per user    | Standard API access |
+| Premium       | 1000/min  | Per API key | Paid API plans      |
+| Internal      | 10000/min | Per service | Service-to-service  |
 
 ## Versioning
 
@@ -363,8 +367,8 @@ Retry-After: 60
 /api/v2/users
 ```
 
-**Pros:** Explicit, easy to route, cacheable
-**Cons:** URL changes between versions
+**Pros:** Explicit, easy to route, cacheable **Cons:** URL changes between
+versions
 
 ### Header Versioning
 
@@ -373,8 +377,7 @@ GET /api/users
 Accept: application/vnd.myapp.v2+json
 ```
 
-**Pros:** Clean URLs
-**Cons:** Harder to test, easy to forget
+**Pros:** Clean URLs **Cons:** Harder to test, easy to forget
 
 ### Versioning Strategy
 
@@ -414,17 +417,20 @@ export async function POST(req: NextRequest) {
   const parsed = createUserSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({
-      error: {
-        code: "validation_error",
-        message: "Request validation failed",
-        details: parsed.error.issues.map(i => ({
-          field: i.path.join("."),
-          message: i.message,
-          code: i.code,
-        })),
+    return NextResponse.json(
+      {
+        error: {
+          code: "validation_error",
+          message: "Request validation failed",
+          details: parsed.error.issues.map((i) => ({
+            field: i.path.join("."),
+            message: i.message,
+            code: i.code,
+          })),
+        },
       },
-    }, { status: 422 });
+      { status: 422 }
+    );
   }
 
   const user = await createUser(parsed.data);
@@ -434,7 +440,7 @@ export async function POST(req: NextRequest) {
     {
       status: 201,
       headers: { Location: `/api/v1/users/${user.id}` },
-    },
+    }
   );
 }
 ```

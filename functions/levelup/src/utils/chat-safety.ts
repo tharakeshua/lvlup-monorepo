@@ -46,7 +46,7 @@ export function checkMessageSafety(message: string): SafetyCheckResult {
 
   // Empty message check
   if (trimmed.length === 0) {
-    return { safe: false, reason: 'Message cannot be empty.' };
+    return { safe: false, reason: "Message cannot be empty." };
   }
 
   // Check for prompt injection patterns
@@ -54,7 +54,8 @@ export function checkMessageSafety(message: string): SafetyCheckResult {
     if (pattern.test(trimmed)) {
       return {
         safe: false,
-        reason: 'This message contains instructions that could interfere with the AI tutor. Please rephrase your question.',
+        reason:
+          "This message contains instructions that could interfere with the AI tutor. Please rephrase your question.",
       };
     }
   }
@@ -64,7 +65,8 @@ export function checkMessageSafety(message: string): SafetyCheckResult {
     if (pattern.test(trimmed)) {
       return {
         safe: false,
-        reason: 'This topic is outside the scope of academic tutoring. Please ask a question related to your studies.',
+        reason:
+          "This topic is outside the scope of academic tutoring. Please ask a question related to your studies.",
       };
     }
   }
@@ -96,7 +98,8 @@ export function checkRateLimitAbuse(userId: string): SafetyCheckResult {
   if (recentTimestamps.length > ABUSE_THRESHOLD) {
     return {
       safe: false,
-      reason: 'You have sent too many messages in the last hour. Please take a break and try again later.',
+      reason:
+        "You have sent too many messages in the last hour. Please take a break and try again later.",
     };
   }
 

@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
-import type { AudioData } from '@levelup/shared-types';
-import { Mic, Square, RotateCcw } from 'lucide-react';
+import { useState, useRef, useCallback } from "react";
+import type { AudioData } from "@levelup/shared-types";
+import { Mic, Square, RotateCcw } from "lucide-react";
 
 interface AudioAnswererProps {
   data: AudioData;
@@ -9,7 +9,12 @@ interface AudioAnswererProps {
   disabled?: boolean;
 }
 
-export default function AudioAnswerer({ data, value: _value, onChange, disabled }: AudioAnswererProps) {
+export default function AudioAnswerer({
+  data,
+  value: _value,
+  onChange,
+  disabled,
+}: AudioAnswererProps) {
   const [recording, setRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
@@ -29,7 +34,7 @@ export default function AudioAnswerer({ data, value: _value, onChange, disabled 
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         onChange(blob);
@@ -72,13 +77,13 @@ export default function AudioAnswerer({ data, value: _value, onChange, disabled 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
     <div className="rounded-lg border p-4">
       {data.language && (
-        <p className="text-xs text-muted-foreground mb-2">Language: {data.language}</p>
+        <p className="text-muted-foreground mb-2 text-xs">Language: {data.language}</p>
       )}
 
       {!audioUrl ? (
@@ -87,11 +92,11 @@ export default function AudioAnswerer({ data, value: _value, onChange, disabled 
             type="button"
             onClick={recording ? stopRecording : startRecording}
             disabled={disabled}
-            aria-label={recording ? 'Stop recording' : 'Start recording'}
-            className={`flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-primary-foreground ${
+            aria-label={recording ? "Stop recording" : "Start recording"}
+            className={`text-primary-foreground flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium ${
               recording
-                ? 'bg-destructive hover:bg-destructive/90'
-                : 'bg-primary hover:bg-primary/90'
+                ? "bg-destructive hover:bg-destructive/90"
+                : "bg-primary hover:bg-primary/90"
             } disabled:opacity-60`}
           >
             {recording ? (
@@ -105,7 +110,7 @@ export default function AudioAnswerer({ data, value: _value, onChange, disabled 
             )}
           </button>
           {recording && (
-            <p className="text-sm font-mono text-destructive">
+            <p className="text-destructive font-mono text-sm">
               {formatTime(duration)}
               {data.maxDurationSeconds && ` / ${formatTime(data.maxDurationSeconds)}`}
             </p>
@@ -118,7 +123,7 @@ export default function AudioAnswerer({ data, value: _value, onChange, disabled 
             type="button"
             onClick={reset}
             disabled={disabled}
-            className="flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-60"
+            className="text-primary flex items-center gap-1 text-sm hover:underline disabled:opacity-60"
           >
             <RotateCcw className="h-3 w-3" /> Re-record
           </button>

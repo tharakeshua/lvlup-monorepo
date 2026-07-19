@@ -19,8 +19,8 @@ import {
   writeBatch,
   Timestamp,
   serverTimestamp,
-} from 'firebase/firestore';
-import { getFirebaseServices } from '../firebase';
+} from "firebase/firestore";
+import { getFirebaseServices } from "../firebase";
 
 /**
  * Firestore Service
@@ -68,10 +68,7 @@ export class FirestoreService {
     collectionName: string,
     constraints?: QueryConstraint[]
   ): Promise<QuerySnapshot<T>> {
-    const collectionRef = collection(
-      this.db,
-      this.getOrgPath(orgId, collectionName)
-    );
+    const collectionRef = collection(this.db, this.getOrgPath(orgId, collectionName));
     const q = constraints ? query(collectionRef, ...constraints) : collectionRef;
     return getDocs(q) as Promise<QuerySnapshot<T>>;
   }
@@ -106,11 +103,7 @@ export class FirestoreService {
   /**
    * Delete a document from an org-scoped collection
    */
-  async deleteDoc(
-    orgId: string,
-    collectionName: string,
-    docId: string
-  ): Promise<void> {
+  async deleteDoc(orgId: string, collectionName: string, docId: string): Promise<void> {
     const docRef = doc(this.db, this.getOrgPath(orgId, collectionName), docId);
     return deleteDoc(docRef);
   }

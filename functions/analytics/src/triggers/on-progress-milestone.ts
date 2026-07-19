@@ -14,15 +14,15 @@
  * Triggers on: /tenants/{tenantId}/studentProgressSummaries/{studentId}
  */
 
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
-import { sendNotification, sendBulkNotifications } from '../utils/notification-sender';
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import { logger } from "firebase-functions/v2";
+import { sendNotification, sendBulkNotifications } from "../utils/notification-sender";
 
 export const onProgressMilestone = onDocumentUpdated(
   {
-    document: 'tenants/{tenantId}/studentProgressSummaries/{studentId}',
-    region: 'asia-south1',
+    document: "tenants/{tenantId}/studentProgressSummaries/{studentId}",
+    region: "asia-south1",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -43,13 +43,13 @@ export const onProgressMilestone = onDocumentUpdated(
       await sendNotification({
         tenantId,
         recipientId: studentId,
-        recipientRole: 'student',
-        type: 'submission_graded',
-        title: 'First Exam Completed!',
-        body: 'Congratulations on completing your first exam. Keep up the great work!',
-        entityType: 'student',
+        recipientRole: "student",
+        type: "submission_graded",
+        title: "First Exam Completed!",
+        body: "Congratulations on completing your first exam. Keep up the great work!",
+        entityType: "student",
         entityId: studentId,
-        actionUrl: '/results',
+        actionUrl: "/results",
       });
       notificationsSent++;
     }
@@ -61,13 +61,13 @@ export const onProgressMilestone = onDocumentUpdated(
       await sendNotification({
         tenantId,
         recipientId: studentId,
-        recipientRole: 'student',
-        type: 'submission_graded',
-        title: 'Outstanding Performance!',
+        recipientRole: "student",
+        type: "submission_graded",
+        title: "Outstanding Performance!",
         body: `Your exam average has reached ${Math.round(currAvg)}%. Excellent work!`,
-        entityType: 'student',
+        entityType: "student",
         entityId: studentId,
-        actionUrl: '/results',
+        actionUrl: "/results",
       });
       notificationsSent++;
     }
@@ -79,34 +79,30 @@ export const onProgressMilestone = onDocumentUpdated(
       await sendNotification({
         tenantId,
         recipientId: studentId,
-        recipientRole: 'student',
-        type: 'space_published',
-        title: 'First Space Completed!',
-        body: 'You completed your first learning space. Great progress!',
-        entityType: 'student',
+        recipientRole: "student",
+        type: "space_published",
+        title: "First Space Completed!",
+        body: "You completed your first learning space. Great progress!",
+        entityType: "student",
         entityId: studentId,
-        actionUrl: '/spaces',
+        actionUrl: "/spaces",
       });
       notificationsSent++;
     }
 
     // ── Milestone: All spaces completed ──────────────────────────────────
     const totalSpaces = after.levelup?.totalSpaces ?? 0;
-    if (
-      totalSpaces > 0 &&
-      currSpaces === totalSpaces &&
-      prevSpaces < totalSpaces
-    ) {
+    if (totalSpaces > 0 && currSpaces === totalSpaces && prevSpaces < totalSpaces) {
       await sendNotification({
         tenantId,
         recipientId: studentId,
-        recipientRole: 'student',
-        type: 'space_published',
-        title: 'All Spaces Completed!',
+        recipientRole: "student",
+        type: "space_published",
+        title: "All Spaces Completed!",
         body: `Amazing! You have completed all ${totalSpaces} learning spaces.`,
-        entityType: 'student',
+        entityType: "student",
         entityId: studentId,
-        actionUrl: '/spaces',
+        actionUrl: "/spaces",
       });
       notificationsSent++;
     }
@@ -118,13 +114,13 @@ export const onProgressMilestone = onDocumentUpdated(
       await sendNotification({
         tenantId,
         recipientId: studentId,
-        recipientRole: 'student',
-        type: 'space_published',
-        title: '7-Day Streak!',
+        recipientRole: "student",
+        type: "space_published",
+        title: "7-Day Streak!",
         body: `You've been learning for ${currStreak} days in a row. Keep it going!`,
-        entityType: 'student',
+        entityType: "student",
         entityId: studentId,
-        actionUrl: '/spaces',
+        actionUrl: "/spaces",
       });
       notificationsSent++;
     }
@@ -136,22 +132,21 @@ export const onProgressMilestone = onDocumentUpdated(
 
     if (!wasAtRisk && isAtRisk) {
       // Student became at-risk — notify admins and parents
-      const reasonText = atRiskReasons.length > 0
-        ? atRiskReasons.join('; ')
-        : 'Performance below expected levels';
+      const reasonText =
+        atRiskReasons.length > 0 ? atRiskReasons.join("; ") : "Performance below expected levels";
 
       // Notify tenant admins
       const adminsSnap = await db
         .collection(`tenants/${tenantId}/teachers`)
-        .where('status', '==', 'active')
+        .where("status", "==", "active")
         .get();
 
       // Also check for tenantAdmin role memberships
       const adminMembershipsSnap = await db
-        .collection('userMemberships')
-        .where('tenantId', '==', tenantId)
-        .where('role', '==', 'tenantAdmin')
-        .where('status', '==', 'active')
+        .collection("userMemberships")
+        .where("tenantId", "==", tenantId)
+        .where("role", "==", "tenantAdmin")
+        .where("status", "==", "active")
         .limit(20)
         .get();
 
@@ -163,11 +158,11 @@ export const onProgressMilestone = onDocumentUpdated(
       if (adminIds.size > 0) {
         await sendBulkNotifications(Array.from(adminIds), {
           tenantId,
-          recipientRole: 'tenantAdmin',
-          type: 'student_at_risk',
-          title: 'Student At-Risk Alert',
+          recipientRole: "tenantAdmin",
+          type: "student_at_risk",
+          title: "Student At-Risk Alert",
           body: `Student ${studentName} is now flagged as at-risk: ${reasonText}`,
-          entityType: 'student',
+          entityType: "student",
           entityId: studentId,
           actionUrl: `/analytics`,
         });
@@ -175,21 +170,19 @@ export const onProgressMilestone = onDocumentUpdated(
       }
 
       // Notify parents
-      const studentDoc = await db
-        .doc(`tenants/${tenantId}/students/${studentId}`)
-        .get();
+      const studentDoc = await db.doc(`tenants/${tenantId}/students/${studentId}`).get();
       const parentIds: string[] = studentDoc.data()?.parentIds ?? [];
 
       if (parentIds.length > 0) {
         await sendBulkNotifications(parentIds, {
           tenantId,
-          recipientRole: 'parent',
-          type: 'student_at_risk',
-          title: 'At-Risk Alert for Your Child',
+          recipientRole: "parent",
+          type: "student_at_risk",
+          title: "At-Risk Alert for Your Child",
           body: `Your child's performance needs attention: ${reasonText}`,
-          entityType: 'student',
+          entityType: "student",
           entityId: studentId,
-          actionUrl: '/child-progress',
+          actionUrl: "/child-progress",
         });
         notificationsSent += parentIds.length;
       }
@@ -197,21 +190,19 @@ export const onProgressMilestone = onDocumentUpdated(
 
     if (wasAtRisk && !isAtRisk) {
       // Student recovered — notify parents
-      const studentDoc = await db
-        .doc(`tenants/${tenantId}/students/${studentId}`)
-        .get();
+      const studentDoc = await db.doc(`tenants/${tenantId}/students/${studentId}`).get();
       const parentIds: string[] = studentDoc.data()?.parentIds ?? [];
 
       if (parentIds.length > 0) {
         await sendBulkNotifications(parentIds, {
           tenantId,
-          recipientRole: 'parent',
-          type: 'student_at_risk',
-          title: 'Good News About Your Child',
+          recipientRole: "parent",
+          type: "student_at_risk",
+          title: "Good News About Your Child",
           body: `Your child is no longer flagged as at-risk. Their performance has improved!`,
-          entityType: 'student',
+          entityType: "student",
           entityId: studentId,
-          actionUrl: '/child-progress',
+          actionUrl: "/child-progress",
         });
         notificationsSent += parentIds.length;
       }
@@ -219,8 +210,8 @@ export const onProgressMilestone = onDocumentUpdated(
 
     if (notificationsSent > 0) {
       logger.info(
-        `onProgressMilestone: ${notificationsSent} notifications for student ${studentId}`,
+        `onProgressMilestone: ${notificationsSent} notifications for student ${studentId}`
       );
     }
-  },
+  }
 );

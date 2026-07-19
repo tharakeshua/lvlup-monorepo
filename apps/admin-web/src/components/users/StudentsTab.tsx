@@ -27,10 +27,22 @@ interface Props {
   onToggleAll: (checked: boolean) => void;
 }
 
-export function StudentsTab({ isLoading, filteredStudents, pagination, classes, onAssignClass, onLinkParent, selectedIds, onToggle, onToggleAll }: Props) {
-  const getClassName = (classId: string) => classes?.find((c) => c.id === classId)?.name ?? classId.slice(0, 8);
+export function StudentsTab({
+  isLoading,
+  filteredStudents,
+  pagination,
+  classes,
+  onAssignClass,
+  onLinkParent,
+  selectedIds,
+  onToggle,
+  onToggleAll,
+}: Props) {
+  const getClassName = (classId: string) =>
+    classes?.find((c) => c.id === classId)?.name ?? classId.slice(0, 8);
 
-  const allOnPageSelected = pagination.paginatedItems.length > 0 &&
+  const allOnPageSelected =
+    pagination.paginatedItems.length > 0 &&
     pagination.paginatedItems.every((s) => selectedIds.has(s.id));
 
   return (
@@ -58,11 +70,15 @@ export function StudentsTab({ isLoading, filteredStudents, pagination, classes, 
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="p-0"><TableSkeleton columns={8} /></TableCell>
+                <TableCell colSpan={8} className="p-0">
+                  <TableSkeleton columns={8} />
+                </TableCell>
               </TableRow>
             ) : !filteredStudents?.length ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">No students found</TableCell>
+                <TableCell colSpan={8} className="text-muted-foreground py-8 text-center text-sm">
+                  No students found
+                </TableCell>
               </TableRow>
             ) : (
               pagination.paginatedItems.map((s: Student) => (
@@ -75,27 +91,49 @@ export function StudentsTab({ isLoading, filteredStudents, pagination, classes, 
                     />
                   </TableCell>
                   <TableCell className="text-sm font-medium">
-                    {[s.firstName, s.lastName].filter(Boolean).join(" ") || s.displayName || s.email || s.uid.slice(0, 12)}
+                    {[s.firstName, s.lastName].filter(Boolean).join(" ") ||
+                      s.displayName ||
+                      s.email ||
+                      s.uid.slice(0, 12)}
                   </TableCell>
                   <TableCell className="text-sm">{s.rollNumber || "\u2014"}</TableCell>
                   <TableCell className="text-sm">{s.grade || "\u2014"}</TableCell>
                   <TableCell>
-                    <button onClick={() => onAssignClass(s.id, "student", s.classIds ?? [])} className="inline-flex flex-wrap items-center gap-1 text-sm hover:text-primary" aria-label={`Assign classes to ${[s.firstName, s.lastName].filter(Boolean).join(" ") || "student"}`}>
-                      {s.classIds?.length ? s.classIds.map((cId) => (
-                        <Badge key={cId} variant="outline" className="text-xs">{getClassName(cId)}</Badge>
-                      )) : "Assign"}
+                    <button
+                      onClick={() => onAssignClass(s.id, "student", s.classIds ?? [])}
+                      className="hover:text-primary inline-flex flex-wrap items-center gap-1 text-sm"
+                      aria-label={`Assign classes to ${[s.firstName, s.lastName].filter(Boolean).join(" ") || "student"}`}
+                    >
+                      {s.classIds?.length
+                        ? s.classIds.map((cId) => (
+                            <Badge key={cId} variant="outline" className="text-xs">
+                              {getClassName(cId)}
+                            </Badge>
+                          ))
+                        : "Assign"}
                     </button>
                   </TableCell>
                   <TableCell>
-                    <button onClick={() => onLinkParent(s.id, s.parentIds ?? [])} className="inline-flex items-center gap-1 text-sm hover:text-primary" aria-label={`Link parents to ${[s.firstName, s.lastName].filter(Boolean).join(" ") || "student"}`}>
+                    <button
+                      onClick={() => onLinkParent(s.id, s.parentIds ?? [])}
+                      className="hover:text-primary inline-flex items-center gap-1 text-sm"
+                      aria-label={`Link parents to ${[s.firstName, s.lastName].filter(Boolean).join(" ") || "student"}`}
+                    >
                       <Link2 className="h-3.5 w-3.5" /> {s.parentIds?.length ?? 0}
                     </button>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={s.status === "active" ? "default" : "secondary"}>{s.status}</Badge>
+                    <Badge variant={s.status === "active" ? "default" : "secondary"}>
+                      {s.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => onAssignClass(s.id, "student", s.classIds ?? [])} aria-label="Assign classes">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onAssignClass(s.id, "student", s.classIds ?? [])}
+                      aria-label="Assign classes"
+                    >
                       <FolderOpen className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>

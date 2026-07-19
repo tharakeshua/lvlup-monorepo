@@ -3,7 +3,7 @@
  * Kept minimal to stay within the 1000-byte JWT limit.
  */
 
-import type { TenantRole } from './membership';
+import type { TenantRole } from "./membership";
 
 /** Maximum classIds stored in claims before overflow flag is set. */
 export const MAX_CLAIM_CLASS_IDS = 15;

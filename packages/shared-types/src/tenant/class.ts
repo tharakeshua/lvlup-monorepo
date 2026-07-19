@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}/classes/{classId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface Class {
   id: string;
@@ -15,7 +15,7 @@ export interface Class {
   teacherIds: string[];
   studentIds: string[];
   studentCount: number;
-  status: 'active' | 'archived';
+  status: "active" | "archived";
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

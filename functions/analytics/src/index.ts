@@ -1,21 +1,21 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
 // ── Callable functions ──────────────────────────────────────────────────────
-export { getSummary } from './callable/get-summary';
-export { generateReport } from './callable/generate-report';
+export { getSummary } from "./callable/get-summary";
+export { generateReport } from "./callable/generate-report";
 
 // ── Firestore triggers ──────────────────────────────────────────────────────
-export { onSubmissionGraded } from './triggers/on-submission-graded';
-export { onSpaceProgressUpdated } from './triggers/on-space-progress-updated';
-export { onStudentSummaryUpdated } from './triggers/on-student-summary-updated';
-export { onExamResultsReleased } from './triggers/on-exam-results-released';
-export { onProgressMilestone } from './triggers/on-progress-milestone';
-export { onUserStoryPointProgressWrite } from './triggers/on-user-story-point-progress-write';
-export { updateLeaderboard } from './triggers/update-leaderboard';
+export { onSubmissionGraded } from "./triggers/on-submission-graded";
+export { onSpaceProgressUpdated } from "./triggers/on-space-progress-updated";
+export { onStudentSummaryUpdated } from "./triggers/on-student-summary-updated";
+export { onExamResultsReleased } from "./triggers/on-exam-results-released";
+export { onProgressMilestone } from "./triggers/on-progress-milestone";
+export { onUserStoryPointProgressWrite } from "./triggers/on-user-story-point-progress-write";
+export { updateLeaderboard } from "./triggers/update-leaderboard";
 
 // ── Scheduled functions ─────────────────────────────────────────────────────
-export { nightlyAtRiskDetection } from './schedulers/nightly-at-risk-detection';
-export { dailyCostAggregation } from './schedulers/daily-cost-aggregation';
-export { generateInsights } from './schedulers/generate-insights';
+export { nightlyAtRiskDetection } from "./schedulers/nightly-at-risk-detection";
+export { dailyCostAggregation } from "./schedulers/daily-cost-aggregation";
+export { generateInsights } from "./schedulers/generate-insights";

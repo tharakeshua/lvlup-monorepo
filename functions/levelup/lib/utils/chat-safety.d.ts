@@ -5,9 +5,9 @@
  * and rate limit abuse before sending messages to the LLM.
  */
 export interface SafetyCheckResult {
-    safe: boolean;
-    reason?: string;
-    warning?: string;
+  safe: boolean;
+  reason?: string;
+  warning?: string;
 }
 /**
  * Check if a student message is safe to send to the AI tutor.

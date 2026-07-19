@@ -51,6 +51,7 @@ import { usePagination } from "../hooks/usePagination";
 import { TeachersTab } from "../components/users/TeachersTab";
 import { StudentsTab } from "../components/users/StudentsTab";
 import { ParentsTab } from "../components/users/ParentsTab";
+import { pageItems } from "@/lib/utils";
 
 type UserTab = "teachers" | "students" | "parents";
 
@@ -60,10 +61,10 @@ export default function UsersPage() {
   const { data: studentsData, isLoading: studentsLoading } = useStudents({});
   const { data: parentsData, isLoading: parentsLoading } = useParents({});
   const { data: classesData } = useClasses({});
-  const teachers = (teachersData as { items?: Teacher[] } | undefined)?.items;
-  const students = (studentsData as { items?: Student[] } | undefined)?.items;
-  const parents = (parentsData as { items?: Parent[] } | undefined)?.items;
-  const classes = (classesData as { items?: Class[] } | undefined)?.items;
+  const teachers = pageItems<Teacher>(teachersData);
+  const students = pageItems<Student>(studentsData);
+  const parents = pageItems<Parent>(parentsData);
+  const classes = pageItems<Class>(classesData);
   const saveStudent = useSaveStudent();
   const saveTeacher = useSaveTeacher();
   const saveParent = useSaveParent();

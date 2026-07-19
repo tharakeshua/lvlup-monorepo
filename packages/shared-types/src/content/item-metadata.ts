@@ -3,7 +3,7 @@
  * @module content/item-metadata
  */
 
-import type { BloomsLevel } from '../constants/grades';
+import type { BloomsLevel } from "../constants/grades";
 
 export interface PyqInfo {
   exam: string;
@@ -13,7 +13,7 @@ export interface PyqInfo {
 }
 
 export interface MigrationSource {
-  type: 'levelup_item' | 'levelup_question' | 'autograde_question';
+  type: "levelup_item" | "levelup_question" | "autograde_question";
   sourceId: string;
   sourceCollection: string;
 }
@@ -57,22 +57,22 @@ export interface ItemMetadata {
  * Powers filtering, reporting, and AI recommendations.
  */
 export interface ItemAnalytics {
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   topics?: string[];
   labels?: string[];
   bloomsLevel?: BloomsLevel;
   bloomsSubLevel?: string;
-  cognitiveLoad?: 'low' | 'medium' | 'high';
+  cognitiveLoad?: "low" | "medium" | "high";
   skillsAssessed?: string[];
   primarySkill?: string;
   secondarySkills?: string[];
   conceptCategory?: string;
   learningObjective?: string;
-  applicationDomain?: 'theory' | 'practical' | 'real-world' | 'conceptual';
-  questionComplexity?: 'single-concept' | 'multi-concept' | 'synthesis' | 'integration';
+  applicationDomain?: "theory" | "practical" | "real-world" | "conceptual";
+  questionComplexity?: "single-concept" | "multi-concept" | "synthesis" | "integration";
   prerequisiteTopics?: string[];
   relatedTopics?: string[];
-  conceptImportance?: 'foundational' | 'important' | 'advanced' | 'optional' | 'bonus';
+  conceptImportance?: "foundational" | "important" | "advanced" | "optional" | "bonus";
   commonMistakes?: string[];
   hintsAvailable?: boolean;
   curriculumStandards?: string[];

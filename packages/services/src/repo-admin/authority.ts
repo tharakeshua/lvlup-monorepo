@@ -171,21 +171,64 @@ export function makeOutboxRepo(firestore: Firestore, now: () => string): OutboxR
   return {
     async enqueue(tenantId, entry) {
       const coll = firestore.collection(outboxPath(tenantId));
-      await coll.add(
+      // Prefer a stable doc id when the caller supplies one (DLQ resolve/update).
+      const logicalId = typeof entry["id"] === "string" ? (entry["id"] as string) : undefined;
+      const ref = logicalId ? coll.doc(logicalId) : coll.doc();
+      await ref.set(
         toFirestore({
           ...entry,
+          id: logicalId ?? ref.id,
           status: "pending",
           // DLQ entries carry their own attempt count — don't clobber it to 0.
           attempts: (entry["attempts"] as number | undefined) ?? 0,
           createdAt: now(),
           enqueuedAt: now(),
-        })
+        }),
+        { merge: true }
       );
+    },
+    async list(tenantId, opts = {}) {
+      const coll = firestore.collection(outboxPath(tenantId));
+      const snap = opts.kind ? await coll.where("_kind", "==", opts.kind).get() : await coll.get();
+      return snap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return docFromFirestore({
+          ...data,
+          // Prefer caller-supplied logical id; fall back to Firestore doc id.
+          id: (typeof data["id"] === "string" ? data["id"] : undefined) ?? d.id,
+        });
+      });
+    },
+    async update(tenantId, id, patch) {
+      const coll = firestore.collection(outboxPath(tenantId));
+      // Fast path: doc id === logical id (enqueue-with-id above).
+      const direct = coll.doc(id);
+      const directSnap = await direct.get();
+      if (directSnap.exists) {
+        await direct.set(toFirestore({ ...patch, id }), { merge: true });
+        return;
+      }
+      // Slow path: scan for a row whose data.id matches (legacy coll.add docs).
+      const snap = await coll.get();
+      const hit = snap.docs.find((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return data["id"] === id || d.id === id;
+      });
+      if (!hit) {
+        throw new Error(`outbox row ${id} not found`);
+      }
+      await hit.ref.set(toFirestore({ ...patch, id }), { merge: true });
     },
     async drain(tenantId) {
       const coll = firestore.collection(outboxPath(tenantId));
       const snap = await coll.where("status", "==", "pending").get();
-      const rows = snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+      const rows = snap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return docFromFirestore({
+          ...data,
+          id: (typeof data["id"] === "string" ? data["id"] : undefined) ?? d.id,
+        });
+      });
       // mark drained rows delivered (the drain worker re-marks failed ones)
       await Promise.all(
         snap.docs.map((d) => d.ref.update({ status: "delivered", deliveredAt: now() }))

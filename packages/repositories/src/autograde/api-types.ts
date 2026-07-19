@@ -224,6 +224,16 @@ export interface ReleaseResultsResponse {
   created: false;
 }
 
+export interface CreateSpaceFromExamRequest {
+  examId: ExamId;
+}
+export interface CreateSpaceFromExamResponse {
+  spaceId: SpaceId;
+  storyPointId: StoryPointId;
+  itemsCreated: number;
+  created: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Request shapes — reads (domain plan §Reads).
 // ---------------------------------------------------------------------------
@@ -329,6 +339,7 @@ export interface AutogradeNamespace {
   saveEvaluationSettings: Callable<SaveEvaluationSettingsInput, SaveResponse>;
   resolveDeadLetter: Callable<ResolveDeadLetterRequest, ResolveDeadLetterResponse>;
   releaseResults: Callable<ReleaseResultsRequest, ReleaseResultsResponse>;
+  createSpaceFromExam: Callable<CreateSpaceFromExamRequest, CreateSpaceFromExamResponse>;
   // reads
   listExams: Callable<ListExamsRequest, PageResponse<ExamListView>>;
   getExam: Callable<GetExamRequest, ExamDetailView>;

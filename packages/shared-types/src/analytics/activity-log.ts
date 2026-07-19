@@ -3,15 +3,15 @@
  * Collection: /platformActivityLog/{autoId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export type PlatformActivityAction =
-  | 'tenant_created'
-  | 'tenant_updated'
-  | 'tenant_deactivated'
-  | 'tenant_reactivated'
-  | 'user_created'
-  | 'users_bulk_imported';
+  | "tenant_created"
+  | "tenant_updated"
+  | "tenant_deactivated"
+  | "tenant_reactivated"
+  | "user_created"
+  | "users_bulk_imported";
 
 export interface PlatformActivityLog {
   id: string;

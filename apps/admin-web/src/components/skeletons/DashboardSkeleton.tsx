@@ -7,7 +7,7 @@ export function DashboardSkeleton() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="mt-2 h-4 w-48" />
       </div>
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-lg" />
         ))}

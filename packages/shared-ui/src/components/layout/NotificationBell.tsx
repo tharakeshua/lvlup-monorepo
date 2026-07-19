@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { Bell } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Button } from '../ui/button';
-import { NotificationDropdown } from './NotificationDropdown';
-import type { Notification } from '@levelup/shared-types';
-import { cn } from '../../lib/utils';
+import * as React from "react";
+import { Bell } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
+import { NotificationDropdown } from "./NotificationDropdown";
+import type { Notification } from "@levelup/shared-types";
+import { cn } from "../../lib/utils";
 
 export interface NotificationBellProps {
   notifications: Notification[];
@@ -43,18 +43,20 @@ export function NotificationBell({
           {unreadCount > 0 && (
             <span
               className={cn(
-                'absolute -right-0.5 -top-0.5 flex items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground',
-                unreadCount > 9 ? 'h-5 w-5' : 'h-4 w-4',
+                "bg-destructive text-destructive-foreground absolute -right-0.5 -top-0.5 flex items-center justify-center rounded-full text-[10px] font-bold",
+                unreadCount > 9 ? "h-5 w-5" : "h-4 w-4"
               )}
             >
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
           <span className="sr-only">
-            Notifications{unreadCount > 0 ? `, ${unreadCount} unread` : ''}
+            Notifications{unreadCount > 0 ? `, ${unreadCount} unread` : ""}
           </span>
           <span aria-live="polite" aria-atomic="true" className="sr-only">
-            {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : ''}
+            {unreadCount > 0
+              ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+              : ""}
           </span>
         </Button>
       </PopoverTrigger>

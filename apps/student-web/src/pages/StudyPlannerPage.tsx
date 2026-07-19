@@ -110,7 +110,6 @@ function WeekCalendarStrip({
 
 export default function StudyPlannerPage() {
   const user = useCurrentUser();
-  const tenantId = useCurrentTenantId();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 

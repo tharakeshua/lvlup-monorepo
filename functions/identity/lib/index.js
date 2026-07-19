@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadTenantAsset = exports.monthlyUsageReset = exports.tenantLifecycleCheck = exports.searchUsers = exports.listAnnouncements = exports.saveAnnouncement = exports.exportTenantData = exports.reactivateTenant = exports.deactivateTenant = exports.joinTenant = exports.switchActiveTenant = exports.createOrgUser = exports.saveStaff = exports.saveGlobalEvaluationPreset = exports.rolloverSession = exports.bulkUpdateStatus = exports.bulkImportTeachers = exports.bulkImportStudents = exports.manageNotifications = exports.saveAcademicSession = exports.saveParent = exports.saveTeacher = exports.saveStudent = exports.saveClass = exports.saveTenant = exports.cleanupExpiredExports = exports.onTenantDeactivated = exports.onStudentArchived = exports.onClassArchived = exports.onUserDeleted = exports.onUserCreated = void 0;
+exports.uploadTenantAsset = exports.monthlyUsageReset = exports.tenantLifecycleCheck = exports.searchUsers = exports.listAnnouncements = exports.saveAnnouncement = exports.exportTenantData = exports.reactivateTenant = exports.deactivateTenant = exports.joinTenant = exports.switchActiveTenant = exports.createOrgUser = exports.saveStaff = exports.saveGlobalEvaluationPreset = exports.rolloverSession = exports.bulkUpdateStatus = exports.bulkImportTeachers = exports.bulkImportStudents = exports.saveAcademicSession = exports.saveParent = exports.saveTeacher = exports.saveStudent = exports.saveClass = exports.saveTenant = exports.cleanupExpiredExports = exports.onTenantDeactivated = exports.onStudentArchived = exports.onClassArchived = exports.onUserDeleted = exports.onUserCreated = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth triggers
@@ -63,8 +63,6 @@ var save_parent_1 = require("./callable/save-parent");
 Object.defineProperty(exports, "saveParent", { enumerable: true, get: function () { return save_parent_1.saveParent; } });
 var save_academic_session_1 = require("./callable/save-academic-session");
 Object.defineProperty(exports, "saveAcademicSession", { enumerable: true, get: function () { return save_academic_session_1.saveAcademicSession; } });
-var manage_notifications_1 = require("./callable/manage-notifications");
-Object.defineProperty(exports, "manageNotifications", { enumerable: true, get: function () { return manage_notifications_1.manageNotifications; } });
 var bulk_import_students_1 = require("./callable/bulk-import-students");
 Object.defineProperty(exports, "bulkImportStudents", { enumerable: true, get: function () { return bulk_import_students_1.bulkImportStudents; } });
 var bulk_import_teachers_1 = require("./callable/bulk-import-teachers");

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 // ---------------------------------------------------------------------------
 // Toast type
@@ -9,7 +9,7 @@ export interface ToastItem {
   id: string;
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive' | 'success';
+  variant?: "default" | "destructive" | "success";
 }
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ export interface UIState {
   setSidebarCollapsed: (collapsed: boolean) => void;
   openModal: (modalId: string, data?: Record<string, unknown>) => void;
   closeModal: () => void;
-  addToast: (toast: Omit<ToastItem, 'id'>) => void;
+  addToast: (toast: Omit<ToastItem, "id">) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
@@ -47,17 +47,13 @@ export const useUIStore = create<UIState>()(
       modalData: null,
       toasts: [],
 
-      toggleSidebar: () =>
-        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
-      setSidebarCollapsed: (collapsed) =>
-        set({ sidebarCollapsed: collapsed }),
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
-      openModal: (modalId, data) =>
-        set({ activeModal: modalId, modalData: data ?? null }),
+      openModal: (modalId, data) => set({ activeModal: modalId, modalData: data ?? null }),
 
-      closeModal: () =>
-        set({ activeModal: null, modalData: null }),
+      closeModal: () => set({ activeModal: null, modalData: null }),
 
       addToast: (toast) => {
         const id = `toast-${++toastCounter}-${Date.now()}`;
@@ -94,12 +90,12 @@ export const useUIStore = create<UIState>()(
       },
     }),
     {
-      name: 'levelup-ui',
+      name: "levelup-ui",
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
       }),
-    },
-  ),
+    }
+  )
 );
 
 // ---------------------------------------------------------------------------

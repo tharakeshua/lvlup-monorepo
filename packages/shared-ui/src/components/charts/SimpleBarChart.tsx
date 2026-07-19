@@ -1,5 +1,5 @@
-import { cn } from '../../lib/utils';
-import { SkeletonShimmer } from '../motion/SkeletonShimmer';
+import { cn } from "../../lib/utils";
+import { SkeletonShimmer } from "../motion/SkeletonShimmer";
 
 export interface BarChartItem {
   label: string;
@@ -42,7 +42,7 @@ export function SimpleBarChart({
 
   return (
     <div
-      className={cn('flex items-end gap-2', className)}
+      className={cn("flex items-end gap-2", className)}
       style={{ height }}
       role="img"
       aria-label={`Bar chart: ${summary}`}
@@ -50,26 +50,23 @@ export function SimpleBarChart({
       {data.map((item) => {
         const barHeight = (item.value / max) * 100;
         return (
-          <div
-            key={item.label}
-            className="flex flex-1 flex-col items-center gap-1"
-          >
+          <div key={item.label} className="flex flex-1 flex-col items-center gap-1">
             {showValues && (
-              <span className="text-[10px] font-medium text-muted-foreground">
+              <span className="text-muted-foreground text-[10px] font-medium">
                 {valueFormatter(item.value)}
               </span>
             )}
-            <div className="w-full flex items-end" style={{ height: height - 40 }}>
+            <div className="flex w-full items-end" style={{ height: height - 40 }}>
               <div
                 className="w-full rounded-t-sm transition-all duration-300"
                 style={{
                   height: `${barHeight}%`,
-                  backgroundColor: item.color ?? 'hsl(var(--primary))',
+                  backgroundColor: item.color ?? "hsl(var(--primary))",
                   minHeight: item.value > 0 ? 4 : 0,
                 }}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground truncate max-w-full text-center">
+            <span className="text-muted-foreground max-w-full truncate text-center text-[10px]">
               {item.label}
             </span>
           </div>

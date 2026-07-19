@@ -8,12 +8,12 @@
  *   GOOGLE_APPLICATION_CREDENTIALS=./lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json npx tsx scripts/fix-item-payloads.ts
  */
 
-import admin from 'firebase-admin';
+import admin from "firebase-admin";
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const TENANT_ID = 'UVrLA2eNZXwzu1GzyXpF';
+const TENANT_ID = "UVrLA2eNZXwzu1GzyXpF";
 
 async function fixPayloads() {
   const spacesSnap = await db.collection(`tenants/${TENANT_ID}/spaces`).get();
@@ -49,7 +49,7 @@ async function fixPayloads() {
         if (!payload) continue;
 
         // Check if payload has the wrapped format { type: '...', data: {...} }
-        if (payload.data && (payload.type === 'question' || payload.type === 'material')) {
+        if (payload.data && (payload.type === "question" || payload.type === "material")) {
           // Flatten: replace payload with payload.data
           const flatPayload = payload.data;
           batch.update(itemDoc.ref, { payload: flatPayload });

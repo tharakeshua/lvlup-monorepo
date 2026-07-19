@@ -74,6 +74,10 @@ export const requestUploadUrl = call(
 );
 export const gradeQuestion = call("v1.autograde.gradeQuestion", services.gradeQuestionService);
 export const releaseResults = call("v1.autograde.releaseResults", services.releaseResultsService);
+export const createSpaceFromExam = call(
+  "v1.autograde.createSpaceFromExam",
+  services.createSpaceFromExamService
+);
 export const saveEvaluationSettings = call(
   "v1.autograde.saveEvaluationSettings",
   services.saveEvaluationSettingsService

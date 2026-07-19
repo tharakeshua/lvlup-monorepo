@@ -1,4 +1,4 @@
-import type { CodeData } from '@levelup/shared-types';
+import type { CodeData } from "@levelup/shared-types";
 
 interface CodeAnswererProps {
   data: CodeData;
@@ -9,16 +9,16 @@ interface CodeAnswererProps {
 
 export default function CodeAnswerer({ data, value, onChange, disabled }: CodeAnswererProps) {
   const testCases = data?.testCases ?? [];
-  const code = value ?? data.starterCode ?? '';
+  const code = value ?? data.starterCode ?? "";
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium text-muted-foreground uppercase">
-          {data?.language ?? 'code'}
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-muted-foreground text-xs font-medium uppercase">
+          {data?.language ?? "code"}
         </span>
         {testCases.length > 0 && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             {testCases.filter((tc) => !tc.isHidden).length} visible test case(s)
           </span>
         )}
@@ -29,7 +29,7 @@ export default function CodeAnswerer({ data, value, onChange, disabled }: CodeAn
         disabled={disabled}
         rows={12}
         spellCheck={false}
-        className="w-full rounded-md border border-input px-3 py-2 font-mono text-sm leading-relaxed focus-visible:ring-2 focus-visible:ring-ring focus:outline-none disabled:opacity-60 resize-y bg-zinc-900 dark:bg-zinc-950 text-zinc-100"
+        className="border-input focus-visible:ring-ring w-full resize-y rounded-md border bg-zinc-900 px-3 py-2 font-mono text-sm leading-relaxed text-zinc-100 focus:outline-none focus-visible:ring-2 disabled:opacity-60 dark:bg-zinc-950"
       />
       {testCases.filter((tc) => !tc.isHidden).length > 0 && (
         <div className="mt-2 space-y-1">
@@ -37,7 +37,7 @@ export default function CodeAnswerer({ data, value, onChange, disabled }: CodeAn
           {testCases
             .filter((tc) => !tc.isHidden)
             .map((tc) => (
-              <div key={tc.id} className="rounded border bg-muted/50 p-2 text-xs font-mono">
+              <div key={tc.id} className="bg-muted/50 rounded border p-2 font-mono text-xs">
                 {tc.description && <p className="text-muted-foreground mb-1">{tc.description}</p>}
                 <p>Input: {tc.input}</p>
                 <p>Expected: {tc.expectedOutput}</p>

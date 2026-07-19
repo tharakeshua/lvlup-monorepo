@@ -1,7 +1,7 @@
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
-export type AnnouncementScope = 'platform' | 'tenant';
-export type AnnouncementStatus = 'draft' | 'published' | 'archived';
+export type AnnouncementScope = "platform" | "tenant";
+export type AnnouncementStatus = "draft" | "published" | "archived";
 
 export interface Announcement {
   id: string;

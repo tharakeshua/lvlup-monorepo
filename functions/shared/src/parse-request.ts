@@ -7,9 +7,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 export function parseRequest<T>(
   data: unknown,
   schema: {
-    safeParse(
-      data: unknown
-    ):
+    safeParse(data: unknown):
       | { success: true; data: T }
       | {
           success: false;

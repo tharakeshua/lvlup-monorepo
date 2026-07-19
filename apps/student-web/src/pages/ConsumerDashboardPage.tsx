@@ -30,7 +30,7 @@ export default function ConsumerDashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            to="/profile"
+            to="/consumer/profile"
             className="hover:bg-accent inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium"
           >
             <User className="h-4 w-4" />

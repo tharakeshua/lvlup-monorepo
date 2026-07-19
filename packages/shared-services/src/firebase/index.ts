@@ -5,4 +5,10 @@ export {
   resetFirebaseServices,
   type FirebaseConfig,
   type FirebaseServices,
-} from './config';
+} from "./config";
+
+export {
+  collectionPrefix,
+  topLevelCollection,
+  identityCollectionCandidates,
+} from "./collection-prefix";

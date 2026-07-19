@@ -1,12 +1,13 @@
 /**
  * Tenant-scoped entity upserts (`save*`) + their read endpoints (identity).
  *
- * All upserts use the canonical `SaveResponse{id,created,archived?}` (§3.2 DX-11);
- * the create branch provisions membership + claims server-side via the single
- * `provisionMembership` factory (so saveStudent/Teacher/Parent/Staff/Class
- * `invalidates` include `memberships`/`claims`). NO request declares `tenantId`
- * (claim-derived). `delete?=true` maps to an archive transition (D5), not a hard
- * delete. Schemas are `.strict()`.
+ * All upserts use the canonical `SaveResponse{id,created,archived?}` (§3.2 DX-11).
+ * Role-profile `saveStudent/Teacher/Parent/Staff` persist METADATA only —
+ * membership + claims minting is exclusively `createOrgUser` (B-IDN-03).
+ * `saveClass` may re-sync teacher memberships/claims on roster change, so it
+ * alone keeps `resyncsClaims` + memberships/claims invalidation. NO request
+ * declares `tenantId` (claim-derived). `delete?=true` maps to an archive
+ * transition (D5), not a hard delete. Schemas are `.strict()`.
  */
 import { z } from "zod";
 import {
@@ -82,8 +83,7 @@ export const saveStudent = defineCallable({
   responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
-  resyncsClaims: true,
-  invalidates: ["students", "classes", "memberships", "claims"],
+  invalidates: ["students", "classes"],
 });
 
 // ── saveTeacher ───────────────────────────────────────────────────────────────
@@ -123,8 +123,7 @@ export const saveTeacher = defineCallable({
   responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
-  resyncsClaims: true,
-  invalidates: ["teachers", "classes", "memberships", "claims"],
+  invalidates: ["teachers", "classes"],
 });
 
 // ── saveParent ────────────────────────────────────────────────────────────────
@@ -154,8 +153,7 @@ export const saveParent = defineCallable({
   responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
-  resyncsClaims: true,
-  invalidates: ["parents", "students", "memberships", "claims"],
+  invalidates: ["parents", "students"],
 });
 
 // ── saveStaff ─────────────────────────────────────────────────────────────────
@@ -184,8 +182,7 @@ export const saveStaff = defineCallable({
   responseSchema: SaveResponseSchema,
   authMode: "authed",
   rateTier: "write",
-  resyncsClaims: true,
-  invalidates: ["staff", "memberships", "claims"],
+  invalidates: ["staff"],
 });
 
 // ── saveClass (+ C5 schedule) ─────────────────────────────────────────────────

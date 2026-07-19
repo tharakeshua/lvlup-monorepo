@@ -3,7 +3,7 @@
  * Uses GOOGLE_APPLICATION_CREDENTIALS or a service account key file.
  */
 
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 let initialized = false;
 
@@ -38,7 +38,7 @@ export function toTimestamp(
   value: Date | number | { seconds: number; nanoseconds: number } | undefined
 ): admin.firestore.Timestamp {
   if (!value) return admin.firestore.Timestamp.now();
-  if (typeof value === 'number') return admin.firestore.Timestamp.fromMillis(value);
+  if (typeof value === "number") return admin.firestore.Timestamp.fromMillis(value);
   if (value instanceof Date) return admin.firestore.Timestamp.fromDate(value);
   // Already a Firestore-like timestamp object
   return new admin.firestore.Timestamp(value.seconds, value.nanoseconds);

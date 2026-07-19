@@ -1,6 +1,6 @@
-import * as functions from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
-import { CallableRequest } from 'firebase-functions/v2/https';
+import * as functions from "firebase-functions/v2";
+import * as admin from "firebase-admin";
+import { CallableRequest } from "firebase-functions/v2/https";
 
 export interface CallerMembership {
   uid: string;
@@ -14,7 +14,7 @@ export interface CallerMembership {
  */
 export function getCallerMembership(request: CallableRequest): CallerMembership {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Authentication required.');
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
   }
 
   const claims = request.auth.token;
@@ -24,12 +24,17 @@ export function getCallerMembership(request: CallableRequest): CallerMembership 
 
   if (!tenantId || !role) {
     throw new functions.https.HttpsError(
-      'permission-denied',
-      'No active tenant context. Please switch to a tenant first.',
+      "permission-denied",
+      "No active tenant context. Please switch to a tenant first."
     );
   }
 
-  return { uid, tenantId, role, permissions: claims.permissions as Record<string, boolean> | undefined };
+  return {
+    uid,
+    tenantId,
+    role,
+    permissions: claims.permissions as Record<string, boolean> | undefined,
+  };
 }
 
 /**
@@ -40,38 +45,35 @@ export function assertAutogradePermission(
   caller: CallerMembership,
   requiredTenantId: string,
   teacherPermission?: string,
-  options?: { allowScanner?: boolean },
+  options?: { allowScanner?: boolean }
 ): void {
   if (caller.tenantId !== requiredTenantId) {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'Cross-tenant access denied.',
-    );
+    throw new functions.https.HttpsError("permission-denied", "Cross-tenant access denied.");
   }
 
-  if (caller.role === 'superAdmin' || caller.role === 'tenantAdmin') {
+  if (caller.role === "superAdmin" || caller.role === "tenantAdmin") {
     return;
   }
 
-  if (caller.role === 'teacher') {
+  if (caller.role === "teacher") {
     if (!teacherPermission) return; // No specific permission needed
     if (caller.permissions?.[teacherPermission]) return;
     throw new functions.https.HttpsError(
-      'permission-denied',
-      `Teacher lacks required permission: ${teacherPermission}.`,
+      "permission-denied",
+      `Teacher lacks required permission: ${teacherPermission}.`
     );
   }
 
-  if (caller.role === 'scanner') {
+  if (caller.role === "scanner") {
     if (options?.allowScanner) return;
     throw new functions.https.HttpsError(
-      'permission-denied',
-      'Scanner role is not permitted for this operation.',
+      "permission-denied",
+      "Scanner role is not permitted for this operation."
     );
   }
 
   throw new functions.https.HttpsError(
-    'permission-denied',
-    `Role '${caller.role}' cannot perform this operation.`,
+    "permission-denied",
+    `Role '${caller.role}' cannot perform this operation.`
   );
 }

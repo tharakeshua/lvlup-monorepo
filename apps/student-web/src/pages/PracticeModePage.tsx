@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useRecordItemAttempt, useApiError } from "@levelup/query";
 import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import { useEvaluateAnswer } from "../hooks/useEvaluateAnswer";
+import { spacesListHref, spaceHref } from "../lib/space-paths";
 import { QuestionAnswerer } from "../components/questions";
 import { autoEvaluateClient } from "../utils/auto-evaluate-client";
 import ChatTutorPanel from "../components/chat/ChatTutorPanel";
 import ProgressBar from "../components/common/ProgressBar";
 import type { UnifiedEvaluationResult, UnifiedItem } from "@levelup/shared-types";
-import { Dumbbell, CheckCircle2, CircleDot, Minus } from "lucide-react";
+import { Dumbbell, CheckCircle2, XCircle, Minus, Filter } from "lucide-react";
 import {
   Button,
+  Badge,
   Skeleton,
   Breadcrumb,
   BreadcrumbList,
@@ -22,10 +24,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@levelup/shared-ui";
-import { navNodeClass, type NavNodeState } from "../components/common/lyceum";
 
 export default function PracticeModePage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
+  const location = useLocation();
   const { currentTenantId } = useAuthStore();
 
   const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
@@ -71,7 +73,7 @@ export default function PracticeModePage() {
   const totalSolved = Object.values(evaluations).filter((e) => e.correctness >= 1).length;
 
   const handleSubmit = async (item: UnifiedItem, answer: unknown) => {
-    if (!currentTenantId || !spaceId || !storyPointId) return;
+    if (!spaceId || !storyPointId) return;
     try {
       let evaluationResult: UnifiedEvaluationResult;
 
@@ -82,7 +84,7 @@ export default function PracticeModePage() {
       } else {
         // Fall back to cloud function for AI-evaluatable types
         evaluationResult = await evaluateAnswer.mutateAsync({
-          tenantId: currentTenantId,
+          tenantId: currentTenantId ?? "",
           spaceId,
           storyPointId,
           itemId: item.id,
@@ -108,35 +110,31 @@ export default function PracticeModePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="mx-auto max-w-3xl space-y-6">
-        <Skeleton className="h-4 w-56" />
-        <Skeleton className="h-16 w-full rounded-xl" />
-        <Skeleton className="rounded-pill h-3 w-full" />
-        <div className="flex gap-1.5">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-9 w-9 rounded-md" />
-          ))}
-        </div>
-        <Skeleton className="h-64 w-full rounded-xl" />
-      </div>
-    );
+    return <Skeleton className="h-32 rounded-lg" />;
   }
 
   return (
-    <div className="animate-ly-rise mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/spaces">Spaces</Link>
+              <Link to={spacesListHref(location.pathname)}>Spaces</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
+              <Link
+                to={
+                  spaceId
+                    ? spaceHref(location.pathname, spaceId)
+                    : spacesListHref(location.pathname)
+                }
+              >
+                {space?.title ?? "Space"}
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -147,22 +145,19 @@ export default function PracticeModePage() {
       </Breadcrumb>
 
       {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="bg-brand-subtle text-brand flex h-11 w-11 shrink-0 items-center justify-center rounded-lg">
-            <Dumbbell className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h1 className="font-display text-fg truncate text-2xl">{storyPoint?.title}</h1>
-            <p className="text-fg-secondary text-sm">Practice — retry as many times as you like.</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Dumbbell className="h-6 w-6 text-emerald-500" />
+          <div>
+            <h1 className="text-xl font-bold">{storyPoint?.title}</h1>
+            <p className="text-muted-foreground text-sm">Practice Mode — Unlimited retries</p>
           </div>
         </div>
-        <div className="shrink-0 text-right" aria-live="polite">
-          <p className="text-fg font-mono text-2xl tabular-nums">
-            {totalSolved}
-            <span className="text-fg-muted"> / {filteredQuestions.length}</span>
+        <div className="text-right">
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {totalSolved}/{filteredQuestions.length}
           </p>
-          <p className="text-fg-muted text-2xs tracking-caps font-semibold uppercase">Solved</p>
+          <p className="text-muted-foreground text-xs">Solved</p>
         </div>
       </div>
 
@@ -174,30 +169,20 @@ export default function PracticeModePage() {
         label="Progress"
       />
 
-      {/* Difficulty filter */}
-      <div
-        className="flex flex-wrap items-center gap-2"
-        role="group"
-        aria-label="Filter by difficulty"
-      >
-        {[null, "easy", "medium", "hard"].map((d) => {
-          const active = difficultyFilter === d;
-          return (
-            <button
-              key={d ?? "all"}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setDifficultyFilter(active ? null : d)}
-              className={`rounded-pill duration-fast ease-standard border px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-                active
-                  ? "border-brand bg-brand text-fg-on-accent"
-                  : "border-subtle bg-surface text-fg-secondary hover:border-strong hover:text-fg"
-              }`}
-            >
-              {d ?? "All"}
-            </button>
-          );
-        })}
+      {/* Filters */}
+      <div className="flex items-center gap-2">
+        <Filter className="text-muted-foreground h-4 w-4" />
+        <span className="text-muted-foreground text-xs">Difficulty:</span>
+        {["easy", "medium", "hard"].map((d) => (
+          <Badge
+            key={d}
+            variant={difficultyFilter === d ? "default" : "secondary"}
+            className="cursor-pointer capitalize"
+            onClick={() => setDifficultyFilter(difficultyFilter === d ? null : d)}
+          >
+            {d}
+          </Badge>
+        ))}
       </div>
 
       {/* Question navigator mini */}
@@ -209,28 +194,22 @@ export default function PracticeModePage() {
         {filteredQuestions.map((q, idx) => {
           const eval_ = evaluations[q.id];
           const isCorrect = eval_ != null && eval_.correctness >= 1;
-          const isPartial = eval_ != null && eval_.correctness > 0 && eval_.correctness < 1;
           const isIncorrect = eval_ != null && eval_.correctness === 0;
           const isCurrent = idx === currentIndex;
-
-          let state: NavNodeState = "idle";
-          if (isCorrect) state = "correct";
-          else if (isPartial) state = "partial";
-          else if (isIncorrect) state = "incorrect";
 
           return (
             <button
               key={q.id}
               onClick={() => setCurrentIndex(idx)}
-              aria-label={`Question ${idx + 1}: ${
-                isCorrect
-                  ? "solved"
-                  : isIncorrect || isPartial
-                    ? "needs another look"
-                    : "not attempted"
-              }`}
+              aria-label={`Question ${idx + 1}: ${isCorrect ? "Correct" : isIncorrect ? "Incorrect" : "Not attempted"}`}
               aria-current={isCurrent ? "step" : undefined}
-              className={navNodeClass(state, isCurrent)}
+              className={`h-10 w-10 rounded text-xs font-medium sm:h-8 sm:w-8 ${
+                isCorrect
+                  ? "bg-emerald-500 text-white"
+                  : isIncorrect
+                    ? "bg-red-400 text-white"
+                    : "bg-muted text-muted-foreground"
+              } ${isCurrent ? "ring-primary ring-2 ring-offset-1" : ""}`}
             >
               {idx + 1}
             </button>
@@ -240,27 +219,18 @@ export default function PracticeModePage() {
 
       {/* Current Question */}
       {currentQuestion ? (
-        <div className="border-subtle bg-surface shadow-e1 rounded-xl border p-5 sm:p-6">
-          <div className="border-subtle mb-4 flex items-center justify-between border-b pb-3">
-            <span className="text-fg-muted text-xs">
-              Question{" "}
-              <span className="font-mono tabular-nums">
-                {currentIndex + 1} of {filteredQuestions.length}
-              </span>
+        <div className="bg-card rounded-lg border p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Question {currentIndex + 1} of {filteredQuestions.length}
             </span>
             {evaluations[currentQuestion.id] &&
               (evaluations[currentQuestion.id].correctness >= 1 ? (
-                <span className="text-mastery-mastered inline-flex items-center gap-1 text-xs font-medium">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden /> Solved
-                </span>
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               ) : evaluations[currentQuestion.id].correctness === 0 ? (
-                <span className="text-warning inline-flex items-center gap-1 text-xs font-medium">
-                  <CircleDot className="h-4 w-4" aria-hidden /> Keep going
-                </span>
+                <XCircle className="text-destructive h-5 w-5" />
               ) : (
-                <span className="text-warning inline-flex items-center gap-1 text-xs font-medium">
-                  <Minus className="h-4 w-4" aria-hidden /> Almost there
-                </span>
+                <Minus className="h-5 w-5 text-yellow-500" />
               ))}
           </div>
 
@@ -275,21 +245,7 @@ export default function PracticeModePage() {
           />
         </div>
       ) : (
-        <div className="border-subtle bg-surface rounded-xl border p-8 text-center">
-          <p className="text-fg-secondary text-sm">
-            No {difficultyFilter ?? ""} questions in this set — try another difficulty.
-          </p>
-          {difficultyFilter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2"
-              onClick={() => setDifficultyFilter(null)}
-            >
-              Show all
-            </Button>
-          )}
-        </div>
+        <p className="text-muted-foreground text-sm">No questions match the filter.</p>
       )}
 
       {/* Navigation */}

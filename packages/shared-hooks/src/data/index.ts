@@ -1,3 +1,3 @@
-export * from './useFirestoreDoc';
-export * from './useFirestoreCollection';
-export * from './useRealtimeDB';
+export * from "./useFirestoreDoc";
+export * from "./useFirestoreCollection";
+export * from "./useRealtimeDB";

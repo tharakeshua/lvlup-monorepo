@@ -435,20 +435,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "recipientUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "recipientId",
           "order": "ASCENDING"
         },
@@ -1073,204 +1059,48 @@
       ]
     },
     {
-      "collectionGroup": "conversationSessions",
+      "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "ownerUid",
+          "fieldPath": "recipientUid",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "mode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ownerUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "mode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "contextBaseKey",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ownerUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ownerUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "mode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ownerUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "mode",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "contextBaseKey",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "activeTurnLeaseExpiresAt",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
+          "fieldPath": "createdAt",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "conversationSessions",
+      "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "finalization.lease.expiresAt",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "itemSubmissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ownerUid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "itemId",
+          "fieldPath": "recipientUid",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "itemSubmissions",
+      "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "workflow.status",
+          "fieldPath": "recipientUid",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "workflow.nextRetryAt",
+          "fieldPath": "isRead",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
         }
       ]
     }
@@ -1290,46 +1120,6 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
-    },
-    {
-      "collectionGroup": "conversationSessions",
-      "fieldPath": "configurationSnapshot",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "messages",
-      "fieldPath": "content",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "turns",
-      "fieldPath": "toolInvocations",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "turns",
-      "fieldPath": "inputModeration",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "turns",
-      "fieldPath": "outputModeration",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "itemSubmissions",
-      "fieldPath": "payload",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "itemSubmissions",
-      "fieldPath": "evaluation.result",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "privateEvidence",
-      "fieldPath": "note",
-      "indexes": []
     }
   ]
 }

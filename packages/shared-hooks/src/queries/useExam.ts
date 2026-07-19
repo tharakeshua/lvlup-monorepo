@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot, FirestoreError } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Exam } from '@levelup/shared-types';
+import { useEffect, useState } from "react";
+import { doc, onSnapshot, FirestoreError } from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Exam } from "@levelup/shared-types";
 
 export function useExam(tenantId: string | null, examId: string | null) {
   const [data, setData] = useState<Exam | null>(null);
@@ -34,7 +34,7 @@ export function useExam(tenantId: string | null, examId: string | null) {
       (err) => {
         setError(err);
         setIsLoading(false);
-      },
+      }
     );
 
     return () => unsubscribe();

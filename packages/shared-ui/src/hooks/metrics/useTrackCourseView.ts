@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import MetricsService from '../../services/metrics/MetricsService';
+import { useEffect, useRef } from "react";
+import MetricsService from "../../services/metrics/MetricsService";
 
 export function useTrackCourseView(courseId?: string, userId?: string | null) {
   const didRun = useRef(false);
@@ -12,4 +12,3 @@ export function useTrackCourseView(courseId?: string, userId?: string | null) {
 }
 
 export default useTrackCourseView;
-

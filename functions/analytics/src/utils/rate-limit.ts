@@ -1,1 +1,1 @@
-export { enforceRateLimit } from '@levelup/functions-shared';
+export { enforceRateLimit } from "@levelup/functions-shared";

@@ -6,10 +6,10 @@
  * Schema matches docs/unified-design-plan/02-autograde-design.md §8.4.
  */
 
-import * as admin from 'firebase-admin';
-import type { firestore as adminFirestore } from 'firebase-admin';
-import type { TokenUsage, CostBreakdown } from './cost-tracker';
-import { incrementDailyCostSummary } from './usage-quota';
+import * as admin from "firebase-admin";
+import type { firestore as adminFirestore } from "firebase-admin";
+import type { TokenUsage, CostBreakdown } from "./cost-tracker";
+import { incrementDailyCostSummary } from "./usage-quota";
 
 export interface LLMCallLogEntry {
   callId: string;
@@ -89,9 +89,9 @@ export async function logLLMCall(params: LogLLMCallParams): Promise<string> {
       params.tokens.input,
       params.tokens.output,
       params.purpose,
-      params.model,
+      params.model
     ).catch((err) => {
-      console.error('[LLMLogger] Failed to increment daily cost summary:', err);
+      console.error("[LLMLogger] Failed to increment daily cost summary:", err);
     });
   }
 

@@ -104,7 +104,7 @@ function QuestionCard({ qs, index }: { qs: QuestionSubmission; index: number }) 
 
 export default function ExamResultPage() {
   const { examId } = useParams<{ examId: string }>();
-  const { currentTenantId, user } = useAuthStore();
+  const { user } = useAuthStore();
   const userId = user?.uid ?? null;
 
   const { data: exam } = useExam(examId ?? "");

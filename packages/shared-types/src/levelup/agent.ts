@@ -4,9 +4,9 @@
  * @module levelup/agent
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
-export type AgentType = 'tutor' | 'evaluator';
+export type AgentType = "tutor" | "evaluator";
 
 export interface EvaluationObjective {
   id: string;
@@ -33,8 +33,8 @@ export interface Agent {
   // Evaluator-specific
   rules?: string;
   evaluationObjectives?: EvaluationObjective[];
-  strictness?: 'lenient' | 'moderate' | 'strict';
-  feedbackStyle?: 'brief' | 'detailed' | 'encouraging';
+  strictness?: "lenient" | "moderate" | "strict";
+  feedbackStyle?: "brief" | "detailed" | "encouraging";
 
   // Shared
   modelOverride?: string;

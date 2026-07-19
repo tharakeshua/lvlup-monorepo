@@ -16,6 +16,7 @@ export {
   useSaveExam,
   useExtractQuestions,
   useReleaseResults,
+  useCreateSpaceFromExam,
   // exam questions
   useExamQuestions,
   useSaveExamQuestion,

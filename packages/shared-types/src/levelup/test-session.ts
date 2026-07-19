@@ -4,24 +4,20 @@
  * @module levelup/test-session
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { QuestionType } from '../content/item';
-import type { UnifiedEvaluationResult } from '../content/evaluation';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { QuestionType } from "../content/item";
+import type { UnifiedEvaluationResult } from "../content/evaluation";
 
-export type TestSessionStatus =
-  | 'in_progress'
-  | 'completed'
-  | 'expired'
-  | 'abandoned';
+export type TestSessionStatus = "in_progress" | "completed" | "expired" | "abandoned";
 
-export type TestSessionType = 'timed_test' | 'quiz' | 'practice';
+export type TestSessionType = "timed_test" | "quiz" | "practice";
 
 export type QuestionStatus =
-  | 'not_visited'
-  | 'not_answered'
-  | 'answered'
-  | 'marked_for_review'
-  | 'answered_and_marked';
+  | "not_visited"
+  | "not_answered"
+  | "answered"
+  | "marked_for_review"
+  | "answered_and_marked";
 
 export interface TestSubmission {
   itemId: string;
@@ -54,7 +50,7 @@ export interface TestAnalytics {
 }
 
 export interface AdaptiveState {
-  currentDifficulty: 'easy' | 'medium' | 'hard';
+  currentDifficulty: "easy" | "medium" | "hard";
   consecutiveCorrect: number;
   consecutiveIncorrect: number;
   answeredByDifficulty: Record<string, number>;
@@ -102,7 +98,7 @@ export interface DigitalTestSession {
 
   // Adaptive testing tracking
   adaptiveState?: AdaptiveState;
-  currentDifficultyLevel?: 'easy' | 'medium' | 'hard';
+  currentDifficultyLevel?: "easy" | "medium" | "hard";
   difficultyProgression?: Array<{
     questionIndex: number;
     difficulty: string;

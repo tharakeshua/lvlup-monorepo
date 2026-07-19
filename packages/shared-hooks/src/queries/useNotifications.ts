@@ -1,11 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { ref, onValue } from 'firebase/database';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Notification } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { httpsCallable } from "firebase/functions";
+import { ref, onValue } from "firebase/database";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Notification } from "@levelup/shared-types";
 
-export type { Notification } from '@levelup/shared-types';
+export type { Notification } from "@levelup/shared-types";
 
 interface GetNotificationsResponse {
   notifications: Notification[];
@@ -19,17 +19,17 @@ interface GetNotificationsResponse {
 export function useNotifications(
   tenantId: string | null,
   userId: string | null,
-  options?: { unreadOnly?: boolean; limit?: number },
+  options?: { unreadOnly?: boolean; limit?: number }
 ) {
   return useQuery<GetNotificationsResponse>({
-    queryKey: ['tenants', tenantId, 'notifications', userId, options?.unreadOnly ?? false],
+    queryKey: ["tenants", tenantId, "notifications", userId, options?.unreadOnly ?? false],
     queryFn: async () => {
       if (!tenantId || !userId) return { notifications: [], hasMore: false, lastId: null };
       const { functions } = getFirebaseServices();
       const callable = httpsCallable<
         { tenantId: string; unreadOnly?: boolean; limit?: number },
         GetNotificationsResponse
-      >(functions, 'getNotifications');
+      >(functions, "getNotifications");
       const result = await callable({
         tenantId,
         unreadOnly: options?.unreadOnly,
@@ -76,7 +76,7 @@ export function useMarkRead() {
   const callable = httpsCallable<
     { tenantId: string; notificationId: string },
     { success: boolean; markedCount: number }
-  >(functions, 'markNotificationRead');
+  >(functions, "markNotificationRead");
 
   return useMutation({
     mutationFn: async (params: { tenantId: string; notificationId: string }) => {
@@ -85,7 +85,7 @@ export function useMarkRead() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'notifications'],
+        queryKey: ["tenants", variables.tenantId, "notifications"],
       });
     },
   });
@@ -97,10 +97,10 @@ export function useMarkRead() {
 export function useMarkAllRead() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<
-    { tenantId: string },
-    { success: boolean; markedCount: number }
-  >(functions, 'markNotificationRead');
+  const callable = httpsCallable<{ tenantId: string }, { success: boolean; markedCount: number }>(
+    functions,
+    "markNotificationRead"
+  );
 
   return useMutation({
     mutationFn: async (params: { tenantId: string }) => {
@@ -109,7 +109,7 @@ export function useMarkAllRead() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'notifications'],
+        queryKey: ["tenants", variables.tenantId, "notifications"],
       });
     },
   });

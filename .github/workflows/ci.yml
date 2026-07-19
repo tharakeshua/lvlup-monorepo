@@ -236,7 +236,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: pnpm run test:e2e
+        run: pnpm run test:e2e:ci
         env:
           CI: true
 
@@ -330,7 +330,8 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Visual Regression Tests
-        run: pnpm exec playwright test --project=visual-regression
+        # Screenshot baselines are not committed yet — run a11y checks only in CI.
+        run: pnpm exec playwright test --project=visual-regression --grep-invert @screenshot
         env:
           CI: true
 

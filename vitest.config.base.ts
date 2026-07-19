@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import type { UserConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
+import type { UserConfig } from "vitest/config";
 
 /**
  * Base Vitest configuration for the monorepo
@@ -8,25 +8,25 @@ import type { UserConfig } from 'vitest/config';
 export const baseVitestConfig: UserConfig = {
   test: {
     globals: true,
-    environment: 'node',
+    environment: "node",
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
       exclude: [
-        'node_modules/',
-        'dist/',
-        'build/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/*.spec.*',
-        '**/*.test.*',
-        '**/test/**',
-        '**/tests/**',
-        '**/__tests__/**',
-        '**/mockData/**',
-        '**/__mocks__/**',
-        'scripts/',
-        '.eslintrc.*',
+        "node_modules/",
+        "dist/",
+        "build/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/*.spec.*",
+        "**/*.test.*",
+        "**/test/**",
+        "**/tests/**",
+        "**/__tests__/**",
+        "**/mockData/**",
+        "**/__mocks__/**",
+        "scripts/",
+        ".eslintrc.*",
       ],
       thresholds: {
         lines: 75,

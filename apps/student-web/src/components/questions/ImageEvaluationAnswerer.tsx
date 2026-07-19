@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
-import type { ImageEvaluationData } from '@levelup/shared-types';
-import { Upload, X } from 'lucide-react';
+import { useState, useRef } from "react";
+import type { ImageEvaluationData } from "@levelup/shared-types";
+import { Upload, X } from "lucide-react";
 
 interface ImageEvaluationAnswererProps {
   data: ImageEvaluationData;
@@ -9,7 +9,12 @@ interface ImageEvaluationAnswererProps {
   disabled?: boolean;
 }
 
-export default function ImageEvaluationAnswerer({ data, value = [], onChange, disabled }: ImageEvaluationAnswererProps) {
+export default function ImageEvaluationAnswerer({
+  data,
+  value = [],
+  onChange,
+  disabled,
+}: ImageEvaluationAnswererProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,17 +38,23 @@ export default function ImageEvaluationAnswerer({ data, value = [], onChange, di
 
   return (
     <div>
-      <p className="text-sm mb-2">{data.instructions}</p>
+      <p className="mb-2 text-sm">{data.instructions}</p>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="mb-3 grid grid-cols-3 gap-2">
         {previews.map((url, i) => (
-          <div key={i} className="relative rounded border overflow-hidden aspect-square">
-            <img src={url} alt={`Upload ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+          <div key={i} className="relative aspect-square overflow-hidden rounded border">
+            <img
+              src={url}
+              alt={`Upload ${i + 1}`}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
             {!disabled && (
               <button
                 type="button"
                 onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white hover:bg-black/70"
+                className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white hover:bg-black/70"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -56,7 +67,7 @@ export default function ImageEvaluationAnswerer({ data, value = [], onChange, di
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg border-2 border-dashed border-input p-4 w-full text-sm text-muted-foreground hover:border-primary hover:text-primary"
+          className="border-input text-muted-foreground hover:border-primary hover:text-primary flex w-full items-center gap-2 rounded-lg border-2 border-dashed p-4 text-sm"
         >
           <Upload className="h-5 w-5" />
           Upload image ({value.length}/{maxImages})

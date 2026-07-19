@@ -207,8 +207,8 @@ figure includes parametrized `.each` expansions). `npm test` = green,
 **RESOLVED (flagged for propagation):**
 
 1. **🚨 Stale `@levelup/shared-types` dist — `questionPaperImages` validation**
-   (CONTRACT_REPORT §1, Finding #1). Source is
-   `z.array(z.string().min(1).max(500))` but the _shipped dist_ loaded at
+   (CONTRACT*REPORT §1, Finding #1). Source is
+   `z.array(z.string().min(1).max(500))` but the \_shipped dist* loaded at
    runtime was `z.array(z.string().url())`. FE sends Storage _paths_ (not URLs)
    → every exam-create rejected with
    `Invalid request: data.questionPaperImages.0: Invalid URL`. **This is the

@@ -43,7 +43,7 @@ export function useTestSessions(
   spaceId: string | null,
   storyPointId: string | null
 ) {
-  const enabled = !!tenantId && !!userId && !!spaceId && !!storyPointId;
+  const enabled = !!userId && !!spaceId && !!storyPointId;
   const query = useTestSessionsQuery({
     spaceId: spaceId ? asSpaceId(spaceId) : undefined,
     storyPointId: storyPointId ? asStoryPointId(storyPointId) : undefined,
@@ -94,7 +94,9 @@ export function useStartTest() {
       spaceId: asSpaceId(params.spaceId),
       storyPointId: asStoryPointId(params.storyPointId),
     });
-    return (result as { session: unknown }).session as DigitalTestSession;
+    // Contract is `{ session, resuming }` — tolerate already-unwrapped session.
+    const wrapped = result as { session?: DigitalTestSession };
+    return (wrapped.session ?? (result as DigitalTestSession)) as DigitalTestSession;
   };
 
   return { ...mutation, mutateAsync };

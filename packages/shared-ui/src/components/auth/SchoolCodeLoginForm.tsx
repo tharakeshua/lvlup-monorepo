@@ -7,7 +7,9 @@ export interface SchoolCodeLoginFormProps {
   subtitle: string;
   showRollNumberToggle?: boolean;
   onConsumerClick?: () => void;
-  lookupTenantByCode: (code: string) => Promise<{ id: string; name: string; status: string; code: string } | null>;
+  lookupTenantByCode: (
+    code: string
+  ) => Promise<{ id: string; name: string; status: string; code: string } | null>;
   loginWithSchoolCode: (schoolCode: string, credential: string, password: string) => Promise<void>;
   onSuccess?: () => void;
 }
@@ -22,13 +24,15 @@ export function SchoolCodeLoginForm({
   onSuccess,
 }: SchoolCodeLoginFormProps) {
   const [step, setStep] = React.useState<"school-code" | "credentials">("school-code");
-  const [school, setSchool] = React.useState<{ id: string; name: string; code: string } | null>(null);
+  const [school, setSchool] = React.useState<{ id: string; name: string; code: string } | null>(
+    null
+  );
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-card">
+    <div className="bg-card shadow-card rounded-lg border p-6">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+        <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
       </div>
 
       {step === "school-code" ? (

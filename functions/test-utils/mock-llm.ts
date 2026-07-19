@@ -9,7 +9,7 @@ import type {
   LLMCallMetadata,
   LLMCallOptions,
   LLMCallResult,
-} from '../autograde/src/utils/llm';
+} from "../autograde/src/utils/llm";
 
 export interface MockLLMResponse<T = unknown> {
   text?: string;
@@ -32,12 +32,12 @@ export class MockLLMWrapper {
   public calls: Array<{ prompt: string; metadata: LLMCallMetadata; options?: LLMCallOptions }> = [];
   private responses: MockLLMResponse[] = [];
   private defaultResponse: MockLLMResponse = {
-    text: '{}',
+    text: "{}",
     parsed: null,
     tokens: { input: 100, output: 50, total: 150 },
-    cost: { input: 0.001, output: 0.002, total: 0.003, currency: 'USD' },
+    cost: { input: 0.001, output: 0.002, total: 0.003, currency: "USD" },
     latencyMs: 250,
-    model: 'gemini-2.5-flash',
+    model: "gemini-2.5-flash",
   };
 
   constructor(_config?: LLMWrapperConfig) {
@@ -59,7 +59,7 @@ export class MockLLMWrapper {
   async call<T = unknown>(
     prompt: string,
     metadata: LLMCallMetadata,
-    options?: LLMCallOptions,
+    options?: LLMCallOptions
   ): Promise<LLMCallResult<T>> {
     this.calls.push({ prompt, metadata, options });
 
