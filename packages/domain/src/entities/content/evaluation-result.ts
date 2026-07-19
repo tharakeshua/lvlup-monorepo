@@ -18,14 +18,28 @@ export type FeedbackItem = z.infer<typeof FeedbackItemSchema>;
 /**
  * EvaluationSummary — the AI grader's headline verdict. Stored (and rendered)
  * as an OBJECT; both the evaluation writer (services/evaluation) and every
- * grading UI use `{ keyTakeaway, overallComment }`. A legacy STRING `summary`
- * is normalized into this shape at the read projection (autograde/reads.ts).
+ * grading UI use `{ keyTakeaway, overallComment }`.
  */
 export const EvaluationSummarySchema = zObject({
   keyTakeaway: z.string(),
   overallComment: z.string(),
 });
 export type EvaluationSummary = z.infer<typeof EvaluationSummarySchema>;
+
+/**
+ * Input coercion for `summary`: the canonical shape is the object above, but
+ * some legacy / needs_review evaluations still carry a bare STRING (the raw
+ * `feedback` fallback the old read projection emitted). Accept either and
+ * normalize a string into the object shape so EVERY client (which strict-parses
+ * this response) sees a uniform object — a needs_review row's string summary can
+ * no longer fail the parse and blank out the whole grading view. The read
+ * projection (autograde/reads.ts) also normalizes, so this is belt-and-suspenders
+ * until every backend is redeployed.
+ */
+const EvaluationSummaryInputSchema = z.union([
+  EvaluationSummarySchema,
+  z.string().transform((s) => ({ keyTakeaway: s, overallComment: s })),
+]);
 
 export const RubricBreakdownItemSchema = zObject({
   criterionId: z.string().optional(),
@@ -46,7 +60,7 @@ export const UnifiedEvaluationResultSchema = zObject({
   weaknesses: z.array(z.string()).default([]),
   missingConcepts: z.array(z.string()).default([]),
   rubricBreakdown: z.array(RubricBreakdownItemSchema).optional(),
-  summary: EvaluationSummarySchema.optional(),
+  summary: EvaluationSummaryInputSchema.optional(),
   confidence: z.number(),
   mistakeClassification: zMistakeClassification.optional(),
   // ⚷ cost telemetry — projected out for clients.

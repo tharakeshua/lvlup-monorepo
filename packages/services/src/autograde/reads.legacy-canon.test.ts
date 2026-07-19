@@ -440,6 +440,47 @@ describe("AG-3 — v1 autograde reads canonicalize legacy drift", () => {
       ).toBe(true);
     });
 
+    it("the responseSchema itself TOLERATES a raw string summary (old-backend output) and transforms it", () => {
+      // Simulates a response from a backend that has NOT yet shipped the reads
+      // normalizer: a needs_review row whose evaluation.summary is a bare STRING
+      // (the old `ev.summary ?? ev.feedback` fallback). Every client strict-parses
+      // this response — a single unparseable row would blank the whole grading view,
+      // so the schema must accept the string and coerce it to the object shape.
+      const schema = getCallable("v1.autograde.listQuestionSubmissions").responseSchema;
+      const res = {
+        questionSubmissions: [
+          {
+            id: "qs_str",
+            submissionId: "sub_x",
+            questionId: "exam_x_q1",
+            examId: "exam_x",
+            mapping: { pageIndices: [], imageUrls: [], scoutedAt: TS },
+            evaluation: {
+              score: 0,
+              maxScore: 2,
+              correctness: 0,
+              percentage: 0,
+              strengths: [],
+              weaknesses: [],
+              missingConcepts: [],
+              summary: "No pages were mapped to this question.", // ← raw STRING
+              confidence: 0.4,
+              gradedAt: TS,
+            },
+            gradingStatus: "needs_review",
+            createdAt: TS,
+            updatedAt: TS,
+          },
+        ],
+      };
+      const parsed = schema.safeParse(res);
+      expect(parsed.success).toBe(true);
+      expect(parsed.success && parsed.data.questionSubmissions[0].evaluation!.summary).toEqual({
+        keyTakeaway: "No pages were mapped to this question.",
+        overallComment: "No pages were mapped to this question.",
+      });
+    });
+
     it("normalizes a legacy STRING summary into the object shape and passes the view", async () => {
       const ctx = makeAuthContext("teacher");
       await ctx.repos.submissions.upsert(ctx.tenantId!, scoutedSubmission(ctx));
