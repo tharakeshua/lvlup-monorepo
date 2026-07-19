@@ -18,6 +18,7 @@
 import { canTransition } from "@levelup/domain";
 import type {
   ApiClient,
+  CreateSpaceFromExamResponse,
   ExamDetailView,
   ExamFilter,
   ExamListView,
@@ -57,6 +58,8 @@ export interface ExamRepo {
   save(input: SaveExamInput): Promise<SaveResponse>;
   recordExtraction(input: ExtractQuestionsRequest): Promise<ExtractQuestionsResponse>;
   releaseResults(input: { examId: string; classIds?: string[] }): Promise<ReleaseResultsResponse>;
+  /** Teacher action: transform a published exam into a practice Space (§EXAM-SPACE-INTEGRATION). */
+  createSpaceFromExam(input: { examId: string }): Promise<CreateSpaceFromExamResponse>;
 
   // pre-checks (pure reads of ALLOWED_TRANSITIONS — no wire call)
   canTransition(from: string, to: string): boolean;
@@ -97,6 +100,7 @@ export function createExamRepo(api: ApiClient): ExamRepo {
     recordExtraction: (input) => ag.extractQuestions(input),
     releaseResults: (input) =>
       ag.releaseResults({ examId: input.examId as never, classIds: input.classIds as never }),
+    createSpaceFromExam: (input) => ag.createSpaceFromExam({ examId: input.examId as never }),
 
     canTransition: (from, to) => canTransition("exam", from as never, to),
 
