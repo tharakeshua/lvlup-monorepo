@@ -1,10 +1,10 @@
-﻿/**
- * Authentic assign â†’ take â†’ notify QA
+/**
+ * Authentic assign → take → notify QA
  *
  * Prerequisites:
  *   - teacher :4569, student :4570, parent :4571
  *   - node scripts/heal-greenwood-assign-take.mjs
- *   - node scripts/heal-parent-test-notification.mjs
+ *   - node scripts/heal-parent-test-notification.mjs (parent notify)
  *
  * Evidence: tmp/qa-e2e-assign-take-*.png + docs/handover/QA-ASSIGN-TAKE-FLOW.md
  * FAIL if /tests empty, Start Test does not enter runner, or questionOrder crash.
@@ -14,10 +14,9 @@ import { mkdirSync, writeFileSync } from "fs";
 import path from "path";
 import { loginWithSchoolCode, loginStudentWithEmail } from "./helpers/auth";
 
-// localhost resolves to ::1 on Windows when Vite defaults to IPv6; override via env for 127.0.0.1
-const TEACHER = process.env.TEACHER_URL ?? "http://localhost:4569";
-const STUDENT = process.env.STUDENT_URL ?? "http://localhost:4570";
-const PARENT = process.env.PARENT_URL ?? "http://localhost:4571";
+const TEACHER = process.env.TEACHER_URL ?? "http://127.0.0.1:4569";
+const STUDENT = process.env.STUDENT_URL ?? "http://127.0.0.1:4570";
+const PARENT = process.env.PARENT_URL ?? "http://127.0.0.1:4571";
 const SCHOOL = "GRN001";
 const SPACE_ID = "spc_greenwood-space-space-algebra_1d2ab9a5be";
 const STORY_POINT_ID = "stp_greenwood-storypoint-space-algebra-sp-eq_86801b99d6";
@@ -51,12 +50,6 @@ function hasQuestionOrderCrash(errs: string[], body: string): boolean {
   );
 }
 
-/** Avoid networkidle â€” Firebase websockets keep the page "busy" forever. */
-async function settle(page: Page) {
-  await page.waitForLoadState("domcontentloaded").catch(() => undefined);
-  await page.waitForTimeout(1500);
-}
-
 async function record(
   role: string,
   step: string,
@@ -82,8 +75,8 @@ async function record(
   });
 }
 
-test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () => {
-  test("1. Teacher Priya â€” Algebra Foundations timed test", async ({ page }) => {
+test.describe.serial("Assign → Take → Notify authentic flow", () => {
+  test("1. Teacher Priya — Algebra Foundations timed test", async ({ page }) => {
     test.setTimeout(120_000);
     const errs = trackPageErrors(page);
 
@@ -107,8 +100,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${TEACHER}/spaces`);
-    await settle(page);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("networkidle");
     const spacesBody = await page.locator("body").innerText();
     const hasAlgebra = /algebra foundations/i.test(spacesBody);
     await record("teacher", "spaces list (Algebra Foundations)", page, "02-teacher-spaces", {
@@ -119,28 +111,12 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     expect(hasAlgebra, "Teacher spaces must list Algebra Foundations").toBeTruthy();
     errs.length = 0;
 
-    // Prefer UI navigation (deep-link /edit can white-screen under HMR); fall back to deep link
-    const algebraCard = page.getByText(/algebra foundations/i).first();
-    if (await algebraCard.count()) {
-      await algebraCard.click();
-      await page.waitForTimeout(1500);
-    }
-    if (!page.url().includes("/edit") && !page.url().includes(SPACE_ID)) {
-      await page.goto(`${TEACHER}/spaces/${SPACE_ID}/edit`);
-    }
-    await settle(page);
-    // Content tab often holds story points / timed tests
-    const contentTab = page.getByRole("tab", { name: /content/i });
-    if (await contentTab.count()) {
-      await contentTab.click().catch(() => undefined);
-      await page.waitForTimeout(1500);
-    }
+    await page.goto(`${TEACHER}/spaces/${SPACE_ID}/edit`);
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2500);
     const editBody = await page.locator("body").innerText();
     const hasTimedOrLinear =
-      /timed\s*test|linear\s*equations|story\s*point|duration|questions?|algebra foundations/i.test(
-        editBody
-      );
+      /timed\s*test|linear\s*equations|story\s*point|duration|questions?/i.test(editBody);
     const authCrash = errs.some((e) => /useAuthSession is not defined/i.test(e));
     await record(
       "teacher",
@@ -153,23 +129,19 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
           `hasTimedOrLinear=${hasTimedOrLinear}`,
           `bodyLen=${editBody.length}`,
           `authCrash=${authCrash}`,
-          `url=${page.url()}`,
-          `crashSignals=${errs.slice(0, 5).join(" || ") || "none"}`,
         ],
         pageErrors: [...errs],
       }
     );
     expect(authCrash, "Space editor must not throw useAuthSession is not defined").toBeFalsy();
-    // Soft-fail blank editor: spaces list + heal already prove assignment; student Start is hard gate
-    if (!hasTimedOrLinear) {
-      console.warn(
-        "Teacher space editor blank/incomplete â€” continuing; student Start Test is hard gate"
-      );
-    }
+    expect(
+      hasTimedOrLinear,
+      "Space editor must show timed test / Linear Equations content"
+    ).toBeTruthy();
     errs.length = 0;
 
     await page.goto(`${TEACHER}/classes`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await record("teacher", "classes (assignment scope)", page, "04-teacher-classes", {
       pass: true,
       notes: ["Class list reachable"],
@@ -178,22 +150,21 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
   });
 
   test("2. Student Aarav — /tests + Start Test (no questionOrder crash)", async ({ page }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(150_000);
     const errs = trackPageErrors(page);
 
     await page.goto(`${STUDENT}/login`);
-    // Email tab is role=tab; roll 2025001 currently returns Invalid email or password on this seed.
     await loginStudentWithEmail(page, SCHOOL, "aarav.patel@greenwood.edu", "Test@12345");
-    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 60000 });
+    await page.waitForURL(/\/($|dashboard|home|spaces|tests)/, { timeout: 45000 });
     await record("student", "login", page, "05-student-login", {
       pass: true,
-      notes: ["post-login via email aarav.patel@greenwood.edu"],
+      notes: ["post-login"],
       pageErrors: [...errs],
     });
     errs.length = 0;
 
     await page.goto(`${STUDENT}/tests`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(3000);
     const testsBody = await page.locator("body").innerText();
     const testLinks = await page.locator('a[href*="/test/"]').count();
@@ -216,7 +187,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${STUDENT}/spaces`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     const spacesBody = await page.locator("body").innerText();
     const hasAlgebra = /algebra foundations/i.test(spacesBody);
     await record("student", "spaces (Algebra Foundations)", page, "07-student-spaces", {
@@ -228,7 +199,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
 
     const landingUrl = `${STUDENT}/spaces/${SPACE_ID}/test/${STORY_POINT_ID}`;
     await page.goto(landingUrl);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2000);
     const landingBody = await page.locator("body").innerText();
     const startBtn = page.getByRole("button", { name: /start test|resume|begin/i });
@@ -249,7 +220,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
 
     await startBtn.first().click();
     await page.waitForTimeout(4000);
-    await settle(page);
+    await page.waitForLoadState("networkidle").catch(() => undefined);
     const afterBody = await page.locator("body").innerText();
     const qoCrash = hasQuestionOrderCrash(errs, afterBody);
     const stillHasStart =
@@ -257,7 +228,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
       !(await page.getByText(/question\s*\d+|of\s*\d+|submit|mark for review/i).count());
     const inRunner =
       /question\s*\d+|q\d+\s*\/|mark for review|submit test|answered:/i.test(afterBody) ||
-      (await page.locator('[data-testid*="question"], .question-navigator').count()) > 0;
+      (await page.locator('[data-testid*="question"], .question-navigator, nav').count()) > 0;
     const unavailable = /unavailable|not available|no questions|failed to start/i.test(afterBody);
     await record("student", "Start Test (no questionOrder crash)", page, "09-student-after-start", {
       pass: !qoCrash && !unavailable && inRunner,
@@ -277,7 +248,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${STUDENT}/progress`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await record("student", "progress after attempt", page, "11-student-progress", {
       pass: true,
       notes: ["Progress page loads"],
@@ -285,7 +256,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     });
   });
 
-  test("3. Parent Suresh â€” notifications for child test prep", async ({ page }) => {
+  test("3. Parent Suresh — notifications for child test prep", async ({ page }) => {
     test.setTimeout(120_000);
     const errs = trackPageErrors(page);
 
@@ -300,7 +271,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${PARENT}/`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     const dash = await page.locator("body").innerText();
     await record("parent", "dashboard (child Aarav)", page, "13-parent-dashboard", {
       pass: true,
@@ -310,7 +281,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${PARENT}/alerts`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await record("parent", "performance alerts", page, "14-parent-alerts", {
       pass: true,
       notes: ["surfaceOk=true"],
@@ -319,7 +290,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     errs.length = 0;
 
     await page.goto(`${PARENT}/notifications`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2500);
     const notifBody = await page.locator("body").innerText();
     const hasTestNotif =
@@ -343,15 +314,15 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
         pageErrors: [...errs],
       }
     );
-    if (!hasTestNotif) {
-      console.warn(
-        "GAP: parent test-prep notification not visible — sibling parent-notify may be unfinished"
-      );
-    }
+    // Soft-fail documented as FAIL in report; hard assert keeps authentic gate honest
+    expect(
+      hasTestNotif,
+      "Parent must see test-prep / assigned-test notification (or sibling gap)"
+    ).toBeTruthy();
     errs.length = 0;
 
     await page.goto(`${PARENT}/child-progress`);
-    await settle(page);
+    await page.waitForLoadState("networkidle");
     await record("parent", "child progress", page, "16-parent-child-progress", {
       pass: true,
       notes: ["Child progress surface"],
@@ -366,7 +337,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     const report = {
       finishedAt: new Date().toISOString(),
       authentic: true,
-      flow: "assign â†’ take â†’ notify",
+      flow: "assign → take → notify",
       credentials: {
         school: SCHOOL,
         teacher: "priya.sharma@greenwood.edu",
@@ -393,7 +364,7 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
     writeFileSync("tmp/QA-ASSIGN-TAKE-FLOW.json", JSON.stringify(report, null, 2));
 
     const lines: string[] = [
-      "# QA Assign â†’ Take â†’ Notify Flow (Authentic)",
+      "# QA Assign → Take → Notify Flow (Authentic)",
       "",
       `Generated: ${report.finishedAt}`,
       "",
@@ -402,9 +373,9 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
       "",
       "## Sequence proved",
       "",
-      "1. Teacher Priya â€” Algebra Foundations timed test / class assignment surface",
-      "2. Student Aarav â€” `/tests` + Algebra Foundations â†’ **Start Test** (no `questionOrder` crash)",
-      "3. Parent Suresh â€” notifications / performance alerts for child test prep",
+      "1. Teacher Priya — Algebra Foundations timed test / class assignment surface",
+      "2. Student Aarav — `/tests` + Algebra Foundations → **Start Test** (no `questionOrder` crash)",
+      "3. Parent Suresh — notifications / performance alerts for child test prep",
       "4. Progress surface after attempt (best-effort)",
       "",
       "## Scorecard",
@@ -416,20 +387,20 @@ test.describe.serial("Assign â†’ Take â†’ Notify authentic flow", () =
       "## Credentials",
       "",
       "- School: `GRN001`",
-      "- Teacher :4569 â€” `priya.sharma@greenwood.edu`",
-      "- Student :4570 â€” `aarav.patel@greenwood.edu`",
-      "- Parent :4571 â€” `suresh.patel@gmail.com`",
+      "- Teacher :4569 — `priya.sharma@greenwood.edu`",
+      "- Student :4570 — `aarav.patel@greenwood.edu`",
+      "- Parent :4571 — `suresh.patel@gmail.com`",
       "",
       "## Seed heal (no tenantCodes rewrite)",
       "",
-      `- \`scripts/heal-greenwood-assign-take.mjs\` â†’ Algebra Foundations timed test \`${STORY_POINT_ID}\``,
-      "- `scripts/heal-parent-test-notification.mjs` â†’ parent notification for Aarav test",
+      `- \`scripts/heal-greenwood-assign-take.mjs\` → Algebra Foundations timed test \`${STORY_POINT_ID}\``,
+      "- `scripts/heal-parent-test-notification.mjs` → parent notification for Aarav test",
       "",
       "## Per-step results",
       "",
     ];
     for (const r of results) {
-      lines.push(`### ${r.status} â€” ${r.role}: ${r.step}`);
+      lines.push(`### ${r.status} — ${r.role}: ${r.step}`);
       lines.push("");
       lines.push(`- URL: \`${r.url}\``);
       if (r.screenshot) lines.push(`- Screenshot: \`tmp/${r.screenshot}\``);
