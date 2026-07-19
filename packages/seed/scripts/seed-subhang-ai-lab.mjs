@@ -688,12 +688,27 @@ const CHAT_ITEMS = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Assemble the tenant config (drives the dry-run pipeline).
 // ─────────────────────────────────────────────────────────────────────────────
+// evaluationSettings — REQUIRED for chat_agent_question assessment START:
+// resolveEvaluator() throws PRECONDITION_FAILED unless space.evaluationSettingsId
+// is set AND tenants/{t}/evaluationSettings/{id} exists (packages/services/src/
+// conversation/context-builder.ts resolveEvaluator, lines 418-420).
+const EVAL_SETTINGS = [
+  {
+    key: "ai-assessment-default",
+    name: "AI Assessment Defaults",
+    isDefault: true,
+    rubricPresetKey: "rubric-systemdesign", // seeds enabledDimensions
+    confidenceConfig: { lowThreshold: 0.6, highThreshold: 0.85 },
+  },
+];
+
 const tenantConfig = {
   key: TENANT_KEY,
   name: "Subhang Academy (AI Assessment Lab staging)",
   code: "SUBAILAB", // never written to prod — only the dry-run tenant doc uses it
   agents: AGENTS,
   rubricPresets: RUBRIC_PRESETS,
+  evaluationSettings: EVAL_SETTINGS,
   spaces: [
     {
       key: SPACE_KEY,
@@ -728,6 +743,7 @@ const ROUTES = [
   [/\/spaces\/[^/]+$/, "SpaceSchema"],
   [/\/agents\/[^/]+$/, "AgentSchema"],
   [/\/rubricPresets\/[^/]+$/, "RubricPresetSchema"],
+  [/\/evaluationSettings\/[^/]+$/, "EvaluationSettingsSchema"],
 ];
 const routeSchema = (path) => {
   for (const [re, name] of ROUTES) if (re.test(path)) return name;
@@ -788,6 +804,17 @@ async function main() {
     if (newData.tenantId === synthTid) newData.tenantId = REAL_TENANT;
     writeDocs.push({ path: newPath, data: newData });
   }
+
+  // 2b) Wire the space → evaluationSettings link (required for assessment START).
+  const evalDoc = writeDocs.find((d) => /\/evaluationSettings\/[^/]+$/.test(d.path));
+  const evalSettingsId = evalDoc?.data.id;
+  const spaceLinkDoc = writeDocs.find((d) => /\/spaces\/[^/]+$/.test(d.path));
+  if (!evalSettingsId || !spaceLinkDoc) {
+    console.log("  ✗ missing evaluationSettings doc or space doc — cannot wire assessment link");
+    process.exit(1);
+  }
+  spaceLinkDoc.data.evaluationSettingsId = evalSettingsId;
+  console.log(`  ✓ space.evaluationSettingsId = ${evalSettingsId}`);
 
   // 3) Validate client-facing docs against domain Zod. AnswerKey write-shape carries
   //    server-only {tenantId, spaceId, storyPointId} beyond the read entity schema —
@@ -850,6 +877,7 @@ async function main() {
   const idMap = {
     tenantId: REAL_TENANT,
     spaceId,
+    evaluationSettingsId: evalSettingsId,
     prefix: "v2_",
     storyPoints: {},
     chatItems: {},
