@@ -50,6 +50,17 @@ pnpm run build
 pnpm run test:coverage
 ```
 
+### Keeping PRs CI-green
+
+See **[docs/CI-GREEN-PRS.md](../../docs/CI-GREEN-PRS.md)** for the 100-PR
+campaign checklist:
+
+- Do not commit `functions/*/lib` rebuild noise, `tmp/`, `test-results/`, or
+  service-account JSON.
+- Run lint + typecheck + build before opening a PR.
+- **Fork PRs:** if Actions stay on “Awaiting approval”, a maintainer must
+  **Approve and run workflows** once for that fork/PR.
+
 ### Customization
 
 To customize the workflow:
