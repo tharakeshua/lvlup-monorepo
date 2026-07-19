@@ -42,6 +42,8 @@ const deployStatus = run("pnpm", [
   "--project",
   process.env.FIREBASE_PROJECT || "lvlup-ff6fa",
   "--non-interactive",
+  // Allow pruning functions removed from source (e.g. legacy manageNotifications).
+  "--force",
 ]);
 
 const cleanupStatus = run("pnpm", [
