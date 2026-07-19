@@ -43,7 +43,7 @@ export function useTestSessions(
   spaceId: string | null,
   storyPointId: string | null
 ) {
-  const enabled = !!tenantId && !!userId && !!spaceId && !!storyPointId;
+  const enabled = !!userId && !!spaceId && !!storyPointId;
   const query = useTestSessionsQuery({
     spaceId: spaceId ? asSpaceId(spaceId) : undefined,
     storyPointId: storyPointId ? asStoryPointId(storyPointId) : undefined,

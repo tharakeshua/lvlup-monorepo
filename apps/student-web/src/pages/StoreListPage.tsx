@@ -139,7 +139,7 @@ export default function StoreListPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Subjects</SelectItem>
-            {availableSubjects.map((subject) => (
+            {availableSubjects.filter(Boolean).map((subject) => (
               <SelectItem key={subject} value={subject}>
                 {subject}
               </SelectItem>

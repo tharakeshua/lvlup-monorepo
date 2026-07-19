@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useApiError, useServerTime } from "@levelup/query";
 import { useStoryPoints } from "../hooks/useStoryPoints";
@@ -11,6 +11,7 @@ import {
   useSubmitTest,
   useSaveAnswer,
 } from "../hooks/useTestSession";
+import { spacesListHref, spaceHref, testAnalyticsHref } from "../lib/space-paths";
 import { QuestionAnswerer } from "../components/questions";
 import QuestionNavigator from "../components/test/QuestionNavigator";
 import CountdownTimer from "../components/test/CountdownTimer";
@@ -144,6 +145,7 @@ function deadlineToEpochMs(deadline: unknown): number | null {
 
 export default function TimedTestPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
+  const location = useLocation();
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
@@ -293,11 +295,11 @@ export default function TimedTestPage() {
   }, [currentQuestionId, view, currentIndex, questionOrder]);
 
   const handleStartTest = async () => {
-    if (!currentTenantId || !spaceId || !storyPointId) return;
+    if (!spaceId || !storyPointId) return;
     setStartError(null);
     try {
       const result = await startTest.mutateAsync({
-        tenantId: currentTenantId,
+        tenantId: currentTenantId ?? "",
         spaceId,
         storyPointId,
       });
@@ -340,13 +342,13 @@ export default function TimedTestPage() {
       });
 
       // Persist to server with tracked time
-      if (activeSession && currentTenantId) {
+      if (activeSession) {
         const elapsed = Math.round((Date.now() - questionStartTime.current) / 1000);
         const totalTime = (timePerQuestion.current[itemId] ?? 0) + elapsed;
         setSaveStatus("saving");
         saveAnswer.mutate(
           {
-            tenantId: currentTenantId,
+            tenantId: currentTenantId ?? "",
             sessionId: activeSession.id,
             itemId,
             answer,
@@ -454,7 +456,7 @@ export default function TimedTestPage() {
 
   const handleSubmitTest = useCallback(
     async (autoSubmitted = false) => {
-      if (!currentTenantId || !activeSession) return;
+      if (!activeSession) return;
       // Prevent concurrent submissions (e.g., manual submit + auto-submit race)
       if (isSubmitting.current) return;
       isSubmitting.current = true;
@@ -466,7 +468,7 @@ export default function TimedTestPage() {
         const totalTime = (timePerQuestion.current[currentQuestionId] ?? 0) + elapsed;
         try {
           await saveAnswer.mutateAsync({
-            tenantId: currentTenantId,
+            tenantId: currentTenantId ?? "",
             sessionId: activeSession.id,
             itemId: currentQuestionId,
             answer: answers[currentQuestionId],
@@ -479,7 +481,7 @@ export default function TimedTestPage() {
 
       try {
         await submitTest.mutateAsync({
-          tenantId: currentTenantId,
+          tenantId: currentTenantId ?? "",
           sessionId: activeSession.id,
           submissions: answers,
           autoSubmitted,
@@ -490,7 +492,15 @@ export default function TimedTestPage() {
         handleError(err, "Failed to submit test");
       }
     },
-    [currentTenantId, activeSession, answers, submitTest, currentQuestionId, saveAnswer]
+    [
+      currentTenantId,
+      activeSession,
+      answers,
+      submitTest,
+      currentQuestionId,
+      saveAnswer,
+      handleError,
+    ]
   );
 
   const handleTimeUp = useCallback(() => {
@@ -576,13 +586,21 @@ export default function TimedTestPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/spaces">Spaces</Link>
+                <Link to={spacesListHref(location.pathname)}>Spaces</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
+                <Link
+                  to={
+                    spaceId
+                      ? spaceHref(location.pathname, spaceId)
+                      : spacesListHref(location.pathname)
+                  }
+                >
+                  {space?.title ?? "Space"}
+                </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -1050,13 +1068,21 @@ export default function TimedTestPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/spaces">Spaces</Link>
+                <Link to={spacesListHref(location.pathname)}>Spaces</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={`/spaces/${spaceId}`}>{space?.title}</Link>
+                <Link
+                  to={
+                    spaceId
+                      ? spaceHref(location.pathname, spaceId)
+                      : spacesListHref(location.pathname)
+                  }
+                >
+                  {space?.title}
+                </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -1271,7 +1297,13 @@ export default function TimedTestPage() {
                   </p>
                 ))}
                 <Button variant="link" size="sm" asChild className="h-auto px-0">
-                  <Link to={`/spaces/${spaceId}/test/${storyPointId}/analytics`}>
+                  <Link
+                    to={
+                      spaceId && storyPointId
+                        ? testAnalyticsHref(location.pathname, spaceId, storyPointId)
+                        : spacesListHref(location.pathname)
+                    }
+                  >
                     <BarChart3 className="mr-1 h-3 w-3" /> View full analytics
                   </Link>
                 </Button>
@@ -1321,12 +1353,24 @@ export default function TimedTestPage() {
             Back to Test Info
           </Button>
           <Button variant="outline" asChild>
-            <Link to={`/spaces/${spaceId}/test/${storyPointId}/analytics`}>
+            <Link
+              to={
+                spaceId && storyPointId
+                  ? testAnalyticsHref(location.pathname, spaceId, storyPointId)
+                  : spacesListHref(location.pathname)
+              }
+            >
               <BarChart3 className="mr-1 h-4 w-4" /> Analytics
             </Link>
           </Button>
           <Button asChild>
-            <Link to={`/spaces/${spaceId}`}>Back to Space</Link>
+            <Link
+              to={
+                spaceId ? spaceHref(location.pathname, spaceId) : spacesListHref(location.pathname)
+              }
+            >
+              Back to Space
+            </Link>
           </Button>
         </div>
       </div>

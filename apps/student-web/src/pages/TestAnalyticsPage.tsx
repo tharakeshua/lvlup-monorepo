@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace } from "@levelup/query";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useTestSessions } from "../hooks/useTestSession";
+import { spacesListHref, spaceHref, testHref } from "../lib/space-paths";
 import ProgressBar from "../components/common/ProgressBar";
 import AttemptComparison from "../components/analytics/AttemptComparison";
 import StudyRecommendations from "../components/analytics/StudyRecommendations";
@@ -31,6 +32,7 @@ import {
 
 export default function TestAnalyticsPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
+  const location = useLocation();
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
@@ -130,7 +132,15 @@ export default function TestAnalyticsPage() {
         <BarChart3 className="text-muted-foreground/30 mx-auto mb-3 h-12 w-12" />
         <p className="text-muted-foreground">No completed attempts yet.</p>
         <Button asChild className="mt-4">
-          <Link to={`/spaces/${spaceId}/test/${storyPointId}`}>Take Test</Link>
+          <Link
+            to={
+              spaceId && storyPointId
+                ? testHref(location.pathname, spaceId, storyPointId)
+                : spacesListHref(location.pathname)
+            }
+          >
+            Take Test
+          </Link>
         </Button>
       </div>
     );
@@ -142,19 +152,33 @@ export default function TestAnalyticsPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/spaces">Spaces</Link>
+              <Link to={spacesListHref(location.pathname)}>Spaces</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
+              <Link
+                to={
+                  spaceId
+                    ? spaceHref(location.pathname, spaceId)
+                    : spacesListHref(location.pathname)
+                }
+              >
+                {space?.title ?? "Space"}
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/spaces/${spaceId}/test/${storyPointId}`}>
+              <Link
+                to={
+                  spaceId && storyPointId
+                    ? testHref(location.pathname, spaceId, storyPointId)
+                    : spacesListHref(location.pathname)
+                }
+              >
                 {storyPoint?.title ?? "Test"}
               </Link>
             </BreadcrumbLink>
@@ -351,12 +375,22 @@ export default function TestAnalyticsPage() {
 
       <div className="flex gap-2">
         <Button variant="outline" asChild>
-          <Link to={`/spaces/${spaceId}/test/${storyPointId}`}>
+          <Link
+            to={
+              spaceId && storyPointId
+                ? testHref(location.pathname, spaceId, storyPointId)
+                : spacesListHref(location.pathname)
+            }
+          >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Test
           </Link>
         </Button>
         <Button asChild>
-          <Link to={`/spaces/${spaceId}`}>Back to Space</Link>
+          <Link
+            to={spaceId ? spaceHref(location.pathname, spaceId) : spacesListHref(location.pathname)}
+          >
+            Back to Space
+          </Link>
         </Button>
       </div>
     </div>
