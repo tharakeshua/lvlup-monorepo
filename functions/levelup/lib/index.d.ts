@@ -3,7 +3,6 @@ export { saveStoryPoint } from "./callable/save-story-point";
 export { saveItem } from "./callable/save-item";
 export { getItemForEdit } from "./callable/get-item-for-edit";
 export { listVersions } from "./callable/list-versions";
-export { manageNotifications } from "./callable/manage-notifications";
 export { startTestSession } from "./callable/start-test-session";
 export { submitTestSession } from "./callable/submit-test-session";
 export { evaluateAnswer } from "./callable/evaluate-answer";
