@@ -3,9 +3,9 @@
  * Covers: saveQuestionBankItem, listQuestionBank, importFromBank, saveRubricPreset, saveSpaceReview
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '../firebase';
-import type { SaveResponse } from '@levelup/shared-types';
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "../firebase";
+import type { SaveResponse } from "@levelup/shared-types";
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -23,8 +23,8 @@ export interface SaveQuestionBankItemRequest {
     questionData?: Record<string, unknown>;
     subject?: string;
     topics?: string[];
-    difficulty?: 'easy' | 'medium' | 'hard';
-    bloomsLevel?: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
+    difficulty?: "easy" | "medium" | "hard";
+    bloomsLevel?: "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
     tags?: string[];
     deleted?: boolean;
   };
@@ -34,13 +34,13 @@ export interface ListQuestionBankRequest {
   tenantId: string;
   subject?: string;
   topics?: string[];
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   bloomsLevel?: string;
   questionType?: string;
   tags?: string[];
   search?: string;
-  sortBy?: 'usageCount' | 'averageScore' | 'createdAt';
-  sortDir?: 'asc' | 'desc';
+  sortBy?: "usageCount" | "averageScore" | "createdAt";
+  sortDir?: "asc" | "desc";
   limit?: number;
   startAfter?: string;
 }
@@ -92,7 +92,7 @@ export interface SaveSpaceReviewResponse {
 export interface ListVersionsRequest {
   tenantId: string;
   spaceId: string;
-  entityType?: 'space' | 'storyPoint' | 'item';
+  entityType?: "space" | "storyPoint" | "item";
   entityId?: string;
   limit?: number;
   startAfter?: string;
@@ -125,49 +125,45 @@ function getCallable<Req, Res>(name: string) {
 }
 
 export async function callSaveQuestionBankItem(
-  data: SaveQuestionBankItemRequest,
+  data: SaveQuestionBankItemRequest
 ): Promise<SaveResponse> {
-  const fn = getCallable<SaveQuestionBankItemRequest, SaveResponse>('saveQuestionBankItem');
+  const fn = getCallable<SaveQuestionBankItemRequest, SaveResponse>("saveQuestionBankItem");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callListQuestionBank(
-  data: ListQuestionBankRequest,
+  data: ListQuestionBankRequest
 ): Promise<ListQuestionBankResponse> {
-  const fn = getCallable<ListQuestionBankRequest, ListQuestionBankResponse>('listQuestionBank');
+  const fn = getCallable<ListQuestionBankRequest, ListQuestionBankResponse>("listQuestionBank");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callImportFromBank(
-  data: ImportFromBankRequest,
+  data: ImportFromBankRequest
 ): Promise<ImportFromBankResponse> {
-  const fn = getCallable<ImportFromBankRequest, ImportFromBankResponse>('importFromBank');
+  const fn = getCallable<ImportFromBankRequest, ImportFromBankResponse>("importFromBank");
   const result = await fn(data);
   return result.data;
 }
 
-export async function callSaveRubricPreset(
-  data: SaveRubricPresetRequest,
-): Promise<SaveResponse> {
-  const fn = getCallable<SaveRubricPresetRequest, SaveResponse>('saveRubricPreset');
+export async function callSaveRubricPreset(data: SaveRubricPresetRequest): Promise<SaveResponse> {
+  const fn = getCallable<SaveRubricPresetRequest, SaveResponse>("saveRubricPreset");
   const result = await fn(data);
   return result.data;
 }
 
 export async function callSaveSpaceReview(
-  data: SaveSpaceReviewRequest,
+  data: SaveSpaceReviewRequest
 ): Promise<SaveSpaceReviewResponse> {
-  const fn = getCallable<SaveSpaceReviewRequest, SaveSpaceReviewResponse>('saveSpaceReview');
+  const fn = getCallable<SaveSpaceReviewRequest, SaveSpaceReviewResponse>("saveSpaceReview");
   const result = await fn(data);
   return result.data;
 }
 
-export async function callListVersions(
-  data: ListVersionsRequest,
-): Promise<ListVersionsResponse> {
-  const fn = getCallable<ListVersionsRequest, ListVersionsResponse>('listVersions');
+export async function callListVersions(data: ListVersionsRequest): Promise<ListVersionsResponse> {
+  const fn = getCallable<ListVersionsRequest, ListVersionsResponse>("listVersions");
   const result = await fn(data);
   return result.data;
 }
@@ -180,7 +176,7 @@ export interface GetItemForEditRequest {
 }
 
 export interface GetItemForEditResponse {
-  item: import('@levelup/shared-types').UnifiedItem;
+  item: import("@levelup/shared-types").UnifiedItem;
 }
 
 /**
@@ -189,9 +185,9 @@ export interface GetItemForEditResponse {
  * overwrite the answer key with the stripped server payload.
  */
 export async function callGetItemForEdit(
-  data: GetItemForEditRequest,
+  data: GetItemForEditRequest
 ): Promise<GetItemForEditResponse> {
-  const fn = getCallable<GetItemForEditRequest, GetItemForEditResponse>('getItemForEdit');
+  const fn = getCallable<GetItemForEditRequest, GetItemForEditResponse>("getItemForEdit");
   const result = await fn(data);
   return result.data;
 }

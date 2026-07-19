@@ -1,11 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Class, Student, Teacher, Parent, UnifiedItem, Submission } from '@levelup/shared-types';
+import { useQuery } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type {
+  Class,
+  Student,
+  Teacher,
+  Parent,
+  UnifiedItem,
+  Submission,
+} from "@levelup/shared-types";
 
 export function useClass(tenantId: string | null, classId: string | null) {
   return useQuery<Class | null>({
-    queryKey: ['tenants', tenantId, 'classes', classId],
+    queryKey: ["tenants", tenantId, "classes", classId],
     queryFn: async () => {
       if (!tenantId || !classId) return null;
       const { db } = getFirebaseServices();
@@ -21,7 +28,7 @@ export function useClass(tenantId: string | null, classId: string | null) {
 
 export function useStudent(tenantId: string | null, studentId: string | null) {
   return useQuery<Student | null>({
-    queryKey: ['tenants', tenantId, 'students', studentId],
+    queryKey: ["tenants", tenantId, "students", studentId],
     queryFn: async () => {
       if (!tenantId || !studentId) return null;
       const { db } = getFirebaseServices();
@@ -37,7 +44,7 @@ export function useStudent(tenantId: string | null, studentId: string | null) {
 
 export function useTeacher(tenantId: string | null, teacherId: string | null) {
   return useQuery<Teacher | null>({
-    queryKey: ['tenants', tenantId, 'teachers', teacherId],
+    queryKey: ["tenants", tenantId, "teachers", teacherId],
     queryFn: async () => {
       if (!tenantId || !teacherId) return null;
       const { db } = getFirebaseServices();
@@ -53,7 +60,7 @@ export function useTeacher(tenantId: string | null, teacherId: string | null) {
 
 export function useParent(tenantId: string | null, parentId: string | null) {
   return useQuery<Parent | null>({
-    queryKey: ['tenants', tenantId, 'parents', parentId],
+    queryKey: ["tenants", tenantId, "parents", parentId],
     queryFn: async () => {
       if (!tenantId || !parentId) return null;
       const { db } = getFirebaseServices();
@@ -67,13 +74,9 @@ export function useParent(tenantId: string | null, parentId: string | null) {
   });
 }
 
-export function useItem(
-  tenantId: string | null,
-  spaceId: string | null,
-  itemId: string | null,
-) {
+export function useItem(tenantId: string | null, spaceId: string | null, itemId: string | null) {
   return useQuery<UnifiedItem | null>({
-    queryKey: ['tenants', tenantId, 'spaces', spaceId, 'items', itemId],
+    queryKey: ["tenants", tenantId, "spaces", spaceId, "items", itemId],
     queryFn: async () => {
       if (!tenantId || !spaceId || !itemId) return null;
       const { db } = getFirebaseServices();
@@ -90,7 +93,7 @@ export function useItem(
 
 export function useSubmission(tenantId: string | null, submissionId: string | null) {
   return useQuery<Submission | null>({
-    queryKey: ['tenants', tenantId, 'submissions', submissionId],
+    queryKey: ["tenants", tenantId, "submissions", submissionId],
     queryFn: async () => {
       if (!tenantId || !submissionId) return null;
       const { db } = getFirebaseServices();

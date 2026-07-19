@@ -2,30 +2,28 @@
  * Verify user migration: ensure no duplicates, all memberships correct.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { countDocs } from '../utils/verification.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { countDocs } from "../utils/verification.js";
+import { MigrationLogger } from "../utils/logger.js";
 
-export async function verifyUsers(options: {
-  logger: MigrationLogger;
-}): Promise<boolean> {
+export async function verifyUsers(options: { logger: MigrationLogger }): Promise<boolean> {
   const { logger } = options;
   const db = getFirestore();
   let passed = true;
 
-  logger.info('Verifying user migration integrity');
+  logger.info("Verifying user migration integrity");
 
   // 1. Count total users
-  const totalUsers = await countDocs(db.collection('users'));
+  const totalUsers = await countDocs(db.collection("users"));
   logger.info(`Total users: ${totalUsers}`);
 
   // 2. Count total memberships
-  const totalMemberships = await countDocs(db.collection('userMemberships'));
+  const totalMemberships = await countDocs(db.collection("userMemberships"));
   logger.info(`Total memberships: ${totalMemberships}`);
 
   // 3. Check for duplicate memberships (same uid+tenantId)
-  const membershipsSnap = await db.collection('userMemberships').get();
+  const membershipsSnap = await db.collection("userMemberships").get();
   const membershipKeys = new Set<string>();
   const duplicates: string[] = [];
 
@@ -39,10 +37,12 @@ export async function verifyUsers(options: {
   }
 
   if (duplicates.length > 0) {
-    logger.error(`Found ${duplicates.length} duplicate memberships`, { duplicates: duplicates.slice(0, 10) });
+    logger.error(`Found ${duplicates.length} duplicate memberships`, {
+      duplicates: duplicates.slice(0, 10),
+    });
     passed = false;
   } else {
-    logger.info('No duplicate memberships found');
+    logger.info("No duplicate memberships found");
   }
 
   // 4. Verify every membership references a valid user
@@ -78,21 +78,23 @@ export async function verifyUsers(options: {
   }
 
   if (orphanedTenants > 0) {
-    logger.error(`Found ${orphanedTenants} memberships with non-existent tenants (sample of ${sampleSize})`);
+    logger.error(
+      `Found ${orphanedTenants} memberships with non-existent tenants (sample of ${sampleSize})`
+    );
     passed = false;
   } else {
     logger.info(`All ${sampleSize} sampled memberships reference valid tenants`);
   }
 
   // Summary
-  console.log('\n========== User Verification Summary ==========');
+  console.log("\n========== User Verification Summary ==========");
   console.log(`Total users:           ${totalUsers}`);
   console.log(`Total memberships:     ${totalMemberships}`);
   console.log(`Duplicate memberships: ${duplicates.length}`);
   console.log(`Orphaned memberships:  ${orphanedMemberships} (sample of ${sampleSize})`);
   console.log(`Orphaned tenants:      ${orphanedTenants} (sample of ${sampleSize})`);
-  console.log(`Overall: ${passed ? 'PASSED' : 'FAILED'}`);
-  console.log('================================================\n');
+  console.log(`Overall: ${passed ? "PASSED" : "FAILED"}`);
+  console.log("================================================\n");
 
   return passed;
 }

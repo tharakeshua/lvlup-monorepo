@@ -140,7 +140,7 @@ const OVERRIDES: Record<string, InvalidationRule> = {
   "v1.autograde.saveExam": { roots: ["exams"] },
 
   // --- identity ---
-  "v1.identity.saveStudent": { roots: ["students", "classes", "memberships"] },
+  "v1.identity.saveStudent": { roots: ["students", "classes"] },
   "v1.identity.saveClass": { roots: ["classes", "students", "teachers"] },
   "v1.identity.markNotificationRead": { roots: ["notifications", "notificationBadge"] },
 

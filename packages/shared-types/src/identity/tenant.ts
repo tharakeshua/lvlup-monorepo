@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}
  */
 
-import type { FirestoreTimestamp } from './user';
+import type { FirestoreTimestamp } from "./user";
 
 export interface TenantAddress {
   street?: string;
@@ -13,9 +13,9 @@ export interface TenantAddress {
   zipCode?: string;
 }
 
-export type TenantPlan = 'free' | 'trial' | 'basic' | 'premium' | 'enterprise';
+export type TenantPlan = "free" | "trial" | "basic" | "premium" | "enterprise";
 
-export type TenantStatus = 'active' | 'suspended' | 'trial' | 'expired' | 'deactivated';
+export type TenantStatus = "active" | "suspended" | "trial" | "expired" | "deactivated";
 
 export interface TenantSubscription {
   plan: TenantPlan;
@@ -24,7 +24,7 @@ export interface TenantSubscription {
   maxTeachers?: number;
   maxSpaces?: number;
   maxExamsPerMonth?: number;
-  billingCycle?: 'monthly' | 'annual';
+  billingCycle?: "monthly" | "annual";
   billingEmail?: string;
   currentPeriodStart?: FirestoreTimestamp;
   currentPeriodEnd?: FirestoreTimestamp;

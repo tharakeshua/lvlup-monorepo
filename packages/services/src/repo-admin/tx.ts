@@ -31,7 +31,7 @@ const FLAT_COLLECTION: Record<EntityCollectionName, string> = {
   classes: "classes",
   exams: "exams",
   submissions: "submissions",
-  testSessions: "testSessions",
+  testSessions: "digitalTestSessions",
   progressDocs: "spaceProgress",
   notifications: "notifications",
   announcements: "announcements",

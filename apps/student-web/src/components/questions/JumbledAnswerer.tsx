@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import type { JumbledData } from '@levelup/shared-types';
-import { GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import { useCallback, useMemo } from "react";
+import type { JumbledData } from "@levelup/shared-types";
+import { GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 
 interface JumbledAnswererProps {
   data: JumbledData;
@@ -19,7 +19,7 @@ function deterministicShuffle(ids: string[]): string[] {
 
   // Simple hash from concatenated IDs
   let seed = 0;
-  const key = ids.join('-');
+  const key = ids.join("-");
   for (let i = 0; i < key.length; i++) {
     seed = ((seed << 5) - seed + key.charCodeAt(i)) | 0;
   }
@@ -45,31 +45,33 @@ export default function JumbledAnswerer({ data, value, onChange, disabled }: Jum
   // Shuffle on first render if no saved value
   const initialOrder = useMemo(
     () => deterministicShuffle((data?.items ?? []).map((item) => item.id)),
-    [data?.items],
+    [data?.items]
   );
 
   const order = value ?? initialOrder;
 
   const moveItem = useCallback(
-    (fromIndex: number, direction: 'up' | 'down') => {
-      const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    (fromIndex: number, direction: "up" | "down") => {
+      const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
       if (toIndex < 0 || toIndex >= order.length) return;
       const next = [...order];
       [next[fromIndex], next[toIndex]] = [next[toIndex]!, next[fromIndex]!];
       onChange(next);
     },
-    [order, onChange],
+    [order, onChange]
   );
 
   if (!data?.items?.length) {
-    return <p className='text-sm text-muted-foreground'>Question data not available</p>;
+    return <p className="text-muted-foreground text-sm">Question data not available</p>;
   }
 
   const itemMap = new Map(data.items.map((item) => [item.id, item]));
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-muted-foreground mb-2">Arrange the items in the correct order using the arrows.</p>
+      <p className="text-muted-foreground mb-2 text-xs">
+        Arrange the items in the correct order using the arrows.
+      </p>
       {order.map((itemId, index) => {
         const item = itemMap.get(itemId);
         if (!item) return null;
@@ -77,29 +79,27 @@ export default function JumbledAnswerer({ data, value, onChange, disabled }: Jum
         return (
           <div
             key={itemId}
-            className={`flex items-center gap-2 rounded-lg border bg-background p-3 ${
-              disabled ? 'opacity-60' : ''
+            className={`bg-background flex items-center gap-2 rounded-lg border p-3 ${
+              disabled ? "opacity-60" : ""
             }`}
           >
-            <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium text-muted-foreground w-6">
-              {index + 1}.
-            </span>
+            <GripVertical className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+            <span className="text-muted-foreground w-6 text-sm font-medium">{index + 1}.</span>
             <span className="flex-1 text-sm">{item.text}</span>
             <div className="flex gap-1">
               <button
                 type="button"
-                onClick={() => moveItem(index, 'up')}
+                onClick={() => moveItem(index, "up")}
                 disabled={disabled || index === 0}
-                className="rounded p-1 hover:bg-accent disabled:opacity-30"
+                className="hover:bg-accent rounded p-1 disabled:opacity-30"
               >
                 <ArrowUp className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={() => moveItem(index, 'down')}
+                onClick={() => moveItem(index, "down")}
                 disabled={disabled || index === order.length - 1}
-                className="rounded p-1 hover:bg-accent disabled:opacity-30"
+                className="hover:bg-accent rounded p-1 disabled:opacity-30"
               >
                 <ArrowDown className="h-4 w-4" />
               </button>

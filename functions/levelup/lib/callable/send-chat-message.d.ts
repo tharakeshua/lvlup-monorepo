@@ -5,11 +5,15 @@
  * and uses Socratic method to guide students.
  * Rate limited: 10 messages/min per user.
  */
-export declare const sendChatMessage: import("firebase-functions/https").CallableFunction<any, Promise<{
+export declare const sendChatMessage: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<{
     sessionId: string;
     reply: string;
     tokensUsed: {
-        input: number;
-        output: number;
+      input: number;
+      output: number;
     };
-}>, unknown>;
+  }>,
+  unknown
+>;

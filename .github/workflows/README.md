@@ -2,7 +2,8 @@
 
 ## CI Workflow
 
-The main CI workflow (`ci.yml`) runs comprehensive checks on all pull requests and pushes to main/develop branches.
+The main CI workflow (`ci.yml`) runs comprehensive checks on all pull requests
+and pushes to main/develop branches.
 
 ### Workflow Steps
 
@@ -13,15 +14,17 @@ The main CI workflow (`ci.yml`) runs comprehensive checks on all pull requests a
 
 ### Required Secrets
 
-- `CODECOV_TOKEN`: Token for uploading coverage to Codecov (optional but recommended)
+- `CODECOV_TOKEN`: Token for uploading coverage to Codecov (optional but
+  recommended)
 - `GITHUB_TOKEN`: Automatically provided by GitHub Actions
 
 ### Workflow Features
 
 - **Concurrency Control**: Cancels in-progress runs when new commits are pushed
-- **Parallel Execution**: Lint, typecheck, and build run in parallel for faster feedback
+- **Parallel Execution**: Lint, typecheck, and build run in parallel for faster
+  feedback
 - **Artifact Caching**: Build artifacts are cached between jobs
-- **Coverage Reporting**: 
+- **Coverage Reporting**:
   - Uploads to Codecov
   - Comments on PRs with coverage changes
 - **Status Checks**: All jobs must pass for PR to be mergeable
@@ -50,6 +53,7 @@ pnpm run test:coverage
 ### Customization
 
 To customize the workflow:
+
 1. Edit `.github/workflows/ci.yml`
 2. Add additional jobs or steps as needed
 3. Update branch triggers if using different branch names
@@ -58,15 +62,18 @@ To customize the workflow:
 ### Troubleshooting
 
 **Workflow not triggering:**
+
 - Check that the branch name matches the trigger configuration
 - Verify GitHub Actions is enabled for the repository
 
 **Tests failing in CI but passing locally:**
+
 - Check Node.js version matches
 - Verify all dependencies are in package.json (not globally installed)
 - Review environment variables and secrets
 
 **Coverage upload failing:**
+
 - Verify CODECOV_TOKEN is set in repository secrets
 - Check Codecov service status
 - Review action logs for specific errors

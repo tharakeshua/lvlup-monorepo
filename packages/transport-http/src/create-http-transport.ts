@@ -43,7 +43,7 @@ export interface HttpTransportOptions {
   /** Verified ID/session token, forwarded as `Authorization: Bearer <token>`; re-fetchable for refresh. */
   getBearerToken: () => Promise<string>;
   /** RN/node fetch polyfill seam (defaults to global `fetch`). */
-  fetchImpl?: typeof fetch;
+  fetchImpl?: typeof globalThis.fetch;
 }
 
 export function createHttpTransport(opts: HttpTransportOptions): Transport {

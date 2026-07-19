@@ -5,10 +5,10 @@
  * to create unified user documents and membership records.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyLevelUpUser {
   _docId: string;
@@ -60,7 +60,7 @@ export async function migrateLevelUpUsers(options: {
 
   // Find all users that belong to this org
   const userOrgs = await readAllDocs<LegacyUserOrg>(
-    db.collection('userOrgs').where('orgId', '==', orgId) as admin.firestore.Query
+    db.collection("userOrgs").where("orgId", "==", orgId) as admin.firestore.Query
   );
   logger.info(`Found ${userOrgs.length} user-org memberships`);
 
@@ -69,7 +69,7 @@ export async function migrateLevelUpUsers(options: {
   for (const uo of userOrgs) {
     const roleSnap = await db.doc(`userRoles/${uo.userId}`).get();
     if (roleSnap.exists) {
-      userRoles.set(uo.userId, { ...roleSnap.data() as LegacyUserRoles, _docId: roleSnap.id });
+      userRoles.set(uo.userId, { ...(roleSnap.data() as LegacyUserRoles), _docId: roleSnap.id });
     }
   }
 
@@ -79,28 +79,26 @@ export async function migrateLevelUpUsers(options: {
       const uid = uo.userId;
       if (uo.isArchived) {
         logger.debug(`User ${uid} is archived in org, skipping`);
-        return { action: 'skipped', id: uid };
+        return { action: "skipped", id: uid };
       }
 
       // Read the user profile
       const userSnap = await db.doc(`users/${uid}`).get();
-      const userData = userSnap.exists
-        ? (userSnap.data() as LegacyLevelUpUser)
-        : null;
+      const userData = userSnap.exists ? (userSnap.data() as LegacyLevelUpUser) : null;
 
       // Create or merge /users/{uid}
       const userPath = `users/${uid}`;
       const userExists = await docExists(db, userPath);
 
       if (dryRun) {
-        logger.info(`[DRY RUN] Would ${userExists ? 'merge' : 'create'} user ${uid}`);
+        logger.info(`[DRY RUN] Would ${userExists ? "merge" : "create"} user ${uid}`);
       } else {
         const userDoc: Record<string, unknown> = {
           uid,
           email: userData?.email || null,
           phone: userData?.phone || null,
-          authProviders: userData?.email ? ['email'] : userData?.phone ? ['phone'] : [],
-          displayName: userData?.displayName || userData?.fullName || '',
+          authProviders: userData?.email ? ["email"] : userData?.phone ? ["phone"] : [],
+          displayName: userData?.displayName || userData?.fullName || "",
           firstName: null,
           lastName: null,
           photoURL: userData?.photoURL || null,
@@ -109,7 +107,7 @@ export async function migrateLevelUpUsers(options: {
           grade: userData?.grade || null,
           onboardingCompleted: userData?.onboardingCompleted || false,
           isSuperAdmin: userRoles.get(uid)?.isSuperAdmin || false,
-          status: 'active',
+          status: "active",
           updatedAt: admin.firestore.Timestamp.now(),
         };
         if (!userExists) {
@@ -126,43 +124,43 @@ export async function migrateLevelUpUsers(options: {
 
       if (await docExists(db, membershipPath)) {
         logger.debug(`Membership ${membershipId} already exists, skipping`);
-        return { action: 'skipped', id: uid };
+        return { action: "skipped", id: uid };
       }
 
       // Determine role
       const roles = userRoles.get(uid);
-      let role = 'student';
+      let role = "student";
       if (roles?.orgAdmin && roles.orgAdmin[orgId]) {
-        role = 'tenantAdmin';
+        role = "tenantAdmin";
       } else if (roles?.courseAdmin) {
         const hasCourseAdminInOrg = Object.values(roles.courseAdmin).some(
           (ca) => ca.orgId === orgId
         );
-        if (hasCourseAdminInOrg) role = 'teacher';
-      } else if (uo.roles?.includes('admin')) {
-        role = 'tenantAdmin';
+        if (hasCourseAdminInOrg) role = "teacher";
+      } else if (uo.roles?.includes("admin")) {
+        role = "tenantAdmin";
       }
 
       if (dryRun) {
         logger.info(`[DRY RUN] Would create membership: ${membershipId} (role=${role})`);
-        return { action: 'created', id: uid };
+        return { action: "created", id: uid };
       }
 
       batch.set(db.doc(membershipPath), {
         id: membershipId,
         uid,
         tenantId,
-        tenantCode: '', // Will be set from tenant
+        tenantCode: "", // Will be set from tenant
         role,
-        status: 'active',
-        joinSource: 'migration',
+        status: "active",
+        joinSource: "migration",
         createdAt: uo.joinedAt
           ? admin.firestore.Timestamp.fromMillis(uo.joinedAt)
           : admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
       });
 
-      return { action: 'created', id: uid };
+      return { action: "created", id: uid };
     },
     { dryRun, logger }
   );

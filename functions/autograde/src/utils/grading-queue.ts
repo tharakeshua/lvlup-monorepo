@@ -59,12 +59,12 @@ export async function processBatch<TItem, TResult>(
   items: TItem[],
   processor: (item: TItem, index: number) => Promise<TResult>,
   config: Partial<BatchConfig> = {},
-  onBatchComplete?: (batchIndex: number, totalBatches: number) => void,
+  onBatchComplete?: (batchIndex: number, totalBatches: number) => void
 ): Promise<BatchResult<TResult>> {
   const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE;
   const maxConcurrent = config.maxConcurrent ?? DEFAULT_MAX_CONCURRENT;
   const startTime = Date.now();
-  const allResults: BatchResult<TResult>['results'] = [];
+  const allResults: BatchResult<TResult>["results"] = [];
   let successCount = 0;
   let failureCount = 0;
 
@@ -84,20 +84,21 @@ export async function processBatch<TItem, TResult>(
         } finally {
           semaphore.release();
         }
-      }),
+      })
     );
 
     for (let i = 0; i < settlements.length; i++) {
       const settlement = settlements[i];
       const globalIdx = batchStart + i;
 
-      if (settlement.status === 'fulfilled') {
+      if (settlement.status === "fulfilled") {
         allResults.push({ index: globalIdx, value: settlement.value });
         successCount++;
       } else {
-        const errorMsg = settlement.reason instanceof Error
-          ? settlement.reason.message
-          : String(settlement.reason);
+        const errorMsg =
+          settlement.reason instanceof Error
+            ? settlement.reason.message
+            : String(settlement.reason);
         allResults.push({ index: globalIdx, error: errorMsg });
         failureCount++;
       }

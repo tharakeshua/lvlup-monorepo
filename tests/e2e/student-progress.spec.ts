@@ -13,37 +13,37 @@
  * Uses the Subhang Academy seed dataset.
  * Auth: student.test@subhang.academy / Test@12345 / SUB001
  */
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
-import * as fs from 'fs';
+import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import * as fs from "fs";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const BASE = 'http://localhost:4570';
-const EMAIL = 'student.test@subhang.academy';
-const PASSWORD = 'Test@12345';
-const SCHOOL_CODE = 'SUB001';
-const AUTH_CACHE = '/tmp/student-progress-auth.json';
+const BASE = "http://localhost:4570";
+const EMAIL = "student.test@subhang.academy";
+const PASSWORD = "Test@12345";
+const SCHOOL_CODE = "SUB001";
+const AUTH_CACHE = "/tmp/student-progress-auth.json";
 
-const DSA_SPACE = 'ZikR8xEHkqIaIsugmdQg';
+const DSA_SPACE = "ZikR8xEHkqIaIsugmdQg";
 
 /** Story points in the DSA space by type. */
 const STORY_POINTS = {
   standard: [
-    { id: 'NUDWSZDR9YRnPJX6qoeP', title: 'Arrays & Strings Foundations' },
-    { id: 'Zu86i5osXGCbp6Rf70Tm', title: 'Hash Maps & Sets Mastery' },
-    { id: 'sgdMKWWF0KpEytqHeTbh', title: 'Linked Lists & Stack/Queue Patterns' },
-    { id: 'QmHCyOaM0oexjrWEBVfN', title: 'Binary Trees & BSTs' },
-    { id: '9H8WbP0KlNvE1moOplD7', title: 'Tries, Segment Trees & Advanced DS' },
+    { id: "NUDWSZDR9YRnPJX6qoeP", title: "Arrays & Strings Foundations" },
+    { id: "Zu86i5osXGCbp6Rf70Tm", title: "Hash Maps & Sets Mastery" },
+    { id: "sgdMKWWF0KpEytqHeTbh", title: "Linked Lists & Stack/Queue Patterns" },
+    { id: "QmHCyOaM0oexjrWEBVfN", title: "Binary Trees & BSTs" },
+    { id: "9H8WbP0KlNvE1moOplD7", title: "Tries, Segment Trees & Advanced DS" },
   ],
   practice: [
-    { id: 'wGH5xwxuPQcOWyL55gFR', title: 'Graphs -- BFS, DFS & Topological Sort' },
-    { id: '7VOUVJEiBH77fyYEg4is', title: 'Advanced Graphs -- Dijkstra, Union-Find, MST' },
-    { id: 'zHs2PGWwj2fnVsQMO8Yu', title: 'Dynamic Programming I -- 1D & 2D' },
-    { id: '1pEg2NCNaajNJcTHxbJy', title: 'Dynamic Programming II -- Advanced Patterns' },
-    { id: 'Jn9kf9OAeiUlkfqeClpP', title: 'Greedy & Backtracking Patterns' },
+    { id: "wGH5xwxuPQcOWyL55gFR", title: "Graphs -- BFS, DFS & Topological Sort" },
+    { id: "7VOUVJEiBH77fyYEg4is", title: "Advanced Graphs -- Dijkstra, Union-Find, MST" },
+    { id: "zHs2PGWwj2fnVsQMO8Yu", title: "Dynamic Programming I -- 1D & 2D" },
+    { id: "1pEg2NCNaajNJcTHxbJy", title: "Dynamic Programming II -- Advanced Patterns" },
+    { id: "Jn9kf9OAeiUlkfqeClpP", title: "Greedy & Backtracking Patterns" },
   ],
-  quiz: { id: 'DDvMqnfuSGs3btPIYpnK', title: 'DSA Comprehensive Quiz' },
-  timed: { id: '7LgnRSSjBcZxj4PFoB1S', title: 'DSA Staff-Level Assessment' },
+  quiz: { id: "DDvMqnfuSGs3btPIYpnK", title: "DSA Comprehensive Quiz" },
+  timed: { id: "7LgnRSSjBcZxj4PFoB1S", title: "DSA Staff-Level Assessment" },
 };
 
 // ── Auth helper ──────────────────────────────────────────────────────────────
@@ -56,13 +56,17 @@ async function loginAsTestStudent(page: Page, context: BrowserContext): Promise<
   // Try restoring cached auth first
   if (fs.existsSync(AUTH_CACHE)) {
     try {
-      const stored = JSON.parse(fs.readFileSync(AUTH_CACHE, 'utf8'));
+      const stored = JSON.parse(fs.readFileSync(AUTH_CACHE, "utf8"));
       await context.addCookies(stored.cookies ?? []);
       await page.goto(`${BASE}/`, { timeout: 15_000 });
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
-      const h1 = await page.locator('h1').first().textContent({ timeout: 8000 }).catch(() => '');
-      if (h1?.includes('Dashboard')) return; // cached session is valid
+      const h1 = await page
+        .locator("h1")
+        .first()
+        .textContent({ timeout: 8000 })
+        .catch(() => "");
+      if (h1?.includes("Dashboard")) return; // cached session is valid
     } catch {
       // Cache stale -- fall through to fresh login
     }
@@ -70,19 +74,19 @@ async function loginAsTestStudent(page: Page, context: BrowserContext): Promise<
 
   // Fresh login
   await page.goto(`${BASE}/login`, { timeout: 15_000 });
-  await page.waitForLoadState('domcontentloaded');
-  await page.fill('#schoolCode', SCHOOL_CODE);
+  await page.waitForLoadState("domcontentloaded");
+  await page.fill("#schoolCode", SCHOOL_CODE);
   await page.click('button[type="submit"]:has-text("Continue")');
-  await page.waitForSelector('#credential', { timeout: 15_000 });
+  await page.waitForSelector("#credential", { timeout: 15_000 });
 
   // Switch to Email tab
   const emailTab = page.locator('button:has-text("Email"), [role="tab"]:has-text("Email")').first();
   await emailTab.click({ timeout: 10_000 });
 
-  await page.fill('#credential', EMAIL);
-  await page.fill('#password', PASSWORD);
+  await page.fill("#credential", EMAIL);
+  await page.fill("#password", PASSWORD);
   await page.click('button[type="submit"]:has-text("Sign In")');
-  await expect(page.locator('h1')).toContainText('Dashboard', { timeout: 40_000 });
+  await expect(page.locator("h1")).toContainText("Dashboard", { timeout: 40_000 });
 
   // Save auth state for subsequent tests
   const storageState = await context.storageState();
@@ -94,21 +98,29 @@ async function loginAsTestStudent(page: Page, context: BrowserContext): Promise<
 /** Navigate to a specific space by ID. */
 async function navigateToSpace(page: Page, spaceId: string): Promise<void> {
   await page.goto(`${BASE}/spaces/${spaceId}`, { timeout: 15_000 });
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(2000);
 }
 
 /** Navigate to a specific story point in a space. */
-async function navigateToStoryPoint(page: Page, spaceId: string, storyPointId: string): Promise<void> {
+async function navigateToStoryPoint(
+  page: Page,
+  spaceId: string,
+  storyPointId: string
+): Promise<void> {
   await page.goto(`${BASE}/spaces/${spaceId}/story-points/${storyPointId}`, { timeout: 15_000 });
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(3000);
 }
 
 /** Navigate to practice mode for a story point. */
-async function navigateToPractice(page: Page, spaceId: string, storyPointId: string): Promise<void> {
+async function navigateToPractice(
+  page: Page,
+  spaceId: string,
+  storyPointId: string
+): Promise<void> {
   await page.goto(`${BASE}/spaces/${spaceId}/practice/${storyPointId}`, { timeout: 15_000 });
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState("domcontentloaded");
   await page.waitForTimeout(3000);
 }
 
@@ -179,18 +191,18 @@ async function answerAnyQuestion(page: Page): Promise<boolean> {
 // TEST SUITES
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe.serial('Student Progress -- StoryPointViewer', () => {
+test.describe.serial("Student Progress -- StoryPointViewer", () => {
   test.setTimeout(120_000);
 
   let firstStoryPointId: string;
 
-  test('SP-1: Login and navigate to DSA space', async ({ page, context }) => {
+  test("SP-1: Login and navigate to DSA space", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // Space page should have the space title as h1
-    const h1 = page.locator('h1').first();
+    const h1 = page.locator("h1").first();
     await expect(h1).toBeVisible({ timeout: 15_000 });
     const h1Text = await h1.textContent();
     expect(h1Text).toBeTruthy();
@@ -199,13 +211,15 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     await expect(page.locator('a:has-text("Spaces")')).toBeVisible({ timeout: 10_000 });
 
     // Story point cards should be rendered as links
-    const spLinks = page.locator('a[href*="/story-points/"], a[href*="/practice/"], a[href*="/test/"]');
+    const spLinks = page.locator(
+      'a[href*="/story-points/"], a[href*="/practice/"], a[href*="/test/"]'
+    );
     await expect(spLinks.first()).toBeVisible({ timeout: 15_000 });
     const linkCount = await spLinks.count();
     expect(linkCount).toBeGreaterThanOrEqual(1);
   });
 
-  test('SP-2: Navigate to story point and verify items load', async ({ page, context }) => {
+  test("SP-2: Navigate to story point and verify items load", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Use the first standard story point
@@ -213,20 +227,20 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     await navigateToStoryPoint(page, DSA_SPACE, firstStoryPointId);
 
     // h1 should display the story point title
-    const h1 = page.locator('h1').first();
+    const h1 = page.locator("h1").first();
     await expect(h1).toBeVisible({ timeout: 15_000 });
 
     // Breadcrumb should be present with space link
     await expect(page.locator('a[href*="/spaces/"]').first()).toBeVisible({ timeout: 10_000 });
 
     // Items should render -- look for cards (rounded-lg border bg-card)
-    const itemCards = page.locator('.rounded-lg.border.bg-card');
+    const itemCards = page.locator(".rounded-lg.border.bg-card");
     await expect(itemCards.first()).toBeVisible({ timeout: 15_000 });
     const itemCount = await itemCards.count();
     expect(itemCount).toBeGreaterThanOrEqual(1);
   });
 
-  test('SP-3: Answer an MCQ question and verify feedback appears', async ({ page, context }) => {
+  test("SP-3: Answer an MCQ question and verify feedback appears", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Navigate through standard story points until we find one with an MCQ
@@ -270,12 +284,14 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     expect(feedbackText).toMatch(/Correct|Incorrect|Partially/i);
 
     // Points display (score/maxScore) should be present
-    await expect(feedback.locator('text=/\\d+\\/\\d+/')).toBeVisible({ timeout: 5000 }).catch(() => {
-      // Points display is optional if score is null -- that's OK
-    });
+    await expect(feedback.locator("text=/\\d+\\/\\d+/"))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {
+        // Points display is optional if score is null -- that's OK
+      });
   });
 
-  test('SP-4: Progress persists after page reload', async ({ page, context }) => {
+  test("SP-4: Progress persists after page reload", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Navigate to the story point where we answered
@@ -288,7 +304,7 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
 
     // Reload the page
     await page.reload({ timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(4000);
 
     // After reload, check for completion indicators:
@@ -299,7 +315,7 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     // Also check for the "Completed" filter option working
     // or that the progress data loaded (items should show completed state)
     // At minimum, the page should still render items
-    const itemCards = page.locator('.rounded-lg.border.bg-card');
+    const itemCards = page.locator(".rounded-lg.border.bg-card");
     await expect(itemCards.first()).toBeVisible({ timeout: 15_000 });
 
     // If completionIcons are found, great -- progress persisted
@@ -322,10 +338,10 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     }
 
     // The page rendered without error after reload -- basic persistence check
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SP-5: Multiple answers in same story point', async ({ page, context }) => {
+  test("SP-5: Multiple answers in same story point", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Find a story point with multiple answerable questions
@@ -337,7 +353,7 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
       await page.waitForTimeout(2000);
 
       // Count available questions (item cards with radio/button inputs)
-      const questionCards = page.locator('.rounded-lg.border.bg-card');
+      const questionCards = page.locator(".rounded-lg.border.bg-card");
       const cardCount = await questionCards.count();
 
       if (cardCount >= 2) {
@@ -353,7 +369,7 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
             await radio.first().click({ timeout: 3000 });
             await page.waitForTimeout(300);
             const submit = card.locator('button:has-text("Submit Answer")');
-            if ((await submit.count()) > 0 && await submit.isEnabled()) {
+            if ((await submit.count()) > 0 && (await submit.isEnabled())) {
               await submit.click();
               await page.waitForTimeout(2000);
               answeredCount++;
@@ -363,7 +379,7 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
             await trueBtn.click({ timeout: 3000 });
             await page.waitForTimeout(300);
             const submit = card.locator('button:has-text("Submit Answer")');
-            if ((await submit.count()) > 0 && await submit.isEnabled()) {
+            if ((await submit.count()) > 0 && (await submit.isEnabled())) {
               await submit.click();
               await page.waitForTimeout(2000);
               answeredCount++;
@@ -379,16 +395,16 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
     // Verify we answered at least 2 (may be fewer if content is limited)
     if (answeredCount < 2) {
       // Relax: even 1 answer across different story points counts
-      test.skip(answeredCount === 0, 'No answerable questions found in standard story points');
+      test.skip(answeredCount === 0, "No answerable questions found in standard story points");
     }
 
     // Reload and verify all feedback panels persisted
     await page.reload({ timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(4000);
 
     // Items should still render
-    const items = page.locator('.rounded-lg.border.bg-card');
+    const items = page.locator(".rounded-lg.border.bg-card");
     await expect(items.first()).toBeVisible({ timeout: 15_000 });
   });
 });
@@ -397,10 +413,10 @@ test.describe.serial('Student Progress -- StoryPointViewer', () => {
 // MATERIAL COMPLETION
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe.serial('Student Progress -- Material Completion', () => {
+test.describe.serial("Student Progress -- Material Completion", () => {
   test.setTimeout(120_000);
 
-  test('MAT-1: Material marks as complete when viewed', async ({ page, context }) => {
+  test("MAT-1: Material marks as complete when viewed", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Navigate through story points looking for one with material items
@@ -421,7 +437,7 @@ test.describe.serial('Student Progress -- Material Completion', () => {
           await page.waitForTimeout(2000);
 
           // Check if any item cards are shown
-          const materialCards = page.locator('.rounded-lg.border.bg-card');
+          const materialCards = page.locator(".rounded-lg.border.bg-card");
           const matCount = await materialCards.count();
           if (matCount > 0) {
             foundMaterial = true;
@@ -456,7 +472,7 @@ test.describe.serial('Student Progress -- Material Completion', () => {
 
     if (!foundMaterial) {
       // Materials might be at the item level without a filter -- just verify the page renders
-      test.skip(true, 'No material items found in standard story points for this space');
+      test.skip(true, "No material items found in standard story points for this space");
     }
   });
 });
@@ -465,51 +481,55 @@ test.describe.serial('Student Progress -- Material Completion', () => {
 // PRACTICE MODE
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe.serial('Student Progress -- Practice Mode', () => {
+test.describe.serial("Student Progress -- Practice Mode", () => {
   test.setTimeout(180_000);
 
   const PRACTICE_SP = STORY_POINTS.practice[0]; // Graphs
 
-  test('PM-1: Practice mode page loads with header and progress', async ({ page, context }) => {
+  test("PM-1: Practice mode page loads with header and progress", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToPractice(page, DSA_SPACE, PRACTICE_SP.id);
 
     // h1 should display the story point title
-    const h1 = page.locator('h1').first();
+    const h1 = page.locator("h1").first();
     await expect(h1).toBeVisible({ timeout: 15_000 });
 
     // "Practice Mode" subtitle should be visible
-    await expect(page.locator('text=Practice Mode')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=Practice Mode")).toBeVisible({ timeout: 10_000 });
 
     // Progress counter (e.g., "0/5 Solved") should be visible
-    const solvedCounter = page.locator('text=/\\d+\\/\\d+/').first();
+    const solvedCounter = page.locator("text=/\\d+\\/\\d+/").first();
     await expect(solvedCounter).toBeVisible({ timeout: 10_000 });
 
     // Question navigator should be present
-    const navigator = page.locator('[role="navigation"][aria-label*="Practice question navigator"]');
+    const navigator = page.locator(
+      '[role="navigation"][aria-label*="Practice question navigator"]'
+    );
     if ((await navigator.count()) > 0) {
       await expect(navigator).toBeVisible({ timeout: 10_000 });
     }
 
     // ProgressBar component should be rendered
-    const progressLabel = page.locator('text=Progress');
+    const progressLabel = page.locator("text=Progress");
     await expect(progressLabel).toBeVisible({ timeout: 10_000 });
 
     // Difficulty filter badges should be present
-    await expect(page.locator('text=easy').first()).toBeVisible({ timeout: 10_000 }).catch(() => {
-      // Difficulty badges may not render if no questions have difficulty set
-    });
+    await expect(page.locator("text=easy").first())
+      .toBeVisible({ timeout: 10_000 })
+      .catch(() => {
+        // Difficulty badges may not render if no questions have difficulty set
+      });
   });
 
-  test('PM-2: Answer a question in practice mode', async ({ page, context }) => {
+  test("PM-2: Answer a question in practice mode", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToPractice(page, DSA_SPACE, PRACTICE_SP.id);
     await page.waitForTimeout(3000);
 
     // The current question is rendered in a card
-    const questionCard = page.locator('.rounded-lg.border.bg-card').first();
+    const questionCard = page.locator(".rounded-lg.border.bg-card").first();
     await expect(questionCard).toBeVisible({ timeout: 15_000 });
 
     // Try answering (MCQ or True/False)
@@ -520,7 +540,7 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
       const nextBtn = page.locator('button:has-text("Next")').last();
       let found = false;
       for (let i = 0; i < 5; i++) {
-        if ((await nextBtn.count()) > 0 && await nextBtn.isEnabled()) {
+        if ((await nextBtn.count()) > 0 && (await nextBtn.isEnabled())) {
           await nextBtn.click();
           await page.waitForTimeout(1500);
           if (await answerAnyQuestion(page)) {
@@ -544,7 +564,7 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
     expect(feedbackVisible || tryAgainVisible).toBe(true);
   });
 
-  test('PM-3: Practice mode progress persists after reload', async ({ page, context }) => {
+  test("PM-3: Practice mode progress persists after reload", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToPractice(page, DSA_SPACE, PRACTICE_SP.id);
@@ -559,28 +579,30 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
 
     // Reload the page
     await page.reload({ timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(5000);
 
     // The page should re-render with the practice mode UI
-    await expect(page.locator('text=Practice Mode')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("text=Practice Mode")).toBeVisible({ timeout: 15_000 });
 
     // The solved counter should reflect previous answers (restored from RTDB)
-    const solvedText = page.locator('text=/\\d+\\/\\d+/').first();
+    const solvedText = page.locator("text=/\\d+\\/\\d+/").first();
     await expect(solvedText).toBeVisible({ timeout: 10_000 });
 
     // Question navigator buttons should show answered state (colored buttons)
-    const navigatorButtons = page.locator('[role="navigation"][aria-label*="Practice question navigator"] button');
+    const navigatorButtons = page.locator(
+      '[role="navigation"][aria-label*="Practice question navigator"] button'
+    );
     if ((await navigatorButtons.count()) > 0) {
       // At least one button should exist
       await expect(navigatorButtons.first()).toBeVisible({ timeout: 10_000 });
     }
 
     // The page renders successfully -- RTDB persistence is working
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('PM-4: Practice mode Try Again allows re-answering', async ({ page, context }) => {
+  test("PM-4: Practice mode Try Again allows re-answering", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToPractice(page, DSA_SPACE, PRACTICE_SP.id);
@@ -589,7 +611,7 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
     // Answer a question
     const answered = await answerAnyQuestion(page);
     if (!answered) {
-      test.skip(true, 'No answerable questions found in practice mode');
+      test.skip(true, "No answerable questions found in practice mode");
       return;
     }
 
@@ -608,9 +630,11 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
 
       // Feedback panel should be gone
       const feedback = page.locator('[aria-live="polite"]');
-      await expect(feedback).not.toBeVisible({ timeout: 5000 }).catch(() => {
-        // Feedback may still be visible if there was a previous evaluation -- OK
-      });
+      await expect(feedback)
+        .not.toBeVisible({ timeout: 5000 })
+        .catch(() => {
+          // Feedback may still be visible if there was a previous evaluation -- OK
+        });
     }
   });
 });
@@ -619,33 +643,37 @@ test.describe.serial('Student Progress -- Practice Mode', () => {
 // SPACE PROGRESS DISPLAY
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe.serial('Student Progress -- Space Progress Display', () => {
+test.describe.serial("Student Progress -- Space Progress Display", () => {
   test.setTimeout(120_000);
 
-  test('PROG-1: Space viewer shows overall progress bar', async ({ page, context }) => {
+  test("PROG-1: Space viewer shows overall progress bar", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // The SpaceViewerPage renders a ProgressBar with label "Overall Progress"
-    const progressLabel = page.locator('text=Overall Progress');
+    const progressLabel = page.locator("text=Overall Progress");
     await expect(progressLabel).toBeVisible({ timeout: 15_000 });
 
     // The progress bar itself should render (role="progressbar" or a div with percentage width)
     // ProgressBar component renders percentage-based width
-    const progressContainer = page.locator('[role="progressbar"], .rounded-full.bg-muted, .h-2.rounded-full').first();
+    const progressContainer = page
+      .locator('[role="progressbar"], .rounded-full.bg-muted, .h-2.rounded-full')
+      .first();
     if ((await progressContainer.count()) > 0) {
       await expect(progressContainer).toBeVisible({ timeout: 10_000 });
     }
   });
 
-  test('PROG-2: Story point cards show per-story-point progress', async ({ page, context }) => {
+  test("PROG-2: Story point cards show per-story-point progress", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // Story point cards are Link elements with progress info
-    const spCards = page.locator('a[href*="/story-points/"], a[href*="/practice/"], a[href*="/test/"]');
+    const spCards = page.locator(
+      'a[href*="/story-points/"], a[href*="/practice/"], a[href*="/test/"]'
+    );
     await expect(spCards.first()).toBeVisible({ timeout: 15_000 });
     const cardCount = await spCards.count();
     expect(cardCount).toBeGreaterThanOrEqual(1);
@@ -655,86 +683,90 @@ test.describe.serial('Student Progress -- Space Progress Display', () => {
     // Test cards show "Start Test" or "Completed -- X%"
     // At minimum, all cards should have a title (h3)
     const firstCard = spCards.first();
-    const h3 = firstCard.locator('h3');
+    const h3 = firstCard.locator("h3");
     await expect(h3).toBeVisible({ timeout: 10_000 });
 
     // Check for items count display (e.g., "10 items")
-    const itemsLabel = firstCard.locator('text=/\\d+ items/');
+    const itemsLabel = firstCard.locator("text=/\\d+ items/");
     if ((await itemsLabel.count()) > 0) {
       await expect(itemsLabel).toBeVisible({ timeout: 5000 });
     }
   });
 
-  test('PROG-3: Space Overview tab shows module statistics', async ({ page, context }) => {
+  test("PROG-3: Space Overview tab shows module statistics", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // Click the "Overview" tab
-    const overviewTab = page.locator('[role="tab"]:has-text("Overview"), button:has-text("Overview")').first();
+    const overviewTab = page
+      .locator('[role="tab"]:has-text("Overview"), button:has-text("Overview")')
+      .first();
     await expect(overviewTab).toBeVisible({ timeout: 15_000 });
     await overviewTab.click();
     await page.waitForTimeout(2000);
 
     // Overview tab should show:
     // 1. Modules count card
-    const modulesCard = page.locator('text=Modules');
+    const modulesCard = page.locator("text=Modules");
     await expect(modulesCard).toBeVisible({ timeout: 10_000 });
 
     // 2. Total Items card
-    const itemsCard = page.locator('text=Total Items');
+    const itemsCard = page.locator("text=Total Items");
     await expect(itemsCard).toBeVisible({ timeout: 10_000 });
 
     // 3. Total Points card
-    const pointsCard = page.locator('text=Total Points');
+    const pointsCard = page.locator("text=Total Points");
     await expect(pointsCard).toBeVisible({ timeout: 10_000 });
 
     // 4. Module Type Breakdown section
-    const typeBreakdown = page.locator('text=Module Type Breakdown');
+    const typeBreakdown = page.locator("text=Module Type Breakdown");
     await expect(typeBreakdown).toBeVisible({ timeout: 10_000 });
 
     // 5. Difficulty Distribution section
-    const difficultyDist = page.locator('text=Difficulty Distribution');
+    const difficultyDist = page.locator("text=Difficulty Distribution");
     await expect(difficultyDist).toBeVisible({ timeout: 10_000 });
   });
 
-  test('PROG-4: AI Analytics tab shows performance insights', async ({ page, context }) => {
+  test("PROG-4: AI Analytics tab shows performance insights", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // Click the "AI Analytics" tab
-    const analyticsTab = page.locator('[role="tab"]:has-text("AI Analytics"), button:has-text("AI Analytics")').first();
+    const analyticsTab = page
+      .locator('[role="tab"]:has-text("AI Analytics"), button:has-text("AI Analytics")')
+      .first();
     await expect(analyticsTab).toBeVisible({ timeout: 15_000 });
     await analyticsTab.click();
     await page.waitForTimeout(2000);
 
     // AI Analytics tab should show:
     // 1. Completion Rate insight
-    const completionRate = page.locator('text=Completion Rate');
+    const completionRate = page.locator("text=Completion Rate");
     await expect(completionRate).toBeVisible({ timeout: 10_000 });
 
     // 2. Avg Score insight
-    const avgScore = page.locator('text=Avg Score');
+    const avgScore = page.locator("text=Avg Score");
     await expect(avgScore).toBeVisible({ timeout: 10_000 });
 
     // 3. Module Performance section
-    const modulePerf = page.locator('text=Module Performance');
+    const modulePerf = page.locator("text=Module Performance");
     await expect(modulePerf).toBeVisible({ timeout: 10_000 });
 
     // 4. AI Recommendations section
-    const recommendations = page.locator('text=AI Recommendations');
+    const recommendations = page.locator("text=AI Recommendations");
     await expect(recommendations).toBeVisible({ timeout: 10_000 });
   });
 
-  test('PROG-5: Points display on space page', async ({ page, context }) => {
+  test("PROG-5: Points display on space page", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToSpace(page, DSA_SPACE);
 
     // If the student has earned points, they should be displayed
     // Points are shown as "{earned}/{total} pts" near a Trophy icon
-    const ptsLabel = page.locator('text=/\\d+\\/\\d+ pts/').first();
+    const ptsLabel = page.locator("text=/\\d+\\/\\d+ pts/").first();
     if ((await ptsLabel.count()) > 0) {
       await expect(ptsLabel).toBeVisible({ timeout: 10_000 });
     }
@@ -752,10 +784,10 @@ test.describe.serial('Student Progress -- Space Progress Display', () => {
 // NAVIGATION AND CONTENT FILTERS
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe.serial('Student Progress -- Navigation & Filters', () => {
+test.describe.serial("Student Progress -- Navigation & Filters", () => {
   test.setTimeout(120_000);
 
-  test('NAV-1: Story point viewer has prev/next navigation', async ({ page, context }) => {
+  test("NAV-1: Story point viewer has prev/next navigation", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     // Navigate to a middle story point (not first or last)
@@ -767,7 +799,7 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
 
     // The prev/next nav bar should be present
     // It shows "X / Y" position indicator
-    const positionIndicator = page.locator('text=/\\d+ \\/ \\d+/').first();
+    const positionIndicator = page.locator("text=/\\d+ \\/ \\d+/").first();
     if ((await positionIndicator.count()) > 0) {
       await expect(positionIndicator).toBeVisible({ timeout: 10_000 });
     }
@@ -778,7 +810,7 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
     expect(prevVisible || nextVisible).toBe(true);
   });
 
-  test('NAV-2: Content filters work in story point viewer', async ({ page, context }) => {
+  test("NAV-2: Content filters work in story point viewer", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToStoryPoint(page, DSA_SPACE, STORY_POINTS.standard[0].id);
@@ -797,8 +829,12 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
       await page.waitForTimeout(500);
 
       // Should have "Questions" and "Materials" options
-      await expect(page.locator('[role="option"]:has-text("Questions")')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('[role="option"]:has-text("Materials")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('[role="option"]:has-text("Questions")')).toBeVisible({
+        timeout: 5000,
+      });
+      await expect(page.locator('[role="option"]:has-text("Materials")')).toBeVisible({
+        timeout: 5000,
+      });
 
       // Select "Questions" to filter
       await page.locator('[role="option"]:has-text("Questions")').click();
@@ -826,7 +862,7 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
     }
   });
 
-  test('NAV-3: Breadcrumbs navigate correctly', async ({ page, context }) => {
+  test("NAV-3: Breadcrumbs navigate correctly", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await navigateToStoryPoint(page, DSA_SPACE, STORY_POINTS.standard[0].id);
@@ -839,12 +875,12 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
     const spaceLink = page.locator(`nav a[href*="/spaces/${DSA_SPACE}"]`).first();
     if ((await spaceLink.count()) > 0) {
       await spaceLink.click();
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
       // Should now be on the space viewer page
       await expect(page).toHaveURL(new RegExp(`/spaces/${DSA_SPACE}`));
-      await expect(page.locator('h1').first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
     }
   });
 });
@@ -853,18 +889,18 @@ test.describe.serial('Student Progress -- Navigation & Filters', () => {
 // CROSS-SPACE PROGRESS
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe('Student Progress -- Dashboard & Spaces List', () => {
+test.describe("Student Progress -- Dashboard & Spaces List", () => {
   test.setTimeout(120_000);
 
-  test('DASH-1: Spaces list page loads and shows space cards', async ({ page, context }) => {
+  test("DASH-1: Spaces list page loads and shows space cards", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await page.goto(`${BASE}/spaces`, { timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(3000);
 
     // h1 should be present
-    const h1 = page.locator('h1').first();
+    const h1 = page.locator("h1").first();
     await expect(h1).toBeVisible({ timeout: 15_000 });
 
     // DSA space card should be present
@@ -872,36 +908,39 @@ test.describe('Student Progress -- Dashboard & Spaces List', () => {
     await expect(dsaCard).toBeVisible({ timeout: 15_000 });
   });
 
-  test('DASH-2: Dashboard shows student info', async ({ page, context }) => {
+  test("DASH-2: Dashboard shows student info", async ({ page, context }) => {
     await loginAsTestStudent(page, context);
 
     await page.goto(`${BASE}/`, { timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
 
     // Dashboard heading
-    await expect(page.locator('h1')).toContainText('Dashboard', { timeout: 40_000 });
+    await expect(page.locator("h1")).toContainText("Dashboard", { timeout: 40_000 });
 
     // The page should not show any error states
-    await expect(page.locator('body')).not.toContainText('Something went wrong', { timeout: 5000 });
+    await expect(page.locator("body")).not.toContainText("Something went wrong", { timeout: 5000 });
   });
 
-  test('DASH-3: Navigate from dashboard to space to story point and back', async ({ page, context }) => {
+  test("DASH-3: Navigate from dashboard to space to story point and back", async ({
+    page,
+    context,
+  }) => {
     await loginAsTestStudent(page, context);
 
     // Start at dashboard
     await page.goto(`${BASE}/`, { timeout: 15_000 });
-    await expect(page.locator('h1')).toContainText('Dashboard', { timeout: 40_000 });
+    await expect(page.locator("h1")).toContainText("Dashboard", { timeout: 40_000 });
 
     // Navigate to spaces (via sidebar or link)
     await page.goto(`${BASE}/spaces`, { timeout: 15_000 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(2000);
 
     // Click on DSA space
     const dsaCard = page.locator(`a[href*="${DSA_SPACE}"]`).first();
     if ((await dsaCard.count()) > 0) {
       await dsaCard.click();
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
       // Should be on space viewer
@@ -911,18 +950,18 @@ test.describe('Student Progress -- Dashboard & Spaces List', () => {
       const spLink = page.locator('a[href*="/story-points/"]').first();
       if ((await spLink.count()) > 0) {
         await spLink.click();
-        await page.waitForLoadState('domcontentloaded');
+        await page.waitForLoadState("domcontentloaded");
         await page.waitForTimeout(2000);
 
         // Should be on story point viewer
         await expect(page).toHaveURL(/\/story-points\//);
-        await expect(page.locator('h1').first()).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
 
         // Navigate back via breadcrumb
         const backLink = page.locator(`nav a[href*="/spaces/${DSA_SPACE}"]`).first();
         if ((await backLink.count()) > 0) {
           await backLink.click();
-          await page.waitForLoadState('domcontentloaded');
+          await page.waitForLoadState("domcontentloaded");
           await page.waitForTimeout(2000);
           await expect(page).toHaveURL(new RegExp(`/spaces/${DSA_SPACE}`));
         }

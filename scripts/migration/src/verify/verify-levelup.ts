@@ -2,15 +2,15 @@
  * Verify LevelUp migration: compare source vs target counts and spot-check data.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
 import {
   countDocs,
   spotCheckDocument,
   printVerificationResults,
   type VerificationResult,
-} from '../utils/verification.js';
-import { MigrationLogger } from '../utils/logger.js';
+} from "../utils/verification.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 export async function verifyLevelUp(options: {
   orgId: string;
@@ -32,51 +32,47 @@ export async function verifyLevelUp(options: {
   logger.info(`Tenant ${tenantId} exists: ${tenantSnap.data()?.name}`);
 
   // 2. Verify spaces (from courses)
-  const sourceCourseCount = await countDocs(
-    db.collection('courses').where('orgId', '==', orgId)
-  );
-  const targetSpaceCount = await countDocs(
-    db.collection(`tenants/${tenantId}/spaces`)
-  );
+  const sourceCourseCount = await countDocs(db.collection("courses").where("orgId", "==", orgId));
+  const targetSpaceCount = await countDocs(db.collection(`tenants/${tenantId}/spaces`));
   results.push({
-    collection: 'Spaces (from courses)',
+    collection: "Spaces (from courses)",
     sourceCount: sourceCourseCount,
     targetCount: targetSpaceCount,
     match: sourceCourseCount === targetSpaceCount,
     spotCheckPassed: true,
-    errors: sourceCourseCount !== targetSpaceCount
-      ? [`Count mismatch: source=${sourceCourseCount}, target=${targetSpaceCount}`]
-      : [],
+    errors:
+      sourceCourseCount !== targetSpaceCount
+        ? [`Count mismatch: source=${sourceCourseCount}, target=${targetSpaceCount}`]
+        : [],
   });
 
   // 3. Verify user memberships
-  const sourceUserOrgCount = await countDocs(
-    db.collection('userOrgs').where('orgId', '==', orgId)
-  );
+  const sourceUserOrgCount = await countDocs(db.collection("userOrgs").where("orgId", "==", orgId));
   // Count memberships for this tenant (approximate — we check by tenantId)
   const targetMembershipCount = await countDocs(
-    db.collection('userMemberships').where('tenantId', '==', tenantId)
+    db.collection("userMemberships").where("tenantId", "==", tenantId)
   );
   results.push({
-    collection: 'UserMemberships',
+    collection: "UserMemberships",
     sourceCount: sourceUserOrgCount,
     targetCount: targetMembershipCount,
     match: sourceUserOrgCount <= targetMembershipCount, // target may have more (admins added)
     spotCheckPassed: true,
-    errors: sourceUserOrgCount > targetMembershipCount
-      ? [`Missing memberships: source=${sourceUserOrgCount}, target=${targetMembershipCount}`]
-      : [],
+    errors:
+      sourceUserOrgCount > targetMembershipCount
+        ? [`Missing memberships: source=${sourceUserOrgCount}, target=${targetMembershipCount}`]
+        : [],
   });
 
   // 4. Verify items for each course
-  const coursesSnap = await db.collection('courses').where('orgId', '==', orgId).get();
+  const coursesSnap = await db.collection("courses").where("orgId", "==", orgId).get();
   let totalSourceItems = 0;
   let totalTargetItems = 0;
 
   for (const courseDoc of coursesSnap.docs) {
     const courseId = courseDoc.id;
     const sourceItemCount = await countDocs(
-      db.collection('items').where('courseId', '==', courseId)
+      db.collection("items").where("courseId", "==", courseId)
     );
     const targetItemCount = await countDocs(
       db.collection(`tenants/${tenantId}/spaces/${courseId}/items`)
@@ -86,14 +82,15 @@ export async function verifyLevelUp(options: {
   }
 
   results.push({
-    collection: 'Items (all spaces)',
+    collection: "Items (all spaces)",
     sourceCount: totalSourceItems,
     targetCount: totalTargetItems,
     match: totalSourceItems === totalTargetItems,
     spotCheckPassed: true,
-    errors: totalSourceItems !== totalTargetItems
-      ? [`Count mismatch: source=${totalSourceItems}, target=${totalTargetItems}`]
-      : [],
+    errors:
+      totalSourceItems !== totalTargetItems
+        ? [`Count mismatch: source=${totalSourceItems}, target=${totalTargetItems}`]
+        : [],
   });
 
   // 5. Verify storyPoints for each course
@@ -103,7 +100,7 @@ export async function verifyLevelUp(options: {
   for (const courseDoc of coursesSnap.docs) {
     const courseId = courseDoc.id;
     const sourceSpCount = await countDocs(
-      db.collection('storyPoints').where('courseId', '==', courseId)
+      db.collection("storyPoints").where("courseId", "==", courseId)
     );
     const targetSpCount = await countDocs(
       db.collection(`tenants/${tenantId}/spaces/${courseId}/storyPoints`)
@@ -113,14 +110,15 @@ export async function verifyLevelUp(options: {
   }
 
   results.push({
-    collection: 'StoryPoints (all spaces)',
+    collection: "StoryPoints (all spaces)",
     sourceCount: totalSourceStoryPoints,
     targetCount: totalTargetStoryPoints,
     match: totalSourceStoryPoints === totalTargetStoryPoints,
     spotCheckPassed: true,
-    errors: totalSourceStoryPoints !== totalTargetStoryPoints
-      ? [`Count mismatch: source=${totalSourceStoryPoints}, target=${totalTargetStoryPoints}`]
-      : [],
+    errors:
+      totalSourceStoryPoints !== totalTargetStoryPoints
+        ? [`Count mismatch: source=${totalSourceStoryPoints}, target=${totalTargetStoryPoints}`]
+        : [],
   });
 
   // 6. Verify chat sessions
@@ -129,22 +127,21 @@ export async function verifyLevelUp(options: {
 
   for (const courseDoc of coursesSnap.docs) {
     totalSourceChatSessions += await countDocs(
-      db.collection('chatSessions').where('courseId', '==', courseDoc.id)
+      db.collection("chatSessions").where("courseId", "==", courseDoc.id)
     );
   }
-  totalTargetChatSessions = await countDocs(
-    db.collection(`tenants/${tenantId}/chatSessions`)
-  );
+  totalTargetChatSessions = await countDocs(db.collection(`tenants/${tenantId}/chatSessions`));
 
   results.push({
-    collection: 'ChatSessions',
+    collection: "ChatSessions",
     sourceCount: totalSourceChatSessions,
     targetCount: totalTargetChatSessions,
     match: totalSourceChatSessions === totalTargetChatSessions,
     spotCheckPassed: true,
-    errors: totalSourceChatSessions !== totalTargetChatSessions
-      ? [`Count mismatch: source=${totalSourceChatSessions}, target=${totalTargetChatSessions}`]
-      : [],
+    errors:
+      totalSourceChatSessions !== totalTargetChatSessions
+        ? [`Count mismatch: source=${totalSourceChatSessions}, target=${totalTargetChatSessions}`]
+        : [],
   });
 
   // 7. Spot-check: verify first course → space mapping
@@ -154,11 +151,11 @@ export async function verifyLevelUp(options: {
       db,
       `courses/${firstCourse.id}`,
       `tenants/${tenantId}/spaces/${firstCourse.id}`,
-      { title: 'title', slug: 'slug' },
+      { title: "title", slug: "slug" },
       logger
     );
     if (!spotCheck.passed) {
-      const spaceResult = results.find((r) => r.collection.includes('Spaces'));
+      const spaceResult = results.find((r) => r.collection.includes("Spaces"));
       if (spaceResult) {
         spaceResult.spotCheckPassed = false;
         spaceResult.errors.push(...spotCheck.errors);

@@ -119,15 +119,10 @@
   },
   "quizMode": {
     "tested": true,
-    "questionTypesFound": [
-      "MCQ",
-      "MCAQ"
-    ],
+    "questionTypesFound": ["MCQ", "MCAQ"],
     "resultsDisplayed": false,
     "submitWorks": true,
-    "notes": [
-      "Quiz: h1=\"DSA Comprehensive Quiz\", mcq=8, mcaq=4"
-    ]
+    "notes": ["Quiz: h1=\"DSA Comprehensive Quiz\", mcq=8, mcaq=4"]
   },
   "timedAssessment": {
     "tested": true,
@@ -136,9 +131,7 @@
     "startButtonVisible": false,
     "autoSubmit": null,
     "analyticsShown": false,
-    "notes": [
-      "Timed test: h1=\"DSA Staff-Level Assessment\", timer=false, startBtn=false"
-    ]
+    "notes": ["Timed test: h1=\"DSA Staff-Level Assessment\", timer=false, startBtn=false"]
   },
   "learningEffectiveness": {
     "score": 9,

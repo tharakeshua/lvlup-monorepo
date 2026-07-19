@@ -8,7 +8,7 @@
  * @module progress/analytics
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 // ── Daily Cost Summary ──────────────────────────────────────────────────────
 
@@ -22,19 +22,25 @@ export interface DailyCostSummary {
   totalOutputTokens: number;
   totalCostUsd: number;
 
-  byPurpose: Record<string, {
-    calls: number;
-    inputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-  }>;
+  byPurpose: Record<
+    string,
+    {
+      calls: number;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+    }
+  >;
 
-  byModel: Record<string, {
-    calls: number;
-    inputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-  }>;
+  byModel: Record<
+    string,
+    {
+      calls: number;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+    }
+  >;
 
   budgetLimitUsd?: number;
   budgetUsedPercent?: number;
@@ -46,11 +52,11 @@ export interface DailyCostSummary {
 // ── At-Risk Detection ───────────────────────────────────────────────────────
 
 export type AtRiskReason =
-  | 'low_exam_score'
-  | 'no_recent_activity'
-  | 'low_space_completion'
-  | 'declining_performance'
-  | 'zero_streak';
+  | "low_exam_score"
+  | "no_recent_activity"
+  | "low_space_completion"
+  | "declining_performance"
+  | "zero_streak";
 
 export interface AtRiskDetectionResult {
   studentId: string;

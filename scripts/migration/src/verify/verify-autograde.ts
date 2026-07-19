@@ -2,14 +2,14 @@
  * Verify AutoGrade migration: compare source vs target counts and spot-check data.
  */
 
-import { getFirestore } from '../config.js';
+import { getFirestore } from "../config.js";
 import {
   verifyCollectionCounts,
   spotCheckDocument,
   printVerificationResults,
   type VerificationResult,
-} from '../utils/verification.js';
-import { MigrationLogger } from '../utils/logger.js';
+} from "../utils/verification.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 export async function verifyAutograde(options: {
   clientId: string;
@@ -36,7 +36,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/classes`,
       `tenants/${tenantId}/classes`,
-      'Classes',
+      "Classes",
       logger
     )
   );
@@ -47,7 +47,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/exams`,
       `tenants/${tenantId}/exams`,
-      'Exams',
+      "Exams",
       logger
     )
   );
@@ -58,7 +58,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/submissions`,
       `tenants/${tenantId}/submissions`,
-      'Submissions',
+      "Submissions",
       logger
     )
   );
@@ -69,7 +69,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/evaluationSettings`,
       `tenants/${tenantId}/evaluationSettings`,
-      'EvaluationSettings',
+      "EvaluationSettings",
       logger
     )
   );
@@ -80,7 +80,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/students`,
       `tenants/${tenantId}/students`,
-      'Students',
+      "Students",
       logger
     )
   );
@@ -91,7 +91,7 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/teachers`,
       `tenants/${tenantId}/teachers`,
-      'Teachers',
+      "Teachers",
       logger
     )
   );
@@ -104,11 +104,11 @@ export async function verifyAutograde(options: {
       db,
       `clients/${clientId}/exams/${examId}`,
       `tenants/${tenantId}/exams/${examId}`,
-      { title: 'title', totalMarks: 'totalMarks', subject: 'subject' },
+      { title: "title", totalMarks: "totalMarks", subject: "subject" },
       logger
     );
     if (!spotCheck.passed) {
-      const examResult = results.find((r) => r.collection === 'Exams');
+      const examResult = results.find((r) => r.collection === "Exams");
       if (examResult) {
         examResult.spotCheckPassed = false;
         examResult.errors.push(...spotCheck.errors);

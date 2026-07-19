@@ -1,4 +1,4 @@
-import type { NumericalData } from '@levelup/shared-types';
+import type { NumericalData } from "@levelup/shared-types";
 
 interface NumericalAnswererProps {
   data: NumericalData;
@@ -7,7 +7,12 @@ interface NumericalAnswererProps {
   disabled?: boolean;
 }
 
-export default function NumericalAnswerer({ data, value = '', onChange, disabled }: NumericalAnswererProps) {
+export default function NumericalAnswerer({
+  data,
+  value = "",
+  onChange,
+  disabled,
+}: NumericalAnswererProps) {
   return (
     <div className="flex items-center gap-2">
       <input
@@ -15,13 +20,11 @@ export default function NumericalAnswerer({ data, value = '', onChange, disabled
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        step={data.decimalPlaces ? Math.pow(10, -data.decimalPlaces) : 'any'}
+        step={data.decimalPlaces ? Math.pow(10, -data.decimalPlaces) : "any"}
         placeholder="Enter your answer"
-        className="flex-1 rounded-md border border-input px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus:outline-none disabled:opacity-60"
+        className="border-input focus-visible:ring-ring flex-1 rounded-md border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 disabled:opacity-60"
       />
-      {data.unit && (
-        <span className="text-sm text-muted-foreground">{data.unit}</span>
-      )}
+      {data.unit && <span className="text-muted-foreground text-sm">{data.unit}</span>}
     </div>
   );
 }

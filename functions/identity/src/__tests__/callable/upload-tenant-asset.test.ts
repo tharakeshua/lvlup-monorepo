@@ -3,32 +3,32 @@
  * Tests auth, permission checks, content type validation,
  * file path generation, and signed URL response.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpsError } from 'firebase-functions/v2/https';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { HttpsError } from "firebase-functions/v2/https";
 
 // ── Mock firebase-admin ─────────────────────────────────────────────
 const mockGetSignedUrl = vi.fn();
 const mockBucketFile = vi.fn();
 
-vi.mock('firebase-admin', () => {
+vi.mock("firebase-admin", () => {
   const firestoreFn: any = () => ({
     collection: () => ({
       doc: () => ({
-        id: 'auto-id',
+        id: "auto-id",
         get: vi.fn(),
         set: vi.fn(),
         update: vi.fn(),
       }),
     }),
     doc: (path: string) => ({
-      id: path.split('/').pop(),
+      id: path.split("/").pop(),
       get: vi.fn(),
       set: vi.fn(),
       update: vi.fn(),
     }),
   });
   firestoreFn.FieldValue = {
-    serverTimestamp: () => 'SERVER_TIMESTAMP',
+    serverTimestamp: () => "SERVER_TIMESTAMP",
     increment: (n: number) => `INCREMENT(${n})`,
   };
   firestoreFn.Timestamp = { now: () => ({ toDate: () => new Date() }) };
@@ -38,7 +38,7 @@ vi.mock('firebase-admin', () => {
         mockBucketFile(p);
         return { getSignedUrl: mockGetSignedUrl };
       },
-      name: 'test-bucket',
+      name: "test-bucket",
     }),
   });
   return {
@@ -57,104 +57,104 @@ vi.mock('firebase-admin', () => {
 const mockAssertTenantAdminOrSuperAdmin = vi.fn();
 const mockParseRequest = vi.fn((data: any, _schema: any) => data);
 
-vi.mock('../../utils', () => ({
+vi.mock("../../utils", () => ({
   assertTenantAdminOrSuperAdmin: (...args: unknown[]) => mockAssertTenantAdminOrSuperAdmin(...args),
   parseRequest: (...args: unknown[]) => mockParseRequest(...args),
 }));
 
-vi.mock('../../utils/rate-limit', () => ({
+vi.mock("../../utils/rate-limit", () => ({
   enforceRateLimit: vi.fn(),
 }));
 
 // ── Mock firebase-functions ─────────────────────────────────────────
-vi.mock('firebase-functions/v2/https', () => ({
+vi.mock("firebase-functions/v2/https", () => ({
   onCall: (_opts: any, handler: any) => handler,
   HttpsError: class HttpsError extends Error {
     code: string;
     constructor(code: string, message: string) {
       super(message);
       this.code = code;
-      this.name = 'HttpsError';
+      this.name = "HttpsError";
     }
   },
 }));
 
-vi.mock('firebase-functions/v2', () => ({
+vi.mock("firebase-functions/v2", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 // ── Import after mocks ─────────────────────────────────────────────
-import { uploadTenantAsset } from '../../callable/upload-tenant-asset';
+import { uploadTenantAsset } from "../../callable/upload-tenant-asset";
 
 const handler = uploadTenantAsset as unknown as (request: any) => Promise<any>;
 
-describe('uploadTenantAsset', () => {
-  const callerUid = 'admin-uid';
-  const tenantId = 'tenant-1';
+describe("uploadTenantAsset", () => {
+  const callerUid = "admin-uid";
+  const tenantId = "tenant-1";
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAssertTenantAdminOrSuperAdmin.mockResolvedValue(undefined);
-    mockGetSignedUrl.mockResolvedValue(['https://storage.googleapis.com/signed-url']);
+    mockGetSignedUrl.mockResolvedValue(["https://storage.googleapis.com/signed-url"]);
   });
 
   // ── Auth ──────────────────────────────────────────────────────────
 
-  it('throws unauthenticated when no auth provided', async () => {
+  it("throws unauthenticated when no auth provided", async () => {
     await expect(
       handler({
         auth: null,
-        data: { tenantId, assetType: 'logo', contentType: 'image/png' },
-      }),
-    ).rejects.toThrow('Must be logged in');
+        data: { tenantId, assetType: "logo", contentType: "image/png" },
+      })
+    ).rejects.toThrow("Must be logged in");
   });
 
-  it('throws permission-denied when caller is not admin', async () => {
+  it("throws permission-denied when caller is not admin", async () => {
     mockAssertTenantAdminOrSuperAdmin.mockRejectedValue(
-      new HttpsError('permission-denied', 'Must be TenantAdmin or SuperAdmin'),
+      new HttpsError("permission-denied", "Must be TenantAdmin or SuperAdmin")
     );
 
     await expect(
       handler({
-        auth: { uid: 'random-user' },
-        data: { tenantId, assetType: 'logo', contentType: 'image/png' },
-      }),
-    ).rejects.toThrow('Must be TenantAdmin or SuperAdmin');
+        auth: { uid: "random-user" },
+        data: { tenantId, assetType: "logo", contentType: "image/png" },
+      })
+    ).rejects.toThrow("Must be TenantAdmin or SuperAdmin");
   });
 
   // ── Content Type Validation ───────────────────────────────────────
 
-  it('throws invalid-argument for disallowed content type', async () => {
+  it("throws invalid-argument for disallowed content type", async () => {
     await expect(
       handler({
         auth: { uid: callerUid },
-        data: { tenantId, assetType: 'logo', contentType: 'application/pdf' },
-      }),
-    ).rejects.toThrow('Invalid content type');
+        data: { tenantId, assetType: "logo", contentType: "application/pdf" },
+      })
+    ).rejects.toThrow("Invalid content type");
   });
 
   it.each([
-    ['image/png', 'png'],
-    ['image/jpeg', 'jpg'],
-    ['image/svg+xml', 'svg'],
-    ['image/webp', 'webp'],
-  ])('accepts valid content type %s', async (contentType, _ext) => {
+    ["image/png", "png"],
+    ["image/jpeg", "jpg"],
+    ["image/svg+xml", "svg"],
+    ["image/webp", "webp"],
+  ])("accepts valid content type %s", async (contentType, _ext) => {
     await expect(
       handler({
         auth: { uid: callerUid },
-        data: { tenantId, assetType: 'logo', contentType },
-      }),
+        data: { tenantId, assetType: "logo", contentType },
+      })
     ).resolves.toBeDefined();
   });
 
   // ── File Path ─────────────────────────────────────────────────────
 
-  it('generates correct file path with tenantId, assetType, and extension', async () => {
+  it("generates correct file path with tenantId, assetType, and extension", async () => {
     const beforeTimestamp = Date.now();
 
     await handler({
       auth: { uid: callerUid },
-      data: { tenantId, assetType: 'banner', contentType: 'image/jpeg' },
+      data: { tenantId, assetType: "banner", contentType: "image/jpeg" },
     });
 
     const afterTimestamp = Date.now();
@@ -174,43 +174,45 @@ describe('uploadTenantAsset', () => {
 
   // ── Response ──────────────────────────────────────────────────────
 
-  it('returns uploadUrl from getSignedUrl result', async () => {
-    mockGetSignedUrl.mockResolvedValue(['https://storage.googleapis.com/upload-signed']);
+  it("returns uploadUrl from getSignedUrl result", async () => {
+    mockGetSignedUrl.mockResolvedValue(["https://storage.googleapis.com/upload-signed"]);
 
     const result = await handler({
       auth: { uid: callerUid },
-      data: { tenantId, assetType: 'logo', contentType: 'image/png' },
+      data: { tenantId, assetType: "logo", contentType: "image/png" },
     });
 
-    expect(result.uploadUrl).toBe('https://storage.googleapis.com/upload-signed');
+    expect(result.uploadUrl).toBe("https://storage.googleapis.com/upload-signed");
   });
 
-  it('returns publicUrl with correct bucket and file path format', async () => {
+  it("returns publicUrl with correct bucket and file path format", async () => {
     const result = await handler({
       auth: { uid: callerUid },
-      data: { tenantId, assetType: 'favicon', contentType: 'image/webp' },
+      data: { tenantId, assetType: "favicon", contentType: "image/webp" },
     });
 
     expect(result.publicUrl).toMatch(
-      new RegExp(`^https://storage\\.googleapis\\.com/test-bucket/tenants/${tenantId}/branding/favicon-\\d+\\.webp$`),
+      new RegExp(
+        `^https://storage\\.googleapis\\.com/test-bucket/tenants/${tenantId}/branding/favicon-\\d+\\.webp$`
+      )
     );
   });
 
   // ── Signed URL Options ────────────────────────────────────────────
 
-  it('calls getSignedUrl with v4, write action, and 15-minute expiry', async () => {
+  it("calls getSignedUrl with v4, write action, and 15-minute expiry", async () => {
     const beforeTimestamp = Date.now();
 
     await handler({
       auth: { uid: callerUid },
-      data: { tenantId, assetType: 'logo', contentType: 'image/png' },
+      data: { tenantId, assetType: "logo", contentType: "image/png" },
     });
 
     expect(mockGetSignedUrl).toHaveBeenCalledTimes(1);
     const opts = mockGetSignedUrl.mock.calls[0][0];
-    expect(opts.version).toBe('v4');
-    expect(opts.action).toBe('write');
-    expect(opts.contentType).toBe('image/png');
+    expect(opts.version).toBe("v4");
+    expect(opts.action).toBe("write");
+    expect(opts.contentType).toBe("image/png");
 
     // Verify expiry is ~15 minutes from now
     const fifteenMinMs = 15 * 60 * 1000;

@@ -14,10 +14,31 @@
   "passRateEvolution": {
     "cycle0": { "passRate": "63%", "working": 34, "broken": 5, "p0Bugs": 3 },
     "cycle1": { "passRate": "97.6%", "fixed": 4, "regressions": 0 },
-    "cycle2": { "passRate": "90.4%", "fixed": 3, "regressions": 0, "note": "More tests added, lowering rate" },
-    "cycle3": { "passRate": "97%", "working": 48, "broken": 2, "regressions": 2, "fixedRegressions": 2 },
-    "cycle4": { "passRate": ">=97%", "broken": 0, "regressions": 0, "note": "P0s from Cycle 3 fixed, additional P1/P3 fixes" },
-    "cycle5": { "passRate": ">=97%", "broken": 0, "regressions": 0, "note": "Based on Cycle 3 audit + all subsequent fixes" }
+    "cycle2": {
+      "passRate": "90.4%",
+      "fixed": 3,
+      "regressions": 0,
+      "note": "More tests added, lowering rate"
+    },
+    "cycle3": {
+      "passRate": "97%",
+      "working": 48,
+      "broken": 2,
+      "regressions": 2,
+      "fixedRegressions": 2
+    },
+    "cycle4": {
+      "passRate": ">=97%",
+      "broken": 0,
+      "regressions": 0,
+      "note": "P0s from Cycle 3 fixed, additional P1/P3 fixes"
+    },
+    "cycle5": {
+      "passRate": ">=97%",
+      "broken": 0,
+      "regressions": 0,
+      "note": "Based on Cycle 3 audit + all subsequent fixes"
+    }
   },
 
   "learnerScoreEvolution": {
@@ -233,7 +254,10 @@
       "systemDesignLearner": { "sessions": 2, "scoreImprovement": "5.5 -> 8.5" },
       "lldLearner": { "sessions": 2, "scoreImprovement": "1.0 -> 7.0" },
       "behavioralLearner": { "sessions": 2, "scoreImprovement": "2.5 -> 9.0" },
-      "contentManager": { "sessions": 1, "contentCreated": "3 subjects, 36 story points, 250+ items" }
+      "contentManager": {
+        "sessions": 1,
+        "contentCreated": "3 subjects, 36 story points, 250+ items"
+      }
     }
   },
 

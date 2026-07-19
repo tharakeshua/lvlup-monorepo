@@ -4,7 +4,7 @@
  * @module autograde/exam-analytics
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface ScoreDistributionBucket {
   min: number;

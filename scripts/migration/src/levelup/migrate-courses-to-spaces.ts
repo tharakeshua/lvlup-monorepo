@@ -5,10 +5,10 @@
  * Only migrates courses that belong to the given org.
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacyCourse {
   _docId: string;
@@ -45,8 +45,8 @@ interface LegacyStoryPoint {
 
 /** Map legacy course type to new SpaceType. */
 function mapSpaceType(legacyType?: string): string {
-  if (legacyType === 'practice_range') return 'practice';
-  return 'learning';
+  if (legacyType === "practice_range") return "practice";
+  return "learning";
 }
 
 export async function migrateCoursesToSpaces(options: {
@@ -62,7 +62,7 @@ export async function migrateCoursesToSpaces(options: {
 
   // Get courses belonging to this org
   const courses = await readAllDocs<LegacyCourse>(
-    db.collection('courses').where('orgId', '==', orgId) as admin.firestore.Query
+    db.collection("courses").where("orgId", "==", orgId) as admin.firestore.Query
   );
   logger.info(`Found ${courses.length} courses`);
 
@@ -74,7 +74,7 @@ export async function migrateCoursesToSpaces(options: {
 
       if (await docExists(db, targetPath)) {
         logger.debug(`Space ${spaceId} already migrated, skipping`);
-        return { action: 'skipped', id: spaceId };
+        return { action: "skipped", id: spaceId };
       }
 
       const newSpace = {
@@ -88,9 +88,9 @@ export async function migrateCoursesToSpaces(options: {
         labels: course.labels || [],
         classIds: [],
         teacherIds: course.adminUids || [course.ownerUid],
-        accessType: course.isPublic ? 'public_store' : 'tenant_wide',
+        accessType: course.isPublic ? "public_store" : "tenant_wide",
         defaultEvaluatorAgentId: course.defaultEvaluatorAgentId || null,
-        status: 'published' as const,
+        status: "published" as const,
         stats: {
           totalStoryPoints: 0,
           totalItems: 0,
@@ -101,7 +101,7 @@ export async function migrateCoursesToSpaces(options: {
           ? admin.firestore.Timestamp.fromMillis(course.createdAt)
           : admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'levelup',
+        _migratedFrom: "levelup",
         _migrationSourcePath: `courses/${spaceId}`,
       };
 
@@ -113,7 +113,7 @@ export async function migrateCoursesToSpaces(options: {
 
       // Migrate storyPoints for this course
       const storyPoints = await readAllDocs<LegacyStoryPoint>(
-        db.collection('storyPoints').where('courseId', '==', spaceId) as admin.firestore.Query
+        db.collection("storyPoints").where("courseId", "==", spaceId) as admin.firestore.Query
       );
 
       for (const sp of storyPoints) {
@@ -128,7 +128,7 @@ export async function migrateCoursesToSpaces(options: {
           description: sp.description || null,
           orderIndex: sp.orderIndex,
           difficulty: sp.difficulty || null,
-          type: sp.type || 'standard',
+          type: sp.type || "standard",
           durationMinutes: sp.durationMinutes || null,
           content: sp.content || null,
           sections: sp.sections || [],
@@ -141,7 +141,7 @@ export async function migrateCoursesToSpaces(options: {
             ? admin.firestore.Timestamp.fromMillis(sp.createdAt)
             : admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now(),
-          _migratedFrom: 'levelup',
+          _migratedFrom: "levelup",
         };
 
         if (dryRun) {
@@ -151,7 +151,7 @@ export async function migrateCoursesToSpaces(options: {
         }
       }
 
-      return { action: 'created', id: spaceId };
+      return { action: "created", id: spaceId };
     },
     { dryRun, logger }
   );

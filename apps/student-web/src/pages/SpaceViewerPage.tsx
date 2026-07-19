@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSpace, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
+import { spacesListHref, storyPointHref, testHref, practiceHref } from "../lib/space-paths";
 import ProgressBar from "../components/common/ProgressBar";
 import {
   Button,
@@ -45,14 +46,16 @@ import {
 export default function SpaceViewerPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     data: spaceData,
     isLoading: spaceLoading,
     isError: spaceError,
     refetch: refetchSpace,
-  } = useSpace<{ space: Space }>(spaceId ?? "");
-  const space = spaceData?.space;
+  } = useSpace<Space>(spaceId ?? "");
+  // Repo unwraps `{ space }` — hook data IS the SpaceView.
+  const space = spaceData;
   const { data: storyPoints, isLoading: spLoading } = useStoryPoints(null, spaceId ?? null);
   const { data: progressData } = useSpaceProgress(asSpaceId(spaceId ?? ""));
   const progress = (progressData ?? null) as SpaceProgress | null;
@@ -64,20 +67,22 @@ export default function SpaceViewerPage() {
 
   // Find the first incomplete item for resume
   const resumeTarget = useMemo(() => {
-    if (!storyPoints?.length || !progress) return null;
+    if (!storyPoints?.length || !progress || !spaceId) return null;
     for (const sp of storyPoints) {
       const spProgress = progress.storyPoints[sp.id];
       if (!spProgress || spProgress.status !== "completed") {
         const isTest = sp.type === "timed_test" || sp.type === "test";
         const isPractice = sp.type === "practice";
-        const base = `/spaces/${spaceId}`;
-        if (isTest) return { link: `${base}/test/${sp.id}`, storyPointId: sp.id };
-        if (isPractice) return { link: `${base}/practice/${sp.id}`, storyPointId: sp.id };
-        return { link: `${base}/story-points/${sp.id}`, storyPointId: sp.id };
+        const link = isTest
+          ? testHref(location.pathname, spaceId, sp.id)
+          : isPractice
+            ? practiceHref(location.pathname, spaceId, sp.id)
+            : storyPointHref(location.pathname, spaceId, sp.id);
+        return { link, storyPointId: sp.id };
       }
     }
     return null;
-  }, [storyPoints, progress, spaceId]);
+  }, [storyPoints, progress, spaceId, location.pathname]);
 
   if (spaceLoading || spLoading) {
     return (
@@ -120,7 +125,7 @@ export default function SpaceViewerPage() {
         <p className="font-display text-fg text-lg">This space isn&apos;t available</p>
         <p className="text-fg-secondary mt-1 text-sm">It may have moved or been removed.</p>
         <Button variant="outline" size="sm" asChild className="mt-4">
-          <Link to="/spaces">Back to Spaces</Link>
+          <Link to={spacesListHref(location.pathname)}>Back to Spaces</Link>
         </Button>
       </div>
     );
@@ -139,7 +144,7 @@ export default function SpaceViewerPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/spaces">Spaces</Link>
+              <Link to={spacesListHref(location.pathname)}>Spaces</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -283,18 +288,18 @@ function StoryPointNode({
   isUpNext: boolean;
   progress?: StoryPointProgress;
 }) {
+  const location = useLocation();
   const isTest = storyPoint.type === "timed_test" || storyPoint.type === "test";
   const isPractice = storyPoint.type === "practice";
   const percentage = progress?.percentage ?? 0;
   const isCompleted = progress?.status === "completed";
   const isInProgress = !isCompleted && (progress?.status === "in_progress" || percentage > 0);
 
-  const linkBase = `/spaces/${spaceId}`;
   const link = isTest
-    ? `${linkBase}/test/${storyPoint.id}`
+    ? testHref(location.pathname, spaceId, storyPoint.id)
     : isPractice
-      ? `${linkBase}/practice/${storyPoint.id}`
-      : `${linkBase}/story-points/${storyPoint.id}`;
+      ? practiceHref(location.pathname, spaceId, storyPoint.id)
+      : storyPointHref(location.pathname, spaceId, storyPoint.id);
 
   const { Icon } = TYPE_META[storyPoint.type] ?? TYPE_META.standard;
 

@@ -32,14 +32,12 @@ export default function SpaceProgressPage() {
   const studentIds = linkedStudents?.map((s) => s.uid) ?? [];
   const { data: progressList, isLoading } = useChildProgress(
     tenantId,
-    studentIds.length > 0 ? studentIds : undefined,
+    studentIds.length > 0 ? studentIds : undefined
   );
 
   const { data: studentNames } = useStudentNames(tenantId, studentIds);
 
-  const uniqueSpaceIds = [
-    ...new Set(progressList?.map((p) => p.spaceId).filter(Boolean) ?? []),
-  ];
+  const uniqueSpaceIds = [...new Set(progressList?.map((p) => p.spaceId).filter(Boolean) ?? [])];
   const { data: spaceNames } = useSpaceNames(tenantId, uniqueSpaceIds);
 
   // Build a name lookup from linked students membership data
@@ -58,14 +56,14 @@ export default function SpaceProgressPage() {
       acc[key].push(prog);
       return acc;
     },
-    {} as Record<string, SpaceProgress[]>,
+    {} as Record<string, SpaceProgress[]>
   );
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Space Progress</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Track your children's learning progress across spaces
         </p>
       </div>
@@ -82,12 +80,10 @@ export default function SpaceProgressPage() {
         <div className="space-y-6">
           {Object.entries(byStudent ?? {}).map(([studentId, progressItems]) => (
             <div key={studentId} className="space-y-3">
-              <h2 className="text-lg font-semibold">
-                {studentNameFromMembership(studentId)}
-              </h2>
+              <h2 className="text-lg font-semibold">{studentNameFromMembership(studentId)}</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {progressItems.map((prog) => (
-                  <Card key={prog.id} className="hover:shadow-sm transition-shadow">
+                  <Card key={prog.id} className="transition-shadow hover:shadow-sm">
                     <CardContent className="pt-4">
                       <div className="flex items-start justify-between">
                         <div>
@@ -108,17 +104,15 @@ export default function SpaceProgressPage() {
                           </Badge>
                         </div>
                         <div className="text-right">
-                          <p className="text-xl font-bold">
-                            {Math.round(prog.percentage)}%
-                          </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xl font-bold">{Math.round(prog.percentage)}%</p>
+                          <p className="text-muted-foreground text-xs">
                             {prog.pointsEarned}/{prog.totalPoints} pts
                           </p>
                         </div>
                       </div>
                       <div className="mt-3">
                         <div
-                          className="h-2 w-full rounded-full bg-muted"
+                          className="bg-muted h-2 w-full rounded-full"
                           role="progressbar"
                           aria-valuenow={Math.round(prog.percentage)}
                           aria-valuemin={0}
@@ -127,9 +121,7 @@ export default function SpaceProgressPage() {
                         >
                           <div
                             className={`h-2 rounded-full transition-all ${
-                              prog.status === "completed"
-                                ? "bg-success"
-                                : "bg-info"
+                              prog.status === "completed" ? "bg-success" : "bg-info"
                             }`}
                             style={{
                               width: `${Math.min(100, prog.percentage)}%`,
@@ -138,12 +130,13 @@ export default function SpaceProgressPage() {
                         </div>
                       </div>
                       {prog.storyPoints && (
-                        <div className="mt-3 text-xs text-muted-foreground">
-                          {Object.values(prog.storyPoints).filter(
-                            (sp) => sp.status === "completed",
-                          ).length}
-                          /{Object.values(prog.storyPoints).length} story points
-                          completed
+                        <div className="text-muted-foreground mt-3 text-xs">
+                          {
+                            Object.values(prog.storyPoints).filter(
+                              (sp) => sp.status === "completed"
+                            ).length
+                          }
+                          /{Object.values(prog.storyPoints).length} story points completed
                         </div>
                       )}
                     </CardContent>

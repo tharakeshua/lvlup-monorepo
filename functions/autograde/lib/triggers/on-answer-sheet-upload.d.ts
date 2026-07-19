@@ -12,4 +12,6 @@
  * callable is preferred. This Storage trigger serves as an alternative path
  * for bulk file uploads via GCS or automated scanning pipelines.
  */
-export declare const onAnswerSheetUpload: import("firebase-functions/core").CloudFunction<import("firebase-functions/storage").StorageEvent>;
+export declare const onAnswerSheetUpload: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/storage").StorageEvent
+>;

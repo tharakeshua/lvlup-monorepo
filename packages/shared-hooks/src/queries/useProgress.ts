@@ -127,7 +127,7 @@ export function useStoryPointProgress(
       if (!spaceDocSnap.exists()) return null;
 
       const spaceData = spaceDocSnap.data();
-      const legacyItems: Record<string, any> = spaceData?.items ?? {};
+      const legacyItems: Record<string, any> = spaceData?.["items"] ?? {};
 
       // Filter items belonging to this storyPoint
       const itemsForSP: Record<string, any> = {};
@@ -141,7 +141,8 @@ export function useStoryPointProgress(
       if (Object.keys(itemsForSP).length === 0) return null;
 
       // Synthesize a StoryPointProgressDoc from the legacy data
-      const spSummary = spaceData?.storyPoints?.[storyPointId];
+      const storyPoints = spaceData?.["storyPoints"] as Record<string, any> | undefined;
+      const spSummary = storyPoints?.[storyPointId];
       return {
         storyPointId,
         status: spSummary?.status ?? "in_progress",

@@ -25,22 +25,22 @@ export function RetryErrorCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-destructive/20 bg-destructive/5",
+        "border-destructive/20 bg-destructive/5 rounded-lg border",
         compact ? "p-3" : "p-5",
-        className,
+        className
       )}
       role="alert"
     >
       <div className="flex items-start gap-3">
         <AlertCircle
           className={cn(
-            "flex-shrink-0 text-destructive",
-            compact ? "h-4 w-4 mt-0.5" : "h-5 w-5 mt-0.5",
+            "text-destructive flex-shrink-0",
+            compact ? "mt-0.5 h-4 w-4" : "mt-0.5 h-5 w-5"
           )}
           aria-hidden="true"
         />
-        <div className="flex-1 min-w-0">
-          <h4 className={cn("font-medium text-destructive", compact ? "text-sm" : "text-base")}>
+        <div className="min-w-0 flex-1">
+          <h4 className={cn("text-destructive font-medium", compact ? "text-sm" : "text-base")}>
             {title}
           </h4>
           {message && (
@@ -51,8 +51,8 @@ export function RetryErrorCard({
           <button
             onClick={onRetry}
             className={cn(
-              "mt-2 inline-flex items-center gap-1.5 rounded-md border border-destructive/30 bg-background font-medium text-destructive transition-colors hover:bg-destructive/10",
-              compact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
+              "border-destructive/30 bg-background text-destructive hover:bg-destructive/10 mt-2 inline-flex items-center gap-1.5 rounded-md border font-medium transition-colors",
+              compact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm"
             )}
           >
             <RefreshCw className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden="true" />

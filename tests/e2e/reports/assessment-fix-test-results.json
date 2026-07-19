@@ -26,18 +26,13 @@
         "name": "chromium",
         "testDir": "/Users/subhang/Desktop/Projects/auto-levleup/tests/e2e",
         "testIgnore": [],
-        "testMatch": [
-          "assessment-fix-test.spec.ts"
-        ],
+        "testMatch": ["assessment-fix-test.spec.ts"],
         "timeout": 300000
       }
     ],
     "quiet": false,
     "reporter": [
-      [
-        "list",
-        null
-      ],
+      ["list", null],
       [
         "json",
         {

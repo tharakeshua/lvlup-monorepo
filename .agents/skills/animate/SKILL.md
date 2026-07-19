@@ -1,6 +1,8 @@
 ---
 name: animate
-description: Review a feature and enhance it with purposeful animations, micro-interactions, and motion effects that improve usability and delight.
+description:
+  Review a feature and enhance it with purposeful animations,
+  micro-interactions, and motion effects that improve usability and delight.
 user-invokable: true
 args:
   - name: target
@@ -8,24 +10,33 @@ args:
     required: false
 ---
 
-Analyze a feature and strategically add animations and micro-interactions that enhance understanding, provide feedback, and create delight.
+Analyze a feature and strategically add animations and micro-interactions that
+enhance understanding, provide feedback, and create delight.
 
 ## MANDATORY PREPARATION
 
 ### Context Gathering (Do This First)
 
-You cannot do a great job without having necessary context, such as target audience (critical), desired use-cases (critical), brand personality/tone (playful vs serious, energetic vs calm), and performance constraints.
+You cannot do a great job without having necessary context, such as target
+audience (critical), desired use-cases (critical), brand personality/tone
+(playful vs serious, energetic vs calm), and performance constraints.
 
 Attempt to gather these from the current thread or codebase.
 
-1. If you don't find *exact* information and have to infer from existing design and functionality, you MUST STOP and STOP and call the AskUserQuestionTool to clarify. whether you got it right.
-2. Otherwise, if you can't fully infer or your level of confidence is medium or lower, you MUST STOP and call the AskUserQuestionTool to clarify. clarifying questions first to complete your context.
+1. If you don't find _exact_ information and have to infer from existing design
+   and functionality, you MUST STOP and STOP and call the AskUserQuestionTool to
+   clarify. whether you got it right.
+2. Otherwise, if you can't fully infer or your level of confidence is medium or
+   lower, you MUST STOP and call the AskUserQuestionTool to clarify. clarifying
+   questions first to complete your context.
 
-Do NOT proceed until you have answers. Guessing leads to inappropriate or excessive animation.
+Do NOT proceed until you have answers. Guessing leads to inappropriate or
+excessive animation.
 
 ### Use frontend-design skill
 
-Use the frontend-design skill for design principles and anti-patterns. Do NOT proceed until it has executed and you know all DO's and DON'Ts.
+Use the frontend-design skill for design principles and anti-patterns. Do NOT
+proceed until it has executed and you know all DO's and DON'Ts.
 
 ---
 
@@ -34,9 +45,12 @@ Use the frontend-design skill for design principles and anti-patterns. Do NOT pr
 Analyze where motion would improve the experience:
 
 1. **Identify static areas**:
-   - **Missing feedback**: Actions without visual acknowledgment (button clicks, form submission, etc.)
-   - **Jarring transitions**: Instant state changes that feel abrupt (show/hide, page loads, route changes)
-   - **Unclear relationships**: Spatial or hierarchical relationships that aren't obvious
+   - **Missing feedback**: Actions without visual acknowledgment (button clicks,
+     form submission, etc.)
+   - **Jarring transitions**: Instant state changes that feel abrupt (show/hide,
+     page loads, route changes)
+   - **Unclear relationships**: Spatial or hierarchical relationships that
+     aren't obvious
    - **Lack of delight**: Functional but joyless interactions
    - **Missed guidance**: Opportunities to direct attention or explain behavior
 
@@ -46,32 +60,40 @@ Analyze where motion would improve the experience:
    - Who's the audience? (Motion-sensitive users? Power users who want speed?)
    - What matters most? (One hero animation vs many micro-interactions?)
 
-If any of these are unclear from the codebase, STOP and call the AskUserQuestionTool to clarify.
+If any of these are unclear from the codebase, STOP and call the
+AskUserQuestionTool to clarify.
 
-**CRITICAL**: Respect `prefers-reduced-motion`. Always provide non-animated alternatives for users who need them.
+**CRITICAL**: Respect `prefers-reduced-motion`. Always provide non-animated
+alternatives for users who need them.
 
 ## Plan Animation Strategy
 
 Create a purposeful animation plan:
 
-- **Hero moment**: What's the ONE signature animation? (Page load? Hero section? Key interaction?)
+- **Hero moment**: What's the ONE signature animation? (Page load? Hero section?
+  Key interaction?)
 - **Feedback layer**: Which interactions need acknowledgment?
 - **Transition layer**: Which state changes need smoothing?
 - **Delight layer**: Where can we surprise and delight?
 
-**IMPORTANT**: One well-orchestrated experience beats scattered animations everywhere. Focus on high-impact moments.
+**IMPORTANT**: One well-orchestrated experience beats scattered animations
+everywhere. Focus on high-impact moments.
 
 ## Implement Animations
 
 Add motion systematically across these categories:
 
 ### Entrance Animations
-- **Page load choreography**: Stagger element reveals (100-150ms delays), fade + slide combinations
-- **Hero section**: Dramatic entrance for primary content (scale, parallax, or creative effects)
+
+- **Page load choreography**: Stagger element reveals (100-150ms delays), fade +
+  slide combinations
+- **Hero section**: Dramatic entrance for primary content (scale, parallax, or
+  creative effects)
 - **Content reveals**: Scroll-triggered animations using intersection observer
 - **Modal/drawer entry**: Smooth slide + fade, backdrop fade, focus management
 
 ### Micro-interactions
+
 - **Button feedback**:
   - Hover: Subtle scale (1.02-1.05), color shift, shadow increase
   - Click: Quick scale down then up (0.95 → 1), ripple effect
@@ -84,6 +106,7 @@ Add motion systematically across these categories:
 - **Like/favorite**: Scale + rotation, particle effects, color transition
 
 ### State Transitions
+
 - **Show/hide**: Fade + slide (not instant), appropriate timing (200-300ms)
 - **Expand/collapse**: Height transition with overflow handling, icon rotation
 - **Loading states**: Skeleton screen fades, spinner animations, progress bars
@@ -91,22 +114,28 @@ Add motion systematically across these categories:
 - **Enable/disable**: Opacity transitions, cursor changes
 
 ### Navigation & Flow
+
 - **Page transitions**: Crossfade between routes, shared element transitions
 - **Tab switching**: Slide indicator, content fade/slide
 - **Carousel/slider**: Smooth transforms, snap points, momentum
-- **Scroll effects**: Parallax layers, sticky headers with state changes, scroll progress indicators
+- **Scroll effects**: Parallax layers, sticky headers with state changes, scroll
+  progress indicators
 
 ### Feedback & Guidance
+
 - **Hover hints**: Tooltip fade-ins, cursor changes, element highlights
-- **Drag & drop**: Lift effect (shadow + scale), drop zone highlights, smooth repositioning
+- **Drag & drop**: Lift effect (shadow + scale), drop zone highlights, smooth
+  repositioning
 - **Copy/paste**: Brief highlight flash on paste, "copied" confirmation
 - **Focus flow**: Highlight path through form or workflow
 
 ### Delight Moments
+
 - **Empty states**: Subtle floating animations on illustrations
 - **Completed actions**: Confetti, check mark flourish, success celebrations
 - **Easter eggs**: Hidden interactions for discovery
-- **Contextual animation**: Weather effects, time-of-day themes, seasonal touches
+- **Contextual animation**: Weather effects, time-of-day themes, seasonal
+  touches
 
 ## Technical Implementation
 
@@ -115,17 +144,19 @@ Use appropriate techniques for each animation:
 ### Timing & Easing
 
 **Durations by purpose:**
+
 - **100-150ms**: Instant feedback (button press, toggle)
 - **200-300ms**: State changes (hover, menu open)
 - **300-500ms**: Layout changes (accordion, modal)
 - **500-800ms**: Entrance animations (page load)
 
 **Easing curves (use these, not CSS defaults):**
+
 ```css
 /* Recommended - natural deceleration */
---ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);    /* Smooth, refined */
---ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);   /* Slightly snappier */
---ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);     /* Confident, decisive */
+--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1); /* Smooth, refined */
+--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1); /* Slightly snappier */
+--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1); /* Confident, decisive */
 
 /* AVOID - feel dated and tacky */
 /* bounce: cubic-bezier(0.34, 1.56, 0.64, 1); */
@@ -135,6 +166,7 @@ Use appropriate techniques for each animation:
 **Exit animations are faster than entrances.** Use ~75% of enter duration.
 
 ### CSS Animations
+
 ```css
 /* Prefer for simple, declarative animations */
 - transitions for state changes
@@ -143,6 +175,7 @@ Use appropriate techniques for each animation:
 ```
 
 ### JavaScript Animation
+
 ```javascript
 /* Use for complex, interactive animations */
 - Web Animations API for programmatic control
@@ -151,12 +184,14 @@ Use appropriate techniques for each animation:
 ```
 
 ### Performance
+
 - **GPU acceleration**: Use `transform` and `opacity`, avoid layout properties
 - **will-change**: Add sparingly for known expensive animations
 - **Reduce paint**: Minimize repaints, use `contain` where appropriate
 - **Monitor FPS**: Ensure 60fps on target devices
 
 ### Accessibility
+
 ```css
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -168,7 +203,9 @@ Use appropriate techniques for each animation:
 ```
 
 **NEVER**:
-- Use bounce or elastic easing curves—they feel dated and draw attention to the animation itself
+
+- Use bounce or elastic easing curves—they feel dated and draw attention to the
+  animation itself
 - Animate layout properties (width, height, top, left)—use transform instead
 - Use durations over 500ms for feedback—it feels laggy
 - Animate without purpose—every animation needs a reason
@@ -187,4 +224,7 @@ Test animations thoroughly:
 - **Doesn't block**: Users can interact during/after animations
 - **Adds value**: Makes interface clearer or more delightful
 
-Remember: Motion should enhance understanding and provide feedback, not just add decoration. Animate with purpose, respect performance constraints, and always consider accessibility. Great animation is invisible - it just makes everything feel right.
+Remember: Motion should enhance understanding and provide feedback, not just add
+decoration. Animate with purpose, respect performance constraints, and always
+consider accessibility. Great animation is invisible - it just makes everything
+feel right.

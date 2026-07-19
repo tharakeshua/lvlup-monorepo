@@ -11,8 +11,8 @@ import {
   DatabaseReference,
   DataSnapshot,
   Unsubscribe,
-} from 'firebase/database';
-import { getFirebaseServices } from '../firebase';
+} from "firebase/database";
+import { getFirebaseServices } from "../firebase";
 
 /**
  * Realtime Database Service
@@ -58,11 +58,7 @@ export class RealtimeDBService {
   /**
    * Write data to a location
    */
-  async setData<T = unknown>(
-    orgId: string,
-    path: string,
-    data: T
-  ): Promise<void> {
+  async setData<T = unknown>(orgId: string, path: string, data: T): Promise<void> {
     const dbRef = this.getRef(orgId, path);
     return set(dbRef, data);
   }
@@ -70,11 +66,7 @@ export class RealtimeDBService {
   /**
    * Update specific fields at a location
    */
-  async updateData(
-    orgId: string,
-    path: string,
-    updates: Record<string, unknown>
-  ): Promise<void> {
+  async updateData(orgId: string, path: string, updates: Record<string, unknown>): Promise<void> {
     const dbRef = this.getRef(orgId, path);
     return update(dbRef, updates);
   }

@@ -118,10 +118,7 @@
   },
   "quizMode": {
     "tested": true,
-    "questionTypesFound": [
-      "MCQ",
-      "MCAQ"
-    ],
+    "questionTypesFound": ["MCQ", "MCAQ"],
     "resultsDisplayed": true,
     "submitWorks": true,
     "shuffleDetected": false,

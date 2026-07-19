@@ -1,7 +1,7 @@
-import { HttpsError } from 'firebase-functions/v2/https';
-import { getTenant } from './firestore-helpers';
+import { HttpsError } from "firebase-functions/v2/https";
+import { getTenant } from "./firestore-helpers";
 
-type QuotaResource = 'student' | 'teacher' | 'space' | 'exam';
+type QuotaResource = "student" | "teacher" | "space" | "exam";
 
 /**
  * Assert a tenant has not exceeded the subscription quota for the given resource.
@@ -14,35 +14,38 @@ type QuotaResource = 'student' | 'teacher' | 'space' | 'exam';
 export async function assertQuota(
   tenantId: string,
   resource: QuotaResource,
-  batchSize = 1,
+  batchSize = 1
 ): Promise<void> {
   const tenant = await getTenant(tenantId);
   if (!tenant) {
-    throw new HttpsError('not-found', 'Tenant not found');
+    throw new HttpsError("not-found", "Tenant not found");
   }
 
   const { subscription, stats, usage } = tenant;
 
-  const quotaMap: Record<QuotaResource, { max: number | undefined; current: number; label: string }> = {
+  const quotaMap: Record<
+    QuotaResource,
+    { max: number | undefined; current: number; label: string }
+  > = {
     student: {
       max: subscription.maxStudents,
       current: stats.totalStudents,
-      label: 'students',
+      label: "students",
     },
     teacher: {
       max: subscription.maxTeachers,
       current: stats.totalTeachers,
-      label: 'teachers',
+      label: "teachers",
     },
     space: {
       max: subscription.maxSpaces,
       current: stats.totalSpaces,
-      label: 'spaces',
+      label: "spaces",
     },
     exam: {
       max: subscription.maxExamsPerMonth,
       current: usage?.examsThisMonth ?? stats.totalExams,
-      label: 'exams this month',
+      label: "exams this month",
     },
   };
 
@@ -53,9 +56,9 @@ export async function assertQuota(
 
   if (current + batchSize > max) {
     throw new HttpsError(
-      'resource-exhausted',
+      "resource-exhausted",
       `Subscription limit reached: ${current}/${max} ${label} used. ` +
-        `Cannot add ${batchSize} more. Please upgrade your plan.`,
+        `Cannot add ${batchSize} more. Please upgrade your plan.`
     );
   }
 }

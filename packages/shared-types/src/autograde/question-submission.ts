@@ -4,9 +4,9 @@
  * @module autograde/question-submission
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { UnifiedEvaluationResult } from '../content/evaluation';
-import type { QuestionGradingStatus } from '../constants/grades';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { UnifiedEvaluationResult } from "../content/evaluation";
+import type { QuestionGradingStatus } from "../constants/grades";
 
 export interface QuestionMapping {
   pageIndices: number[];

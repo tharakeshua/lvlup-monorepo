@@ -7,23 +7,20 @@
  * @module type-guards
  */
 
-import type { UnifiedItem, QuestionType, MaterialType } from './content';
-import type { FirestoreTimestamp } from './identity';
-import {
-  AUTO_EVALUATABLE_TYPES,
-  AI_EVALUATABLE_TYPES,
-} from './content';
+import type { UnifiedItem, QuestionType, MaterialType } from "./content";
+import type { FirestoreTimestamp } from "./identity";
+import { AUTO_EVALUATABLE_TYPES, AI_EVALUATABLE_TYPES } from "./content";
 
 // ── Item type guards ──────────────────────────────────────────────────────
 
 /** Narrows a UnifiedItem to a question type item. */
-export function isQuestionItem(item: UnifiedItem): item is UnifiedItem & { type: 'question' } {
-  return item.type === 'question';
+export function isQuestionItem(item: UnifiedItem): item is UnifiedItem & { type: "question" } {
+  return item.type === "question";
 }
 
 /** Narrows a UnifiedItem to a material type item. */
-export function isMaterialItem(item: UnifiedItem): item is UnifiedItem & { type: 'material' } {
-  return item.type === 'material';
+export function isMaterialItem(item: UnifiedItem): item is UnifiedItem & { type: "material" } {
+  return item.type === "material";
 }
 
 // ── Question evaluation guards ────────────────────────────────────────────
@@ -43,12 +40,12 @@ export function isAIEvaluatable(questionType: QuestionType): boolean {
 /** Runtime check for Firestore Timestamp-like objects. */
 export function isFirestoreTimestamp(value: unknown): value is FirestoreTimestamp {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    'seconds' in value &&
-    'nanoseconds' in value &&
-    typeof (value as Record<string, unknown>).seconds === 'number' &&
-    typeof (value as Record<string, unknown>).nanoseconds === 'number'
+    "seconds" in value &&
+    "nanoseconds" in value &&
+    typeof (value as Record<string, unknown>).seconds === "number" &&
+    typeof (value as Record<string, unknown>).nanoseconds === "number"
   );
 }
 
@@ -56,15 +53,12 @@ export function isFirestoreTimestamp(value: unknown): value is FirestoreTimestam
 
 /** Returns true if the value is a non-empty string (useful for ID validation). */
 export function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 /** Returns true if the value is a valid Firestore document ID (non-empty, no slashes). */
 export function isValidDocumentId(value: unknown): value is string {
   return (
-    typeof value === 'string' &&
-    value.length > 0 &&
-    value.length <= 1500 &&
-    !value.includes('/')
+    typeof value === "string" && value.length > 0 && value.length <= 1500 && !value.includes("/")
   );
 }

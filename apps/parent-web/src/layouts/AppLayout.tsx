@@ -44,7 +44,7 @@ import { useTenantNames } from "../hooks/useTenantNames";
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { allMemberships, currentTenantId, switchTenant, user, firebaseUser } = useAuthStore();
+  const { allMemberships, currentTenantId, switchTenant, user } = useAuthStore();
 
   const parentTenantIds = allMemberships.filter((m) => m.role === "parent").map((m) => m.tenantId);
   const { data: tenantNames } = useTenantNames(parentTenantIds);

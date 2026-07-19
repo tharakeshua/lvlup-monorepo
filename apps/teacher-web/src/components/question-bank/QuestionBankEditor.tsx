@@ -1295,14 +1295,16 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
             <div>
               <Label>Bloom&apos;s Level</Label>
               <Select
-                value={bloomsLevel}
-                onValueChange={(v) => setBloomsLevel(v as BloomsLevel | "")}
+                value={bloomsLevel || "__none__"}
+                onValueChange={(v) =>
+                  setBloomsLevel((v === "__none__" ? "" : v) as BloomsLevel | "")
+                }
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {BLOOMS_LEVELS.map((l) => (
                     <SelectItem key={l} value={l}>
                       {l.charAt(0).toUpperCase() + l.slice(1)}

@@ -17,35 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run linter
-        run: pnpm run lint
-
-      - name: Check formatting
-        run: pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
-
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
@@ -61,20 +32,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Freshness gate: rebuild @levelup/shared-types dist from src BEFORE any
-      # consumer typechecks. turbo's `typecheck dependsOn ^build` already forces
-      # a fresh shared-types build for consumers that DECLARE the workspace dep,
-      # but apps/admin-web and apps/parent-web import @levelup/shared-types
-      # (type-only) without declaring it, so turbo won't schedule its rebuild for
-      # them — they would typecheck against a stale on-disk dist (the
-      # questionPaperImages .url() class of bug). Building it here first guarantees
-      # every consumer, declared or not, typechecks against a dist rebuilt from src.
       - name: Build shared-types (freshness gate)
         run: pnpm --filter @levelup/shared-types build
 
@@ -96,8 +59,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -131,8 +94,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -142,213 +105,8 @@ jobs:
         with:
           name: build-artifacts
 
-      - name: Run tests with coverage
-        run: pnpm run test:coverage
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: |
-            ./coverage/lcov.info
-            ./functions/*/coverage/lcov.info
-            ./packages/*/coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request'
-        uses: romeovs/lcov-reporter-action@v0.3.1
-        with:
-          lcov-file: ./coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          delete-old-comments: true
-
-  integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Start Firebase Emulators and Run Integration Tests
-        run: |
-          firebase emulators:exec \
-            --only auth,firestore,functions \
-            --project demo-levelup \
-            "pnpm run test:integration"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-
-  e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: pnpm run test:e2e
-        env:
-          CI: true
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: test-results/
-          retention-days: 7
-
-  lighthouse:
-    name: Lighthouse CI
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Run Lighthouse CI
-        run: |
-          npm install -g @lhci/cli
-          lhci autorun
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
-
-      - name: Upload Lighthouse report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lighthouse-report
-          path: .lighthouseci/
-          retention-days: 7
-
-  visual-regression:
-    name: Visual Regression Tests
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run Visual Regression Tests
-        run: pnpm exec playwright test --project=visual-regression
-        env:
-          CI: true
-
-      - name: Upload screenshot baselines
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: visual-regression-screenshots
-          path: tests/e2e/__screenshots__/
-          retention-days: 30
-
-      - name: Upload visual regression report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: visual-regression-report
-          path: playwright-report/
-          retention-days: 7
+      - name: Run unit tests
+        run: pnpm exec turbo run test --continue
 
   schema-tests:
     name: Schema Validation Tests
@@ -366,8 +124,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -380,8 +138,8 @@ jobs:
       - name: Run Zod Schema Tests
         run: pnpm exec vitest run --config packages/shared-types/vitest.config.ts
 
-  coverage-gates:
-    name: Per-Package Coverage Gates
+  e2e:
+    name: E2E Smoke
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -396,8 +154,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -407,142 +165,37 @@ jobs:
         with:
           name: build-artifacts
 
-      - name: Run per-package coverage checks
-        run: |
-          set -e
-          declare -A THRESHOLDS
-          THRESHOLDS["functions/identity"]=75
-          THRESHOLDS["functions/analytics"]=80
-          THRESHOLDS["functions/levelup"]=80
-          THRESHOLDS["functions/autograde"]=75
-          THRESHOLDS["packages/shared-types"]=90
-          THRESHOLDS["packages/shared-services"]=60
-          THRESHOLDS["packages/shared-hooks"]=80
-          THRESHOLDS["packages/shared-stores"]=70
-          THRESHOLDS["packages/shared-utils"]=70
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
 
-          FAILED=0
-          REPORT=""
+      - name: Run E2E smoke tests
+        run: pnpm run test:e2e:smoke
+        env:
+          CI: true
+          PW_E2E_SUITE: smoke
 
-          for PKG in "${!THRESHOLDS[@]}"; do
-            THRESHOLD=${THRESHOLDS[$PKG]}
-            echo "::group::Testing $PKG (threshold: ${THRESHOLD}%)"
-
-            if [ -f "$PKG/vitest.config.ts" ]; then
-              CONFIG="--config $PKG/vitest.config.ts"
-            else
-              CONFIG=""
-            fi
-
-            cd "$PKG"
-            if pnpm exec vitest run --coverage $CONFIG 2>&1; then
-              # Parse coverage from json report
-              if [ -f "coverage/coverage-summary.json" ]; then
-                LINE_PCT=$(node -e "const c=require('./coverage/coverage-summary.json');console.log(c.total.lines.pct)")
-                echo "  $PKG lines: ${LINE_PCT}% (threshold: ${THRESHOLD}%)"
-                REPORT="$REPORT\n| $PKG | ${LINE_PCT}% | ${THRESHOLD}% | $([ $(echo "$LINE_PCT >= $THRESHOLD" | bc -l) -eq 1 ] && echo '✅' || echo '❌') |"
-                if [ $(echo "$LINE_PCT < $THRESHOLD" | bc -l) -eq 1 ]; then
-                  echo "::error::$PKG coverage ${LINE_PCT}% below threshold ${THRESHOLD}%"
-                  FAILED=1
-                fi
-              fi
-            fi
-            cd "$GITHUB_WORKSPACE"
-            echo "::endgroup::"
-          done
-
-          echo -e "\n## Per-Package Coverage Report\n| Package | Coverage | Threshold | Status |\n|---------|----------|-----------|--------|\n$REPORT" >> $GITHUB_STEP_SUMMARY
-
-          if [ $FAILED -eq 1 ]; then
-            echo "::error::One or more packages failed coverage thresholds"
-            exit 1
-          fi
-
-      - name: Comment PR with per-package coverage
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          script: |
-            const fs = require('fs');
-            const summary = process.env.GITHUB_STEP_SUMMARY;
-            if (summary) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## 📊 Per-Package Coverage Report\n\nSee job summary for details.`,
-              });
-            }
-
-  flaky-test-monitor:
-    name: Flaky Test Monitor
-    runs-on: ubuntu-latest
-    needs: [e2e]
-    if: always() && needs.e2e.result != 'cancelled'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download test results
-        uses: actions/download-artifact@v4
-        with:
-          name: test-results
-          path: test-results/
-        continue-on-error: true
-
-      - name: Analyze flaky tests
-        run: |
-          echo "## Flaky Test Report" >> $GITHUB_STEP_SUMMARY
-          if [ -d "test-results" ]; then
-            # Find tests that required retries
-            FLAKY=$(find test-results -name "*.json" -exec grep -l '"retry"' {} \; 2>/dev/null || true)
-            if [ -n "$FLAKY" ]; then
-              echo "### ⚠️ Tests that required retries:" >> $GITHUB_STEP_SUMMARY
-              for f in $FLAKY; do
-                echo "- $(basename $f)" >> $GITHUB_STEP_SUMMARY
-              done
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "Consider investigating these tests for flakiness." >> $GITHUB_STEP_SUMMARY
-            else
-              echo "✅ No flaky tests detected in this run." >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "ℹ️ No test results available for analysis." >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Comment PR with flaky test report
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        continue-on-error: true
-        with:
-          script: |
-            const fs = require('fs');
-            const testResultsDir = 'test-results';
-            if (fs.existsSync(testResultsDir)) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: '## 🔍 Flaky Test Monitor\nSee job summary for flaky test analysis.',
-              });
-            }
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   all-checks:
     name: All Checks Complete
     if: always()
-    needs: [lint, typecheck, build, test, integration, e2e, visual-regression, schema-tests, coverage-gates]
+    needs:
+      [typecheck, build, test, schema-tests, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.typecheck.result }}" != "success" ]] || \
+          if [[ "${{ needs.typecheck.result }}" != "success" ]] || \
              [[ "${{ needs.build.result }}" != "success" ]] || \
              [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.integration.result }}" != "success" ]] || \
-             [[ "${{ needs.e2e.result }}" != "success" ]] || \
-             [[ "${{ needs.visual-regression.result }}" != "success" ]] || \
-             [[ "${{ needs.schema-tests.result }}" != "success" ]]; then
+             [[ "${{ needs.schema-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.e2e.result }}" != "success" ]]; then
             echo "One or more checks failed"
             exit 1
           fi

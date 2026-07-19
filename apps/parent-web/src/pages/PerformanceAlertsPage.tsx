@@ -81,7 +81,7 @@ export default function PerformanceAlertsPage() {
 }
 
 function ChildAlertSection({
-  tenantId,
+  tenantId: _tenantId,
   studentId,
   studentName,
   submissions,

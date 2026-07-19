@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}/llmCallLogs/{logId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface LLMCallLog {
   id: string;
@@ -15,7 +15,7 @@ export interface LLMCallLog {
   totalTokens: number;
   costUSD: number;
   latencyMs: number;
-  status: 'success' | 'error';
+  status: "success" | "error";
   errorMessage?: string;
   userId?: string;
   examId?: string;

@@ -1,1 +1,6 @@
-{"returnSecureToken":true,"email":"admin@greenwood.edu","password":"Test@12345","clientType":"CLIENT_TYPE_WEB"}
+{
+  "returnSecureToken": true,
+  "email": "admin@greenwood.edu",
+  "password": "Test@12345",
+  "clientType": "CLIENT_TYPE_WEB"
+}

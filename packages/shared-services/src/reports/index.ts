@@ -1,5 +1,1 @@
-export {
-  callGetSummary,
-  callGenerateReport,
-  callGetPlatformSummary,
-} from './pdf-callables';
+export { callGetSummary, callGenerateReport, callGetPlatformSummary } from "./pdf-callables";

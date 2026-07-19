@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 /** Map of route paths to their lazy import functions */
 export type PrefetchMap = Record<string, () => Promise<unknown>>;
@@ -22,9 +22,9 @@ function findMatchingRoute(href: string, prefetchMap: PrefetchMap): string | nul
   if (prefetchMap[pathname]) return pathname;
 
   // Try matching the base path (e.g., /spaces/123 -> /spaces)
-  const segments = pathname.split('/').filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
   for (let i = segments.length; i > 0; i--) {
-    const basePath = '/' + segments.slice(0, i).join('/');
+    const basePath = "/" + segments.slice(0, i).join("/");
     if (prefetchMap[basePath]) return basePath;
   }
 
@@ -57,11 +57,11 @@ export function usePrefetch(prefetchMap: PrefetchMap, delay = 100) {
 
   useEffect(() => {
     const handleMouseEnter = (e: Event) => {
-      const target = (e.target as Element)?.closest?.('a[href]');
+      const target = (e.target as Element)?.closest?.("a[href]");
       if (!target) return;
 
-      const href = target.getAttribute('href');
-      if (!href || href.startsWith('http') || href.startsWith('mailto:')) return;
+      const href = target.getAttribute("href");
+      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return;
 
       const route = findMatchingRoute(href, prefetchMap);
       if (!route) return;
@@ -78,11 +78,11 @@ export function usePrefetch(prefetchMap: PrefetchMap, delay = 100) {
     };
 
     const handleFocus = (e: Event) => {
-      const target = (e.target as Element)?.closest?.('a[href]');
+      const target = (e.target as Element)?.closest?.("a[href]");
       if (!target) return;
 
-      const href = target.getAttribute('href');
-      if (!href || href.startsWith('http') || href.startsWith('mailto:')) return;
+      const href = target.getAttribute("href");
+      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return;
 
       const route = findMatchingRoute(href, prefetchMap);
       if (route) {
@@ -90,14 +90,14 @@ export function usePrefetch(prefetchMap: PrefetchMap, delay = 100) {
       }
     };
 
-    document.addEventListener('pointerenter', handleMouseEnter, true);
-    document.addEventListener('pointerleave', handleMouseLeave, true);
-    document.addEventListener('focusin', handleFocus, true);
+    document.addEventListener("pointerenter", handleMouseEnter, true);
+    document.addEventListener("pointerleave", handleMouseLeave, true);
+    document.addEventListener("focusin", handleFocus, true);
 
     return () => {
-      document.removeEventListener('pointerenter', handleMouseEnter, true);
-      document.removeEventListener('pointerleave', handleMouseLeave, true);
-      document.removeEventListener('focusin', handleFocus, true);
+      document.removeEventListener("pointerenter", handleMouseEnter, true);
+      document.removeEventListener("pointerleave", handleMouseLeave, true);
+      document.removeEventListener("focusin", handleFocus, true);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [prefetchMap, delay]);

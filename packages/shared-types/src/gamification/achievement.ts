@@ -5,19 +5,19 @@
  * @module gamification/achievement
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export type AchievementCategory =
-  | 'learning'       // Completing spaces, story points
-  | 'consistency'    // Streaks, daily logins
-  | 'excellence'     // High scores, perfect exams
-  | 'exploration'    // Trying different subjects
-  | 'social'         // Leaderboard, helping peers
-  | 'milestone';     // Major progress milestones
+  | "learning" // Completing spaces, story points
+  | "consistency" // Streaks, daily logins
+  | "excellence" // High scores, perfect exams
+  | "exploration" // Trying different subjects
+  | "social" // Leaderboard, helping peers
+  | "milestone"; // Major progress milestones
 
-export type AchievementRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+export type AchievementTier = "bronze" | "silver" | "gold" | "platinum" | "diamond";
 
 /**
  * Achievement definition — a badge template created by the system or tenant admin.
@@ -27,7 +27,7 @@ export interface Achievement {
   tenantId: string;
   title: string;
   description: string;
-  icon: string;           // Lucide icon name
+  icon: string; // Lucide icon name
   category: AchievementCategory;
   rarity: AchievementRarity;
   tier: AchievementTier;
@@ -47,22 +47,22 @@ export interface Achievement {
 
 export interface AchievementCriteria {
   type: AchievementCriteriaType;
-  threshold: number;        // e.g., 10 spaces completed
-  subject?: string;         // optional subject filter
-  spaceId?: string;         // optional space filter
+  threshold: number; // e.g., 10 spaces completed
+  subject?: string; // optional subject filter
+  spaceId?: string; // optional space filter
 }
 
 export type AchievementCriteriaType =
-  | 'spaces_completed'
-  | 'story_points_completed'
-  | 'exams_passed'
-  | 'perfect_scores'
-  | 'streak_days'
-  | 'total_points'
-  | 'items_completed'
-  | 'chat_sessions'
-  | 'leaderboard_top3'
-  | 'login_days';
+  | "spaces_completed"
+  | "story_points_completed"
+  | "exams_passed"
+  | "perfect_scores"
+  | "streak_days"
+  | "total_points"
+  | "items_completed"
+  | "chat_sessions"
+  | "leaderboard_top3"
+  | "login_days";
 
 /**
  * StudentAchievement — records a student earning an achievement.
@@ -72,9 +72,9 @@ export interface StudentAchievement {
   tenantId: string;
   userId: string;
   achievementId: string;
-  achievement: Achievement;  // Denormalized for display
+  achievement: Achievement; // Denormalized for display
   earnedAt: FirestoreTimestamp;
-  seen: boolean;             // Whether the user has seen the unlock notification
+  seen: boolean; // Whether the user has seen the unlock notification
 }
 
 /**
@@ -104,11 +104,11 @@ export interface StudyGoal {
   userId: string;
   title: string;
   description?: string;
-  targetType: 'spaces' | 'story_points' | 'items' | 'exams' | 'minutes';
+  targetType: "spaces" | "story_points" | "items" | "exams" | "minutes";
   targetCount: number;
   currentCount: number;
-  startDate: string;  // ISO date
-  endDate: string;    // ISO date
+  startDate: string; // ISO date
+  endDate: string; // ISO date
   completed: boolean;
   completedAt?: FirestoreTimestamp;
   createdAt: FirestoreTimestamp;
@@ -121,7 +121,7 @@ export interface StudySession {
   id: string;
   tenantId: string;
   userId: string;
-  date: string;        // ISO date
+  date: string; // ISO date
   minutesStudied: number;
   spacesWorked: string[];
   itemsCompleted: number;

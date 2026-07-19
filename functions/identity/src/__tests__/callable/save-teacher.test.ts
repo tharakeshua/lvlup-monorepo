@@ -165,8 +165,8 @@ describe("saveTeacher", () => {
     // Second set call is the membership
     const membershipData = mockDocSet.mock.calls[1][0];
     expect(membershipData.role).toBe("teacher");
-    expect(membershipData.permissions.canCreateExams).toBe(true);
-    expect(membershipData.permissions.canViewAllExams).toBe(false);
+    expect(membershipData.permissions.permissions.canCreateExams).toBe(true);
+    expect(membershipData.permissions.permissions.canViewAllExams).toBe(false);
   });
 
   it("merges custom permissions with defaults on create", async () => {
@@ -182,10 +182,10 @@ describe("saveTeacher", () => {
     });
 
     const membershipData = mockDocSet.mock.calls[1][0];
-    expect(membershipData.permissions.canCreateSpaces).toBe(true);
-    expect(membershipData.permissions.canViewAnalytics).toBe(true);
+    expect(membershipData.permissions.permissions.canCreateSpaces).toBe(true);
+    expect(membershipData.permissions.permissions.canViewAnalytics).toBe(true);
     // Defaults still present
-    expect(membershipData.permissions.canCreateExams).toBe(true);
+    expect(membershipData.permissions.permissions.canCreateExams).toBe(true);
   });
 
   // ── UPDATE ────────────────────────────────────────────────────────

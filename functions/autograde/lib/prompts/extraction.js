@@ -72,57 +72,68 @@ Important:
  * Parse and validate the extraction response from Gemini.
  */
 function parseExtractionResponse(text) {
-    // Strip markdown fences if present
-    const cleaned = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-    let parsed;
-    try {
-        const raw = JSON.parse(cleaned);
-        // Handle case where response is an array directly instead of { questions: [...] }
-        if (Array.isArray(raw)) {
-            parsed = { questions: raw };
-        }
-        else {
-            parsed = raw;
-        }
+  // Strip markdown fences if present
+  const cleaned = text
+    .replace(/^```(?:json)?\n?/m, "")
+    .replace(/\n?```$/m, "")
+    .trim();
+  let parsed;
+  try {
+    const raw = JSON.parse(cleaned);
+    // Handle case where response is an array directly instead of { questions: [...] }
+    if (Array.isArray(raw)) {
+      parsed = { questions: raw };
+    } else {
+      parsed = raw;
     }
-    catch (err) {
-        // Check if response appears truncated
-        const trimmed = cleaned.trimEnd();
-        if (!trimmed.endsWith('}') && !trimmed.endsWith(']')) {
-            throw new Error(`Extraction response appears truncated (${cleaned.length} chars, ends with: "${trimmed.slice(-30)}"). ` +
-                `This usually means maxOutputTokens is too low. Raw start: ${trimmed.slice(0, 200)}...`);
-        }
-        throw err;
+  } catch (err) {
+    // Check if response appears truncated
+    const trimmed = cleaned.trimEnd();
+    if (!trimmed.endsWith("}") && !trimmed.endsWith("]")) {
+      throw new Error(
+        `Extraction response appears truncated (${cleaned.length} chars, ends with: "${trimmed.slice(-30)}"). ` +
+          `This usually means maxOutputTokens is too low. Raw start: ${trimmed.slice(0, 200)}...`
+      );
     }
-    // Log response structure for diagnostics
-    const topKeys = Object.keys(parsed);
-    console.log(`[parseExtractionResponse] Parsed keys: ${topKeys.join(', ')}. questions type: ${typeof parsed.questions}, isArray: ${Array.isArray(parsed.questions)}, length: ${Array.isArray(parsed.questions) ? parsed.questions.length : 'N/A'}`);
-    if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-        throw new Error(`No questions extracted from response. Top-level keys: [${topKeys.join(', ')}]. First 500 chars: ${cleaned.slice(0, 500)}`);
+    throw err;
+  }
+  // Log response structure for diagnostics
+  const topKeys = Object.keys(parsed);
+  console.log(
+    `[parseExtractionResponse] Parsed keys: ${topKeys.join(", ")}. questions type: ${typeof parsed.questions}, isArray: ${Array.isArray(parsed.questions)}, length: ${Array.isArray(parsed.questions) ? parsed.questions.length : "N/A"}`
+  );
+  if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+    throw new Error(
+      `No questions extracted from response. Top-level keys: [${topKeys.join(", ")}]. First 500 chars: ${cleaned.slice(0, 500)}`
+    );
+  }
+  // Validate each question - skip invalid ones instead of throwing
+  const validQuestions = [];
+  for (const q of parsed.questions) {
+    if (!q.text || !q.maxMarks || !q.rubric?.criteria?.length) {
+      console.warn(
+        `Skipping invalid question: ${q.questionNumber ?? "unknown"} — missing required fields (text: ${!!q.text}, maxMarks: ${q.maxMarks}, criteria: ${q.rubric?.criteria?.length ?? 0}).`
+      );
+      continue;
     }
-    // Validate each question - skip invalid ones instead of throwing
-    const validQuestions = [];
-    for (const q of parsed.questions) {
-        if (!q.text || !q.maxMarks || !q.rubric?.criteria?.length) {
-            console.warn(`Skipping invalid question: ${q.questionNumber ?? 'unknown'} — missing required fields (text: ${!!q.text}, maxMarks: ${q.maxMarks}, criteria: ${q.rubric?.criteria?.length ?? 0}).`);
-            continue;
-        }
-        validQuestions.push(q);
-        const criteriaSum = q.rubric.criteria.reduce((sum, c) => sum + c.maxPoints, 0);
-        if (criteriaSum !== q.maxMarks) {
-            // Auto-fix: adjust last criterion
-            const diff = q.maxMarks - criteriaSum;
-            if (q.rubric.criteria.length > 0) {
-                const lastCriterion = q.rubric.criteria[q.rubric.criteria.length - 1];
-                console.warn(`Extraction auto-fix: Question ${q.questionNumber} rubric criteria sum (${criteriaSum}) != maxMarks (${q.maxMarks}). ` +
-                    `Adjusting last criterion "${lastCriterion.name}" by ${diff > 0 ? '+' : ''}${diff} (${lastCriterion.maxPoints} -> ${lastCriterion.maxPoints + diff}).`);
-                q.rubric.criteria[q.rubric.criteria.length - 1].maxPoints += diff;
-            }
-        }
+    validQuestions.push(q);
+    const criteriaSum = q.rubric.criteria.reduce((sum, c) => sum + c.maxPoints, 0);
+    if (criteriaSum !== q.maxMarks) {
+      // Auto-fix: adjust last criterion
+      const diff = q.maxMarks - criteriaSum;
+      if (q.rubric.criteria.length > 0) {
+        const lastCriterion = q.rubric.criteria[q.rubric.criteria.length - 1];
+        console.warn(
+          `Extraction auto-fix: Question ${q.questionNumber} rubric criteria sum (${criteriaSum}) != maxMarks (${q.maxMarks}). ` +
+            `Adjusting last criterion "${lastCriterion.name}" by ${diff > 0 ? "+" : ""}${diff} (${lastCriterion.maxPoints} -> ${lastCriterion.maxPoints + diff}).`
+        );
+        q.rubric.criteria[q.rubric.criteria.length - 1].maxPoints += diff;
+      }
     }
-    if (validQuestions.length === 0) {
-        throw new Error('No valid questions extracted from response.');
-    }
-    return { questions: validQuestions };
+  }
+  if (validQuestions.length === 0) {
+    throw new Error("No valid questions extracted from response.");
+  }
+  return { questions: validQuestions };
 }
 //# sourceMappingURL=extraction.js.map

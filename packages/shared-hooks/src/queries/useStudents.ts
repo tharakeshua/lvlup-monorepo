@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
   doc,
@@ -8,12 +8,12 @@ import {
   query,
   where,
   QueryConstraint,
-} from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { Student } from '@levelup/shared-types';
+} from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { Student } from "@levelup/shared-types";
 
-export type { Student } from '@levelup/shared-types';
+export type { Student } from "@levelup/shared-types";
 
 /**
  * Client-side sort by rollNumber. Done in JS so students missing a rollNumber
@@ -23,8 +23,8 @@ export type { Student } from '@levelup/shared-types';
  */
 function sortStudents(students: Student[]): Student[] {
   return [...students].sort((a, b) => {
-    const ar = a.rollNumber ?? '';
-    const br = b.rollNumber ?? '';
+    const ar = a.rollNumber ?? "";
+    const br = b.rollNumber ?? "";
     if (ar && br && ar !== br) return ar.localeCompare(br);
     if (ar && !br) return -1;
     if (!ar && br) return 1;
@@ -33,10 +33,7 @@ function sortStudents(students: Student[]): Student[] {
 }
 
 /** Chunked `in`-query by documentId — Firestore allows up to 30 ids per `in`. */
-async function fetchStudentsByIds(
-  tenantId: string,
-  studentIds: string[],
-): Promise<Student[]> {
+async function fetchStudentsByIds(tenantId: string, studentIds: string[]): Promise<Student[]> {
   if (studentIds.length === 0) return [];
   const { db } = getFirebaseServices();
   const colRef = collection(db, `tenants/${tenantId}/students`);
@@ -44,7 +41,7 @@ async function fetchStudentsByIds(
   const results: Student[] = [];
   for (let i = 0; i < studentIds.length; i += CHUNK) {
     const chunk = studentIds.slice(i, i + CHUNK);
-    const snap = await getDocs(query(colRef, where(documentId(), 'in', chunk)));
+    const snap = await getDocs(query(colRef, where(documentId(), "in", chunk)));
     for (const d of snap.docs) results.push({ id: d.id, ...d.data() } as Student);
   }
   return results;
@@ -52,10 +49,10 @@ async function fetchStudentsByIds(
 
 export function useStudents(
   tenantId: string | null,
-  options?: { classId?: string; status?: string; grade?: string },
+  options?: { classId?: string; status?: string; grade?: string }
 ) {
   return useQuery<Student[]>({
-    queryKey: ['tenants', tenantId, 'students', options ?? {}],
+    queryKey: ["tenants", tenantId, "students", options ?? {}],
     queryFn: async () => {
       if (!tenantId) return [];
       const { db } = getFirebaseServices();
@@ -66,8 +63,8 @@ export function useStudents(
       if (options?.classId) {
         const classSnap = await getDoc(doc(db, `tenants/${tenantId}/classes/${options.classId}`));
         const classData = classSnap.data();
-        const studentIds: string[] = Array.isArray(classData?.['studentIds'])
-          ? (classData['studentIds'] as string[])
+        const studentIds: string[] = Array.isArray(classData?.["studentIds"])
+          ? (classData["studentIds"] as string[])
           : [];
 
         let students = await fetchStudentsByIds(tenantId, studentIds);
@@ -77,7 +74,7 @@ export function useStudents(
         if (students.length === 0) {
           const colRef = collection(db, `tenants/${tenantId}/students`);
           const snap = await getDocs(
-            query(colRef, where('classIds', 'array-contains', options.classId)),
+            query(colRef, where("classIds", "array-contains", options.classId))
           );
           students = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Student);
         }
@@ -90,8 +87,8 @@ export function useStudents(
       // ── tenant-wide path
       const colRef = collection(db, `tenants/${tenantId}/students`);
       const constraints: QueryConstraint[] = [];
-      if (options?.status) constraints.push(where('status', '==', options.status));
-      if (options?.grade) constraints.push(where('grade', '==', options.grade));
+      if (options?.status) constraints.push(where("status", "==", options.status));
+      if (options?.grade) constraints.push(where("grade", "==", options.grade));
       const snap = await getDocs(query(colRef, ...constraints));
       const students = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Student);
       return sortStudents(students);
@@ -105,9 +102,18 @@ export function useCreateStudent() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<
-    { tenantId: string; uid: string; rollNumber?: string; section?: string; classId?: string; grade?: string; admissionNumber?: string; dateOfBirth?: string },
+    {
+      tenantId: string;
+      uid: string;
+      rollNumber?: string;
+      section?: string;
+      classId?: string;
+      grade?: string;
+      admissionNumber?: string;
+      dateOfBirth?: string;
+    },
     { studentId: string }
-  >(functions, 'createStudent');
+  >(functions, "createStudent");
 
   return useMutation({
     mutationFn: async (params: {
@@ -124,8 +130,8 @@ export function useCreateStudent() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'students'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'classes'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "students"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "classes"] });
     },
   });
 }
@@ -134,9 +140,19 @@ export function useUpdateStudent() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<
-    { tenantId: string; studentId: string; rollNumber?: string; section?: string; classIds?: string[]; parentIds?: string[]; grade?: string; admissionNumber?: string; dateOfBirth?: string },
+    {
+      tenantId: string;
+      studentId: string;
+      rollNumber?: string;
+      section?: string;
+      classIds?: string[];
+      parentIds?: string[];
+      grade?: string;
+      admissionNumber?: string;
+      dateOfBirth?: string;
+    },
     { success: boolean }
-  >(functions, 'updateStudent');
+  >(functions, "updateStudent");
 
   return useMutation({
     mutationFn: async (params: {
@@ -154,8 +170,8 @@ export function useUpdateStudent() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'students'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'classes'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "students"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "classes"] });
     },
   });
 }

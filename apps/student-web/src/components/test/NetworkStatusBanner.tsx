@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { WifiOff, Wifi } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { WifiOff, Wifi } from "lucide-react";
 
 /**
  * Shows a banner when the browser goes offline during a test.
@@ -20,11 +20,11 @@ export default function NetworkStatusBanner() {
       setShowRecovered(false);
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -34,7 +34,7 @@ export default function NetworkStatusBanner() {
     return (
       <div
         role="alert"
-        className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/30 px-3 py-2 mb-3 text-sm text-destructive"
+        className="bg-destructive/10 border-destructive/30 text-destructive mb-3 flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
       >
         <WifiOff className="h-4 w-4 flex-shrink-0" />
         <span>Connection lost. Your answers may not be saved until you reconnect.</span>
@@ -46,7 +46,7 @@ export default function NetworkStatusBanner() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 mb-3 text-sm text-emerald-600 dark:text-emerald-400"
+      className="mb-3 flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400"
     >
       <Wifi className="h-4 w-4 flex-shrink-0" />
       <span>Connection restored.</span>

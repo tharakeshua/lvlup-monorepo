@@ -1,7 +1,11 @@
-import { useEffect, useRef } from 'react';
-import MetricsService from '../../services/metrics/MetricsService';
+import { useEffect, useRef } from "react";
+import MetricsService from "../../services/metrics/MetricsService";
 
-export function useTrackStoryPointView(courseId?: string, storyPointId?: string, userId?: string | null) {
+export function useTrackStoryPointView(
+  courseId?: string,
+  storyPointId?: string,
+  userId?: string | null
+) {
   const didRun = useRef(false);
   useEffect(() => {
     if (!storyPointId) return;
@@ -12,4 +16,3 @@ export function useTrackStoryPointView(courseId?: string, storyPointId?: string,
 }
 
 export default useTrackStoryPointView;
-

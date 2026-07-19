@@ -168,6 +168,10 @@ const ANSWER_KEY_FIELDS = [
   "evaluationGuidance",
   "evaluatorGuidance",
   "privateEvaluationObjectives",
+  // LD-01: canonical MCQ/MCAQ/jumbled/matching answer fields (live leak if omitted).
+  "isCorrect",
+  "correctOrder",
+  "right",
 ] as const;
 
 /**

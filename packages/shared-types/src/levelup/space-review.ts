@@ -4,7 +4,7 @@
  * @module levelup/space-review
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface SpaceReview {
   id: string;

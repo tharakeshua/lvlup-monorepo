@@ -50,7 +50,7 @@ export function ConfirmDialog({
       e.preventDefault();
       onConfirm();
     },
-    [onConfirm],
+    [onConfirm]
   );
 
   const handleCancel = React.useCallback(() => {

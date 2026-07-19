@@ -4,20 +4,8 @@ import { cn } from "../../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Badge } from "./badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "./sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./sheet";
 import { useIsMobile } from "../../hooks/use-mobile";
 
 export interface FilterOption {
@@ -60,12 +48,15 @@ function FilterControls({
         if (field.type === "search") {
           return (
             <div key={field.key} className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Search
+                className="text-muted-foreground absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
               <Input
                 placeholder={field.placeholder ?? `Search ${field.label.toLowerCase()}...`}
                 value={values[field.key] ?? ""}
                 onChange={(e) => onChange(field.key, e.target.value)}
-                className="h-9 pl-9 w-full sm:w-[200px]"
+                className="h-9 w-full pl-9 sm:w-[200px]"
                 aria-label={field.label}
               />
             </div>
@@ -114,7 +105,7 @@ export function FilterBar({
     .map((f) => {
       const displayValue =
         f.type === "select"
-          ? f.options?.find((o) => o.value === values[f.key])?.label ?? values[f.key]
+          ? (f.options?.find((o) => o.value === values[f.key])?.label ?? values[f.key])
           : values[f.key];
       return {
         key: f.key,
@@ -159,21 +150,17 @@ export function FilterBar({
       {/* Active filter chips */}
       {filterCount > 0 && (
         <div className="flex flex-wrap items-center gap-1.5" aria-live="polite" aria-atomic="true">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             {filterCount} filter{filterCount !== 1 ? "s" : ""} active:
           </span>
           {activeFilters.map((filter) => (
-            <Badge
-              key={filter.key}
-              variant="secondary"
-              className="gap-1 pr-1"
-            >
+            <Badge key={filter.key} variant="secondary" className="gap-1 pr-1">
               <span className="text-xs">
                 {filter.label}: {filter.displayValue}
               </span>
               <button
                 onClick={() => onClear(filter.key)}
-                className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                className="hover:bg-muted-foreground/20 ml-0.5 rounded-full p-0.5"
                 aria-label={`Remove ${filter.label} filter`}
                 type="button"
               >
@@ -182,12 +169,7 @@ export function FilterBar({
             </Badge>
           ))}
           {onClearAll && filterCount > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearAll}
-              className="h-6 px-2 text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={onClearAll} className="h-6 px-2 text-xs">
               Clear all
             </Button>
           )}

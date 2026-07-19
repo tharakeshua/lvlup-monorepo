@@ -8,14 +8,12 @@ export interface OnlineStatusResult {
 /**
  * Monitor online/offline status using navigator.onLine and periodic health checks.
  */
-export function useOnlineStatus(
-  onStatusChange?: (isOnline: boolean) => void,
-): OnlineStatusResult {
+export function useOnlineStatus(onStatusChange?: (isOnline: boolean) => void): OnlineStatusResult {
   const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
+    typeof navigator !== "undefined" ? navigator.onLine : true
   );
   const [lastOnlineAt, setLastOnlineAt] = useState<Date | null>(
-    typeof navigator !== "undefined" && navigator.onLine ? new Date() : null,
+    typeof navigator !== "undefined" && navigator.onLine ? new Date() : null
   );
   const callbackRef = useRef(onStatusChange);
   callbackRef.current = onStatusChange;

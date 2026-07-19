@@ -49,16 +49,12 @@ export interface GradingReviewRepo {
   getExamGradingOverview(input: { examId: string }): Promise<ExamGradingOverview>;
 }
 
-function hasReviewComposite(
-  ag: AutogradeNamespace
-): ag is AutogradeNamespace & {
+function hasReviewComposite(ag: AutogradeNamespace): ag is AutogradeNamespace & {
   getGradingReviewBundle: NonNullable<AutogradeNamespace["getGradingReviewBundle"]>;
 } {
   return typeof ag.getGradingReviewBundle === "function";
 }
-function hasOverviewComposite(
-  ag: AutogradeNamespace
-): ag is AutogradeNamespace & {
+function hasOverviewComposite(ag: AutogradeNamespace): ag is AutogradeNamespace & {
   getExamGradingOverview: NonNullable<AutogradeNamespace["getExamGradingOverview"]>;
 } {
   return typeof ag.getExamGradingOverview === "function";

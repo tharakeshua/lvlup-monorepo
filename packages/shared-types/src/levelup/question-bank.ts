@@ -4,9 +4,9 @@
  * @module levelup/question-bank
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { QuestionType, QuestionTypeData } from '../content/item';
-import type { BloomsLevel } from '../constants/grades';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { QuestionType, QuestionTypeData } from "../content/item";
+import type { BloomsLevel } from "../constants/grades";
 
 export interface QuestionBankItem {
   id: string;
@@ -23,7 +23,7 @@ export interface QuestionBankItem {
   // Classification
   subject: string;
   topics: string[];
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
   bloomsLevel?: BloomsLevel;
 
   // Usage tracking
@@ -43,13 +43,13 @@ export interface QuestionBankItem {
 export interface QuestionBankFilter {
   subject?: string;
   topics?: string[];
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: "easy" | "medium" | "hard";
   bloomsLevel?: BloomsLevel;
   questionType?: QuestionType;
   tags?: string[];
   search?: string;
-  sortBy?: 'usageCount' | 'averageScore' | 'createdAt';
-  sortDir?: 'asc' | 'desc';
+  sortBy?: "usageCount" | "averageScore" | "createdAt";
+  sortDir?: "asc" | "desc";
   limit?: number;
   startAfter?: string;
 }

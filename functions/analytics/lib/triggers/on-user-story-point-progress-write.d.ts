@@ -10,7 +10,15 @@
  * 1. Updates the story-point-level leaderboard in RTDB
  * 2. Recalculates LevelUp metrics on the student's progress summary
  */
-export declare const onUserStoryPointProgressWrite: import("firebase-functions/core").CloudFunction<import("firebase-functions/firestore").FirestoreEvent<import("firebase-functions/firestore").Change<import("firebase-functions/firestore").DocumentSnapshot> | undefined, {
-    tenantId: string;
-    progressId: string;
-}>>;
+export declare const onUserStoryPointProgressWrite: import("firebase-functions/core").CloudFunction<
+  import("firebase-functions/firestore").FirestoreEvent<
+    | import("firebase-functions/firestore").Change<
+        import("firebase-functions/firestore").DocumentSnapshot
+      >
+    | undefined,
+    {
+      tenantId: string;
+      progressId: string;
+    }
+  >
+>;

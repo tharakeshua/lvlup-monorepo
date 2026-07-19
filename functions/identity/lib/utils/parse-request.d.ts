@@ -1,1 +1,1 @@
-export { parseRequest } from '@levelup/functions-shared';
+export { parseRequest } from "@levelup/functions-shared";

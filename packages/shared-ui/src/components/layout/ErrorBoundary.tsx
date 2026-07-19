@@ -32,9 +32,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="rounded-full bg-destructive/10 p-4">
+          <div className="bg-destructive/10 rounded-full p-4">
             <svg
-              className="h-8 w-8 text-destructive"
+              className="text-destructive h-8 w-8"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -48,17 +48,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </svg>
           </div>
           <h1 className="text-xl font-semibold">Something went wrong</h1>
-          <p className="max-w-md text-sm text-muted-foreground">
+          <p className="text-muted-foreground max-w-md text-sm">
             An unexpected error occurred. Please try refreshing the page.
           </p>
           {this.state.error && (
-            <pre className="max-w-lg overflow-auto rounded-md bg-muted p-3 text-left text-xs">
+            <pre className="bg-muted max-w-lg overflow-auto rounded-md p-3 text-left text-xs">
               {this.state.error.message}
             </pre>
           )}
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium"
           >
             Refresh Page
           </button>

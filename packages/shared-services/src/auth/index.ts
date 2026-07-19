@@ -10,8 +10,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   UserCredential,
-} from 'firebase/auth';
-import { getFirebaseServices } from '../firebase';
+} from "firebase/auth";
+import { getFirebaseServices } from "../firebase";
 
 /**
  * Auth Service
@@ -103,7 +103,7 @@ export class AuthService {
 export const authService = new AuthService();
 
 // Tenant lookup & email derivation
-export { lookupTenantByCode, deriveStudentEmail } from './tenant-lookup';
+export { lookupTenantByCode, deriveStudentEmail } from "./tenant-lookup";
 
 // Cloud Function callable wrappers
 export {
@@ -133,7 +133,7 @@ export {
   callListAnnouncements,
   callSaveStaff,
   callUploadTenantAsset,
-} from './auth-callables';
+} from "./auth-callables";
 export type {
   SwitchActiveTenantResponse,
   CreateOrgUserRequest,
@@ -145,7 +145,7 @@ export type {
   SaveGlobalPresetResponse,
   JoinTenantRequest,
   JoinTenantResponse,
-} from './auth-callables';
+} from "./auth-callables";
 export type {
   TeacherImportRow,
   BulkImportTeachersRequest,
@@ -154,8 +154,8 @@ export type {
   BulkUpdateStatusResponse,
   RolloverSessionRequest,
   RolloverSessionResponse,
-} from '@levelup/shared-types';
-export type { SaveParentRequest, SaveResponse } from '@levelup/shared-types';
+} from "@levelup/shared-types";
+export type { SaveParentRequest, SaveResponse } from "@levelup/shared-types";
 
 // Membership queries
-export { getUserMemberships, getMembership } from './membership-service';
+export { getUserMemberships, getMembership } from "./membership-service";

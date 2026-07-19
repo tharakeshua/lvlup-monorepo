@@ -40,8 +40,8 @@ function makeFakeRepos() {
   let teacherSeq = 0;
   const now = () => CLOCK;
 
-  // Seed the tenant so the service resolves a tenantCode.
-  tenants.set(TENANT, { id: TENANT, code: "SUB001" });
+  // Seed the tenant so the service resolves a tenantCode (canonical field).
+  tenants.set(TENANT, { id: TENANT, tenantCode: "SUB001" });
 
   const repos = {
     tenants: {

@@ -1,12 +1,8 @@
-import * as React from 'react';
-import { X, Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { Button } from './ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from './ui/popover';
+import * as React from "react";
+import { X, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -14,8 +10,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from './ui/command';
-import { Badge } from './ui/badge';
+} from "./ui/command";
+import { Badge } from "./ui/badge";
 
 export interface EntityPickerItem {
   id: string;
@@ -39,9 +35,9 @@ export function EntityPicker({
   items,
   selected,
   onChange,
-  placeholder = 'Select...',
-  searchPlaceholder = 'Search...',
-  emptyText = 'No items found.',
+  placeholder = "Select...",
+  searchPlaceholder = "Search...",
+  emptyText = "No items found.",
   multiple = true,
   disabled = false,
   className,
@@ -75,20 +71,16 @@ export function EntityPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('w-full justify-between font-normal', className)}
+          className={cn("w-full justify-between font-normal", className)}
         >
           {selectedItems.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {selectedItems.map((item) => (
-                <Badge
-                  key={item.id}
-                  variant="secondary"
-                  className="text-xs"
-                >
+                <Badge key={item.id} variant="secondary" className="text-xs">
                   {item.label}
                   {multiple && (
                     <button
-                      className="ml-1 rounded-full outline-none hover:bg-muted"
+                      className="hover:bg-muted ml-1 rounded-full outline-none"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemove(item.id);
@@ -106,7 +98,10 @@ export function EntityPicker({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-full min-w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -120,16 +115,14 @@ export function EntityPicker({
                 >
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4',
-                      selected.includes(item.id) ? 'opacity-100' : 'opacity-0',
+                      "mr-2 h-4 w-4",
+                      selected.includes(item.id) ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <div>
                     <span>{item.label}</span>
                     {item.description && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {item.description}
-                      </span>
+                      <span className="text-muted-foreground ml-2 text-xs">{item.description}</span>
                     )}
                   </div>
                 </CommandItem>

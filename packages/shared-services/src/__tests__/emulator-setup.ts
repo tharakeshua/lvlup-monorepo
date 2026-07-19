@@ -5,18 +5,18 @@
  * before any service module so the SDK talks to emulators rather
  * than production.
  */
-import { initializeApp, getApps, deleteApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import { getDatabase } from 'firebase/database';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import * as admin from 'firebase-admin';
-import { initializeFirebase, resetFirebaseServices } from '../firebase/config';
+import { initializeApp, getApps, deleteApp } from "firebase/app";
+import { getAuth, connectAuthEmulator, signInWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getDatabase } from "firebase/database";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import * as admin from "firebase-admin";
+import { initializeFirebase, resetFirebaseServices } from "../firebase/config";
 
-const PROJECT_ID = 'lvlup-ff6fa';
+const PROJECT_ID = "lvlup-ff6fa";
 
-const EMULATOR_HOST = '127.0.0.1';
+const EMULATOR_HOST = "127.0.0.1";
 
 const EMULATOR_PORTS = {
   auth: 9099,
@@ -37,13 +37,11 @@ export function setupEmulators() {
   if (connected) return;
 
   // Set up Admin SDK env vars for emulators
-  process.env['FIRESTORE_EMULATOR_HOST'] = `${EMULATOR_HOST}:${EMULATOR_PORTS.firestore}`;
-  process.env['FIREBASE_AUTH_EMULATOR_HOST'] = `${EMULATOR_HOST}:${EMULATOR_PORTS.auth}`;
+  process.env["FIRESTORE_EMULATOR_HOST"] = `${EMULATOR_HOST}:${EMULATOR_PORTS.firestore}`;
+  process.env["FIREBASE_AUTH_EMULATOR_HOST"] = `${EMULATOR_HOST}:${EMULATOR_PORTS.auth}`;
 
   // Initialise Admin SDK
-  adminApp = admin.apps.length
-    ? admin.apps[0]!
-    : admin.initializeApp({ projectId: PROJECT_ID });
+  adminApp = admin.apps.length ? admin.apps[0]! : admin.initializeApp({ projectId: PROJECT_ID });
 
   // Clean up any existing client app from a prior run
   for (const app of getApps()) {
@@ -54,7 +52,7 @@ export function setupEmulators() {
   resetFirebaseServices();
 
   const app = initializeApp({
-    apiKey: 'fake-api-key',
+    apiKey: "fake-api-key",
     authDomain: `${PROJECT_ID}.firebaseapp.com`,
     projectId: PROJECT_ID,
   });
@@ -69,17 +67,17 @@ export function setupEmulators() {
 
   const storage = getStorage(app);
   const rtdb = getDatabase(app);
-  const functions = getFunctions(app, 'asia-south1');
+  const functions = getFunctions(app, "asia-south1");
   connectFunctionsEmulator(functions, EMULATOR_HOST, EMULATOR_PORTS.functions);
 
   // Initialise the shared-services FirebaseServices singleton with emulator-connected services
   initializeFirebase({
-    apiKey: 'fake-api-key',
+    apiKey: "fake-api-key",
     authDomain: `${PROJECT_ID}.firebaseapp.com`,
     projectId: PROJECT_ID,
     storageBucket: `${PROJECT_ID}.appspot.com`,
-    messagingSenderId: 'fake',
-    appId: 'fake',
+    messagingSenderId: "fake",
+    appId: "fake",
   });
 
   connected = true;
@@ -105,8 +103,8 @@ export function getAdminAuth() {
  * which is subject to security rules.
  */
 export async function signInAsSuperAdmin() {
-  const email = 'test-superadmin@platform.test';
-  const password = 'testpw123';
+  const email = "test-superadmin@platform.test";
+  const password = "testpw123";
 
   // Create user via Admin SDK
   let uid: string;
@@ -117,25 +115,28 @@ export async function signInAsSuperAdmin() {
     const userRecord = await adminApp.auth().createUser({
       email,
       password,
-      displayName: 'Test SuperAdmin',
+      displayName: "Test SuperAdmin",
     });
     uid = userRecord.uid;
   }
 
   // Set superAdmin custom claims
-  await adminApp.auth().setCustomUserClaims(uid, { role: 'superAdmin' });
+  await adminApp.auth().setCustomUserClaims(uid, { role: "superAdmin" });
 
   // Create /users/{uid} doc with isSuperAdmin: true (required by security rules)
-  await adminApp.firestore().doc(`users/${uid}`).set({
-    uid,
-    email,
-    displayName: 'Test SuperAdmin',
-    isSuperAdmin: true,
-    status: 'active',
-    authProviders: ['email'],
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  await adminApp
+    .firestore()
+    .doc(`users/${uid}`)
+    .set({
+      uid,
+      email,
+      displayName: "Test SuperAdmin",
+      isSuperAdmin: true,
+      status: "active",
+      authProviders: ["email"],
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
   // Sign in via client SDK
   const app = getApps()[0]!;
@@ -148,7 +149,7 @@ export async function signInAsSuperAdmin() {
  */
 export async function clearFirestoreData() {
   const url = `http://127.0.0.1:${EMULATOR_PORTS.firestore}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-  await fetch(url, { method: 'DELETE' });
+  await fetch(url, { method: "DELETE" });
 }
 
 /**
@@ -156,7 +157,7 @@ export async function clearFirestoreData() {
  */
 export async function clearAuthAccounts() {
   const url = `http://127.0.0.1:${EMULATOR_PORTS.auth}/emulator/v1/projects/${PROJECT_ID}/accounts`;
-  await fetch(url, { method: 'DELETE' });
+  await fetch(url, { method: "DELETE" });
 }
 
 /**

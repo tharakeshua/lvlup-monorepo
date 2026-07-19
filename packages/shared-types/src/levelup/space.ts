@@ -4,15 +4,15 @@
  * @module levelup/space
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { UnifiedRubric } from '../content/rubric';
-import type { SpaceRatingAggregate } from './space-review';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { UnifiedRubric } from "../content/rubric";
+import type { SpaceRatingAggregate } from "./space-review";
 
-export type SpaceType = 'learning' | 'practice' | 'assessment' | 'resource' | 'hybrid';
+export type SpaceType = "learning" | "practice" | "assessment" | "resource" | "hybrid";
 
-export type SpaceStatus = 'draft' | 'published' | 'archived';
+export type SpaceStatus = "draft" | "published" | "archived";
 
-export type SpaceAccessType = 'class_assigned' | 'tenant_wide' | 'public_store';
+export type SpaceAccessType = "class_assigned" | "tenant_wide" | "public_store";
 
 export interface SpaceStats {
   totalStoryPoints: number;
@@ -90,9 +90,9 @@ export interface Space {
 export interface ContentVersion {
   id: string;
   version: number;
-  entityType: 'space' | 'storyPoint' | 'item';
+  entityType: "space" | "storyPoint" | "item";
   entityId: string;
-  changeType: 'created' | 'updated' | 'published' | 'archived';
+  changeType: "created" | "updated" | "published" | "archived";
   changeSummary: string;
   changedBy: string;
   changedAt: FirestoreTimestamp;

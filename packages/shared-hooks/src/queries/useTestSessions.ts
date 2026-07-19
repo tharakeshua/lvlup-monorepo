@@ -1,17 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { DigitalTestSession } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { DigitalTestSession } from "@levelup/shared-types";
 
-export type { DigitalTestSession } from '@levelup/shared-types';
+export type { DigitalTestSession } from "@levelup/shared-types";
 
-export function useTestSession(
-  tenantId: string | null,
-  sessionId: string | null,
-) {
+export function useTestSession(tenantId: string | null, sessionId: string | null) {
   return useQuery<DigitalTestSession | null>({
-    queryKey: ['tenants', tenantId, 'digitalTestSessions', sessionId],
+    queryKey: ["tenants", tenantId, "digitalTestSessions", sessionId],
     queryFn: async () => {
       if (!tenantId || !sessionId) return null;
       const { db } = getFirebaseServices();
@@ -44,16 +41,16 @@ interface StartTestResponse {
 export function useStartTest() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<StartTestParams, StartTestResponse>(functions, 'startTestSession');
+  const callable = httpsCallable<StartTestParams, StartTestResponse>(functions, "startTestSession");
 
   return useMutation({
     mutationFn: async (params: StartTestParams) => {
       const result = await callable(params);
       return result.data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'digitalTestSessions'],
+        queryKey: ["tenants", variables.tenantId, "digitalTestSessions"],
       });
     },
   });
@@ -74,7 +71,10 @@ interface SubmitTestResponse {
 export function useSubmitTest() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SubmitTestParams, SubmitTestResponse>(functions, 'submitTestSession');
+  const callable = httpsCallable<SubmitTestParams, SubmitTestResponse>(
+    functions,
+    "submitTestSession"
+  );
 
   return useMutation({
     mutationFn: async (params: SubmitTestParams) => {
@@ -83,7 +83,7 @@ export function useSubmitTest() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'digitalTestSessions'],
+        queryKey: ["tenants", variables.tenantId, "digitalTestSessions"],
       });
     },
   });

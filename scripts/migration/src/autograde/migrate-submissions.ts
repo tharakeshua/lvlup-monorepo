@@ -4,10 +4,10 @@
  * Also migrates subcollection: /submissions/{subId}/questionSubmissions/{qId}
  */
 
-import * as admin from 'firebase-admin';
-import { getFirestore } from '../config.js';
-import { processBatch, readAllDocs, docExists } from '../utils/batch-processor.js';
-import { MigrationLogger } from '../utils/logger.js';
+import * as admin from "firebase-admin";
+import { getFirestore } from "../config.js";
+import { processBatch, readAllDocs, docExists } from "../utils/batch-processor.js";
+import { MigrationLogger } from "../utils/logger.js";
 
 interface LegacySubmission {
   _docId: string;
@@ -43,13 +43,13 @@ interface LegacySubmission {
 /** Map legacy submission status to new pipeline status. */
 function mapPipelineStatus(legacyStatus: string): string {
   const mapping: Record<string, string> = {
-    pending: 'uploaded',
-    scouting: 'scouting',
-    grading: 'grading',
-    completed: 'grading_complete',
-    failed: 'failed',
+    pending: "uploaded",
+    scouting: "scouting",
+    grading: "grading",
+    completed: "grading_complete",
+    failed: "failed",
   };
-  return mapping[legacyStatus] || 'uploaded';
+  return mapping[legacyStatus] || "uploaded";
 }
 
 export async function migrateSubmissions(options: {
@@ -76,7 +76,7 @@ export async function migrateSubmissions(options: {
 
       if (await docExists(db, targetPath)) {
         logger.debug(`Submission ${subId} already migrated, skipping`);
-        return { action: 'skipped', id: subId };
+        return { action: "skipped", id: subId };
       }
 
       const newSubmission = {
@@ -91,7 +91,7 @@ export async function migrateSubmissions(options: {
           images: sub.answerSheets.images,
           uploadedAt: sub.answerSheets.uploadedAt,
           uploadedBy: sub.answerSheets.uploadedBy,
-          uploadSource: 'web' as const,
+          uploadSource: "web" as const,
         },
         scoutingResult: sub.scoutingResult
           ? {
@@ -112,14 +112,13 @@ export async function migrateSubmissions(options: {
         pipelineStatus: mapPipelineStatus(sub.summary.status),
         pipelineError: null,
         retryCount: 0,
-        resultsReleased: sub.summary.status === 'completed',
-        resultsReleasedAt: sub.summary.status === 'completed'
-          ? (sub.summary.completedAt || null)
-          : null,
+        resultsReleased: sub.summary.status === "completed",
+        resultsReleasedAt:
+          sub.summary.status === "completed" ? sub.summary.completedAt || null : null,
         resultsReleasedBy: null,
         createdAt: sub.createdAt || admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-        _migratedFrom: 'autograde',
+        _migratedFrom: "autograde",
         _migrationSourcePath: `clients/${clientId}/submissions/${subId}`,
       };
 
@@ -131,7 +130,9 @@ export async function migrateSubmissions(options: {
 
       // Migrate questionSubmissions subcollection
       const qSubs = await readAllDocs<Record<string, unknown>>(
-        db.collection(`clients/${clientId}/submissions/${subId}/questionSubmissions`) as admin.firestore.CollectionReference
+        db.collection(
+          `clients/${clientId}/submissions/${subId}/questionSubmissions`
+        ) as admin.firestore.CollectionReference
       );
 
       for (const qs of qSubs) {
@@ -144,12 +145,12 @@ export async function migrateSubmissions(options: {
           const { _docId, ...data } = qs;
           batch.set(db.doc(qsPath), {
             ...data,
-            _migratedFrom: 'autograde',
+            _migratedFrom: "autograde",
           });
         }
       }
 
-      return { action: 'created', id: subId };
+      return { action: "created", id: subId };
     },
     { dryRun, logger }
   );

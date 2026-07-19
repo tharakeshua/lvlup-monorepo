@@ -3,17 +3,17 @@
  * Collection: /userMemberships/{uid}_{tenantId}
  */
 
-import type { FirestoreTimestamp } from './user';
+import type { FirestoreTimestamp } from "./user";
 
 /** Role a user holds within a tenant. */
 export type TenantRole =
-  | 'superAdmin'
-  | 'tenantAdmin'
-  | 'teacher'
-  | 'student'
-  | 'parent'
-  | 'scanner'
-  | 'staff';
+  | "superAdmin"
+  | "tenantAdmin"
+  | "teacher"
+  | "student"
+  | "parent"
+  | "scanner"
+  | "staff";
 
 /** Granular permissions for teacher role. */
 export interface TeacherPermissions {
@@ -76,17 +76,17 @@ export const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
  */
 export type MembershipClaimsInput = Pick<
   UserMembership,
-  | 'role'
-  | 'tenantId'
-  | 'tenantCode'
-  | 'permissions'
-  | 'staffPermissions'
-  | 'teacherId'
-  | 'studentId'
-  | 'parentId'
-  | 'parentLinkedStudentIds'
-  | 'staffId'
-  | 'scannerId'
+  | "role"
+  | "tenantId"
+  | "tenantCode"
+  | "permissions"
+  | "staffPermissions"
+  | "teacherId"
+  | "studentId"
+  | "parentId"
+  | "parentLinkedStudentIds"
+  | "staffId"
+  | "scannerId"
 >;
 
 export interface UserMembership {
@@ -96,8 +96,14 @@ export interface UserMembership {
   tenantCode: string;
 
   role: TenantRole;
-  status: 'active' | 'inactive' | 'suspended';
-  joinSource: 'admin_created' | 'bulk_import' | 'invite_code' | 'self_register' | 'migration' | 'tenant_code';
+  status: "active" | "inactive" | "suspended";
+  joinSource:
+    | "admin_created"
+    | "bulk_import"
+    | "invite_code"
+    | "self_register"
+    | "migration"
+    | "tenant_code";
 
   // Links to role-specific entity docs (only one set per membership)
   teacherId?: string;

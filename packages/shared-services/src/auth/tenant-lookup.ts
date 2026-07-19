@@ -16,35 +16,51 @@ export async function lookupTenantByCode(code: string): Promise<Tenant | null> {
   const { db, functions } = getFirebaseServices();
   const normalised = code.toUpperCase().trim();
 
+  type PublicView = {
+    tenantId?: string;
+    name?: string;
+    status?: string;
+    trialEndsAt?: string | null;
+    branding?: unknown;
+  };
+
+  let callableView: PublicView | null = null;
   try {
     const fn = httpsCallable(functions, "v1-identity-lookupTenantByCode");
     const res = await fn({ tenantCode: normalised });
-    const view = res.data as {
-      tenantId?: string;
-      name?: string;
-      status?: string;
-      trialEndsAt?: string | null;
-      branding?: unknown;
-    } | null;
-    if (view?.tenantId) {
-      // Legacy consumers read `id`; keep both spellings.
-      return { ...view, id: view.tenantId } as unknown as Tenant;
-    }
+    callableView = (res.data as PublicView | null) ?? null;
   } catch {
     // NOT_FOUND for legacy tenants / callable unreachable — fall through.
   }
 
-  // 1. Resolve code → tenantId (legacy, unprefixed)
+  // Legacy /tenantCodes/{code} → /tenants/{tenantId} (pre-v2 + seed-drift recovery).
+  let legacyTenant: Tenant | null = null;
   const codeSnap = await getDoc(doc(db, "tenantCodes", normalised));
-  if (!codeSnap.exists()) return null;
+  if (codeSnap.exists()) {
+    const { tenantId } = codeSnap.data() as TenantCodeIndex;
+    const tenantSnap = await getDoc(doc(db, "tenants", tenantId));
+    if (tenantSnap.exists()) {
+      legacyTenant = tenantSnap.data() as Tenant;
+    }
+  }
 
-  const { tenantId } = codeSnap.data() as TenantCodeIndex;
+  if (callableView?.tenantId) {
+    // Prefer callable when its tenant also exists in the unprefixed tenants
+    // collection (shared with memberships). If the callable points at a v2-only
+    // ghost while legacy index is healthy, school login must use legacy — otherwise
+    // getMembership(uid, ghostId) fails with "No active membership for this school".
+    const legacyOfCallable = await getDoc(doc(db, "tenants", callableView.tenantId));
+    if (legacyOfCallable.exists()) {
+      return { ...callableView, id: callableView.tenantId } as unknown as Tenant;
+    }
+    if (legacyTenant) {
+      return legacyTenant;
+    }
+    // Pure v2 tenant (no unprefixed twin) — keep callable result.
+    return { ...callableView, id: callableView.tenantId } as unknown as Tenant;
+  }
 
-  // 2. Fetch the tenant document
-  const tenantSnap = await getDoc(doc(db, "tenants", tenantId));
-  if (!tenantSnap.exists()) return null;
-
-  return tenantSnap.data() as Tenant;
+  return legacyTenant;
 }
 
 /**

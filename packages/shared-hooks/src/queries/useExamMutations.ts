@@ -1,20 +1,20 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { SaveExamRequest, SaveResponse } from '@levelup/shared-types';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { SaveExamRequest, SaveResponse } from "@levelup/shared-types";
 
 export function useCreateExam() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, 'saveExam');
+  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, "saveExam");
 
   return useMutation({
-    mutationFn: async (params: Omit<SaveExamRequest, 'id'>) => {
+    mutationFn: async (params: Omit<SaveExamRequest, "id">) => {
       const result = await callable(params);
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams'] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "exams"] });
     },
   });
 }
@@ -22,7 +22,7 @@ export function useCreateExam() {
 export function useUpdateExam() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, 'saveExam');
+  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, "saveExam");
 
   return useMutation({
     mutationFn: async (params: SaveExamRequest & { id: string }) => {
@@ -30,8 +30,10 @@ export function useUpdateExam() {
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "exams"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "exams", variables.id],
+      });
     },
   });
 }
@@ -39,20 +41,22 @@ export function useUpdateExam() {
 export function usePublishExam() {
   const queryClient = useQueryClient();
   const { functions } = getFirebaseServices();
-  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, 'saveExam');
+  const callable = httpsCallable<SaveExamRequest, SaveResponse>(functions, "saveExam");
 
   return useMutation({
     mutationFn: async (params: { tenantId: string; examId: string }) => {
       const result = await callable({
         id: params.examId,
         tenantId: params.tenantId,
-        data: { status: 'published' },
+        data: { status: "published" },
       });
       return result.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams'] });
-      queryClient.invalidateQueries({ queryKey: ['tenants', variables.tenantId, 'exams', variables.examId] });
+      queryClient.invalidateQueries({ queryKey: ["tenants", variables.tenantId, "exams"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenants", variables.tenantId, "exams", variables.examId],
+      });
     },
   });
 }

@@ -30,9 +30,7 @@ export async function checkA11y(page: Page, options: A11yCheckOptions = {}): Pro
   // Dynamically import to avoid bundling in production
   const { AxeBuilder } = await import("@axe-core/playwright");
 
-  let builder = new AxeBuilder({ page }).withTags(
-    options.tags ?? ["wcag2a", "wcag2aa"],
-  );
+  let builder = new AxeBuilder({ page }).withTags(options.tags ?? ["wcag2a", "wcag2aa"]);
 
   if (options.include) {
     builder = builder.include(options.include);
@@ -47,16 +45,12 @@ export async function checkA11y(page: Page, options: A11yCheckOptions = {}): Pro
   if (results.violations.length > 0) {
     const report = results.violations
       .map((v) => {
-        const nodes = v.nodes
-          .map((n) => `  - ${n.html}\n    ${n.failureSummary}`)
-          .join("\n");
+        const nodes = v.nodes.map((n) => `  - ${n.html}\n    ${n.failureSummary}`).join("\n");
         return `[${v.impact}] ${v.id}: ${v.description}\n${nodes}`;
       })
       .join("\n\n");
 
-    throw new Error(
-      `Accessibility violations found (${results.violations.length}):\n\n${report}`,
-    );
+    throw new Error(`Accessibility violations found (${results.violations.length}):\n\n${report}`);
   }
 }
 

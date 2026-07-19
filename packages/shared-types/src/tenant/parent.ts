@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}/parents/{parentId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface Parent {
   id: string;
@@ -20,7 +20,7 @@ export interface Parent {
   /** @deprecated Use studentIds instead */
   childStudentIds?: string[];
   linkedStudentNames?: string[];
-  status: 'active' | 'archived';
+  status: "active" | "archived";
   lastLogin?: FirestoreTimestamp;
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;

@@ -4,14 +4,14 @@
  * @module autograde/exam
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { ExamStatus } from '../constants/grades';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { ExamStatus } from "../constants/grades";
 
 export interface ExamQuestionPaper {
   images: string[];
   extractedAt: FirestoreTimestamp;
   questionCount: number;
-  examType: 'standard';
+  examType: "standard";
 }
 
 export interface ExamGradingConfig {

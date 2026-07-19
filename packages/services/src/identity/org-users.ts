@@ -142,7 +142,7 @@ export async function createOrgUserService(
   authorize(ctx, "user.create", { tenantId });
 
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = (tenant?.["code"] as string | undefined) ?? "";
+  const tenantCode = (tenant?.["tenantCode"] as string | undefined) ?? "";
 
   // 1-4) Auth user → entity → membership → claims via the shared saga.
   const { uid, entityId, membershipId } = await provisionOrgUser(
@@ -194,7 +194,12 @@ export async function joinTenantService(
   input: ReqOf<"v1.identity.joinTenant">,
   ctx: AuthContext
 ): Promise<ResOf<"v1.identity.joinTenant">> {
-  const tenant = await ctx.repos.tenants.get(input.tenantCode, input.tenantCode);
+  // Same resolution path as lookupTenantByCode: school code → tenantCodes index → tenant id.
+  const codeRepo = ctx.repos.tenants as unknown as {
+    resolveCode(code: string): Promise<string | null>;
+  };
+  const resolvedId = (await codeRepo.resolveCode(input.tenantCode)) ?? input.tenantCode;
+  const tenant = await ctx.repos.tenants.get(resolvedId, resolvedId);
   if (!tenant) fail("NOT_FOUND", `no tenant for code ${input.tenantCode}`);
   const tenantId = tenant["id"] as string;
   authorize(ctx, "tenant.join", { tenantId });
@@ -420,7 +425,7 @@ export async function bulkImportStudentsService(
   authorize(ctx, "user.bulkImport", { tenantId });
 
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = (tenant?.["code"] as string | undefined) ?? "";
+  const tenantCode = (tenant?.["tenantCode"] as string | undefined) ?? "";
 
   // The role-specific roll/section/grade/admission columns ride on the entity doc
   // via `entityExtra`; the login label prefers email, else the roll number.
@@ -455,7 +460,7 @@ export async function bulkImportTeachersService(
   authorize(ctx, "user.bulkImport", { tenantId });
 
   const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-  const tenantCode = (tenant?.["code"] as string | undefined) ?? "";
+  const tenantCode = (tenant?.["tenantCode"] as string | undefined) ?? "";
 
   // IDN-4: route teachers through the SAME saga as students (Auth user → entity →
   // membership → claims), killing the entity-docs-only latent bug (a teacher used to

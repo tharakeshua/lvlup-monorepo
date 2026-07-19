@@ -106,7 +106,7 @@ one.
   failures; a list endpoint drains+re-enqueues the outbox (read-side mutation).
 - **`v2_` prefix not applied in transport-firebase subscriptions** → realtime
   split-brain; ~20 timestamp wire fields are bare `z.string()`. _(Blocks any
-  `v2_` client deploy.)_
+  `v2_` client deploy.)\_
 - **Coverage inverted vs risk** — `services` (11.3k LOC / 11 tests) and
   `functions-adapters` (0 tests) are the fattest + least tested.
 

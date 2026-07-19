@@ -26,6 +26,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 };
 
 function getAuthErrorMessage(err: unknown, fallback: string): string {
+  // Only map Firebase Auth codes. ApiError/HttpsError also expose `code`
+  // (e.g. PERMISSION_DENIED) — fall through to the Error message so callers
+  // see the real failure instead of the generic fallback.
   if (
     typeof err === "object" &&
     err !== null &&
@@ -33,9 +36,19 @@ function getAuthErrorMessage(err: unknown, fallback: string): string {
     typeof (err as { code: string }).code === "string"
   ) {
     const code = (err as { code: string }).code;
-    return AUTH_ERROR_MESSAGES[code] ?? fallback;
+    const mapped = AUTH_ERROR_MESSAGES[code];
+    if (mapped) return mapped;
   }
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error && err.message) return err.message;
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof (err as { message: string }).message === "string" &&
+    (err as { message: string }).message
+  ) {
+    return (err as { message: string }).message;
+  }
   return fallback;
 }
 

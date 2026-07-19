@@ -1,6 +1,6 @@
-import { Component, type ReactNode } from 'react';
-import { Button } from '@levelup/shared-ui';
-import { AlertTriangle } from 'lucide-react';
+import { Component, type ReactNode } from "react";
+import { Button } from "@levelup/shared-ui";
+import { AlertTriangle } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -21,10 +21,10 @@ export class SectionErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-          <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-destructive" />
+        <div className="border-destructive/20 bg-destructive/5 rounded-lg border p-6 text-center">
+          <AlertTriangle className="text-destructive mx-auto mb-2 h-8 w-8" />
           <p className="text-sm font-medium">
-            {this.props.fallbackTitle ?? 'Something went wrong'}
+            {this.props.fallbackTitle ?? "Something went wrong"}
           </p>
           <Button
             variant="outline"

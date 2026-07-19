@@ -44,15 +44,78 @@ export default function App() {
         </Route>
         <Route element={<RequireAuth allowedRoles={["parent"]} />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
-            <Route path="/children" element={<RouteErrorBoundary><ChildrenPage /></RouteErrorBoundary>} />
-            <Route path="/results" element={<RouteErrorBoundary><ExamResultsPage /></RouteErrorBoundary>} />
-            <Route path="/progress" element={<RouteErrorBoundary><SpaceProgressPage /></RouteErrorBoundary>} />
-            <Route path="/child-progress" element={<RouteErrorBoundary><ChildProgressPage /></RouteErrorBoundary>} />
-            <Route path="/alerts" element={<RouteErrorBoundary><PerformanceAlertsPage /></RouteErrorBoundary>} />
-            <Route path="/compare" element={<RouteErrorBoundary><ChildComparisonPage /></RouteErrorBoundary>} />
-            <Route path="/notifications" element={<RouteErrorBoundary><NotificationsPage /></RouteErrorBoundary>} />
-            <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
+            <Route
+              path="/"
+              element={
+                <RouteErrorBoundary>
+                  <DashboardPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/children"
+              element={
+                <RouteErrorBoundary>
+                  <ChildrenPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/results"
+              element={
+                <RouteErrorBoundary>
+                  <ExamResultsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <RouteErrorBoundary>
+                  <SpaceProgressPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/child-progress"
+              element={
+                <RouteErrorBoundary>
+                  <ChildProgressPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/alerts"
+              element={
+                <RouteErrorBoundary>
+                  <PerformanceAlertsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/compare"
+              element={
+                <RouteErrorBoundary>
+                  <ChildComparisonPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <RouteErrorBoundary>
+                  <NotificationsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RouteErrorBoundary>
+                  <SettingsPage />
+                </RouteErrorBoundary>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

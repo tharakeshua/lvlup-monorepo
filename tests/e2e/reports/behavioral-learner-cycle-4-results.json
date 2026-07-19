@@ -26,18 +26,13 @@
         "name": "chromium",
         "testDir": "/Users/subhang/Desktop/Projects/auto-levleup/tests/e2e",
         "testIgnore": [],
-        "testMatch": [
-          "behavioral-learner-cycle-4.spec.ts"
-        ],
+        "testMatch": ["behavioral-learner-cycle-4.spec.ts"],
         "timeout": 660000
       }
     ],
     "quiet": false,
     "reporter": [
-      [
-        "list",
-        null
-      ],
+      ["list", null],
       [
         "json",
         {

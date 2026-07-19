@@ -57,12 +57,22 @@ export function buildClaimsForMembership(
   return claims;
 }
 
-/** Lift only boolean-valued entries (drops legacy managed*Ids arrays). */
+/**
+ * Lift only boolean-valued permission entries (drops legacy managed*Ids arrays).
+ * Also unwraps the domain nested shape `{ permissions: { canX: true }, managedClassIds }`
+ * so claim JWTs stay a flat `Record<string, boolean>` (PlatformClaimsSchema).
+ */
 function booleanEntries(source: object | undefined): Record<string, boolean> | undefined {
   if (!source) return undefined;
   const out: Record<string, boolean> = {};
   for (const [k, v] of Object.entries(source)) {
     if (typeof v === "boolean") out[k] = v;
+  }
+  const nested = (source as { permissions?: unknown }).permissions;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    for (const [k, v] of Object.entries(nested as Record<string, unknown>)) {
+      if (typeof v === "boolean") out[k] = v;
+    }
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

@@ -3,8 +3,11 @@
  * AcademicSession` (identity.md §"Command services"). Each is `save*` = create or
  * update of METADATA (DX-5; lifecycle is the separate `bulkUpdateStatus`/archive
  * path). `delete?=true` maps to an `entityStatus` archive transition (D5), NOT a
- * hard delete. The create branch provisions membership + claims for role entities
- * (student/teacher/parent/staff) via the single `provisionMembership` factory.
+ * hard delete.
+ *
+ * Membership + Auth claims are NOT minted here — that is exclusively
+ * `createOrgUser` / `provisionMembership` (B-IDN-03). `saveClass` may re-sync
+ * existing teacher memberships when the roster changes.
  *
  * Cross-domain link integrity (§6.11): classIds/parentIds existence is validated
  * in-tenant before persisting. `tenantId` ALWAYS from `ctx`.
@@ -15,7 +18,6 @@ import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import type { EntityRepo } from "../repo-admin/types.js";
 import { xrepos } from "../shared/extended-repos.js";
-import { provisionMembership } from "./provision-membership.js";
 import { syncMembershipClaims } from "./sync-membership-claims.js";
 
 type Doc = Record<string, unknown>;
@@ -87,29 +89,7 @@ export async function saveStudentService(
   authorize(ctx, "user.create", { tenantId });
   await assertClassesExist(ctx, tenantId, input.data.classIds as string[] | undefined);
 
-  const wasCreate = !input.id;
   const res = await saveEntity(ctx, ctx.repos.students, "student", input);
-
-  // New students with an auth account get a membership + claims (single factory).
-  if (wasCreate && !input.delete) {
-    const tenant = await ctx.repos.tenants.get(tenantId, tenantId);
-    const tenantCode = (tenant?.["code"] as string | undefined) ?? "";
-    const authUid = (input.data as Record<string, unknown>)["authUid"] as string | undefined;
-    if (authUid) {
-      await provisionMembership(
-        {
-          uid: authUid,
-          tenantId,
-          tenantCode,
-          role: "student",
-          joinSource: "admin_created",
-          entityIds: { studentId: res.id },
-          classIds: input.data.classIds as string[] | undefined,
-        },
-        ctx
-      );
-    }
-  }
   return res as ResOf<"v1.identity.saveStudent">;
 }
 

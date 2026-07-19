@@ -15,6 +15,30 @@ import {
 } from "../utils";
 import { enforceRateLimit } from "../utils/rate-limit";
 
+/** Nest boolean can* flags under `permissions` so domain UserMembershipSchema accepts the doc. */
+function canonicalizeTeacherPermissions(raw: TeacherPermissions & Record<string, unknown>): {
+  permissions: Record<string, boolean>;
+  managedClassIds: string[];
+  managedSpaceIds: string[];
+} {
+  const bag: Record<string, boolean> = {};
+  const nested =
+    raw.permissions && typeof raw.permissions === "object" && !Array.isArray(raw.permissions)
+      ? (raw.permissions as Record<string, unknown>)
+      : {};
+  for (const src of [nested, raw as Record<string, unknown>]) {
+    for (const [k, v] of Object.entries(src)) {
+      if (k === "permissions" || k === "managedClassIds" || k === "managedSpaceIds") continue;
+      if (typeof v === "boolean") bag[k] = v;
+    }
+  }
+  return {
+    permissions: bag,
+    managedClassIds: Array.isArray(raw.managedClassIds) ? raw.managedClassIds : [],
+    managedSpaceIds: Array.isArray(raw.managedSpaceIds) ? raw.managedSpaceIds : [],
+  };
+}
+
 /**
  * Consolidated endpoint: replaces createTeacher + updateTeacher + assignTeacherToClass + updateTeacherPermissions.
  * - No id = create new teacher
@@ -71,11 +95,14 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
       status: "active",
       joinSource: "admin_created",
       teacherId: teacherRef.id,
-      permissions: {
+      // Domain TeacherPermissions is nested: { permissions?: Record, managedClassIds? }.
+      // Never spread flat can* keys onto the wrapper — that breaks getMe Zod
+      // (validateResponses:true → Access Denied after school login).
+      permissions: canonicalizeTeacherPermissions({
         ...DEFAULT_TEACHER_PERMISSIONS,
-        managedClassIds: data.classIds ?? [],
         ...(data.permissions ?? {}),
-      },
+        managedClassIds: data.classIds ?? [],
+      }),
       createdAt: isoNow(),
       updatedAt: isoNow(),
     };
@@ -148,10 +175,13 @@ export const saveTeacher = onCall({ region: "asia-south1", cors: true }, async (
         const currentMembership = membershipDoc.data() as UserMembership;
         const currentPerms = currentMembership.permissions ?? {};
 
-        const updatedPerms: TeacherPermissions = {
+        const updatedPerms = canonicalizeTeacherPermissions({
           ...currentPerms,
           ...data.permissions,
-        };
+          managedClassIds:
+            (data.permissions as { managedClassIds?: string[] } | undefined)?.managedClassIds ??
+            currentPerms.managedClassIds,
+        });
 
         await membershipRef.update({
           permissions: updatedPerms,

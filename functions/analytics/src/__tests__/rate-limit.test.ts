@@ -50,6 +50,10 @@ vi.mock("firebase-admin", () => {
   };
 });
 
+vi.mock("firebase-admin/firestore", () => ({
+  FieldValue: { serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP") },
+}));
+
 vi.mock("firebase-functions/v2/https", () => ({
   HttpsError: class HttpsError extends Error {
     code: string;

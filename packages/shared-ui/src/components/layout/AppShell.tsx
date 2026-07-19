@@ -1,13 +1,8 @@
-import * as React from 'react';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '../ui/sidebar';
-import { Separator } from '../ui/separator';
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbPage,
-} from '../ui/breadcrumb';
-import { useIsMobile } from '../../hooks/use-mobile';
+import * as React from "react";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "../ui/sidebar";
+import { Separator } from "../ui/separator";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from "../ui/breadcrumb";
+import { useIsMobile } from "../../hooks/use-mobile";
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -22,10 +17,10 @@ export interface AppShellProps {
 }
 
 function readSidebarCookie(): boolean | null {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   const match = document.cookie.match(/(?:^|;\s*)sidebar:state=(\w+)/);
   if (!match) return null;
-  return match[1] === 'true';
+  return match[1] === "true";
 }
 
 export function AppShell({
@@ -50,10 +45,10 @@ export function AppShell({
       <SidebarInset>
         <header
           className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4"
-          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
           <SidebarTrigger className="-ml-1 min-h-[44px] min-w-[44px]" />
-          <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
+          <Separator orientation="vertical" className="mr-2 hidden h-4 md:block" />
           {pageTitle && (
             <Breadcrumb className="hidden md:flex">
               <BreadcrumbList>
@@ -63,13 +58,11 @@ export function AppShell({
               </BreadcrumbList>
             </Breadcrumb>
           )}
-          {headerRight && (
-            <div className="ml-auto flex items-center gap-2">
-              {headerRight}
-            </div>
-          )}
+          {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </header>
-        <main className={`min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6 ${hasBottomNav ? 'pb-20 md:pb-6' : ''}`}>
+        <main
+          className={`min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6 ${hasBottomNav ? "pb-20 md:pb-6" : ""}`}
+        >
           {children}
         </main>
       </SidebarInset>

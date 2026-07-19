@@ -4,19 +4,19 @@
  * @module progress/insight
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export type InsightType =
-  | 'weak_topic_recommendation'
-  | 'exam_preparation'
-  | 'streak_encouragement'
-  | 'improvement_celebration'
-  | 'at_risk_intervention'
-  | 'cross_system_correlation';
+  | "weak_topic_recommendation"
+  | "exam_preparation"
+  | "streak_encouragement"
+  | "improvement_celebration"
+  | "at_risk_intervention"
+  | "cross_system_correlation";
 
-export type InsightActionType = 'practice_space' | 'review_exam' | 'seek_help' | 'celebrate';
+export type InsightActionType = "practice_space" | "review_exam" | "seek_help" | "celebrate";
 
-export type InsightPriority = 'high' | 'medium' | 'low';
+export type InsightPriority = "high" | "medium" | "low";
 
 export interface LearningInsight {
   id: string;

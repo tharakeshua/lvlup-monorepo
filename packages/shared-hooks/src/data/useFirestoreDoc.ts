@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
-import { getFirebaseServices } from '@levelup/shared-services';
+import { useState, useEffect } from "react";
+import { doc, onSnapshot, DocumentData } from "firebase/firestore";
+import { getFirebaseServices } from "@levelup/shared-services";
 
 /**
  * Hook to subscribe to a Firestore document

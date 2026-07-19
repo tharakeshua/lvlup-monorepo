@@ -20,11 +20,7 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
 };
 
-export function AnimatedList({
-  children,
-  staggerDelay = 0.05,
-  className,
-}: AnimatedListProps) {
+export function AnimatedList({ children, staggerDelay = 0.05, className }: AnimatedListProps) {
   const reduced = useReducedMotion();
 
   if (reduced) {

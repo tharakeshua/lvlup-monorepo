@@ -69,7 +69,11 @@
       { "id": "A4", "feature": "Login Error Messages", "fixedBy": "BUG-004" }
     ],
     "stillBroken": [
-      { "id": "L3-partial", "feature": "Story Point Viewer h1 timing", "note": "BUG-002 partially fixed" },
+      {
+        "id": "L3-partial",
+        "feature": "Story Point Viewer h1 timing",
+        "note": "BUG-002 partially fixed"
+      },
       { "id": "D2", "feature": "Dashboard stat cards (1 instead of 4)", "since": "Cycle 0" },
       { "id": "D4", "feature": "Level badge and XP progress bar", "since": "Cycle 0" },
       { "id": "D5", "feature": "Recent achievements on dashboard", "since": "Cycle 0" },
@@ -486,7 +490,15 @@
         "issueId": "EVAL-C2-008",
         "title": "Enrich LLD CQRS/DDD/Event Sourcing content",
         "space": "Low-Level Design & OOP",
-        "expectedKeywords": ["CQRS", "Command Query", "Event Sourcing", "Domain-Driven Design", "Aggregate", "Repository", "Bounded Context"],
+        "expectedKeywords": [
+          "CQRS",
+          "Command Query",
+          "Event Sourcing",
+          "Domain-Driven Design",
+          "Aggregate",
+          "Repository",
+          "Bounded Context"
+        ],
         "priority": "P2",
         "note": "Verify content exists first — may just be inaccessible due to enrollment issue"
       },
@@ -494,7 +506,16 @@
         "issueId": "EVAL-C2-009",
         "title": "Verify/enrich STAR Method content",
         "space": "Behavioral Interview Mastery",
-        "expectedKeywords": ["Situation", "Task", "Action", "Result", "STAR", "framework", "behavioral", "story"],
+        "expectedKeywords": [
+          "Situation",
+          "Task",
+          "Action",
+          "Result",
+          "STAR",
+          "framework",
+          "behavioral",
+          "story"
+        ],
         "priority": "P2",
         "note": "Content likely exists in seed data but was not visible due to 404. Verify after fix."
       },
@@ -502,7 +523,16 @@
         "issueId": "EVAL-C2-010",
         "title": "Verify/enrich FAANG Prep content",
         "space": "Behavioral Interview Mastery",
-        "expectedKeywords": ["Google", "Amazon", "Meta", "Microsoft", "Apple", "Leadership Principles", "LP", "culture"],
+        "expectedKeywords": [
+          "Google",
+          "Amazon",
+          "Meta",
+          "Microsoft",
+          "Apple",
+          "Leadership Principles",
+          "LP",
+          "culture"
+        ],
         "priority": "P2",
         "note": "Content likely exists but was not verifiable. Verify after fix."
       }

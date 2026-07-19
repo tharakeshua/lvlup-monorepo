@@ -28,7 +28,7 @@ interface EnrollStudentDialogProps {
 export default function EnrollStudentDialog({
   open,
   onOpenChange,
-  tenantId,
+  tenantId: _tenantId,
   classId,
   className,
 }: EnrollStudentDialogProps) {

@@ -7,7 +7,7 @@
 type WebVitalMetric = {
   name: string;
   value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
+  rating: "good" | "needs-improvement" | "poor";
   delta: number;
   id: string;
   navigationType: string;
@@ -15,15 +15,24 @@ type WebVitalMetric = {
 
 type ReportHandler = (metric: WebVitalMetric) => void;
 
+/** Vite/dev flag without requiring a package-local vite/client ambient. */
+function isDevMode(): boolean {
+  try {
+    return Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+  } catch {
+    return false;
+  }
+}
+
 const defaultHandler: ReportHandler = (metric) => {
   // Log to console in development, send to analytics in production
-  if (import.meta.env?.DEV) {
+  if (isDevMode()) {
     const color =
-      metric.rating === 'good'
-        ? '#0cce6b'
-        : metric.rating === 'needs-improvement'
-          ? '#ffa400'
-          : '#ff4e42';
+      metric.rating === "good"
+        ? "#0cce6b"
+        : metric.rating === "needs-improvement"
+          ? "#ffa400"
+          : "#ff4e42";
     console.log(
       `%c[Web Vitals] ${metric.name}: ${Math.round(metric.value)}ms (${metric.rating})`,
       `color: ${color}; font-weight: bold;`
@@ -38,7 +47,7 @@ const defaultHandler: ReportHandler = (metric) => {
 export function reportWebVitals(onReport?: ReportHandler): void {
   const handler = onReport ?? defaultHandler;
 
-  if (typeof window === 'undefined' || typeof PerformanceObserver === 'undefined') {
+  if (typeof window === "undefined" || typeof PerformanceObserver === "undefined") {
     return;
   }
 
@@ -46,11 +55,16 @@ export function reportWebVitals(onReport?: ReportHandler): void {
   try {
     const fcpObserver = new PerformanceObserver((entryList) => {
       for (const entry of entryList.getEntries()) {
-        if (entry.name === 'first-contentful-paint') {
+        if (entry.name === "first-contentful-paint") {
           handler({
-            name: 'FCP',
+            name: "FCP",
             value: entry.startTime,
-            rating: entry.startTime < 1800 ? 'good' : entry.startTime < 3000 ? 'needs-improvement' : 'poor',
+            rating:
+              entry.startTime < 1800
+                ? "good"
+                : entry.startTime < 3000
+                  ? "needs-improvement"
+                  : "poor",
             delta: entry.startTime,
             id: `fcp-${Date.now()}`,
             navigationType: getNavigationType(),
@@ -59,7 +73,7 @@ export function reportWebVitals(onReport?: ReportHandler): void {
         }
       }
     });
-    fcpObserver.observe({ type: 'paint', buffered: true });
+    fcpObserver.observe({ type: "paint", buffered: true });
   } catch {
     // PerformanceObserver not supported for this entry type
   }
@@ -72,24 +86,28 @@ export function reportWebVitals(onReport?: ReportHandler): void {
       if (lastEntry) {
         const value = lastEntry.startTime;
         handler({
-          name: 'LCP',
+          name: "LCP",
           value,
-          rating: value < 2500 ? 'good' : value < 4000 ? 'needs-improvement' : 'poor',
+          rating: value < 2500 ? "good" : value < 4000 ? "needs-improvement" : "poor",
           delta: value,
           id: `lcp-${Date.now()}`,
           navigationType: getNavigationType(),
         });
       }
     });
-    lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
 
     // Disconnect on page hide to capture final LCP
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        lcpObserver.takeRecords();
-        lcpObserver.disconnect();
-      }
-    }, { once: true });
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.visibilityState === "hidden") {
+          lcpObserver.takeRecords();
+          lcpObserver.disconnect();
+        }
+      },
+      { once: true }
+    );
   } catch {
     // LCP not supported
   }
@@ -127,22 +145,26 @@ export function reportWebVitals(onReport?: ReportHandler): void {
         }
       }
     });
-    clsObserver.observe({ type: 'layout-shift', buffered: true });
+    clsObserver.observe({ type: "layout-shift", buffered: true });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        clsObserver.takeRecords();
-        clsObserver.disconnect();
-        handler({
-          name: 'CLS',
-          value: clsValue,
-          rating: clsValue < 0.1 ? 'good' : clsValue < 0.25 ? 'needs-improvement' : 'poor',
-          delta: clsValue,
-          id: `cls-${Date.now()}`,
-          navigationType: getNavigationType(),
-        });
-      }
-    }, { once: true });
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.visibilityState === "hidden") {
+          clsObserver.takeRecords();
+          clsObserver.disconnect();
+          handler({
+            name: "CLS",
+            value: clsValue,
+            rating: clsValue < 0.1 ? "good" : clsValue < 0.25 ? "needs-improvement" : "poor",
+            delta: clsValue,
+            id: `cls-${Date.now()}`,
+            navigationType: getNavigationType(),
+          });
+        }
+      },
+      { once: true }
+    );
   } catch {
     // CLS not supported
   }
@@ -150,13 +172,15 @@ export function reportWebVitals(onReport?: ReportHandler): void {
   // First Input Delay (FID) / Interaction to Next Paint (INP)
   try {
     const fidObserver = new PerformanceObserver((entryList) => {
-      const firstInput = entryList.getEntries()[0] as PerformanceEntry & { processingStart: number };
+      const firstInput = entryList.getEntries()[0] as PerformanceEntry & {
+        processingStart: number;
+      };
       if (firstInput) {
         const value = firstInput.processingStart - firstInput.startTime;
         handler({
-          name: 'FID',
+          name: "FID",
           value,
-          rating: value < 100 ? 'good' : value < 300 ? 'needs-improvement' : 'poor',
+          rating: value < 100 ? "good" : value < 300 ? "needs-improvement" : "poor",
           delta: value,
           id: `fid-${Date.now()}`,
           navigationType: getNavigationType(),
@@ -164,21 +188,21 @@ export function reportWebVitals(onReport?: ReportHandler): void {
         fidObserver.disconnect();
       }
     });
-    fidObserver.observe({ type: 'first-input', buffered: true });
+    fidObserver.observe({ type: "first-input", buffered: true });
   } catch {
     // FID not supported
   }
 
   // Time to First Byte (TTFB)
   try {
-    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    if (navEntries.length > 0) {
-      const nav = navEntries[0];
+    const navEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    const nav = navEntries[0];
+    if (nav) {
       const value = nav.responseStart - nav.requestStart;
       handler({
-        name: 'TTFB',
+        name: "TTFB",
         value,
-        rating: value < 800 ? 'good' : value < 1800 ? 'needs-improvement' : 'poor',
+        rating: value < 800 ? "good" : value < 1800 ? "needs-improvement" : "poor",
         delta: value,
         id: `ttfb-${Date.now()}`,
         navigationType: getNavigationType(),
@@ -190,8 +214,10 @@ export function reportWebVitals(onReport?: ReportHandler): void {
 }
 
 function getNavigationType(): string {
-  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-  return nav?.type ?? 'navigate';
+  const nav = performance.getEntriesByType("navigation")[0] as
+    | PerformanceNavigationTiming
+    | undefined;
+  return nav?.type ?? "navigate";
 }
 
 export type { WebVitalMetric, ReportHandler };

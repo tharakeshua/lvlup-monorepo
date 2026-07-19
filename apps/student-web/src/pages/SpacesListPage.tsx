@@ -8,6 +8,8 @@ import type { Space, SpaceProgress } from "@levelup/shared-types";
 import { SpaceCover, ProgressRing, Kicker } from "../components/common/lyceum";
 
 export default function SpacesListPage() {
+  // listSpaces is Zod .strict() — classIds[] is rejected and the query fails.
+  // Server scopes published spaces from the learner's claims / membership.
   const {
     data: spacesPage,
     isLoading,

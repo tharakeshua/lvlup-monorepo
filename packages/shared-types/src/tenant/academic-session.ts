@@ -3,7 +3,7 @@
  * Collection: /tenants/{tenantId}/academicSessions/{sessionId}
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
+import type { FirestoreTimestamp } from "../identity/user";
 
 export interface AcademicSession {
   id: string;
@@ -12,7 +12,7 @@ export interface AcademicSession {
   startDate: FirestoreTimestamp;
   endDate: FirestoreTimestamp;
   isCurrent: boolean;
-  status: 'active' | 'archived';
+  status: "active" | "archived";
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }

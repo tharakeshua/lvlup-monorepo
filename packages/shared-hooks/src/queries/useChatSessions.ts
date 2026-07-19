@@ -1,17 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseServices } from '@levelup/shared-services';
-import type { ChatSession } from '@levelup/shared-types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { getFirebaseServices } from "@levelup/shared-services";
+import type { ChatSession } from "@levelup/shared-types";
 
-export type { ChatSession } from '@levelup/shared-types';
+export type { ChatSession } from "@levelup/shared-types";
 
-export function useChatSession(
-  tenantId: string | null,
-  sessionId: string | null,
-) {
+export function useChatSession(tenantId: string | null, sessionId: string | null) {
   return useQuery<ChatSession | null>({
-    queryKey: ['tenants', tenantId, 'chatSessions', sessionId],
+    queryKey: ["tenants", tenantId, "chatSessions", sessionId],
     queryFn: async () => {
       if (!tenantId || !sessionId) return null;
       const { db } = getFirebaseServices();
@@ -47,7 +44,7 @@ export function useSendMessage() {
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<SendChatMessageParams, SendChatMessageResponse>(
     functions,
-    'sendChatMessage',
+    "sendChatMessage"
   );
 
   return useMutation({
@@ -57,10 +54,10 @@ export function useSendMessage() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'chatSessions', data.sessionId],
+        queryKey: ["tenants", variables.tenantId, "chatSessions", data.sessionId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['tenants', variables.tenantId, 'chatSessions'],
+        queryKey: ["tenants", variables.tenantId, "chatSessions"],
       });
     },
   });
@@ -87,7 +84,7 @@ export function useEvaluate() {
   const { functions } = getFirebaseServices();
   const callable = httpsCallable<EvaluateAnswerParams, EvaluateAnswerResponse>(
     functions,
-    'evaluateAnswer',
+    "evaluateAnswer"
   );
 
   return useMutation({

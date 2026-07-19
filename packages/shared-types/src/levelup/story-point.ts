@@ -4,15 +4,10 @@
  * @module levelup/story-point
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { UnifiedRubric } from '../content/rubric';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { UnifiedRubric } from "../content/rubric";
 
-export type StoryPointType =
-  | 'standard'
-  | 'timed_test'
-  | 'quiz'
-  | 'practice'
-  | 'test';
+export type StoryPointType = "standard" | "timed_test" | "quiz" | "practice" | "test";
 
 export interface StoryPointSection {
   id: string;
@@ -23,8 +18,8 @@ export interface StoryPointSection {
 
 export interface AdaptiveConfig {
   enabled: boolean;
-  initialDifficulty: 'easy' | 'medium' | 'hard';
-  difficultyAdjustment: 'gradual' | 'aggressive';
+  initialDifficulty: "easy" | "medium" | "hard";
+  difficultyAdjustment: "gradual" | "aggressive";
   minQuestionsPerDifficulty?: number;
   maxConsecutiveSameDifficulty?: number;
 }
@@ -83,7 +78,7 @@ export interface StoryPoint {
   defaultRubric?: UnifiedRubric;
 
   // Metadata
-  difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
+  difficulty?: "easy" | "medium" | "hard" | "expert";
   estimatedTimeMinutes?: number;
 
   // Denormalized stats

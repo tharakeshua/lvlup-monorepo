@@ -1,5 +1,5 @@
-import { Trophy, Medal, Crown } from 'lucide-react';
-import { AnimatedList, AnimatedListItem, CountUp, Pressable } from '@levelup/shared-ui';
+import { Trophy, Medal, Crown } from "lucide-react";
+import { AnimatedList, AnimatedListItem, CountUp, Pressable } from "@levelup/shared-ui";
 
 export interface LeaderboardEntry {
   userId: string;
@@ -15,10 +15,10 @@ function RankChangeIndicator({ current, previous }: { current: number; previous?
   const improved = current < previous;
   return (
     <span
-      className={`text-xs font-medium ${improved ? 'text-success' : 'text-destructive'}`}
+      className={`text-xs font-medium ${improved ? "text-success" : "text-destructive"}`}
       aria-label={improved ? `Up ${previous - current} rank` : `Down ${current - previous} rank`}
     >
-      {improved ? '▲' : '▼'}
+      {improved ? "▲" : "▼"}
     </span>
   );
 }
@@ -32,8 +32,8 @@ export function LeaderboardTable({
 }) {
   if (entries.length === 0) {
     return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
-        <Trophy className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" aria-hidden="true" />
+      <div className="text-muted-foreground py-12 text-center text-sm">
+        <Trophy className="text-muted-foreground/30 mx-auto mb-2 h-8 w-8" aria-hidden="true" />
         <p>No leaderboard data yet.</p>
       </div>
     );
@@ -51,30 +51,28 @@ export function LeaderboardTable({
               pressScale={0.99}
               className={`flex items-center gap-4 px-5 py-3 transition-colors ${
                 isCurrentUser
-                  ? 'bg-primary/5 ring-1 ring-primary/10 rounded-md'
-                  : 'hover:bg-muted/50'
+                  ? "bg-primary/5 ring-primary/10 rounded-md ring-1"
+                  : "hover:bg-muted/50"
               }`}
             >
               <div className="w-8 text-center">
                 {entry.rank === 1 ? (
                   <Crown className="mx-auto h-5 w-5 text-yellow-500" aria-hidden="true" />
                 ) : entry.rank === 2 ? (
-                  <Medal className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                  <Medal className="text-muted-foreground mx-auto h-5 w-5" aria-hidden="true" />
                 ) : entry.rank === 3 ? (
                   <Medal className="mx-auto h-5 w-5 text-amber-400" aria-hidden="true" />
                 ) : (
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {entry.rank}
-                  </span>
+                  <span className="text-muted-foreground text-sm font-medium">{entry.rank}</span>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm font-medium truncate ${isCurrentUser ? 'text-primary' : ''}`}>
+                  <p
+                    className={`truncate text-sm font-medium ${isCurrentUser ? "text-primary" : ""}`}
+                  >
                     {entry.displayName}
-                    {isCurrentUser && (
-                      <span className="ml-2 text-xs text-primary/70">(You)</span>
-                    )}
+                    {isCurrentUser && <span className="text-primary/70 ml-2 text-xs">(You)</span>}
                   </p>
                   <RankChangeIndicator current={entry.rank} previous={entry.previousRank} />
                 </div>
@@ -83,7 +81,7 @@ export function LeaderboardTable({
                 <p className="text-sm font-bold">
                   <CountUp end={entry.totalPoints} duration={0.8} />
                 </p>
-                <p className="text-xs text-muted-foreground">points</p>
+                <p className="text-muted-foreground text-xs">points</p>
               </div>
             </Pressable>
           </AnimatedListItem>

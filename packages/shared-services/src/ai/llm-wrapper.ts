@@ -21,10 +21,10 @@ import {
   type Content,
   type Part,
   type GenerationConfig,
-} from '@google/generative-ai';
+} from "@google/generative-ai";
 
-import { estimateCost, buildTokenUsage, type TokenUsage, type CostBreakdown } from './cost-tracker';
-import { logLLMCall, type LogLLMCallParams } from './llm-logger';
+import { estimateCost, buildTokenUsage, type TokenUsage, type CostBreakdown } from "./cost-tracker";
+import { logLLMCall, type LogLLMCallParams } from "./llm-logger";
 import {
   classifyError,
   recordFailure,
@@ -32,7 +32,7 @@ import {
   isCircuitOpen,
   getCircuitOpenMessage,
   type ClassifiedError,
-} from './fallback-handler';
+} from "./fallback-handler";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -40,7 +40,7 @@ import {
 
 export interface LLMWrapperConfig {
   /** The AI provider to use. Currently only 'gemini' is supported. */
-  provider: 'gemini';
+  provider: "gemini";
   /** API key for the provider. Retrieved from Secret Manager per-tenant. */
   apiKey: string;
   /** Default model to use when not specified per-call. */
@@ -110,7 +110,7 @@ export interface LLMCallResult<T = unknown> {
 // Implementation
 // ────────────────────────────────────────────────────────────────────────────
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = "gemini-2.5-flash";
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_BASE_DELAY_MS = 1000;
 
@@ -121,7 +121,13 @@ function isRetryable(err: unknown): boolean {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
     // Google AI SDK wraps HTTP errors with status codes in the message
-    if (msg.includes('429') || msg.includes('500') || msg.includes('503') || msg.includes('overloaded') || msg.includes('resource exhausted')) {
+    if (
+      msg.includes("429") ||
+      msg.includes("500") ||
+      msg.includes("503") ||
+      msg.includes("overloaded") ||
+      msg.includes("resource exhausted")
+    ) {
       return true;
     }
     // Check for a status property
@@ -140,12 +146,17 @@ async function sleep(ms: number): Promise<void> {
 export class LLMWrapper {
   private genAI: GoogleGenerativeAI;
   private config: Required<
-    Pick<LLMWrapperConfig, 'provider' | 'apiKey' | 'defaultModel' | 'enableLogging' | 'maxRetries' | 'retryBaseDelayMs'>
+    Pick<
+      LLMWrapperConfig,
+      "provider" | "apiKey" | "defaultModel" | "enableLogging" | "maxRetries" | "retryBaseDelayMs"
+    >
   >;
 
   constructor(config: LLMWrapperConfig) {
-    if (config.provider !== 'gemini') {
-      throw new Error(`[LLMWrapper] Unsupported provider "${config.provider}". Only "gemini" is supported.`);
+    if (config.provider !== "gemini") {
+      throw new Error(
+        `[LLMWrapper] Unsupported provider "${config.provider}". Only "gemini" is supported.`
+      );
     }
 
     this.config = {
@@ -185,7 +196,7 @@ export class LLMWrapper {
   async call<T = unknown>(
     prompt: string,
     metadata: LLMCallMetadata,
-    options: LLMCallOptions = {},
+    options: LLMCallOptions = {}
   ): Promise<LLMCallResult<T>> {
     const model = metadata.model ?? this.config.defaultModel;
     const startTime = Date.now();
@@ -197,10 +208,16 @@ export class LLMWrapper {
       const cbError = new Error(getCircuitOpenMessage());
       if (this.config.enableLogging) {
         await this.log(
-          metadata, model, buildTokenUsage(0, 0),
+          metadata,
+          model,
+          buildTokenUsage(0, 0),
           estimateCost(model, buildTokenUsage(0, 0)),
-          0, false, 'Circuit breaker open',
-        ).catch(() => { /* swallow logging errors */ });
+          0,
+          false,
+          "Circuit breaker open"
+        ).catch(() => {
+          /* swallow logging errors */
+        });
       }
       throw cbError;
     }
@@ -208,16 +225,24 @@ export class LLMWrapper {
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       // Check if we've exceeded total timeout across retries
       if (Date.now() - startTime > timeoutMs) {
-        const timeoutError = new Error(`[LLMWrapper] Total call timeout exceeded (${timeoutMs}ms) after ${attempt} attempts.`);
+        const timeoutError = new Error(
+          `[LLMWrapper] Total call timeout exceeded (${timeoutMs}ms) after ${attempt} attempts.`
+        );
         recordFailure(metadata.clientId);
         const classified = classifyError(timeoutError);
         const latencyMs = Date.now() - startTime;
         if (this.config.enableLogging) {
           await this.log(
-            metadata, model, buildTokenUsage(0, 0),
+            metadata,
+            model,
+            buildTokenUsage(0, 0),
             estimateCost(model, buildTokenUsage(0, 0)),
-            latencyMs, false, timeoutError.message,
-          ).catch(() => { /* swallow logging errors */ });
+            latencyMs,
+            false,
+            timeoutError.message
+          ).catch(() => {
+            /* swallow logging errors */
+          });
         }
         const userFacingError = new Error(classified.userMessage);
         (userFacingError as Error & { classified: ClassifiedError }).classified = classified;
@@ -232,7 +257,14 @@ export class LLMWrapper {
 
         // Log success
         if (this.config.enableLogging) {
-          result.logId = await this.log(metadata, model, result.tokens, result.cost, result.latencyMs, true);
+          result.logId = await this.log(
+            metadata,
+            model,
+            result.tokens,
+            result.cost,
+            result.latencyMs,
+            true
+          );
         }
 
         return result;
@@ -243,7 +275,7 @@ export class LLMWrapper {
           const delay = this.config.retryBaseDelayMs * Math.pow(2, attempt);
           const jitter = Math.random() * delay * 0.1;
           console.warn(
-            `[LLMWrapper] Retryable error on attempt ${attempt + 1}/${this.config.maxRetries + 1}: ${lastError.message}. Retrying in ${Math.round(delay + jitter)}ms...`,
+            `[LLMWrapper] Retryable error on attempt ${attempt + 1}/${this.config.maxRetries + 1}: ${lastError.message}. Retrying in ${Math.round(delay + jitter)}ms...`
           );
           await sleep(delay + jitter);
           continue;
@@ -266,9 +298,9 @@ export class LLMWrapper {
             estimateCost(model, buildTokenUsage(0, 0)),
             latencyMs,
             false,
-            lastError.message,
+            lastError.message
           ).catch((logErr) => {
-            console.error('[LLMWrapper] Failed to log error:', logErr);
+            console.error("[LLMWrapper] Failed to log error:", logErr);
           });
         }
 
@@ -280,7 +312,7 @@ export class LLMWrapper {
     }
 
     // Should not reach here, but TypeScript needs it
-    throw lastError ?? new Error('[LLMWrapper] Unexpected: exhausted retries with no error.');
+    throw lastError ?? new Error("[LLMWrapper] Unexpected: exhausted retries with no error.");
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -291,7 +323,7 @@ export class LLMWrapper {
     prompt: string,
     modelName: string,
     metadata: LLMCallMetadata,
-    options: LLMCallOptions,
+    options: LLMCallOptions
   ): Promise<LLMCallResult<T>> {
     const startTime = Date.now();
 
@@ -307,7 +339,8 @@ export class LLMWrapper {
       generationConfig.responseMimeType = options.responseMimeType;
     }
     if (options.responseSchema) {
-      (generationConfig as GenerationConfig & { responseSchema?: unknown }).responseSchema = options.responseSchema;
+      (generationConfig as GenerationConfig & { responseSchema?: unknown }).responseSchema =
+        options.responseSchema;
     }
 
     // Get the generative model
@@ -337,7 +370,7 @@ export class LLMWrapper {
 
     // Build the request
     const request: GenerateContentRequest = {
-      contents: [{ role: 'user', parts } as Content],
+      contents: [{ role: "user", parts } as Content],
     };
 
     // Make the API call
@@ -346,19 +379,25 @@ export class LLMWrapper {
 
     // Log finish reason for diagnostics
     const finishReason = result.candidates?.[0]?.finishReason;
-    if (finishReason && finishReason !== 'STOP') {
-      console.warn(`[LLMWrapper] Non-STOP finish reason: ${finishReason} (model: ${modelName}, operation: ${metadata.operation})`);
+    if (finishReason && finishReason !== "STOP") {
+      console.warn(
+        `[LLMWrapper] Non-STOP finish reason: ${finishReason} (model: ${modelName}, operation: ${metadata.operation})`
+      );
     }
 
     // Extract text
     const text = result.text();
-    console.log(`[LLMWrapper] Response length: ${text.length} chars, finishReason: ${finishReason ?? 'unknown'}, operation: ${metadata.operation}`);
+    console.log(
+      `[LLMWrapper] Response length: ${text.length} chars, finishReason: ${finishReason ?? "unknown"}, operation: ${metadata.operation}`
+    );
 
     // If response was truncated due to token limit, throw a retryable error
-    if (finishReason === 'MAX_TOKENS') {
+    if (finishReason === "MAX_TOKENS") {
       throw Object.assign(
-        new Error(`[LLMWrapper] Response truncated (MAX_TOKENS). Got ${text.length} chars. Consider increasing maxTokens.`),
-        { status: 503 }, // Mark as retryable
+        new Error(
+          `[LLMWrapper] Response truncated (MAX_TOKENS). Got ${text.length} chars. Consider increasing maxTokens.`
+        ),
+        { status: 503 } // Mark as retryable
       );
     }
 
@@ -366,7 +405,7 @@ export class LLMWrapper {
     const usageMetadata = result.usageMetadata;
     const tokens = buildTokenUsage(
       usageMetadata?.promptTokenCount ?? 0,
-      usageMetadata?.candidatesTokenCount ?? 0,
+      usageMetadata?.candidatesTokenCount ?? 0
     );
 
     const cost = estimateCost(modelName, tokens);
@@ -374,11 +413,13 @@ export class LLMWrapper {
 
     // Try to parse JSON if response mime type was JSON
     let parsed: T | null = null;
-    if (options.responseMimeType === 'application/json') {
+    if (options.responseMimeType === "application/json") {
       try {
         parsed = JSON.parse(text) as T;
       } catch {
-        console.warn('[LLMWrapper] Failed to parse JSON response. Raw text will be available in result.text.');
+        console.warn(
+          "[LLMWrapper] Failed to parse JSON response. Raw text will be available in result.text."
+        );
       }
     }
 
@@ -399,7 +440,7 @@ export class LLMWrapper {
     cost: CostBreakdown,
     latencyMs: number,
     success: boolean,
-    error?: string,
+    error?: string
   ): Promise<string> {
     const params: LogLLMCallParams = {
       tenantId: metadata.clientId,

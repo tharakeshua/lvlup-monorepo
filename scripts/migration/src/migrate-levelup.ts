@@ -57,27 +57,27 @@
  *   npx tsx src/migrate-levelup.ts --org-id orgXyz --rollback --dry-run
  */
 
-import { Command } from 'commander';
-import { createMigrationContext, type MigrationContext } from './migration-utils.js';
-import { MigrationLogger, generateRunId } from './utils/logger.js';
-import { initFirebase } from './config.js';
+import { Command } from "commander";
+import { createMigrationContext, type MigrationContext } from "./migration-utils.js";
+import { MigrationLogger, generateRunId } from "./utils/logger.js";
+import { initFirebase } from "./config.js";
 
 // Migration steps
-import { migrateOrgsToTenants } from './levelup/migrate-orgs-to-tenants.js';
-import { migrateLevelUpUsers } from './levelup/migrate-users.js';
-import { migrateCoursesToSpaces } from './levelup/migrate-courses-to-spaces.js';
-import { migrateItems } from './levelup/migrate-items.js';
-import { migrateAgents } from './levelup/migrate-agents.js';
-import { migrateProgress } from './levelup/migrate-progress.js';
-import { migrateChatSessions } from './levelup/migrate-chat-sessions.js';
-import { migrateConsumerUsers } from './levelup/migrate-consumer-users.js';
+import { migrateOrgsToTenants } from "./levelup/migrate-orgs-to-tenants.js";
+import { migrateLevelUpUsers } from "./levelup/migrate-users.js";
+import { migrateCoursesToSpaces } from "./levelup/migrate-courses-to-spaces.js";
+import { migrateItems } from "./levelup/migrate-items.js";
+import { migrateAgents } from "./levelup/migrate-agents.js";
+import { migrateProgress } from "./levelup/migrate-progress.js";
+import { migrateChatSessions } from "./levelup/migrate-chat-sessions.js";
+import { migrateConsumerUsers } from "./levelup/migrate-consumer-users.js";
 
 // Verification & Rollback
-import { verifyLevelUp } from './verify/verify-levelup.js';
-import { rollbackLevelUp } from './rollback/rollback-levelup.js';
+import { verifyLevelUp } from "./verify/verify-levelup.js";
+import { rollbackLevelUp } from "./rollback/rollback-levelup.js";
 
 // Post-migration
-import { recomputeTenantStats } from './post-migration/recompute-tenant-stats.js';
+import { recomputeTenantStats } from "./post-migration/recompute-tenant-stats.js";
 
 // ── Migration step registry ────────────────────────
 
@@ -90,8 +90,8 @@ type MigrationStep = {
 
 const MIGRATION_STEPS: MigrationStep[] = [
   {
-    name: 'tenants',
-    description: 'Migrate /orgs/{orgId} → /tenants/{tenantId} + tenantCodes',
+    name: "tenants",
+    description: "Migrate /orgs/{orgId} → /tenants/{tenantId} + tenantCodes",
     requiresOrgId: false, // can migrate all orgs if no orgId given
     run: async (ctx) => {
       await migrateOrgsToTenants({
@@ -102,8 +102,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'users',
-    description: 'Migrate /userOrgs + /userRoles → /users + /userMemberships',
+    name: "users",
+    description: "Migrate /userOrgs + /userRoles → /users + /userMemberships",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateLevelUpUsers({
@@ -114,8 +114,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'spaces',
-    description: 'Migrate /courses → /tenants/{tId}/spaces + storyPoints',
+    name: "spaces",
+    description: "Migrate /courses → /tenants/{tId}/spaces + storyPoints",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateCoursesToSpaces({
@@ -126,8 +126,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'items',
-    description: 'Migrate /items → /tenants/{tId}/spaces/{sId}/items',
+    name: "items",
+    description: "Migrate /items → /tenants/{tId}/spaces/{sId}/items",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateItems({
@@ -138,8 +138,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'agents',
-    description: 'Migrate agents → /tenants/{tId}/spaces/{sId}/agents',
+    name: "agents",
+    description: "Migrate agents → /tenants/{tId}/spaces/{sId}/agents",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateAgents({
@@ -150,8 +150,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'progress',
-    description: 'Migrate /userStoryPointProgress → /tenants/{tId}/spaceProgress',
+    name: "progress",
+    description: "Migrate /userStoryPointProgress → /tenants/{tId}/spaceProgress",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateProgress({
@@ -162,8 +162,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'chat-sessions',
-    description: 'Migrate /chatSessions → /tenants/{tId}/chatSessions',
+    name: "chat-sessions",
+    description: "Migrate /chatSessions → /tenants/{tId}/chatSessions",
     requiresOrgId: true,
     run: async (ctx) => {
       await migrateChatSessions({
@@ -174,8 +174,8 @@ const MIGRATION_STEPS: MigrationStep[] = [
     },
   },
   {
-    name: 'consumer-users',
-    description: 'Update B2C users with consumerProfile (no org membership needed)',
+    name: "consumer-users",
+    description: "Update B2C users with consumerProfile (no org membership needed)",
     requiresOrgId: false,
     run: async (ctx) => {
       await migrateConsumerUsers({
@@ -191,18 +191,18 @@ const MIGRATION_STEPS: MigrationStep[] = [
 const program = new Command();
 
 program
-  .name('migrate-levelup')
-  .description('Migrate legacy LevelUp data to unified tenant structure')
-  .version('1.0.0')
-  .option('--org-id <id>', 'LevelUp organization ID to migrate')
+  .name("migrate-levelup")
+  .description("Migrate legacy LevelUp data to unified tenant structure")
+  .version("1.0.0")
+  .option("--org-id <id>", "LevelUp organization ID to migrate")
   .option(
-    '--type <type>',
-    'Migrate specific type: tenants | users | spaces | items | agents | progress | chat-sessions | consumer-users'
+    "--type <type>",
+    "Migrate specific type: tenants | users | spaces | items | agents | progress | chat-sessions | consumer-users"
   )
-  .option('--dry-run', 'Log what would be migrated without writing', false)
-  .option('--verify', 'Run verification after migration', false)
-  .option('--rollback', 'Roll back migration for this org', false)
-  .option('--recompute-stats', 'Recompute tenant stats after migration', false);
+  .option("--dry-run", "Log what would be migrated without writing", false)
+  .option("--verify", "Run verification after migration", false)
+  .option("--rollback", "Roll back migration for this org", false)
+  .option("--recompute-stats", "Recompute tenant stats after migration", false);
 
 program.parse(process.argv);
 
@@ -222,10 +222,10 @@ async function main(): Promise<void> {
   // Handle rollback
   if (opts.rollback) {
     if (!opts.orgId) {
-      console.error('Error: --org-id is required for rollback');
+      console.error("Error: --org-id is required for rollback");
       process.exit(1);
     }
-    const logger = new MigrationLogger(runId, 'levelup-rollback');
+    const logger = new MigrationLogger(runId, "levelup-rollback");
     console.log(`\n=== Rolling back LevelUp migration for org ${opts.orgId} ===\n`);
     await rollbackLevelUp({
       orgId: opts.orgId,
@@ -238,10 +238,10 @@ async function main(): Promise<void> {
   // Handle verification only
   if (opts.verify && !opts.type) {
     if (!opts.orgId) {
-      console.error('Error: --org-id is required for verification');
+      console.error("Error: --org-id is required for verification");
       process.exit(1);
     }
-    const logger = new MigrationLogger(runId, 'levelup-verify');
+    const logger = new MigrationLogger(runId, "levelup-verify");
     console.log(`\n=== Verifying LevelUp migration for org ${opts.orgId} ===\n`);
     const passed = await verifyLevelUp({ orgId: opts.orgId, logger });
     process.exit(passed ? 0 : 1);
@@ -254,27 +254,27 @@ async function main(): Promise<void> {
 
   if (stepsToRun.length === 0) {
     console.error(`Unknown migration type: ${opts.type}`);
-    console.error(`Valid types: ${MIGRATION_STEPS.map((s) => s.name).join(', ')}`);
+    console.error(`Valid types: ${MIGRATION_STEPS.map((s) => s.name).join(", ")}`);
     process.exit(1);
   }
 
   // Validate org-id requirement
   const needsOrgId = stepsToRun.some((s) => s.requiresOrgId);
   if (needsOrgId && !opts.orgId) {
-    console.error('Error: --org-id is required for the selected migration type(s)');
+    console.error("Error: --org-id is required for the selected migration type(s)");
     process.exit(1);
   }
 
   // Create migration context
   const ctx = createMigrationContext({
-    source: 'levelup',
-    clientId: opts.orgId || '',
+    source: "levelup",
+    clientId: opts.orgId || "",
     dryRun: opts.dryRun,
   });
 
   // Run migration steps
-  console.log(`\n=== LevelUp Migration${opts.orgId ? `: ${opts.orgId}` : ''} ===`);
-  console.log(`Steps: ${stepsToRun.map((s) => s.name).join(' → ')}`);
+  console.log(`\n=== LevelUp Migration${opts.orgId ? `: ${opts.orgId}` : ""} ===`);
+  console.log(`Steps: ${stepsToRun.map((s) => s.name).join(" → ")}`);
   console.log(`Dry run: ${ctx.dryRun}\n`);
 
   for (const step of stepsToRun) {
@@ -289,15 +289,15 @@ async function main(): Promise<void> {
         stack: err instanceof Error ? err.stack : undefined,
       });
       console.error(`\nMigration failed at step "${step.name}". Subsequent steps skipped.`);
-      console.error('Run with --verify to check partial migration state.');
-      console.error('Run with --rollback to undo the migration.');
+      console.error("Run with --verify to check partial migration state.");
+      console.error("Run with --rollback to undo the migration.");
       process.exit(1);
     }
   }
 
   // Post-migration stats
   if (opts.recomputeStats && opts.orgId) {
-    console.log('\n--- Post-migration: Recomputing tenant stats ---\n');
+    console.log("\n--- Post-migration: Recomputing tenant stats ---\n");
     await recomputeTenantStats({
       tenantId: opts.orgId,
       dryRun: opts.dryRun,
@@ -307,20 +307,20 @@ async function main(): Promise<void> {
 
   // Auto-verify if requested
   if (opts.verify && opts.orgId) {
-    console.log('\n--- Running verification ---\n');
-    const logger = new MigrationLogger(runId, 'levelup-verify');
+    console.log("\n--- Running verification ---\n");
+    const logger = new MigrationLogger(runId, "levelup-verify");
     const passed = await verifyLevelUp({ orgId: opts.orgId, logger });
     if (!passed) {
-      console.error('\nVerification FAILED. Review the results above.');
+      console.error("\nVerification FAILED. Review the results above.");
       process.exit(1);
     }
   }
 
   ctx.logger.printSummary();
-  console.log('\nLevelUp migration complete.');
+  console.log("\nLevelUp migration complete.");
 }
 
 main().catch((err) => {
-  console.error('Migration failed:', err);
+  console.error("Migration failed:", err);
   process.exit(1);
 });

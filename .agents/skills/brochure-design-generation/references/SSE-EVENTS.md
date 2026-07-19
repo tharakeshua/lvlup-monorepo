@@ -1,15 +1,18 @@
 # SSE Event Reference
 
-Detailed documentation for all Server-Sent Events (SSE) returned by the each::sense `/chat` endpoint.
+Detailed documentation for all Server-Sent Events (SSE) returned by the
+each::sense `/chat` endpoint.
 
 ## Event Format
 
 Each event follows this format:
+
 ```
 data: {"type": "event_type", ...fields}\n\n
 ```
 
 Stream ends with:
+
 ```
 data: [DONE]\n\n
 ```
@@ -20,7 +23,8 @@ data: [DONE]\n\n
 
 ### thinking_delta
 
-Claude's reasoning as it streams in real-time. Use this to show users what the AI is thinking.
+Claude's reasoning as it streams in real-time. Use this to show users what the
+AI is thinking.
 
 ```json
 {
@@ -29,8 +33,8 @@ Claude's reasoning as it streams in real-time. Use this to show users what the A
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field     | Type   | Description               |
+| --------- | ------ | ------------------------- |
 | `content` | string | Incremental thinking text |
 
 ---
@@ -44,15 +48,15 @@ Current operation being executed. Shows tool usage and parameters.
   "type": "status",
   "message": "Searching for image generation models...",
   "tool_name": "search_models",
-  "parameters": {"use_case": "text to image portrait"}
+  "parameters": { "use_case": "text to image portrait" }
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `message` | string | Human-readable status message |
-| `tool_name` | string | Internal tool being used |
-| `parameters` | object | Tool parameters (optional) |
+| Field        | Type   | Description                   |
+| ------------ | ------ | ----------------------------- |
+| `message`    | string | Human-readable status message |
+| `tool_name`  | string | Internal tool being used      |
+| `parameters` | object | Tool parameters (optional)    |
 
 ---
 
@@ -67,8 +71,8 @@ Text content from the AI (explanations, answers, plans).
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field     | Type   | Description           |
+| --------- | ------ | --------------------- |
 | `content` | string | Text response content |
 
 ---
@@ -88,13 +92,13 @@ Generated media URL (image or video). This is the primary output event.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `url` | string | Primary output URL |
-| `generations` | array | All generated URLs |
-| `total` | number | Total number of generations |
-| `tool_name` | string | Tool that generated output |
-| `model` | string | Model used for generation |
+| Field         | Type   | Description                 |
+| ------------- | ------ | --------------------------- |
+| `url`         | string | Primary output URL          |
+| `generations` | array  | All generated URLs          |
+| `total`       | number | Total number of generations |
+| `tool_name`   | string | Tool that generated output  |
+| `model`       | string | Model used for generation   |
 
 ---
 
@@ -116,13 +120,14 @@ AI needs more information to proceed. Present options to the user.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `question` | string | The question to ask the user |
-| `options` | array | Suggested options (can be displayed as buttons) |
-| `context` | string | Additional context about the clarification |
+| Field      | Type   | Description                                     |
+| ---------- | ------ | ----------------------------------------------- |
+| `question` | string | The question to ask the user                    |
+| `options`  | array  | Suggested options (can be displayed as buttons) |
+| `context`  | string | Additional context about the clarification      |
 
-**Handling:** Display the question and options to the user. Send their response in a follow-up request with the same `session_id`.
+**Handling:** Display the question and options to the user. Send their response
+in a follow-up request with the same `session_id`.
 
 ---
 
@@ -138,9 +143,9 @@ Web search being executed.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `query` | string | Search query |
+| Field     | Type   | Description                          |
+| --------- | ------ | ------------------------------------ |
+| `query`   | string | Search query                         |
 | `recency` | string | Time filter (day, week, month, year) |
 
 ---
@@ -160,10 +165,10 @@ Citations from web search results.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `citations` | array | URLs of sources cited |
-| `count` | number | Number of citations |
+| Field       | Type   | Description           |
+| ----------- | ------ | --------------------- |
+| `citations` | array  | URLs of sources cited |
+| `count`     | number | Number of citations   |
 
 ---
 
@@ -189,12 +194,12 @@ New workflow was created for complex multi-step generation.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `workflow_id` | string | Unique workflow identifier |
-| `version_id` | string | Workflow version |
-| `input_schema` | object | Schema for workflow inputs |
-| `steps_count` | number | Number of steps in workflow |
+| Field          | Type   | Description                 |
+| -------------- | ------ | --------------------------- |
+| `workflow_id`  | string | Unique workflow identifier  |
+| `version_id`   | string | Workflow version            |
+| `input_schema` | object | Schema for workflow inputs  |
+| `steps_count`  | number | Number of steps in workflow |
 
 ---
 
@@ -211,10 +216,10 @@ Existing workflow was loaded (when `workflow_id` is provided in request).
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `workflow_name` | string | Name of the workflow |
-| `existing_steps` | number | Number of existing steps |
+| Field                 | Type   | Description                 |
+| --------------------- | ------ | --------------------------- |
+| `workflow_name`       | string | Name of the workflow        |
+| `existing_steps`      | number | Number of existing steps    |
 | `existing_definition` | object | Current workflow definition |
 
 ---
@@ -235,10 +240,10 @@ Workflow definition was constructed.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `steps_count` | number | Number of steps |
-| `definition` | object | Full workflow definition |
+| Field         | Type   | Description              |
+| ------------- | ------ | ------------------------ |
+| `steps_count` | number | Number of steps          |
+| `definition`  | object | Full workflow definition |
 
 ---
 
@@ -256,12 +261,12 @@ Workflow was pushed to the EachLabs API.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | boolean | Whether update succeeded |
-| `workflow_id` | string | Workflow identifier |
-| `version_id` | string | Version identifier |
-| `definition` | object | Updated definition |
+| Field         | Type    | Description              |
+| ------------- | ------- | ------------------------ |
+| `success`     | boolean | Whether update succeeded |
+| `workflow_id` | string  | Workflow identifier      |
+| `version_id`  | string  | Version identifier       |
+| `definition`  | object  | Updated definition       |
 
 ---
 
@@ -277,10 +282,10 @@ Workflow execution has begun.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field          | Type   | Description                 |
+| -------------- | ------ | --------------------------- |
 | `execution_id` | string | Unique execution identifier |
-| `workflow_id` | string | Workflow being executed |
+| `workflow_id`  | string | Workflow being executed     |
 
 ---
 
@@ -300,14 +305,14 @@ Progress update during workflow execution. Sent approximately every 5 seconds.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `step_id` | string | Current step identifier |
-| `step_status` | string | Step status (running, completed, failed) |
-| `output` | string | Step output URL (if available) |
-| `model` | string | Model used for this step |
-| `completed_steps` | number | Steps completed so far |
-| `total_steps` | number | Total steps in workflow |
+| Field             | Type   | Description                              |
+| ----------------- | ------ | ---------------------------------------- |
+| `step_id`         | string | Current step identifier                  |
+| `step_status`     | string | Step status (running, completed, failed) |
+| `output`          | string | Step output URL (if available)           |
+| `model`           | string | Model used for this step                 |
+| `completed_steps` | number | Steps completed so far                   |
+| `total_steps`     | number | Total steps in workflow                  |
 
 ---
 
@@ -329,12 +334,12 @@ Workflow execution finished successfully.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `execution_id` | string | Execution identifier |
-| `status` | string | Final status (completed, failed) |
-| `output` | string | Final output URL |
-| `all_outputs` | object | All step outputs keyed by step_id |
+| Field          | Type   | Description                       |
+| -------------- | ------ | --------------------------------- |
+| `execution_id` | string | Execution identifier              |
+| `status`       | string | Final status (completed, failed)  |
+| `output`       | string | Final output URL                  |
+| `all_outputs`  | object | All step outputs keyed by step_id |
 
 ---
 
@@ -356,9 +361,9 @@ Details of a tool being called. Useful for debugging and transparency.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Tool name |
+| Field   | Type   | Description           |
+| ------- | ------ | --------------------- |
+| `name`  | string | Tool name             |
 | `input` | object | Tool input parameters |
 
 ---
@@ -374,8 +379,8 @@ Informational message from the agent.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field     | Type   | Description     |
+| --------- | ------ | --------------- |
 | `content` | string | Message content |
 
 ---
@@ -390,24 +395,25 @@ Final event with summary. Always sent when stream completes successfully.
   "task_id": "chat_1708345678901",
   "status": "ok",
   "tool_calls": [
-    {"name": "search_models", "result": "success"},
-    {"name": "get_model_details", "result": "success"},
-    {"name": "execute_model", "result": "success", "model": "nano-banana-pro"}
+    { "name": "search_models", "result": "success" },
+    { "name": "get_model_details", "result": "success" },
+    { "name": "execute_model", "result": "success", "model": "nano-banana-pro" }
   ],
   "generations": ["https://storage.eachlabs.ai/outputs/abc123.png"],
   "model": "nano-banana-pro"
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `task_id` | string | Unique task identifier |
-| `status` | string | Final status (ok, awaiting_input, error) |
-| `tool_calls` | array | Summary of all tool calls |
-| `generations` | array | All generated output URLs |
-| `model` | string | Primary model used |
+| Field         | Type   | Description                              |
+| ------------- | ------ | ---------------------------------------- |
+| `task_id`     | string | Unique task identifier                   |
+| `status`      | string | Final status (ok, awaiting_input, error) |
+| `tool_calls`  | array  | Summary of all tool calls                |
+| `generations` | array  | All generated output URLs                |
+| `model`       | string | Primary model used                       |
 
 **Status values:**
+
 - `ok` - Completed successfully
 - `awaiting_input` - Waiting for user clarification
 - `error` - An error occurred
@@ -425,8 +431,8 @@ An error occurred during processing.
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field     | Type   | Description   |
+| --------- | ------ | ------------- |
 | `message` | string | Error message |
 
 ---
