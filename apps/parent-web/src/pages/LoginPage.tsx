@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
-import { lookupTenantByCode, getFirebaseServices } from "@levelup/shared-services";
+import { useLookupTenantByCode } from "@levelup/query";
+import { getFirebaseServices } from "@levelup/shared-services";
 import { evaluateTenantAccess } from "@levelup/domain";
 import {
   Button,
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithSchoolCode, loading, error, clearError } = useAuthStore();
+  const lookupTenant = useLookupTenantByCode();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
   const [step, setStep] = useState<"school-code" | "credentials">("school-code");
   const [schoolCode, setSchoolCode] = useState("");
@@ -44,14 +46,16 @@ export default function LoginPage() {
         return;
       }
 
-      const tenant = await lookupTenantByCode(code);
+      const tenant = (await lookupTenant.mutateAsync(code)) as {
+        name: string;
+        status: string;
+        trialEndsAt?: string | null;
+      } | null;
       if (!tenant) {
         setCodeError("Invalid school code. Please try again.");
         return;
       }
-      const access = evaluateTenantAccess(
-        tenant as { status: string; trialEndsAt?: string | null }
-      );
+      const access = evaluateTenantAccess(tenant);
       if (!access.allowed) {
         setCodeError(
           access.reason === "trial_expired"

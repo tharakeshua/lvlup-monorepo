@@ -98,6 +98,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <h1 className="font-display text-fg text-3xl">Dashboard</h1>
       {/* Cross-system summary */}
       {summary ? (
         <>
