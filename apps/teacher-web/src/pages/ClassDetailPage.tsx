@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   useClasses,
   useSpaces,
   useExams,
   useStudents,
-  useClassSummary,
   useSaveStudent,
   useApiError,
+  useRepos,
 } from "@levelup/query";
 import { useAuthSession } from "../sdk/session";
 import { toast } from "sonner";
@@ -52,6 +52,13 @@ import type { Space, Student, Class, ClassProgressSummary } from "@levelup/share
 import type { Exam } from "@levelup/shared-types";
 import ClassFormDialog from "../components/class/ClassFormDialog";
 import EnrollStudentDialog from "../components/class/EnrollStudentDialog";
+
+/** Soft-fail getSummary 403s for classes not assigned to this teacher (until sdk-v1 redeploy). */
+function isSummaryPermissionDenied(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as { code?: string }).code;
+  return code === "PERMISSION_DENIED" || code === "permission-denied";
+}
 
 // The @levelup/query class summary (domain shape) drops the legacy top/bottom
 // performer & point-earner lists and exposes different field names; adapt to the
@@ -121,9 +128,25 @@ export default function ClassDetailPage() {
   const classStudents = ((studentsRaw as { items?: Student[] } | undefined)?.items ??
     []) as Student[];
 
-  const { data: rawSummary, isLoading: analyticsLoading } = useClassSummary(
-    (classId ?? "") as never
-  );
+  const repos = useRepos();
+  const { data: rawSummary, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["analytics", "classSummary", classId ?? ""] as const,
+    queryFn: async () => {
+      try {
+        return await (
+          repos as unknown as {
+            summaryRepo: { getClass(id: string): Promise<unknown> };
+          }
+        ).summaryRepo.getClass(classId ?? "");
+      } catch (err) {
+        if (isSummaryPermissionDenied(err)) return null;
+        throw err;
+      }
+    },
+    enabled: Boolean(classId),
+    retry: false,
+    throwOnError: false,
+  });
   const classSummary = adaptClassSummary(rawSummary);
 
   const saveStudent = useSaveStudent();
