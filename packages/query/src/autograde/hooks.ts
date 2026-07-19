@@ -104,6 +104,19 @@ export const useReleaseResults = defineMutation<
   run: (repos, vars) => autogradeRepos(repos).examRepo.releaseResults(vars),
 });
 
+/**
+ * Teacher action: transform a published exam into a practice Space — one
+ * StoryPoint (the exam) + one Item per extracted question (⚷ — invalidates the
+ * exam detail, plus spaces/storyPoints/items so the new space appears immediately).
+ */
+export const useCreateSpaceFromExam = defineMutation<
+  Arg0<R["examRepo"]["createSpaceFromExam"]>,
+  Ret<R["examRepo"]["createSpaceFromExam"]>
+>({
+  callable: "v1.autograde.createSpaceFromExam",
+  run: (repos, vars) => autogradeRepos(repos).examRepo.createSpaceFromExam(vars),
+});
+
 // ===========================================================================
 // Exam questions
 // ===========================================================================

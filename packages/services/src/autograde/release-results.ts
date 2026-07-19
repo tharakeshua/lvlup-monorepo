@@ -11,6 +11,9 @@ import { authorize, assertTransition } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
 import { enqueueOutboxEvent } from "../shared/side-effects.js";
+import type { ProgressItemUpdate } from "../repo-admin/types.js";
+import { applyProgress } from "../levelup/progress-updater.js";
+import { listExamQuestions, listQuestionSubmissions } from "./pipeline/questions.js";
 
 type Req = ReqOf<"v1.autograde.releaseResults">;
 type Res = ResOf<"v1.autograde.releaseResults">;
@@ -62,7 +65,79 @@ export async function releaseResultsService(input: Req, ctx: AuthContext): Promi
     });
   });
 
+  // Reconcile the just-released question-wise results into each student's space
+  // progress (EXAM-SPACE-INTEGRATION MVP §C), when this exam has been converted
+  // into a space (`createSpaceFromExamService`). Best-effort: per-student failures
+  // never block the release itself — the exam status flip above already committed.
+  await reconcileReleasedSubmissionsIntoSpace(ctx, tenantId, exam as Doc, releasable);
+
   return { id: input.examId, releasedCount, created: false } as Res;
+}
+
+type Doc = Record<string, unknown>;
+
+/**
+ * Fold each released submission's per-question grades into the linked space's
+ * `spaceProgress` aggregate (via the single progress writer), keyed by the
+ * item the question was converted into (`ExamQuestion.linkedItemId`). A manual
+ * override always wins over the AI evaluation score (the teacher's final say).
+ */
+async function reconcileReleasedSubmissionsIntoSpace(
+  ctx: AuthContext,
+  tenantId: string,
+  exam: Doc,
+  releasedSubmissions: Doc[]
+): Promise<void> {
+  const spaceId = exam["linkedSpaceId"] as string | undefined;
+  const storyPointId = exam["linkedStoryPointId"] as string | undefined;
+  if (!spaceId || !storyPointId || releasedSubmissions.length === 0) return;
+
+  const examId = String(exam["id"]);
+  const questions = await listExamQuestions(ctx, tenantId, examId);
+  const linkedItemByQuestionId = new Map<string, string>();
+  for (const q of questions) {
+    const linkedItemId = q["linkedItemId"] as string | undefined;
+    if (linkedItemId) linkedItemByQuestionId.set(String(q["id"]), linkedItemId);
+  }
+  if (linkedItemByQuestionId.size === 0) return; // exam not yet converted into items
+
+  for (const sub of releasedSubmissions) {
+    try {
+      const studentId = sub["studentId"] as string | undefined;
+      if (!studentId) continue;
+      const student = await ctx.repos.students.get(tenantId, studentId);
+      const authUid = student?.["authUid"] as string | undefined;
+      if (!authUid) continue; // no linked auth account yet — nothing to reconcile into
+
+      const qSubs = await listQuestionSubmissions(ctx, tenantId, String(sub["id"]));
+      const items: ProgressItemUpdate[] = [];
+      for (const qs of qSubs) {
+        const questionId = qs["questionId"] as string | undefined;
+        const itemId = questionId ? linkedItemByQuestionId.get(questionId) : undefined;
+        if (!itemId) continue;
+        const evaluation = qs["evaluation"] as Doc | undefined;
+        if (!evaluation) continue;
+
+        const manualOverride = qs["manualOverride"] as Doc | undefined;
+        const maxScore = (evaluation["maxScore"] as number | undefined) ?? 0;
+        const score =
+          (manualOverride?.["score"] as number | undefined) ??
+          (evaluation["score"] as number | undefined) ??
+          0;
+        const correct =
+          maxScore > 0
+            ? score >= maxScore
+            : (evaluation["correctness"] as number | undefined) === 1;
+
+        items.push({ itemId, storyPointId, score, maxScore, correct, evaluation });
+      }
+      if (items.length > 0) {
+        await applyProgress({ userId: authUid, spaceId, items }, ctx);
+      }
+    } catch {
+      // best-effort: a per-student reconciliation failure must never undo the release.
+    }
+  }
 }
 
 /** Page through all submissions for an exam (server N+1 collapse handled in repo). */
