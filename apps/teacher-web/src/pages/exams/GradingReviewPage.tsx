@@ -1036,10 +1036,10 @@ export default function GradingReviewPage() {
                                     className="flex items-start justify-between gap-3 text-xs"
                                   >
                                     <span className="min-w-0 flex-1 break-words">
-                                      {rb.criterion}
+                                      {rb.criterionName}
                                     </span>
                                     <span className="shrink-0 font-mono font-medium">
-                                      {rb.awarded}/{rb.max}
+                                      {rb.score}/{rb.maxScore}
                                     </span>
                                   </div>
                                 ))}

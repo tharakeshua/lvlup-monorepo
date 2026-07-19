@@ -288,6 +288,30 @@ function toQuestionSubmissionView(
   });
 }
 
+/**
+ * Normalize a stored `summary` (or legacy `feedback`) to the strict
+ * `{ keyTakeaway, overallComment }` object the client validates against.
+ * - Object `{keyTakeaway, overallComment}` → passed through (string-coerced).
+ * - Legacy STRING → wrapped as `{ keyTakeaway: <string>, overallComment: <string> }`.
+ * - Empty / missing → undefined (the field is optional).
+ */
+function toEvaluationSummary(
+  raw: unknown
+): { keyTakeaway: string; overallComment: string } | undefined {
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    const keyTakeaway = typeof o["keyTakeaway"] === "string" ? (o["keyTakeaway"] as string) : "";
+    const overallComment =
+      typeof o["overallComment"] === "string" ? (o["overallComment"] as string) : "";
+    if (!keyTakeaway && !overallComment) return undefined;
+    return { keyTakeaway, overallComment };
+  }
+  if (typeof raw === "string" && raw.length > 0) {
+    return { keyTakeaway: raw, overallComment: raw };
+  }
+  return undefined;
+}
+
 /** Normalize a stored evaluation bag → strict UnifiedEvaluationResult. */
 function toUnifiedEvaluation(
   ev: Record<string, unknown>,
@@ -306,7 +330,7 @@ function toUnifiedEvaluation(
     weaknesses: ev["weaknesses"] ?? [],
     missingConcepts: ev["missingConcepts"] ?? [],
     rubricBreakdown: ev["rubricBreakdown"],
-    summary: (ev["summary"] as string | undefined) ?? (ev["feedback"] as string | undefined),
+    summary: toEvaluationSummary(ev["summary"] ?? ev["feedback"]),
     confidence: (ev["confidence"] as number | undefined) ?? 1,
     mistakeClassification: ev["mistakeClassification"],
     // ⚷ `tokensUsed`/`costUsd` (cost telemetry) are NEVER emitted into a client

@@ -15,6 +15,18 @@ export const FeedbackItemSchema = zObject({
 });
 export type FeedbackItem = z.infer<typeof FeedbackItemSchema>;
 
+/**
+ * EvaluationSummary — the AI grader's headline verdict. Stored (and rendered)
+ * as an OBJECT; both the evaluation writer (services/evaluation) and every
+ * grading UI use `{ keyTakeaway, overallComment }`. A legacy STRING `summary`
+ * is normalized into this shape at the read projection (autograde/reads.ts).
+ */
+export const EvaluationSummarySchema = zObject({
+  keyTakeaway: z.string(),
+  overallComment: z.string(),
+});
+export type EvaluationSummary = z.infer<typeof EvaluationSummarySchema>;
+
 export const RubricBreakdownItemSchema = zObject({
   criterionId: z.string().optional(),
   criterionName: z.string(),
@@ -34,7 +46,7 @@ export const UnifiedEvaluationResultSchema = zObject({
   weaknesses: z.array(z.string()).default([]),
   missingConcepts: z.array(z.string()).default([]),
   rubricBreakdown: z.array(RubricBreakdownItemSchema).optional(),
-  summary: z.string().optional(),
+  summary: EvaluationSummarySchema.optional(),
   confidence: z.number(),
   mistakeClassification: zMistakeClassification.optional(),
   // ⚷ cost telemetry — projected out for clients.

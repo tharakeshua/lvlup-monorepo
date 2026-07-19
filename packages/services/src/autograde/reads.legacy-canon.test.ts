@@ -391,6 +391,82 @@ describe("AG-3 — v1 autograde reads canonicalize legacy drift", () => {
         getCallable("v1.autograde.listQuestionSubmissions").responseSchema.safeParse(res).success
       ).toBe(true);
     });
+
+    it("listQuestionSubmissions passes a stored OBJECT summary + canonical rubricBreakdown through the view", async () => {
+      const ctx = makeAuthContext("teacher");
+      await ctx.repos.submissions.upsert(ctx.tenantId!, scoutedSubmission(ctx));
+      // A graded question submission written by the evaluation engine: `summary`
+      // is the OBJECT {keyTakeaway, overallComment} and rubricBreakdown carries the
+      // canonical {criterionName, score, maxScore} shape.
+      await ctx.repos.submissions.upsert(ctx.tenantId!, {
+        id: "sub_scouted_q2",
+        _kind: "questionSubmission",
+        submissionId: "sub_scouted",
+        questionId: "exam_scouted_q2",
+        examId: "exam_scouted",
+        mapping: { pageIndices: [1], imageUrls: ["u"], scoutedAt: TS },
+        evaluation: {
+          score: 4,
+          maxScore: 5,
+          correctness: 0.8,
+          percentage: 80,
+          strengths: ["clear derivation"],
+          weaknesses: [],
+          missingConcepts: [],
+          rubricBreakdown: [{ criterionName: "Correctness", score: 4, maxScore: 5 }],
+          summary: { keyTakeaway: "Strong answer", overallComment: "Minor arithmetic slip." },
+          confidence: 0.9,
+          gradedAt: TS,
+        },
+        gradingStatus: "graded",
+        gradingRetryCount: 0,
+        createdAt: TS,
+        updatedAt: TS,
+      });
+      const res = await listQuestionSubmissionsService({ submissionId: "sub_scouted" }, ctx);
+      const row = res.questionSubmissions.find((q) => q.id === "sub_scouted_q2")!;
+      // The object summary survives the projection intact…
+      expect(row.evaluation!.summary).toEqual({
+        keyTakeaway: "Strong answer",
+        overallComment: "Minor arithmetic slip.",
+      });
+      // …as does the canonical rubric shape…
+      expect(row.evaluation!.rubricBreakdown).toEqual([
+        { criterionName: "Correctness", score: 4, maxScore: 5 },
+      ]);
+      // …and the whole response validates against the (now object-summary) view.
+      expect(
+        getCallable("v1.autograde.listQuestionSubmissions").responseSchema.safeParse(res).success
+      ).toBe(true);
+    });
+
+    it("normalizes a legacy STRING summary into the object shape and passes the view", async () => {
+      const ctx = makeAuthContext("teacher");
+      await ctx.repos.submissions.upsert(ctx.tenantId!, scoutedSubmission(ctx));
+      await ctx.repos.submissions.upsert(ctx.tenantId!, {
+        id: "sub_scouted_q3",
+        _kind: "questionSubmission",
+        submissionId: "sub_scouted",
+        questionId: "exam_scouted_q3",
+        examId: "exam_scouted",
+        mapping: { pageIndices: [2], imageUrls: ["u"], scoutedAt: TS },
+        // Legacy shape: summary stored as a bare string.
+        evaluation: { score: 1, maxScore: 2, confidence: 0.5, summary: "Partially correct." },
+        gradingStatus: "graded",
+        gradingRetryCount: 0,
+        createdAt: TS,
+        updatedAt: TS,
+      });
+      const res = await listQuestionSubmissionsService({ submissionId: "sub_scouted" }, ctx);
+      const row = res.questionSubmissions.find((q) => q.id === "sub_scouted_q3")!;
+      expect(row.evaluation!.summary).toEqual({
+        keyTakeaway: "Partially correct.",
+        overallComment: "Partially correct.",
+      });
+      expect(
+        getCallable("v1.autograde.listQuestionSubmissions").responseSchema.safeParse(res).success
+      ).toBe(true);
+    });
   });
 });
 
