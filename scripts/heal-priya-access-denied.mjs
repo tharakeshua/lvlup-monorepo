@@ -131,7 +131,8 @@ async function main() {
     settings: {
       timezone: "Asia/Kolkata",
       locale: "en",
-      geminiKeyRef: "tenant-greenwood-gemini",
+      geminiKeyRef: "tenant-tn_greenwood_524e429639-gemini",
+      geminiKeySet: false,
     },
   });
   console.log("Healed tenant → active + canonical shape");
