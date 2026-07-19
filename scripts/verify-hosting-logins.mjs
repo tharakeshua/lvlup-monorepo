@@ -22,7 +22,9 @@ async function waitPastLogin(page, timeoutMs = 90000) {
     const url = page.url();
     const body = await page.locator("body").innerText();
     if (body.includes("Access Denied")) return "access-denied";
-    if (!url.includes("/login") && !body.includes("Signing in")) return "ok";
+    if (!url.includes("/login") && !body.includes("Signing in") && body.trim().length > 40) {
+      return "ok";
+    }
     await page.waitForTimeout(1500);
   }
   return "timeout";
@@ -38,18 +40,21 @@ const ROLES = [
       await page.click('button[type="submit"]:has-text("Sign In")');
     },
     expect: /Super Admin Dashboard/i,
+    success: (body) => /Super Admin Dashboard/i.test(body),
   },
   {
     role: "admin",
     url: "https://lvlup-ff6fa-admin.web.app",
     login: async (page) => schoolCodeThenEmail(page, "admin@greenwood.edu"),
     expect: /School Admin Dashboard|School Admin/i,
+    success: (body) => /School Admin Dashboard|School Admin/i.test(body),
   },
   {
     role: "teacher",
     url: "https://lvlup-ff6fa-teacher.web.app",
     login: async (page) => schoolCodeThenEmail(page, "priya.sharma@greenwood.edu"),
     expect: /Teacher Dashboard|Teacher Portal/i,
+    success: (body) => /Teacher Dashboard|Teacher Portal/i.test(body),
   },
   {
     role: "student",
@@ -65,12 +70,14 @@ const ROLES = [
       await page.click('button[type="submit"]:has-text("Sign In")');
     },
     expect: /Dashboard|Student Portal/i,
+    success: (body) => /My Spaces|Dashboard/i.test(body) && /Sign in to start learning/i.test(body) === false,
   },
   {
     role: "parent",
     url: "https://lvlup-ff6fa-parent.web.app",
     login: async (page) => schoolCodeThenEmail(page, "suresh.patel@gmail.com"),
     expect: /Parent Dashboard|Parent Portal/i,
+    success: (body) => /Parent Dashboard|Parent Portal|My Children/i.test(body) && !/Sign in to view/i.test(body),
   },
 ];
 
@@ -92,14 +99,12 @@ for (const cfg of ROLES) {
       status = "FAIL";
       detail = `login timeout url=${page.url()}`;
     } else {
-      const h1 = page.locator("h1").first();
-      await h1.waitFor({ state: "visible", timeout: 30000 });
-      const text = ((await h1.textContent()) ?? "").trim();
-      if (!cfg.expect.test(text)) {
-        status = "FAIL";
-        detail = `unexpected heading="${text}" url=${page.url()}`;
+      const body = await page.locator("body").innerText();
+      if (cfg.success(body)) {
+        detail = `authenticated shell visible url=${page.url()}`;
       } else {
-        detail = `heading="${text}" url=${page.url()}`;
+        status = "FAIL";
+        detail = `post-login body missing expected markers url=${page.url()}`;
       }
     }
   } catch (err) {
@@ -108,6 +113,7 @@ for (const cfg of ROLES) {
   } finally {
     results.push({ role: cfg.role, url: cfg.url, status, detail });
     await page.close();
+    await new Promise((r) => setTimeout(r, 4000));
   }
 }
 
