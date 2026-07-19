@@ -10,7 +10,6 @@ export { saveStoryPoint } from "./callable/save-story-point";
 export { saveItem } from "./callable/save-item";
 export { getItemForEdit } from "./callable/get-item-for-edit";
 export { listVersions } from "./callable/list-versions";
-export { manageNotifications } from "./callable/manage-notifications";
 
 // ─────────────────────────────────────────────────────
 // Assessment (Callable)

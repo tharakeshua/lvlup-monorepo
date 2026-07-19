@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,7 +53,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           if [ -z "${FIREBASE_TOKEN}" ] && [ -z "${FIREBASE_SERVICE_ACCOUNT}" ]; then
-            echo "::error::Missing Firebase credentials. Set repository/environment secret FIREBASE_TOKEN (firebase login:ci) or FIREBASE_SERVICE_ACCOUNT (JSON) on the production environment."
+            echo "::error::Missing Firebase credentials. Set repository secret and/or environment secret FIREBASE_TOKEN (firebase login:ci) or FIREBASE_SERVICE_ACCOUNT (service-account JSON)."
             exit 1
           fi
           if [ -n "${FIREBASE_SERVICE_ACCOUNT}" ]; then
@@ -72,6 +74,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -103,7 +107,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           if [ -z "${FIREBASE_TOKEN}" ] && [ -z "${FIREBASE_SERVICE_ACCOUNT}" ]; then
-            echo "::error::Missing Firebase credentials. Set repository/environment secret FIREBASE_TOKEN (firebase login:ci) or FIREBASE_SERVICE_ACCOUNT (JSON) on the production environment."
+            echo "::error::Missing Firebase credentials. Set repository secret and/or environment secret FIREBASE_TOKEN (firebase login:ci) or FIREBASE_SERVICE_ACCOUNT (service-account JSON)."
             exit 1
           fi
           if [ -n "${FIREBASE_SERVICE_ACCOUNT}" ]; then
@@ -123,6 +127,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

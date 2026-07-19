@@ -19,7 +19,6 @@ export { saveStudent } from "./callable/save-student";
 export { saveTeacher } from "./callable/save-teacher";
 export { saveParent } from "./callable/save-parent";
 export { saveAcademicSession } from "./callable/save-academic-session";
-export { manageNotifications } from "./callable/manage-notifications";
 export { bulkImportStudents } from "./callable/bulk-import-students";
 export { bulkImportTeachers } from "./callable/bulk-import-teachers";
 export { bulkUpdateStatus } from "./callable/bulk-update-status";
