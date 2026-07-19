@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LvlUp Complete Product Journey Guide</title>
+<style>
+  :root { --ink:#1a1a1a; --muted:#555; --line:#ccc; --bg:#fff; --accent:#0b3d2e; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.45; max-width: 920px; margin: 0 auto; padding: 32px 28px 64px; font-size: 14px; }
+  h1 { font-size: 1.75rem; color: var(--accent); margin: 0 0 8px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+  h2 { font-size: 1.25rem; color: var(--accent); margin: 28px 0 10px; page-break-after: avoid; }
+  h3 { font-size: 1.05rem; margin: 18px 0 8px; page-break-after: avoid; }
+  p, li { margin: 6px 0; }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 12.5px; page-break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #eef4f1; font-weight: 600; }
+  code, .path { font-family: Consolas, "Courier New", monospace; font-size: 0.9em; background: #f4f4f4; padding: 1px 4px; }
+  pre { background: #f4f4f4; padding: 12px; overflow-x: auto; font-size: 12px; border: 1px solid var(--line); }
+  .note { border-left: 3px solid var(--accent); padding: 8px 12px; background: #f7faf8; margin: 12px 0; }
+  .warn { border-left: 3px solid #8a5a00; background: #fff8e8; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  .section { page-break-before: auto; }
+  @media print {
+    body { padding: 0; max-width: none; font-size: 11.5px; }
+    h2 { page-break-before: always; }
+    h2:first-of-type { page-break-before: avoid; }
+    a { color: inherit; text-decoration: none; }
+    .noprint { display: none; }
+  }
+</style>
+</head>
+<body><p class="noprint meta"><strong>Print tip:</strong> Press Ctrl+P → Save as PDF. Enable Background graphics.</p><h1>LvlUp Complete Product Journey Guide</h1>
+<p><strong>Code-sampled · exhaustive role journeys · do not invent screens</strong></p>
+<table><tr><th>Field</th><th>Value</th></tr><tr><td><strong>Workspace</strong></td><td><code>startup-mvp/lvlup</code></td></tr>
+<tr><td><strong>Sources</strong></td><td><code>apps/*/src/App.tsx</code>, layout nav, auth/session packages, <code>packages/ai</code>, <code>apps/website</code>, Firebase hosting, product-journey canvas</td></tr>
+<tr><td><strong>Credentials</strong></td><td><a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> €” never invent secrets beyond that file</td></tr>
+<tr><td><strong>Companion files</strong></td><td><code>01</code>€“<code>06</code> markdown siblings in this folder · <code>LVLUP-JOURNEY-GUIDE.html</code> for Printâ†’PDF</td></tr>
+</table>
+<hr/>
+<h2 id="table-of-contents">Table of contents</h2>
+<ol>
+<li><a href="#1-port--app-inventory">Port & app inventory</a></li>
+<li><a href="#2-cross-role-journey">Cross-role journey (both product tracks)</a></li>
+<li><a href="#3-auth-school-code-getme-claims">Auth, school code, getMe, claims</a></li>
+<li><a href="#4-student-journey">Student journey</a> â†’ detail: <a href="./01-student-journey.md"><code>01-student-journey.md</code></a></li>
+<li><a href="#5-teacher-journey">Teacher journey</a> â†’ <a href="./02-teacher-journey.md"><code>02-teacher-journey.md</code></a></li>
+<li><a href="#6-parent-journey">Parent journey</a> â†’ <a href="./03-parent-journey.md"><code>03-parent-journey.md</code></a></li>
+<li><a href="#7-admin-journey">Admin journey</a> â†’ <a href="./04-admin-journey.md"><code>04-admin-journey.md</code></a></li>
+<li><a href="#8-super-admin-journey">Super-admin journey</a></li>
+<li><a href="#9-marketing-website">Marketing website</a></li>
+<li><a href="#10-ai-surfaces--secretenv-names">AI surfaces & secret/env names</a></li>
+<li><a href="#11-access-denied--403-patterns">Access Denied / 403 patterns</a></li>
+<li><a href="#12-firebase-cost--why-firebase">Firebase cost & why Firebase</a></li>
+<li><a href="#13-railway--vercel">Railway + Vercel</a></li>
+<li><a href="#14-not-present-explicit">Not present (explicit)</a></li>
+<li><a href="#15-demo-credentials-pointer">Demo credentials pointer</a></li>
+<hr/>
+<h2 id="1-port-app-inventory">1. Port & app inventory</h2>
+<table><tr><th>App</th><th>Path</th><th>Dev port</th><th>Auth entry</th><th>Hosting target</th></tr>
+<tr><td>Super-admin</td><td><code>apps/super-admin</code></td><td><strong>4567</strong></td><td>Email + password + <code>superAdmin</code> claim</td><td><code>super-admin</code></td></tr>
+<tr><td>Admin</td><td><code>apps/admin-web</code></td><td><strong>4568</strong></td><td>School code UX + email/password</td><td><code>admin-web</code></td></tr>
+<tr><td>Teacher</td><td><code>apps/teacher-web</code></td><td><strong>4569</strong></td><td>School code + email/password</td><td><code>teacher-web</code></td></tr>
+<tr><td>Student</td><td><code>apps/student-web</code></td><td><strong>4570</strong></td><td>School code + roll/email <strong>or</strong> B2C Google/email</td><td><code>student-web</code></td></tr>
+<tr><td>Parent</td><td><code>apps/parent-web</code></td><td><strong>4571</strong></td><td>School code + email/password</td><td><code>parent-web</code></td></tr>
+<tr><td>Website</td><td><code>apps/website</code></td><td><strong>4321</strong> (Astro default)</td><td>None (static)</td><td><code>website</code></td></tr>
+</table>
+<p>Local CORS allowlist also references <code>4567€“4571</code>. Preview/Lighthouse configs may remap ports; <strong>Vite defaults above are SSOT for local journey testing.</strong></p>
+<hr/>
+<h2 id="2-cross-role-journey">2. Cross-role journey</h2>
+<h3>Autograde (paper)</h3>
+<p>Admin onboards school â†’ imports users â†’ Teacher creates exam + QP â†’ <code>extractQuestions</code> â†’ uploads answer sheets â†’ AI map/grade â†’ teacher review â†’ <code>releaseResults</code> â†’ Student exam results + Parent results/PDF â†’ Admin analytics / AI usage.</p>
+<h3>LevelUp (digital)</h3>
+<p>Admin provisions â†’ Teacher authors spaces/items â†’ Student practices/tests/tutor chat â†’ Parent progress/alerts â†’ Admin spaces/courses oversight.</p>
+<p><strong>In-app links between role portals:</strong> not present. Marketing <code>APP_URLS</code> is the only cross-role linker.</p>
+<p>Full AI + connection detail: <a href="./05-cross-role-and-ai.md"><code>05-cross-role-and-ai.md</code></a>.</p>
+<hr/>
+<h2 id="3-auth-school-code-getme-claims">3. Auth, school code, getMe, claims</h2>
+<h3>School code</h3>
+<ul>
+<li>Public: <code>v1.identity.lookupTenantByCode</code> (+ legacy tenantCodes fallback)</li>
+<li>Student/teacher/parent: code required for B2B login</li>
+<li>Admin: code validated in UI; <strong>not</strong> passed into Auth <code>login()</code></li>
+<li>Super-admin: <strong>no</strong> school code</li>
+<h3><code>loginWithSchoolCode</code> (shared-stores)</h3>
+<li>Lookup tenant (uppercase normalize)  </li>
+<li>Access gate (<code>active</code> / valid trial)  </li>
+<li>Email or derived roll email <code>{roll}@{tenantId}.levelup.internal</code>  </li>
+<li>Firebase sign-in â†’ active membership  </li>
+<li><code>callSwitchActiveTenant</code> â†’ <code>getIdToken(true)</code></li>
+<h3><code>getMe</code> / session stacks</h3>
+<table><tr><th>Apps</th><th>Mechanism</th></tr>
+<tr><td>teacher-web, admin-web</td><td><code>useMe()</code> â†’ <code>v1.identity.getMe</code> via Session / identity SDK</td></tr>
+<tr><td>student-web, parent-web, super-admin</td><td><code>useAuthStore</code> Firestore hydration (+ claims)</td></tr>
+</table>
+<p>Response shape: <code>{ user, memberships, claims, activeTenant? }</code>.</p>
+<h3><code>switchActiveTenant</code></h3>
+<p>Rebuilds JWT claims server-side; admin path resets React Query cache.</p>
+<h3>Claims fields</h3>
+<p><code>role</code>, <code>tenantId</code>, <code>tenantCode</code>, role entity ids (<code>teacherId</code>, <code>studentId</code>, €¦), <code>classIds</code> (+ overflow), <code>studentIds</code> (parent), permission maps, <code>isSuperAdmin?</code>.</p>
+<p>Roles: <code>superAdmin</code> · <code>tenantAdmin</code> · <code>teacher</code> · <code>student</code> · <code>parent</code> · <code>scanner</code> · <code>staff</code>.</p>
+<p>Production collections often <code>v2_*</code> via <code>LVLUP_COLLECTION_PREFIX</code>.</p>
+<hr/>
+<h2 id="4-student-journey">4. Student journey</h2>
+<p><strong>URL:</strong> http://127.0.0.1:4570 · roles: <code>student</code> | B2C consumer shell</p>
+<h3>Login</h3>
+<p>B2B: school code â†’ roll <strong>or</strong> email + password â†’ <code>loginWithSchoolCode</code>.  </p>
+<p>B2C: €œSign in as learner€ â†’ email/password or Google â†’ <code>/consumer</code>.</p>
+<h3>B2B sidebar</h3>
+<p>Dashboard <code>/</code> · My Spaces <code>/spaces</code> · Tests <code>/tests</code> · Progress <code>/results</code> · Leaderboard <code>/leaderboard</code> · Profile <code>/profile</code> · Settings <code>/settings</code>  </p>
+<p>(+ Notifications <code>/notifications</code> via bell; exam results <code>/exams/:examId/results</code>; nested space/story/test/practice routes)</p>
+<h3>B2C sidebar</h3>
+<p>My Learning <code>/consumer</code> · Store <code>/store</code> · Cart <code>/store/checkout</code> · Profile <code>/profile</code></p>
+<h3>Key callables</h3>
+<p><code>evaluateAnswer</code> · <code>recordItemAttempt</code> · <code>sendChatMessage</code> · <code>startTestSession</code> · <code>submitTestSession</code> · <code>purchaseSpace</code> · <code>listStoreSpaces</code></p>
+<h3>AI</h3>
+<p>Tutor chat (flash) + practice evaluate. No paper-exam Gemini on student.</p>
+<h3>Orphan</h3>
+<p><code>StudyPlannerPage.tsx</code> <strong>exists but is not routed</strong>.</p>
+<p>â†’ Full tree: <a href="./01-student-journey.md"><code>01-student-journey.md</code></a></p>
+<hr/>
+<h2 id="5-teacher-journey">5. Teacher journey</h2>
+<p><strong>URL:</strong> http://127.0.0.1:4569 · roles: <code>teacher</code>, <code>tenantAdmin</code> · session via <code>getMe</code></p>
+<h3>Sidebar groups</h3>
+<li>Overview: <code>/</code></li>
+<li>Content: <code>/spaces</code> · <code>/question-bank</code> · <code>/exams</code> · <code>/rubric-presets</code> · <code>/assignments</code> · <code>/grading</code></li>
+<li>Analytics: <code>/analytics/classes</code> · <code>/analytics/exams</code> · <code>/analytics/spaces</code> (+ routed <code>/analytics/tests</code> <strong>not in sidebar</strong>)</li>
+<li>People: <code>/classes</code> · <code>/students</code></li>
+<li>System: <code>/settings</code> (+ <code>/notifications</code> bell)</li>
+<h3>Nested routes</h3>
+<p>Space edit/preview · Exam create/detail/submissions/grading review · Class detail · Student report</p>
+<h3>Key callables</h3>
+<p>Spaces: <code>saveSpace</code> · <code>saveStoryPoint</code> · <code>saveItem</code> · <code>importFromBank</code> · <code>generateContent</code>  </p>
+<p>Bank/rubrics: <code>saveQuestionBankItem</code> · <code>saveRubricPreset</code>  </p>
+<p>Autograde: <code>saveExam</code> · <code>extractQuestions</code> · <code>uploadAnswerSheets</code> · <code>gradeQuestion</code> · <code>releaseResults</code>  </p>
+<p>Analytics: <code>getSummary</code> · <code>generateReport</code></p>
+<h3>AI</h3>
+<p>Heaviest: vision extract (pro) â†’ mapping (flash) â†’ grading (pro) â†’ teacher release. Insights are rule-based.</p>
+<p>â†’ <a href="./02-teacher-journey.md"><code>02-teacher-journey.md</code></a></p>
+<hr/>
+<h2 id="6-parent-journey">6. Parent journey</h2>
+<p><strong>URL:</strong> http://localhost:4571 · role: <code>parent</code></p>
+<h3>Sidebar</h3>
+<p><code>/</code> · <code>/children</code> · <code>/results</code> · <code>/progress</code> · <code>/child-progress</code> · <code>/alerts</code> · <code>/compare</code> · <code>/notifications</code> · <code>/settings</code></p>
+<h3>Key APIs</h3>
+<p><code>generateReport</code> (PDF) · linked-children / child-summary hooks · insights/alerts (<strong>no LLM</strong>) · notification manage · <code>switchActiveTenant</code></p>
+<p>Parents never author content or run autograde AI.</p>
+<p>â†’ <a href="./03-parent-journey.md"><code>03-parent-journey.md</code></a></p>
+<hr/>
+<h2 id="7-admin-journey">7. Admin journey</h2>
+<p><strong>URL:</strong> http://localhost:4568 · role: <code>tenantAdmin</code> · OnboardingGuard â†’ <code>/onboarding</code> if incomplete</p>
+<h3>Sidebar</h3>
+<li>Management: <code>/users</code> · <code>/classes</code> · <code>/exams</code> · <code>/spaces</code> · <code>/courses</code> · <code>/staff</code> · <code>/announcements</code></li>
+<li>Analytics: <code>/analytics</code> · <code>/reports</code> · <code>/ai-usage</code></li>
+<li>Config: <code>/academic-sessions</code> · <code>/data-export</code> · <code>/settings</code></li>
+<li>Also routed: <code>/notifications</code>, <code>/onboarding</code>, <code>/classes/:classId</code></li>
+<h3>Key callables</h3>
+<p><code>saveTenant</code> · <code>saveAcademicSession</code> · <code>saveClass</code> · <code>createOrgUser</code> · bulk imports · <code>saveStudent</code>/<code>Teacher</code>/<code>Parent</code> · <code>bulkUpdateStatus</code> · <code>saveAnnouncement</code> · <code>rolloverSession</code> · <code>exportTenantData</code> · <code>generateReport</code> · Gemini key write-only on tenant save</p>
+<p>Stricter guard: membership <code>tenantId</code> must match active tenant.</p>
+<p>â†’ <a href="./04-admin-journey.md"><code>04-admin-journey.md</code></a></p>
+<hr/>
+<h2 id="8-super-admin-journey">8. Super-admin journey</h2>
+<p><strong>URL:</strong> http://localhost:4567 · email-only login · requires <code>isSuperAdmin</code> + claim <code>role === "superAdmin"</code></p>
+<table><tr><th>Nav</th><th>Path</th></tr>
+<tr><td>Dashboard</td><td><code>/</code></td></tr>
+<tr><td>Tenants</td><td><code>/tenants</code>, <code>/tenants/:tenantId</code></td></tr>
+<tr><td>User Analytics</td><td><code>/analytics</code></td></tr>
+<tr><td>Feature Flags</td><td><code>/feature-flags</code></td></tr>
+<tr><td>Global Presets</td><td><code>/presets</code></td></tr>
+<tr><td>LLM Usage</td><td><code>/llm-usage</code></td></tr>
+<tr><td>Announcements</td><td><code>/announcements</code></td></tr>
+<tr><td>Users</td><td><code>/users</code></td></tr>
+<tr><td>System Health</td><td><code>/system</code></td></tr>
+<tr><td>Settings</td><td><code>/settings</code></td></tr>
+</table>
+<p>Callables: <code>saveTenant</code> · deactivate/reactivate · <code>saveGlobalPreset</code> · <code>searchUsers</code> · announcements · platform settings.  </p>
+<p><strong>Not on marketing APP_URLS.</strong></p>
+<hr/>
+<h2 id="9-marketing-website">9. Marketing website</h2>
+<p>Routes: <code>/</code> · <code>/guides</code> · <code>/guides/{admin|teacher|student|parent}</code>  </p>
+<p>Portal defaults: <code>admin|teacher|student|parent.lvlup.academy</code> via <code>PUBLIC_*_URL</code>.  </p>
+<p>Pricing page, blog, demo funnel: <strong>not present</strong>.</p>
+<p>â†’ <a href="./06-marketing-infra-firebase-vercel-railway.md"><code>06-marketing-infra-firebase-vercel-railway.md</code></a></p>
+<hr/>
+<h2 id="10-ai-surfaces-secret-env-names">10. AI surfaces & secret/env names</h2>
+<table><tr><th>Name</th><th>Purpose</th></tr>
+<tr><td><code>LEVELUP_AI_KEY</code> / <code>GEMINI_API_KEY</code></td><td>Dev override</td></tr>
+<tr><td><code>LEVELUP_AI_MODEL_PRO</code> / <code>LEVELUP_AI_MODEL_FLASH</code></td><td>Model ids</td></tr>
+<tr><td><code>LEVELUP_AI_STUB</code></td><td>Stub provider</td></tr>
+<tr><td><code>tenant-{tenantId}-gemini</code></td><td>Secret Manager per-tenant key</td></tr>
+<tr><td><code>geminiApiKey</code> (write-only on saveTenant)</td><td>Onboarding stores secret</td></tr>
+<tr><td><code>settings.geminiKeyRef</code> / <code>geminiKeySet</code></td><td>Pointers only</td></tr>
+<tr><td><code>VITE_FIREBASE_*</code></td><td>Client Firebase €” <strong>no AI keys</strong></td></tr>
+<tr><td><code>GOOGLE_CLOUD_PROJECT</code> / <code>GCLOUD_PROJECT</code></td><td>SM project</td></tr>
+<tr><td><code>GOOGLE_APPLICATION_CREDENTIALS</code></td><td>SA for SM</td></tr>
+<tr><td><code>LVLUP_COLLECTION_PREFIX</code></td><td><code>v2_</code> collections</td></tr>
+</table>
+<p>AI callables: <code>extractQuestions</code> · <code>uploadAnswerSheets</code> · <code>gradeQuestion</code> · <code>sendChatMessage</code> · <code>evaluateAnswer</code> · <code>generateContent</code>.  </p>
+<p>Analytics insights: <strong>no LLM</strong>.</p>
+<hr/>
+<h2 id="11-access-denied-403-patterns">11. Access Denied / 403 patterns</h2>
+<table><tr><th>App</th><th>Behavior</th></tr>
+<tr><td>Unauthenticated</td><td>Redirect <code>/login</code></td></tr>
+<tr><td>student wrong role, no membership</td><td>â†’ <code>/consumer</code></td></tr>
+<tr><td>wrong role (most apps)</td><td>Inline Access Denied</td></tr>
+<tr><td>admin tenant mismatch</td><td>Access Denied</td></tr>
+<tr><td>super-admin missing claim</td><td>Access Denied + Sign Out</td></tr>
+<tr><td>Server cross-tenant</td><td>e.g. €œCross-tenant access denied.€</td></tr>
+</table>
+<hr/>
+<h2 id="12-firebase-cost-why-firebase">12. Firebase cost & why Firebase</h2>
+<p>Cost drivers: Functions (5 codebases) · Firestore · RTDB · Storage · Auth · Hosting · <strong>Gemini tokens</strong> · Cloud Tasks.  </p>
+<p>No Blaze invoice in repo €” inference only.  </p>
+<p>Firebase-coupled: custom claims, rules on <code>auth.token.*</code>, <code>v2_</code> deny-all, Storage/Firestore triggers, callables, RTDB, 6 Hosting sites.</p>
+<hr/>
+<h2 id="13-railway-vercel">13. Railway + Vercel</h2>
+<table><tr><th>Tier</th><th>Scope</th><th>Effort</th></tr>
+<tr><td>S</td><td>Vercel frontends, Firebase backend</td><td>~3€“10 eng-days</td></tr>
+<tr><td>M</td><td>Railway HTTP + workers, keep Auth/Firestore</td><td>~1€“3 months</td></tr>
+<tr><td>L</td><td>Leave Auth/Firestore</td><td>multi-quarter</td></tr>
+</table>
+<p>Phase 0â†’3 plan and difficulty matrix: <a href="./06-marketing-infra-firebase-vercel-railway.md"><code>06-marketing-infra-firebase-vercel-railway.md</code></a>.</p>
+<hr/>
+<h2 id="14-not-present-explicit-">14. Not present (explicit)</h2>
+<li>Pricing / plans marketing page  </li>
+<li>Super-admin on marketing <code>APP_URLS</code>  </li>
+<li>Student <code>StudyPlannerPage</code> route  </li>
+<li>Dedicated scanner/staff web apps (claims exist; no Vite app journeys here)  </li>
+<li>In-app €œopen teacher portal€ links between SPAs  </li>
+<li>OpenAI/Anthropic production providers  </li>
+<li>Parent/student Gemini autograde initiation  </li>
+<hr/>
+<h2 id="15-demo-credentials-pointer">15. Demo credentials pointer</h2>
+<p>See <strong><a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a></strong>:</p>
+<li>Greenwood <code>GRN001</code> / default <code>Test@12345</code> (admin, teachers, students, parents, superadmin)  </li>
+<li>Roll login example <code>2025001</code>  </li>
+<li>Consumer <code>consumer@gmail.test</code> / <code>Consumer123!</code>  </li>
+<li>Subhang <code>SUB001</code>  </li>
+<li>Emulator Springfield <code>SPR001</code> with distinct passwords  </li>
+<p>Seed: <code>pnpm seed:production</code> · emulator <code>pnpm seed:emulator</code>.</p>
+<hr/>
+<h2 id="how-to-download-print-to-pdf">How to download / Print to PDF</h2>
+<li>Download or zip folder: <code>docs/journeys/</code>  </li>
+<li>Open <code>LVLUP-JOURNEY-GUIDE.html</code> in Chrome/Edge  </li>
+<li><strong>Ctrl+P</strong> â†’ <strong>Save as PDF</strong> (enable background graphics)  </li>
+<li>Or print individual <code>0N-*.md</code> via VS Code / GitHub / Pandoc if preferred  </li>
+<hr/>
+<p>*Generated from live routers and packages in the lvlup monorepo. If a screen is not listed, treat it as not present unless you find a matching <code>App.tsx</code> route.*</p><hr/><h1>01 €” Student Journey (`apps/student-web`)</h1>
+<p><strong>Port:</strong> <code>4570</code> (<code>vite.config.ts</code>, <code>host: "127.0.0.1"</code>, <code>strictPort: true</code>)  </p>
+<p><strong>Local URL:</strong> http://127.0.0.1:4570  </p>
+<p><strong>Allowed roles:</strong> <code>student</code> (B2B shell); any authenticated user without school membership â†’ B2C <code>/consumer</code>  </p>
+<p><strong>Credentials:</strong> see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> (e.g. school <code>GRN001</code>, roll <code>2025001</code> / <code>aarav.patel@greenwood.edu</code>, consumer <code>consumer@gmail.test</code>)</p>
+<hr/>
+<h2 id="login-start-exact-steps-">Login start (exact steps)</h2>
+<h3>B2B school student</h3>
+<ol>
+<li>Open http://127.0.0.1:4570/login</li>
+<li><strong>School code</strong> view â†’ enter code â†’ <code>lookupTenantByCode</code> + <code>evaluateTenantAccess</code> (blocks invalid / inactive / trial-expired)</li>
+<li><strong>Credentials</strong> view â†’ school name shown; tabs:</li>
+<p>   - <strong>Roll Number</strong> (default) + password, <strong>or</strong></p>
+<p>   - <strong>Email</strong> + password</p>
+<li>Submit â†’ <code>loginWithSchoolCode</code> (shared-stores):</li>
+<p>   - Lookup tenant by code (uppercase normalize)</p>
+<p>   - If credential has <code>@</code> â†’ email; else derive <code>{roll}@{tenantId}.levelup.internal</code></p>
+<p>   - Firebase <code>signIn</code> â†’ <code>getMembership</code> must be <code>active</code></p>
+<p>   - <code>callSwitchActiveTenant(tenantId)</code> â†’ <code>getIdToken(true)</code> to pick up JWT claims</p>
+<li>Land on <code>/</code> (Dashboard) inside <code>AppLayout</code></li>
+<h3>B2C consumer (no school)</h3>
+<li>On login: <strong>€œDon€™t have a school code? Sign in as learner€</strong></li>
+<li>Email + password <strong>or</strong> Google â†’ navigate <code>/consumer</code> (<code>ConsumerLayout</code>)</li>
+<li>Signup view also present for consumer registration</li>
+<h3>Session hydration</h3>
+<ul>
+<li><code>useAuthStore.initialize()</code> on App mount (Firestore user + memberships + claims)</li>
+<li>Tenant doc via <code>useTenantStore.subscribe(currentTenantId)</code></li>
+<li><strong>Note:</strong> Student app does <strong>not</strong> always call <code>v1.identity.getMe</code> the way teacher/admin SDK session does; hydration is store-centric. Tenant switch: <code>useAuthStore.switchTenant</code> â†’ <code>callSwitchActiveTenant</code></li>
+<hr/>
+<h2 id="guards-empty-error-states">Guards / empty & error states</h2>
+<table><tr><th>Condition</th><th>Behavior</th></tr>
+<tr><td>Loading</td><td>Full-screen spinner</td></tr>
+<tr><td>No Firebase user</td><td>Redirect <code>/login</code> with <code>from</code> location</td></tr>
+<tr><td><code>allowedRoles=["student"]</code> but <strong>no</strong> membership</td><td>Redirect <strong><code>/consumer</code></strong> (consumer escape hatch)</td></tr>
+<tr><td>Wrong role <strong>with</strong> membership</td><td>Inline <strong>Access Denied</strong> €” €œYou don€™t have permission to access this page.€</td></tr>
+<tr><td>Unknown route</td><td><code>NotFoundPage</code></td></tr>
+<tr><td>School code gate</td><td>Invalid code, trial expired, inactive school, lookup failure</td></tr>
+</table>
+<p><code>StudyPlannerPage.tsx</code> exists under <code>pages/</code> but is <strong>not present</strong> in <code>App.tsx</code> routes (orphan page).</p>
+<hr/>
+<h2 id="full-route-tree-app-tsx-">Full route tree (`App.tsx`)</h2>
+<h3>B2B €” <code>RequireAuth allowedRoles={["student"]}</code> + <code>AppLayout</code></h3>
+<table><tr><th>Path</th><th>Page</th><th>Purpose</th></tr>
+<tr><td><code>/</code></td><td>DashboardPage</td><td>Assigned spaces, recent activity, progress snapshot</td></tr>
+<tr><td><code>/spaces</code></td><td>SpacesListPage</td><td>Browse learning spaces</td></tr>
+<tr><td><code>/spaces/:spaceId</code></td><td>SpaceViewerPage</td><td>Space overview / sections</td></tr>
+<tr><td><code>/spaces/:spaceId/story-points/:storyPointId</code></td><td>StoryPointViewerPage</td><td>Content + practice + AI tutor chat</td></tr>
+<tr><td><code>/spaces/:spaceId/test/:storyPointId</code></td><td>TimedTestPage</td><td>Timed assessment session</td></tr>
+<tr><td><code>/spaces/:spaceId/test/:storyPointId/analytics</code></td><td>TestAnalyticsPage</td><td>Post-test analytics</td></tr>
+<tr><td><code>/spaces/:spaceId/practice/:storyPointId</code></td><td>PracticeModePage</td><td>Untimed practice</td></tr>
+<tr><td><code>/results</code></td><td>ProgressPage</td><td>LevelUp learning progress (label €œProgress€ in nav)</td></tr>
+<tr><td><code>/exams/:examId/results</code></td><td>ExamResultPage</td><td>Released autograde per-question feedback</td></tr>
+<tr><td><code>/notifications</code></td><td>NotificationsPage</td><td>Inbox (header bell; not in sidebar)</td></tr>
+<tr><td><code>/leaderboard</code></td><td>LeaderboardPage</td><td>Rankings (RTDB live)</td></tr>
+<tr><td><code>/tests</code></td><td>TestsPage</td><td>Scheduled class tests across spaces</td></tr>
+<tr><td><code>/settings</code></td><td>SettingsPage</td><td>Notification preferences</td></tr>
+<tr><td><code>/profile</code></td><td>ProfilePage</td><td>Student profile</td></tr>
+</table>
+<h3>B2C €” <code>RequireAuth</code> (any auth) + <code>ConsumerLayout</code></h3>
+<table><tr><th>Path</th><th>Page</th><th>Purpose</th></tr>
+<tr><td><code>/consumer</code></td><td>ConsumerDashboardPage</td><td>Purchased / My Learning</td></tr>
+<tr><td><code>/my-spaces</code></td><td>ConsumerDashboardPage</td><td>Alias of My Learning</td></tr>
+<tr><td><code>/consumer/spaces/:spaceId</code></td><td>SpaceViewerPage</td><td>Shared viewer</td></tr>
+<tr><td><code>/consumer/spaces/:spaceId/story-points/:storyPointId</code></td><td>StoryPointViewerPage</td><td>Shared</td></tr>
+<tr><td><code>/consumer/spaces/:spaceId/test/:storyPointId</code></td><td>TimedTestPage</td><td>Shared</td></tr>
+<tr><td><code>/consumer/spaces/:spaceId/practice/:storyPointId</code></td><td>PracticeModePage</td><td>Shared</td></tr>
+<tr><td><code>/store</code></td><td>StoreListPage</td><td>Catalog</td></tr>
+<tr><td><code>/store/:spaceId</code></td><td>StoreDetailPage</td><td>Space detail</td></tr>
+<tr><td><code>/store/checkout</code></td><td>CheckoutPage</td><td>Purchase cart</td></tr>
+<tr><td><code>/profile</code></td><td>ConsumerProfilePage</td><td>Consumer profile (<strong>same path</strong> as B2B profile €” layout depends on which shell matched)</td></tr>
+</table>
+<hr/>
+<h2 id="sidebar-bottom-nav-applayout-tsx-">Sidebar / bottom nav (`AppLayout.tsx`)</h2>
+<table><tr><th>Label</th><th>Path</th></tr>
+<tr><td>Dashboard</td><td><code>/</code></td></tr>
+<tr><td>My Spaces</td><td><code>/spaces</code></td></tr>
+<tr><td>Tests</td><td><code>/tests</code></td></tr>
+<tr><td>Progress</td><td><code>/results</code></td></tr>
+<tr><td>Leaderboard</td><td><code>/leaderboard</code></td></tr>
+<tr><td>Profile</td><td><code>/profile</code></td></tr>
+<tr><td>Settings</td><td><code>/settings</code></td></tr>
+</table>
+<p><strong>Mobile bottom nav:</strong> Home <code>/</code> · Spaces <code>/spaces</code> · Tests <code>/tests</code> · Rank <code>/leaderboard</code> · Profile <code>/profile</code></p>
+<p><strong>Footer:</strong> <code>RoleSwitcher</code> (student memberships) + Sign Out â†’ <code>/login</code></p>
+<h3>Consumer sidebar (<code>ConsumerLayout.tsx</code>)</h3>
+<table><tr><th>Label</th><th>Path</th></tr>
+<tr><td>My Learning</td><td><code>/consumer</code> (also active on <code>/my-spaces</code>)</td></tr>
+<tr><td>Space Store</td><td><code>/store</code></td></tr>
+<tr><td>Cart (N)</td><td><code>/store/checkout</code> *(only if cartCount > 0)*</td></tr>
+<tr><td>Profile</td><td><code>/profile</code></td></tr>
+</table>
+<p>App name in consumer sidebar: <strong>LevelUp</strong> (vs <strong>Student</strong> in school layout).</p>
+<hr/>
+<h2 id="primary-ctas-callables-apis">Primary CTAs â†’ callables / APIs</h2>
+<table><tr><th>Action</th><th>Callable / hook</th><th>Where</th></tr>
+<tr><td>Evaluate practice answer</td><td><code>v1.levelup.evaluateAnswer</code></td><td>Story point / Practice</td></tr>
+<tr><td>Record attempt</td><td><code>v1.levelup.recordItemAttempt</code></td><td>Story point / Practice</td></tr>
+<tr><td>AI tutor chat</td><td><code>v1.levelup.sendChatMessage</code></td><td>StoryPointViewer</td></tr>
+<tr><td>Start timed test</td><td><code>v1.levelup.startTestSession</code></td><td>TimedTestPage</td></tr>
+<tr><td>Submit timed test</td><td><code>v1.levelup.submitTestSession</code></td><td>TimedTestPage</td></tr>
+<tr><td>Buy space (B2C)</td><td><code>v1.levelup.purchaseSpace</code></td><td>Checkout</td></tr>
+<tr><td>List store spaces</td><td><code>v1.levelup.listStoreSpaces</code></td><td>Store</td></tr>
+<tr><td>Mark notifications read</td><td>notification manage hooks</td><td>Notifications</td></tr>
+<tr><td>Tenant switch</td><td><code>v1.identity.switchActiveTenant</code></td><td>RoleSwitcher</td></tr>
+</table>
+<p>Exam results are <strong>read-only</strong> after teacher <code>releaseResults</code> €” student does not call Gemini for paper exams.</p>
+<hr/>
+<h2 id="ai-on-this-journey">AI on this journey</h2>
+<li><strong>Tutor chat:</strong> <code>sendChatMessage</code> â†’ Gemini <strong>flash</strong> (<code>aiChat</code> prompt) via server gateway</li>
+<li><strong>Practice evaluate:</strong> <code>evaluateAnswer</code> AI grading path</li>
+<li><strong>Not present on student:</strong> question-paper vision, answer-sheet grading, content draft generation</li>
+<li>Client never holds Gemini keys (<code>VITE_FIREBASE_*</code> only)</li>
+<hr/>
+<h2 id="how-student-connects-to-other-roles">How student connects to other roles</h2>
+<table><tr><th>Upstream</th><th>Downstream effect</th></tr>
+<tr><td>Admin creates student + class</td><td>Membership + claims (<code>studentId</code>, <code>classIds</code>)</td></tr>
+<tr><td>Teacher authors / assigns spaces</td><td>Spaces appear on Dashboard / My Spaces</td></tr>
+<tr><td>Teacher creates timed tests</td><td>Appear under <code>/tests</code> and space test routes</td></tr>
+<tr><td>Teacher releases exam results</td><td><code>/exams/:examId/results</code> becomes available</td></tr>
+<tr><td>Parent linked via admin</td><td>Parent sees this student€™s progress/results</td></tr>
+<tr><td>Admin analytics</td><td>Aggregates student progress / AI usage</td></tr>
+</table>
+<p><strong>In-app links to teacher/admin/parent portals:</strong> not present €” handoff via marketing <code>APP_URLS</code> only.</p><hr/><h1>02 €” Teacher Journey (`apps/teacher-web`)</h1>
+<p><strong>Port:</strong> <code>4569</code> (<code>vite.config.ts</code>, <code>host: "127.0.0.1"</code>, <code>strictPort: true</code>)  </p>
+<p><strong>Local URL:</strong> http://127.0.0.1:4569  </p>
+<p><strong>Allowed roles:</strong> <code>teacher</code>, <code>tenantAdmin</code>  </p>
+<p><strong>Credentials:</strong> see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> (e.g. <code>priya.sharma@greenwood.edu</code> / <code>Test@12345</code> / school <code>GRN001</code>)</p>
+<hr/>
+<h2 id="login-start-exact-steps-">Login start (exact steps)</h2>
+<ol>
+<li>Open http://127.0.0.1:4569/login</li>
+<li><strong>School code</strong> â†’ <code>useLookupTenantByCode</code> + <code>evaluateTenantAccess</code></li>
+<li><strong>Email + password</strong> â†’ <code>loginWithSchoolCode(schoolCode, email, password)</code> via <code>useAuthSession()</code></li>
+<li>Resolve tenant membership â†’ switch active tenant â†’ navigate <code>from</code> or <code>/</code></li>
+<h3>Session</h3>
+<ul>
+<li>Owned by <code><SessionProvider></code> in <code>main.tsx</code> (Firebase auth handle + <code>useMe()</code> â†’ <strong><code>v1.identity.getMe</code></strong>)</li>
+<li>Tenant switch: <code>meRepo.switchTenant</code> â†’ <strong><code>v1.identity.switchActiveTenant</code></strong> + token refresh</li>
+<li>React Query cache reset on tenant switch (SDK pattern)</li>
+<hr/>
+<h2 id="guards-empty-error-states">Guards / empty & error states</h2>
+<table><tr><th>Condition</th><th>Behavior</th></tr>
+<tr><td>Loading</td><td>Centered €œLoading...€</td></tr>
+<tr><td>No auth</td><td>Redirect <code>/login</code> with <code>from</code></td></tr>
+<tr><td>Wrong role</td><td>Inline <strong>Access Denied</strong> (no consumer redirect)</td></tr>
+<tr><td>Unknown route</td><td><code>NotFoundPage</code></td></tr>
+</table>
+<hr/>
+<h2 id="full-route-tree-app-tsx-">Full route tree (`App.tsx`)</h2>
+<table><tr><th>Path</th><th>Page</th><th>Purpose</th></tr>
+<tr><td><code>/login</code></td><td>LoginPage</td><td>Auth</td></tr>
+<tr><td><code>/</code></td><td>DashboardPage</td><td>Teacher home / overview</td></tr>
+<tr><td><code>/spaces</code></td><td>SpaceListPage</td><td>List learning spaces</td></tr>
+<tr><td><code>/spaces/:spaceId/edit</code></td><td>SpaceEditorPage</td><td>Author story points & items</td></tr>
+<tr><td><code>/spaces/:spaceId/story-points/:storyPointId/preview</code></td><td>TestPreviewPage</td><td>Preview timed test as teacher</td></tr>
+<tr><td><code>/question-bank</code></td><td>QuestionBankPage</td><td>Tenant question bank CRUD</td></tr>
+<tr><td><code>/rubric-presets</code></td><td>RubricPresetsPage</td><td>Reusable rubrics</td></tr>
+<tr><td><code>/exams</code></td><td>ExamListPage</td><td>Paper / autograde exams</td></tr>
+<tr><td><code>/exams/new</code></td><td>ExamCreatePage</td><td>Create exam + QP upload</td></tr>
+<tr><td><code>/exams/:examId</code></td><td>ExamDetailPage</td><td>Review AI rubric, publish, release</td></tr>
+<tr><td><code>/exams/:examId/submissions</code></td><td>SubmissionsPage</td><td>Upload sheets, pipeline status</td></tr>
+<tr><td><code>/exams/:examId/submissions/:submissionId</code></td><td>GradingReviewPage</td><td>AI + manual grade review</td></tr>
+<tr><td><code>/classes</code></td><td>ClassesPage</td><td>Teacher€™s classes</td></tr>
+<tr><td><code>/classes/:classId</code></td><td>ClassDetailPage</td><td>Roster / class detail</td></tr>
+<tr><td><code>/analytics/classes</code></td><td>ClassAnalyticsPage</td><td>Class metrics</td></tr>
+<tr><td><code>/analytics/exams</code></td><td>ExamAnalyticsPage</td><td>Exam metrics</td></tr>
+<tr><td><code>/analytics/spaces</code></td><td>SpaceAnalyticsPage</td><td>Space metrics</td></tr>
+<tr><td><code>/analytics/tests</code></td><td>ClassTestAnalyticsPage</td><td>Class test analytics (<strong>routed; not in sidebar</strong>)</td></tr>
+<tr><td><code>/assignments</code></td><td>AssignmentTrackerPage</td><td>Exam / assignment pipeline board</td></tr>
+<tr><td><code>/grading</code></td><td>BatchGradingPage</td><td>Batch grading queue</td></tr>
+<tr><td><code>/students</code></td><td>StudentsPage</td><td>Student list</td></tr>
+<tr><td><code>/students/:studentId/report</code></td><td>StudentReportPage</td><td>Per-student report / PDF</td></tr>
+<tr><td><code>/settings</code></td><td>SettingsPage</td><td>Teacher settings</td></tr>
+<tr><td><code>/notifications</code></td><td>NotificationsPage</td><td>Inbox (bell; not sidebar primary)</td></tr>
+</table>
+<hr/>
+<h2 id="sidebar-nav-applayout-tsx-">Sidebar nav (`AppLayout.tsx`)</h2>
+<table><tr><th>Group</th><th>Label</th><th>Path</th></tr>
+<tr><td><strong>Overview</strong></td><td>Dashboard</td><td><code>/</code></td></tr>
+<tr><td><strong>Content</strong></td><td>Spaces</td><td><code>/spaces</code></td></tr>
+<tr><td></td><td>Question Bank</td><td><code>/question-bank</code></td></tr>
+<tr><td></td><td>Exams</td><td><code>/exams</code></td></tr>
+<tr><td></td><td>Rubric Presets</td><td><code>/rubric-presets</code></td></tr>
+<tr><td></td><td>Assignments</td><td><code>/assignments</code></td></tr>
+<tr><td></td><td>Batch Grading</td><td><code>/grading</code></td></tr>
+<tr><td><strong>Analytics</strong></td><td>Class Analytics</td><td><code>/analytics/classes</code></td></tr>
+<tr><td></td><td>Exam Analytics</td><td><code>/analytics/exams</code></td></tr>
+<tr><td></td><td>Space Analytics</td><td><code>/analytics/spaces</code></td></tr>
+<tr><td><strong>People</strong></td><td>Classes</td><td><code>/classes</code></td></tr>
+<tr><td></td><td>Students</td><td><code>/students</code></td></tr>
+<tr><td><strong>System</strong></td><td>Settings</td><td><code>/settings</code></td></tr>
+</table>
+<p><strong>Mobile bottom nav:</strong> Home <code>/</code> · Spaces <code>/spaces</code> · Exams <code>/exams</code> · Students <code>/students</code> · Analytics <code>/analytics/classes</code></p>
+<p><strong>Footer:</strong> <code>RoleSwitcher</code> (teacher + tenantAdmin memberships) + Sign Out</p>
+<hr/>
+<h2 id="major-screens-primary-mutations">Major screens + primary mutations</h2>
+<table><tr><th>Screen</th><th>Purpose</th><th>Primary CTAs / callables</th></tr>
+<tr><td>SpaceList / SpaceEditor</td><td>Author spaces, story points, items</td><td><code>saveSpace</code> · <code>saveStoryPoint</code> · <code>saveItem</code> · <code>createItem</code> · <code>importFromBank</code> · publish/archive</td></tr>
+<tr><td>QuestionBank</td><td>Tenant bank CRUD</td><td><code>saveQuestionBankItem</code> · <code>listQuestionBank</code></td></tr>
+<tr><td>RubricPresets</td><td>Reusable rubrics</td><td><code>saveRubricPreset</code></td></tr>
+<tr><td>ExamCreate</td><td>New exam + question paper</td><td><code>saveExam</code> · Storage <code>requestUploadUrl</code></td></tr>
+<tr><td>ExamDetail</td><td>AI rubric review, publish, release</td><td><code>extractQuestions</code> · <code>saveExam</code> · <code>releaseResults</code></td></tr>
+<tr><td>Submissions</td><td>Answer sheets + pipeline</td><td><code>uploadAnswerSheets</code> · <code>releaseResults</code></td></tr>
+<tr><td>GradingReview / BatchGrading</td><td>AI + manual review</td><td><code>gradeQuestion</code> · manual overrides</td></tr>
+<tr><td>AssignmentTracker</td><td>Pipeline status board</td><td>Read aggregation</td></tr>
+<tr><td>ClassDetail</td><td>Roster</td><td><code>saveStudent</code> · <code>saveClass</code> (as permitted)</td></tr>
+<tr><td>StudentReport</td><td>Per-student PDF</td><td><code>v1.analytics.generateReport</code></td></tr>
+<tr><td>Analytics pages</td><td>Class/exam/space/tests</td><td><code>getSummary</code> / analytics hooks</td></tr>
+<tr><td>Notifications</td><td>Inbox</td><td><code>manageNotifications</code></td></tr>
+</table>
+<hr/>
+<h2 id="ai-on-this-journey-heaviest-role-">AI on this journey (heaviest role)</h2>
+<table><tr><th>Feature</th><th>Callable / pipeline</th><th>Model tier</th></tr>
+<tr><td>Extract questions from QP (vision)</td><td><code>v1.autograde.extractQuestions</code></td><td><strong>pro</strong></td></tr>
+<tr><td>Answer mapping after upload</td><td>pipeline <code>process-answer-mapping</code></td><td><strong>flash</strong></td></tr>
+<tr><td>RELMS grading</td><td>pipeline + <code>v1.autograde.gradeQuestion</code></td><td><strong>pro</strong></td></tr>
+<tr><td>Content drafts</td><td><code>v1.levelup.generateContent</code></td><td>content draft prompt</td></tr>
+<tr><td>Insights / at-risk on analytics</td><td>schedulers + <code>getSummary</code></td><td><strong>rule engines €” no LLM</strong></td></tr>
+</table>
+<p>Teacher must <strong>review</strong> AI grades before <strong><code>releaseResults</code></strong>. Students and parents only see released results.</p>
+<hr/>
+<h2 id="how-teacher-connects-to-other-roles">How teacher connects to other roles</h2>
+<table><tr><th>Connection</th><th>Mechanism</th></tr>
+<tr><td>Admin provisions classes / teachers / students</td><td>Memberships, <code>classIds</code>, permissions claims</td></tr>
+<tr><td>Student learns from teacher spaces / tests</td><td>Student <code>/spaces</code>, <code>/tests</code></td></tr>
+<tr><td>Student + parent see exam results</td><td>After <code>releaseResults</code></td></tr>
+<tr><td>Admin oversight</td><td>Exams/spaces overview, AI usage, analytics</td></tr>
+<tr><td>Super-admin</td><td>Platform LLM usage / tenants €” not teacher UI</td></tr>
+</table>
+<p><strong>In-app portal links to other role apps:</strong> not present.</p><hr/><h1>03 €” Parent Journey (`apps/parent-web`)</h1>
+<p><strong>Port:</strong> <code>4571</code> (<code>vite.config.ts</code>)  </p>
+<p><strong>Local URL:</strong> http://localhost:4571  </p>
+<p><strong>Allowed roles:</strong> <code>parent</code>  </p>
+<p><strong>Credentials:</strong> see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> (e.g. <code>suresh.patel@gmail.com</code> / <code>Test@12345</code> / <code>GRN001</code>)</p>
+<hr/>
+<h2 id="login-start-exact-steps-">Login start (exact steps)</h2>
+<ol>
+<li>Open http://localhost:4571/login</li>
+<li><strong>School code</strong> â†’ <code>lookupTenantByCode</code> + <code>evaluateTenantAccess</code></li>
+<li><strong>Email + password</strong> â†’ <code>loginWithSchoolCode</code></li>
+<li>Optional: <strong>Forgot password?</strong> â†’ Firebase <code>sendPasswordResetEmail</code></li>
+<li>Land on <code>/</code> Dashboard</li>
+<h3>Session</h3>
+<ul>
+<li><code>useAuthStore.initialize()</code> + <code>useTenantStore.subscribe(currentTenantId)</code></li>
+<li>Tenant switch: <code>useAuthStore.switchTenant</code> â†’ <code>callSwitchActiveTenant</code></li>
+<li>Claims typically include <code>parentId</code> + <code>studentIds</code> (linked children)</li>
+<hr/>
+<h2 id="guards-empty-error-states">Guards / empty & error states</h2>
+<table><tr><th>Condition</th><th>Behavior</th></tr>
+<tr><td>Loading</td><td>Loading UI</td></tr>
+<tr><td>No auth</td><td>Redirect <code>/login</code></td></tr>
+<tr><td>Wrong role</td><td>Inline <strong>Access Denied</strong></td></tr>
+<tr><td>Unknown route</td><td><code>NotFoundPage</code></td></tr>
+<tr><td>No linked children</td><td>Dashboard/children empty states (UI-dependent; parents cannot invent links)</td></tr>
+</table>
+<p>Parents <strong>never</strong> author content or trigger Gemini autograde.</p>
+<hr/>
+<h2 id="full-route-tree-app-tsx-">Full route tree (`App.tsx`)</h2>
+<table><tr><th>Path</th><th>Page</th><th>Purpose</th></tr>
+<tr><td><code>/login</code></td><td>LoginPage</td><td>Auth</td></tr>
+<tr><td><code>/</code></td><td>DashboardPage</td><td>Linked children overview, at-risk, quick links</td></tr>
+<tr><td><code>/children</code></td><td>ChildrenPage</td><td>List linked students (read-oriented)</td></tr>
+<tr><td><code>/results</code></td><td>ExamResultsPage</td><td>Released autograde + per-question accordion</td></tr>
+<tr><td><code>/progress</code></td><td>SpaceProgressPage</td><td>LevelUp space completion</td></tr>
+<tr><td><code>/child-progress</code></td><td>ChildProgressPage</td><td>Detailed progress + PDF</td></tr>
+<tr><td><code>/alerts</code></td><td>PerformanceAlertsPage</td><td>At-risk / insight alerts</td></tr>
+<tr><td><code>/compare</code></td><td>ChildComparisonPage</td><td>Side-by-side child metrics</td></tr>
+<tr><td><code>/notifications</code></td><td>NotificationsPage</td><td>Inbox</td></tr>
+<tr><td><code>/settings</code></td><td>SettingsPage</td><td>Notification prefs</td></tr>
+</table>
+<hr/>
+<h2 id="sidebar-nav-applayout-tsx-">Sidebar nav (`AppLayout.tsx`)</h2>
+<table><tr><th>Group</th><th>Label</th><th>Path</th></tr>
+<tr><td><strong>Overview</strong></td><td>Dashboard</td><td><code>/</code></td></tr>
+<tr><td><strong>My Children</strong></td><td>Children</td><td><code>/children</code></td></tr>
+<tr><td></td><td>Exam Results</td><td><code>/results</code></td></tr>
+<tr><td></td><td>Space Progress</td><td><code>/progress</code></td></tr>
+<tr><td></td><td>Child Progress</td><td><code>/child-progress</code></td></tr>
+<tr><td></td><td>Alerts</td><td><code>/alerts</code></td></tr>
+<tr><td></td><td>Compare Children</td><td><code>/compare</code></td></tr>
+<tr><td><strong>Account</strong></td><td>Notifications</td><td><code>/notifications</code> *(badge = unread)*</td></tr>
+<tr><td></td><td>Settings</td><td><code>/settings</code></td></tr>
+</table>
+<p><strong>Mobile bottom nav:</strong> Home <code>/</code> · Children <code>/children</code> · Results <code>/results</code> · Alerts <code>/notifications</code></p>
+<p><strong>Footer:</strong> <code>RoleSwitcher</code> (parent memberships only)</p>
+<hr/>
+<h2 id="primary-ctas-apis">Primary CTAs â†’ APIs</h2>
+<table><tr><th>Action</th><th>API</th><th>Notes</th></tr>
+<tr><td>Download PDF report</td><td><code>callGenerateReport</code> / <code>v1.analytics.generateReport</code></td><td>ExamResults + ChildProgress</td></tr>
+<tr><td>View linked children</td><td><code>listLinkedChildren</code> / <code>getChildSummary</code> (or equivalent query hooks)</td><td>Dashboard / Children</td></tr>
+<tr><td>Performance alerts</td><td><code>listInsights</code> / parent alert hooks</td><td><strong>Rule-based, not LLM</strong></td></tr>
+<tr><td>Mark notification read</td><td>notification hooks</td><td>Notifications</td></tr>
+<tr><td>Switch school (multi-tenant parent)</td><td><code>switchActiveTenant</code></td><td>RoleSwitcher</td></tr>
+</table>
+<hr/>
+<h2 id="ai-on-this-journey">AI on this journey</h2>
+<li><strong>No direct Gemini callables</strong> from parent UI</li>
+<li>Consumes <strong>released</strong> exam results and <strong>rule-based</strong> analytics insights / at-risk flags</li>
+<li>PDF generation is analytics reporting (not generative tutoring)</li>
+<hr/>
+<h2 id="how-parent-connects-to-other-roles">How parent connects to other roles</h2>
+<table><tr><th>Upstream</th><th>Effect</th></tr>
+<tr><td>Admin links parent â†” students</td><td>Claims <code>studentIds</code>; Children list populates</td></tr>
+<tr><td>Teacher releases exam results</td><td>Appear under <code>/results</code></td></tr>
+<tr><td>Student completes LevelUp spaces</td><td>Space / child progress pages update</td></tr>
+<tr><td>Teacher / analytics schedulers</td><td>Alerts on <code>/alerts</code></td></tr>
+<tr><td>Admin</td><td>Can manage parent users; sees school-wide analytics</td></tr>
+</table>
+<p><strong>In-app links to student/teacher portals:</strong> not present.</p><hr/><h1>04 €” Admin & Super-Admin Journeys</h1>
+<h2 id="a-school-admin-apps-admin-web-">A. School Admin (`apps/admin-web`)</h2>
+<p><strong>Port:</strong> <code>4568</code>  </p>
+<p><strong>Local URL:</strong> http://localhost:4568  </p>
+<p><strong>Allowed roles:</strong> <code>tenantAdmin</code>  </p>
+<p><strong>Credentials:</strong> see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> (e.g. <code>admin@greenwood.edu</code> / <code>Test@12345</code> / <code>GRN001</code>)</p>
+<h3>Login start (exact steps)</h3>
+<ol>
+<li>Open http://localhost:4568/login</li>
+<li><strong>School code</strong> validated via <code>useLookupTenantByCode</code> + <code>evaluateTenantAccess</code> €” <strong>UX gate only</strong></li>
+<li><strong>Email + password</strong> via <code>useSession().login(email, password)</code> €” <strong>school code is NOT passed into Auth credentials</strong></li>
+<li>Session: Firebase auth + <code>useMe()</code> â†’ <strong><code>v1.identity.getMe</code></strong></li>
+<li>Tenant switch: <code>useSwitchTenant</code> â†’ <strong><code>switchActiveTenant</code></strong> + <strong>full React Query cache reset</strong></li>
+<h3>Onboarding guard</h3>
+<ul>
+<li><code>OnboardingGuard</code>: if <code>membership.role === "tenantAdmin"</code> and <code>tenant.onboarding.completed !== true</code> (and not super-admin), redirect <strong><code>/onboarding</code></strong></li>
+<li>Super-admin users browsing as elevated: bypass onboarding check</li>
+<h3>Guards / error states</h3>
+<table><tr><th>Condition</th><th>Behavior</th></tr>
+<tr><td>Loading</td><td>Full sidebar + content skeleton</td></tr>
+<tr><td>No auth</td><td><code>/login</code></td></tr>
+<tr><td>Wrong role <strong>OR</strong> <code>currentMembership.tenantId !== currentTenantId</code></td><td><strong>Access Denied</strong> (stricter than teacher/parent)</td></tr>
+<tr><td>Incomplete onboarding</td><td>Forced <code>/onboarding</code></td></tr>
+<tr><td>Unknown route</td><td><code>NotFoundPage</code></td></tr>
+</table>
+<h3>Full route tree (<code>App.tsx</code>)</h3>
+<table><tr><th>Path</th><th>Page</th><th>Purpose</th></tr>
+<tr><td><code>/login</code></td><td>LoginPage</td><td>Auth</td></tr>
+<tr><td><code>/</code></td><td>DashboardPage</td><td>School admin dashboard</td></tr>
+<tr><td><code>/users</code></td><td>UsersPage</td><td>User management (students/teachers/parents)</td></tr>
+<tr><td><code>/classes</code></td><td>ClassesPage</td><td>Classes & sections</td></tr>
+<tr><td><code>/classes/:classId</code></td><td>ClassDetailPage</td><td>Class detail / roster</td></tr>
+<tr><td><code>/exams</code></td><td>ExamsOverviewPage</td><td>School-wide exams overview</td></tr>
+<tr><td><code>/spaces</code></td><td>SpacesOverviewPage</td><td>Spaces overview</td></tr>
+<tr><td><code>/courses</code></td><td>CoursesPage</td><td>Courses & spaces management surface</td></tr>
+<tr><td><code>/staff</code></td><td>StaffPage</td><td>Staff & permissions</td></tr>
+<tr><td><code>/announcements</code></td><td>AnnouncementsPage</td><td>School announcements</td></tr>
+<tr><td><code>/analytics</code></td><td>AnalyticsPage</td><td>Analytics</td></tr>
+<tr><td><code>/reports</code></td><td>ReportsPage</td><td>Reports / PDFs</td></tr>
+<tr><td><code>/ai-usage</code></td><td>AIUsagePage</td><td>AI usage & costs</td></tr>
+<tr><td><code>/academic-sessions</code></td><td>AcademicSessionPage</td><td>Sessions + rollover</td></tr>
+<tr><td><code>/data-export</code></td><td>DataExportPage</td><td>Export tenant data</td></tr>
+<tr><td><code>/settings</code></td><td>SettingsPage</td><td>Branding, eval settings, join code</td></tr>
+<tr><td><code>/notifications</code></td><td>NotificationsPage</td><td>Inbox (<strong>not in sidebar</strong>)</td></tr>
+<tr><td><code>/onboarding</code></td><td>OnboardingWizardPage</td><td>First-time school setup (<strong>not in sidebar</strong>)</td></tr>
+</table>
+<h3>Sidebar nav (<code>AppLayout.tsx</code>)</h3>
+<table><tr><th>Group</th><th>Label</th><th>Path</th></tr>
+<tr><td><strong>Overview</strong></td><td>Dashboard</td><td><code>/</code></td></tr>
+<tr><td><strong>Management</strong></td><td>Users</td><td><code>/users</code></td></tr>
+<tr><td></td><td>Classes</td><td><code>/classes</code></td></tr>
+<tr><td></td><td>Exams</td><td><code>/exams</code></td></tr>
+<tr><td></td><td>Spaces</td><td><code>/spaces</code></td></tr>
+<tr><td></td><td>Courses</td><td><code>/courses</code></td></tr>
+<tr><td></td><td>Staff & Permissions</td><td><code>/staff</code></td></tr>
+<tr><td></td><td>Announcements</td><td><code>/announcements</code></td></tr>
+<tr><td><strong>Analytics</strong></td><td>Analytics</td><td><code>/analytics</code></td></tr>
+<tr><td></td><td>Reports</td><td><code>/reports</code></td></tr>
+<tr><td></td><td>AI Usage</td><td><code>/ai-usage</code></td></tr>
+<tr><td><strong>Configuration</strong></td><td>Academic Sessions</td><td><code>/academic-sessions</code></td></tr>
+<tr><td></td><td>Data Export</td><td><code>/data-export</code></td></tr>
+<tr><td></td><td>Settings</td><td><code>/settings</code></td></tr>
+</table>
+<p><strong>Mobile bottom nav:</strong> Home · Users · Classes · Analytics · <strong>More</strong> (opens sidebar sheet)</p>
+<h3>Primary mutations</h3>
+<table><tr><th>Screen</th><th>CTAs</th><th>Callables (representative)</th></tr>
+<tr><td>OnboardingWizard</td><td>School info, session, first class, join code</td><td><code>saveTenant</code> · <code>saveAcademicSession</code> · <code>saveClass</code> (+ optional <code>geminiApiKey</code> write-only into Secret Manager)</td></tr>
+<tr><td>Users</td><td>CRUD + bulk import</td><td><code>createOrgUser</code> · <code>bulkImportStudents</code> · <code>bulkImportTeachers</code> · <code>saveStudent</code> / <code>saveTeacher</code> / <code>saveParent</code> · <code>bulkUpdateStatus</code></td></tr>
+<tr><td>Classes</td><td>Class CRUD, roster</td><td><code>saveClass</code> · <code>saveStudent</code></td></tr>
+<tr><td>Staff</td><td>Teacher permissions</td><td><code>saveTeacher</code> / <code>saveStaff</code></td></tr>
+<tr><td>Announcements</td><td>School announcements</td><td><code>saveAnnouncement</code> · <code>listAnnouncements</code></td></tr>
+<tr><td>AcademicSession</td><td>Session CRUD + rollover</td><td><code>saveAcademicSession</code> · <code>rolloverSession</code></td></tr>
+<tr><td>DataExport</td><td>Export</td><td><code>exportTenantData</code></td></tr>
+<tr><td>Settings</td><td>Branding, eval, join code</td><td><code>saveTenant</code> · evaluation settings</td></tr>
+<tr><td>AI Usage</td><td>Quota / cost</td><td>cost summary read (<code>getCostSummary</code> / analytics)</td></tr>
+<tr><td>Reports</td><td>PDF reports</td><td><code>generateReport</code></td></tr>
+<tr><td>Courses / Exams / Spaces</td><td>Oversight</td><td>Mostly read of teacher-authored entities</td></tr>
+</table>
+<h3>AI on admin journey</h3>
+<li>Configures per-tenant Gemini key on onboarding/settings (<code>geminiApiKey</code> â†’ Secret Manager <code>tenant-{tenantId}-gemini</code>)</li>
+<li>Monitors cost on <code>/ai-usage</code></li>
+<li>Does <strong>not</strong> run extract/grade/tutor from admin UI (those are teacher/student)</li>
+<h3>How admin connects to others</h3>
+<p>Admin is the <strong>provisioning hub</strong>: tenants (via super-admin create), sessions, classes, users (students/teachers/parents), announcements, export. Teacher content and grading feed admin oversight screens.</p>
+<hr/>
+<h2 id="b-super-admin-apps-super-admin-">B. Super-Admin (`apps/super-admin`)</h2>
+<p><strong>Port:</strong> <code>4567</code>  </p>
+<p><strong>Local URL:</strong> http://localhost:4567  </p>
+<p><strong>Guard:</strong> <code>user.isSuperAdmin</code> <strong>AND</strong> JWT <code>claims.role === "superAdmin"</code>  </p>
+<p><strong>Credentials:</strong> see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a> (e.g. <code>superadmin@levelup.app</code> / <code>Test@12345</code>)</p>
+<h3>Login start</h3>
+<li>Open http://localhost:4567/login</li>
+<li><strong>Email + password only</strong> €” <strong>no school code</strong></li>
+<li><code>useAuthStore().login()</code> â†’ verify Firestore user + claim</li>
+<h3>Guards</h3>
+<table><tr><th>Condition</th><th>Behavior</th></tr>
+<tr><td>Loading / claims verifying</td><td>€œLoading...€</td></tr>
+<tr><td>No auth</td><td><code>/login</code></td></tr>
+<tr><td>Missing user, <code>!isSuperAdmin</code>, or claim not <code>superAdmin</code></td><td><strong>Access Denied</strong> €” €œSuper admin privileges required.€ + <strong>Sign Out</strong></td></tr>
+</table>
+<h3>Full route tree + nav</h3>
+<table><tr><th>Nav label</th><th>Path</th><th>Primary CTAs</th></tr>
+<tr><td>Dashboard</td><td><code>/</code></td><td>Platform KPIs</td></tr>
+<tr><td>Tenants</td><td><code>/tenants</code></td><td><code>saveTenant</code> (create)</td></tr>
+<tr><td>Tenant detail</td><td><code>/tenants/:tenantId</code></td><td><code>saveTenant</code> · <code>deactivateTenant</code> · <code>reactivateTenant</code></td></tr>
+<tr><td>User Analytics</td><td><code>/analytics</code></td><td>Read</td></tr>
+<tr><td>Feature Flags</td><td><code>/feature-flags</code></td><td>Tenant flag mutations</td></tr>
+<tr><td>Global Presets</td><td><code>/presets</code></td><td><code>saveGlobalPreset</code> / rubric presets</td></tr>
+<tr><td>LLM Usage</td><td><code>/llm-usage</code></td><td>Platform cost read</td></tr>
+<tr><td>Announcements</td><td><code>/announcements</code></td><td><code>saveAnnouncement</code></td></tr>
+<tr><td>Users</td><td><code>/users</code></td><td><code>searchUsers</code></td></tr>
+<tr><td>System Health</td><td><code>/system</code></td><td>Read</td></tr>
+<tr><td>Settings</td><td><code>/settings</code></td><td>Platform config</td></tr>
+</table>
+<p><strong>Mobile bottom nav:</strong> Home · Tenants · Health <code>/system</code> · Settings</p>
+<h3>Marketing note</h3>
+<p><code>APP_URLS</code> on <code>apps/website</code> lists admin/teacher/student/parent only €” <strong>super-admin is intentionally omitted</strong> (internal Firebase Hosting target <code>super-admin</code>).</p>
+<h3>AI</h3>
+<li>Platform <code>/llm-usage</code> cost visibility</li>
+<li>Does not run classroom AI tutors/grading from this app</li><hr/><h1>05 €” Cross-Role Connections & AI Surfaces</h1>
+<h2 id="two-product-tracks">Two product tracks</h2>
+<h3>Autograde (paper exams)</h3>
+<pre>
+Super-admin creates tenant
+    &#226;†’ Admin onboards school / session / class / users
+    &#226;†’ Teacher creates exam + uploads question paper
+    &#226;†’ extractQuestions (vision)
+    &#226;†’ Teacher uploads answer sheets (uploadAnswerSheets)
+    &#226;†’ mapping + grading pipelines
+    &#226;†’ Teacher reviews (gradeQuestion / manual)
+    &#226;†’ releaseResults
+    &#226;†’ Student /exams/:id/results + Parent /results (+ PDF)
+    &#226;†’ Admin oversight (exams, analytics, AI usage)
+</pre>
+<h3>LevelUp (digital learning)</h3>
+<pre>
+Admin provisions users &amp; classes
+    &#226;†’ Teacher authors spaces / story points / items / question bank
+    &#226;†’ Student practices, timed tests, tutor chat
+    &#226;†’ Parent space/child progress + alerts
+    &#226;†’ Admin spaces/courses + analytics
+</pre>
+<p><strong>In-app cross-role deep links between portals:</strong> <strong>not present</strong>. Role handoff is via marketing site <code>APP_URLS</code> only.</p>
+<hr/>
+<h2 id="end-to-end-actor-map">End-to-end actor map</h2>
+<table><tr><th>Step</th><th>Actor</th><th>App</th><th>Key action</th></tr>
+<tr><td>1</td><td>Super-admin</td><td><code>:4567</code></td><td>Create / configure tenant</td></tr>
+<tr><td>2</td><td>Admin</td><td><code>:4568</code></td><td>Onboarding, import users, classes, sessions</td></tr>
+<tr><td>3a</td><td>Teacher</td><td><code>:4569</code></td><td>Author spaces</td></tr>
+<tr><td>3b</td><td>Teacher</td><td><code>:4569</code></td><td>Create exams, extract, grade, release</td></tr>
+<tr><td>4</td><td>Student</td><td><code>:4570</code></td><td>Learn + take tests + see released results</td></tr>
+<tr><td>5</td><td>Parent</td><td><code>:4571</code></td><td>View results / progress / alerts / PDF</td></tr>
+<tr><td>6</td><td>Admin</td><td><code>:4568</code></td><td>Analytics, reports, AI usage</td></tr>
+</table>
+<p>Roles in domain SSOT: <code>superAdmin</code> · <code>tenantAdmin</code> · <code>teacher</code> · <code>student</code> · <code>parent</code> · <code>scanner</code> · <code>staff</code>  </p>
+<p><strong>scanner / staff web apps:</strong> dedicated full SPA journeys <strong>not present</strong> as separate Vite apps in this pack (claims/entities exist; no <code>apps/scanner-web</code>).</p>
+<hr/>
+<h2 id="auth-session-cross-cutting-">Auth / session (cross-cutting)</h2>
+<h3>School code</h3>
+<ul>
+<li>Public callable: <strong><code>v1.identity.lookupTenantByCode</code></strong> (+ legacy <code>/tenantCodes/{code}</code> fallback)</li>
+<li>Used on student, teacher, parent, admin login UIs</li>
+<li>Admin: validates code for UX but signs in with email/password only</li>
+<li>Super-admin: no school code</li>
+<h3><code>getMe</code></h3>
+<li>Contract: <code>v1.identity.getMe</code> â†’ <code>{ user, memberships, claims, activeTenant? }</code></li>
+<li>Teacher/admin: <code>useMe()</code> via SessionProvider / identity SDK</li>
+<li>Student/parent/super-admin: often hydrate via <code>useAuthStore</code> + Firestore snapshots</li>
+<h3><code>switchActiveTenant</code></h3>
+<li>Callable: <strong><code>v1.identity.switchActiveTenant</code></strong></li>
+<li>Rebuilds JWT custom claims; client <code>getIdToken(true)</code></li>
+<li>Admin SDK path clears entire React Query cache on switch</li>
+<h3>JWT <code>PlatformClaims</code> (from <code>packages/domain</code>)</h3>
+<table><tr><th>Field</th><th>Notes</th></tr>
+<tr><td><code>role</code></td><td>Active tenant role</td></tr>
+<tr><td><code>tenantId</code> / <code>tenantCode</code></td><td>Active school</td></tr>
+<tr><td><code>teacherId</code> / <code>studentId</code> / <code>parentId</code> / <code>staffId</code> / <code>scannerId</code></td><td>Role entity ids</td></tr>
+<tr><td><code>classIds</code></td><td>Max 15 in claim; <code>classIdsOverflow</code> if more</td></tr>
+<tr><td><code>studentIds</code></td><td>Parent linked children</td></tr>
+<tr><td><code>permissions</code> / <code>staffPermissions</code></td><td>Granular maps</td></tr>
+<tr><td><code>isSuperAdmin</code></td><td>Platform flag</td></tr>
+</table>
+<p>Collections: production often uses <code>LVLUP_COLLECTION_PREFIX</code> â†’ **<code>v2_*</code>** deny-all client rules â†’ Admin SDK callables.</p>
+<p>Demo school codes (documented): <strong><code>GRN001</code></strong>, <strong><code>SUB001</code></strong>, emulator <strong><code>SPR001</code></strong> €” see <a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a>.</p>
+<hr/>
+<h2 id="ai-surfaces">AI surfaces</h2>
+<h3>Provider reality</h3>
+<li>Production: <strong>Gemini only</strong> via <code>@levelup/ai</code> â†’ <code>createGeminiProvider</code> â†’ <code>generateContent</code></li>
+<li>OpenAI/Anthropic: not production paths (test/future only)</li>
+<li>Clients <strong>never</strong> receive API keys (lint boundaries)</li>
+<h3>AI-rated / AI-related callables</h3>
+<table><tr><th>Feature</th><th>Callable / service</th><th>Prompt / tier</th><th>Surface</th></tr>
+<tr><td>Extract questions (vision)</td><td><code>v1.autograde.extractQuestions</code></td><td>questionExtraction · <strong>pro</strong></td><td>Teacher ExamDetail</td></tr>
+<tr><td>Upload sheets (pipeline kickoff)</td><td><code>v1.autograde.uploadAnswerSheets</code></td><td>ai pipeline</td><td>Teacher Submissions</td></tr>
+<tr><td>Answer mapping</td><td><code>process-answer-mapping</code></td><td>answerMapping · <strong>flash</strong></td><td>After upload</td></tr>
+<tr><td>RELMS grading</td><td>pipeline + <code>v1.autograde.gradeQuestion</code></td><td>answerGrading · <strong>pro</strong></td><td>GradingReview / Batch</td></tr>
+<tr><td>Tutor chat</td><td><code>v1.levelup.sendChatMessage</code></td><td>aiChat · <strong>flash</strong></td><td>Student StoryPointViewer</td></tr>
+<tr><td>Practice evaluate</td><td><code>v1.levelup.evaluateAnswer</code></td><td>grading path</td><td>Student practice</td></tr>
+<tr><td>Generate content drafts</td><td><code>v1.levelup.generateContent</code></td><td>CONTENT_DRAFT_PROMPT</td><td>Teacher content tools</td></tr>
+<tr><td>Insights / at-risk</td><td><code>generateInsights</code> scheduler · <code>getSummary</code></td><td><strong>rules €” no LLM</strong></td><td>Teacher/Parent/Admin analytics</td></tr>
+</table>
+<p>Gateway also: moderation, quota, circuit-breaker, cost logging (<code>packages/ai/src/gateway.ts</code>).  </p>
+<p>Dual stack: legacy <code>functions/*/LLMWrapper</code> still exists beside <code>sdk-v1</code> <code>createAiGateway()</code>.</p>
+<h3>Exact env / secret names (from code)</h3>
+<table><tr><th>Name</th><th>Where</th><th>Purpose</th></tr>
+<tr><td><code>LEVELUP_AI_KEY</code></td><td><code>packages/ai</code> secrets</td><td>Dev/emulator override (skip Secret Manager)</td></tr>
+<tr><td><code>GEMINI_API_KEY</code></td><td><code>packages/ai</code> + legacy shared-services</td><td>Same override</td></tr>
+<tr><td><code>LEVELUP_AI_MODEL_PRO</code></td><td><code>packages/ai/models.ts</code></td><td>Default pro model id (<code>gemini-2.5-pro</code>)</td></tr>
+<tr><td><code>LEVELUP_AI_MODEL_FLASH</code></td><td><code>packages/ai/models.ts</code></td><td>Default flash model id (<code>gemini-2.5-flash</code>)</td></tr>
+<tr><td><code>LEVELUP_AI_STUB</code></td><td><code>functions/sdk-v1/bootstrap.ts</code></td><td>Force stub provider</td></tr>
+<tr><td><code>tenant-{tenantId}-gemini</code></td><td>GCP Secret Manager (<code>secretNameFor</code>)</td><td>Per-tenant API key</td></tr>
+<tr><td><code>settings.geminiKeyRef</code> / <code>geminiKeySet</code></td><td>tenant doc</td><td>Pointer only €” never stores key value</td></tr>
+<tr><td><code>geminiApiKey</code></td><td><code>saveTenant</code> request (write-only)</td><td>Onboarding writes secret</td></tr>
+<tr><td><code>VITE_FIREBASE_*</code></td><td><code>apps/*-web/.env.*</code></td><td>Client Firebase config only</td></tr>
+<tr><td><code>LVLUP_COLLECTION_PREFIX</code></td><td>functions / firestore.rules</td><td><code>v2_</code> production collections</td></tr>
+<tr><td><code>GOOGLE_CLOUD_PROJECT</code> / <code>GCLOUD_PROJECT</code></td><td>packages/ai, functions</td><td>Secret Manager project</td></tr>
+<tr><td><code>GOOGLE_APPLICATION_CREDENTIALS</code></td><td>functions bootstrap</td><td>GCP SA for Secret Manager</td></tr>
+</table>
+<hr/>
+<h2 id="access-denied-403-patterns-summary-">Access Denied / 403 patterns (summary)</h2>
+<table><tr><th>App</th><th>Trigger</th><th>UI</th></tr>
+<tr><td>All (except nuances below)</td><td>No Firebase user</td><td>Redirect <code>/login</code></td></tr>
+<tr><td>student-web</td><td>Wrong role, no membership</td><td>Redirect <code>/consumer</code></td></tr>
+<tr><td>student / teacher / parent / admin</td><td>Wrong role</td><td>Inline Access Denied</td></tr>
+<tr><td>admin-web</td><td>Membership tenant â‰  active tenant</td><td>Access Denied</td></tr>
+<tr><td>super-admin</td><td>Missing superAdmin claim/user flag</td><td>Access Denied + Sign Out</td></tr>
+<tr><td>shared-ui</td><td><code>ErrorState</code> preset <code>forbidden</code></td><td>€œAccess denied€ (available; sparse page usage)</td></tr>
+<tr><td>Server</td><td>e.g. autograde cross-tenant</td><td><code>'Cross-tenant access denied.'</code></td></tr>
+</table>
+<hr/>
+<h2 id="shared-package-spine">Shared package spine</h2>
+<table><tr><th>Package</th><th>Role</th></tr>
+<tr><td><code>packages/api-contract</code></td><td>SSOT for v1.* callable names</td></tr>
+<tr><td><code>packages/services</code></td><td>Business logic for sdk-v1</td></tr>
+<tr><td><code>packages/ai</code></td><td>Gemini gateway, prompts, secrets, cost</td></tr>
+<tr><td><code>packages/query</code> + repositories</td><td>UI hooks â†’ repos</td></tr>
+<tr><td><code>packages/shared-stores</code></td><td>Session used by student/parent/super-admin</td></tr>
+<tr><td><code>functions/sdk-v1</code></td><td>Additive canonical callables</td></tr>
+<tr><td><code>functions/{identity,autograde,levelup,analytics}</code></td><td>Domain function codebases</td></tr>
+</table><hr/><h1>06 €” Marketing, Firebase Cost, Vercel & Railway</h1>
+<h2 id="marketing-website-apps-website-">Marketing website (`apps/website`)</h2>
+<p><strong>Framework:</strong> Astro 4, <code>output: 'static'</code>, MDX  </p>
+<p><strong>Dev port:</strong> Astro default <strong>4321</strong> (no custom port in website config)  </p>
+<p><strong>Hosting:</strong> Firebase Hosting target <strong><code>website</code></strong> (<code>firebase.json</code>)  </p>
+<p><strong>Site config:</strong> name <strong>LvlUp Autograde</strong>, url <code>https://lvlup.academy</code>, tagline €œAI grading for paper exams€</p>
+<h3>Routes (all present)</h3>
+<table><tr><th>Path</th><th>File</th><th>Purpose</th></tr>
+<tr><td><code>/</code></td><td><code>src/pages/index.astro</code></td><td>Landing: autograde pipeline, role bands, CTAs</td></tr>
+<tr><td><code>/guides</code></td><td><code>src/pages/guides/index.astro</code></td><td>Guide index</td></tr>
+<tr><td><code>/guides/admin</code></td><td><code>guides/[slug].astro</code> + <code>content/guides/admin.mdx</code></td><td>Admin manual</td></tr>
+<tr><td><code>/guides/teacher</code></td><td>same</td><td>Teacher manual</td></tr>
+<tr><td><code>/guides/student</code></td><td>same</td><td>Student manual</td></tr>
+<tr><td><code>/guides/parent</code></td><td>same</td><td>Parent manual</td></tr>
+</table>
+<h3>Portal URLs (<code>src/config.ts</code> <code>APP_URLS</code>)</h3>
+<table><tr><th>Role</th><th>Env override</th><th>Default</th></tr>
+<tr><td>Admin</td><td><code>PUBLIC_ADMIN_URL</code></td><td><code>https://admin.lvlup.academy</code></td></tr>
+<tr><td>Teacher</td><td><code>PUBLIC_TEACHER_URL</code></td><td><code>https://teacher.lvlup.academy</code></td></tr>
+<tr><td>Student</td><td><code>PUBLIC_STUDENT_URL</code></td><td><code>https://student.lvlup.academy</code></td></tr>
+<tr><td>Parent</td><td><code>PUBLIC_PARENT_URL</code></td><td><code>https://parent.lvlup.academy</code></td></tr>
+</table>
+<p><strong>Super-admin link:</strong> <strong>not present</strong> (intentional €” internal portal).</p>
+<h3>Marketing gaps (not inventing screens)</h3>
+<table><tr><th>Workstream</th><th>Status</th></tr>
+<tr><td>Pricing / plans page</td><td><strong>Not present</strong> (billing fields may exist in tenant model; no public pricing UI)</td></tr>
+<tr><td>Blog / SEO content</td><td><strong>Not present</strong> beyond guides (Astro collections easy to extend)</td></tr>
+<tr><td>Demo request / signup funnel</td><td><strong>Not present</strong> as full funnel (would need backend waitlist / <code>saveTenant</code>)</td></tr>
+<tr><td>Cross-role linker</td><td><strong>Present</strong> €” only marketing site links portals</td></tr>
+</table>
+<h3>Marketing journey (user)</h3>
+<ol>
+<li>Land on <code>/</code> â†’ understand autograde + role bands  </li>
+<li>Open <code>/guides/{role}</code> for manuals  </li>
+<li>CTA â†’ corresponding portal URL (prod) or local ports in dev docs  </li>
+<hr/>
+<h2 id="firebase-hosting-inventory">Firebase Hosting inventory</h2>
+<p>From <code>firebase.json</code> hosting targets:</p>
+<table><tr><th>Target</th><th>App</th></tr>
+<tr><td><code>admin-web</code></td><td>School admin SPA</td></tr>
+<tr><td><code>teacher-web</code></td><td>Teacher SPA</td></tr>
+<tr><td><code>student-web</code></td><td>Student SPA</td></tr>
+<tr><td><code>parent-web</code></td><td>Parent SPA</td></tr>
+<tr><td><code>super-admin</code></td><td>Platform SPA</td></tr>
+<tr><td><code>website</code></td><td>Astro marketing</td></tr>
+</table>
+<p>Project id sampled from env/docs: <strong><code>lvlup-ff6fa</code></strong>.</p>
+<h3>Local app ports (Vite)</h3>
+<table><tr><th>App</th><th>Port</th></tr>
+<tr><td>super-admin</td><td>4567</td></tr>
+<tr><td>admin-web</td><td>4568</td></tr>
+<tr><td>teacher-web</td><td>4569</td></tr>
+<tr><td>student-web</td><td>4570</td></tr>
+<tr><td>parent-web</td><td>4571</td></tr>
+</table>
+<h3>Emulator ports (from credentials / tooling docs)</h3>
+<table><tr><th>Service</th><th>Port</th></tr>
+<tr><td>Emulator UI</td><td>4000</td></tr>
+<tr><td>Auth</td><td>9099</td></tr>
+<tr><td>Firestore</td><td>8080</td></tr>
+<tr><td>Functions</td><td>5001</td></tr>
+<tr><td>RTDB</td><td>9000</td></tr>
+</table>
+<hr/>
+<h2 id="firebase-cost-what-typically-costs-money">Firebase cost €” what typically costs money</h2>
+<div class="note"><strong>No Blaze invoice is documented in the repo.</strong> The following is architectural inference from how the code uses Firebase/GCP.</div>
+<table><tr><th>Surface</th><th>How used here</th><th>Cost driver</th></tr>
+<tr><td>Cloud Functions (5 codebases)</td><td>identity · autograde · levelup · analytics · sdk-v1 €” asia-south1</td><td>Invocations, GB-sec, cold starts; AI callables heavy</td></tr>
+<tr><td>Firestore</td><td>Authoritative docs; <code>v2_*</code> deny-all â†’ callable Admin SDK</td><td>Reads/writes (getMe, lists, progress)</td></tr>
+<tr><td>RTDB</td><td>Live projections: leaderboards, badges, grading status, chat</td><td>Bandwidth + connections</td></tr>
+<tr><td>Storage</td><td>QP + answer sheets; signed URLs; triggers</td><td>GB stored + download; vision reads</td></tr>
+<tr><td>Auth</td><td>Email/password + Google (B2C); claims on switch</td><td>MAU tier</td></tr>
+<tr><td>Hosting</td><td>6 targets</td><td>Bandwidth</td></tr>
+<tr><td>Gemini tokens</td><td>Per-tenant Secret Manager keys</td><td>Often largest variable €” tracked in admin <code>/ai-usage</code></td></tr>
+<tr><td>Cloud Tasks</td><td>Autograde pipeline enqueue</td><td>Task ops + Function fan-out</td></tr>
+</table>
+<h3>Why Firebase-only today (from code)</h3>
+<p><strong>Coupled to Firebase:</strong></p>
+<ul>
+<li>Custom claims = tenancy plane (<code>syncMembershipClaims</code>)</li>
+<li><code>firestore.rules</code> + <code>database.rules</code> read <code>auth.token.*</code></li>
+<li><code>v2_*</code> deny-all forces Admin SDK callables</li>
+<li>Storage triggers drive exam pipeline</li>
+<li>Firestore triggers: progress, grading, analytics, claims</li>
+<li><code>httpsCallable</code> transport everywhere</li>
+<li>RTDB subscriptions for live UI</li>
+<li>6 Firebase Hosting sites</li>
+<p><strong>Tradeoffs:</strong> Fast multi-role auth + emulators + tight Admin SDK vs vendor lock, dual legacy+v1 stacks, callable latency, Blaze-class bill surprises on AI + writes.</p>
+<hr/>
+<h2 id="railway-vercel-feasibility-notes">Railway + Vercel €” feasibility notes</h2>
+<p><code>packages/services</code> is largely transport-agnostic, but Auth custom claims, Firestore rules, Storage triggers, RTDB, and Cloud Tasks are the hard Firebase glue. Dual-write during migration is the main risk.</p>
+<table><tr><th>Layer</th><th>Move to€¦</th><th>Difficulty</th><th>Why</th></tr>
+<tr><td>Marketing website (Astro)</td><td>Vercel</td><td>Easy</td><td>Static; separate app</td></tr>
+<tr><td>5 React SPAs</td><td>Vercel (or keep Hosting)</td><td>Easy€“Med</td><td>Vite builds; <code>VITE_FIREBASE_*</code></td></tr>
+<tr><td>Callable business logic</td><td>Railway (Node/HTTP or tRPC)</td><td>Med</td><td>Reuse <code>packages/services</code></td></tr>
+<tr><td>AI gateway</td><td>Railway</td><td>Med</td><td>Re-home Secret Manager or Railway secrets</td></tr>
+<tr><td>Firebase Auth + claims</td><td>Stay OR Clerk/Auth0</td><td>Hard</td><td>Every rule trusts <code>auth.token.*</code></td></tr>
+<tr><td>Firestore data</td><td>Postgres (or stay)</td><td>Hard</td><td><code>v2_</code> deny-all assumes Admin SDK</td></tr>
+<tr><td>Triggers / Cloud Tasks</td><td>Railway workers + queue</td><td>Hard</td><td>Autograde async pipeline</td></tr>
+<tr><td>RTDB live projections</td><td>SSE/WebSocket / Ably</td><td>Med€“Hard</td><td>Leaderboard, grading, chat</td></tr>
+<tr><td>Storage uploads</td><td>S3/R2 + signed URLs</td><td>Med</td><td>Replace upload triggers</td></tr>
+</table>
+<h3>Phased plan</h3>
+<table><tr><th>Phase</th><th>Scope</th><th>Effort / risk</th></tr>
+<tr><td><strong>0</strong></td><td>Frontends on Vercel; backend stays Firebase</td><td>Days€“1 week · <strong>low</strong></td></tr>
+<tr><td><strong>1</strong></td><td>HTTP faÃ§ade on Railway over same Firestore; Auth still Firebase</td><td>2€“4 weeks · <strong>medium</strong></td></tr>
+<tr><td><strong>2</strong></td><td>Workers off Cloud Functions/Tasks; replace Storage triggers</td><td>4€“8 weeks · <strong>high</strong></td></tr>
+<tr><td><strong>3</strong></td><td>Optional leave Auth/Firestore</td><td>Months · <strong>very high</strong></td></tr>
+</table>
+<h3>Effort tiers</h3>
+<li><strong>Vercel frontends only:</strong> ~3€“10 eng-days €” best ROI  </li>
+<li><strong>Railway HTTP + workers:</strong> ~1€“3 eng-months €” keep Auth + Firestore  </li>
+<li><strong>Full leave Firebase:</strong> multi-quarter  </li>
+<h3>Env / CI on Railway + Vercel</h3>
+<table><tr><th>Concern</th><th>Today</th><th>On Railway + Vercel</th></tr>
+<tr><td>Frontend env</td><td><code>VITE_FIREBASE_*</code> per app</td><td>Same + <code>PUBLIC_*</code> website URLs</td></tr>
+<tr><td>AI secrets</td><td>Secret Manager <code>tenant-*-gemini</code></td><td>Railway secrets or GCP SA on Railway</td></tr>
+<tr><td>Functions deploy</td><td><code>firebase deploy</code> codebases</td><td>Docker/Nixpacks services entrypoint</td></tr>
+<tr><td>Emulators</td><td>Auth 9099 · Fn 5001 · FS 8080 · RTDB 9000</td><td>Still needed for Phase 0€“1 staging</td></tr>
+<tr><td>CI</td><td>Firebase + pnpm filters</td><td>Vercel Git + Railway watch</td></tr>
+</table>
+<hr/>
+<h2 id="credentials-pointer">Credentials pointer</h2>
+<p>All demo emails, passwords, and school codes: <strong><a href="../../TEST_CREDENTIALS.md"><code>TEST_CREDENTIALS.md</code></a></strong> at repo root. Do not invent additional secrets beyond what that file (and seed scripts) already document.</p><hr/><p class="meta" style="margin-top:40px">Generated from live routers and packages in the lvlup monorepo. Companion MD files live in the same folder.</p>
+</body></html>
