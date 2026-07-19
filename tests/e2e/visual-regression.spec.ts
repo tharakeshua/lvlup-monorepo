@@ -102,7 +102,7 @@ async function loginToParentWeb(page: Page) {
 // 1. LOGIN PAGE VISUAL REGRESSION
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Visual Regression: Login Pages @visual", () => {
+test.describe("Visual Regression: Login Pages @visual @screenshot", () => {
   test("super-admin login page screenshot", async ({ page }) => {
     await page.goto(url(APPS.superAdmin.port));
     await page.waitForLoadState("networkidle");
@@ -144,7 +144,7 @@ test.describe("Visual Regression: Login Pages @visual", () => {
 // 2. DASHBOARD VISUAL REGRESSION
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Visual Regression: Dashboards @visual", () => {
+test.describe("Visual Regression: Dashboards @visual @screenshot", () => {
   test("super-admin dashboard screenshot", async ({ page }) => {
     await loginToSuperAdmin(page);
     // Allow dashboard widgets to fully render
@@ -186,7 +186,7 @@ test.describe("Visual Regression: Dashboards @visual", () => {
 // 3. RESPONSIVE BREAKPOINTS (Student Web)
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Visual Regression: Responsive Breakpoints @visual", () => {
+test.describe("Visual Regression: Responsive Breakpoints @visual @screenshot", () => {
   const breakpoints = [
     { name: "desktop", width: 1280, height: 720 },
     { name: "tablet", width: 820, height: 1180 },
@@ -222,7 +222,7 @@ test.describe("Visual Regression: Responsive Breakpoints @visual", () => {
 // 4. ACCESSIBILITY: PREFERS-REDUCED-MOTION
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Accessibility: Reduced Motion @visual", () => {
+test.describe("Accessibility: Reduced Motion @visual @screenshot", () => {
   test("respects prefers-reduced-motion on student-web login", async ({ page }) => {
     // Emulate reduced motion preference
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -417,7 +417,7 @@ test.describe("Accessibility: Focus & ARIA @visual", () => {
     expect(hasEmailFocus || hasPasswordFocus).toBe(true);
   });
 
-  test("login form inputs have visible focus rings", async ({ page }) => {
+  test("login form inputs have visible focus rings @screenshot", async ({ page }) => {
     await page.goto(url(APPS.studentWeb.port));
     await page.waitForLoadState("networkidle");
     await page.waitForSelector(SELECTORS.schoolCode, { timeout: 15000 });
@@ -429,7 +429,7 @@ test.describe("Accessibility: Focus & ARIA @visual", () => {
     await expect(page).toHaveScreenshot("student-login-focus-ring.png");
   });
 
-  test("error states are accessible and announced", async ({ page }) => {
+  test("error states are accessible and announced @screenshot", async ({ page }) => {
     await page.goto(url(APPS.studentWeb.port));
     await page.waitForLoadState("networkidle");
     await page.waitForSelector(SELECTORS.schoolCode, { timeout: 15000 });
@@ -467,7 +467,7 @@ test.describe("Accessibility: Focus & ARIA @visual", () => {
 // 6. DARK MODE / THEME TOGGLE VISUAL REGRESSION
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Visual Regression: Dark Mode / Theme @visual", () => {
+test.describe("Visual Regression: Dark Mode / Theme @visual @screenshot", () => {
   test("student-web login with prefers-color-scheme: dark", async ({ page }) => {
     // Emulate dark color scheme at the browser level
     await page.emulateMedia({ colorScheme: "dark" });
@@ -539,7 +539,7 @@ test.describe("Visual Regression: Dark Mode / Theme @visual", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe("Accessibility: Contrast & Readability @visual", () => {
-  test("login page text is readable at high contrast", async ({ page }) => {
+  test("login page text is readable at high contrast @screenshot", async ({ page }) => {
     await page.emulateMedia({ forcedColors: "active" });
     await page.goto(url(APPS.studentWeb.port));
     await page.waitForLoadState("networkidle");
@@ -708,7 +708,7 @@ test.describe("Accessibility: Page Structure & Landmarks @visual", () => {
 // 9. CROSS-APP VISUAL CONSISTENCY
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe("Visual Regression: Cross-App Consistency @visual", () => {
+test.describe("Visual Regression: Cross-App Consistency @visual @screenshot", () => {
   test("school-code login pages share consistent layout (admin vs teacher vs parent)", async ({
     page,
   }) => {

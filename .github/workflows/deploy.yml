@@ -125,6 +125,7 @@ jobs:
         run: pnpm exec firebase deploy --only hosting --project "$FIREBASE_PROJECT" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT: lvlup-ff6fa
 
   preview-deploy:
     name: Preview Deployment

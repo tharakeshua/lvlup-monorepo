@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useApiError, useServerTime } from "@levelup/query";
 import { useStoryPoints } from "../hooks/useStoryPoints";
@@ -11,7 +11,6 @@ import {
   useSubmitTest,
   useSaveAnswer,
 } from "../hooks/useTestSession";
-import { spacesListHref, spaceHref, testAnalyticsHref } from "../lib/space-paths";
 import { QuestionAnswerer } from "../components/questions";
 import QuestionNavigator from "../components/test/QuestionNavigator";
 import CountdownTimer from "../components/test/CountdownTimer";
@@ -125,27 +124,8 @@ function resolveQuestionOrder(
   );
 }
 
-/** Wire may send ISO string, Firestore Timestamp, or {_seconds}. */
-function deadlineToEpochMs(deadline: unknown): number | null {
-  if (deadline == null) return null;
-  if (typeof deadline === "string") {
-    const ms = Date.parse(deadline);
-    return Number.isFinite(ms) ? ms : null;
-  }
-  if (typeof deadline === "number" && Number.isFinite(deadline)) {
-    return deadline < 1e12 ? deadline * 1000 : deadline;
-  }
-  if (typeof deadline === "object") {
-    const o = deadline as { seconds?: number; _seconds?: number };
-    const sec = o.seconds ?? o._seconds;
-    if (typeof sec === "number" && Number.isFinite(sec)) return sec * 1000;
-  }
-  return null;
-}
-
 export default function TimedTestPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
-  const location = useLocation();
   const { currentTenantId, user } = useAuthStore();
   const userId = user?.uid ?? null;
 
@@ -295,11 +275,11 @@ export default function TimedTestPage() {
   }, [currentQuestionId, view, currentIndex, questionOrder]);
 
   const handleStartTest = async () => {
-    if (!spaceId || !storyPointId) return;
+    if (!currentTenantId || !spaceId || !storyPointId) return;
     setStartError(null);
     try {
       const result = await startTest.mutateAsync({
-        tenantId: currentTenantId ?? "",
+        tenantId: currentTenantId,
         spaceId,
         storyPointId,
       });
@@ -342,13 +322,13 @@ export default function TimedTestPage() {
       });
 
       // Persist to server with tracked time
-      if (activeSession) {
+      if (activeSession && currentTenantId) {
         const elapsed = Math.round((Date.now() - questionStartTime.current) / 1000);
         const totalTime = (timePerQuestion.current[itemId] ?? 0) + elapsed;
         setSaveStatus("saving");
         saveAnswer.mutate(
           {
-            tenantId: currentTenantId ?? "",
+            tenantId: currentTenantId,
             sessionId: activeSession.id,
             itemId,
             answer,
@@ -456,7 +436,7 @@ export default function TimedTestPage() {
 
   const handleSubmitTest = useCallback(
     async (autoSubmitted = false) => {
-      if (!activeSession) return;
+      if (!currentTenantId || !activeSession) return;
       // Prevent concurrent submissions (e.g., manual submit + auto-submit race)
       if (isSubmitting.current) return;
       isSubmitting.current = true;
@@ -468,7 +448,7 @@ export default function TimedTestPage() {
         const totalTime = (timePerQuestion.current[currentQuestionId] ?? 0) + elapsed;
         try {
           await saveAnswer.mutateAsync({
-            tenantId: currentTenantId ?? "",
+            tenantId: currentTenantId,
             sessionId: activeSession.id,
             itemId: currentQuestionId,
             answer: answers[currentQuestionId],
@@ -481,7 +461,7 @@ export default function TimedTestPage() {
 
       try {
         await submitTest.mutateAsync({
-          tenantId: currentTenantId ?? "",
+          tenantId: currentTenantId,
           sessionId: activeSession.id,
           submissions: answers,
           autoSubmitted,
@@ -492,15 +472,7 @@ export default function TimedTestPage() {
         handleError(err, "Failed to submit test");
       }
     },
-    [
-      currentTenantId,
-      activeSession,
-      answers,
-      submitTest,
-      currentQuestionId,
-      saveAnswer,
-      handleError,
-    ]
+    [currentTenantId, activeSession, answers, submitTest, currentQuestionId, saveAnswer]
   );
 
   const handleTimeUp = useCallback(() => {
@@ -586,21 +558,13 @@ export default function TimedTestPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={spacesListHref(location.pathname)}>Spaces</Link>
+                <Link to="/spaces">Spaces</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link
-                  to={
-                    spaceId
-                      ? spaceHref(location.pathname, spaceId)
-                      : spacesListHref(location.pathname)
-                  }
-                >
-                  {space?.title ?? "Space"}
-                </Link>
+                <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -804,7 +768,9 @@ export default function TimedTestPage() {
 
   // TEST VIEW
   if (view === "test" && activeSession) {
-    const deadline = deadlineToEpochMs(activeSession.serverDeadline);
+    const deadline = activeSession.serverDeadline
+      ? activeSession.serverDeadline.seconds * 1000
+      : null;
 
     if (!deadline) {
       return (
@@ -1068,21 +1034,13 @@ export default function TimedTestPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={spacesListHref(location.pathname)}>Spaces</Link>
+                <Link to="/spaces">Spaces</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link
-                  to={
-                    spaceId
-                      ? spaceHref(location.pathname, spaceId)
-                      : spacesListHref(location.pathname)
-                  }
-                >
-                  {space?.title}
-                </Link>
+                <Link to={`/spaces/${spaceId}`}>{space?.title}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -1297,13 +1255,7 @@ export default function TimedTestPage() {
                   </p>
                 ))}
                 <Button variant="link" size="sm" asChild className="h-auto px-0">
-                  <Link
-                    to={
-                      spaceId && storyPointId
-                        ? testAnalyticsHref(location.pathname, spaceId, storyPointId)
-                        : spacesListHref(location.pathname)
-                    }
-                  >
+                  <Link to={`/spaces/${spaceId}/test/${storyPointId}/analytics`}>
                     <BarChart3 className="mr-1 h-3 w-3" /> View full analytics
                   </Link>
                 </Button>
@@ -1353,24 +1305,12 @@ export default function TimedTestPage() {
             Back to Test Info
           </Button>
           <Button variant="outline" asChild>
-            <Link
-              to={
-                spaceId && storyPointId
-                  ? testAnalyticsHref(location.pathname, spaceId, storyPointId)
-                  : spacesListHref(location.pathname)
-              }
-            >
+            <Link to={`/spaces/${spaceId}/test/${storyPointId}/analytics`}>
               <BarChart3 className="mr-1 h-4 w-4" /> Analytics
             </Link>
           </Button>
           <Button asChild>
-            <Link
-              to={
-                spaceId ? spaceHref(location.pathname, spaceId) : spacesListHref(location.pathname)
-              }
-            >
-              Back to Space
-            </Link>
+            <Link to={`/spaces/${spaceId}`}>Back to Space</Link>
           </Button>
         </div>
       </div>

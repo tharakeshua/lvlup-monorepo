@@ -1,10 +1,9 @@
 import { useMemo } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useExam, useSubmissions, useQuestionSubmissions } from "@levelup/query";
 import { asExamId, asStudentId } from "@levelup/domain";
-import type { QuestionSubmission, Submission, Exam } from "@levelup/shared-types";
-import { practiceHref, spaceHref } from "../lib/space-paths";
+import type { QuestionSubmission, Submission } from "@levelup/shared-types";
 import ProgressBar from "../components/common/ProgressBar";
 import {
   Button,
@@ -25,7 +24,7 @@ import {
   FileText,
   BookOpen,
   ChevronLeft,
-  RefreshCw,
+  Printer,
 } from "lucide-react";
 
 function GradeBadge({ grade }: { grade: string }) {
@@ -105,12 +104,10 @@ function QuestionCard({ qs, index }: { qs: QuestionSubmission; index: number }) 
 
 export default function ExamResultPage() {
   const { examId } = useParams<{ examId: string }>();
-  const location = useLocation();
   const { user } = useAuthStore();
   const userId = user?.uid ?? null;
 
   const { data: exam } = useExam(examId ?? "");
-  const examDetail = exam as Exam | undefined;
   const { data: submissionPages, isLoading: subsLoading } = useSubmissions({
     examId: asExamId(examId ?? ""),
     studentId: userId ? asStudentId(userId) : undefined,
@@ -164,14 +161,6 @@ export default function ExamResultPage() {
     .flatMap((qs) => qs.evaluation?.missingConcepts ?? []);
   const uniqueWeakTopics = [...new Set(weakTopics)];
 
-  const practiceTarget =
-    examDetail?.linkedSpaceId && examDetail.linkedStoryPointId
-      ? practiceHref(location.pathname, examDetail.linkedSpaceId, examDetail.linkedStoryPointId)
-      : null;
-  const spaceOverviewTarget = examDetail?.linkedSpaceId
-    ? spaceHref(location.pathname, examDetail.linkedSpaceId)
-    : null;
-
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Breadcrumb */}
@@ -184,7 +173,7 @@ export default function ExamResultPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{examDetail?.title ?? exam?.title ?? "Exam Results"}</BreadcrumbPage>
+            <BreadcrumbPage>{exam?.title ?? "Exam Results"}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -200,9 +189,7 @@ export default function ExamResultPage() {
                 : "text-destructive"
           }`}
         />
-        <h1 className="mb-2 text-xl font-bold">
-          {examDetail?.title ?? exam?.title ?? "Exam Results"}
-        </h1>
+        <h1 className="mb-2 text-xl font-bold">{exam?.title ?? "Exam Results"}</h1>
 
         <div className="mb-4 flex items-center justify-center gap-4">
           <GradeBadge grade={grade} />
@@ -248,17 +235,14 @@ export default function ExamResultPage() {
         </div>
       )}
 
-      {/* Recommendations — exam-level view; practice lives in the linked space */}
+      {/* Recommendations */}
       {uniqueWeakTopics.length > 0 && (
         <div className="rounded-lg border bg-amber-500/10 p-4 dark:border-amber-800">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Recommended Practice
           </h3>
           <p className="text-muted-foreground mb-2 text-xs">
-            You scored below 50% on these topics.
-            {practiceTarget
-              ? " Reattempt questions in the linked practice space."
-              : " Consider practicing them when your teacher links a practice space."}
+            You scored below 50% on these topics. Consider practicing them:
           </p>
           <div className="flex flex-wrap gap-2">
             {uniqueWeakTopics.map((topic) => (
@@ -273,31 +257,7 @@ export default function ExamResultPage() {
         </div>
       )}
 
-      {practiceTarget && (
-        <div className="bg-card flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold">Practice &amp; reattempt</p>
-            <p className="text-muted-foreground text-xs">
-              Review each question with feedback, then reattempt in the exam&apos;s linked practice
-              space. Your exam results stay on this page.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild className="gap-2">
-              <Link to={practiceTarget}>
-                <RefreshCw className="h-4 w-4" /> Reattempt questions
-              </Link>
-            </Button>
-            {spaceOverviewTarget && (
-              <Button variant="outline" asChild>
-                <Link to={spaceOverviewTarget}>Open practice space</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* PDF: print-only MVP — full per-student PDF assignment is TODO (see practice-from-mistakes stub) */}
+      {/* PDF Download placeholder */}
       <div className="flex gap-2">
         <Button variant="outline" asChild>
           <Link to="/results">
@@ -306,7 +266,7 @@ export default function ExamResultPage() {
           </Link>
         </Button>
         <Button onClick={() => window.print()} className="gap-2">
-          <FileText className="h-4 w-4" /> Print Results
+          <Printer className="h-4 w-4" /> Print Results
         </Button>
       </div>
     </div>

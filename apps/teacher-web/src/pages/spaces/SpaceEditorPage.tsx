@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   useSpace,
@@ -7,7 +7,6 @@ import {
   useSaveSpace,
   useSaveStoryPoint,
   useSaveItem,
-  useDuplicateSpace,
   useApiError,
   useRepos,
 } from "@levelup/query";
@@ -41,11 +40,14 @@ import {
   SelectTrigger,
   SelectValue,
   BreadcrumbSeparator,
-  Progress,
 } from "@levelup/shared-ui";
-import type { UnifiedItem, QuestionPayload, MaterialPayload } from "@levelup/shared-types";
-import type { Space, StoryPoint, UnifiedItem as CanonicalItem } from "@levelup/domain";
-import { asSectionId } from "@levelup/domain";
+import type {
+  Space,
+  StoryPoint,
+  UnifiedItem,
+  QuestionPayload,
+  MaterialPayload,
+} from "@levelup/shared-types";
 import {
   ArrowLeft,
   Globe,
@@ -65,40 +67,16 @@ import {
   Clock,
   Eye,
   Pencil,
-  Sparkles,
-  CheckCircle2,
-  CircleAlert,
-  Copy,
-  Loader2,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
-import SpaceSettingsPanel, {
-  type SpaceSettingsDraft,
-} from "../../components/spaces/SpaceSettingsPanel";
-import PublishReadinessDialog from "../../components/spaces/PublishReadinessDialog";
-import {
-  getPublishReadiness,
-  getReadinessProgress,
-} from "../../components/spaces/space-authoring-model";
+import SpaceSettingsPanel from "../../components/spaces/SpaceSettingsPanel";
 import StoryPointEditor from "../../components/spaces/StoryPointEditor";
 import ItemEditor from "../../components/spaces/ItemEditor";
 import ItemPreview from "../../components/spaces/ItemPreview";
 import RubricEditor from "../../components/spaces/RubricEditor";
 import AgentConfigPanel from "../../components/spaces/AgentConfigPanel";
 import QuestionBankImportDialog from "../../components/spaces/QuestionBankImportDialog";
-import GenerateContentPanel from "../../components/spaces/GenerateContentPanel";
-import {
-  toItemEditorModel,
-  toSaveItemData,
-  type ItemEditView,
-} from "../../components/spaces/item-editor-contract";
-import {
-  createStoryPointDuplicatePlan,
-  remapSectionIdForDuplicate,
-  reorderStoryPoints,
-} from "../../components/spaces/story-point-structure";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import { useAuthSession } from "../../sdk/session";
 import {
   DndContext,
   closestCenter,
@@ -115,7 +93,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useAuthSession } from "../../sdk/session";
 
 type EditorTab = "settings" | "content" | "rubric" | "agents" | "versions";
 
@@ -147,9 +124,7 @@ function SortableItem({
   item,
   storyPointId: _storyPointId,
   onEdit,
-  onDuplicate,
   onDelete,
-  duplicating,
   selected,
   onToggleSelect,
   expanded,
@@ -158,9 +133,7 @@ function SortableItem({
   item: UnifiedItem;
   storyPointId: string;
   onEdit: () => void;
-  onDuplicate: () => void;
   onDelete: () => void;
-  duplicating?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
   expanded?: boolean;
@@ -224,39 +197,19 @@ function SortableItem({
         <Button
           variant="ghost"
           size="icon"
-          className="hover:text-brand h-11 w-11"
+          className="hover:text-brand h-7 w-7"
           onClick={onEdit}
-          aria-label={`Edit ${item.title || "item"}`}
-          title="Edit item"
+          aria-label="Edit"
+          title="Edit"
         >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          className="hover:text-brand h-11 w-11"
-          onClick={onDuplicate}
-          disabled={duplicating}
-          aria-label={
-            duplicating
-              ? `Duplicating ${item.title || "item"}`
-              : `Duplicate ${item.title || "item"}`
-          }
-          title="Duplicate item"
-        >
-          {duplicating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-          ) : (
-            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hover:bg-destructive/10 hover:text-destructive h-11 w-11"
+          className="hover:bg-destructive/10 hover:text-destructive h-7 w-7"
           onClick={onDelete}
-          aria-label={`Delete ${item.title || "item"}`}
-          title="Delete item"
+          aria-label="Delete"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -286,13 +239,6 @@ function SortableStoryPoint({
   onEdit,
   onPreview,
   onAddSection,
-  onDuplicate,
-  onMoveUp,
-  onMoveDown,
-  position,
-  count,
-  duplicating,
-  reordering,
   liveItemCount,
 }: {
   sp: StoryPoint;
@@ -302,13 +248,6 @@ function SortableStoryPoint({
   onEdit: () => void;
   onPreview?: () => void;
   onAddSection?: () => void;
-  onDuplicate: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  position: number;
-  count: number;
-  duplicating?: boolean;
-  reordering?: boolean;
   liveItemCount?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sp.id });
@@ -318,7 +257,7 @@ function SortableStoryPoint({
     transition,
   };
 
-  const isTest = sp.type === "timed_test" || sp.type === "quiz" || sp.type === "practice";
+  const isTest = sp.type === "timed_test" || sp.type === "test" || sp.type === "quiz";
 
   return (
     <div
@@ -326,20 +265,19 @@ function SortableStoryPoint({
       style={style}
       className="bg-card border-subtle shadow-e1 rounded-lg border"
     >
-      <div className="flex flex-wrap items-center gap-2 px-3 py-3 sm:px-4">
+      <div className="flex items-center gap-2 px-4 py-3">
         <button
           {...attributes}
           {...listeners}
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-brand flex h-11 w-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2"
-          aria-label={`Drag ${sp.title || "story point"} to reorder`}
+          className="text-muted-foreground hover:text-foreground cursor-grab"
+          aria-label="Drag to reorder"
         >
           <GripVertical className="h-4 w-4" />
         </button>
         <button
           onClick={onToggle}
-          className="focus-visible:ring-brand flex min-w-40 flex-1 items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2"
-          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${sp.title || "story point"}`}
-          aria-expanded={isExpanded}
+          className="flex flex-1 items-center gap-2 text-left"
+          aria-label="Toggle details"
         >
           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           <span className="text-sm font-medium">{sp.title}</span>
@@ -347,10 +285,16 @@ function SortableStoryPoint({
             {sp.type}
           </span>
         </button>
-        <div className="text-muted-foreground order-3 flex w-full items-center gap-2 pl-11 text-xs sm:order-none sm:w-auto sm:pl-0">
-          <span className="font-mono">{liveItemCount ?? sp.stats?.itemCount ?? 0} items</span>
-          {sp.stats?.completionCount != null && sp.stats.completionCount > 0 && (
-            <span className="font-mono">{sp.stats.completionCount} completions</span>
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <span className="font-mono">{liveItemCount ?? sp.stats?.totalItems ?? 0} items</span>
+          {sp.stats?.totalQuestions != null && sp.stats.totalQuestions > 0 && (
+            <span className="font-mono">{sp.stats.totalQuestions} Q</span>
+          )}
+          {sp.stats?.totalMaterials != null && sp.stats.totalMaterials > 0 && (
+            <span className="font-mono">{sp.stats.totalMaterials} M</span>
+          )}
+          {sp.stats?.totalPoints != null && sp.stats.totalPoints > 0 && (
+            <span className="font-mono">{sp.stats.totalPoints} pts</span>
           )}
           {sp.difficulty && <span className="capitalize">{sp.difficulty}</span>}
         </div>
@@ -358,7 +302,7 @@ function SortableStoryPoint({
           <Button
             variant="ghost"
             size="icon"
-            className="h-11 w-11"
+            className="h-7 w-7"
             onClick={onPreview}
             aria-label="Preview as student"
             title="Preview as Student"
@@ -370,7 +314,7 @@ function SortableStoryPoint({
           <Button
             variant="outline"
             size="sm"
-            className="min-h-11 gap-1 px-2 text-xs"
+            className="h-7 gap-1 px-2 text-xs"
             onClick={(e) => {
               e.stopPropagation();
               onAddSection();
@@ -383,44 +327,7 @@ function SortableStoryPoint({
         <Button
           variant="ghost"
           size="icon"
-          className="h-11 w-11"
-          onClick={onMoveUp}
-          disabled={position === 0 || reordering}
-          aria-label={`Move ${sp.title || "story point"} up`}
-          title="Move up"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11"
-          onClick={onMoveDown}
-          disabled={position === count - 1 || reordering}
-          aria-label={`Move ${sp.title || "story point"} down`}
-          title="Move down"
-        >
-          <ArrowDown className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11"
-          onClick={onDuplicate}
-          disabled={duplicating}
-          aria-label={`Duplicate ${sp.title || "story point"}`}
-          title="Duplicate story point"
-        >
-          {duplicating ? (
-            <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-11 w-11"
+          className="h-7 w-7"
           onClick={onEdit}
           aria-label="Edit settings"
         >
@@ -429,7 +336,7 @@ function SortableStoryPoint({
         <Button
           variant="ghost"
           size="icon"
-          className="hover:bg-destructive/10 hover:text-destructive h-11 w-11"
+          className="hover:bg-destructive/10 hover:text-destructive h-7 w-7"
           onClick={onDelete}
           aria-label="Delete"
         >
@@ -456,14 +363,13 @@ export default function SpaceEditorPage() {
   const saveSpace = useSaveSpace();
   const saveStoryPoint = useSaveStoryPoint();
   const saveItem = useSaveItem();
-  const duplicateSpace = useDuplicateSpace();
 
   const [activeTab, setActiveTab] = useState<EditorTab>("settings");
   const [storyPoints, setStoryPoints] = useState<StoryPoint[]>([]);
   const [expandedSP, setExpandedSP] = useState<string | null>(null);
   const [editingSP, setEditingSP] = useState<StoryPoint | null>(null);
   const [items, setItems] = useState<Record<string, UnifiedItem[]>>({});
-  // Live item counts per story point. Authoritative — denormalized stats can be
+  // Live item counts per story point. Authoritative — sp.stats.totalItems is
   // stale for seeded data because the seed bypasses the stats-incrementing
   // saveItem callable.
   const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
@@ -471,22 +377,10 @@ export default function SpaceEditorPage() {
   const [editingItemSPId, setEditingItemSPId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [importBankSPId, setImportBankSPId] = useState<string | null>(null);
-  const [generateAiSPId, setGenerateAiSPId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [_bulkSelectSP, _setBulkSelectSP] = useState<string | null>(null);
-  const [duplicatingStoryPointId, setDuplicatingStoryPointId] = useState<string | null>(null);
-  const [duplicatingItemId, setDuplicatingItemId] = useState<string | null>(null);
-  const [reorderingStoryPoints, setReorderingStoryPoints] = useState(false);
-
-  const publishReadiness = useMemo(
-    () => (space ? getPublishReadiness(space, storyPoints, liveCounts) : []),
-    [space, storyPoints, liveCounts]
-  );
-  const publishIssues = publishReadiness.filter((item) => !item.ready);
-  const readinessProgress = getReadinessProgress(publishReadiness);
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -494,16 +388,8 @@ export default function SpaceEditorPage() {
     title: string;
     description: string;
     confirmLabel: string;
-    variant: "destructive" | "default";
-    onConfirm: () => void | Promise<void>;
-  }>({
-    open: false,
-    title: "",
-    description: "",
-    confirmLabel: "",
-    variant: "default",
-    onConfirm: () => {},
-  });
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", confirmLabel: "", onConfirm: () => {} });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -535,33 +421,14 @@ export default function SpaceEditorPage() {
   // Items for a story point. The list read is answer-stripped — fine for the
   // editor's row display; the answer-bearing payload is fetched on edit-open
   // (getForEdit) and on duplicate/preview.
-  const listAllItems = useCallback(
-    async (storyPointId: string): Promise<CanonicalItem[]> => {
-      if (!spaceId) return [];
-      let page = (await itemRepo.paginate({ spaceId, storyPointId })) as {
-        items: CanonicalItem[];
-        nextCursor: string | null;
-        fetchNextPage: () => Promise<{
-          items: CanonicalItem[];
-          nextCursor: string | null;
-          fetchNextPage: () => Promise<unknown>;
-        }>;
-      };
-      const all = [...page.items];
-      while (page.nextCursor) {
-        page = (await page.fetchNextPage()) as typeof page;
-        all.push(...page.items);
-      }
-      return all;
-    },
-    [spaceId, itemRepo]
-  );
-
   const loadItems = useCallback(
     async (storyPointId: string): Promise<UnifiedItem[]> => {
       if (!spaceId) return [];
       try {
-        const loaded = (await listAllItems(storyPointId)).map((item) => toItemEditorModel(item));
+        const page = (await itemRepo.list({ spaceId, storyPointId })) as {
+          items: UnifiedItem[];
+        };
+        const loaded = page?.items ?? [];
         setItems((prev) => ({ ...prev, [storyPointId]: loaded }));
         setLiveCounts((prev) => ({ ...prev, [storyPointId]: loaded.length }));
         return loaded;
@@ -570,7 +437,7 @@ export default function SpaceEditorPage() {
         return [];
       }
     },
-    [spaceId, listAllItems, handleError]
+    [spaceId, itemRepo, handleError]
   );
 
   useEffect(() => {
@@ -587,7 +454,10 @@ export default function SpaceEditorPage() {
       const results = await Promise.all(
         storyPoints.map(async (sp) => {
           try {
-            return [sp.id, (await listAllItems(sp.id)).length] as const;
+            const page = (await itemRepo.list({ spaceId, storyPointId: sp.id })) as {
+              items: UnifiedItem[];
+            };
+            return [sp.id, (page?.items ?? []).length] as const;
           } catch {
             return [sp.id, 0] as const;
           }
@@ -604,10 +474,10 @@ export default function SpaceEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [spaceId, storyPoints, listAllItems]);
+  }, [spaceId, storyPoints, itemRepo]);
 
   // Version history (only fetched while the History tab is active).
-  const versionsQuery = useVersions<{ items: VersionView[] }>(spaceId ?? "", {
+  const versionsQuery = useVersions<{ items: ContentVersionEntry[] }>(spaceId ?? "", {
     enabled: activeTab === "versions" && !!spaceId,
   });
   const versions = (versionsQuery.data?.items ?? []) as VersionView[];
@@ -642,21 +512,17 @@ export default function SpaceEditorPage() {
   }, [editingItem, editingSP]);
 
   // --- Handlers (all on @levelup/query save callables). NOTE: the contract
-  // request schemas are `.strict()`. Form-only representations (major-unit
-  // price and the legacy item form payload) are converted at this boundary.
+  // request schemas are `.strict()`, so a few legacy fields that have no place
+  // in the SDK schemas are dropped here (flagged in the migration report):
+  //   • space settings: allowRetakes / maxRetakes / defaultTimeLimitMinutes /
+  //     showCorrectAnswers / price / currency (price needs a Money shape).
+  //   • item save: rubric (inline) / attachments — only rubricId is supported.
+  //   • story-point save: defaultRubric (inline) — only defaultRubricId.
 
-  const handleSaveSettings = async (data: SpaceSettingsDraft) => {
-    if (!spaceId) return false;
+  const handleSaveSettings = async (data: Partial<Space>) => {
+    if (!spaceId) return;
     setSaving(true);
     try {
-      // Convert price: panel holds a raw major-unit number (e.g. 10.50 USD);
-      // contract expects zMoney { amountMinor: int, currency } (minor = cents).
-      const rawPrice = data.price;
-      const rawCurrency = data.currency;
-      const price =
-        rawPrice !== undefined && rawCurrency
-          ? { amountMinor: Math.round(rawPrice * 100), currency: rawCurrency }
-          : undefined;
       await saveSpace.mutateAsync({
         id: spaceId,
         data: {
@@ -667,25 +533,16 @@ export default function SpaceEditorPage() {
           labels: data.labels,
           accessType: data.accessType,
           thumbnailUrl: data.thumbnailUrl,
-          // Assessment defaults.
-          allowRetakes: data.allowRetakes,
-          maxRetakes: data.maxRetakes,
-          defaultTimeLimitMinutes: data.defaultTimeLimitMinutes,
-          showCorrectAnswers: data.showCorrectAnswers,
-          defaultRubric: data.defaultRubric,
-          // Store listing fields.
+          // Store listing fields supported by the contract.
           publishedToStore: data.publishedToStore,
-          price,
           storeDescription: data.storeDescription,
           storeThumbnailUrl: data.storeThumbnailUrl,
         },
       });
       await refetch();
       sonnerToast.success("Settings saved");
-      return true;
     } catch (err) {
       handleError(err, "Failed to save settings");
-      return false;
     } finally {
       setSaving(false);
     }
@@ -698,7 +555,6 @@ export default function SpaceEditorPage() {
     try {
       await saveSpace.mutateAsync({ id: spaceId, data: { status: "published" } });
       await refetch();
-      setPublishDialogOpen(false);
       sonnerToast.success("Space published successfully");
     } catch (err) {
       handleError(err, "Failed to publish space");
@@ -712,7 +568,6 @@ export default function SpaceEditorPage() {
       description:
         "Are you sure you want to archive this space? Students will no longer be able to access it.",
       confirmLabel: "Archive",
-      variant: "destructive",
       onConfirm: async () => {
         if (!spaceId) return;
         try {
@@ -734,44 +589,6 @@ export default function SpaceEditorPage() {
       sonnerToast.success("Space unpublished");
     } catch (err) {
       handleError(err, "Failed to unpublish space");
-    }
-  };
-
-  const handleRequestUnpublish = () => {
-    setConfirmDialog({
-      open: true,
-      title: "Return space to draft?",
-      description:
-        "Students will lose access to this space until you publish it again. Their existing progress and results will be preserved.",
-      confirmLabel: "Return to draft",
-      variant: "default",
-      onConfirm: handleUnpublish,
-    });
-  };
-
-  const handleRestoreToDraft = async () => {
-    if (!spaceId) return;
-    try {
-      await saveSpace.mutateAsync({ id: spaceId, data: { status: "draft" } });
-      await refetch();
-      sonnerToast.success("Space restored to draft", {
-        description: "You can continue editing and publish it again when ready.",
-      });
-    } catch (err) {
-      handleError(err, "Failed to restore space");
-    }
-  };
-
-  const handleDuplicateSpace = async () => {
-    if (!spaceId) return;
-    try {
-      const result = (await duplicateSpace.mutateAsync({ spaceId })) as { id: string };
-      sonnerToast.success("Space duplicated", {
-        description: "A new draft copy is ready to edit.",
-      });
-      navigate(`/spaces/${result.id}/edit`);
-    } catch (err) {
-      handleError(err, "Failed to duplicate space");
     }
   };
 
@@ -799,7 +616,7 @@ export default function SpaceEditorPage() {
     if (!sp) return;
     const existing = sp.sections ?? [];
     const newSection = {
-      id: asSectionId(`section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+      id: `section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       title: `Section ${existing.length + 1}`,
       orderIndex: existing.length,
     };
@@ -828,7 +645,6 @@ export default function SpaceEditorPage() {
       title: "Delete Story Point",
       description: `Are you sure you want to delete "${sp?.title ?? "this story point"}"? This will also delete all items within it.`,
       confirmLabel: "Delete",
-      variant: "destructive",
       onConfirm: async () => {
         if (!spaceId || !sp) return;
         try {
@@ -852,112 +668,39 @@ export default function SpaceEditorPage() {
     });
   };
 
-  const handleDuplicateStoryPoint = async (source: StoryPoint) => {
-    if (!spaceId || duplicatingStoryPointId) return;
-    setDuplicatingStoryPointId(source.id);
-    let duplicateId: string | undefined;
-    try {
-      // Hydrate every source item through the authoring read before creating the
-      // duplicate. The list projection intentionally strips answer keys.
-      const sourceItems = (await listAllItems(source.id)).sort(
-        (left, right) => left.orderIndex - right.orderIndex
-      );
-      const hydratedItems = await Promise.all(
-        sourceItems.map(async (item) => {
-          const edit = await itemRepo.getForEdit({
-            spaceId,
-            storyPointId: source.id,
-            itemId: item.id,
-          });
-          if (!edit.item) throw new Error(`Could not load “${item.title || "Untitled item"}”`);
-          return toItemEditorModel(edit.item as ItemEditView);
-        })
-      );
-      const duplicatePlan = createStoryPointDuplicatePlan(
-        source,
-        storyPoints.length,
-        (_section, index) =>
-          `section_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 8)}`
-      );
-      const created = (await saveStoryPoint.mutateAsync({
-        spaceId,
-        data: duplicatePlan.data,
-      })) as { id: string };
-      duplicateId = created.id;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !spaceId) return;
 
-      for (const [index, item] of hydratedItems.entries()) {
-        await saveItem.mutateAsync({
-          spaceId,
-          storyPointId: duplicateId,
-          data: toSaveItemData(item, {
-            orderIndex: index,
-            sectionId: remapSectionIdForDuplicate(item.sectionId, duplicatePlan.sectionIdMap),
-          }),
-        });
-      }
+    const oldIndex = storyPoints.findIndex((sp) => sp.id === active.id);
+    const newIndex = storyPoints.findIndex((sp) => sp.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-      await reloadStoryPoints();
-      await loadItems(duplicateId);
-      setExpandedSP(duplicateId);
-      sonnerToast.success("Story point duplicated", {
-        description: `${hydratedItems.length} ${hydratedItems.length === 1 ? "item was" : "items were"} copied.`,
-      });
-    } catch (err) {
-      // Avoid leaving a partial copy behind when any item save fails.
-      if (duplicateId) {
-        try {
-          await saveStoryPoint.mutateAsync({
-            id: duplicateId,
-            spaceId,
-            data: { title: `${source.title} copy`, type: source.type, deleted: true },
-          });
-          await reloadStoryPoints();
-        } catch {
-          // The original error remains the most actionable one for the teacher.
-        }
-      }
-      handleError(err, "Failed to duplicate story point");
-    } finally {
-      setDuplicatingStoryPointId(null);
-    }
-  };
+    const reordered = [...storyPoints];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
 
-  const handleReorderStoryPoints = async (fromIndex: number, toIndex: number) => {
-    if (!spaceId || reorderingStoryPoints || fromIndex === toIndex) return;
-    const reordered = reorderStoryPoints(storyPoints, fromIndex, toIndex);
     const previousOrder = storyPoints;
     setStoryPoints(reordered);
-    setReorderingStoryPoints(true);
 
     try {
-      const previousById = new Map(previousOrder.map((storyPoint) => [storyPoint.id, storyPoint]));
+      // No batch-reorder callable: persist each story point whose index changed
+      // via saveStoryPoint (title + type are required by the strict schema).
       await Promise.all(
-        reordered.map((sp) =>
-          previousById.get(sp.id)?.orderIndex === sp.orderIndex
+        reordered.map((sp, idx) =>
+          sp.orderIndex === idx
             ? Promise.resolve()
             : saveStoryPoint.mutateAsync({
                 id: sp.id,
                 spaceId,
-                data: { title: sp.title, type: sp.type, orderIndex: sp.orderIndex },
+                data: { title: sp.title, type: sp.type, orderIndex: idx },
               })
         )
       );
     } catch (err) {
       setStoryPoints(previousOrder);
-      await reloadStoryPoints();
       handleError(err, "Failed to reorder story points");
-    } finally {
-      setReorderingStoryPoints(false);
     }
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const fromIndex = storyPoints.findIndex((sp) => sp.id === active.id);
-    const toIndex = storyPoints.findIndex((sp) => sp.id === over.id);
-    if (fromIndex === -1 || toIndex === -1) return;
-    void handleReorderStoryPoints(fromIndex, toIndex);
   };
 
   const handleItemDragEnd = async (storyPointId: string, event: DragEndEvent) => {
@@ -984,12 +727,12 @@ export default function SpaceEditorPage() {
         reordered.map(async (item, idx) => {
           if (item.orderIndex === idx) return;
           const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId: item.id });
-          const full = edit.item ? toItemEditorModel(edit.item as ItemEditView) : item;
+          const full = (edit.item ?? item) as UnifiedItem;
           await saveItem.mutateAsync({
             id: item.id,
             spaceId,
             storyPointId,
-            data: toSaveItemData(full, { orderIndex: idx }),
+            data: { type: full.type, payload: full.payload, orderIndex: idx },
           });
         })
       );
@@ -1012,17 +755,11 @@ export default function SpaceEditorPage() {
       const payload =
         type === "question"
           ? {
-              type: "question" as const,
-              questionData: {
-                questionType: "mcq" as const,
-                options: [],
-                shuffleOptions: false,
-              },
+              questionType: "mcq" as const,
+              content: "",
+              questionData: { options: [], shuffleOptions: false },
             }
-          : {
-              type: "material" as const,
-              materialData: { materialType: "text" as const, body: "" },
-            };
+          : { materialType: "text" as const, content: "" };
       const title = type === "question" ? "New Question" : "New Material";
 
       const result = (await saveItem.mutateAsync({
@@ -1050,20 +787,18 @@ export default function SpaceEditorPage() {
       title: "Delete Item",
       description: `Are you sure you want to delete "${item?.title ?? "this item"}"? This action cannot be undone.`,
       confirmLabel: "Delete",
-      variant: "destructive",
       onConfirm: async () => {
         if (!spaceId) return;
         try {
           // saveItem's strict schema requires `type` + `payload` even for a
           // soft-delete; fetch the answer-bearing item to build a valid payload.
           const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId });
-          if (!item && !edit.item) throw new Error("Item not found");
-          const full = edit.item ? toItemEditorModel(edit.item as ItemEditView) : item!;
+          const full = (edit.item ?? item) as UnifiedItem;
           await saveItem.mutateAsync({
             id: itemId,
             spaceId,
             storyPointId,
-            data: toSaveItemData(full, { deleted: true }),
+            data: { type: full.type, payload: full.payload, deleted: true },
           });
           setItems((prev) => ({
             ...prev,
@@ -1081,43 +816,6 @@ export default function SpaceEditorPage() {
     });
   };
 
-  const handleDuplicateItem = async (storyPointId: string, item: UnifiedItem) => {
-    if (!spaceId || duplicatingItemId) return;
-    setDuplicatingItemId(item.id);
-    try {
-      const edit = await itemRepo.getForEdit({
-        spaceId,
-        storyPointId,
-        itemId: item.id,
-      });
-      const full = edit.item ? toItemEditorModel(edit.item as ItemEditView) : item;
-      const currentItems = items[storyPointId] ?? [];
-      const nextOrderIndex =
-        currentItems.reduce((highest, current) => Math.max(highest, current.orderIndex ?? -1), -1) +
-        1;
-      const baseTitle =
-        full.title?.trim() ||
-        (full.type === "question" ? "Untitled question" : "Untitled material");
-
-      await saveItem.mutateAsync({
-        spaceId,
-        storyPointId,
-        data: toSaveItemData(full, {
-          title: `${baseTitle} (copy)`,
-          orderIndex: nextOrderIndex,
-        }),
-      });
-      await loadItems(storyPointId);
-      sonnerToast.success("Item duplicated", {
-        description: `“${baseTitle} (copy)” was added to this story point.`,
-      });
-    } catch (err) {
-      handleError(err, "Failed to duplicate item");
-    } finally {
-      setDuplicatingItemId(null);
-    }
-  };
-
   // Open an item in the editor with its ANSWER-BEARING payload (getForEdit);
   // the list rows themselves are answer-stripped.
   const openItemForEdit = async (item: UnifiedItem, storyPointId: string) => {
@@ -1128,7 +826,7 @@ export default function SpaceEditorPage() {
     }
     try {
       const edit = await itemRepo.getForEdit({ spaceId, storyPointId, itemId: item.id });
-      setEditingItem(edit.item ? toItemEditorModel(edit.item as ItemEditView) : item);
+      setEditingItem(((edit.item ?? item) as UnifiedItem) ?? item);
     } catch (err) {
       handleError(err, "Failed to open item for editing");
       setEditingItem(item);
@@ -1148,7 +846,18 @@ export default function SpaceEditorPage() {
       id: item.id,
       spaceId,
       storyPointId: targetSP,
-      data: toSaveItemData(item),
+      data: {
+        type: item.type,
+        payload: item.payload,
+        title: item.title,
+        content: item.content,
+        difficulty: item.difficulty,
+        topics: item.topics,
+        labels: item.labels,
+        orderIndex: item.orderIndex,
+        sectionId: item.sectionId,
+        meta: item.meta,
+      },
     });
     setItems((prev) => ({
       ...prev,
@@ -1185,8 +894,6 @@ export default function SpaceEditorPage() {
           type: sp.type,
           sections: sp.sections,
           assessmentConfig: sp.assessmentConfig,
-          defaultRubric: sp.defaultRubric,
-          defaultRubricId: sp.defaultRubricId,
           difficulty: sp.difficulty,
           estimatedTimeMinutes: sp.estimatedTimeMinutes,
           orderIndex: sp.orderIndex,
@@ -1198,27 +905,6 @@ export default function SpaceEditorPage() {
     } catch (err) {
       handleError(err, "Failed to save story point");
     }
-  };
-
-  const handleAutoSaveStoryPoint = async (sp: StoryPoint) => {
-    if (!spaceId) return;
-    await saveStoryPoint.mutateAsync({
-      id: sp.id,
-      spaceId,
-      data: {
-        title: sp.title,
-        description: sp.description,
-        type: sp.type,
-        sections: sp.sections,
-        assessmentConfig: sp.assessmentConfig,
-        defaultRubric: sp.defaultRubric,
-        defaultRubricId: sp.defaultRubricId,
-        difficulty: sp.difficulty,
-        estimatedTimeMinutes: sp.estimatedTimeMinutes,
-        orderIndex: sp.orderIndex,
-      },
-    });
-    setStoryPoints((prev) => prev.map((storyPoint) => (storyPoint.id === sp.id ? sp : storyPoint)));
   };
 
   if (isLoading) {
@@ -1257,24 +943,15 @@ export default function SpaceEditorPage() {
         title={confirmDialog.title}
         description={confirmDialog.description}
         confirmLabel={confirmDialog.confirmLabel}
-        variant={confirmDialog.variant}
+        variant="destructive"
         onConfirm={() => {
           confirmDialog.onConfirm();
           setConfirmDialog((prev) => ({ ...prev, open: false }));
         }}
       />
 
-      <PublishReadinessDialog
-        open={publishDialogOpen}
-        onOpenChange={setPublishDialogOpen}
-        items={publishReadiness}
-        onNavigate={(tab) => setActiveTab(tab)}
-        onPublish={handlePublish}
-        publishing={saveSpace.isPending}
-      />
-
       {/* Breadcrumbs */}
-      <Breadcrumb className="overflow-hidden">
+      <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
@@ -1282,74 +959,41 @@ export default function SpaceEditorPage() {
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem className="min-w-0">
-            <BreadcrumbPage className="truncate">{space.title}</BreadcrumbPage>
+          <BreadcrumbItem>
+            <BreadcrumbPage>{space.title}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       {/* Header */}
-      <header className="bg-card border-subtle shadow-e1 rounded-xl border p-4 sm:p-5">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/spaces")}
-            aria-label="Back to Spaces"
-            className="min-h-11 min-w-11 shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <p className="text-brand text-[0.6875rem] font-semibold uppercase tracking-[0.14em]">
-              Space authoring
-            </p>
-            <h1 className="font-display mt-1 truncate text-xl font-semibold sm:text-2xl">
-              {space.title}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge status={space.status} />
-              <span className="text-muted-foreground text-xs capitalize">{space.type}</span>
-              <span className="text-muted-foreground text-xs" aria-label="Story point count">
-                {storyPoints.length} story point{storyPoints.length === 1 ? "" : "s"}
-              </span>
-            </div>
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/spaces")}
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="font-display text-xl font-semibold">{space.title}</h1>
+          <div className="mt-0.5 flex items-center gap-2">
+            <StatusBadge status={space.status} />
+            <span className="text-muted-foreground text-xs capitalize">{space.type}</span>
           </div>
         </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 sm:justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPreviewOpen(true)}
-            className="min-h-11 flex-1 sm:min-h-9 sm:flex-none"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Preview
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDuplicateSpace}
-            disabled={duplicateSpace.isPending}
-            className="min-h-11 flex-1 sm:min-h-9 sm:flex-none"
-          >
-            {duplicateSpace.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-            {duplicateSpace.isPending ? "Duplicating…" : "Duplicate"}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            <Eye className="h-3.5 w-3.5" /> Preview
           </Button>
           {space.status === "draft" && (
             <Button
-              onClick={() => setPublishDialogOpen(true)}
+              onClick={handlePublish}
               size="sm"
               disabled={saveSpace.isPending}
-              className="bg-success text-fg-on-accent hover:bg-success/90 min-h-11 w-full sm:min-h-9 sm:w-auto"
+              className="bg-success text-fg-on-accent hover:bg-success/90"
             >
-              <Globe className="h-3.5 w-3.5" />
-              {publishIssues.length === 0 ? "Review & publish" : "Prepare to publish"}
+              <Globe className="h-3.5 w-3.5" /> Publish
             </Button>
           )}
           {space.status === "published" && (
@@ -1357,18 +1001,16 @@ export default function SpaceEditorPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleRequestUnpublish}
+                onClick={handleUnpublish}
                 disabled={saveSpace.isPending}
-                className="min-h-11 flex-1 sm:min-h-9 sm:flex-none"
               >
-                Return to draft
+                Unpublish
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleArchive}
                 disabled={saveSpace.isPending}
-                className="min-h-11 flex-1 sm:min-h-9 sm:flex-none"
               >
                 <Archive className="h-3.5 w-3.5" /> Archive
               </Button>
@@ -1378,104 +1020,49 @@ export default function SpaceEditorPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRestoreToDraft}
+              onClick={handleUnpublish}
               disabled={saveSpace.isPending}
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
             >
               Restore to Draft
             </Button>
           )}
         </div>
-      </header>
-
-      {space.status === "draft" && (
-        <section
-          className="bg-surface-sunken border-subtle rounded-xl border p-4"
-          aria-labelledby="readiness-summary-title"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                publishIssues.length === 0
-                  ? "bg-success/10 text-success"
-                  : "bg-warning/10 text-warning"
-              }`}
-            >
-              {publishIssues.length === 0 ? (
-                <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <CircleAlert className="h-5 w-5" aria-hidden="true" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 id="readiness-summary-title" className="text-sm font-semibold">
-                    {publishIssues.length === 0
-                      ? "Student-ready draft"
-                      : `${publishIssues.length} publishing step${publishIssues.length === 1 ? "" : "s"} left`}
-                  </h2>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    {readinessProgress}% of the essential publishing checklist is complete.
-                  </p>
-                </div>
-                <span className="font-mono text-xs font-semibold" aria-hidden="true">
-                  {readinessProgress}%
-                </span>
-              </div>
-              <Progress
-                value={readinessProgress}
-                className="mt-2 h-1.5"
-                indicatorClassName={publishIssues.length === 0 ? "bg-success" : undefined}
-                aria-label={`${readinessProgress}% publish ready`}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPublishDialogOpen(true)}
-              className="min-h-11 shrink-0 sm:min-h-9"
-            >
-              Review readiness
-            </Button>
-          </div>
-        </section>
-      )}
+      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as EditorTab)}>
-        <TabsList className="border-subtle h-auto w-full max-w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
+        <TabsList className="border-subtle h-auto w-full justify-start gap-4 rounded-none border-b bg-transparent p-0">
           <TabsTrigger
             value="settings"
-            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand min-h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             <Settings2 className="h-4 w-4" />
             Settings
           </TabsTrigger>
           <TabsTrigger
             value="content"
-            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand min-h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             <List className="h-4 w-4" />
             Content
           </TabsTrigger>
           <TabsTrigger
             value="rubric"
-            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand min-h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             <FileText className="h-4 w-4" />
             Rubric
           </TabsTrigger>
           <TabsTrigger
             value="agents"
-            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand min-h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             <Bot className="h-4 w-4" />
             Agent Config
           </TabsTrigger>
           <TabsTrigger
             value="versions"
-            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand min-h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            className="text-fg-muted duration-fast ease-standard data-[state=active]:border-brand data-[state=active]:text-brand gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-2 transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             <History className="h-4 w-4" />
             History
@@ -1490,29 +1077,26 @@ export default function SpaceEditorPage() {
         {/* Content tab - Story Points */}
         <TabsContent value="content" className="mt-4">
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between">
               <h2 className="font-display text-lg font-semibold">
                 Story Points ({storyPoints.length})
               </h2>
-              <div className="flex flex-col gap-2 min-[420px]:flex-row">
+              <div className="flex items-center gap-2">
                 <Select onValueChange={(v) => handleAddStoryPoint(v as StoryPoint["type"])}>
-                  <SelectTrigger
-                    className="min-h-11 w-full min-[420px]:w-44"
-                    aria-label="Add story point of type"
-                  >
+                  <SelectTrigger className="h-9 w-44" aria-label="Add story point of type">
                     <SelectValue placeholder="+ Add as type…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard</SelectItem>
                     <SelectItem value="practice">Practice</SelectItem>
                     <SelectItem value="quiz">Quiz</SelectItem>
+                    <SelectItem value="test">Test</SelectItem>
                     <SelectItem value="timed_test">Timed Test</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
                   onClick={() => handleAddStoryPoint("standard")}
                   size="sm"
-                  className="min-h-11"
                   disabled={saveStoryPoint.isPending}
                   title="Add Story Point (Ctrl+N)"
                 >
@@ -1540,7 +1124,7 @@ export default function SpaceEditorPage() {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {storyPoints.map((sp, index) => (
+                    {storyPoints.map((sp) => (
                       <div key={sp.id}>
                         <SortableStoryPoint
                           sp={sp}
@@ -1552,13 +1136,6 @@ export default function SpaceEditorPage() {
                             navigate(`/spaces/${spaceId}/story-points/${sp.id}/preview`)
                           }
                           onAddSection={() => handleAddSection(sp.id)}
-                          onDuplicate={() => void handleDuplicateStoryPoint(sp)}
-                          onMoveUp={() => void handleReorderStoryPoints(index, index - 1)}
-                          onMoveDown={() => void handleReorderStoryPoints(index, index + 1)}
-                          position={index}
-                          count={storyPoints.length}
-                          duplicating={duplicatingStoryPointId === sp.id}
-                          reordering={reorderingStoryPoints}
                           liveItemCount={liveCounts[sp.id]}
                         />
 
@@ -1570,9 +1147,7 @@ export default function SpaceEditorPage() {
                               const sortedSections = (sp.sections ?? [])
                                 .slice()
                                 .sort((a, b) => a.orderIndex - b.orderIndex);
-                              const definedSectionIds = new Set<string>(
-                                sortedSections.map((s) => s.id)
-                              );
+                              const definedSectionIds = new Set(sortedSections.map((s) => s.id));
                               const unsectioned = allItems.filter(
                                 (it) => !it.sectionId || !definedSectionIds.has(it.sectionId)
                               );
@@ -1583,9 +1158,7 @@ export default function SpaceEditorPage() {
                                   item={item}
                                   storyPointId={sp.id}
                                   onEdit={() => openItemForEdit(item, sp.id)}
-                                  onDuplicate={() => void handleDuplicateItem(sp.id, item)}
                                   onDelete={() => handleDeleteItem(sp.id, item.id)}
-                                  duplicating={duplicatingItemId === item.id}
                                   selected={selectedItems.has(item.id)}
                                   onToggleSelect={() => {
                                     setSelectedItems((prev) => {
@@ -1741,7 +1314,6 @@ export default function SpaceEditorPage() {
                                         title: "Delete Selected Items",
                                         description: `Are you sure you want to delete ${toDelete.length} item(s)? This action cannot be undone.`,
                                         confirmLabel: "Delete All",
-                                        variant: "destructive",
                                         onConfirm: async () => {
                                           if (!spaceId) return;
                                           try {
@@ -1751,14 +1323,16 @@ export default function SpaceEditorPage() {
                                                 storyPointId: sp.id,
                                                 itemId: it.id,
                                               });
-                                              const full = edit.item
-                                                ? toItemEditorModel(edit.item as ItemEditView)
-                                                : it;
+                                              const full = (edit.item ?? it) as UnifiedItem;
                                               await saveItem.mutateAsync({
                                                 id: it.id,
                                                 spaceId,
                                                 storyPointId: sp.id,
-                                                data: toSaveItemData(full, { deleted: true }),
+                                                data: {
+                                                  type: full.type,
+                                                  payload: full.payload,
+                                                  deleted: true,
+                                                },
                                               });
                                             }
                                             setItems((prev) => ({
@@ -1795,22 +1369,29 @@ export default function SpaceEditorPage() {
                                               storyPointId: sp.id,
                                               itemId: it.id,
                                             });
-                                            const full = edit.item
-                                              ? toItemEditorModel(edit.item as ItemEditView)
-                                              : it;
+                                            const full = (edit.item ?? it) as UnifiedItem;
                                             await saveItem.mutateAsync({
                                               spaceId,
                                               storyPointId: targetSpId,
-                                              data: toSaveItemData(full, {
-                                                orderIndex: items[targetSpId]?.length ?? 0,
-                                                sectionId: undefined,
-                                              }),
+                                              data: {
+                                                type: full.type,
+                                                payload: full.payload,
+                                                title: full.title,
+                                                content: full.content,
+                                                difficulty: full.difficulty,
+                                                topics: full.topics,
+                                                labels: full.labels,
+                                              },
                                             });
                                             await saveItem.mutateAsync({
                                               id: it.id,
                                               spaceId,
                                               storyPointId: sp.id,
-                                              data: toSaveItemData(full, { deleted: true }),
+                                              data: {
+                                                type: full.type,
+                                                payload: full.payload,
+                                                deleted: true,
+                                              },
                                             });
                                           }
                                           await loadItems(sp.id);
@@ -1856,14 +1437,6 @@ export default function SpaceEditorPage() {
                                 onClick={() => setImportBankSPId(sp.id)}
                               >
                                 <Library className="h-3 w-3" /> Import from Bank
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-brand/40 text-brand border-dashed"
-                                onClick={() => setGenerateAiSPId(sp.id)}
-                              >
-                                <Sparkles className="h-3 w-3" /> Generate with AI
                               </Button>
                             </div>
                           </div>
@@ -1992,7 +1565,6 @@ export default function SpaceEditorPage() {
               <StoryPointEditor
                 storyPoint={editingSP}
                 onSave={handleSaveStoryPoint}
-                onAutoSave={handleAutoSaveStoryPoint}
                 onCancel={() => setEditingSP(null)}
               />
             </div>
@@ -2011,21 +1583,6 @@ export default function SpaceEditorPage() {
           storyPointId={importBankSPId}
           onImported={() => {
             if (importBankSPId) loadItems(importBankSPId);
-          }}
-        />
-      )}
-
-      {/* Generate Content with AI Panel */}
-      {spaceId && generateAiSPId && (
-        <GenerateContentPanel
-          open={!!generateAiSPId}
-          onOpenChange={(open) => {
-            if (!open) setGenerateAiSPId(null);
-          }}
-          spaceId={spaceId}
-          storyPointId={generateAiSPId}
-          onAccepted={() => {
-            if (generateAiSPId) loadItems(generateAiSPId);
           }}
         />
       )}

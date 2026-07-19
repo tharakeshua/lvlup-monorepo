@@ -20,11 +20,7 @@ export async function convertPdfToImages(file: File): Promise<string[]> {
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
-    await page.render({
-      canvasContext: context,
-      canvas,
-      viewport,
-    }).promise;
+    await page.render({ canvasContext: context, viewport, canvas }).promise;
 
     // Convert to Base64 (JPEG)
     const base64 = canvas.toDataURL("image/jpeg", 0.8);

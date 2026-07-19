@@ -15,18 +15,9 @@ type WebVitalMetric = {
 
 type ReportHandler = (metric: WebVitalMetric) => void;
 
-/** Vite/dev flag without requiring a package-local vite/client ambient. */
-function isDevMode(): boolean {
-  try {
-    return Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
-  } catch {
-    return false;
-  }
-}
-
 const defaultHandler: ReportHandler = (metric) => {
   // Log to console in development, send to analytics in production
-  if (isDevMode()) {
+  if ((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV) {
     const color =
       metric.rating === "good"
         ? "#0cce6b"
@@ -196,8 +187,8 @@ export function reportWebVitals(onReport?: ReportHandler): void {
   // Time to First Byte (TTFB)
   try {
     const navEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
-    const nav = navEntries[0];
-    if (nav) {
+    if (navEntries.length > 0) {
+      const nav = navEntries[0]!;
       const value = nav.responseStart - nav.requestStart;
       handler({
         name: "TTFB",

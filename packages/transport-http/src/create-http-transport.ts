@@ -22,6 +22,9 @@ import { invokeViaHttp } from "./invoke/invoke-via-http.js";
 import { subscribeViaSSE } from "./subscribe/subscribe-via-sse.js";
 import { httpServerTimeOffset } from "./server-time/server-time.js";
 
+/** Minimal fetch signature for the HTTP transport polyfill seam. */
+export type FetchFunction = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
 /**
  * Storage capability stub (DP-1). The canonical `Transport` carries
  * `storage: StorageTransport`; this REST adapter is unwired in v1, so the stub
@@ -43,7 +46,7 @@ export interface HttpTransportOptions {
   /** Verified ID/session token, forwarded as `Authorization: Bearer <token>`; re-fetchable for refresh. */
   getBearerToken: () => Promise<string>;
   /** RN/node fetch polyfill seam (defaults to global `fetch`). */
-  fetchImpl?: typeof globalThis.fetch;
+  fetchImpl?: FetchFunction;
 }
 
 export function createHttpTransport(opts: HttpTransportOptions): Transport {
