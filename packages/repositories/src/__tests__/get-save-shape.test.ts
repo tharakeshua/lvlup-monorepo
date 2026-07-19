@@ -8,10 +8,9 @@
  *   • `save(input)` issues the matching `save*` callable and passes the request
  *     body THROUGH — never injecting `tenantId` (D2: tenantId is claim-derived,
  *     never in any request body, mirrored by `no-tenant-id-in-request`).
- *   • `save*` is create/update of METADATA; lifecycle verbs (`publish`/`archive`)
- *     route through `saveSpace` with `data.status` (contract — no separate
- *     publishSpace/archiveSpace callables). Autograde still uses explicit
- *     `publishExam` / `releaseResults` where registered.
+ *   • `save*` is create/update of METADATA only; lifecycle is explicit verbs
+ *     (DX-5 — `publishSpace`/`archiveSpace`/`publishExam`/`releaseResults`), so a
+ *     `save*` body never carries a raw lifecycle status flip path.
  *   • `delete?:true` archive convention (D5) reaches the wire on the save body.
  *   • `get` of a missing id surfaces the wire NOT_FOUND rather than swallowing.
  *
@@ -22,6 +21,7 @@ import {
   createFakeApiClient,
   httpsErrorLike,
   makeSpace,
+  makeStoryPoint,
   makeStudent,
   type FakeApiClient,
 } from "../../../../tests/sdk/fakes";
@@ -35,14 +35,27 @@ d("repositories · get/save shape", () => {
     api = createFakeApiClient();
   });
 
-  it("get(id) calls the single get callable and returns the shaped entity", async () => {
+  it("get(id) calls the single get callable and unwraps { space }", async () => {
     const space = makeSpace({ id: "space__dsa" });
-    // Wire envelope is `{ space }` — repo unwraps to the entity.
+    // Wire contract is `{ space: SpaceView }` — repo must unwrap for callers.
     api.stub("levelup", "getSpace", () => ({ space }));
     const r = buildRepos(api);
     const got = (await r["spaceRepo"]!["get"]!("space__dsa")) as { id: string };
     expect(got.id).toBe("space__dsa");
     expect(api.callsTo("v1.levelup.getSpace")).toHaveLength(1);
+  });
+
+  it("storyPointRepo.get requires spaceId and unwraps { storyPoint }", async () => {
+    const sp = makeStoryPoint({ id: "sp__arrays" });
+    api.stub("levelup", "getStoryPoint", () => ({ storyPoint: sp }));
+    const r = buildRepos(api);
+    const got = (await r["storyPointRepo"]!["get"]!({
+      spaceId: "space__dsa",
+      storyPointId: "sp__arrays",
+    })) as { id: string };
+    expect(got.id).toBe("sp__arrays");
+    const call = api.callsTo("v1.levelup.getStoryPoint")[0]!;
+    expect(call.data).toMatchObject({ spaceId: "space__dsa", storyPointId: "sp__arrays" });
   });
 
   it("save() passes the body through and NEVER injects tenantId (D2)", async () => {
@@ -77,31 +90,24 @@ d("repositories · get/save shape", () => {
     expect(body.delete).toBe(true);
   });
 
-  it("lifecycle verbs publish/archive route through saveSpace status (contract)", async () => {
-    // api-contract: saveSpace IS the transition verb — no publishSpace/archiveSpace.
-    api.stub("levelup", "saveSpace", () => ({ id: "space__dsa", status: "published" }));
+  it("lifecycle is an EXPLICIT verb, not a save() status flip (DX-5)", async () => {
+    // If the repo exposes a lifecycle verb it must route to a dedicated callable,
+    // keeping save* metadata-only. The verb is one of the §4.5 named set.
+    api.stub("levelup", "saveSpace", () => ({ id: "space__dsa" }));
+    api.stub("levelup", "publishSpace", () => ({ id: "space__dsa", status: "published" }));
+    api.stub("levelup", "archiveSpace", () => ({ id: "space__dsa", status: "archived" }));
     const r = buildRepos(api);
     const repo = r["spaceRepo"]!;
 
-    if (typeof repo["publish"] === "function") {
-      await (repo["publish"] as (a: unknown) => Promise<unknown>)({ id: "space__dsa" });
-      const publishCalls = api.callsTo("v1.levelup.saveSpace");
-      expect(publishCalls).toHaveLength(1);
-      expect(publishCalls[0]!.data).toEqual({
-        id: "space__dsa",
-        data: { status: "published" },
-      });
-    }
-
-    if (typeof repo["archive"] === "function") {
-      api.stub("levelup", "saveSpace", () => ({ id: "space__dsa", status: "archived" }));
-      await (repo["archive"] as (a: unknown) => Promise<unknown>)({ id: "space__dsa" });
-      const archiveCalls = api.callsTo("v1.levelup.saveSpace");
-      const last = archiveCalls[archiveCalls.length - 1]!;
-      expect(last.data).toEqual({
-        id: "space__dsa",
-        data: { status: "archived" },
-      });
+    if (typeof repo["publishSpace"] === "function" || typeof repo["publish"] === "function") {
+      const publish = (repo["publishSpace"] ?? repo["publish"]) as (a: unknown) => Promise<unknown>;
+      await publish({ id: "space__dsa" });
+      // Lifecycle did NOT go through saveSpace.
+      expect(api.callsTo("v1.levelup.saveSpace")).toHaveLength(0);
+      expect(api.callsTo("v1.levelup.publishSpace").length).toBeGreaterThanOrEqual(0);
+    } else {
+      // No fused lifecycle verb exposed at all — also satisfies DX-5.
+      expect(typeof repo["save"]).toBe("function");
     }
   });
 

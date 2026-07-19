@@ -56,7 +56,7 @@ export function createSpaceDetailViewRepo(api: ApiClientLike): SpaceDetailViewRe
       // Fallback: a small FIXED set of batched reads. listItems is called ONCE
       // (batched across story points via storyPointIds), never one per story point.
       // Callables return envelopes (`{ space }`, `{ progress }`) — unwrap to match
-      // the composite shape and spaceRepo/progressRepo consumers (web + mobile).
+      // the composite shape and spaceRepo/progressRepo consumers.
       const spaceRes = (await lv["getSpace"]!({ spaceId })) as { space?: unknown };
       const space = spaceRes?.space ?? spaceRes;
       const spPage = toPage<{ id?: string }>(await lv["listStoryPoints"]!({ spaceId }));

@@ -61,18 +61,18 @@ d("repositories · view-repo assembly (no N+1)", () => {
     const view = r["spaceDetailViewRepo"];
     if (!view?.["get"]) return;
 
-    const detail = (await view["get"]({ spaceId: makeSpace().id })) as Record<string, unknown>;
+    const detail = (await view["get"]({ spaceId: "space__dsa" })) as Record<string, unknown>;
     expect(detail).toBeDefined();
-    expect((detail.space as { id?: string } | null)?.id).toBe("space__dsa");
-    expect((detail.myProgress as { spaceId?: string } | null)?.spaceId).toBe("space__dsa");
+    // Unwrapped — not `{ space: { id } }` nested under another `space` key by mistake.
+    expect((detail["space"] as { id?: string } | null)?.id).toBe("space__dsa");
+    expect((detail["myProgress"] as { spaceId?: string } | null)?.spaceId).toBe("space__dsa");
 
-    // BOUNDED: one failed composite probe + ≤4 batched reads (never 1 listItems
-    // per story point). Successful composite path is a single call.
+    // BOUNDED: composite attempt + ≤4 fallback reads (or 1 composite success).
+    // Never one listItems per story point.
     const total = api.calls.length;
     expect(total).toBeLessThanOrEqual(5);
-    // Specifically: at most ONE listItems call (batched across story points),
-    // not one per story point.
     expect(api.callsTo("v1.levelup.listItems").length).toBeLessThanOrEqual(1);
+    expect(api.callsTo("v1.levelup.getSpace").length).toBe(1);
   });
 
   it("classRepo (class+roster) batches the roster — one roster read, not one-per-student", async () => {
