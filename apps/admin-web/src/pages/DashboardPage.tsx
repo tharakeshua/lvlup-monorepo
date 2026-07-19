@@ -57,10 +57,13 @@ export default function DashboardPage() {
   const user = useCurrentUser();
   const tenantId = useCurrentTenantId();
   const tenant = useCurrentTenant().data as Tenant | undefined;
-  const exams = useExams({}).data as Exam[] | undefined;
-  const spaces = useSpaces({}).data as Space[] | undefined;
-  const classes = (useClasses({}).data ?? []) as Class[];
-  const students = (useStudents({}).data ?? []) as Student[];
+  // List hooks return paginated `{ items, nextCursor }` — not bare arrays.
+  const exams = (useExams({}).data as { items?: Exam[] } | undefined)?.items;
+  const spaces = (useSpaces({}).data as { items?: Space[] } | undefined)?.items;
+  const classes = ((useClasses({}).data as { items?: Class[] } | undefined)?.items ??
+    []) as Class[];
+  const students = ((useStudents({}).data as { items?: Student[] } | undefined)?.items ??
+    []) as Student[];
 
   // Fetch class summaries for at-risk count and chart
   const classIds = classes.map((c) => c.id);

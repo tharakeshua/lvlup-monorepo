@@ -18,6 +18,9 @@ import {
   signOut as fbSignOut,
   type User,
 } from "firebase/auth";
+import { evaluateTenantAccess } from "@levelup/domain";
+import { resetForTenantSwitch } from "@levelup/query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   useCallback,
@@ -28,6 +31,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { getSdk } from "./api";
 import { getFirebaseServices } from "./firebase";
 
 /** Parsed identity claims off the ID token (seed-minted). */
@@ -43,6 +47,7 @@ export interface SessionState {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithSchoolCode: (schoolCode: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -64,9 +69,21 @@ function friendlyAuthError(err: unknown, fallback: string): string {
     "code" in err &&
     typeof (err as { code: string }).code === "string"
   ) {
-    return FRIENDLY_AUTH_ERRORS[(err as { code: string }).code] ?? fallback;
+    const code = (err as { code: string }).code;
+    const mapped = FRIENDLY_AUTH_ERRORS[code];
+    if (mapped) return mapped;
   }
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error && err.message && err.message !== "internal") return err.message;
+  if (
+    err &&
+    typeof err === "object" &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string" &&
+    (err as { message: string }).message &&
+    (err as { message: string }).message !== "internal"
+  ) {
+    return (err as { message: string }).message;
+  }
   return fallback;
 }
 
@@ -82,6 +99,17 @@ const SessionContext = createContext<SessionState | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { auth } = getFirebaseServices();
+  const { repos } = getSdk();
+  const qc = useQueryClient();
+  const meRepo = repos.meRepo as {
+    get(): Promise<{
+      memberships?: Array<{ tenantId: string; tenantCode?: string; status: string }>;
+    }>;
+    switchTenant(targetTenantId: string): Promise<unknown>;
+  };
+  const tenantRepo = repos.tenantRepo as {
+    lookupByCode(code: string): Promise<{ tenantId: string; name: string; status: string } | null>;
+  };
 
   const [user, setUser] = useState<User | null>(null);
   const [claims, setClaims] = useState<SessionClaims | null>(null);
@@ -122,6 +150,45 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const loginWithSchoolCode = useCallback(
+    async (schoolCode: string, email: string, password: string) => {
+      setError(null);
+      try {
+        const tenant = await tenantRepo.lookupByCode(schoolCode.trim());
+        if (!tenant) throw new Error("Invalid school code");
+        const access = evaluateTenantAccess(tenant);
+        if (!access.allowed) {
+          throw new Error(
+            access.reason === "trial_expired"
+              ? "This school's trial has ended. Please contact your administrator to reactivate."
+              : "This school is currently inactive."
+          );
+        }
+
+        await signInWithEmailAndPassword(auth, email, password);
+
+        let targetTenantId = tenant.tenantId;
+        try {
+          const me = await meRepo.get();
+          const code = schoolCode.trim().toUpperCase();
+          const active = (me.memberships ?? []).filter((m) => m.status === "active");
+          const byCode = active.find((m) => (m.tenantCode || "").toUpperCase() === code);
+          if (byCode) targetTenantId = byCode.tenantId;
+        } catch {
+          // keep lookup tenantId
+        }
+
+        await meRepo.switchTenant(targetTenantId);
+        resetForTenantSwitch(qc);
+      } catch (e) {
+        const msg = friendlyAuthError(e, "School login failed");
+        setError(msg);
+        throw e;
+      }
+    },
+    [auth, meRepo, qc, tenantRepo]
+  );
+
   const logout = useCallback(async () => {
     await fbSignOut(auth);
   }, [auth]);
@@ -129,8 +196,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => setError(null), []);
 
   const value = useMemo<SessionState>(
-    () => ({ user, claims, loading, error, login, logout, clearError }),
-    [user, claims, loading, error, login, logout, clearError]
+    () => ({ user, claims, loading, error, login, loginWithSchoolCode, logout, clearError }),
+    [user, claims, loading, error, login, loginWithSchoolCode, logout, clearError]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

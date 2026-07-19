@@ -103,13 +103,14 @@ function authErrorMessage(err: unknown, fallback: string): string {
     const mapped = AUTH_ERROR_MESSAGES[code];
     if (mapped) return mapped;
   }
-  if (err instanceof Error && err.message) return err.message;
+  if (err instanceof Error && err.message && err.message !== "internal") return err.message;
   if (
     err &&
     typeof err === "object" &&
     "message" in err &&
     typeof (err as { message: unknown }).message === "string" &&
-    (err as { message: string }).message
+    (err as { message: string }).message &&
+    (err as { message: string }).message !== "internal"
   ) {
     return (err as { message: string }).message;
   }

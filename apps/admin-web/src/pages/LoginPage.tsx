@@ -9,7 +9,7 @@ import { useSession } from "@/sdk/identity";
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, error, clearError } = useSession();
+  const { loginWithSchoolCode, error, clearError } = useSession();
   const lookupTenant = useLookupTenantByCode();
   const [loading, setLoading] = useState(false);
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
@@ -71,7 +71,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(email, password);
+      await loginWithSchoolCode(schoolCode, email, password);
       navigate(from, { replace: true });
     } catch {
       // Error is already set in the session context

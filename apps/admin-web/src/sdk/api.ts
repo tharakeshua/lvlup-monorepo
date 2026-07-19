@@ -81,7 +81,10 @@ export function getSdk(): Sdk {
     },
   };
 
-  const api = Object.assign(baseApi, { auth }) as ApiClient;
+  const refreshToken = (force = true) =>
+    services.auth.currentUser?.getIdToken(force).then(() => undefined) ?? Promise.resolve();
+
+  const api = Object.assign(baseApi, { auth, refreshToken }) as ApiClient;
   const repos = createRepositories(api as never);
 
   sdk = { transport, api, repos };
