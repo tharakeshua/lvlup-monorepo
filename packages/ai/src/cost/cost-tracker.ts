@@ -10,6 +10,11 @@ export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cachedInputTokens?: number;
+  reasoningTokens?: number;
+  toolTokens?: number;
+  imageTokens?: number;
+  source?: "provider" | "estimated" | "unavailable";
 }
 
 export interface CostBreakdown {
@@ -17,6 +22,8 @@ export interface CostBreakdown {
   outputCostUsd: number;
   totalCostUsd: number;
   model: string;
+  pricingVersion: string;
+  pricingFallback: boolean;
 }
 
 interface ModelPricing {
@@ -29,6 +36,9 @@ interface ModelPricing {
 /** Per-1M-token USD pricing. Conservative public list prices. */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
   // Current defaults (models.ts): ≤200k-prompt tier list prices.
+  "gemini-3.1-pro-preview": { inputPerMillion: 2.0, outputPerMillion: 12.0 },
+  "gemini-3.5-flash": { inputPerMillion: 0.75, outputPerMillion: 4.5 },
+  // Prior defaults retained for historical cost re-estimation of old call logs.
   "gemini-2.5-pro": { inputPerMillion: 1.25, outputPerMillion: 10.0 },
   "gemini-2.5-flash": { inputPerMillion: 0.3, outputPerMillion: 2.5 },
   "gemini-2.5-flash-lite": { inputPerMillion: 0.1, outputPerMillion: 0.4 },
@@ -41,17 +51,26 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
 
 /** Conservative fallback when a model isn't in the table (never bills as free). */
 const FALLBACK_PRICING: ModelPricing = { inputPerMillion: 1.25, outputPerMillion: 5.0 };
+export const PRICING_VERSION = "gemini-public-2026-07-18";
 
 export function buildTokenUsage(usage: ProviderTokenUsage): TokenUsage {
   return {
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
     totalTokens: usage.totalTokens || usage.inputTokens + usage.outputTokens,
+    ...(usage.cachedInputTokens !== undefined
+      ? { cachedInputTokens: usage.cachedInputTokens }
+      : {}),
+    ...(usage.reasoningTokens !== undefined ? { reasoningTokens: usage.reasoningTokens } : {}),
+    ...(usage.toolTokens !== undefined ? { toolTokens: usage.toolTokens } : {}),
+    ...(usage.imageTokens !== undefined ? { imageTokens: usage.imageTokens } : {}),
+    source: usage.source ?? "provider",
   };
 }
 
 export function estimateCost(usage: TokenUsage, model: string): CostBreakdown {
-  const pricing = MODEL_PRICING[model] ?? FALLBACK_PRICING;
+  const knownPricing = MODEL_PRICING[model];
+  const pricing = knownPricing ?? FALLBACK_PRICING;
   const inputCostUsd = (usage.inputTokens / 1_000_000) * pricing.inputPerMillion;
   const outputCostUsd = (usage.outputTokens / 1_000_000) * pricing.outputPerMillion;
   return {
@@ -59,5 +78,7 @@ export function estimateCost(usage: TokenUsage, model: string): CostBreakdown {
     outputCostUsd,
     totalCostUsd: inputCostUsd + outputCostUsd,
     model,
+    pricingVersion: PRICING_VERSION,
+    pricingFallback: knownPricing === undefined,
   };
 }

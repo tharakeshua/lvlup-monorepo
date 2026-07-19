@@ -32,6 +32,7 @@ import {
   Screen,
   SectionHeader,
   Skeleton,
+  TeacherHero,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
@@ -172,15 +173,34 @@ export default function TeacherDashboardScreen() {
   return (
     <Screen>
       <View className="gap-6">
-        {/* GREETING */}
-        <View className="gap-1">
-          <Text className="font-display text-text-primary text-2xl font-semibold">
-            Hello, {greetingName}
-          </Text>
-          <Text className="font-ui text-text-muted text-sm">
-            Here's where your classes stand today.
-          </Text>
-        </View>
+        {/* COMMAND HERO */}
+        <TeacherHero
+          eyebrow="Teacher workspace"
+          title={`Hello, ${greetingName}`}
+          subtitle="Your classes, grading, and next best actions—together in one calm view."
+          icon="graduation-cap"
+        >
+          <View className="flex-row gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1"
+              leadingIcon="plus"
+              onPress={() => router.push(routes.create())}
+            >
+              Create
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              leadingIcon="megaphone"
+              onPress={() => router.push(routes.announcements())}
+            >
+              Announce
+            </Button>
+          </View>
+        </TeacherHero>
 
         {/* KPI TILES */}
         <View className="flex-row gap-3">
@@ -203,17 +223,19 @@ export default function TeacherDashboardScreen() {
               onPress={() => router.push(routes.gradingQueue())}
             />
           </View>
-          <View className="flex-1">
-            <MetricCard
-              icon="alert-triangle"
-              label="At risk"
-              value={String(atRiskCount)}
-              tone={atRiskCount > 0 ? "error" : "neutral"}
-              caption="students"
-              onPress={() => router.push(routes.atRisk())}
-            />
-          </View>
         </View>
+        <MetricCard
+          icon="alert-triangle"
+          label="Students needing support"
+          value={String(atRiskCount)}
+          tone={atRiskCount > 0 ? "error" : "neutral"}
+          caption={
+            atRiskCount > 0
+              ? "Open the intervention view to understand why"
+              : "No active risk signals today"
+          }
+          onPress={() => router.push(routes.atRisk())}
+        />
 
         {/* NEEDS ATTENTION */}
         <View className="gap-3">

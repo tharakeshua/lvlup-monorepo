@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
-import type { Space, SpaceType, SpaceAccessType } from "@levelup/shared-types";
+import type { Currency, Space, SpaceType, SpaceAccessType } from "@levelup/domain";
 import {
   Save,
   ImageIcon,
@@ -12,8 +12,15 @@ import {
   Users,
   ClipboardList,
   Sparkles,
+  CheckCircle2,
+  Loader2,
+  RotateCcw,
+  TriangleAlert,
 } from "lucide-react";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Input,
   Label,
@@ -79,16 +86,22 @@ const ACCESS_TYPES: { value: SpaceAccessType; label: string; description: string
   },
 ];
 
-const CURRENCIES = ["USD", "INR", "EUR", "GBP"];
+const CURRENCIES: readonly Currency[] = ["USD", "INR"];
 
 const MAX_THUMB_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMG_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 interface Props {
   space: Space;
-  onSave: (data: Partial<Space>) => Promise<void>;
+  onSave: (data: SpaceSettingsDraft) => Promise<boolean>;
   saving: boolean;
 }
+
+/** Form-friendly major-unit price; converted to canonical Money at the boundary. */
+export type SpaceSettingsDraft = Omit<Partial<Space>, "price"> & {
+  price?: number;
+  currency?: string;
+};
 
 function FieldHelp({ children }: { children: React.ReactNode }) {
   return <p className="text-muted-foreground mt-1 text-xs">{children}</p>;
@@ -147,6 +160,16 @@ AutoResizeTextarea.displayName = "AutoResizeTextarea";
 const DESCRIPTION_MAX = 600;
 const STORE_DESCRIPTION_MAX = 1200;
 
+function isValidHttpUrl(value: string): boolean {
+  if (!value.trim()) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function SectionHeader({
   icon: Icon,
   title,
@@ -184,10 +207,13 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(space.showCorrectAnswers ?? true);
   // Store listing fields
   const [publishedToStore, setPublishedToStore] = useState(space.publishedToStore ?? false);
-  const [price, setPrice] = useState(space.price ?? 0);
-  const [currency, setCurrency] = useState(space.currency ?? "USD");
+  const [price, setPrice] = useState(space.price ? space.price.amountMinor / 100 : 0);
+  const [currency, setCurrency] = useState<Currency>(space.price?.currency ?? "USD");
   const [storeDescription, setStoreDescription] = useState(space.storeDescription ?? "");
   const [storeThumbnailUrl, setStoreThumbnailUrl] = useState(space.storeThumbnailUrl ?? "");
+  const [saveAttempted, setSaveAttempted] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     setTitle(space.title);
@@ -202,10 +228,12 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
     setTimeLimitMinutes(space.defaultTimeLimitMinutes ?? 0);
     setShowCorrectAnswers(space.showCorrectAnswers ?? true);
     setPublishedToStore(space.publishedToStore ?? false);
-    setPrice(space.price ?? 0);
-    setCurrency(space.currency ?? "USD");
+    setPrice(space.price ? space.price.amountMinor / 100 : 0);
+    setCurrency(space.price?.currency ?? "USD");
     setStoreDescription(space.storeDescription ?? "");
     setStoreThumbnailUrl(space.storeThumbnailUrl ?? "");
+    setSaveAttempted(false);
+    setSaveFailed(false);
   }, [space]);
 
   const uploadThumbnail = useCallback(
@@ -222,7 +250,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
       try {
         const { uploadUrl, publicUrl } = await callUploadTenantAsset({
           tenantId: space.tenantId,
-          assetType: "space_thumbnail",
+          assetType: "banner",
           contentType: file.type,
         });
         const xhr = new XMLHttpRequest();
@@ -250,8 +278,8 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
     [space.tenantId]
   );
 
-  const handleSave = () => {
-    onSave({
+  const draft = React.useMemo<SpaceSettingsDraft>(
+    () => ({
       title,
       description: description || undefined,
       thumbnailUrl: thumbnailUrl || undefined,
@@ -275,14 +303,143 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
       storeThumbnailUrl: publishedToStore
         ? storeThumbnailUrl || thumbnailUrl || undefined
         : undefined,
-    });
+    }),
+    [
+      accessType,
+      allowRetakes,
+      currency,
+      description,
+      labels,
+      maxRetakes,
+      price,
+      publishedToStore,
+      showCorrectAnswers,
+      storeDescription,
+      storeThumbnailUrl,
+      subject,
+      thumbnailUrl,
+      timeLimitMinutes,
+      title,
+      type,
+    ]
+  );
+
+  const initialDraft = React.useMemo<SpaceSettingsDraft>(
+    () => ({
+      title: space.title,
+      description: space.description || undefined,
+      thumbnailUrl: space.thumbnailUrl || undefined,
+      type: space.type,
+      subject: space.subject || undefined,
+      labels: space.labels?.length ? space.labels : undefined,
+      accessType: space.accessType,
+      allowRetakes: space.allowRetakes ?? false,
+      maxRetakes: space.allowRetakes ? space.maxRetakes : undefined,
+      defaultTimeLimitMinutes: space.defaultTimeLimitMinutes || undefined,
+      showCorrectAnswers: space.showCorrectAnswers ?? true,
+      publishedToStore: space.publishedToStore ?? false,
+      price: space.publishedToStore ? (space.price?.amountMinor ?? 0) / 100 : undefined,
+      currency: space.publishedToStore ? (space.price?.currency ?? "USD") : undefined,
+      storeDescription: space.publishedToStore ? space.storeDescription || undefined : undefined,
+      storeThumbnailUrl: space.publishedToStore
+        ? space.storeThumbnailUrl || space.thumbnailUrl || undefined
+        : undefined,
+    }),
+    [space]
+  );
+
+  const validationErrors = React.useMemo(() => {
+    const errors: Record<string, string> = {};
+    if (!title.trim()) errors.title = "Add a title before saving.";
+    if (!Number.isInteger(timeLimitMinutes) || timeLimitMinutes < 0) {
+      errors.timeLimit = "Use a whole number of minutes, or 0 for no limit.";
+    }
+    if (allowRetakes && (!Number.isInteger(maxRetakes) || maxRetakes < 1)) {
+      errors.maxRetakes = "Retakes must be a whole number of at least 1.";
+    }
+    if (publishedToStore && (!Number.isFinite(price) || price < 0)) {
+      errors.price = "Price cannot be negative.";
+    }
+    if (!isValidHttpUrl(thumbnailUrl)) {
+      errors.thumbnailUrl = "Use a valid http or https image URL.";
+    }
+    if (!isValidHttpUrl(storeThumbnailUrl)) {
+      errors.storeThumbnailUrl = "Use a valid http or https image URL.";
+    }
+    return errors;
+  }, [
+    allowRetakes,
+    maxRetakes,
+    price,
+    publishedToStore,
+    storeThumbnailUrl,
+    thumbnailUrl,
+    timeLimitMinutes,
+    title,
+  ]);
+
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
+  const isValid = Object.keys(validationErrors).length === 0;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleReset = () => {
+    setTitle(space.title);
+    setDescription(space.description ?? "");
+    setThumbnailUrl(space.thumbnailUrl ?? "");
+    setType(space.type);
+    setSubject(space.subject ?? "");
+    setLabels(space.labels?.join(", ") ?? "");
+    setAccessType(space.accessType);
+    setAllowRetakes(space.allowRetakes ?? false);
+    setMaxRetakes(space.maxRetakes ?? 3);
+    setTimeLimitMinutes(space.defaultTimeLimitMinutes ?? 0);
+    setShowCorrectAnswers(space.showCorrectAnswers ?? true);
+    setPublishedToStore(space.publishedToStore ?? false);
+    setPrice(space.price ? space.price.amountMinor / 100 : 0);
+    setCurrency(space.price?.currency ?? "USD");
+    setStoreDescription(space.storeDescription ?? "");
+    setStoreThumbnailUrl(space.storeThumbnailUrl ?? "");
+    setSaveAttempted(false);
+    setSaveFailed(false);
+  };
+
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaveAttempted(true);
+    setSaveFailed(false);
+    if (!isValid || !isDirty) return;
+    const saved = await onSave(draft);
+    setSaveFailed(!saved);
+    if (saved) {
+      setLastSavedAt(new Date());
+      setSaveAttempted(false);
+    }
   };
 
   const selectedTypeMeta = SPACE_TYPES.find((t) => t.value === type);
   const selectedAccessMeta = ACCESS_TYPES.find((a) => a.value === accessType);
 
   return (
-    <div className="max-w-3xl space-y-6 pb-24">
+    <form onSubmit={handleSave} className="max-w-3xl space-y-6 pb-24" noValidate>
+      {saveFailed && (
+        <Alert variant="destructive">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertTitle>Settings were not saved</AlertTitle>
+          <AlertDescription>
+            Your changes are still in this form. Check your connection, then try again.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Basics */}
       <Card>
         <SectionHeader
@@ -299,13 +456,29 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
               id="space-title"
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value.slice(0, 200));
+                setSaveFailed(false);
+              }}
               className="mt-1.5"
               placeholder="e.g. Algebra I — Semester 1"
+              maxLength={200}
+              required
+              aria-invalid={saveAttempted && Boolean(validationErrors.title)}
+              aria-describedby={
+                saveAttempted && validationErrors.title ? "space-title-error" : undefined
+              }
             />
-            <FieldHelp>
-              The headline name for this space. Shown on cards, breadcrumbs, and student dashboards.
-            </FieldHelp>
+            {saveAttempted && validationErrors.title ? (
+              <p id="space-title-error" className="text-destructive mt-1 text-xs" role="alert">
+                {validationErrors.title}
+              </p>
+            ) : (
+              <FieldHelp>
+                The headline name for this space. Shown on cards, breadcrumbs, and student
+                dashboards.
+              </FieldHelp>
+            )}
           </div>
 
           <div>
@@ -391,6 +564,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 variant={thumbnailMode === "upload" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setThumbnailMode("upload")}
+                className="min-h-11 sm:min-h-9"
               >
                 <ImageIcon className="mr-1 h-3.5 w-3.5" /> Upload
               </Button>
@@ -399,6 +573,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 variant={thumbnailMode === "url" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setThumbnailMode("url")}
+                className="min-h-11 sm:min-h-9"
               >
                 <LinkIcon className="mr-1 h-3.5 w-3.5" /> URL
               </Button>
@@ -411,29 +586,22 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                   alt="Thumbnail preview"
                   className="bg-muted h-24 w-40 rounded-lg border object-cover"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="icon"
                   onClick={() => setThumbnailUrl("")}
-                  className="bg-destructive text-destructive-foreground absolute -right-1 -top-1 rounded-full p-0.5"
+                  className="absolute -right-3 -top-3 h-11 w-11 rounded-full"
                   aria-label="Remove thumbnail"
                 >
-                  <X className="h-3 w-3" />
-                </button>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             )}
 
             <div className="mt-3">
               {thumbnailMode === "upload" ? (
-                <div
-                  onClick={() => thumbInputRef.current?.click()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files[0];
-                    if (file) uploadThumbnail(file);
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="hover:border-brand duration-fast ease-standard cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors"
-                >
+                <>
                   <input
                     ref={thumbInputRef}
                     type="file"
@@ -444,23 +612,50 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                     }}
                     className="hidden"
                   />
-                  {thumbUploading ? (
-                    <p className="text-muted-foreground text-sm">Uploading...</p>
-                  ) : (
-                    <>
-                      <ImageIcon className="text-muted-foreground mx-auto h-6 w-6" />
-                      <p className="mt-1 text-sm">Drop image here or click to browse</p>
-                      <p className="text-muted-foreground text-xs">PNG, JPEG, WebP — max 2MB</p>
-                    </>
-                  )}
-                </div>
+                  <button
+                    type="button"
+                    onClick={() => thumbInputRef.current?.click()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file) uploadThumbnail(file);
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="hover:border-brand focus-visible:ring-ring duration-fast ease-standard w-full cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  >
+                    {thumbUploading ? (
+                      <p className="text-muted-foreground text-sm">Uploading...</p>
+                    ) : (
+                      <>
+                        <ImageIcon className="text-muted-foreground mx-auto h-6 w-6" />
+                        <p className="mt-1 text-sm">Drop image here or click to browse</p>
+                        <p className="text-muted-foreground text-xs">PNG, JPEG, WebP — max 2MB</p>
+                      </>
+                    )}
+                  </button>
+                </>
               ) : (
-                <Input
-                  type="url"
-                  value={thumbnailUrl}
-                  onChange={(e) => setThumbnailUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <>
+                  <Input
+                    type="url"
+                    value={thumbnailUrl}
+                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    aria-invalid={Boolean(validationErrors.thumbnailUrl)}
+                    aria-describedby={
+                      validationErrors.thumbnailUrl ? "thumbnail-url-error" : undefined
+                    }
+                  />
+                  {validationErrors.thumbnailUrl && (
+                    <p
+                      id="thumbnail-url-error"
+                      className="text-destructive mt-1 text-xs"
+                      role="alert"
+                    >
+                      {validationErrors.thumbnailUrl}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -519,12 +714,19 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 onChange={(e) => setTimeLimitMinutes(Number(e.target.value))}
                 min={0}
                 className="w-32"
+                aria-invalid={Boolean(validationErrors.timeLimit)}
+                aria-describedby={validationErrors.timeLimit ? "space-time-limit-error" : undefined}
               />
               <span className="text-muted-foreground text-sm">minutes</span>
             </div>
             <FieldHelp>
               Time students have to complete a graded attempt. Set to <code>0</code> for no limit.
             </FieldHelp>
+            {validationErrors.timeLimit && (
+              <p id="space-time-limit-error" className="text-destructive mt-1 text-xs" role="alert">
+                {validationErrors.timeLimit}
+              </p>
+            )}
           </div>
 
           <div className="border-t pt-5">
@@ -553,10 +755,23 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                   onChange={(e) => setMaxRetakes(Number(e.target.value))}
                   min={1}
                   className="mt-1.5 w-32"
+                  aria-invalid={Boolean(validationErrors.maxRetakes)}
+                  aria-describedby={
+                    validationErrors.maxRetakes ? "space-max-retakes-error" : undefined
+                  }
                 />
                 <FieldHelp>
                   The total number of attempts a student is allowed (the first attempt counts).
                 </FieldHelp>
+                {validationErrors.maxRetakes && (
+                  <p
+                    id="space-max-retakes-error"
+                    className="text-destructive mt-1 text-xs"
+                    role="alert"
+                  >
+                    {validationErrors.maxRetakes}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -624,7 +839,10 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
             <div className="flex items-center gap-2">
               <Switch
                 checked={publishedToStore}
-                onCheckedChange={setPublishedToStore}
+                onCheckedChange={(checked) => {
+                  setPublishedToStore(checked);
+                  if (checked) setAccessType("public_store");
+                }}
                 id="published-to-store"
               />
               <Label
@@ -652,16 +870,23 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                   min={0}
                   step={0.01}
                   className="mt-1.5"
+                  aria-invalid={Boolean(validationErrors.price)}
+                  aria-describedby={validationErrors.price ? "space-price-error" : undefined}
                 />
                 <FieldHelp>
                   The amount charged per enrollment. Set to <code>0</code> to list as free.
                 </FieldHelp>
+                {validationErrors.price && (
+                  <p id="space-price-error" className="text-destructive mt-1 text-xs" role="alert">
+                    {validationErrors.price}
+                  </p>
+                )}
               </div>
               <div>
                 <Label htmlFor="space-currency" className="text-fg-secondary">
                   Currency
                 </Label>
-                <Select value={currency} onValueChange={setCurrency}>
+                <Select value={currency} onValueChange={(value) => setCurrency(value as Currency)}>
                   <SelectTrigger id="space-currency" className="mt-1.5">
                     <SelectValue />
                   </SelectTrigger>
@@ -722,10 +947,23 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                 onChange={(e) => setStoreThumbnailUrl(e.target.value)}
                 placeholder="https://example.com/cover.jpg"
                 className="mt-1.5"
+                aria-invalid={Boolean(validationErrors.storeThumbnailUrl)}
+                aria-describedby={
+                  validationErrors.storeThumbnailUrl ? "store-thumbnail-url-error" : undefined
+                }
               />
               <FieldHelp>
                 Optional cover image for the store listing. If empty, the space thumbnail is used.
               </FieldHelp>
+              {validationErrors.storeThumbnailUrl && (
+                <p
+                  id="store-thumbnail-url-error"
+                  className="text-destructive mt-1 text-xs"
+                  role="alert"
+                >
+                  {validationErrors.storeThumbnailUrl}
+                </p>
+              )}
             </div>
 
             <div className="bg-muted/40 flex items-start gap-2 rounded-md border p-3 text-xs">
@@ -740,15 +978,46 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
       </Card>
 
       {/* Sticky save bar */}
-      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t px-1 py-3 backdrop-blur">
-        <p className="text-muted-foreground mr-auto text-xs">
-          Changes apply to all teachers and students of this space.
-        </p>
-        <Button onClick={handleSave} disabled={saving || !title.trim()}>
-          <Save className="mr-1 h-4 w-4" />
-          {saving ? "Saving..." : "Save settings"}
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 -mx-1 flex flex-col gap-3 border-t px-1 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+        <div className="mr-auto text-xs" role="status" aria-live="polite">
+          {isDirty ? (
+            <p className="text-warning font-medium">Unsaved changes</p>
+          ) : lastSavedAt ? (
+            <p className="text-success flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+              Saved at {lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              Changes apply to all teachers and students of this space.
+            </p>
+          )}
+        </div>
+        {isDirty && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleReset}
+            disabled={saving}
+            className="min-h-11 sm:min-h-9"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Discard changes
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={saving || !isDirty || !isValid}
+          className="min-h-11 sm:min-h-9"
+        >
+          {saving ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Save className="mr-1 h-4 w-4" aria-hidden="true" />
+          )}
+          {saving ? "Saving…" : "Save settings"}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

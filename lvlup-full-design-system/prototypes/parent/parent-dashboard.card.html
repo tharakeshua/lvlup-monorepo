@@ -1,0 +1,269 @@
+<!-- @dsCard group="Parent" viewport="1440x940" name="Parent Dashboard" subtitle="Children overview · KPIs · alerts · activity" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-only global resets (composer ignores these — kept OUTSIDE the SPA markers) */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+/* ==SPA-STYLE:parent-dashboard== */
+.v-parent-dashboard{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.v-parent-dashboard .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-parent-dashboard .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-parent-dashboard .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-dashboard .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* kpi strip */
+.v-parent-dashboard .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.v-parent-dashboard .kpi{position:relative}
+.v-parent-dashboard .kpi .stat{height:100%}
+.v-parent-dashboard .kpi__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.v-parent-dashboard .kpi__cap--warn{color:var(--status-warning)}
+.v-parent-dashboard .kpi__cap .u-mono{font-family:var(--font-mono)}
+
+/* quick actions */
+.v-parent-dashboard .quickrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+
+/* section heads */
+.v-parent-dashboard .sechead{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
+.v-parent-dashboard .sechead__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);line-height:var(--leading-xl);letter-spacing:-.01em;margin:0}
+.v-parent-dashboard .sechead__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-dashboard .sechead__sub .u-mono{font-family:var(--font-mono)}
+
+/* children grid */
+.v-parent-dashboard .kidgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-5)}
+.v-parent-dashboard .kidcard{display:flex;flex-direction:column;gap:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5)}
+.v-parent-dashboard .kidcard--risk{border-color:var(--status-warning)}
+.v-parent-dashboard .kidcard__top{display:flex;align-items:flex-start;gap:var(--space-3)}
+.v-parent-dashboard .kidcard__id{flex:1 1 auto;min-width:0}
+.v-parent-dashboard .kidcard__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;color:var(--text-primary)}
+.v-parent-dashboard .kidcard__meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-dashboard .kidcard__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-parent-dashboard .kidcard__stats{display:flex;align-items:center;gap:var(--space-6)}
+.v-parent-dashboard .kidstat{display:flex;flex-direction:column;gap:2px}
+.v-parent-dashboard .kidstat__lab{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.v-parent-dashboard .kidstat__val{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-dashboard .kidcard__progrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.v-parent-dashboard .kidcard__proglab{font-size:var(--text-xs);color:var(--text-secondary)}
+.v-parent-dashboard .kidcard__progval{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-parent-dashboard .kidcard__cta{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-1)}
+.v-parent-dashboard .kidcard__risk{display:flex}
+
+/* activity card */
+.v-parent-dashboard .dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.v-parent-dashboard .dcard__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.v-parent-dashboard .dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-parent-dashboard .dcard__foot{padding:var(--space-3) var(--space-5) var(--space-4);border-top:1px solid var(--border-subtle)}
+.v-parent-dashboard .act-list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.v-parent-dashboard .act-row{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-3) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-parent-dashboard .act-row:first-child{border-top:none}
+.v-parent-dashboard .act-row:hover{background:var(--bg-surface-sunken)}
+.v-parent-dashboard .act-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-parent-dashboard .act-row__ico{flex:0 0 auto;width:30px;height:30px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.v-parent-dashboard .act-row__ico--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.v-parent-dashboard .act-row__ico--info{background:var(--status-info-subtle);color:var(--status-info)}
+.v-parent-dashboard .act-row__ico--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.v-parent-dashboard .act-row__main{flex:1 1 auto;min-width:0}
+.v-parent-dashboard .act-row__title{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-parent-dashboard .act-row__time{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+
+.v-parent-dashboard .u-mono{font-family:var(--font-mono)}
+
+@media (max-width:1100px){
+  .v-parent-dashboard .kpis{grid-template-columns:repeat(2,1fr)}
+  .v-parent-dashboard .kidgrid{grid-template-columns:1fr}
+}
+/* ==/SPA-STYLE== */
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Badge, Chip, ProgressBar, StreakFlame,
+  AtRiskBadge, Stat, Alert, EmptyState, Skeleton, NavItem } = window.LvlupV0DesignSystem_5d0725;
+
+function go(hash){ if(hash) window.location.hash = hash; }
+
+/* ---------- sample data (server-derived, released-only, read-only) ---------- */
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', avg:82, streak:12, completion:78, atRisk:false, subjects:'DSA · Mathematics · Physics' },
+  { id:'diya',  name:'Diya Sharma',  initials:'DS', grade:'Grade 7', avg:61, streak:0,  completion:44, atRisk:true,  subjects:'Mathematics · Science · English' },
+];
+
+const ACTIVITY = [
+  { id:'ac1', tone:'warn', ico:'alert-triangle', title:'Diya Sharma was flagged at-risk by the nightly review.', time:'2h ago' },
+  { id:'ac2', tone:'ok',   ico:'clipboard-check', title:'Results released for Aarav — "Midterm · Data Structures".', time:'5h ago' },
+  { id:'ac3', tone:'info', ico:'trending-up',     title:'Aarav reached a 12-day learning streak.', time:'Yesterday' },
+  { id:'ac4', tone:'info', ico:'megaphone',       title:'Beacon Hill Academy posted a new announcement.', time:'2 days ago' },
+];
+
+/* ==SPA-VIEW:parent-dashboard== */
+function DashboardView(){
+  return (
+    <div className="v-parent-dashboard">
+
+      <div className="pagehead">
+        <div>
+          <h1>Good morning, Anita.</h1>
+          <div className="pagehead__sub">
+            <Icon name="server" size={14}/> Updated · <span className="u-mono">Saturday, June 20</span>
+          </div>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="bell" size={16}/>} onClick={()=>go('#/notifications')}>Notifications</Button>
+      </div>
+
+      <div className="kpis" role="group" aria-label="Key metrics">
+        <div className="kpi" aria-label="Children linked: 2">
+          <Stat label="Children" value="2"/>
+          <div className="kpi__cap"><Icon name="users" size={12}/> linked to you</div>
+        </div>
+        <div className="kpi" aria-label="Average performance: 72 percent">
+          <Stat label="Avg performance" value="72%"/>
+          <div className="kpi__cap"><Icon name="server" size={12}/> released results only</div>
+        </div>
+        <div className="kpi" aria-label="At-risk children: 1">
+          <Stat label="At-risk" value="1"/>
+          <div className="kpi__cap kpi__cap--warn"><Icon name="alert-triangle" size={12}/> needs attention</div>
+        </div>
+        <div className="kpi" aria-label="School code BHA-204">
+          <Stat label="School code" value="BHA-204"/>
+          <div className="kpi__cap"><Icon name="school" size={12}/> Beacon Hill Academy</div>
+        </div>
+      </div>
+
+      <Alert variant="warning" title="Diya Sharma flagged at-risk">
+        Recent scores and inactivity triggered an at-risk flag.{' '}
+        <button className="btn btn--ghost btn--sm" style={{padding:0,height:'auto',color:'var(--status-warning)'}} onClick={()=>go('#/alerts')}>View alerts</button>
+      </Alert>
+
+      <div className="quickrow" role="group" aria-label="Quick actions">
+        <Button variant="secondary" leadingIcon={<Icon name="alert-triangle" size={16}/>} onClick={()=>go('#/alerts')}>View alerts</Button>
+        <Button variant="secondary" leadingIcon={<Icon name="git-compare" size={16}/>} onClick={()=>go('#/compare')}>Compare children</Button>
+        <Button variant="ghost" leadingIcon={<Icon name="bell" size={16}/>} onClick={()=>go('#/notifications')}>Notifications</Button>
+      </div>
+
+      <section aria-labelledby="kids-title">
+        <div className="sechead">
+          <div>
+            <h2 className="sechead__title" id="kids-title">Your children</h2>
+            <div className="sechead__sub"><span className="u-mono">2</span> linked · released scores only</div>
+          </div>
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children')}>All children</Button>
+        </div>
+        <div className="kidgrid" role="list">
+          {CHILDREN.map(k=>(
+            <article key={k.id} className={'kidcard'+(k.atRisk?' kidcard--risk':'')} role="listitem"
+              aria-label={k.name+', '+k.grade+', average '+k.avg+' percent'+(k.atRisk?', at risk':'')}>
+              <div className="kidcard__top">
+                <Avatar initials={k.initials} size="lg"/>
+                <div className="kidcard__id">
+                  <div className="kidcard__name">{k.name}</div>
+                  <div className="kidcard__meta">
+                    <span>{k.grade}</span>
+                    <span className="u-mono">·</span>
+                    <span>{k.subjects}</span>
+                  </div>
+                </div>
+                {k.atRisk && <div className="kidcard__risk"><AtRiskBadge level="watch">Watch</AtRiskBadge></div>}
+              </div>
+
+              <div className="kidcard__stats">
+                <div className="kidstat">
+                  <span className="kidstat__lab">Avg</span>
+                  <span className="kidstat__val">{k.avg}%</span>
+                </div>
+                <div className="kidstat">
+                  <span className="kidstat__lab">Streak</span>
+                  <span className="kidstat__val">{k.streak>0 ? <StreakFlame days={k.streak}/> : <Chip><Icon name="flame" size={12}/> 0 days</Chip>}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="kidcard__progrow">
+                  <span className="kidcard__proglab">Space completion</span>
+                  <span className="kidcard__progval">{k.completion}%</span>
+                </div>
+                <ProgressBar value={k.completion} variant={k.atRisk ? 'warning' : 'success'}/>
+              </div>
+
+              <div className="kidcard__cta">
+                <Button variant="secondary" size="sm" leadingIcon={<Icon name="trending-up" size={15}/>} onClick={()=>go('#/children/'+k.id+'/progress')}>Progress</Button>
+                <Button variant="ghost" size="sm" leadingIcon={<Icon name="clipboard-check" size={15}/>} onClick={()=>go('#/children/'+k.id+'/results')}>Results</Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="dcard" aria-labelledby="act-title">
+        <div className="dcard__head">
+          <h2 className="dcard__title" id="act-title">Recent activity</h2>
+          <Badge variant="brand">{ACTIVITY.length} new</Badge>
+        </div>
+        <ul className="act-list" role="list">
+          {ACTIVITY.map(a=>(
+            <li key={a.id} role="listitem">
+              <button className="act-row" onClick={()=>go('#/notifications')} aria-label={a.title+' '+a.time}>
+                <span className={'act-row__ico act-row__ico--'+a.tone}><Icon name={a.ico} size={15}/></span>
+                <span className="act-row__main">
+                  <span className="act-row__title">{a.title}</span>
+                  <span className="act-row__time">{a.time}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="dcard__foot">
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/notifications')}>View all notifications</Button>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+
+/* ==PARENT-SHELL (verbatim, do not edit)== */
+function ParentShell(props){
+  const a = props.active;
+  return (
+    <div className="appshell" style={{height:'100vh'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">B</div><div className="sidebar__brand-name">Beacon Hill</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="#/" active={a==='dashboard'}>Dashboard</NavItem>
+          <NavItem icon="alert-triangle" href="#/alerts" active={a==='alerts'} badge={<Badge variant="error">1</Badge>}>Alerts</NavItem>
+          <NavItem icon="megaphone" href="#/announcements" active={a==='announcements'}>Announcements</NavItem>
+          <div className="sidebar__section-label">My Children</div>
+          <NavItem icon="users" href="#/children" active={a==='children'}>Children</NavItem>
+          <NavItem icon="trending-up" href="#/children/aarav/progress" active={a==='progress'}>Progress</NavItem>
+          <NavItem icon="clipboard-check" href="#/children/aarav/results" active={a==='results'}>Exam Results</NavItem>
+          <NavItem icon="orbit" href="#/progress" active={a==='spaces'}>Space Progress</NavItem>
+          <NavItem icon="git-compare" href="#/compare" active={a==='compare'}>Compare</NavItem>
+          <div className="sidebar__section-label">Account</div>
+          <NavItem icon="bell" href="#/notifications" active={a==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="#/settings" active={a==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="BH" size="sm"/>Beacon Hill Academy<Icon name="chevron-down" size={14}/></button>
+        <button className="chip" aria-haspopup="menu"><Avatar initials="AS" size="sm"/>Aarav Sharma<Icon name="chevron-down" size={14}/></button>
+        <div style={{flex:1}}></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="AS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+function App(){ return (<ParentShell active="dashboard"><DashboardView/></ParentShell>); }
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

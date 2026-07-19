@@ -49,6 +49,7 @@ import {
   TENANT_STATUS_MAP,
   TEST_SESSION_STATUS_MAP,
   buildBankQuestionData,
+  buildChatAgentAnswerKey,
   buildItemQuestionData,
   buildMaterialData,
   canonicalAchievement,
@@ -68,6 +69,7 @@ import {
 } from "./canonical.js";
 import type {
   AnnouncementConfig,
+  ChatAgentQuestionSeedConfig,
   CostSummaryConfig,
   ExamConfig,
   ItemConfig,
@@ -619,16 +621,35 @@ export class SeedPipeline {
     if (!tc.agents?.length) return;
     await this.ctx.ensureCollection("agent", tc.agents, (a) => ({
       path: Paths.agent(r.tenantId, r.agentId(a.key)),
+      logicalKey: `agent:${a.key}`,
+      verifyAs: ["agent"],
       data: {
         id: r.agentId(a.key),
         spaceId: r.spaceId(a.spaceKey),
         tenantId: r.tenantId,
         type: a.type ?? AGENT_TYPE_FOR_PURPOSE[a.purpose ?? "tutoring"] ?? "tutor",
         name: a.name,
+        publicDescription: a.publicDescription,
+        identity: a.identity,
         isActive: a.isActive ?? true,
+        // Legacy seed fixtures may still carry a provider model string. Never
+        // write that through: canonical agents persist only stable policy IDs.
+        modelPolicyId:
+          a.modelPolicyId ??
+          ((a.type ?? AGENT_TYPE_FOR_PURPOSE[a.purpose ?? "tutoring"] ?? "tutor") === "evaluator"
+            ? "evaluation.quality"
+            : "conversation.quality"),
+        version: a.version ?? 1,
         systemPrompt: a.systemPrompt, // ⚷ authoring-only
+        openingMessage: a.openingMessage,
+        supportedLanguages: a.supportedLanguages,
+        defaultLanguage: a.defaultLanguage,
+        maxConversationTurns: a.maxConversationTurns,
         rules: a.rules ?? [],
-        modelOverride: a.model,
+        evaluationObjectives: a.evaluationObjectives,
+        strictness: a.strictness,
+        feedbackStyle: a.feedbackStyle,
+        temperatureOverride: a.temperatureOverride,
         ...this.auditBy(),
       },
     }));
@@ -749,14 +770,15 @@ export class SeedPipeline {
       // Items remain nested under `spaces/{s}/storyPoints/{sp}/items` (found via collection
       // group), so the nested storyPoint doc is only kept as a harmless mirror.
       await this.ctx.ensureDoc(
-        "storyPoint",
+        "storyPointMirror",
         `${Paths.tenant(tenantId)}/storyPoints/${storyPointId}`,
         storyPointDoc
       );
       await this.ctx.ensureDoc(
         "storyPoint",
         Paths.storyPoint(tenantId, spaceId, storyPointId),
-        storyPointDoc
+        storyPointDoc,
+        { logicalKey: `storyPoint:${space.key}/${sp.key}`, verifyAs: ["storyPoint"] }
       );
 
       let itemOrder = 0;
@@ -813,50 +835,89 @@ export class SeedPipeline {
     }
 
     // question item — strip the answer into the server-only subcollection
-    const q = item as QuestionItemConfig;
+    const q = item as QuestionItemConfig | ChatAgentQuestionSeedConfig;
+    const isChatAssessment = q.questionType === "chat_agent_question";
+    const chatAssessment = isChatAssessment ? (q as ChatAgentQuestionSeedConfig) : undefined;
     const rubricSnapshot = this.resolveRubricSnapshot(r, q);
 
-    await this.ctx.ensureDoc("item", Paths.item(tenantId, spaceId, storyPointId, itemId), {
-      id: itemId,
-      tenantId,
-      spaceId,
-      storyPointId,
-      type: "question",
-      content: q.prompt,
-      // canonical UnifiedItemSchema: `orderIndex` (int, required).
-      orderIndex: q.order ?? order,
-      // answer-stripped payload (client-facing), canonical discriminated union
-      payload: {
+    await this.ctx.ensureDoc(
+      "item",
+      Paths.item(tenantId, spaceId, storyPointId, itemId),
+      {
+        id: itemId,
+        tenantId,
+        spaceId,
+        storyPointId,
         type: "question",
-        basePoints: q.points ?? 1,
-        questionData: buildItemQuestionData(q),
+        content: q.prompt,
+        // canonical UnifiedItemSchema: `orderIndex` (int, required).
+        orderIndex: q.order ?? order,
+        // answer-stripped payload (client-facing), canonical discriminated union
+        payload: {
+          type: "question",
+          basePoints: isChatAssessment ? 1 : ((q as QuestionItemConfig).points ?? 1),
+          questionData: isChatAssessment
+            ? buildItemQuestionData(q, {
+                interviewerAgentId: r.agentId(chatAssessment!.interviewerAgentKey),
+              })
+            : buildItemQuestionData(q),
+        },
+        ...(chatAssessment?.evaluatorAgentKey
+          ? {
+              meta: {
+                evaluatorAgentId: r.agentId(chatAssessment.evaluatorAgentKey),
+              },
+            }
+          : {}),
+        // resolve-and-store at write (no grade-time settings re-read)
+        rubricId: rubricSnapshot.rubricId,
+        rubric: rubricSnapshot.rubric,
+        ...this.audit(ownerUid),
       },
-      // resolve-and-store at write (no grade-time settings re-read)
-      rubricId: rubricSnapshot.rubricId,
-      rubric: rubricSnapshot.rubric,
-      ...this.audit(ownerUid),
-    });
+      {
+        logicalKey: `item:${spaceKey}/${spKey}/${item.key}`,
+        verifyAs: isChatAssessment ? ["item", "assessmentConfiguration"] : ["item"],
+      }
+    );
 
     // server-only AnswerKey (§6.4) — deny-all subcollection
-    const keyId = seedId("answerKey", `${spaceKey}/${spKey}/${item.key}`);
+    // The one canonical key doc is named after its parent item (same as
+    // repo-admin's answerKeyDoc); never derive an independent answer-key id.
+    const keyId = itemId;
     await this.ctx.ensureDoc(
       "answerKey",
-      Paths.answerKey(tenantId, spaceId, storyPointId, itemId, keyId),
+      Paths.answerKey(tenantId, spaceId, storyPointId, itemId),
+      isChatAssessment
+        ? {
+            id: keyId,
+            itemId,
+            tenantId,
+            spaceId,
+            storyPointId,
+            ...buildChatAgentAnswerKey(q as ChatAgentQuestionSeedConfig),
+          }
+        : {
+            id: keyId,
+            itemId,
+            tenantId,
+            spaceId,
+            storyPointId,
+            questionType: canonicalQuestionType(q.questionType),
+            correctAnswer: (q as QuestionItemConfig).answer.correctAnswer,
+            acceptableAnswers: (q as QuestionItemConfig).answer.acceptableAnswers,
+            evaluationGuidance: (q as QuestionItemConfig).answer.evaluationGuidance, // ⚷
+            modelAnswer: (q as QuestionItemConfig).answer.modelAnswer, // ⚷
+          },
       {
-        id: keyId,
-        itemId,
-        questionType: canonicalQuestionType(q.questionType),
-        correctAnswer: q.answer.correctAnswer,
-        acceptableAnswers: q.answer.acceptableAnswers,
-        evaluationGuidance: q.answer.evaluationGuidance, // ⚷
-        modelAnswer: q.answer.modelAnswer, // ⚷
+        logicalKey: `answerKey:${spaceKey}/${spKey}/${item.key}`,
+        verifyAs: isChatAssessment ? ["answerKey", "assessmentConfiguration"] : ["answerKey"],
       }
     );
   }
 
   private resolveRubricSnapshot(
     r: IdResolver,
-    q: QuestionItemConfig
+    q: QuestionItemConfig | ChatAgentQuestionSeedConfig
   ): { rubricId?: string; rubric?: Record<string, unknown> } {
     if (q.rubricPresetKey) {
       return {
@@ -865,7 +926,13 @@ export class SeedPipeline {
       };
     }
     if (q.rubric) {
-      return { rubricId: undefined, rubric: canonicalRubric(q.rubric, q.points ?? 1) };
+      return {
+        rubricId: undefined,
+        rubric: canonicalRubric(
+          q.rubric,
+          q.questionType === "chat_agent_question" ? 1 : (q.points ?? 1)
+        ),
+      };
     }
     return {};
   }
@@ -1010,6 +1077,13 @@ export class SeedPipeline {
         ? {
             images: exam.questionPaperImages,
             extractedAt: null,
+            // Seeded questions always carry a rubric (canonicalRubric / holistic
+            // fallback below), so the exam is rubric-complete by construction —
+            // stamp the grading-eligibility gate field (uploadAnswerSheets
+            // FAILED_PRECONDITIONs without it). Deterministic (seed-stable).
+            ...(exam.questions && exam.questions.length > 0
+              ? { rubricsGeneratedAt: isoTimestamp(exam.examDate) }
+              : {}),
             questionCount: exam.questions?.length ?? 0,
             examType: "standard",
           }

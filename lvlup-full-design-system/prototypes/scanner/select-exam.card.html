@@ -1,0 +1,355 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Select Exam" subtitle="Scan tab home · pick exam · published/grading · search" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Exam</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — no token redefs, no hex; all classes prefixed select- */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  /* phone frame shell (shared across the 9 scanner cards) */
+  .ph { width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+        border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+        background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+  .ph__top { height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+        padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .ph__body { flex:1; overflow-y:auto; position:relative; }
+  .ph__tabs { flex:0 0 auto; }
+  .ph__brand { display:flex; align-items:center; gap:var(--space-2); }
+  .ph__mark { width:26px; height:26px; border-radius:var(--radius-md); background:var(--brand-primary);
+        color:var(--text-on-accent); display:grid; place-items:center; font-family:var(--font-display);
+        font-weight:var(--weight-bold); font-size:var(--text-sm); }
+  .ph__title { font-family:var(--font-display); font-size:var(--text-sm); font-weight:var(--weight-semibold); }
+  .ph__top-right { margin-left:auto; display:flex; align-items:center; }
+
+  /* ---- select-exam view ---- */
+  .select-wrap { padding:var(--space-4) var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-4); }
+
+  .select-header { display:flex; align-items:center; gap:var(--space-3); }
+  .select-id { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .select-name { font-family:var(--font-display); font-size:var(--text-base); font-weight:var(--weight-semibold); line-height:var(--leading-base); }
+  .select-school { display:flex; align-items:center; gap:var(--space-2); }
+  .select-school__name { font-size:var(--text-xs); color:var(--text-secondary); }
+  .select-code { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.04em;
+        background:var(--bg-surface-sunken); border:1px solid var(--border-subtle); color:var(--text-muted);
+        padding:1px var(--space-2); border-radius:var(--radius-sm); }
+
+  .select-guide { background:var(--brand-subtle); border:1px solid var(--border-subtle);
+        border-radius:var(--radius-lg); padding:var(--space-3); }
+  .select-guide__head { display:flex; align-items:center; gap:var(--space-2); width:100%;
+        background:none; border:0; padding:0; cursor:pointer; font:inherit; color:var(--text-primary); }
+  .select-guide__eyebrow { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.06em;
+        text-transform:uppercase; color:var(--brand-primary); font-weight:var(--weight-medium); }
+  .select-guide__chev { margin-left:auto; display:inline-flex; color:var(--text-muted); }
+  .select-guide__steps { display:flex; flex-wrap:wrap; gap:var(--space-2); margin-top:var(--space-3); }
+  .select-step { display:inline-flex; align-items:center; gap:var(--space-2); background:var(--bg-surface);
+        border:1px solid var(--border-subtle); border-radius:var(--radius-pill);
+        padding:var(--space-1) var(--space-3) var(--space-1) var(--space-1); }
+  .select-step__n { width:20px; height:20px; border-radius:50%; background:var(--brand-primary);
+        color:var(--text-on-accent); display:grid; place-items:center; font-family:var(--font-mono);
+        font-size:var(--text-2xs); font-weight:var(--weight-semibold); }
+  .select-step__l { font-size:var(--text-xs); color:var(--text-secondary); }
+
+  .select-search { position:relative; }
+
+  .select-list { display:flex; flex-direction:column; gap:var(--space-3); }
+  .select-card { display:flex; flex-direction:column; gap:var(--space-3); cursor:pointer; }
+  .select-card__top { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-3); }
+  .select-card__title { font-family:var(--font-display); font-size:var(--text-base);
+        font-weight:var(--weight-semibold); line-height:var(--leading-base); margin:0; }
+  .select-card__subline { display:flex; align-items:center; gap:var(--space-2); margin-top:var(--space-1); }
+  .select-card__meta { display:flex; align-items:center; gap:var(--space-4); flex-wrap:wrap;
+        padding-top:var(--space-3); border-top:1px solid var(--border-subtle); }
+  .select-meta { display:inline-flex; align-items:center; gap:var(--space-2);
+        font-size:var(--text-xs); color:var(--text-secondary); }
+  .select-meta__v { font-family:var(--font-mono); color:var(--text-primary); font-variant-numeric:tabular-nums; }
+  .select-meta__date { margin-left:auto; }
+  .select-card__cta { color:var(--text-muted); display:inline-flex; align-items:center; align-self:center; }
+
+  .select-statusbadge { display:inline-flex; align-items:center; gap:var(--space-1); }
+
+  .select-count { font-size:var(--text-2xs); color:var(--text-muted); font-family:var(--font-mono);
+        letter-spacing:0.04em; text-transform:uppercase; }
+
+  /* reference state tiles below the phone */
+  .select-states { display:flex; flex-direction:column; gap:var(--space-5); max-width:390px; margin:0 auto var(--space-12); }
+  .select-state-box { border:1px dashed var(--border-strong); border-radius:var(--radius-lg);
+        padding:var(--space-4); background:var(--bg-surface); }
+  .select-state-cap { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.04em;
+        text-transform:uppercase; color:var(--text-muted); margin:0 0 var(--space-3); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Icon, IconButton, Input, Button, Badge, Chip, Card, Avatar,
+          EmptyState, Skeleton, Tabbar } = LU;
+  const { useState, useMemo } = React;
+
+  /* ===================================================================== */
+  /* SelectExamView — Scan tab home (flow step 1). Lifted verbatim to SPA. */
+  /* ===================================================================== */
+
+  /* Only published/grading exams are ever scannable — server already filters,
+     this just maps that status to an icon+label badge (never color alone). */
+  const SELECT_STATUS_META = {
+    published: { label: "Published", icon: "check-circle", variant: "info" },
+    grading:   { label: "Grading",   icon: "pencil-ruler", variant: "spark" },
+  };
+
+  const SELECT_MOCK_EXAMS = [
+    { id:"EX-MATH-7U3", title:"Mathematics — Unit Test 3", subject:"Algebra",
+      date:"2026-06-18", marks:50, questions:12, status:"published" },
+    { id:"EX-PHY-MID",  title:"Physics — Mid-term",        subject:"Mechanics",
+      date:"2026-06-16", marks:75, questions:18, status:"grading" },
+    { id:"EX-ENG-CMP",  title:"English — Comprehension",   subject:"Language",
+      date:"2026-06-14", marks:40, questions:8,  status:"published" },
+    { id:"EX-CHE-WK2",  title:"Chemistry — Weekly Quiz 2", subject:"Organic",
+      date:"2026-06-11", marks:25, questions:10, status:"published" },
+  ];
+
+  function selectFmtDate(iso){
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
+  }
+
+  function SelectStatusBadge({ status }){
+    const m = SELECT_STATUS_META[status] || SELECT_STATUS_META.published;
+    return (
+      <Badge variant={m.variant}>
+        <span className="select-statusbadge"><Icon name={m.icon} size={12}/> {m.label}</span>
+      </Badge>
+    );
+  }
+
+  function SelectGuide(){
+    const [open, setOpen] = useState(true);
+    const steps = [
+      { n:1, label:"Pick exam" },
+      { n:2, label:"Pick student" },
+      { n:3, label:"Capture" },
+      { n:4, label:"Submit" },
+    ];
+    return (
+      <div className="select-guide">
+        <button className="select-guide__head" aria-expanded={open}
+                aria-controls="select-guide-steps" onClick={()=>setOpen(o=>!o)}>
+          <Icon name="route" size={14}/>
+          <span className="select-guide__eyebrow">How scanning works</span>
+          <span className="select-guide__chev">
+            <Icon name={open ? "chevron-up" : "chevron-down"} size={16}/>
+          </span>
+        </button>
+        {open && (
+          <div className="select-guide__steps" id="select-guide-steps">
+            {steps.map(s => (
+              <span key={s.n} className="select-step">
+                <span className="select-step__n">{s.n}</span>
+                <span className="select-step__l">{s.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function SelectExamRow({ exam, onPick }){
+    const m = SELECT_STATUS_META[exam.status] || SELECT_STATUS_META.published;
+    const aria = [
+      exam.title, exam.subject, "exam date " + selectFmtDate(exam.date),
+      exam.marks + " marks", exam.questions + " questions", m.label,
+    ].join(", ");
+    const activate = () => onPick(exam);
+    return (
+      <Card interactive>
+        <div className="select-card" role="button" tabIndex={0} aria-label={aria}
+             onClick={activate}
+             onKeyDown={(e)=>{ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); } }}>
+          <div className="select-card__top">
+            <div style={{minWidth:0}}>
+              <h3 className="select-card__title">{exam.title}</h3>
+              <div className="select-card__subline">
+                <Badge><span className="select-statusbadge"><Icon name="book-open" size={12}/> {exam.subject}</span></Badge>
+              </div>
+            </div>
+            <SelectStatusBadge status={exam.status}/>
+          </div>
+          <div className="select-card__meta">
+            <span className="select-meta">
+              <Icon name="award" size={14}/>
+              <span className="select-meta__v">{exam.marks}</span> marks
+            </span>
+            <span className="select-meta">
+              <Icon name="list-checks" size={14}/>
+              <span className="select-meta__v">{exam.questions}</span> Q
+            </span>
+            <span className="select-meta select-meta__date">
+              <Icon name="calendar" size={14}/>
+              <span className="select-meta__v">{selectFmtDate(exam.date)}</span>
+            </span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  function SelectExamView({ nav, params, ctx }){
+    ctx = ctx || {};
+    const scanner = ctx.scanner || { name:"Priya Nair", initials:"PN", school:"Sunrise Academy", code:"SUN042" };
+    const source = (ctx.exams && ctx.exams.length) ? ctx.exams : SELECT_MOCK_EXAMS;
+    const [q, setQ] = useState("");
+
+    const exams = useMemo(()=>{
+      const term = q.trim().toLowerCase();
+      const filtered = term
+        ? source.filter(e =>
+            (e.title || "").toLowerCase().includes(term) ||
+            (e.subject || "").toLowerCase().includes(term))
+        : source.slice();
+      return filtered.sort((a,b)=> (b.date || "").localeCompare(a.date || ""));
+    }, [source, q]);
+
+    const pick = (exam) => {
+      if (typeof ctx.setSelectedExam === "function") ctx.setSelectedExam(exam);
+      else ctx.selectedExam = exam;
+      if (nav && nav.go) nav.go('#/scan/e/' + exam.id);
+    };
+
+    return (
+      <div className="select-wrap">
+        {/* dashboard header */}
+        <div className="select-header">
+          <Avatar initials={scanner.initials} size="lg" />
+          <div className="select-id">
+            <span className="select-name">{scanner.name}</span>
+            <span className="select-school">
+              <span className="select-school__name">{scanner.school}</span>
+              <span className="select-code">{scanner.code}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* collapsible quick guide */}
+        <SelectGuide/>
+
+        {/* search */}
+        <div className="select-search">
+          <Input value={q} onChange={(e)=>setQ(e.target.value)}
+                 placeholder="Search by title or subject…"
+                 aria-label="Search exams by title or subject" />
+        </div>
+
+        {exams.length > 0 && (
+          <span className="select-count">{exams.length} exam{exams.length === 1 ? "" : "s"} ready to scan</span>
+        )}
+
+        {/* exam list / empties */}
+        {exams.length > 0 ? (
+          <div className="select-list">
+            {exams.map(e => <SelectExamRow key={e.id} exam={e} onPick={pick} />)}
+          </div>
+        ) : q.trim() ? (
+          <EmptyState icon="search-x" title="No exams match"
+            body={'Nothing matches “' + q.trim() + '”. Try a different title or subject.'}
+            action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={16}/>}
+                      onClick={()=>setQ("")}>Clear search</Button>} />
+        ) : (
+          <EmptyState icon="clipboard-list" title="No exams ready to scan yet"
+            body="When a teacher publishes an exam for your school, it'll appear here with its subject, date and marks — ready for you to scan." />
+        )}
+      </div>
+    );
+  }
+
+  /* ===================================================================== */
+  /* Standalone Demo — phone frame + topbar + tabbar + mock nav/ctx        */
+  /* ===================================================================== */
+  function SelectTopbar(){
+    return (
+      <div className="ph__top">
+        <div className="ph__brand">
+          <span className="ph__mark">A</span>
+          <span className="ph__title">AutoGrade Scan</span>
+        </div>
+        <div className="ph__top-right">
+          <IconButton icon={<Icon name="settings" size={18}/>} label="Settings" />
+        </div>
+      </div>
+    );
+  }
+
+  function Demo(){
+    const nav = { go:(h)=>{}, back:()=>{} };
+    const ctx = {
+      scanner: { name:"Priya Nair", initials:"PN", school:"Sunrise Academy", code:"SUN042" },
+      exams: SELECT_MOCK_EXAMS,
+      online: true,
+      setSelectedExam: ()=>{},
+      toast: ()=>{},
+    };
+    const tabs = [
+      { icon:"scan-line", label:"Scan", active:true, href:"#/scan" },
+      { icon:"upload-cloud", label:"Queue", href:"#/queue" },
+      { icon:"history", label:"History", href:"#/history" },
+    ];
+    return (
+      <div>
+        <div className="ph">
+          <SelectTopbar/>
+          <div className="ph__body">
+            <SelectExamView nav={nav} params={{}} ctx={ctx} />
+          </div>
+          <div className="ph__tabs"><Tabbar items={tabs} /></div>
+        </div>
+
+        {/* reference state tiles */}
+        <div className="select-states">
+          <div className="select-state-box">
+            <p className="select-state-cap">State · loading skeleton</p>
+            <div className="select-list">
+              {[0,1,2].map(i => (
+                <Card key={i}>
+                  <div className="select-card">
+                    <div className="select-card__top">
+                      <div style={{flex:1}}>
+                        <Skeleton width="70%" height="16px"/>
+                        <div style={{marginTop:"var(--space-2)"}}><Skeleton width="40%" height="20px"/></div>
+                      </div>
+                      <Skeleton width="84px" height="22px"/>
+                    </div>
+                    <div className="select-card__meta">
+                      <Skeleton width="56px" height="14px"/>
+                      <Skeleton width="40px" height="14px"/>
+                      <Skeleton width="90px" height="14px"/>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div className="select-state-box">
+            <p className="select-state-cap">State · empty (no scannable exams)</p>
+            <EmptyState icon="clipboard-list" title="No exams ready to scan yet"
+              body="When a teacher publishes an exam for your school, it'll appear here, ready to scan." />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

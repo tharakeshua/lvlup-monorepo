@@ -66,7 +66,7 @@ export function Chip({
     <Wrap
       onPress={onPress}
       className={cx(
-        "rounded-pill flex-row items-center gap-1.5 self-start border px-3 py-1.5",
+        "rounded-pill min-h-10 flex-row items-center gap-1.5 self-start border px-3 py-2",
         active ? "border-brand bg-brand-subtle" : "border-border-strong bg-surface",
         className
       )}
@@ -259,7 +259,7 @@ export function ListRow({
     <Wrap
       onPress={onPress}
       className={cx(
-        "flex-row items-center gap-3 rounded-md px-1 py-3",
+        "min-h-14 flex-row items-center gap-3 rounded-lg px-2 py-3",
         onPress && "active:bg-surface-sunken",
         className
       )}
@@ -295,10 +295,10 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   const right = actions ?? action ?? rightProp;
   return (
-    <View className={cx("flex-row items-end justify-between", className)}>
+    <View className={cx("flex-row items-end justify-between gap-3", className)}>
       <View className="flex-1">
         {typeof title === "string" ? (
-          <Text className="font-display text-text-primary text-lg font-semibold">{title}</Text>
+          <Text className="font-display text-text-primary text-lg leading-6">{title}</Text>
         ) : (
           title
         )}
@@ -332,7 +332,12 @@ export function Skeleton({
 // --- EmptyState -------------------------------------------------------------
 export function EmptyState({ icon, title, body, action, className }: EmptyStateProps) {
   return (
-    <View className={cx("items-center justify-center gap-3 px-6 py-12", className)}>
+    <View
+      className={cx(
+        "border-border-subtle bg-surface/70 items-center justify-center gap-3 rounded-xl border px-6 py-10",
+        className
+      )}
+    >
       {icon != null && (
         <View className="bg-surface-sunken h-14 w-14 items-center justify-center rounded-full">
           {renderIcon(icon, { size: 26, color: colors.textMuted })}

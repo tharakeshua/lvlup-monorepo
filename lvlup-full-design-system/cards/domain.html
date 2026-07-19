@@ -1,0 +1,107 @@
+<!-- @dsCard group="Components" name="Domain — Assessment & Gamification" subtitle="Questions, grading, mastery tracks, XP & streaks" viewport="1240x1560" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyceum — Domain</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="ds-card">
+  <div class="ds-card__head">
+    <div class="u-eyebrow">Components · §5.6 — cross-app domain</div>
+    <h1 class="ds-card__title">Assessment & Gamification</h1>
+    <p class="ds-card__subtitle">The components that make Lyceum itself — exam delivery, AI-assisted grading, mastery and motivation.</p>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Question card & answer options</div>
+    <div class="ds-grid" style="grid-template-columns:1.4fr 1fr; align-items:start">
+      <div class="question">
+        <div class="question__head"><span class="question__type">Multiple choice</span><span class="question__points">2 pts</span></div>
+        <div class="question__prompt">A 2&nbsp;kg cart accelerates at 3&nbsp;m/s². What net force acts on it?</div>
+        <div class="ds-col">
+          <label class="option"><span class="option__marker">A</span>3 N</label>
+          <label class="option option--selected"><span class="option__marker">B</span>6 N</label>
+          <label class="option"><span class="option__marker">C</span>1.5 N</label>
+          <label class="option"><span class="option__marker">D</span>9 N</label>
+        </div>
+      </div>
+      <div class="ds-col" style="gap:var(--space-4)">
+        <div class="ds-col" style="gap:var(--space-2)">
+          <span class="u-caption">Graded states</span>
+          <label class="option option--correct"><span class="option__marker">B</span>6 N · correct</label>
+          <label class="option option--incorrect"><span class="option__marker">C</span>1.5 N · selected</label>
+        </div>
+        <div class="timer timer--warning">
+          <span class="timer__clock">04:12</span>
+          <div class="timer__bar"><div class="timer__fill" style="width:42%"></div></div>
+        </div>
+        <span class="timer__server-tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Server-authoritative</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Grading — rubric, override & keys</div>
+    <div class="ds-grid" style="grid-template-columns:1.3fr 1fr; align-items:start">
+      <div class="card">
+        <div class="ds-row" style="justify-content:space-between"><span class="card__title">Free-response · Q7</span><span class="grade-pill grade-pill--b">B</span></div>
+        <div class="rubric">
+          <div class="rubric__row"><div><div class="rubric__criterion">Correct equation</div><div class="rubric__desc">F = ma identified</div></div><span class="rubric__score rubric__score--full">2 / 2</span></div>
+          <div class="rubric__row"><div><div class="rubric__criterion">Substitution</div><div class="rubric__desc">Values placed correctly</div></div><span class="rubric__score rubric__score--full">2 / 2</span></div>
+          <div class="rubric__row"><div><div class="rubric__criterion">Units in answer</div><div class="rubric__desc">Omitted "N"</div></div><span class="rubric__score rubric__score--zero">0 / 1</span></div>
+        </div>
+      </div>
+      <div class="ds-col" style="gap:var(--space-3)">
+        <div class="override"><span class="override__label">Manual override · was 4 → set 5</span></div>
+        <div class="keylock"><span class="keylock__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="keylock__text"><strong>Answer key</strong> held server-side</span></div>
+        <div class="insight"><span class="insight__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></span><div><div class="insight__title">Common miss</div><div class="insight__body">38% of the class dropped the units point.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Mastery track</div>
+    <div class="track">
+      <div class="track__node"><div class="node node--mastered">✓</div><span class="node__label">Kinematics</span></div>
+      <div class="track__connector track__connector--done"></div>
+      <div class="track__node"><div class="node node--mastered">✓</div><span class="node__label">Forces</span></div>
+      <div class="track__connector track__connector--done"></div>
+      <div class="track__node"><div class="node node--in-progress">3</div><span class="node__label">Energy</span></div>
+      <div class="track__connector"></div>
+      <div class="track__node"><div class="node node--locked">4</div><span class="node__label">Momentum</span></div>
+      <div class="track__connector"></div>
+      <div class="track__node"><div class="node node--locked">5</div><span class="node__label">Rotation</span></div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Gamification</div>
+    <div class="ds-grid" style="grid-template-columns:1.2fr 1fr; align-items:start">
+      <div class="card">
+        <div class="ds-row" style="justify-content:space-between; align-items:flex-start">
+          <span class="level-badge"><span class="level-badge__num">7</span><span class="level-badge__cap">LVL</span></span>
+          <div class="ds-row"><span class="streak"><span class="streak__flame"><svg viewBox="0 0 24 24"><path d="M12 2c1 4-2 5-2 8a2 2 0 0 0 4 0c2 2 3 4 3 6a5 5 0 0 1-10 0c0-5 5-7 5-14z"/></svg></span><span class="streak__count">12</span></span></div>
+        </div>
+        <div class="xpmeter">
+          <div class="xpmeter__head"><span class="xpmeter__level">Scholar</span><span class="xpmeter__count">1,240 / 1,500 XP</span></div>
+          <div class="xpmeter__bar"><div class="xpmeter__fill" style="width:82%"></div></div>
+        </div>
+      </div>
+      <div class="ds-col" style="gap:var(--space-4)">
+        <div class="panel">
+          <div class="leaderboard-row"><span class="leaderboard-row__rank leaderboard-row__rank--top">1</span><span class="avatar avatar--sm">DM</span><span class="leaderboard-row__name">Diego M.</span><span class="leaderboard-row__xp">2,980</span></div>
+          <div class="leaderboard-row leaderboard-row--me"><span class="leaderboard-row__rank">4</span><span class="avatar avatar--sm">YOU</span><span class="leaderboard-row__name">You</span><span class="leaderboard-row__xp">1,240</span></div>
+        </div>
+        <div class="ds-row">
+          <div class="achievement"><span class="achievement__medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg></span><span class="achievement__name">Perfect Week</span></div>
+          <div class="achievement achievement--locked"><span class="achievement__medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg></span><span class="achievement__name">Top of Class</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

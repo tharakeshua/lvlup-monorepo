@@ -1,0 +1,623 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Learner App Shell ★" subtitle="Role-aware frame · Sidebar/Topbar · XP/streak chrome" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learner App Shell ★</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* The live desktop shell — gives Drawer/Modal a positioned ancestor */
+  .shell-frame { position: relative; height: 760px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  /* sidebar internal scaffolding */
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-roleswitch { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface-sunken);
+    cursor: pointer; }
+  .sb-roleswitch:hover { border-color: var(--border-strong); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  /* topbar pieces */
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-kbd:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+  .tb-bell { position: relative; }
+  .tb-bell-badge { position: absolute; top: -4px; right: -4px; }
+
+  /* main content grid (Dashboard-ish so the frame looks live) */
+  .main-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4);
+    margin-bottom: var(--space-5); }
+  .greet { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .greet-sub { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); }
+  .chrome-strip { display: flex; align-items: center; gap: var(--space-3); }
+  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--space-5); }
+  .stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .cont-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+  .cont-row__body { flex: 1; min-width: 0; }
+  .cont-row__title { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .cont-row__meta { color: var(--text-muted); font-size: var(--text-xs); margin-top: 2px; }
+
+  /* popover anchored inside topbar */
+  .bell-wrap { position: relative; }
+  .bell-pop { position: absolute; top: calc(100% + var(--space-2)); right: 0; width: 340px; z-index: 50; }
+  .notif-row { display: flex; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md);
+    cursor: pointer; }
+  .notif-row:hover { background: var(--bg-surface-sunken); }
+  .notif-dot { width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--brand-primary);
+    margin-top: 6px; flex: 0 0 auto; }
+  .notif-dot--read { background: var(--border-strong); }
+  .notif-row__body b { font-size: var(--text-sm); font-weight: var(--weight-medium); display: block; }
+  .notif-row__body span { font-size: var(--text-xs); color: var(--text-muted); }
+
+  /* avatar menu popover */
+  .avatar-menu { position: absolute; bottom: calc(100% + var(--space-2)); left: var(--space-3);
+    right: var(--space-3); z-index: 50; }
+  .menu-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--text-secondary); cursor: pointer; }
+  .menu-item:hover { background: var(--bg-surface-sunken); color: var(--text-primary); }
+
+  /* state tiles row */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+
+  /* mini shell preview for md / sm / b2c variants */
+  .mini { position: relative; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+    overflow: hidden; height: 300px; background: var(--bg-surface); }
+  .mini-topbar { height: 44px; display: flex; align-items: center; gap: var(--space-3);
+    padding: 0 var(--space-3); border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface); }
+  .mini-main { background: var(--bg-canvas); padding: var(--space-4); height: calc(100% - 44px); overflow: hidden; }
+  .mini-tabbar { position: absolute; left: 0; right: 0; bottom: 0; }
+  .mini-side { position: absolute; top: 0; bottom: 0; left: 0; width: 180px; background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle); padding: var(--space-3); display: flex; flex-direction: column; gap: 2px; }
+  .row-gap { display: flex; align-items: center; gap: var(--space-2); }
+
+  .skel-nav { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); }
+  .skel-row { display: flex; align-items: center; gap: var(--space-3); }
+
+  /* spark celebration host marker */
+  .burst-host { position: relative; display: inline-flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg);
+    background: var(--spark-subtle); border: 1px solid var(--spark); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Tabbar, CommandPalette,
+    Card, Panel, Drawer, Modal, Alert, EmptyState, Skeleton, ProgressBar,
+    ProgressRing, Switch, Kbd, Chip
+  } = LU;
+  const { useState } = React;
+
+  /* ---- B2B sidebar nav model ---- */
+  const B2B_NAV = [
+    { icon: "layout-dashboard", label: "Dashboard", key: "dashboard" },
+    { icon: "book-open", label: "My Spaces", key: "spaces" },
+    { icon: "file-check", label: "Tests", key: "tests" },
+    { icon: "trophy", label: "Leaderboard", key: "leaderboard" },
+    { icon: "user", label: "Profile", key: "profile" },
+    { icon: "settings", label: "Settings", key: "settings" },
+  ];
+  const B2C_NAV = [
+    { icon: "graduation-cap", label: "My Learning", key: "learning" },
+    { icon: "store", label: "Store", key: "store" },
+    { icon: "shopping-cart", label: "Cart", key: "cart", badge: "2" },
+    { icon: "user", label: "Profile", key: "profile" },
+  ];
+
+  function NavLink({ icon, label, active, badge, onClick }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => { e.preventDefault(); onClick && onClick(); }}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+        {badge && <span className="nav-item__badge"><Badge>{badge}</Badge></span>}
+      </a>
+    );
+  }
+
+  function Brand({ name, mark }) {
+    return (
+      <div className="sidebar__brand">
+        <span className="sidebar__brand-mark">{mark}</span>
+        <span className="sidebar__brand-name">{name}</span>
+      </div>
+    );
+  }
+
+  /* ============================ PRIMARY: LG B2B SHELL ============================ */
+  function PrimaryShell() {
+    const [activeKey, setActiveKey] = useState("dashboard");
+    const [bellOpen, setBellOpen] = useState(false);
+    const [avatarOpen, setAvatarOpen] = useState(false);
+    const [cmdkOpen, setCmdkOpen] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [roleOpen, setRoleOpen] = useState(false);
+    const [switching, setSwitching] = useState(false);
+    const [unread, setUnread] = useState(3);
+    const [notifs, setNotifs] = useState([
+      { id: 1, title: "Aanya replied to your question in Two Sum", time: "12m ago", read: false },
+      { id: 2, title: "New story point unlocked: Sliding Window", time: "1h ago", read: false },
+      { id: 3, title: "Mock Test 4 results are released", time: "3h ago", read: false },
+      { id: 4, title: "You hit a 6-day streak — keep it going!", time: "Yesterday", read: true },
+    ]);
+
+    const markRead = (id) => {
+      setNotifs((ns) => ns.map((n) => n.id === id ? { ...n, read: true } : n));
+      setUnread((u) => Math.max(0, u - 1));
+    };
+    const markAll = () => { setNotifs((ns) => ns.map((n) => ({ ...n, read: true }))); setUnread(0); };
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <Brand name="Crestwood Academy" mark="C" />
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {B2B_NAV.map((n) => (
+                <NavLink key={n.key} icon={n.icon} label={n.label}
+                  active={activeKey === n.key} onClick={() => setActiveKey(n.key)} />
+              ))}
+            </div>
+
+            <div className="sb-foot">
+              {/* RoleSwitcher — only when ≥2 student memberships */}
+              <div style={{ position: "relative" }}>
+                <div className="sb-roleswitch" onClick={() => { if (!switching) setRoleOpen((o) => !o); }}
+                     role="button" aria-haspopup="menu" aria-expanded={roleOpen}
+                     aria-disabled={switching}
+                     style={switching ? { opacity: 0.7, cursor: "progress" } : undefined}>
+                  <Icon name={switching ? "loader" : "repeat"} size={16}
+                        style={switching ? { color: "var(--brand-primary)" } : undefined} />
+                  <div className="sb-meta" style={{ flex: 1 }}>
+                    <b>{switching ? "Switching school…" : "Crestwood Academy"}</b>
+                    <span>{switching ? "Refreshing your access" : "Switch school"}</span>
+                  </div>
+                  {!switching && <Icon name="chevrons-up-down" size={14} />}
+                </div>
+                {roleOpen && !switching && (
+                  <div className="popover" style={{ position: "absolute", bottom: "calc(100% + var(--space-2))",
+                    left: 0, right: 0, padding: "var(--space-2)", zIndex: 50 }}>
+                    <div className="menu-item" aria-current="true"
+                         style={{ color: "var(--brand-primary)", fontWeight: "var(--weight-semibold)" }}>
+                      <Icon name="check" size={16} /> Crestwood Academy
+                    </div>
+                    {/* Selecting a tenant -> immediate pending state (switchActiveTenant + token refresh) */}
+                    <div className="menu-item" role="button"
+                         onClick={() => { setRoleOpen(false); setSwitching(true);
+                           setTimeout(() => setSwitching(false), 1600); }}>
+                      <Icon name="building-2" size={16} /> Northgate Coaching
+                    </div>
+                    <div className="u-caption" style={{ padding: "var(--space-2) var(--space-3) 0" }}>
+                      You're learning at Crestwood Academy.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Avatar menu */}
+              <div style={{ position: "relative" }}>
+                <div className="sb-avatar-row" onClick={() => setAvatarOpen((o) => !o)}
+                     role="button" aria-haspopup="menu" aria-expanded={avatarOpen}>
+                  <Avatar initials="RK" />
+                  <div className="sb-meta" style={{ flex: 1 }}>
+                    <b>Rohan Kapoor</b>
+                    <span>rohan.k@crestwood.edu</span>
+                  </div>
+                  <Icon name="chevron-up" size={16} />
+                </div>
+                {avatarOpen && (
+                  <div className="popover avatar-menu" style={{ padding: "var(--space-2)" }}>
+                    <div className="menu-item"><Icon name="user" size={16} /> Profile</div>
+                    <div className="menu-item"><Icon name="settings" size={16} /> Settings</div>
+                    <div className="menu-item" style={{ color: "var(--status-error)" }}>
+                      <Icon name="log-out" size={16} /> Sign Out
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <Breadcrumb items={[
+              { label: "My Spaces", href: "#" },
+              { label: "DSA Mastery", href: "#" },
+              { label: "Dashboard" },
+            ]} />
+            <div className="topbar__spacer" />
+            <div className="tb-kbd" onClick={() => setCmdkOpen(true)}
+                 role="button" aria-label="Search, command menu">
+              <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+            </div>
+            <IconButton icon={<Icon name="sun" size={20} />} label="Toggle theme" />
+            <div className="bell-wrap">
+              <div className="tb-bell">
+                <IconButton icon={<Icon name="bell" size={20} />} label={unread + " unread updates"}
+                  onClick={() => setBellOpen((o) => !o)} />
+                {unread > 0 && (
+                  <span className="tb-bell-badge"><Badge variant="spark">{unread > 9 ? "9+" : unread}</Badge></span>
+                )}
+              </div>
+              {bellOpen && (
+                <div className="bell-pop">
+                  <Panel title="Updates" actions={
+                    <Button variant="ghost" size="sm" onClick={markAll}>Mark all read</Button>
+                  }>
+                    <div>
+                      {notifs.map((n) => (
+                        <div key={n.id} className="notif-row" onClick={() => markRead(n.id)}>
+                          <span className={"notif-dot" + (n.read ? " notif-dot--read" : "")}
+                                aria-hidden="true" />
+                          <div className="notif-row__body">
+                            <b>{n.title}</b>
+                            <span>{n.read ? "Read · " : "New · "}{n.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div style={{ paddingTop: "var(--space-2)", borderTop: "1px solid var(--border-subtle)",
+                        marginTop: "var(--space-2)" }}>
+                        <Button variant="ghost" size="sm" block>See all updates</Button>
+                      </div>
+                    </div>
+                  </Panel>
+                </div>
+              )}
+            </div>
+            <Avatar initials="RK" />
+          </header>
+
+          {/* MAIN */}
+          <main className="appshell__main" id="main-content">
+            {/* Offline banner host (dismissible state shown in tiles below) */}
+            <div className="main-head">
+              <div>
+                <h1 className="greet">Welcome back, Rohan 👋</h1>
+                <div className="greet-sub">You're on a 6-day streak. Two new story points are waiting for you.</div>
+              </div>
+              <div className="chrome-strip">
+                <div className="burst-host" title="CelebrationBurst portal host">
+                  <Icon name="sparkles" size={18} />
+                  <span style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>
+                    +120 XP earned today
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid-2">
+              <Panel title="Continue learning" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>All spaces</Button>}>
+                <div className="stack">
+                  <div className="cont-row">
+                    <ProgressRing value={62} size={48} />
+                    <div className="cont-row__body">
+                      <div className="cont-row__title">DSA Mastery · Sliding Window</div>
+                      <div className="cont-row__meta">Story point 4 of 8 · Unlocked today</div>
+                    </div>
+                    <Button variant="primary" size="sm">Resume</Button>
+                  </div>
+                  <div className="cont-row">
+                    <ProgressRing value={40} size={48} />
+                    <div className="cont-row__body">
+                      <div className="cont-row__title">System Design · Caching Patterns</div>
+                      <div className="cont-row__meta">Story point 2 of 5 · In progress</div>
+                    </div>
+                    <Button variant="secondary" size="sm">Continue</Button>
+                  </div>
+                  <div className="cont-row">
+                    <Icon name="lock" size={20} style={{ color: "var(--text-muted)" }} />
+                    <div className="cont-row__body">
+                      <div className="cont-row__title">Behavioral · STAR Stories</div>
+                      <div className="cont-row__meta">Unlocks after you finish Caching Patterns</div>
+                    </div>
+                    <Chip>Locked</Chip>
+                  </div>
+                </div>
+              </Panel>
+
+              <Panel title="This week">
+                <div className="stack">
+                  <div className="row-gap" style={{ justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>XP toward Level 8</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)" }}>1,840 / 2,200</span>
+                  </div>
+                  <ProgressBar value={84} variant="spark" />
+                  <div className="row-gap" style={{ marginTop: "var(--space-2)" }}>
+                    <Icon name="flame" size={18} style={{ color: "var(--streak)" }} />
+                    <span style={{ fontSize: "var(--text-sm)" }}>6-day streak · Best is 14</span>
+                  </div>
+                  <div className="row-gap">
+                    <Icon name="circle-check" size={18} style={{ color: "var(--status-success)" }} />
+                    <span style={{ fontSize: "var(--text-sm)" }}>3 of 5 weekly goals done</span>
+                  </div>
+                </div>
+              </Panel>
+            </div>
+          </main>
+        </div>
+
+        {/* md off-canvas drawer (default closed; trigger lives in md-state tile) */}
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} side="left" title="Crestwood Academy">
+          <div className="sidebar__nav">
+            <div className="sidebar__section-label">Learn</div>
+            {B2B_NAV.map((n) => (
+              <NavLink key={n.key} icon={n.icon} label={n.label}
+                active={activeKey === n.key} onClick={() => { setActiveKey(n.key); setDrawerOpen(false); }} />
+            ))}
+          </div>
+        </Drawer>
+
+        {/* ⌘K Command Palette */}
+        <Modal open={cmdkOpen} onClose={() => setCmdkOpen(false)} title="Jump to">
+          <CommandPalette selected={0} placeholder="Search spaces, tests, or pages…" items={[
+            { icon: "layout-dashboard", label: "Dashboard", kbd: "G D" },
+            { icon: "book-open", label: "My Spaces", kbd: "G S" },
+            { icon: "file-check", label: "Tests", kbd: "G T" },
+            { icon: "trophy", label: "Leaderboard", kbd: "G L" },
+            { icon: "book-open", label: "DSA Mastery · Sliding Window" },
+            { icon: "user", label: "Profile" },
+          ]} />
+        </Modal>
+
+        {/* hidden trigger wiring for drawer (referenced by md tile button via state) */}
+        <button data-open-drawer style={{ display: "none" }} onClick={() => setDrawerOpen(true)} />
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    const [pwaOpen, setPwaOpen] = useState(true);
+    const [swOpen, setSwOpen] = useState(true);
+
+    return (
+      <div className="tiles">
+        {/* Booting / full-screen PageLoader */}
+        <div className="tile">
+          <div className="eyebrow">State: booting (auth resolving)</div>
+          <div style={{ height: 130, display: "grid", placeItems: "center",
+            background: "var(--bg-canvas)", borderRadius: "var(--radius-md)" }}>
+            <div style={{ textAlign: "center" }}>
+              <div className="sidebar__brand-mark" style={{ width: 42, height: 42, margin: "0 auto" }}>C</div>
+              <div className="u-caption" style={{ marginTop: "var(--space-3)" }}>Setting up your study desk…</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Shell ready, route loading skeleton */}
+        <div className="tile">
+          <div className="eyebrow">State: route loading (chrome stays, main skeletons)</div>
+          <div className="skel-nav">
+            <div className="skel-row"><Skeleton variant="circle" width="20px" height="20px" /><Skeleton width="60%" /></div>
+            <div className="skel-row"><Skeleton variant="circle" width="20px" height="20px" /><Skeleton width="45%" /></div>
+            <Skeleton height="64px" />
+            <Skeleton height="40px" width="70%" />
+          </div>
+        </div>
+
+        {/* Route error inside shell */}
+        <div className="tile">
+          <div className="eyebrow">State: route error (inside shell, sidebar/topbar intact)</div>
+          <EmptyState icon="cloud-off"
+            title="Let's try that again."
+            body="Something hiccupped loading this page — it's not on you."
+            action={<div className="row-gap"><Button variant="primary" size="sm">Try again</Button>
+              <Button variant="ghost" size="sm">Back to Dashboard</Button></div>} />
+        </div>
+
+        {/* Notification partial-error + empty */}
+        <div className="tile">
+          <div className="eyebrow">State: NotificationBell — partial error & empty</div>
+          <Alert variant="warning" title="Couldn't load your updates">
+            We couldn't load your updates right now — try again in a bit.
+          </Alert>
+          <div style={{ marginTop: "var(--space-3)" }}>
+            <EmptyState icon="check-circle" title="You're all caught up. Nice work." />
+          </div>
+        </div>
+
+        {/* Banners: offline (persistent) + PWA + SW update (dismissible) */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">State: shell banners — offline (persistent) · PWA install · SW update (deferred mid-test)</div>
+          <div className="stack">
+            <Alert variant="info" title="You're offline">
+              You're offline — your progress is saved and will sync when you're back.
+            </Alert>
+            {pwaOpen && (
+              <Alert variant="info" title="Add LevelUp to your home screen">
+                <div className="row-gap" style={{ justifyContent: "space-between" }}>
+                  <span>Add LevelUp to your home screen for quick, full-screen study.</span>
+                  <div className="row-gap">
+                    <Button variant="primary" size="sm">Add</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setPwaOpen(false)}>Not now</Button>
+                  </div>
+                </div>
+              </Alert>
+            )}
+            {swOpen && (
+              <Alert variant="success" title="A fresh version is ready">
+                <div className="row-gap" style={{ justifyContent: "space-between" }}>
+                  <span>We'll wait until your timed test ends before refreshing.</span>
+                  <div className="row-gap">
+                    <Button variant="secondary" size="sm">Refresh</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSwOpen(false)}>Dismiss</Button>
+                  </div>
+                </div>
+              </Alert>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================ RESPONSIVE / B2C MINIATURES ============================ */
+  function MiniMd() {
+    const [open, setOpen] = useState(false);
+    return (
+      <div className="tile">
+        <div className="eyebrow">State: md 768–1023 (sidebar → off-canvas drawer via hamburger)</div>
+        <div className="mini">
+          <div className="mini-topbar">
+            <IconButton icon={<Icon name="menu" size={20} />} label="Open navigation"
+              onClick={() => setOpen(true)} />
+            <Breadcrumb items={[{ label: "My Spaces", href: "#" }, { label: "Dashboard" }]} />
+            <div className="topbar__spacer" />
+            <IconButton icon={<Icon name="sun" size={18} />} label="Theme" />
+            <IconButton icon={<Icon name="bell" size={18} />} label="3 unread updates" />
+          </div>
+          <div className="mini-main">
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)",
+              fontWeight: "var(--weight-semibold)" }}>Welcome back, Rohan</div>
+            <div className="u-caption" style={{ marginTop: "var(--space-2)" }}>
+              Tap the menu to open navigation.
+            </div>
+          </div>
+          {open && (
+            <>
+              <div style={{ position: "absolute", inset: 0, background: "var(--bg-inset)",
+                opacity: 0.5, zIndex: 5 }} onClick={() => setOpen(false)} />
+              <div className="mini-side" style={{ zIndex: 6, boxShadow: "var(--shadow-e3)" }}>
+                <Brand name="Crestwood" mark="C" />
+                {B2B_NAV.slice(0, 5).map((n, i) => (
+                  <NavLink key={n.key} icon={n.icon} label={n.label} active={i === 0}
+                    onClick={() => setOpen(false)} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function MiniSm() {
+    return (
+      <div className="tile">
+        <div className="eyebrow">State: sm &lt;768 (no sidebar · bottom Tabbar · no ⌘K)</div>
+        <div className="mini">
+          <div className="mini-topbar">
+            <div className="sidebar__brand-mark" style={{ width: 26, height: 26 }}>C</div>
+            <div className="topbar__spacer" />
+            <IconButton icon={<Icon name="bell" size={18} />} label="3 unread updates" />
+            <Avatar initials="RK" size="sm" />
+          </div>
+          <div className="mini-main" style={{ paddingBottom: 64 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)",
+              fontWeight: "var(--weight-semibold)" }}>Welcome back, Rohan</div>
+            <div className="u-caption" style={{ marginTop: "var(--space-2)" }}>
+              Primary nav lives in the bottom bar.
+            </div>
+          </div>
+          <div className="mini-tabbar">
+            <Tabbar items={[
+              { icon: "home", label: "Home", active: true },
+              { icon: "book-open", label: "Spaces" },
+              { icon: "file-check", label: "Tests" },
+              { icon: "trophy", label: "Rank" },
+              { icon: "user", label: "Profile" },
+            ]} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function MiniB2C() {
+    return (
+      <div className="tile">
+        <div className="eyebrow">State: B2C consumer (no RoleSwitcher · Cart badge · LevelUp brand)</div>
+        <div className="mini">
+          <div className="mini-side" style={{ width: 180 }}>
+            <Brand name="LevelUp" mark="L" />
+            {B2C_NAV.map((n, i) => (
+              <NavLink key={n.key} icon={n.icon} label={n.label} active={i === 0} badge={n.badge} />
+            ))}
+            <div className="sb-foot" style={{ marginTop: "auto" }}>
+              <div className="sb-avatar-row">
+                <Avatar initials="AS" size="sm" />
+                <div className="sb-meta"><b>Aisha Singh</b><span>aisha@gmail.com</span></div>
+              </div>
+            </div>
+          </div>
+          <div className="mini-main" style={{ marginLeft: 180, height: "100%" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)",
+              fontWeight: "var(--weight-semibold)" }}>My Learning</div>
+            <div className="u-caption" style={{ marginTop: "var(--space-2)" }}>
+              Consumer chrome from platform_public — no school switcher.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <div>
+          <div className="eyebrow">Primary · lg ≥1024 · B2B student · success state</div>
+          <PrimaryShell />
+        </div>
+
+        <StateTiles />
+
+        <div className="tiles">
+          <MiniMd />
+          <MiniSm />
+          <MiniB2C />
+          <div className="tile">
+            <div className="eyebrow">Domain note: shell hosts the one celebratory moment</div>
+            <div className="burst-host" style={{ width: "100%", justifyContent: "center" }}>
+              <Icon name="party-popper" size={20} />
+              <span style={{ fontWeight: "var(--weight-semibold)" }}>
+                Level up! · marigold spark burst (portal host, reduced-motion safe)
+              </span>
+            </div>
+            <div className="u-caption" style={{ marginTop: "var(--space-3)" }}>
+              The shell renders zero celebratory motion itself; CelebrationBurst fires over the chrome only for
+              XP / streak / level-up. Answer keys, timers, and AI internals never surface in chrome.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

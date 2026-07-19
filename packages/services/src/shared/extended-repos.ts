@@ -172,10 +172,41 @@ export interface SecretRepo {
   put(tenantId: string, key: string): Promise<{ secretRef: string }>;
 }
 
+/**
+ * Per-user BYOK provider-key metadata store (top-level `userProviderKeys/{uid}:{provider}`).
+ * METADATA ONLY — the key value is written to Secret Manager by `@levelup/ai`'s
+ * user secret writer; this repo persists the opaque ref + masked hint + status.
+ * User-global (a user's own key follows them across tenants).
+ */
+export interface UserProviderKeyRepo {
+  get(uid: string, provider: string): Promise<Doc | null>;
+  listByUser(uid: string): Promise<Doc[]>;
+  upsert(uid: string, provider: string, data: Doc, now?: string): Promise<{ created: boolean }>;
+  patch(uid: string, provider: string, patch: Doc, now?: string): Promise<void>;
+  delete(uid: string, provider: string): Promise<void>;
+}
+
+/**
+ * Masked/status/version metadata for tenant + platform owned keys (top-level
+ * `keyMetadata/{scopeKey}`). scopeKey = `tenant:{tenantId}:{provider}` or
+ * `platform:{provider}`. Never the value — the value is in Secret Manager.
+ */
+export interface KeyMetaRepo {
+  get(scopeKey: string): Promise<Doc | null>;
+  put(scopeKey: string, data: Doc, now?: string): Promise<void>;
+  delete(scopeKey: string): Promise<void>;
+}
+
 /** Chat sessions + always-subcollection messages (sendChatMessage writer). */
 export interface ChatRepo {
   getSession(tenantId: string, sessionId: string): Promise<Doc | null>;
   createSession(tenantId: string, data: Doc): Promise<string>;
+  /**
+   * Merge-patch a session doc (agent state: observations / isActive /
+   * evaluation — AI-EVALUATION-CORE-PLAN.md Phase 4). OPTIONAL so pre-existing
+   * ChatRepo fakes stay valid; callers use `updateSession?.(…)`.
+   */
+  updateSession?(tenantId: string, sessionId: string, patch: Doc): Promise<void>;
   appendMessage(tenantId: string, sessionId: string, message: Doc): Promise<string>;
   /** Ordered (asc by `timestamp`) messages of a session — the getChatSession read. */
   listMessages(tenantId: string, sessionId: string): Promise<Doc[]>;
@@ -278,6 +309,8 @@ export interface ExtendedRepos extends Repos {
   insights: InsightRepo;
   studyGoals: StudyGoalRepo;
   secrets: SecretRepo;
+  userProviderKeys: UserProviderKeyRepo;
+  keyMeta: KeyMetaRepo;
   impersonation: ImpersonationRepo;
   chat: ChatRepo;
   /** Audit with the in-tx variant (overrides the base `audit`). */

@@ -1,0 +1,705 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Question Paper Upload & Extraction" subtitle="Gemini extractQuestions · per-page state · rubrics staff-only" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.qp-shell{height:1024px}
+.qp-topbar-pill{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);background:var(--bg-surface);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer}
+.qp-search{flex:1;max-width:420px;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm)}
+.qp-search .qp-kbd{margin-left:auto}
+.qp-icon-circle{width:36px;height:36px;border-radius:var(--radius-pill);display:grid;place-items:center;color:var(--text-secondary);position:relative}
+.qp-icon-circle:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+.qp-notif-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--status-error);border:1.5px solid var(--bg-surface)}
+
+/* wizard stepper */
+.qp-stepper{display:flex;align-items:center;gap:0;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-3) var(--space-5);margin-bottom:var(--space-5)}
+.qp-step{display:flex;align-items:center;gap:var(--space-3)}
+.qp-step__num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:2px solid var(--border-strong);color:var(--text-muted);background:var(--bg-surface);flex:0 0 auto}
+.qp-step__label{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-muted)}
+.qp-step--done .qp-step__num{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--text-on-accent)}
+.qp-step--done .qp-step__label{color:var(--text-secondary)}
+.qp-step--active .qp-step__num{border-color:var(--brand-primary);color:var(--brand-primary);box-shadow:var(--ring-focus)}
+.qp-step--active .qp-step__label{color:var(--text-primary);font-weight:var(--weight-semibold)}
+.qp-step__rail{flex:1;height:2px;background:var(--border-subtle);margin:0 var(--space-4);min-width:32px}
+.qp-step__rail--done{background:var(--brand-primary)}
+
+/* page heading */
+.qp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);margin:var(--space-4) 0 var(--space-2)}
+.qp-h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:-0.02em;margin:0}
+.qp-sub{font-size:var(--text-sm);color:var(--text-secondary);max-width:64ch;margin:0 0 var(--space-5)}
+
+/* state segmented control */
+.qp-statebar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;background:var(--bg-surface-sunken);border:1px dashed var(--border-strong);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-5)}
+.qp-statebar__label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.qp-seg{display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px;gap:2px}
+.qp-seg__btn{border:none;background:transparent;font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer}
+.qp-seg__btn--active{background:var(--brand-primary);color:var(--text-on-accent)}
+
+/* two-column working surface */
+.qp-grid{display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);gap:var(--space-5);align-items:start}
+.qp-queue{display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-4)}
+.qp-queue-head{display:flex;align-items:center;justify-content:space-between;margin:var(--space-2) 0 var(--space-1)}
+.qp-queue-head__title{font-size:var(--text-xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+
+/* upload item embellishments */
+.qp-uitem{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface)}
+.qp-uitem--warn{border-color:var(--status-warning);background:var(--status-warning-subtle)}
+.qp-uitem__grip{color:var(--text-muted);cursor:grab;display:grid;place-items:center}
+.qp-thumb{width:40px;height:52px;border-radius:var(--radius-sm);background:var(--bg-inset);border:1px solid var(--border-subtle);display:grid;place-items:center;color:var(--text-muted);flex:0 0 auto;font-family:var(--font-mono);font-size:var(--text-2xs)}
+.qp-uitem__body{flex:1;min-width:0}
+.qp-uitem__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2)}
+.qp-uitem__page{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);padding:0 var(--space-1);border-radius:var(--radius-sm)}
+.qp-uitem__meta{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:var(--space-1)}
+.qp-uitem__meta--done{color:var(--status-success)}
+.qp-uitem__actions{display:flex;align-items:center;gap:var(--space-1)}
+
+/* extraction / scan guidance */
+.qp-scan-tips{display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-4)}
+.qp-tip{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+.qp-tip svg{stroke:var(--status-success);flex:0 0 auto;margin-top:1px}
+.qp-scan-demo{max-width:200px;margin:0 auto}
+
+/* extraction progress composite */
+.qp-extract{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);padding:var(--space-6) var(--space-4)}
+.qp-extract__ring{position:relative}
+.qp-extract__step{font-size:var(--text-base);font-weight:var(--weight-semibold);text-align:center}
+.qp-extract__timer{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-secondary)}
+.qp-thumbstrip{display:flex;gap:var(--space-2);flex-wrap:wrap;justify-content:center;margin-top:var(--space-1)}
+.qp-thumbchip{width:32px;height:42px;border-radius:var(--radius-sm);background:var(--bg-inset);border:1px solid var(--border-subtle);display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.qp-thumbchip--read{background:var(--brand-subtle);border-color:var(--brand-primary);color:var(--brand-primary)}
+.qp-thumbchip--reading{border-color:var(--brand-primary);color:var(--brand-primary);box-shadow:var(--ring-focus)}
+
+/* extracted question result card */
+.qp-qstat{display:flex;align-items:center;gap:var(--space-5);margin-bottom:var(--space-4);flex-wrap:wrap}
+.qp-qlist{display:flex;flex-direction:column;gap:var(--space-3)}
+.qp-qcard{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);animation:qp-rise var(--dur-fast) var(--ease-entrance) both}
+.qp-qcard--review{border-color:var(--status-error);box-shadow:0 0 0 1px var(--status-error-subtle)}
+.qp-qcard__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.qp-qcard__id{display:flex;align-items:center;gap:var(--space-2)}
+.qp-qcard__qnum{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.qp-qcard__marks{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.qp-qcard__flags{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.qp-qcard__text{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-base)}
+.qp-qcard__text .qp-math{font-family:var(--font-mono);background:var(--bg-inset);padding:0 4px;border-radius:var(--radius-sm);color:var(--brand-primary)}
+.qp-qcard__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding-top:var(--space-2);border-top:1px solid var(--border-subtle)}
+.qp-prov{display:flex;align-items:center;gap:var(--space-1);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.qp-chip-warn{display:inline-flex;align-items:center;gap:var(--space-1);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);background:var(--status-warning-subtle);border:1px solid var(--status-warning);color:var(--status-warning)}
+.qp-chip-warn svg{stroke:var(--status-warning)}
+
+/* sticky action bar */
+.qp-actionbar{position:sticky;bottom:0;margin-top:var(--space-5);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);padding:var(--space-3) var(--space-5);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);position:relative;overflow:hidden}
+.qp-actionbar__right{display:flex;align-items:center;gap:var(--space-3)}
+
+.qp-rel{position:relative}
+.qp-banner-wrap{margin-bottom:var(--space-4)}
+.qp-disabled{opacity:.55;pointer-events:none}
+.qp-keylock-note{margin-top:var(--space-4)}
+
+@keyframes qp-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .qp-qcard{animation:none}
+  .qp-thumbchip--reading{box-shadow:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Icon, Button, IconButton, Panel, Card, FileDrop, EmptyState, Skeleton,
+    Badge, Chip, Stat, Alert, Breadcrumb, NavItem, Avatar, ProgressRing,
+    ProgressBar, ConfidenceBadge, ContentRenderer, ScanFrame, AnswerKeyLock,
+    Modal, Tooltip, Kbd
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---------------------------------------------------------------------- */
+  /* Mock domain data — real entity/field names                            */
+  /* ---------------------------------------------------------------------- */
+  const PAGES = [
+    { id: "img_1", name: "exam-paper-p1.jpg", status: "done",      progress: 100, meta: "1.8 MB · uploaded" },
+    { id: "img_2", name: "exam-paper-p2.jpg", status: "done",      progress: 100, meta: "2.1 MB · uploaded" },
+    { id: "img_3", name: "exam-paper-p3.jpg", status: "done",      progress: 100, meta: "1.6 MB · uploaded", readabilityIssue: true },
+    { id: "img_4", name: "exam-paper-p4.png", status: "done",      progress: 100, meta: "2.4 MB · uploaded" },
+  ];
+  const PAGES_UPLOADING = [
+    { id: "img_1", name: "exam-paper-p1.jpg", status: "done",      progress: 100, meta: "1.8 MB · uploaded" },
+    { id: "img_2", name: "exam-paper-p2.jpg", status: "uploading", progress: 64,  meta: "uploading…" },
+    { id: "img_3", name: "exam-paper-p3.png", status: "failed",    progress: 0,   meta: "Couldn't upload — retry?" },
+  ];
+
+  const QUESTIONS = [
+    { q: "Q1", marks: 5, conf: "high", confVal: "0.96", by: "ai",
+      text: "Define time complexity. State the worst-case running time of binary search on a sorted array of size n." },
+    { q: "Q2", marks: 8, conf: "med", confVal: "0.82", by: "ai",
+      text: "Given the recurrence ", math: "T(n) = 2T(n/2) + n", text2: ", solve for an asymptotic bound on T(n) using the Master Theorem. Show each step." },
+    { q: "Q3", marks: 6, conf: "low", confVal: "0.61", by: "ai", readabilityIssue: true,
+      text: "Sketch the adjacency-list representation of the graph shown and run BFS from the highlighted vertex. (Page 3 was hard to read — confirm the diagram.)" },
+    { q: "Q4", marks: 6, conf: "high", confVal: "0.94", by: "manual",
+      text: "Compare a stack and a queue. Give one real-world use case for each and the dominant operations." },
+  ];
+
+  const TOTAL_MARKS = QUESTIONS.reduce((s, q) => s + q.marks, 0);
+  const NEEDS_CHECK = QUESTIONS.filter(q => q.conf === "low" || q.readabilityIssue).length;
+
+  /* ---------------------------------------------------------------------- */
+  /* AppShell chrome                                                        */
+  /* ---------------------------------------------------------------------- */
+  function Sidebar() {
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">Lyceum</span>
+        </div>
+        <nav className="sidebar__nav">
+          <div className="sidebar__section-label">Teach</div>
+          <NavItem icon="layout-dashboard">Dashboard</NavItem>
+          <NavItem icon="book-open">Spaces</NavItem>
+          <NavItem icon="file-check-2" active>Exams</NavItem>
+          <NavItem icon="users">Students</NavItem>
+          <div className="sidebar__section-label">Insight</div>
+          <NavItem icon="bar-chart-3">Analytics</NavItem>
+          <NavItem icon="sparkles" badge={<Badge variant="info">AI</Badge>}>AI Usage</NavItem>
+          <div className="sidebar__section-label">Admin</div>
+          <NavItem icon="settings">Settings</NavItem>
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar() {
+    return (
+      <header className="appshell__topbar">
+        <button className="qp-topbar-pill">
+          <Icon name="building-2" size={16} />
+          <span>Subhang Academy</span>
+          <Icon name="chevrons-up-down" size={14} />
+        </button>
+        <label className="qp-search">
+          <Icon name="search" size={16} />
+          <span>Search exams, students…</span>
+          <span className="qp-kbd"><Kbd>⌘K</Kbd></span>
+        </label>
+        <div className="topbar__spacer" />
+        <span className="qp-icon-circle"><Icon name="help-circle" size={20} /></span>
+        <span className="qp-icon-circle"><Icon name="bell" size={20} /><span className="qp-notif-dot" /></span>
+        <Avatar initials="SK" />
+      </header>
+    );
+  }
+
+  function WizardStepper() {
+    const steps = [
+      { label: "Metadata", state: "done" },
+      { label: "Upload",   state: "active" },
+      { label: "Review",   state: "todo" },
+      { label: "Publish",  state: "todo" },
+    ];
+    return (
+      <div className="qp-stepper" aria-label="Exam creation steps">
+        {steps.map((s, i) => (
+          <React.Fragment key={s.label}>
+            <div className={"qp-step " + (s.state === "done" ? "qp-step--done" : s.state === "active" ? "qp-step--active" : "")}>
+              <span className="qp-step__num">{s.state === "done" ? <Icon name="check" size={14} /> : i + 1}</span>
+              <span className="qp-step__label">{s.label}</span>
+            </div>
+            {i < steps.length - 1 && <span className={"qp-step__rail " + (s.state === "done" ? "qp-step__rail--done" : "")} />}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Left panel — ingest                                                    */
+  /* ---------------------------------------------------------------------- */
+  function UploadRow({ page, idx, locked, onRemove }) {
+    const warn = page.readabilityIssue;
+    return (
+      <div className={"qp-uitem" + (warn ? " qp-uitem--warn" : "")}>
+        {!locked && (
+          <span className="qp-uitem__grip" aria-hidden="true"><Icon name="grip-vertical" size={16} /></span>
+        )}
+        <span className="qp-thumb">P{idx + 1}</span>
+        <div className="qp-uitem__body">
+          <div className="qp-uitem__name">
+            {page.name}
+            <span className="qp-uitem__page">page {idx + 1}</span>
+          </div>
+          {page.status === "uploading" ? (
+            <div style={{ marginTop: 4 }}><ProgressBar value={page.progress} /></div>
+          ) : page.status === "failed" ? (
+            <div className="qp-uitem__meta" style={{ color: "var(--status-error)" }}>
+              <Icon name="alert-triangle" size={13} /> {page.meta}
+            </div>
+          ) : warn ? (
+            <div className="qp-uitem__meta" style={{ color: "var(--status-warning)" }}>
+              <Icon name="eye-off" size={13} /> Hard to read — check page
+            </div>
+          ) : (
+            <div className="qp-uitem__meta qp-uitem__meta--done">
+              <Icon name="check-circle" size={13} /> {page.meta}
+            </div>
+          )}
+        </div>
+        <div className="qp-uitem__actions">
+          {page.status === "failed" && (
+            <IconButton size="sm" label={"Retry upload of page " + (idx + 1)} icon={<Icon name="rotate-cw" size={16} />} />
+          )}
+          {!locked && (
+            <IconButton size="sm" label={"Remove page " + (idx + 1)} icon={<Icon name="trash-2" size={16} />} onClick={onRemove} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function IngestPanel({ state, pages, locked, onRemove }) {
+    const isEmpty = state === "empty";
+    return (
+      <Panel title="Scanned pages" actions={<Badge variant="info" icon={<Icon name="hard-drive" size={12} />}>uploadSource: web</Badge>}>
+        <div className={locked ? "qp-disabled" : ""}>
+          {isEmpty ? (
+            <EmptyState
+              icon="image-plus"
+              title="No pages yet"
+              body="Add the scanned question paper to get started. You can reorder pages before extracting."
+              action={<Button variant="primary" leadingIcon={<Icon name="upload" size={16} />}>Browse files</Button>}
+            />
+          ) : (
+            <FileDrop
+              title="Drag question-paper pages here, or browse"
+              hint="JPG, PNG or PDF · up to 20 MB per file · keep pages in order"
+            />
+          )}
+
+          {!isEmpty && pages.length > 0 && (
+            <div className="qp-queue">
+              <div className="qp-queue-head">
+                <span className="qp-queue-head__title">Upload queue · {pages.length} pages</span>
+                {!locked && (
+                  <Button variant="secondary" size="sm" leadingIcon={<Icon name="plus" size={14} />}>Add pages</Button>
+                )}
+              </div>
+              {pages.map((p, i) => (
+                <UploadRow key={p.id} page={p} idx={i} locked={locked} onRemove={() => onRemove(p.id)} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Panel>
+    );
+  }
+
+  function IngestSkeleton() {
+    return (
+      <Panel title={<Skeleton width="120px" height="14px" />}>
+        <Skeleton height="120px" />
+        <div className="qp-queue">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="qp-uitem">
+              <Skeleton variant="circle" width="40px" height="52px" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="60%" height="13px" />
+                <div style={{ marginTop: 6 }}><Skeleton width="40%" height="10px" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Right panel — extract                                                  */
+  /* ---------------------------------------------------------------------- */
+  function ScanGuidance({ pageCount, locked }) {
+    const tips = [
+      "Good lighting — no shadows across the page",
+      "The full page in frame, all edges visible",
+      "Flat, not skewed or curled",
+      "Text in focus and sharp",
+    ];
+    return (
+      <div>
+        <div className="qp-qstat">
+          <Stat label="Pages ready" value={<span style={{ fontFamily: "var(--font-mono)" }}>{pageCount}</span>} />
+          <Stat label="Status" value={<Badge variant="info" icon={<Icon name="server" size={12} />}>question_paper_uploaded</Badge>} />
+        </div>
+        <div className="qp-scan-demo">
+          <ScanFrame hint="On scanner-web this becomes the live capture frame" />
+        </div>
+        <div className="qp-scan-tips">
+          <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--text-primary)" }}>
+            For the cleanest read
+          </div>
+          {tips.map(t => (
+            <div className="qp-tip" key={t}><Icon name="check-circle-2" size={16} /> {t}</div>
+          ))}
+        </div>
+        <div className="qp-keylock-note">
+          <AnswerKeyLock title="Staff only — not shown to students">
+            Extracted rubrics &amp; model answers stay server-side. This whole route is role-gated to <strong>exams:write</strong>.
+          </AnswerKeyLock>
+        </div>
+      </div>
+    );
+  }
+
+  function ExtractionProgress({ pageCount, elapsed, reading, budgetWarn }) {
+    const pct = Math.round((reading / pageCount) * 100);
+    return (
+      <div>
+        {budgetWarn && (
+          <div className="qp-banner-wrap">
+            <Alert variant="warning" title="Extraction is taking longer than usual">
+              Dense papers can take up to 9 minutes — hang tight. No need to refresh; progress is server-authoritative.
+            </Alert>
+          </div>
+        )}
+        <div className="qp-extract" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Extracting questions">
+          <div className="qp-extract__ring">
+            <ProgressRing value={pct} size={104} label={<span style={{ fontFamily: "var(--font-mono)", fontWeight: "var(--weight-semibold)" }}>{pct}%</span>} />
+          </div>
+          <div className="qp-extract__step" aria-live="polite">Reading page {reading} of {pageCount}…</div>
+          <div className="qp-extract__timer">{elapsed} / up to 9:00</div>
+          <div className="qp-thumbstrip">
+            {Array.from({ length: pageCount }).map((_, i) => {
+              const cls = i < reading - 1 ? "qp-thumbchip--read" : i === reading - 1 ? "qp-thumbchip--reading" : "";
+              return <span key={i} className={"qp-thumbchip " + cls}>P{i + 1}</span>;
+            })}
+          </div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="server" size={13} /> Gemini extractQuestions · mode: full · server-authoritative
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function QuestionResult({ q, onReextract }) {
+    const review = q.conf === "low";
+    return (
+      <div className={"qp-qcard" + (review ? " qp-qcard--review" : "")}>
+        <div className="qp-qcard__top">
+          <div className="qp-qcard__id">
+            <span className="qp-qcard__qnum">{q.q}</span>
+            <span className="qp-qcard__marks">maxMarks {q.marks}</span>
+          </div>
+          <div className="qp-qcard__flags">
+            <ConfidenceBadge
+              level={q.conf}
+              value={<span>{q.confVal} · {q.conf === "high" ? "High" : q.conf === "med" ? "Check" : "Review"}</span>}
+            />
+            {q.readabilityIssue && (
+              <span className="qp-chip-warn"><Icon name="eye-off" size={13} /> Hard to read</span>
+            )}
+          </div>
+        </div>
+        <div className="qp-qcard__text">
+          {q.text}
+          {q.math && <span className="qp-math">{q.math}</span>}
+          {q.text2}
+        </div>
+        <div className="qp-qcard__foot">
+          <span className="qp-prov">
+            <Icon name={q.by === "ai" ? "sparkles" : "pencil"} size={12} /> extractedBy: {q.by}
+          </span>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="pencil" size={14} />}>Edit manually</Button>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={() => onReextract(q.q)}>Re-extract</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ResultsList({ partial, onReextract }) {
+    return (
+      <div>
+        <div className="qp-qstat">
+          <Stat label="Questions" value={<span style={{ fontFamily: "var(--font-mono)" }}>{QUESTIONS.length}</span>} />
+          <Stat label="Total marks" value={<span style={{ fontFamily: "var(--font-mono)" }}>{TOTAL_MARKS}</span>} />
+          <Stat label="Status" value={<Badge variant="success" icon={<Icon name="check-circle" size={12} />}>question_paper_extracted</Badge>} />
+        </div>
+
+        {partial && (
+          <div className="qp-banner-wrap">
+            <Alert variant="warning" title={NEEDS_CHECK + " questions need a quick check"}>
+              Low confidence or a hard-to-read page. Continue is allowed, but a quick review now saves grading headaches later.
+            </Alert>
+          </div>
+        )}
+
+        <div className="qp-qlist">
+          {QUESTIONS.map(q => <QuestionResult key={q.q} q={q} onReextract={onReextract} />)}
+        </div>
+
+        <div className="qp-keylock-note">
+          <AnswerKeyLock title="Staff only — not shown to students">
+            Each question's extracted <strong>rubric</strong> and <strong>modelAnswer</strong> are stored server-side and never rendered to students or parents.
+          </AnswerKeyLock>
+        </div>
+      </div>
+    );
+  }
+
+  function ExtractFailed({ retry }) {
+    return (
+      <div>
+        <Alert variant="error" title="Extraction couldn't finish">
+          Your pages are saved — the exam stays at <strong>question_paper_uploaded</strong>. Try again, or add questions manually so you're never blocked.
+        </Alert>
+        <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+          <Button variant="primary" leadingIcon={<Icon name="refresh-cw" size={16} />}>Retry extraction</Button>
+          <Button variant="secondary" leadingIcon={<Icon name="pencil" size={16} />}>Add questions manually</Button>
+        </div>
+        <div className="qp-keylock-note">
+          <Alert variant="info" title="Common causes">
+            Glare or skew on a page, a per-tenant Gemini key quota, or a very dense paper. For timeouts, try fewer or clearer pages, or extract in parts.
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  function ExtractPanel({ state, locked, onReextract }) {
+    let body;
+    if (state === "extracting") {
+      body = <ExtractionProgress pageCount={4} elapsed="2:14" reading={3} budgetWarn={false} />;
+    } else if (state === "budget") {
+      body = <ExtractionProgress pageCount={4} elapsed="7:32" reading={4} budgetWarn={true} />;
+    } else if (state === "success") {
+      body = <ResultsList partial={false} onReextract={onReextract} />;
+    } else if (state === "partial") {
+      body = <ResultsList partial={true} onReextract={onReextract} />;
+    } else if (state === "error") {
+      body = <ExtractFailed />;
+    } else if (state === "uploading") {
+      body = (
+        <div>
+          <Alert variant="info" title="Finishing uploads">
+            Extract unlocks once every page has finished uploading. One page failed — retry it on the left.
+          </Alert>
+          <div style={{ marginTop: "var(--space-4)" }} className="qp-scan-demo">
+            <ScanFrame hint="Quality guide" />
+          </div>
+        </div>
+      );
+    } else if (state === "locked") {
+      body = (
+        <div>
+          <Alert variant="warning" title="Questions are locked after publishing">
+            This exam is <strong>published</strong>. Question-paper images and extraction are immutable (POST_PUBLISH_LOCKED_FIELDS). Unpublish to make changes.
+          </Alert>
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <ResultsList partial={false} onReextract={() => {}} />
+          </div>
+        </div>
+      );
+    } else {
+      // empty + uploaded both show guidance; empty has 0 ready
+      body = <ScanGuidance pageCount={state === "empty" ? 0 : 4} locked={locked} />;
+    }
+    return (
+      <Panel
+        title="Extraction"
+        actions={state === "success" || state === "partial"
+          ? <Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />}>Re-extract all</Button>
+          : <Badge icon={<Icon name="sparkles" size={12} />}>Gemini · mode: full</Badge>}
+      >
+        {body}
+      </Panel>
+    );
+  }
+
+  function ExtractSkeleton() {
+    return (
+      <Panel title={<Skeleton width="110px" height="14px" />}>
+        <div style={{ display: "flex", gap: "var(--space-5)", marginBottom: "var(--space-4)" }}>
+          <Skeleton width="80px" height="40px" />
+          <Skeleton width="80px" height="40px" />
+        </div>
+        <Skeleton height="220px" />
+      </Panel>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Sticky action bar                                                      */
+  /* ---------------------------------------------------------------------- */
+  function ActionBar({ state }) {
+    const busy = state === "extracting" || state === "budget";
+    const done = state === "success" || state === "partial";
+    const canExtract = state === "uploaded";
+    return (
+      <div className="qp-actionbar">
+        {busy && <div className="overlay" aria-label="Extraction in progress"><div className="spinner" /></div>}
+        <Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16} />} disabled={busy}>Back</Button>
+        <div className="qp-actionbar__right">
+          {state === "uploading" && (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="loader" size={13} /> Waiting for uploads to finish
+            </span>
+          )}
+          {done ? (
+            <Button variant="primary" trailingIcon={<Icon name="arrow-right" size={16} />}>Continue</Button>
+          ) : state === "locked" ? (
+            <Button variant="secondary" disabled trailingIcon={<Icon name="lock" size={16} />}>Locked</Button>
+          ) : (
+            <Button
+              variant="primary"
+              loading={busy}
+              disabled={!canExtract}
+              trailingIcon={!busy && <Icon name="sparkles" size={16} />}
+            >
+              {busy ? "Extracting…" : "Extract questions"}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* App                                                                    */
+  /* ---------------------------------------------------------------------- */
+  const STATES = [
+    { id: "loading",   label: "Loading" },
+    { id: "empty",     label: "Empty" },
+    { id: "uploading", label: "Uploading" },
+    { id: "uploaded",  label: "Uploaded" },
+    { id: "extracting",label: "Extracting" },
+    { id: "budget",    label: "Budget-warn" },
+    { id: "success",   label: "Success" },
+    { id: "partial",   label: "Partial" },
+    { id: "error",     label: "Failed" },
+    { id: "locked",    label: "Post-publish" },
+  ];
+
+  function statusBadge(state) {
+    if (state === "success" || state === "partial")
+      return <Badge variant="success" icon={<Icon name="check-circle" size={12} />}>question_paper_extracted</Badge>;
+    if (state === "locked")
+      return <Badge icon={<Icon name="lock" size={12} />}>published · locked</Badge>;
+    if (state === "empty")
+      return <Badge icon={<Icon name="circle-dashed" size={12} />}>draft</Badge>;
+    if (state === "error")
+      return <Badge variant="error" icon={<Icon name="x-circle" size={12} />}>extraction failed</Badge>;
+    return <Badge variant="info" icon={<Icon name="server" size={12} />}>question_paper_uploaded</Badge>;
+  }
+
+  function App() {
+    const [state, setState] = useState("success");
+    const [pages, setPages] = useState(PAGES);
+    const [confirm, setConfirm] = useState(null); // {qNum} re-extract overwrite confirm
+
+    // keyboard: number keys 1-9 jump states (disabled while typing in a field)
+    useEffect(() => {
+      function onKey(e) {
+        const t = e.target;
+        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+        const n = parseInt(e.key, 10);
+        if (!isNaN(n) && n >= 1 && n <= STATES.length) setState(STATES[n - 1].id);
+      }
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const livePages = state === "uploading" ? PAGES_UPLOADING : pages;
+    const locked = state === "locked";
+    const removePage = (id) => setPages(ps => ps.filter(p => p.id !== id));
+    const onReextract = (qNum) => setConfirm({ qNum });
+
+    return (
+      <div className="appshell qp-shell">
+        <Sidebar />
+        <Topbar />
+        <main className="appshell__main">
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <Breadcrumb items={[
+              { label: "Exams", href: "#" },
+              { label: "New", href: "#" },
+              { label: "Upload paper" },
+            ]} />
+          </div>
+
+          <WizardStepper />
+
+          <div className="qp-head">
+            <div>
+              <h2 className="qp-h2">Upload question paper</h2>
+            </div>
+            {statusBadge(state)}
+          </div>
+          <p className="qp-sub">
+            Drop your scanned pages — AutoGrade reads them and pulls out each question and rubric.
+          </p>
+
+          {/* prototype state switcher */}
+          <div className="qp-statebar" role="group" aria-label="Preview state">
+            <span className="qp-statebar__label">State</span>
+            <div className="qp-seg">
+              {STATES.map((s, i) => (
+                <button
+                  key={s.id}
+                  className={"qp-seg__btn" + (state === s.id ? " qp-seg__btn--active" : "")}
+                  onClick={() => setState(s.id)}
+                  aria-pressed={state === s.id}
+                  title={"Press " + (i + 1)}
+                >{s.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* working surface */}
+          {state === "loading" ? (
+            <div className="qp-grid">
+              <IngestSkeleton />
+              <ExtractSkeleton />
+            </div>
+          ) : (
+            <div className="qp-grid">
+              <IngestPanel
+                state={state}
+                pages={state === "empty" ? [] : livePages}
+                locked={locked}
+                onRemove={removePage}
+              />
+              <ExtractPanel state={state} locked={locked} onReextract={onReextract} />
+            </div>
+          )}
+
+          {state !== "loading" && <ActionBar state={state} />}
+        </main>
+
+        <Modal
+          open={!!confirm}
+          onClose={() => setConfirm(null)}
+          title={"Re-extract " + (confirm ? confirm.qNum : "") + "?"}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setConfirm(null)}>Cancel</Button>
+              <Button variant="primary" leadingIcon={<Icon name="refresh-cw" size={16} />} onClick={() => setConfirm(null)}>
+                Re-extract
+              </Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            This re-runs <span style={{ fontFamily: "var(--font-mono)" }}>extractQuestions(mode: single)</span> for {confirm ? confirm.qNum : ""} and
+            will <strong>overwrite</strong> the current text and rubric. Any manual edits to this question will be replaced.
+          </p>
+        </Modal>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body></html>

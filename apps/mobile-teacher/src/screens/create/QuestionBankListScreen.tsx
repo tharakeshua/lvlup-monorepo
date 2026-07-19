@@ -44,15 +44,15 @@ const QT_LABELS: Record<string, string> = {
 const TOP_TYPES = ["mcq", "mcaq", "true-false", "numerical", "text"];
 
 const DIFFICULTY_CHIPS = [
-  { label: "All", value: "" },
-  { label: "Easy", value: "easy" },
-  { label: "Medium", value: "medium" },
-  { label: "Hard", value: "hard" },
+  { label: "All", key: "" },
+  { label: "Easy", key: "easy" },
+  { label: "Medium", key: "medium" },
+  { label: "Hard", key: "hard" },
 ];
 
 const TYPE_CHIPS = [
-  { label: "All", value: "" },
-  ...TOP_TYPES.map((t) => ({ label: QT_LABELS[t] ?? t, value: t })),
+  { label: "All", key: "" },
+  ...TOP_TYPES.map((t) => ({ label: QT_LABELS[t] ?? t, key: t })),
 ];
 
 function difficultyVariant(d?: string) {
@@ -80,7 +80,7 @@ export default function QuestionBankListScreen() {
       | undefined) ?? [];
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="bg-canvas flex-1">
       <View className="bg-surface border-border-subtle border-b px-4 pb-3 pt-4">
         <Text className="font-display text-text-primary mb-3 text-xl font-bold">Question Bank</Text>
         <SearchField value={search} onChangeText={setSearch} placeholder="Search questions…" />

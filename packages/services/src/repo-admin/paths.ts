@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Tenant-scoped Firestore path builders — the ONLY place collection paths live
  * (server-shared.md §5.1). Resolves the dual item-path drift (REVIEW D1) to ONE
@@ -147,6 +149,113 @@ export function storyPointProgressDoc(
   return `${spaceProgressDoc(tenantId, userId, spaceId)}/storyPointProgress/${storyPointId}`;
 }
 
+// --- conversational runtime (callable/Admin SDK only) --------------------
+
+/**
+ * `conversationSessions/{sessionId}` under the prefix-aware tenant root.
+ * Runtime records deliberately inherit the root prefix through `tenantDoc()`;
+ * subcollection names themselves are never prefixed.
+ */
+export function conversationSessionsPath(tenantId: string): string {
+  return tenantCollection(tenantId, "conversationSessions");
+}
+
+export function conversationSessionDoc(tenantId: string, sessionId: string): string {
+  return `${conversationSessionsPath(tenantId)}/${sessionId}`;
+}
+
+export function conversationSessionKeysPath(tenantId: string): string {
+  return tenantCollection(tenantId, "conversationSessionKeys");
+}
+
+/**
+ * The session-key document is the concurrency authority for one owner/mode/
+ * context-base tuple. Keep its identity opaque and delimiter-safe: source
+ * values may themselves contain `:` or other readable separators.
+ */
+export function conversationSessionKeyId(
+  ownerUid: string,
+  mode: string,
+  contextBaseKey: string
+): string {
+  const source = JSON.stringify([ownerUid, mode, contextBaseKey]);
+  return `csk_${createHash("sha256").update(source).digest("base64url").slice(0, 26)}`;
+}
+
+export function conversationSessionKeyDoc(
+  tenantId: string,
+  ownerUid: string,
+  mode: string,
+  contextBaseKey: string
+): string {
+  return `${conversationSessionKeysPath(tenantId)}/${conversationSessionKeyId(
+    ownerUid,
+    mode,
+    contextBaseKey
+  )}`;
+}
+
+export function conversationMessagesPath(tenantId: string, sessionId: string): string {
+  return `${conversationSessionDoc(tenantId, sessionId)}/messages`;
+}
+
+export function conversationMessageDoc(
+  tenantId: string,
+  sessionId: string,
+  messageId: string
+): string {
+  return `${conversationMessagesPath(tenantId, sessionId)}/${messageId}`;
+}
+
+export function conversationTurnsPath(tenantId: string, sessionId: string): string {
+  return `${conversationSessionDoc(tenantId, sessionId)}/turns`;
+}
+
+export function conversationTurnDoc(tenantId: string, sessionId: string, turnId: string): string {
+  return `${conversationTurnsPath(tenantId, sessionId)}/${turnId}`;
+}
+
+export function conversationEvidencePath(tenantId: string, sessionId: string): string {
+  return `${conversationSessionDoc(tenantId, sessionId)}/privateEvidence`;
+}
+
+export function conversationEvidenceDoc(
+  tenantId: string,
+  sessionId: string,
+  evidenceId: string
+): string {
+  return `${conversationEvidencePath(tenantId, sessionId)}/${evidenceId}`;
+}
+
+export function itemSubmissionsPath(tenantId: string): string {
+  return tenantCollection(tenantId, "itemSubmissions");
+}
+
+export function itemSubmissionDoc(tenantId: string, submissionId: string): string {
+  return `${itemSubmissionsPath(tenantId)}/${submissionId}`;
+}
+
+export function itemSubmissionAttemptsPath(tenantId: string, submissionId: string): string {
+  return `${itemSubmissionDoc(tenantId, submissionId)}/evaluationAttempts`;
+}
+
+export function itemSubmissionAttemptDoc(
+  tenantId: string,
+  submissionId: string,
+  attemptId: string
+): string {
+  return `${itemSubmissionAttemptsPath(tenantId, submissionId)}/${attemptId}`;
+}
+
+export function progressApplicationDoc(
+  tenantId: string,
+  uid: string,
+  spaceId: string,
+  submissionId: string
+): string {
+  return `${spaceProgressDoc(tenantId, uid, spaceId)}/applications/${submissionId}`;
+}
+
 // --- infrastructure collections -------------------------------------------
 
 export function idempotencyDoc(tenantId: string, uid: string, key: string): string {
@@ -187,6 +296,26 @@ export function userMembershipId(uid: string, tenantId: string): string {
 }
 export function userMembershipDoc(uid: string, tenantId: string): string {
   return `${userMembershipsCollection()}/${userMembershipId(uid, tenantId)}`;
+}
+
+/** `userProviderKeys/{uid}:{provider}` (top-level; per-user BYOK metadata — the
+ *  key VALUE lives in Secret Manager, this doc holds only the ref + masked hint).
+ *  User-global (follows the user across tenants). Server-only (rules deny-all). */
+export function userProviderKeysCollection(): string {
+  return topLevel("userProviderKeys");
+}
+export function userProviderKeyDocId(uid: string, provider: string): string {
+  return `${uid}:${provider}`;
+}
+export function userProviderKeyDoc(uid: string, provider: string): string {
+  return `${userProviderKeysCollection()}/${userProviderKeyDocId(uid, provider)}`;
+}
+
+/** `keyMetadata/{scopeKey}` (top-level; masked/status/version metadata for
+ *  tenant + platform owned keys — never the value). scopeKey is
+ *  `tenant:{tenantId}:{provider}` or `platform:{provider}`. Server-only. */
+export function keyMetadataDoc(scopeKey: string): string {
+  return `${topLevel("keyMetadata")}/${scopeKey}`;
 }
 
 /** `tenantCodes/{code}` (top-level public join-code index). */

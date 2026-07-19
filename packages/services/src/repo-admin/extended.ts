@@ -31,6 +31,10 @@ import {
   spaceReviewDoc,
   spaceVersionsPath,
   platformActivityLogCollection,
+  userProviderKeyDoc,
+  userProviderKeysCollection,
+  userProviderKeyDocId,
+  keyMetadataDoc,
 } from "./paths.js";
 
 type Doc = Record<string, unknown>;
@@ -251,6 +255,11 @@ export function makeChatRepo(db: Firestore, now: Now) {
         merge: true,
       });
       return ref.id;
+    },
+    async updateSession(tenantId: string, sessionId: string, patch: Doc): Promise<void> {
+      await sessions(tenantId)
+        .doc(sessionId)
+        .set(toFirestore({ ...patch, updatedAt: now() }), { merge: true });
     },
     async appendMessage(tenantId: string, sessionId: string, message: Doc): Promise<string> {
       const ref = messages(tenantId, sessionId).doc();
@@ -588,6 +597,76 @@ export function makeSecretRepo(
         .doc(`${tenantDoc(tenantId)}/secretRefs/gemini`)
         .set(toFirestore({ secretRef, updatedAt: now() }), { merge: true });
       return { secretRef };
+    },
+  };
+}
+
+/**
+ * Per-user BYOK provider-key metadata repo (top-level `userProviderKeys/{uid}:{provider}`).
+ * Stores ONLY the opaque Secret Manager ref + masked hint + status — never the key
+ * value (that is written to Secret Manager by the keys service via `@levelup/ai`).
+ */
+export function makeUserProviderKeyRepo(db: Firestore, now: Now) {
+  return {
+    async get(uid: string, provider: string): Promise<Doc | null> {
+      const snap = await db.doc(userProviderKeyDoc(uid, provider)).get();
+      return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
+    },
+    async listByUser(uid: string): Promise<Doc[]> {
+      const snap = await db
+        .collection(userProviderKeysCollection())
+        .where("userId", "==", uid)
+        .get();
+      return snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
+    },
+    async upsert(
+      uid: string,
+      provider: string,
+      data: Doc,
+      ts?: string
+    ): Promise<{ created: boolean }> {
+      const ref = db.doc(userProviderKeyDoc(uid, provider));
+      const existing = await ref.get();
+      const created = !existing.exists;
+      const stamp = ts ?? now();
+      await ref.set(
+        toFirestore({
+          ...data,
+          id: userProviderKeyDocId(uid, provider),
+          userId: uid,
+          provider,
+          updatedAt: stamp,
+          ...(created ? { createdAt: stamp } : {}),
+        }),
+        { merge: true }
+      );
+      return { created };
+    },
+    async patch(uid: string, provider: string, patch: Doc, ts?: string): Promise<void> {
+      await db
+        .doc(userProviderKeyDoc(uid, provider))
+        .set(toFirestore({ ...patch, updatedAt: ts ?? now() }), { merge: true });
+    },
+    async delete(uid: string, provider: string): Promise<void> {
+      await db.doc(userProviderKeyDoc(uid, provider)).delete();
+    },
+  };
+}
+
+/** Masked/status/version metadata for tenant + platform owned keys. */
+export function makeKeyMetaRepo(db: Firestore, now: Now) {
+  return {
+    async get(scopeKey: string): Promise<Doc | null> {
+      const snap = await db.doc(keyMetadataDoc(scopeKey)).get();
+      return snap.exists ? docFromFirestore({ ...snap.data(), id: snap.id }) : null;
+    },
+    async put(scopeKey: string, data: Doc, ts?: string): Promise<void> {
+      await db
+        .doc(keyMetadataDoc(scopeKey))
+        .set(toFirestore({ ...data, updatedAt: ts ?? now() }), { merge: true });
+    },
+    async delete(scopeKey: string): Promise<void> {
+      await db.doc(keyMetadataDoc(scopeKey)).delete();
     },
   };
 }

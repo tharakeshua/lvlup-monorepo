@@ -50,6 +50,21 @@ export type {
 } from "./shared/extended-repos.js";
 export { xrepos } from "./shared/extended-repos.js";
 
+// Server-only Supabase connection for the LLM telemetry adapter. The application
+// still authenticates through Firebase; no Supabase Auth session crosses this seam.
+export {
+  createSupabaseServerClient,
+  getSupabaseServerClient,
+  isSupabaseTelemetryConfigured,
+  resetSupabaseServerClientForTesting,
+  resolveSupabaseServerConfig,
+} from "./supabase/client.js";
+export type { CreateSupabaseServerClientOptions, SupabaseServerConfig } from "./supabase/client.js";
+export {
+  createSupabaseLlmTelemetrySink,
+  llmTelemetryRowMappers,
+} from "./supabase/llm-telemetry.js";
+
 // identity slice (claims mint, membership writes, tenant lifecycle, org users,
 // bulk ops, impersonation, presets, reads, triggers/schedulers)
 export * from "./identity/index.js";
@@ -107,6 +122,7 @@ export {
   generateReportService,
   // class assignment-tracker matrix (C12, LVL-2)
   getAssignmentMatrixService,
+  getSpaceAnalyticsService,
   // triggers
   onSubmissionGradedService,
   onExamResultsReleasedService,

@@ -1,0 +1,127 @@
+<!-- @dsCard group="Parent" viewport="1440x940" name="Active-Child Switcher" subtitle="Topbar menu · pick active child" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-only global resets (composer ignores these — kept OUTSIDE the SPA markers) */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+/* ==SPA-STYLE:multi-child-switcher== */
+.v-multi-child-switcher{width:320px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);overflow:hidden;font-family:var(--font-ui)}
+
+/* header */
+.v-multi-child-switcher .mcs__head{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-4) var(--space-3)}
+.v-multi-child-switcher .mcs__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-sm);line-height:var(--leading-sm);letter-spacing:-.01em;color:var(--text-primary);margin:0}
+.v-multi-child-switcher .mcs__count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto}
+
+/* rows */
+.v-multi-child-switcher .mcs__list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.v-multi-child-switcher .mcs__row{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-3) var(--space-4);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-multi-child-switcher .mcs__row:hover{background:var(--bg-surface-sunken)}
+.v-multi-child-switcher .mcs__row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-multi-child-switcher .mcs__row--active{background:var(--brand-subtle)}
+.v-multi-child-switcher .mcs__row--active:hover{background:var(--brand-subtle)}
+.v-multi-child-switcher .mcs__main{flex:1 1 auto;min-width:0}
+.v-multi-child-switcher .mcs__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-multi-child-switcher .mcs__meta{font-size:var(--text-2xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-multi-child-switcher .mcs__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* at-risk status */
+.v-multi-child-switcher .mcs__risk{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--status-warning);font-weight:var(--weight-medium)}
+.v-multi-child-switcher .mcs__risk-dot{width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-warning);flex:0 0 auto}
+
+/* selected check */
+.v-multi-child-switcher .mcs__check{flex:0 0 auto;width:22px;height:22px;border-radius:var(--radius-pill);display:grid;place-items:center;background:var(--brand-primary);color:var(--text-on-accent)}
+.v-multi-child-switcher .mcs__check-empty{flex:0 0 auto;width:22px;height:22px}
+
+/* footer */
+.v-multi-child-switcher .mcs__foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.v-multi-child-switcher .mcs__foot .btn{flex:1 1 auto;justify-content:center}
+/* ==/SPA-STYLE== */
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, Avatar, Badge } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function go(h){ if(h) window.location.hash = h; }
+
+/* ---------- sample data (server-derived, released-only, read-only) ---------- */
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', avg:82, atRisk:false },
+  { id:'diya',  name:'Diya Sharma',  initials:'DS', grade:'Grade 7', avg:61, atRisk:true  },
+];
+
+/* helper sub-component (outside SPA markers) */
+function ChildRow({ kid, active, onPick }){
+  return (
+    <li role="none">
+      <button
+        className={'mcs__row'+(active?' mcs__row--active':'')}
+        role="menuitemradio" aria-checked={active}
+        onClick={onPick}
+        aria-label={kid.name+', '+kid.grade+', average '+kid.avg+' percent'+(kid.atRisk?', at risk — on watch':'')+(active?', active child':'')}>
+        <Avatar initials={kid.initials} size="sm"/>
+        <span className="mcs__main">
+          <span className="mcs__name">{kid.name}</span>
+          <span className="mcs__meta">
+            <span>{kid.grade}</span>
+            <span className="u-mono">·</span>
+            <span>Avg <span className="u-mono">{kid.avg}%</span></span>
+            {kid.atRisk && (
+              <span className="mcs__risk">
+                <span className="mcs__risk-dot" aria-hidden="true"></span>
+                <Icon name="alert-triangle" size={11}/> Watch
+              </span>
+            )}
+          </span>
+        </span>
+        {active
+          ? <span className="mcs__check" aria-hidden="true"><Icon name="check" size={14}/></span>
+          : <span className="mcs__check-empty" aria-hidden="true"></span>}
+      </button>
+    </li>
+  );
+}
+
+/* ==SPA-VIEW:multi-child-switcher== */
+function ChildSwitcherView(){
+  const [activeId, setActiveId] = useState('aarav');
+  return (
+    <div className="v-multi-child-switcher" role="menu" aria-label="Switch child">
+
+      <div className="mcs__head">
+        <h2 className="mcs__title">Switch child</h2>
+        <span className="mcs__count"><Badge variant="brand">{CHILDREN.length} linked</Badge></span>
+      </div>
+
+      <ul className="mcs__list" role="none">
+        {CHILDREN.map(k=>(
+          <ChildRow key={k.id} kid={k} active={k.id===activeId} onPick={()=>setActiveId(k.id)}/>
+        ))}
+      </ul>
+
+      <div className="mcs__foot">
+        <Button variant="secondary" size="sm" leadingIcon={<Icon name="git-compare" size={15}/>} onClick={()=>go('#/compare')}>Compare all</Button>
+        <Button variant="ghost" size="sm" leadingIcon={<Icon name="users-round" size={15}/>} onClick={()=>go('#/children')}>Manage children</Button>
+      </div>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+
+function App(){
+  return (
+    <div style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:'var(--space-8)',background:'var(--bg-canvas)'}}>
+      <ChildSwitcherView/>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

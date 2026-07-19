@@ -1,0 +1,69 @@
+<!-- @dsCard group="Type" name="Typography" subtitle="Fraunces · Schibsted Grotesk · Spline Sans Mono" viewport="1240x1320" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyceum — Typography</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .family { display: grid; grid-template-columns: 160px 1fr; gap: var(--space-6); align-items: start; padding: var(--space-5) 0; border-bottom: 1px solid var(--border-subtle); }
+  .family__tag { display: flex; flex-direction: column; gap: var(--space-1); }
+  .family__role { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); }
+  .family__name { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .scale-row { display: grid; grid-template-columns: 90px 1fr; gap: var(--space-6); align-items: baseline; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle); }
+  .scale-row__spec { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); padding-top: 0.4em; }
+  .weights { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+  .weights span { font-size: var(--text-2xl); }
+</style>
+</head>
+<body>
+<div class="ds-card">
+  <div class="ds-card__head">
+    <div class="u-eyebrow">Foundation · §3</div>
+    <h1 class="ds-card__title">Typography</h1>
+    <p class="ds-card__subtitle">A serif display voice for scholarly authority, a grotesk for UI clarity, a mono for every numeric and code surface.</p>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Families</div>
+    <div class="family">
+      <div class="family__tag"><span class="family__role">Display / headings</span><span class="family__name">Fraunces</span></div>
+      <div style="font-family:var(--font-display); font-size:var(--text-4xl); line-height:1.05; letter-spacing:var(--tracking-display); font-weight:var(--weight-medium)">Assessment, reimagined</div>
+    </div>
+    <div class="family">
+      <div class="family__tag"><span class="family__role">UI / body</span><span class="family__name">Schibsted Grotesk</span></div>
+      <div style="font-family:var(--font-ui); font-size:var(--text-lg)">The quick brown fox jumps over the lazy dog — clear at every size, neutral enough to disappear into the interface.</div>
+    </div>
+    <div class="family">
+      <div class="family__tag"><span class="family__role">Mono / numeric</span><span class="family__name">Spline Sans Mono</span></div>
+      <div style="font-family:var(--font-mono); font-size:var(--text-lg); font-variant-numeric:tabular-nums">0123456789 · 98.6% · 1,240 XP · §4.2</div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Type scale — 1.25 major third, 16px base</div>
+    <div class="scale-row"><span class="scale-row__spec">5xl · 61/64</span><span style="font-family:var(--font-display); font-size:var(--text-5xl); line-height:1; letter-spacing:var(--tracking-display)">Scholar</span></div>
+    <div class="scale-row"><span class="scale-row__spec">4xl · 49/54</span><span style="font-family:var(--font-display); font-size:var(--text-4xl); line-height:1; letter-spacing:var(--tracking-display)">Heading one</span></div>
+    <div class="scale-row"><span class="scale-row__spec">3xl · 39/46</span><span style="font-family:var(--font-display); font-size:var(--text-3xl); line-height:1">Heading two</span></div>
+    <div class="scale-row"><span class="scale-row__spec">2xl · 31/38</span><span style="font-family:var(--font-display); font-size:var(--text-2xl)">Heading three</span></div>
+    <div class="scale-row"><span class="scale-row__spec">xl · 25/32</span><span style="font-size:var(--text-xl)">Section title</span></div>
+    <div class="scale-row"><span class="scale-row__spec">lg · 20/28</span><span style="font-size:var(--text-lg)">Large body & prompts</span></div>
+    <div class="scale-row"><span class="scale-row__spec">base · 16/24</span><span style="font-size:var(--text-base)">Body text — the default reading size across the platform.</span></div>
+    <div class="scale-row"><span class="scale-row__spec">sm · 13/20</span><span style="font-size:var(--text-sm)">Secondary text, controls and table cells.</span></div>
+    <div class="scale-row"><span class="scale-row__spec">xs · 12/18</span><span style="font-size:var(--text-xs)">Captions, badges and helper text.</span></div>
+    <div class="scale-row"><span class="scale-row__spec">2xs · 11/16</span><span style="font-size:var(--text-2xs)">Eyebrows, tab-bar labels, overlines.</span></div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Weights — Fraunces 400/500/600 · Schibsted 400/500/600/700</div>
+    <div class="weights">
+      <span style="font-weight:var(--weight-regular)">Regular 400</span>
+      <span style="font-weight:var(--weight-medium)">Medium 500</span>
+      <span style="font-weight:var(--weight-semibold)">Semibold 600</span>
+      <span style="font-weight:var(--weight-bold)">Bold 700</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

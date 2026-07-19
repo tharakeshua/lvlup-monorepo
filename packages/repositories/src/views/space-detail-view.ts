@@ -4,18 +4,21 @@
  *
  * Assembles `{space, storyPoints, items, myProgress}` for the learner/editor
  * dashboard in a BOUNDED number of wire calls — never one `listItems` per story
- * point (that 1+N is the exact anti-pattern PC-14 forbids):
+ * point (that 1+N is the exact anti-pattern PC-14 forbids). The current API has
+ * no getSpaceDetail or cross-story-point item batch callable, so this view:
  *
- *   • If the server exposes the composite `getSpaceDetail`, use it (ONE call).
- *   • Otherwise compose a SMALL FIXED set: getSpace + listStoryPoints + ONE
- *     batched listItems (across all story points) + getSpaceProgress (≤4 calls).
+ *   • composes getSpace + listStoryPoints + getSpaceProgress in three calls;
+ *   • reads items only when exactly one story point exists (one scoped call);
+ *   • otherwise returns itemsComplete:false instead of sending rejected fields
+ *     or issuing an unbounded N-call fan-out.
  *
  * Lives under `src/views/**` — the only sanctioned composition surface (R6
  * exception, asserted by repo-isolation.static.test.ts). It calls the injected
  * api-client directly rather than importing sibling repo modules, so it stays a
  * single shaped read with no hidden fan-out.
  */
-import { type ApiClientLike, toPage } from "../levelup-content/_kit";
+import { type ApiClientLike, invokeCallable, toPage } from "../levelup-content/_kit";
+import type { Space, SpaceProgress, StoryPoint, UnifiedItem } from "@levelup/domain";
 
 export interface SpaceDetailViewInput {
   spaceId: string;
@@ -23,52 +26,68 @@ export interface SpaceDetailViewInput {
 }
 
 export interface SpaceDetailView {
-  space: unknown;
-  storyPoints: unknown[];
-  items: unknown[];
-  myProgress: unknown;
+  space: Space;
+  storyPoints: StoryPoint[];
+  items: UnifiedItem[];
+  myProgress: SpaceProgress | null;
+  /**
+   * False when the API cannot return all items within the view's bounded call
+   * budget (currently spaces with multiple story points).
+   */
+  itemsComplete: boolean;
 }
 
 export interface SpaceDetailViewRepo {
-  get(input: SpaceDetailViewInput): Promise<SpaceDetailView>;
+  get(input: SpaceDetailViewInput | string): Promise<SpaceDetailView>;
 }
 
 export function createSpaceDetailViewRepo(api: ApiClientLike): SpaceDetailViewRepo {
   const lv = api.levelup;
   return {
-    get: async ({ spaceId, userId }) => {
-      // Preferred: ONE server composite call (PC-14 — a genuine 1+N dashboard
-      // gets a server composite, never N client calls). The composite is
-      // OPTIONAL: when the server does not ship it (call rejects) we degrade to a
-      // SMALL FIXED set of batched reads. This keeps the view bounded either way.
-      const composite = await lv["getSpaceDetail"]!({ spaceId, userId })
-        .then((c) => c as Partial<SpaceDetailView>)
-        .catch(() => null);
-      if (composite) {
-        return {
-          space: composite.space ?? null,
-          storyPoints: composite.storyPoints ?? [],
-          items: composite.items ?? [],
-          myProgress: composite.myProgress ?? null,
-        };
+    get: async (input) => {
+      // Accept the string form used by the query package as well as the public
+      // object form, then send only fields admitted by each strict contract.
+      const { spaceId, userId } =
+        typeof input === "string" ? { spaceId: input, userId: undefined } : input;
+
+      const [spaceResponse, storyPointResponse, progressResponse] = await Promise.all([
+        invokeCallable<"v1.levelup.getSpace">(lv["getSpace"]!, { spaceId }),
+        invokeCallable<"v1.levelup.listStoryPoints">(lv["listStoryPoints"]!, { spaceId }),
+        invokeCallable<"v1.levelup.getSpaceProgress">(
+          lv["getSpaceProgress"]!,
+          userId ? { spaceId, userId } : { spaceId }
+        ).catch(() => null),
+      ]);
+
+      const storyPoints = toPage<StoryPoint>(storyPointResponse).items;
+      let items: UnifiedItem[] = [];
+      let itemsComplete = storyPoints.length === 0;
+
+      // listItems is story-point scoped. One valid item read stays bounded; for
+      // multiple story points we explicitly surface incompleteness instead of
+      // inventing a rejected `storyPointIds` request or issuing an N-call fanout.
+      if (storyPoints.length === 1) {
+        const itemPage = toPage<UnifiedItem>(
+          await invokeCallable<"v1.levelup.listItems">(lv["listItems"]!, {
+            spaceId,
+            storyPointId: String(storyPoints[0]!.id),
+            limit: 100,
+          })
+        );
+        items = itemPage.items;
+        itemsComplete = itemPage.nextCursor === null;
       }
 
-      // Fallback: a small FIXED set of batched reads. listItems is called ONCE
-      // (batched across story points via storyPointIds), never one per story point.
-      const space = await lv["getSpace"]!({ spaceId });
-      const spPage = toPage<{ id?: string }>(await lv["listStoryPoints"]!({ spaceId }));
-      const storyPointIds = spPage.items
-        .map((s) => s.id)
-        .filter((x): x is string => typeof x === "string");
-      const items = toPage<unknown>(await lv["listItems"]!({ spaceId, storyPointIds })).items;
       // Progress is best-effort context — a code-joined "lazy" student may have no
       // progress doc yet (open-Q #6); a missing/denied progress read must not fail
       // the whole space view, so fall back to null.
-      const myProgress = await lv["getSpaceProgress"]!(
-        userId ? { spaceId, userId } : { spaceId }
-      ).catch(() => null);
-
-      return { space, storyPoints: spPage.items, items, myProgress };
+      return {
+        space: spaceResponse.space,
+        storyPoints,
+        items,
+        myProgress: progressResponse?.progress ?? null,
+        itemsComplete,
+      };
     },
   };
 }

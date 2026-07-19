@@ -2,34 +2,37 @@
  * v1.levelup.saveStoryPoint — upsert a StoryPoint under a Space.
  */
 import { z } from "zod";
-import {
-  AssessmentConfigSchema,
-  StoryPointSectionSchema,
-  zStoryPointType,
-  zDifficulty,
-} from "@levelup/domain";
+import { StoryPointSchema } from "@levelup/domain";
 import { defineCallable } from "./_shared.js";
 import { SaveOrDeleteResponseSchema } from "./_shared.js";
 
-export const SaveStoryPointDataSchema = z
-  .object({
-    title: z.string().min(1),
-    description: z.string().optional(),
-    orderIndex: z.number().int().optional(),
-    type: zStoryPointType,
-    sections: z.array(StoryPointSectionSchema).optional(),
-    assessmentConfig: AssessmentConfigSchema.optional(),
-    defaultRubricId: z.string().optional(),
-    difficulty: zDifficulty.optional(),
-    estimatedTimeMinutes: z.number().int().optional(),
+/**
+ * Partial by design: one callable owns create, edit, reorder, and soft-delete.
+ * The service requires title/type for create. Inline defaultRubric is persisted as
+ * the resolved snapshot alongside the optional preset provenance id.
+ */
+export const SaveStoryPointDataSchema = StoryPointSchema.pick({
+  title: true,
+  description: true,
+  orderIndex: true,
+  type: true,
+  sections: true,
+  assessmentConfig: true,
+  defaultRubric: true,
+  defaultRubricId: true,
+  difficulty: true,
+  estimatedTimeMinutes: true,
+})
+  .partial()
+  .extend({
     deleted: z.boolean().optional(),
   })
   .strict();
 
 export const SaveStoryPointRequestSchema = z
   .object({
-    id: z.string().optional(),
-    spaceId: z.string(),
+    id: StoryPointSchema.shape.id.optional(),
+    spaceId: StoryPointSchema.shape.spaceId,
     data: SaveStoryPointDataSchema,
   })
   .strict();

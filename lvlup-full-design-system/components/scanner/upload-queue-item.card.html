@@ -1,0 +1,26 @@
+<!-- @dsCard group="Scanner" viewport="740x360" name="UploadQueueItem" subtitle="Offline upload states" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:var(--space-6)}
+.ds-col{display:flex;flex-direction:column;gap:var(--space-3);max-width:600px}
+.ds-cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:var(--space-1)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { UploadQueueItem } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){ return (<div className="ds-col">
+    <div className="ds-cap">Queued — waiting for connection</div>
+    <UploadQueueItem status="queued" name="midterm-page-01.jpg" meta="2.4 MB · waiting" />
+    <div className="ds-cap">Uploading — 45%</div>
+    <UploadQueueItem status="uploading" name="midterm-page-02.jpg" progress={45} meta="3.1 MB · 45%" />
+    <div className="ds-cap">Done — synced</div>
+    <UploadQueueItem status="done" name="midterm-page-03.jpg" meta="1.9 MB · synced" />
+    <div className="ds-cap">Failed — retry needed</div>
+    <UploadQueueItem status="failed" name="midterm-page-04.jpg" meta="2.7 MB · upload failed" />
+  </div>); }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

@@ -1,0 +1,383 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Space Analytics" subtitle="Learning-space performance · story-point funnel · mastery · difficulty" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .pagewrap{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+  .page-title{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;color:var(--text-primary)}
+  .page-sub{font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-secondary);margin:var(--space-1) 0 0}
+  .hdr-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-4);margin-top:var(--space-5)}
+  .hdr-pick{display:flex;flex-direction:column;gap:var(--space-1);min-width:240px}
+  .hdr-pick--sm{min-width:180px}
+  .hdr-spacer{flex:1 1 auto}
+  .hdr-meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .fresh{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-ui)}
+  .fresh time{font-family:var(--font-mono)}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+  .two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--space-6)}
+  .mastery-wrap{display:flex;align-items:center;gap:var(--space-6)}
+  .legend{display:flex;flex-direction:column;gap:var(--space-3);flex:1}
+  .legend-row{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm)}
+  .legend-sw{width:14px;height:14px;border-radius:var(--radius-sm);flex:none}
+  .legend-label{flex:1;color:var(--text-secondary)}
+  .legend-num{font-family:var(--font-mono);color:var(--text-primary)}
+  .legend-pct{font-family:var(--font-mono);color:var(--text-muted);min-width:42px;text-align:right}
+  .sw-mastered{background:var(--mastery-mastered)}
+  .sw-inprogress{background:var(--mastery-in-progress)}
+  .sw-notstarted{background:var(--mastery-not-started)}
+  .funnel-list{display:flex;flex-direction:column;gap:var(--space-3)}
+  .funnel-node{display:flex;align-items:center;gap:var(--space-3)}
+  .funnel-idx{width:26px;height:26px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);flex:none}
+  .funnel-main{flex:1;min-width:0}
+  .funnel-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3)}
+  .funnel-name{font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+  .funnel-counts{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
+  .funnel-bar{margin-top:var(--space-2);height:8px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden;position:relative}
+  .funnel-bar__started{position:absolute;inset:0 auto 0 0;background:var(--mastery-in-progress);border-radius:var(--radius-pill)}
+  .funnel-bar__done{position:absolute;inset:0 auto 0 0;background:var(--mastery-mastered);border-radius:var(--radius-pill)}
+  .funnel-drop{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--status-warning);margin-top:var(--space-1);display:inline-flex;align-items:center;gap:4px}
+  .classbar-list{display:flex;flex-direction:column;gap:var(--space-4)}
+  .classbar-row{display:grid;grid-template-columns:88px 1fr 52px;align-items:center;gap:var(--space-4)}
+  .classbar-label{font-size:var(--text-sm);color:var(--text-secondary);font-family:var(--font-mono)}
+  .classbar-track{height:14px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden}
+  .classbar-fill{height:100%;border-radius:var(--radius-pill);background:var(--brand-primary)}
+  .classbar-fill--low{background:var(--status-warning)}
+  .classbar-val{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);text-align:right}
+  .student-cell{display:flex;align-items:center;gap:var(--space-3)}
+  .student-name{font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+  .compl-cell{display:flex;align-items:center;gap:var(--space-3)}
+  .compl-track{width:80px;height:8px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden}
+  .compl-fill{height:100%;border-radius:var(--radius-pill);background:var(--brand-primary)}
+  .compl-pct{font-family:var(--font-mono);font-size:var(--text-sm)}
+  .tbl-toolbar{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);flex-wrap:wrap}
+  .tbl-search{flex:1;min-width:220px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .states-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-5)}
+  .state-mini{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);background:var(--bg-surface);display:flex;flex-direction:column;gap:var(--space-3)}
+  .u-mono{font-family:var(--font-mono)}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Card, Panel, Section, Tabs,
+  DataTable, Stat, EmptyState, Skeleton, Pagination, Avatar, Badge, Chip,
+  ProgressRing, Toast, Alert, NavItem, AtRiskBadge } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+const SPACE_OPTS = [
+  {value:'algebra', label:'Algebra Foundations'},
+  {value:'geometry', label:'Geometry · Proofs & Constructions'},
+  {value:'trig', label:'Trigonometry Essentials'},
+  {value:'precalc', label:'Pre-Calculus Bridge'},
+];
+const CLASS_OPTS = [
+  {value:'all', label:'All classes'},
+  {value:'10a', label:'Grade 10-A'},
+  {value:'10b', label:'Grade 10-B'},
+  {value:'10c', label:'Grade 10-C'},
+];
+
+const FUNNEL = [
+  {name:'Variables & Expressions', started:24, completed:22},
+  {name:'Linear Equations',        started:23, completed:18},
+  {name:'Systems of Equations',    started:20, completed:13},
+  {name:'Inequalities',            started:16, completed:11},
+  {name:'Quadratic Functions',     started:13, completed:7},
+  {name:'Polynomials',             started:9,  completed:4},
+];
+
+const CLASS_ROWS = [
+  {label:'10-A', pct:71},
+  {label:'10-B', pct:48, low:true},
+  {label:'10-C', pct:60},
+];
+
+const STUDENTS = [
+  {initials:'AM', name:'Aanya Mehta',     cls:'10-A', compl:92, mastered:11, total:12, last:'2h ago'},
+  {initials:'RK', name:'Rohan Kapoor',    cls:'10-A', compl:78, mastered:9,  total:12, last:'1d ago'},
+  {initials:'PS', name:'Priya Sharma',    cls:'10-B', compl:34, mastered:4,  total:12, last:'6d ago', risk:'Zero streak · 6 days inactive'},
+  {initials:'DV', name:'Dev Varma',       cls:'10-C', compl:61, mastered:7,  total:12, last:'4h ago'},
+  {initials:'NI', name:'Nisha Iyer',      cls:'10-B', compl:27, mastered:3,  total:12, last:'9d ago', risk:'Low completion · stalled'},
+  {initials:'KT', name:'Kabir Thakur',    cls:'10-A', compl:88, mastered:10, total:12, last:'3h ago'},
+  {initials:'SG', name:'Saanvi Gupta',    cls:'10-C', compl:55, mastered:6,  total:12, last:'2d ago'},
+];
+
+function Fresh(){
+  return (<span className="fresh"><Icon name="server" size={12}/>Updated <time dateTime="2026-06-20T07:20:00">3 hours ago</time></span>);
+}
+
+function MasteryRing(){
+  const mastered=11, inProg=13, notStart=4, total=28;
+  const masteredPct=Math.round(mastered/total*100);
+  return (
+    <Card>
+      <Section title="Mastery distribution">
+        <div className="mastery-wrap">
+          <div role="img" aria-label="Mastery: 11 mastered, 13 in progress, 4 not started">
+            <ProgressRing value={masteredPct} label={<span className="u-mono">{masteredPct}%</span>} size={120}/>
+          </div>
+          <div className="legend" aria-hidden="false">
+            <div className="legend-row"><span className="legend-sw sw-mastered"/><span className="legend-label">Mastered</span><span className="legend-num">{mastered}</span><span className="legend-pct">{Math.round(mastered/total*100)}%</span></div>
+            <div className="legend-row"><span className="legend-sw sw-inprogress"/><span className="legend-label">In progress</span><span className="legend-num">{inProg}</span><span className="legend-pct">{Math.round(inProg/total*100)}%</span></div>
+            <div className="legend-row"><span className="legend-sw sw-notstarted"/><span className="legend-label">Not started</span><span className="legend-num">{notStart}</span><span className="legend-pct">{Math.round(notStart/total*100)}%</span></div>
+          </div>
+        </div>
+      </Section>
+    </Card>
+  );
+}
+
+function Funnel(){
+  const max = FUNNEL[0].started;
+  return (
+    <Card>
+      <Section title="Completion funnel" actions={<Fresh/>}>
+        <div className="funnel-list" role="list" aria-label="Story-point completion funnel">
+          {FUNNEL.map((n,i)=>{
+            const prev = i>0 ? FUNNEL[i-1].completed : null;
+            const drop = prev!=null ? prev - n.started : 0;
+            return (
+              <div className="funnel-node" role="listitem" key={i}>
+                <span className="funnel-idx">{i+1}</span>
+                <a className="funnel-main" href={"/spaces/algebra/story-points/sp"+(i+1)+"/preview"} style={{textDecoration:'none', display:'block'}}>
+                  <div className="funnel-top">
+                    <span className="funnel-name">{n.name}</span>
+                    <span className="funnel-counts">{n.started} started · {n.completed} completed</span>
+                  </div>
+                  <div className="funnel-bar" aria-hidden="true">
+                    <div className="funnel-bar__started" style={{width:(n.started/max*100)+'%'}}/>
+                    <div className="funnel-bar__done" style={{width:(n.completed/max*100)+'%'}}/>
+                  </div>
+                  {drop>0 && <span className="funnel-drop"><Icon name="trending-down" size={11}/>{drop} dropped before starting</span>}
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+    </Card>
+  );
+}
+
+function ClassChart(){
+  return (
+    <Card>
+      <Section title="Completion by class">
+        <div className="classbar-list" role="img" aria-label="Average completion by class: 10-A 71 percent, 10-B 48 percent, 10-C 60 percent">
+          {CLASS_ROWS.map((c,i)=>(
+            <div className="classbar-row" key={i}>
+              <span className="classbar-label">{c.label}</span>
+              <div className="classbar-track"><div className={"classbar-fill"+(c.low?" classbar-fill--low":"")} style={{width:c.pct+'%'}}/></div>
+              <span className="classbar-val">{c.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+    </Card>
+  );
+}
+
+function StudentTable(){
+  const [q,setQ]=useState('');
+  const [cls,setCls]=useState('all');
+  const rows = STUDENTS.filter(s=>(cls==='all'|| s.cls.toLowerCase()==='10-'+cls.replace('10',''))).filter(s=>s.name.toLowerCase().includes(q.toLowerCase()));
+  const columns = [
+    {label:'Student', key:'name', render:(r)=>(<div className="student-cell"><Avatar initials={r.initials} size="sm"/><span className="student-name">{r.name}</span></div>)},
+    {label:'Class', key:'cls', render:(r)=>(<span className="u-mono" style={{color:'var(--text-secondary)'}}>{r.cls}</span>)},
+    {label:'Completion', key:'compl', sortable:true, render:(r)=>(<div className="compl-cell"><div className="compl-track"><div className="compl-fill" style={{width:r.compl+'%'}}/></div><span className="compl-pct">{r.compl}%</span></div>)},
+    {label:'Mastered', key:'mastered', numeric:true, render:(r)=>(<span className="u-mono">{r.mastered}/{r.total}</span>)},
+    {label:'Last active', key:'last', render:(r)=>(<span style={{color:'var(--text-muted)',fontSize:'var(--text-sm)'}}>{r.last}</span>)},
+    {label:'Status', key:'risk', render:(r)=> r.risk ? <AtRiskBadge level="watch">{r.risk}</AtRiskBadge> : <span style={{color:'var(--text-muted)'}}>—</span>},
+    {label:'', key:'go', render:(r)=>(<a href={"/students/"+r.name+"/report"} className="btn btn--ghost btn--sm" style={{whiteSpace:'nowrap'}}>View report <Icon name="arrow-right" size={14}/></a>)},
+  ];
+  return (
+    <Card>
+      <Section title="Student completion">
+        <div className="tbl-toolbar">
+          <div className="tbl-search"><Input placeholder="Search students…" value={q} onChange={e=>setQ(e.target.value)} aria-label="Search students"/></div>
+          <div style={{minWidth:170}}>
+            <Select value={cls} onChange={e=>setCls(e.target.value)} aria-label="Filter by class"
+              options={CLASS_OPTS}/>
+          </div>
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-up-down" size={14}/>}>Sort</Button>
+        </div>
+        {rows.length>0
+          ? <DataTable columns={columns} rows={rows}/>
+          : <EmptyState icon="search-x" title="No students match these filters" body="Try clearing the search or class filter."/>}
+        <div style={{marginTop:'var(--space-4)', display:'flex', justifyContent:'flex-end'}}>
+          <Pagination pages={3} current={1}/>
+        </div>
+      </Section>
+    </Card>
+  );
+}
+
+function StatesRail(){
+  return (
+    <Section title="States">
+      <div className="states-grid">
+        <div className="state-mini">
+          <span className="u-caption">Loading — KPI + ring/funnel silhouette</span>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'var(--space-3)'}}>
+            {[0,1,2,3].map(i=><Skeleton key={i} variant="text" width="100%" height={56}/>)}
+          </div>
+          <div style={{display:'flex',gap:'var(--space-4)',alignItems:'center'}}>
+            <Skeleton variant="circle" width={64} height={64}/>
+            <div style={{flex:1,display:'flex',flexDirection:'column',gap:'var(--space-2)'}}>
+              <Skeleton variant="text" width="80%" height={12}/>
+              <Skeleton variant="text" width="60%" height={12}/>
+              <Skeleton variant="text" width="70%" height={12}/>
+            </div>
+          </div>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Empty — no learner activity</span>
+          <EmptyState icon="orbit" title="No learner activity yet" body="Analytics appear once students start this space's story points."/>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Empty — no spaces assigned</span>
+          <EmptyState icon="folder-open" title="No spaces to analyze" body="You're not assigned to any learning spaces in this tenant yet. Create one in Spaces, or ask your admin to assign you." action={<a href="/spaces" className="btn btn--ghost btn--sm">Go to Spaces <Icon name="arrow-right" size={14}/></a>}/>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Error — load failed</span>
+          <Alert variant="error" title="Couldn't load space analytics">Something went wrong fetching this space's performance.</Alert>
+          <div><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Draft space notice (inline)</span>
+          <Alert variant="info" title="Draft space">This space is a draft. Analytics will populate once it's published and students begin.</Alert>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Partial — per-story-point breakdown unavailable</span>
+          <Alert variant="warning" title="Breakdown unavailable">Per-story-point breakdown unavailable.</Alert>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Access denied — out-of-scope space</span>
+          <Alert variant="error" title="Access denied">You don't have access to this space.</Alert>
+        </div>
+
+        <div className="state-mini">
+          <span className="u-caption">Export ready — toast</span>
+          <Toast variant="success" title="Space report ready" body="A 1-hour signed download link is available."/>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function App(){
+  const [space,setSpace]=useState('algebra');
+  const [cls,setCls]=useState('all');
+  const [exporting,setExporting]=useState(false);
+
+  return (
+    <Shell active="analytics-spaces">
+      <div className="pagewrap">
+        {/* Page header */}
+        <div>
+          <h1 className="page-title">Space analytics</h1>
+          <p className="page-sub">Learning-space performance, story-point funnel, mastery distribution, and difficulty — read-only, server-authoritative.</p>
+          <div className="hdr-row">
+            <div className="hdr-pick">
+              <label className="field__label" htmlFor="space-pick">Space</label>
+              <Select id="space-pick" value={space} onChange={e=>setSpace(e.target.value)} options={SPACE_OPTS} aria-label="Space"/>
+            </div>
+            <div className="hdr-pick hdr-pick--sm">
+              <label className="field__label" htmlFor="class-pick">Class</label>
+              <Select id="class-pick" value={cls} onChange={e=>setCls(e.target.value)} options={CLASS_OPTS} aria-label="Class"/>
+            </div>
+            <div className="hdr-meta">
+              <Badge variant="info" icon={<Icon name="book-open" size={12}/>}>Learning</Badge>
+              <Badge variant="success" dot>Published</Badge>
+              <Fresh/>
+            </div>
+            <div className="hdr-spacer"/>
+            <a href="/spaces/algebra/edit" className="btn btn--ghost">Edit space <Icon name="arrow-right" size={14}/></a>
+            <Button variant="spark" loading={exporting} leadingIcon={!exporting && <Icon name="download" size={16}/>}
+              onClick={()=>{setExporting(true); setTimeout(()=>setExporting(false),1600);}}>
+              {exporting ? 'Generating report…' : 'Export report'}
+            </Button>
+          </div>
+        </div>
+
+        {/* KPI strip — time-on-task tile included (real metric) */}
+        <div className="kpi-grid">
+          <Stat label="Enrolled" value="28"/>
+          <Stat label="Started" value="24" delta="of 28" />
+          <Stat label="Completed" value="11" delta="of 28"/>
+          <Stat label="Average completion" value="64%" trend="up" delta="+6%"/>
+          <Stat label="Average time-on-task" value="42 min"/>
+        </div>
+
+        {/* Mastery + funnel */}
+        <div className="two-col">
+          <MasteryRing/>
+          <Funnel/>
+        </div>
+
+        {/* Per-class completion */}
+        <ClassChart/>
+
+        {/* Per-student completion */}
+        <StudentTable/>
+
+        {/* Item difficulty omitted per §5.4 — backend does not supply per-item difficulty for this space */}
+
+        <StatesRail/>
+      </div>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

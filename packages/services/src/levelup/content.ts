@@ -16,7 +16,7 @@
  * gated `getItemForEdit` authoring read.
  */
 import type { ReqOf, ResOf } from "@levelup/api-contract";
-import { zLegacyStoryPointTypeRead } from "@levelup/domain";
+import { MODEL_POLICY_IDS, zLegacyStoryPointTypeRead } from "@levelup/domain";
 import { authorize, assertTransition } from "@levelup/access";
 import type { AuthContext } from "../shared/context.js";
 import { requireTenant, fail } from "../shared/context.js";
@@ -63,6 +63,77 @@ const optStr = (v: unknown): string | undefined => (typeof v === "string" ? v : 
 const optBool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : undefined);
 const optStrArray = (v: unknown): string[] | undefined =>
   Array.isArray(v) ? v.map((x) => String(x)) : undefined;
+const isDoc = (v: unknown): v is Doc => typeof v === "object" && v !== null && !Array.isArray(v);
+const hasOwn = (v: Doc, key: string): boolean => Object.prototype.hasOwnProperty.call(v, key);
+const MODEL_POLICY_SET = new Set<string>(MODEL_POLICY_IDS);
+
+/**
+ * Authoring works against the same exact answer-key path as conversation
+ * runtime. The temporary legacy fallback keeps older in-memory test seams
+ * usable while T-B finishes its `getScoped` twin; production repos always
+ * provide the exact reader.
+ */
+async function getAnswerKeyAt(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string,
+  storyPointId: string,
+  itemId: string
+): Promise<Doc | null> {
+  const repo = ctx.repos.answerKeys as unknown as {
+    get(tenant: string, id: string): Promise<Doc | null>;
+    getScoped?: (
+      tenant: string,
+      space: string,
+      storyPoint: string,
+      id: string
+    ) => Promise<Doc | null>;
+  };
+  return repo.getScoped
+    ? repo.getScoped(tenantId, spaceId, storyPointId, itemId)
+    : repo.get(tenantId, itemId);
+}
+
+/** Tenant-level agents are flat, but their requested space is still part of
+ * the lookup authority. As above, use T-B's exact scope reader when present. */
+async function getAgentAt(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string,
+  agentId: string
+): Promise<Doc | null> {
+  const repo = xrepos(ctx).agents as unknown as {
+    get(tenant: string, id: string): Promise<Doc | null>;
+    getScoped?: (tenant: string, space: string, id: string) => Promise<Doc | null>;
+  };
+  return repo.getScoped ? repo.getScoped(tenantId, spaceId, agentId) : repo.get(tenantId, agentId);
+}
+
+/** Exact item reads prevent an authoring caller from using an item ID to cross
+ * the requested space/story-point boundary. The fallback still verifies both
+ * parents for older in-memory seams. */
+async function getItemAt(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string,
+  storyPointId: string,
+  itemId: string
+): Promise<Doc | null> {
+  const repo = ctx.repos.items as unknown as {
+    get(tenant: string, id: string): Promise<Doc | null>;
+    getScoped?: (
+      tenant: string,
+      space: string,
+      storyPoint: string,
+      id: string
+    ) => Promise<Doc | null>;
+  };
+  const item = repo.getScoped
+    ? await repo.getScoped(tenantId, spaceId, storyPointId, itemId)
+    : await repo.get(tenantId, itemId);
+  if (!item || item["spaceId"] !== spaceId || item["storyPointId"] !== storyPointId) return null;
+  return item;
+}
 
 /** Pick the given keys off a bag, dropping undefineds; undefined when empty/non-object. */
 function pickDefined(src: unknown, keys: readonly string[]): Doc | undefined {
@@ -96,20 +167,64 @@ const ANSWER_KEY_FIELDS = [
   "modelAnswer",
   "evaluationGuidance",
   "evaluatorGuidance",
+  "privateEvaluationObjectives",
 ] as const;
 
-/** Recursively strip any answer-key/guidance field from a value (deep, by name).
- *  Exported for `importFromBank`, which persists bank items through the same
- *  answer-stripped-item + deny-all-key split as `saveItem`. */
+/**
+ * `modelAnswer` and `evaluatorGuidance` are overloaded names: at an item
+ * payload they belong exclusively in the deny-all answer key, while in a
+ * UnifiedRubric they are canonical authoring guidance (§5.4).  The strip
+ * helper therefore preserves only those two fields below a top-level rubric
+ * container; learner projections subsequently remove them with
+ * `projectRubric(..., false)`.
+ */
+const RUBRIC_CONTAINER_FIELDS = new Set(["rubric", "defaultRubric", "effectiveRubric"]);
+const RUBRIC_AUTHORING_FIELDS = new Set(["modelAnswer", "evaluatorGuidance"]);
+
+/**
+ * Recursively strip every answer-key/guidance field from a value (deep, by
+ * name). Exported for question-bank import, whose question-data payload must
+ * never retain private answer material.
+ */
 export function stripAnswerFields<T>(value: T): T {
+  return stripAnswerFieldsInternal(value, false, false, true);
+}
+
+/**
+ * Content docs carry a top-level rubric/defaultRubric/effectiveRubric. Preserve
+ * rubric-local authoring guidance while stripping all answer-key fields from
+ * every other subtree.
+ */
+function stripContentAnswerFields<T>(value: T): T {
+  return stripAnswerFieldsInternal(value, true, false, true);
+}
+
+function stripAnswerFieldsInternal<T>(
+  value: T,
+  preserveTopLevelRubric: boolean,
+  withinTopLevelRubric: boolean,
+  isRoot: boolean
+): T {
   if (Array.isArray(value)) {
-    return value.map((v) => stripAnswerFields(v)) as unknown as T;
+    return value.map((v) =>
+      stripAnswerFieldsInternal(v, false, withinTopLevelRubric, false)
+    ) as unknown as T;
   }
   if (value && typeof value === "object") {
     const copy: Doc = {};
     for (const [k, v] of Object.entries(value as Doc)) {
-      if ((ANSWER_KEY_FIELDS as readonly string[]).includes(k)) continue;
-      copy[k] = stripAnswerFields(v);
+      const entersTopLevelRubric =
+        preserveTopLevelRubric && isRoot && RUBRIC_CONTAINER_FIELDS.has(k);
+      const preservesRubricAuthoringField = withinTopLevelRubric && RUBRIC_AUTHORING_FIELDS.has(k);
+      if ((ANSWER_KEY_FIELDS as readonly string[]).includes(k) && !preservesRubricAuthoringField) {
+        continue;
+      }
+      copy[k] = stripAnswerFieldsInternal(
+        v,
+        false,
+        withinTopLevelRubric || entersTopLevelRubric,
+        false
+      );
     }
     return copy as unknown as T;
   }
@@ -234,7 +349,22 @@ function buildQuestionData(qt: string, legacy: Doc): Doc {
         items: options.map((o) => ({ id: o.id, text: o.text })),
       };
     case "chat_agent_question":
-      return { questionType: "chat_agent_question" };
+      return compact({
+        questionType: "chat_agent_question",
+        scenario: optStr(legacy["scenario"]) ?? optStr(legacy["prompt"]),
+        publicLearningObjectives: Array.isArray(legacy["publicLearningObjectives"])
+          ? legacy["publicLearningObjectives"].map((objective) => {
+              const entry = (objective ?? {}) as Doc;
+              return { id: String(entry["id"] ?? ""), label: String(entry["label"] ?? "") };
+            })
+          : undefined,
+        conversationStarters: optStrArray(legacy["conversationStarters"]),
+        interviewerAgentId: optStr(legacy["interviewerAgentId"]),
+        completionPolicy:
+          legacy["completionPolicy"] && typeof legacy["completionPolicy"] === "object"
+            ? legacy["completionPolicy"]
+            : undefined,
+      });
     default:
       return { questionType: "text" };
   }
@@ -336,9 +466,315 @@ function normalizeItemPayload(
   return { type: "checkpoint", payload: { type: "checkpoint" } };
 }
 
-/** Pull the answer-key bag off the save payload (the only place answers travel). */
+function questionDataFromSave(data: Doc): Doc {
+  const payload = data["payload"];
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
+  const questionData = (payload as Doc)["questionData"];
+  return questionData && typeof questionData === "object" && !Array.isArray(questionData)
+    ? (questionData as Doc)
+    : {};
+}
+
+function questionDataFromItem(item: Doc | null): Doc {
+  if (!item) return {};
+  const payload = item["payload"];
+  if (!isDoc(payload)) return {};
+  const questionData = payload["questionData"];
+  return isDoc(questionData) ? questionData : {};
+}
+
+function isChatAssessmentItem(data: Doc, existing: Doc | null): boolean {
+  const questionData = questionDataFromSave(data);
+  const storedQuestionData = questionDataFromItem(existing);
+  const key = data["answerKey"];
+  return (
+    questionData["questionType"] === "chat_agent_question" ||
+    storedQuestionData["questionType"] === "chat_agent_question" ||
+    (isDoc(key) && key["questionType"] === "chat_agent_question")
+  );
+}
+
+/**
+ * Answer-key data can be supplied in the new explicit `data.answerKey` bag.
+ * The `questionData` fallback is read-only compatibility for legacy authoring
+ * docs; newly persisted chat data never keeps these fields on the public item.
+ */
+function mergedChatAnswerKey(data: Doc, existingKey: Doc | null): Doc {
+  const supplied = isDoc(data["answerKey"]) ? (data["answerKey"] as Doc) : {};
+  const legacyQuestionData = questionDataFromSave(data);
+  const answerKey: Doc = {
+    questionType: "chat_agent_question",
+    ...(optStr(existingKey?.["modelAnswer"]) !== undefined
+      ? { modelAnswer: optStr(existingKey?.["modelAnswer"]) }
+      : {}),
+    ...(optStr(existingKey?.["evaluationGuidance"]) !== undefined
+      ? { evaluationGuidance: optStr(existingKey?.["evaluationGuidance"]) }
+      : {}),
+    ...(Array.isArray(existingKey?.["privateEvaluationObjectives"])
+      ? { privateEvaluationObjectives: existingKey?.["privateEvaluationObjectives"] }
+      : {}),
+  };
+  for (const field of [
+    "modelAnswer",
+    "evaluationGuidance",
+    "privateEvaluationObjectives",
+  ] as const) {
+    if (hasOwn(supplied, field)) answerKey[field] = supplied[field];
+    else if (hasOwn(legacyQuestionData, field)) answerKey[field] = legacyQuestionData[field];
+  }
+  return answerKey;
+}
+
+function assertDistinctNonBlank(values: unknown, label: string): asserts values is Doc[] {
+  if (!Array.isArray(values)) fail("VALIDATION_ERROR", `${label} must be an array`);
+  const seen = new Set<string>();
+  for (const raw of values) {
+    if (!isDoc(raw)) fail("VALIDATION_ERROR", `${label} entries must be objects`);
+    const id = optStr(raw["id"]);
+    if (!id || id.trim().length === 0) fail("VALIDATION_ERROR", `${label} entries require an id`);
+    if (seen.has(id)) fail("VALIDATION_ERROR", `${label} ids must be unique`);
+    seen.add(id);
+  }
+}
+
+function validateRubricWeightsAndBounds(rubric: Doc): void {
+  if (typeof rubric["scoringMode"] !== "string") {
+    fail("VALIDATION_ERROR", "chat-agent assessments require a rubric scoringMode");
+  }
+  const bounded = (value: unknown, label: string): void => {
+    if (
+      value !== undefined &&
+      (typeof value !== "number" || !Number.isFinite(value) || value <= 0)
+    ) {
+      fail("VALIDATION_ERROR", `${label} must be a positive finite number`);
+    }
+  };
+  bounded(rubric["holisticMaxScore"], "rubric holisticMaxScore");
+  for (const collection of ["dimensions", "criteria"] as const) {
+    const entries = rubric[collection];
+    if (entries !== undefined && !Array.isArray(entries)) {
+      fail("VALIDATION_ERROR", `rubric ${collection} must be an array`);
+    }
+    for (const entry of (entries as unknown[] | undefined) ?? []) {
+      if (!isDoc(entry)) fail("VALIDATION_ERROR", `rubric ${collection} entries must be objects`);
+      bounded(entry["weight"], `rubric ${collection} weight`);
+      if (collection === "dimensions")
+        bounded(entry["scoringScale"], "rubric dimension scoringScale");
+      else bounded(entry["maxScore"], "rubric criterion maxScore");
+    }
+  }
+}
+
+async function resolveChatAssessmentRubric(
+  ctx: AuthContext,
+  tenantId: string,
+  input: { spaceId: string; storyPointId: string },
+  data: Doc,
+  existing: Doc | null
+): Promise<Doc> {
+  const direct = data["rubric"] ?? existing?.["rubric"];
+  if (isDoc(direct)) return direct;
+
+  const rubricId = optStr(data["rubricId"]) ?? optStr(existing?.["rubricId"]);
+  if (rubricId) {
+    const preset = await xrepos(ctx).rubricPresets.get(tenantId, rubricId);
+    if (!preset || !isDoc(preset["rubric"])) {
+      fail("FAILED_PRECONDITION", "the selected chat-agent rubric does not exist");
+    }
+    return preset["rubric"] as Doc;
+  }
+
+  const storyPoint = await ctx.repos.storyPoints.get(tenantId, input.storyPointId);
+  if (isDoc(storyPoint?.["defaultRubric"])) return storyPoint["defaultRubric"] as Doc;
+  const storyPointRubricId = optStr(storyPoint?.["defaultRubricId"]);
+  if (storyPointRubricId) {
+    const preset = await xrepos(ctx).rubricPresets.get(tenantId, storyPointRubricId);
+    if (preset && isDoc(preset["rubric"])) return preset["rubric"] as Doc;
+  }
+
+  const space = await ctx.repos.spaces.get(tenantId, input.spaceId);
+  if (isDoc(space?.["defaultRubric"])) return space["defaultRubric"] as Doc;
+  const spaceRubricId = optStr(space?.["defaultRubricId"]);
+  if (spaceRubricId) {
+    const preset = await xrepos(ctx).rubricPresets.get(tenantId, spaceRubricId);
+    if (preset && isDoc(preset["rubric"])) return preset["rubric"] as Doc;
+  }
+  fail("FAILED_PRECONDITION", "chat-agent assessments require a valid rubric or rubricId");
+}
+
+async function validateChatAssessmentAuthoring(
+  ctx: AuthContext,
+  tenantId: string,
+  input: { spaceId: string; storyPointId: string },
+  data: Doc,
+  existing: Doc | null,
+  questionData: Doc,
+  answerKey: Doc
+): Promise<void> {
+  const scenario = optStr(questionData["scenario"]);
+  if (!scenario || scenario.trim().length === 0) {
+    fail("VALIDATION_ERROR", "chat-agent assessments require a scenario");
+  }
+
+  const publicObjectives = questionData["publicLearningObjectives"];
+  assertDistinctNonBlank(publicObjectives, "public learning objective");
+  for (const objective of publicObjectives) {
+    const label = optStr(objective["label"]);
+    if (!label || label.trim().length === 0) {
+      fail("VALIDATION_ERROR", "public learning objectives require labels");
+    }
+  }
+
+  const completion = questionData["completionPolicy"];
+  if (!isDoc(completion))
+    fail("VALIDATION_ERROR", "chat-agent assessments require completionPolicy");
+  const minTurns = completion["minLearnerTurns"];
+  const maxTurns = completion["maxLearnerTurns"];
+  if (
+    !Number.isInteger(minTurns) ||
+    !Number.isInteger(maxTurns) ||
+    (minTurns as number) < 1 ||
+    (maxTurns as number) < 1 ||
+    (maxTurns as number) > 12 ||
+    (minTurns as number) > (maxTurns as number)
+  ) {
+    fail(
+      "VALIDATION_ERROR",
+      "completionPolicy requires 1 <= minLearnerTurns <= maxLearnerTurns <= 12"
+    );
+  }
+  if (typeof completion["allowEarlyFinish"] !== "boolean") {
+    fail("VALIDATION_ERROR", "completionPolicy.allowEarlyFinish must be boolean");
+  }
+  if (completion["hardLimitAction"] !== "auto_finalize") {
+    fail("VALIDATION_ERROR", "completionPolicy.hardLimitAction must be auto_finalize");
+  }
+
+  const interviewerAgentId = optStr(questionData["interviewerAgentId"]);
+  if (!interviewerAgentId)
+    fail("VALIDATION_ERROR", "chat-agent assessments require interviewerAgentId");
+  const interviewer = await getAgentAt(ctx, tenantId, input.spaceId, interviewerAgentId);
+  if (!interviewer) fail("FAILED_PRECONDITION", "the selected interviewer agent does not exist");
+  if (interviewer["spaceId"] !== input.spaceId || interviewer["type"] !== "interviewer") {
+    fail(
+      "FAILED_PRECONDITION",
+      "the selected interviewer must belong to this space and have type interviewer"
+    );
+  }
+  if (interviewer["isActive"] !== true) {
+    fail("FAILED_PRECONDITION", "the selected interviewer agent is inactive");
+  }
+  const interviewerPolicy = optStr(interviewer["modelPolicyId"]);
+  if (
+    !interviewerPolicy ||
+    !MODEL_POLICY_SET.has(interviewerPolicy) ||
+    interviewerPolicy === "evaluation.quality"
+  ) {
+    fail(
+      "FAILED_PRECONDITION",
+      "the selected interviewer must have a valid conversation model policy"
+    );
+  }
+
+  // `meta` is a replacement object on an item save. When it is supplied
+  // without an evaluator id, that intentionally clears a prior override; only
+  // an omitted `meta` retains the existing override for a partial update.
+  const incomingMeta = isDoc(data["meta"]) ? (data["meta"] as Doc) : undefined;
+  const evaluatorAgentId = optStr(
+    (incomingMeta ?? (isDoc(existing?.["meta"]) ? (existing?.["meta"] as Doc) : {}))[
+      "evaluatorAgentId"
+    ]
+  );
+  if (evaluatorAgentId) {
+    const evaluator = await getAgentAt(ctx, tenantId, input.spaceId, evaluatorAgentId);
+    if (!evaluator) fail("FAILED_PRECONDITION", "the selected evaluator agent does not exist");
+    if (
+      evaluator["spaceId"] !== input.spaceId ||
+      evaluator["type"] !== "evaluator" ||
+      evaluator["isActive"] !== true ||
+      evaluator["modelPolicyId"] !== "evaluation.quality"
+    ) {
+      fail(
+        "FAILED_PRECONDITION",
+        "the selected evaluator must be active, belong to this space, and use evaluation.quality"
+      );
+    }
+  }
+
+  const privateObjectives = answerKey["privateEvaluationObjectives"];
+  assertDistinctNonBlank(privateObjectives, "private evaluation objective");
+  if (privateObjectives.length === 0) {
+    fail(
+      "VALIDATION_ERROR",
+      "chat-agent assessments require at least one private evaluation objective"
+    );
+  }
+  for (const objective of privateObjectives) {
+    const dimensionId = optStr(objective["rubricDimensionId"]);
+    const description = optStr(objective["description"]);
+    if (!dimensionId || !description || description.trim().length === 0) {
+      fail(
+        "VALIDATION_ERROR",
+        "private evaluation objectives require rubricDimensionId and description"
+      );
+    }
+  }
+
+  const rubric = await resolveChatAssessmentRubric(ctx, tenantId, input, data, existing);
+  validateRubricWeightsAndBounds(rubric);
+  const dimensions = Array.isArray(rubric["dimensions"]) ? (rubric["dimensions"] as unknown[]) : [];
+  const dimensionIds = new Set(
+    dimensions
+      .filter(isDoc)
+      .map((dimension) => optStr(dimension["id"]))
+      .filter(Boolean) as string[]
+  );
+  for (const objective of privateObjectives) {
+    if (!dimensionIds.has(String(objective["rubricDimensionId"]))) {
+      fail("FAILED_PRECONDITION", "private evaluation objectives must reference rubric dimensions");
+    }
+  }
+}
+
+function isChatAssessmentSave(data: Doc): boolean {
+  const questionData = questionDataFromSave(data);
+  const key = data["answerKey"];
+  return (
+    questionData["questionType"] === "chat_agent_question" ||
+    (isDoc(key) && key["questionType"] === "chat_agent_question")
+  );
+}
+
+/**
+ * Pull the answer-key bag off the save payload (the only place answers travel).
+ * Assessment keys use an explicit allowlist: public scenario/objectives stay on
+ * the item, while model answers, guidance, and private objectives can reach only
+ * the deny-all subcollection.
+ */
 export function extractAnswerKey(data: Doc): Doc | null {
   const ak = data["answerKey"];
+  if (isChatAssessmentSave(data)) {
+    const supplied = ak && typeof ak === "object" && !Array.isArray(ak) ? (ak as Doc) : {};
+    const questionData = questionDataFromSave(data);
+    const privateObjectives = supplied["privateEvaluationObjectives"];
+    return compact({
+      questionType: "chat_agent_question",
+      modelAnswer: optStr(supplied["modelAnswer"]) ?? optStr(questionData["modelAnswer"]),
+      evaluationGuidance:
+        optStr(supplied["evaluationGuidance"]) ?? optStr(questionData["evaluationGuidance"]),
+      privateEvaluationObjectives: Array.isArray(privateObjectives)
+        ? privateObjectives.map((objective) => {
+            const entry = (objective ?? {}) as Doc;
+            return compact({
+              id: optStr(entry["id"]),
+              rubricDimensionId: optStr(entry["rubricDimensionId"]),
+              description: optStr(entry["description"]),
+              evidenceRequirement: optStr(entry["evidenceRequirement"]),
+            });
+          })
+        : undefined,
+    });
+  }
   if (ak && typeof ak === "object") return { ...(ak as Doc) };
   // Some payloads inline the answer fields rather than nesting under `answerKey`,
   // and the two-level item payload nests them DEEP (e.g.
@@ -398,7 +834,9 @@ export async function duplicateSpaceService(
     academicSessionId: srcDoc["academicSessionId"],
     defaultEvaluatorAgentId: srcDoc["defaultEvaluatorAgentId"],
     defaultTutorAgentId: srcDoc["defaultTutorAgentId"],
+    defaultRubric: srcDoc["defaultRubric"],
     defaultRubricId: srcDoc["defaultRubricId"],
+    evaluationSettingsId: srcDoc["evaluationSettingsId"],
     allowRetakes: srcDoc["allowRetakes"],
     maxRetakes: srcDoc["maxRetakes"],
     defaultTimeLimitMinutes: srcDoc["defaultTimeLimitMinutes"],
@@ -444,10 +882,18 @@ export async function duplicateSpaceService(
         });
         for (const it of itPage.items) {
           const itDoc = it as Doc;
-          // Read the server-only answer key for this item.
-          const srcKey = await ctx.repos.answerKeys.get(tenantId, itDoc["id"] as string);
+          // Read the server-only key at its exact nested source path. An ID-only
+          // lookup is not sufficient once the same item ID can exist beneath a
+          // different parent/root.
+          const srcKey = await getAnswerKeyAt(
+            ctx,
+            tenantId,
+            input.spaceId,
+            String(spDoc["id"] ?? ""),
+            String(itDoc["id"] ?? "")
+          );
 
-          const strippedItem = stripAnswerFields(itDoc);
+          const strippedItem = stripContentAnswerFields(itDoc);
           const { id: newItemId } = await ctx.repos.items.upsert(
             tenantId,
             {
@@ -487,6 +933,66 @@ export async function duplicateSpaceService(
   return { id: newSpaceId, created: true } as unknown as ResOf<"v1.levelup.duplicateSpace">;
 }
 
+/**
+ * A publishable space must contain at least one active story point, and every
+ * active story point must contain at least one active item. Cursor loops keep
+ * readiness correct for large spaces; explicit scope checks also protect test
+ * fakes/adapters that do not push `where` down to storage.
+ */
+async function assertSpacePublishReady(
+  ctx: AuthContext,
+  tenantId: string,
+  spaceId: string
+): Promise<void> {
+  const storyPoints: Doc[] = [];
+  let storyPointCursor: string | undefined;
+  do {
+    const page = await ctx.repos.storyPoints.list(tenantId, {
+      where: { spaceId },
+      cursor: storyPointCursor,
+      limit: 200,
+    });
+    storyPoints.push(
+      ...(page.items as Doc[]).filter(
+        (sp) =>
+          sp["spaceId"] === spaceId && (sp["archivedAt"] === null || sp["archivedAt"] === undefined)
+      )
+    );
+    storyPointCursor = page.nextCursor ?? undefined;
+  } while (storyPointCursor);
+
+  if (storyPoints.length === 0) {
+    fail("FAILED_PRECONDITION", "cannot publish: space has no active story points");
+  }
+
+  for (const storyPoint of storyPoints) {
+    const storyPointId = String(storyPoint["id"]);
+    let itemCursor: string | undefined;
+    let hasActiveItem = false;
+    do {
+      const page = await ctx.repos.items.list(tenantId, {
+        where: { spaceId, storyPointId },
+        cursor: itemCursor,
+        limit: 200,
+      });
+      hasActiveItem = (page.items as Doc[]).some(
+        (item) =>
+          item["spaceId"] === spaceId &&
+          item["storyPointId"] === storyPointId &&
+          (item["archivedAt"] === null || item["archivedAt"] === undefined)
+      );
+      itemCursor = hasActiveItem ? undefined : (page.nextCursor ?? undefined);
+    } while (itemCursor);
+
+    if (!hasActiveItem) {
+      fail(
+        "FAILED_PRECONDITION",
+        `cannot publish: story point "${String(storyPoint["title"] ?? storyPointId)}" has no active items`
+      );
+    }
+  }
+}
+
 // ── saveSpace ─────────────────────────────────────────────────────────────────
 export async function saveSpaceService(
   input: ReqOf<"v1.levelup.saveSpace">,
@@ -513,13 +1019,9 @@ export async function saveSpaceService(
       // Server is the SOLE enforcer of ALLOWED_TRANSITIONS (§6.10). An unknown
       // status is not a valid edge → INVALID_TRANSITION.
       assertTransition("space", fromStatus, targetStatus);
-      // Publish-readiness: a publish target needs ≥1 story point.
+      // Publish-readiness is server-owned: active structure must be complete.
       if (targetStatus === "published") {
-        const sps = await ctx.repos.storyPoints.list(tenantId, {
-          where: { spaceId: input.id },
-          limit: 1,
-        });
-        if (sps.items.length === 0) fail("FAILED_PRECONDITION", "space has no content to publish");
+        await assertSpacePublishReady(ctx, tenantId, input.id);
       }
     }
   } else {
@@ -538,10 +1040,12 @@ export async function saveSpaceService(
 
   const now = ctx.now();
   const isDelete = data["deleted"] === true;
+  const { deleted: _deleted, ...mutableData } = data;
+  void _deleted;
   const doc: Doc = {
     ...(existing ?? {}),
     ...(input.id ? { id: input.id } : {}),
-    ...data,
+    ...mutableData,
     ...(mergedTitle !== undefined ? { title: mergedTitle } : {}),
     ...(mergedType !== undefined ? { type: mergedType } : {}),
     accessType:
@@ -549,8 +1053,19 @@ export async function saveSpaceService(
       (existing?.["accessType"] as string | undefined) ??
       "class_assigned",
     status: targetStatus ?? (existing?.["status"] as string | undefined) ?? "draft",
-    ...(targetStatus === "published" ? { publishedAt: now } : {}),
-    ...(isDelete ? { archivedAt: now } : {}),
+    classIds:
+      (data["classIds"] as string[] | undefined) ??
+      (existing?.["classIds"] as string[] | undefined) ??
+      [],
+    teacherIds:
+      (data["teacherIds"] as string[] | undefined) ??
+      (existing?.["teacherIds"] as string[] | undefined) ??
+      [],
+    publishedAt:
+      targetStatus === "published"
+        ? now
+        : ((existing?.["publishedAt"] as string | null | undefined) ?? null),
+    archivedAt: isDelete ? now : ((existing?.["archivedAt"] as string | null | undefined) ?? null),
     createdBy: (existing?.["createdBy"] as string | undefined) ?? ctx.uid,
     updatedBy: ctx.uid,
   };
@@ -582,11 +1097,39 @@ export async function saveStoryPointService(
   const now = ctx.now();
   const data = input.data as Doc;
   const isDelete = data["deleted"] === true;
+  const existing = input.id ? await ctx.repos.storyPoints.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "story point not found");
+  if (existing && existing["spaceId"] !== input.spaceId) {
+    fail("FAILED_PRECONDITION", "story point does not belong to the requested space");
+  }
+
+  const mergedTitle =
+    (data["title"] as string | undefined) ?? (existing?.["title"] as string | undefined);
+  const mergedType =
+    (data["type"] as string | undefined) ?? (existing?.["type"] as string | undefined);
+  if (!input.id && (mergedTitle === undefined || mergedType === undefined)) {
+    fail("VALIDATION_ERROR", "title and type are required to create a story point");
+  }
+
+  const { deleted: _deleted, ...mutableData } = data;
+  void _deleted;
   const doc: Doc = {
-    ...((input as { id?: string }).id ? { id: (input as { id?: string }).id } : {}),
-    ...data,
+    ...(existing ?? {}),
+    ...(input.id ? { id: input.id } : {}),
+    ...mutableData,
     spaceId: input.spaceId,
-    createdBy: ctx.uid,
+    ...(mergedTitle !== undefined ? { title: mergedTitle } : {}),
+    ...(mergedType !== undefined ? { type: mergedType } : {}),
+    orderIndex:
+      (data["orderIndex"] as number | undefined) ??
+      (existing?.["orderIndex"] as number | undefined) ??
+      0,
+    sections:
+      (data["sections"] as unknown[] | undefined) ??
+      (existing?.["sections"] as unknown[] | undefined) ??
+      [],
+    archivedAt: isDelete ? now : ((existing?.["archivedAt"] as string | null | undefined) ?? null),
+    createdBy: (existing?.["createdBy"] as string | undefined) ?? ctx.uid,
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.storyPoints.upsert(tenantId, doc, now);
@@ -611,21 +1154,76 @@ export async function saveItemService(
   const now = ctx.now();
   const data = input.data as Doc;
   const isDelete = data["deleted"] === true;
+  const existing = input.id ? await ctx.repos.items.get(tenantId, input.id) : null;
+  if (input.id && !existing) fail("NOT_FOUND", "item not found");
+  if (existing && existing["spaceId"] !== input.spaceId) {
+    fail("FAILED_PRECONDITION", "item does not belong to the requested space");
+  }
 
   // Extract the ⚷ answer key, then persist the ANSWER-STRIPPED item (§6.4).
-  const answerKey = extractAnswerKey(data);
-  const strippedData = stripAnswerFields(data);
+  // Chat-agent assessments are special: their answer key is an explicit private
+  // object and partial item updates must retain the previously stored private
+  // fields rather than accidentally replacing them with an empty object.
+  const isChatAssessment = isChatAssessmentItem(data, existing as Doc | null);
+  const existingAnswerKey =
+    isChatAssessment && input.id
+      ? await getAnswerKeyAt(
+          ctx,
+          tenantId,
+          input.spaceId,
+          optStr(existing?.["storyPointId"]) ?? input.storyPointId,
+          input.id
+        )
+      : null;
+  const answerKey = isChatAssessment
+    ? mergedChatAnswerKey(data, existingAnswerKey)
+    : extractAnswerKey(data);
+  if (isChatAssessment && !isDelete) {
+    if (!answerKey) fail("VALIDATION_ERROR", "chat-agent assessments require an answer key");
+    const incomingQuestionData = questionDataFromSave(data);
+    const effectiveQuestionData =
+      incomingQuestionData["questionType"] === "chat_agent_question"
+        ? incomingQuestionData
+        : questionDataFromItem(existing as Doc | null);
+    await validateChatAssessmentAuthoring(
+      ctx,
+      tenantId,
+      { spaceId: input.spaceId, storyPointId: input.storyPointId },
+      data,
+      existing as Doc | null,
+      effectiveQuestionData,
+      answerKey
+    );
+  }
+  const { deleted: _deleted, ...mutableData } = data;
+  void _deleted;
+  const strippedData = stripContentAnswerFields(mutableData);
+  const mergedType =
+    (strippedData["type"] as string | undefined) ?? (existing?.["type"] as string | undefined);
+  const mergedPayload =
+    (strippedData["payload"] as Doc | undefined) ?? (existing?.["payload"] as Doc | undefined);
+  if (!input.id && (mergedType === undefined || mergedPayload === undefined)) {
+    fail("VALIDATION_ERROR", "type and payload are required to create an item");
+  }
+  if (mergedType !== undefined && mergedPayload?.["type"] !== mergedType) {
+    fail("VALIDATION_ERROR", "item type must match payload.type");
+  }
+
   const doc: Doc = {
-    ...((input as { id?: string }).id ? { id: (input as { id?: string }).id } : {}),
+    ...(existing ?? {}),
+    ...(input.id ? { id: input.id } : {}),
     ...strippedData,
     spaceId: input.spaceId,
     storyPointId: input.storyPointId,
+    ...(mergedType !== undefined ? { type: mergedType } : {}),
+    ...(mergedPayload !== undefined ? { payload: mergedPayload } : {}),
     // UnifiedItem invariants: required ordering + soft-delete tombstone.
-    orderIndex: (strippedData["orderIndex"] as number | undefined) ?? 0,
-    archivedAt: isDelete
-      ? now
-      : ((strippedData["archivedAt"] as string | null | undefined) ?? null),
-    createdBy: ctx.uid,
+    orderIndex:
+      (strippedData["orderIndex"] as number | undefined) ??
+      (existing?.["orderIndex"] as number | undefined) ??
+      0,
+    archivedAt: isDelete ? now : ((existing?.["archivedAt"] as string | null | undefined) ?? null),
+    createdBy: (existing?.["createdBy"] as string | undefined) ?? ctx.uid,
     updatedBy: ctx.uid,
   };
   const { id, created } = await ctx.repos.items.upsert(tenantId, doc, now);
@@ -634,7 +1232,9 @@ export async function saveItemService(
   if (answerKey && !isDelete) {
     await ctx.repos.answerKeys.put(tenantId, id, {
       ...answerKey,
+      id,
       itemId: id,
+      tenantId,
       spaceId: input.spaceId,
       storyPointId: input.storyPointId,
     });
@@ -659,14 +1259,14 @@ export async function getItemForEditService(
   // Authoring-only (teacher/tenantAdmin/staff). A student/parent is DENIED.
   authorize(ctx, "item.readForEdit", { spaceId: input.spaceId, tenantId });
 
-  const item = await ctx.repos.items.get(tenantId, input.itemId);
+  const item = await getItemAt(ctx, tenantId, input.spaceId, input.storyPointId, input.itemId);
   if (!item) fail("NOT_FOUND", "item not found");
 
   // Re-merge the ⚷ answer key — the ONE sanctioned answer-bearing read. The EDIT
   // view is projected against ITS OWN ItemEditViewSchema (UnifiedItem + answerKey):
   // the item body is whitelisted with authoring=true (rubric guidance KEPT), and
   // the answer-bearing fields ride in the whitelisted `answerKey` — never stripped.
-  const key = await ctx.repos.answerKeys.get(tenantId, input.itemId);
+  const key = await getAnswerKeyAt(ctx, tenantId, input.spaceId, input.storyPointId, input.itemId);
   const view = projectItem(item as Doc, true);
   const merged: Doc = key
     ? { ...view, answerKey: projectAnswerKey(key as Doc, view, input.itemId) }
@@ -684,7 +1284,9 @@ function projectAnswerKey(key: Doc, itemView: Doc, itemId: string): Doc {
   const qd = ((itemView["payload"] as Doc | undefined)?.["questionData"] ?? {}) as Doc;
   const qtRaw = optStr(key["questionType"]) ?? optStr(qd["questionType"]) ?? "text";
   return compact({
-    id: optStr(key["id"]) ?? `ak_${itemId}`,
+    // The canonical answer-key document id is the item id; keeping it exact
+    // means authoring reads mirror service writes and seed verification paths.
+    id: optStr(key["id"]) ?? itemId,
     itemId: optStr(key["itemId"]) ?? itemId,
     questionType: QUESTION_TYPE_MAP[qtRaw] ?? "text",
     correctAnswer: key["correctAnswer"],
@@ -693,6 +1295,9 @@ function projectAnswerKey(key: Doc, itemView: Doc, itemId: string): Doc {
       : undefined,
     evaluationGuidance: optStr(key["evaluationGuidance"]),
     modelAnswer: optStr(key["modelAnswer"]),
+    privateEvaluationObjectives: Array.isArray(key["privateEvaluationObjectives"])
+      ? key["privateEvaluationObjectives"]
+      : undefined,
     createdAt: tsRequired(key["createdAt"], itemView["createdAt"]),
     updatedAt: tsRequired(key["updatedAt"], key["createdAt"], itemView["updatedAt"]),
   });
@@ -711,10 +1316,11 @@ export async function listItemsService(
     cursor: input.cursor,
     limit: input.limit ?? 20,
   });
-  // The leak gate is the CALLABLE, not the role: a list read is ALWAYS
-  // answer-stripped (only getItemForEdit re-merges).
-  const authoring = isAuthoringRole(ctx);
-  const items = page.items.map((it) => projectItem(it as Doc, authoring));
+  // The leak gate is the CALLABLE, not the role: a list read is ALWAYS a
+  // learner-safe, answer-stripped projection. `getItemForEdit` is the sole
+  // authoring read that may reveal evaluator metadata, rubric guidance, and
+  // private answer-key fields.
+  const items = page.items.map((it) => projectItem(it as Doc, false));
   return { items, nextCursor: page.nextCursor } as unknown as ResOf<"v1.levelup.listItems">;
 }
 
@@ -758,9 +1364,11 @@ function projectAttachments(v: unknown): Doc[] | undefined {
   return v.map((a) => {
     const e = (a ?? {}) as Doc;
     return compact({
+      id: optStr(e["id"]),
       type: e["type"],
       url: String(e["url"] ?? ""),
       name: optStr(e["name"]),
+      mimeType: optStr(e["mimeType"]),
       sizeBytes: optInt(e["sizeBytes"]),
     });
   });
@@ -775,9 +1383,14 @@ function projectAttachments(v: unknown): Doc[] | undefined {
  * → canonical ISO; required-nullable `archivedAt` defaults to null.
  */
 function projectItem(item: Doc, authoring: boolean): Doc {
-  const s = stripAnswerFields(item) as Doc;
+  const s = stripContentAnswerFields(item) as Doc;
   const norm = normalizeItemPayload(s["payload"] as Doc | undefined, s);
   const rubricIn = s["rubric"] ?? s["effectiveRubric"];
+  const meta = pickDefined(s["meta"], ITEM_META_KEYS);
+  // An evaluator override is an authoring/runtime configuration reference, not
+  // learner content. Keep it available on authoring reads while structurally
+  // excluding it from every learner/list projection.
+  if (!authoring && meta) delete meta["evaluatorAgentId"];
   return compact({
     id: s["id"],
     spaceId: s["spaceId"],
@@ -792,7 +1405,7 @@ function projectItem(item: Doc, authoring: boolean): Doc {
     topics: optStrArray(s["topics"]),
     labels: optStrArray(s["labels"]),
     orderIndex: int(s["orderIndex"], int(s["order"], 0)),
-    meta: pickDefined(s["meta"], ITEM_META_KEYS),
+    meta,
     analytics: pickDefined(s["analytics"], ITEM_ANALYTICS_KEYS),
     rubric: rubricIn ? projectRubric(rubricIn, authoring) : undefined,
     rubricId: optStr(s["rubricId"]),
@@ -855,7 +1468,7 @@ function projectAssessmentConfig(v: unknown, sp: Doc): Doc | undefined {
  * stripped for non-authoring, timestamps → canonical ISO, `archivedAt` → null.
  */
 function projectStoryPoint(sp: Doc, authoring: boolean): Doc {
-  const s = stripAnswerFields(sp) as Doc;
+  const s = stripContentAnswerFields(sp) as Doc;
   const stats = s["stats"] as Doc | undefined;
   return compact({
     id: s["id"],
@@ -954,7 +1567,7 @@ function projectPrice(v: unknown): Doc | undefined {
  * default null, raw doc supersets (audit/seed leftovers) dropped.
  */
 function projectSpace(space: Doc, authoring: boolean): Doc {
-  const s = stripAnswerFields(space) as Doc;
+  const s = stripContentAnswerFields(space) as Doc;
   const stats = s["stats"] as Doc | undefined;
   const rating = s["ratingAggregate"] as Doc | undefined;
   return compact({
@@ -976,6 +1589,7 @@ function projectSpace(space: Doc, authoring: boolean): Doc {
     defaultTutorAgentId: optStr(s["defaultTutorAgentId"]),
     defaultRubric: s["defaultRubric"] ? projectRubric(s["defaultRubric"], authoring) : undefined,
     defaultRubricId: optStr(s["defaultRubricId"]),
+    evaluationSettingsId: optStr(s["evaluationSettingsId"]),
     price: projectPrice(s["price"]),
     publishedToStore: optBool(s["publishedToStore"]),
     storeDescription: optStr(s["storeDescription"]),

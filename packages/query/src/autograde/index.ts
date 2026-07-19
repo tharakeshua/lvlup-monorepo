@@ -43,7 +43,7 @@ export {
   useExamGradingOverview,
 } from "./hooks.js";
 
-export { useGradingStatus, useExamGradingProgress } from "./realtime.js";
+export { useGradingStatus, useExamGradingProgress, useExtractionProgress } from "./realtime.js";
 
 export { autogradeKeys } from "./keys.js";
 export { autogradeRepos, type AutogradeReposSlice } from "./repos.js";

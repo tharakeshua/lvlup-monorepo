@@ -50,6 +50,15 @@ export type { PageRequestInput, PageRequestParsed, PageResponse } from "./pagina
 export { SaveResponseSchema } from "./callables/core/_shared";
 export type { SaveResponse } from "./callables/core/_shared";
 
+// ---- conversational AI callable contracts (learner-safe projection surface) ----
+export * from "./callables/levelup/_conversation-shared";
+export * from "./callables/levelup/start-conversation";
+export * from "./callables/levelup/send-conversation-turn";
+export * from "./callables/levelup/finish-conversation";
+export * from "./callables/levelup/get-conversation";
+export * from "./callables/levelup/list-conversations";
+export * from "./callables/levelup/abandon-conversation";
+
 // ---- generateContent draft gate (server validates every model draft) ----
 export { GeneratedItemSchema } from "./callables/levelup/generate-content";
 export type { GeneratedItem } from "./callables/levelup/generate-content";

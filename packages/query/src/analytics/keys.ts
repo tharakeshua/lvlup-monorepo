@@ -65,6 +65,8 @@ export const analyticsQueryKeys = {
 
   // ── leaderboard snapshot ─────────────────────────────────────────────────
   leaderboard: (filter?: object) => leaderboardKeys.list(filter ?? {}),
+  spaceAnalytics: (spaceId: string) =>
+    analyticsKeys.sub("space", "progress", { spaceId: String(spaceId) }),
 } as const;
 
 export {

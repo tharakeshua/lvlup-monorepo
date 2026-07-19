@@ -9,7 +9,9 @@ import { zObject, zExamId } from "@levelup/domain";
 import type { CallableDef } from "../../callable-def.js";
 import { ExtractedQuestionSchema } from "./_shared.js";
 
-export const EXTRACT_QUESTIONS_MODES = ["full", "single"] as const;
+// "rubrics" = resume path: skip Pass 1, run Pass-2 rubric generation ONLY for
+// questions whose rubricStatus is still "pending" (partial-failure recovery).
+export const EXTRACT_QUESTIONS_MODES = ["full", "single", "rubrics"] as const;
 
 export const ExtractQuestionsRequestSchema = zObject({
   examId: zExamId,

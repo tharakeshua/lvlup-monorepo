@@ -17,3 +17,29 @@ export function makeIdempotencyConflict(): Error & { code: string; retryable: bo
   err.retryable = true;
   return err;
 }
+
+/** Repository-domain failures are intentionally Firebase-free so the in-memory
+ * twin produces the same observable error codes as the Admin SDK adapter. */
+export function makeRepoError(
+  code:
+    | "CONFLICT"
+    | "IDEMPOTENCY_CONFLICT"
+    | "INVALID_TRANSITION"
+    | "NOT_FOUND"
+    | "PERMISSION_DENIED"
+    | "PRECONDITION_FAILED"
+    | "VALIDATION_ERROR",
+  message: string,
+  meta?: Record<string, unknown>
+): Error & { code: string; meta?: Record<string, unknown> } {
+  const error = new Error(message) as Error & { code: string; meta?: Record<string, unknown> };
+  error.code = code;
+  if (meta) error.meta = meta;
+  return error;
+}
+
+export function makeLeaseConflict(message = "The current workflow lease is still active"): Error & {
+  code: string;
+} {
+  return makeRepoError("IDEMPOTENCY_CONFLICT", message);
+}

@@ -1,0 +1,372 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Upload Queue" subtitle="Offline-durable upload queue" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* layout only — slug-prefixed, no token redefs, no hex */
+.upload-queue__scroll{ position:absolute; inset:0; overflow-y:auto; padding:var(--space-4); }
+.upload-queue__head{ display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-2); }
+.upload-queue__title{ font-family:var(--font-display); font-size:var(--text-xl); font-weight:var(--weight-semibold);
+  color:var(--text-primary); line-height:var(--leading-tight); flex:1; min-width:0; }
+
+.upload-queue__summary{ display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;
+  font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-secondary);
+  margin-bottom:var(--space-3); }
+.upload-queue__dot{ width:4px; height:4px; border-radius:var(--radius-pill); background:var(--border-strong); flex:0 0 auto; }
+
+.upload-queue__actions{ display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-3); }
+.upload-queue__note{ display:flex; align-items:flex-start; gap:var(--space-2);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle);
+  font-size:var(--text-xs); color:var(--text-secondary); line-height:var(--leading-normal);
+  margin-bottom:var(--space-4); }
+.upload-queue__note-ico{ color:var(--text-muted); flex:0 0 auto; margin-top:2px; }
+
+.upload-queue__list{ display:flex; flex-direction:column; gap:var(--space-3); }
+.upload-queue__row{ border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
+  background:var(--bg-surface); overflow:hidden;
+  transition:border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+.upload-queue__row--failed{ border-color:var(--status-error); }
+.upload-queue__hit{ width:100%; text-align:left; background:none; border:none; cursor:pointer;
+  padding:var(--space-3); display:block; }
+.upload-queue__hit:focus-visible{ outline:none; box-shadow:var(--ring-focus); border-radius:var(--radius-md); }
+.upload-queue__rowbar{ display:flex; align-items:center; gap:var(--space-2);
+  padding:0 var(--space-3) var(--space-3); }
+.upload-queue__rowbar-status{ flex:1; min-width:0; display:flex; align-items:center; gap:var(--space-2); }
+.upload-queue__static{ padding:var(--space-3); }
+
+/* item-detail modal */
+.upload-queue__detail{ display:flex; flex-direction:column; gap:var(--space-4); width:min(320px,80vw); }
+.upload-queue__detail-meta{ display:flex; flex-direction:column; gap:var(--space-1); }
+.upload-queue__detail-exam{ font-family:var(--font-display); font-size:var(--text-base);
+  font-weight:var(--weight-semibold); color:var(--text-primary); }
+.upload-queue__detail-sub{ font-size:var(--text-xs); color:var(--text-secondary); }
+.upload-queue__detail-err{ display:flex; align-items:flex-start; gap:var(--space-2);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--status-error-subtle); border:1px solid var(--status-error);
+  font-size:var(--text-xs); color:var(--text-primary); line-height:var(--leading-normal); }
+.upload-queue__detail-err-ico{ color:var(--status-error); flex:0 0 auto; margin-top:2px; }
+.upload-queue__detail-label{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.06em; }
+
+.upload-queue__empty{ display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:var(--space-3); padding:var(--space-16) var(--space-4); color:var(--text-secondary); }
+.upload-queue__empty-ico{ color:var(--status-success); }
+.upload-queue__empty-title{ font-family:var(--font-display); font-size:var(--text-base);
+  font-weight:var(--weight-semibold); color:var(--text-primary); }
+
+/* phone frame */
+.ph{ width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+  border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+  background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+.ph__top{ height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+  padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+.ph__brand{ display:flex; align-items:center; gap:var(--space-2); }
+.ph__mark{ width:26px; height:26px; border-radius:var(--radius-sm); background:var(--brand-primary);
+  color:var(--text-on-accent); display:flex; align-items:center; justify-content:center; }
+.ph__title{ font-family:var(--font-display); font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  color:var(--text-primary); }
+.ph__spacer{ flex:1; }
+.ph__body{ flex:1; overflow:hidden; position:relative; }
+.ph__tabs{ flex:0 0 auto; }
+.upload-queue__states{ display:flex; flex-wrap:wrap; gap:var(--space-4); justify-content:center;
+  padding:0 var(--space-4) var(--space-12); }
+.upload-queue__statecap{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-align:center; margin-bottom:var(--space-2); text-transform:uppercase; letter-spacing:.06em; }
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const LU = window.LvlupV0DesignSystem_5d0725;
+const { Button, IconButton, Icon, Modal, Badge, UploadQueueItem, Tabbar } = LU;
+
+const UPLOAD_QUEUE_MOCK = [
+  { id:'q1', status:'uploading', progress:64, exam:'Calculus Midterm', student:'Aanya Rao', pages:4 },
+  { id:'q2', status:'queued', exam:'Calculus Midterm', student:'Vikram Iyer', pages:3 },
+  { id:'q3', status:'failed', exam:'Physics Unit Test', student:'Meera Nair', pages:5, error:'Network timeout' },
+  { id:'q4', status:'failed', exam:'Physics Unit Test', student:'Rohan Das', pages:2, error:'Storage upload interrupted' },
+  { id:'q5', status:'done', exam:'Calculus Midterm', student:'Priya Sharma', pages:4 },
+];
+
+const UQ_STATUS = {
+  queued:    { icon:'clock',          label:'Queued' },
+  uploading: { icon:'loader',         label:'Uploading' },
+  done:      { icon:'check-circle-2', label:'Uploaded' },
+  failed:    { icon:'alert-triangle', label:'Failed' },
+};
+
+function uqMeta(it){
+  const p = it.pages || 0;
+  return it.exam + ' · ' + it.student + ' · ' + p + (p===1?' page':' pages');
+}
+
+function QueueDetailModal({ item, online, onRetry, onRemove, onClose }){
+  if(!item) return null;
+  const s = UQ_STATUS[item.status] || UQ_STATUS.queued;
+  return (
+    <Modal open={true} onClose={onClose}
+      title={<span style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+        <Icon name={s.icon} size={16} /> Upload {s.label.toLowerCase()}
+      </span>}
+      footer={item.status==='failed'
+        ? (<span style={{display:'flex',gap:'var(--space-2)',width:'100%'}}>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="trash-2" size={15}/>}
+              onClick={()=>onRemove(item.id)}>Discard</Button>
+            <span style={{flex:1}} />
+            <Button variant="primary" size="sm" disabled={!online}
+              leadingIcon={<Icon name="rotate-cw" size={15}/>}
+              onClick={()=>onRetry(item.id)}>Retry now</Button>
+          </span>)
+        : (<Button variant="secondary" size="sm" onClick={onClose}>Close</Button>)}>
+      <div className="upload-queue__detail">
+        <div className="upload-queue__detail-meta">
+          <div className="upload-queue__detail-exam">{item.exam}</div>
+          <div className="upload-queue__detail-sub">
+            {item.student} · {item.pages} {item.pages===1?'page':'pages'}
+          </div>
+        </div>
+
+        {item.status==='failed' &&
+          <div className="upload-queue__detail-err">
+            <Icon name="alert-triangle" size={15} className="upload-queue__detail-err-ico" />
+            <span><strong>{item.error || 'Upload failed'}.</strong> The pages are still saved on this
+              device. Retry when you have a stable connection, or discard to remove this submission.</span>
+          </div>}
+
+        {item.status==='uploading' &&
+          <div className="upload-queue__detail-sub">
+            Uploading page images to AutoGrade ({item.progress||0}% done). The server allocates the
+            submission once all pages arrive.
+          </div>}
+
+        {item.status==='queued' &&
+          <div className="upload-queue__detail-sub">
+            Waiting in line. Pages will upload automatically{online ? '' : ' once you reconnect'}.
+          </div>}
+
+        {item.status==='done' &&
+          <div className="upload-queue__detail-sub">
+            Submitted. AutoGrade has received all {item.pages} pages and will grade them.
+          </div>}
+
+        {!online && item.status==='failed' &&
+          <div className="upload-queue__detail-label">Retry is disabled while offline.</div>}
+      </div>
+    </Modal>
+  );
+}
+
+function QueueView({ nav, params, ctx }){
+  ctx = ctx || {};
+  const ctxQueue = (ctx.queue && ctx.queue.length) ? ctx.queue : null;
+  const [local, setLocal] = useState(ctxQueue || UPLOAD_QUEUE_MOCK);
+  const items = ctxQueue || local;
+  const online = ctx.online ? ctx.online() !== false : true;
+
+  const [detailId, setDetailId] = useState(null);
+  const detail = items.find(i=>i.id===detailId) || null;
+
+  const counts = items.reduce((a,i)=>{ a[i.status]=(a[i.status]||0)+1; return a; }, {});
+  const nQueued = counts.queued || 0;
+  const nUploading = counts.uploading || 0;
+  const nFailed = counts.failed || 0;
+  const nDone = counts.done || 0;
+  const retryable = nFailed + nQueued;
+
+  function update(fn){
+    if(ctx.setQueue) ctx.setQueue(fn);
+    setLocal(prev=> fn(prev));
+  }
+  function retry(id){
+    update(list => list.map(i => i.id===id ? { ...i, status:'queued', error:undefined } : i));
+    setDetailId(null);
+    if(ctx.toast) ctx.toast({ variant:'info', title:'Re-queued', body:'Will upload when a connection is available.' });
+  }
+  function remove(id){
+    update(list => list.filter(i => i.id!==id));
+    setDetailId(null);
+    if(ctx.toast) ctx.toast({ variant:'info', title:'Removed from queue', body:'These pages were discarded from this device.' });
+  }
+  function retryAll(){
+    if(!online){
+      if(ctx.toast) ctx.toast({ variant:'warning', title:'You are offline', body:'Items will retry automatically when you reconnect.' });
+      return;
+    }
+    update(list => list.map(i => (i.status==='failed') ? { ...i, status:'queued', error:undefined } : i));
+    if(ctx.toast) ctx.toast({ variant:'info', title:'Retrying all', body:'Failed uploads were re-queued.' });
+  }
+
+  if(items.length===0){
+    return (
+      <div className="upload-queue__scroll">
+        <div className="upload-queue__head">
+          <h1 className="upload-queue__title">Upload queue</h1>
+          <Badge variant={online?'success':'warning'} icon={online?'wifi':'wifi-off'}>
+            {online ? 'Online' : 'Offline'}
+          </Badge>
+        </div>
+        <div className="upload-queue__empty">
+          <Icon name="cloud-check" size={44} className="upload-queue__empty-ico" />
+          <div className="upload-queue__empty-title">Queue is clear</div>
+          <div>Everything's uploaded. New captures will appear here until they reach AutoGrade.</div>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="camera" size={15}/>}
+            onClick={()=>nav.go('#/scan')}>Scan a sheet</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="upload-queue__scroll">
+        <div className="upload-queue__head">
+          <h1 className="upload-queue__title">Upload queue</h1>
+          <Badge variant={online?'success':'warning'} icon={online?'wifi':'wifi-off'}>
+            {online ? 'Online' : 'Offline'}
+          </Badge>
+        </div>
+
+        <div className="upload-queue__summary">
+          <span>{nQueued} queued</span><span className="upload-queue__dot" />
+          <span>{nUploading} uploading</span><span className="upload-queue__dot" />
+          <span>{nFailed} failed</span>
+          {nDone>0 && <><span className="upload-queue__dot" /><span>{nDone} done</span></>}
+        </div>
+
+        <div className="upload-queue__actions">
+          <Button variant="secondary" size="sm" block disabled={retryable===0}
+            leadingIcon={<Icon name="rotate-cw" size={15}/>} onClick={retryAll}>
+            Retry all{nFailed>0 ? ' ('+nFailed+' failed)' : ''}
+          </Button>
+        </div>
+
+        <div className="upload-queue__note">
+          <Icon name="hard-drive" size={15} className="upload-queue__note-ico" />
+          <span>Saved on this device — survives closing the app. Items upload automatically when online.</span>
+        </div>
+
+        <div className="upload-queue__list">
+          {items.map(it=>{
+            const failed = it.status==='failed';
+            const s = UQ_STATUS[it.status] || UQ_STATUS.queued;
+            const interactive = failed;
+            return (
+              <div key={it.id}
+                className={'upload-queue__row'+(failed?' upload-queue__row--failed':'')}>
+                {interactive ? (
+                  <button type="button" className="upload-queue__hit"
+                    aria-label={'Open details for '+it.student+' — '+s.label}
+                    onClick={()=>setDetailId(it.id)}>
+                    <UploadQueueItem status={it.status} name={uqMeta(it)}
+                      progress={it.progress} meta={s.label} />
+                  </button>
+                ) : (
+                  <div className="upload-queue__static">
+                    <UploadQueueItem status={it.status} name={uqMeta(it)}
+                      progress={it.progress} meta={s.label} />
+                  </div>
+                )}
+                {failed &&
+                  <div className="upload-queue__rowbar">
+                    <span className="upload-queue__rowbar-status">
+                      <Icon name="alert-triangle" size={14} style={{color:'var(--status-error)'}} />
+                      <span style={{fontSize:'var(--text-xs)',color:'var(--status-error)'}}>
+                        {it.error || 'Upload failed'}
+                      </span>
+                    </span>
+                    <Button variant="ghost" size="sm" disabled={!online}
+                      leadingIcon={<Icon name="rotate-cw" size={14}/>}
+                      onClick={()=>retry(it.id)}>Retry</Button>
+                    <IconButton icon="trash-2" label={'Remove '+it.student+' from queue'}
+                      size="sm" onClick={()=>remove(it.id)} />
+                  </div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <QueueDetailModal item={detail} online={online}
+        onRetry={retry} onRemove={remove} onClose={()=>setDetailId(null)} />
+    </>
+  );
+}
+
+/* ---------- standalone Demo (phone frame + mock nav/ctx) ---------- */
+function PhoneFrame({ children }){
+  return (
+    <div className="ph">
+      <div className="ph__top">
+        <div className="ph__brand">
+          <span className="ph__mark"><Icon name="scan-line" size={16} /></span>
+          <span className="ph__title">AutoGrade Scan</span>
+        </div>
+        <span className="ph__spacer" />
+        <IconButton icon="settings" label="Settings" size="sm" />
+      </div>
+      <div className="ph__body">{children}</div>
+      <div className="ph__tabs">
+        <Tabbar items={[
+          { icon:'camera', label:'Scan' },
+          { icon:'list', label:'Queue', active:true },
+          { icon:'history', label:'History' },
+        ]} />
+      </div>
+    </div>
+  );
+}
+
+function Demo(){
+  const [queue, setQueue] = useState(UPLOAD_QUEUE_MOCK);
+  const [online, setOnline] = useState(true);
+  const ctx = {
+    scanner:{ name:'Ravi Menon', initials:'RM', school:'Sunrise Public School', code:'SUB001' },
+    queue,
+    setQueue:(fn)=>setQueue(prev=>fn(prev)),
+    online:()=>online,
+    toast:(t)=>console.log('toast',t),
+  };
+  const nav = { go:(h)=>console.log('go',h), back:()=>console.log('back') };
+
+  return (
+    <div>
+      <PhoneFrame>
+        <QueueView nav={nav} params={{}} ctx={ctx} />
+      </PhoneFrame>
+
+      <div style={{textAlign:'center',marginBottom:'var(--space-4)'}}>
+        <Button variant="ghost" size="sm" leadingIcon={<Icon name={online?'wifi':'wifi-off'} size={15}/>}
+          onClick={()=>setOnline(o=>!o)}>Toggle online (now {online?'online':'offline'})</Button>
+      </div>
+
+      <div className="upload-queue__states">
+        <div>
+          <div className="upload-queue__statecap">Empty — queue clear</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body">
+              <QueueView nav={nav} params={{}}
+                ctx={{ ...ctx, queue:[], setQueue:()=>{} }} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="upload-queue__statecap">Offline — retry disabled</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body">
+              <QueueView nav={nav} params={{}}
+                ctx={{ ...ctx, queue:UPLOAD_QUEUE_MOCK, setQueue:()=>{}, online:()=>false }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

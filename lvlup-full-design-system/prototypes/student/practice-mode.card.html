@@ -1,0 +1,594 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Practice Mode" subtitle="Unlimited-retry drilling · instant feedback · no key" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice Mode</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* live desktop shell — positioned ancestor for Drawer */
+  .shell-frame { position: relative; height: 760px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-kbd:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+  /* main practice column */
+  .pmain { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+
+  .p-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); }
+  .p-title-wrap { display: flex; gap: var(--space-3); align-items: flex-start; min-width: 0; }
+  .p-dumbbell { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center;
+    border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); }
+  .p-h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .p-sub { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); }
+  .p-solved { flex: 0 0 auto; min-width: 132px; text-align: right; padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); }
+  .p-solved .num { font-family: var(--font-mono); font-size: var(--text-2xl); line-height: 1;
+    font-weight: var(--weight-semibold); }
+  .p-solved .lbl { font-size: var(--text-xs); color: var(--text-secondary); margin-top: var(--space-1); }
+
+  .prog-wrap { display: flex; flex-direction: column; gap: var(--space-2); }
+  .prog-row { display: flex; justify-content: space-between; align-items: center; }
+  .prog-row .l { font-size: var(--text-sm); color: var(--text-secondary); }
+  .prog-row .r { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted); }
+
+  .filter-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .filter-row .flbl { font-size: var(--text-sm); color: var(--text-muted); }
+  .chip-btn { cursor: pointer; border: none; background: transparent; padding: 0; font: inherit; }
+
+  /* mini question navigator */
+  .nav-wrap { display: flex; flex-direction: column; gap: var(--space-2); }
+  .nav-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .qnode { width: 40px; height: 40px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+    background: var(--bg-surface); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; cursor: pointer; font-family: var(--font-mono); font-size: var(--text-sm);
+    font-weight: var(--weight-medium); color: var(--text-secondary); position: relative; }
+  .qnode:hover { border-color: var(--border-strong); }
+  .qnode--current { box-shadow: var(--ring-focus); border-color: var(--brand-primary); }
+  .qnode--solved { background: var(--status-success-subtle); border-color: var(--status-success);
+    color: var(--status-success); }
+  .qnode--missed { background: var(--status-warning-subtle); border-color: var(--status-warning);
+    color: var(--status-warning); }
+  .qnode__glyph { display: flex; }
+
+  /* question card body */
+  .q-card { padding: var(--space-6); }
+  .q-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+    margin-bottom: var(--space-4); }
+  .q-counter { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted); }
+  .q-top-right { display: flex; align-items: center; gap: var(--space-2); }
+  .q-prompt { font-size: var(--text-lg); line-height: var(--leading-lg); margin-bottom: var(--space-5);
+    max-width: var(--reading-max); }
+  .q-opts { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+  .q-actions { display: flex; align-items: center; gap: var(--space-3); }
+
+  /* feedback panel */
+  .fb { margin-top: var(--space-5); border-radius: var(--radius-md); padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--border-subtle); }
+  .fb--ok { background: var(--status-success-subtle); border-color: var(--status-success); }
+  .fb--miss { background: var(--status-warning-subtle); border-color: var(--status-warning); }
+  .fb-head { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--weight-semibold);
+    font-size: var(--text-base); margin-bottom: var(--space-2); }
+  .fb--ok .fb-head { color: var(--status-success); }
+  .fb--miss .fb-head { color: var(--status-warning); }
+  .fb-body { font-size: var(--text-sm); color: var(--text-primary); line-height: var(--leading-sm);
+    max-width: var(--reading-max); }
+  .fb-foci { margin: var(--space-3) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column;
+    gap: var(--space-2); }
+  .fb-foci li { display: flex; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary); }
+  .fb-actions { margin-top: var(--space-4); display: flex; gap: var(--space-3); align-items: center; }
+  .fb-attempts { font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); }
+
+  .footnav { display: flex; justify-content: space-between; align-items: center; }
+
+  /* secondary state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+  .skel-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-row { display: flex; gap: var(--space-2); }
+  .row-gap { display: flex; align-items: center; gap: var(--space-2); }
+
+  .toast-host { position: absolute; bottom: var(--space-5); left: 50%; transform: translateX(-50%); z-index: 40;
+    min-width: 320px; }
+  .tutor-stack { display: flex; flex-direction: column; gap: var(--space-4); }
+  .tutor-input { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Chip,
+    Card, Panel, Drawer, Alert, EmptyState, Skeleton, ProgressBar,
+    Kbd, ContentRenderer, QuestionCard, Option, TutorChatBubble, Toast, Input, Textarea
+  } = LU;
+  const { useState } = React;
+
+  /* ---- student sidebar nav ---- */
+  const NAV = [
+    { icon: "layout-dashboard", label: "Dashboard", key: "dashboard" },
+    { icon: "book-open", label: "My Spaces", key: "spaces", active: true },
+    { icon: "file-check", label: "Tests", key: "tests" },
+    { icon: "trophy", label: "Leaderboard", key: "leaderboard" },
+    { icon: "user", label: "Profile", key: "profile" },
+  ];
+
+  function NavLink({ icon, label, active }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+      </a>
+    );
+  }
+
+  /* ---- practice item model (question-type only) ---- */
+  const ITEMS = [
+    { id: "q1", diff: "Easy",   type: "Multiple choice", det: true,
+      prompt: "What is the time complexity of a binary search over a sorted array of n elements?",
+      opts: ["O(n)", "O(log n)", "O(n log n)", "O(1)"], correct: 1,
+      explain: "Each comparison halves the remaining search interval, so the number of steps grows with the base-2 logarithm of n.",
+      foci: ["You nailed the halving intuition — that's the heart of it."] },
+    { id: "q2", diff: "Medium", type: "Multiple choice", det: true,
+      prompt: "Which data structure gives you average O(1) insert, delete, and lookup by key?",
+      opts: ["Balanced BST", "Hash table", "Sorted array", "Min-heap"], correct: 1,
+      explain: "A hash table maps keys to buckets via a hash function, giving expected constant-time operations when the load factor is kept low.",
+      foci: ["Revisit how collisions are resolved — that's where the 'average' caveat comes from.",
+             "Compare against a balanced BST's guaranteed O(log n)."] },
+    { id: "q3", diff: "Hard",   type: "Short answer", det: false,
+      prompt: "In one sentence, explain why the sliding-window technique reduces a naive O(n·k) subarray scan to O(n).",
+      opts: null,
+      explain: "Instead of recomputing each window from scratch, you reuse the previous window's result and adjust only for the element entering and the element leaving — so each element is visited a constant number of times.",
+      foci: ["You captured the reuse idea — strong.", "Tighten the phrasing around 'each element enters and leaves the window once.'"] },
+    { id: "q4", diff: "Medium", type: "Multiple choice", det: true,
+      prompt: "A stack is best described as which access pattern?",
+      opts: ["FIFO", "LIFO", "Random access", "Priority order"], correct: 1,
+      explain: "Stacks are last-in, first-out: the most recently pushed element is the first one popped.",
+      foci: [] },
+    { id: "q5", diff: "Easy",   type: "Multiple choice", det: true, prompt: "—", opts: [], correct: 0, explain: "", foci: [] },
+    { id: "q6", diff: "Hard",   type: "Short answer", det: false, prompt: "—", opts: null, explain: "", foci: [] },
+    { id: "q7", diff: "Medium", type: "Multiple choice", det: true, prompt: "—", opts: [], correct: 0, explain: "", foci: [] },
+    { id: "q8", diff: "Easy",   type: "Multiple choice", det: true, prompt: "—", opts: [], correct: 0, explain: "", foci: [] },
+  ];
+
+  const TOTAL = 12;
+
+  /* initial evaluation state (restored from cache) */
+  const INIT_EVALS = {
+    q1: { correct: true,  attempts: 1 },
+    q2: { correct: false, attempts: 2 },
+    q4: { correct: true,  attempts: 1 },
+  };
+
+  function DiffChip({ diff }) {
+    return <Chip>{diff}</Chip>;
+  }
+
+  function NodeGlyph({ status }) {
+    if (status === "solved")  return <Icon name="check" size={13} />;
+    if (status === "missed")  return <Icon name="minus-circle" size={13} />;
+    return <Icon name="minus" size={11} />;
+  }
+
+  /* ============================ PRIMARY: live practice screen ============================ */
+  function PracticeScreen() {
+    const [index, setIndex] = useState(1);          // q2 is current (missed → shows retry)
+    const [filter, setFilter] = useState("All");
+    const [evals, setEvals] = useState(INIT_EVALS);
+    const [tutorOpen, setTutorOpen] = useState(false);
+    const [checking, setChecking] = useState(false);
+    const [selected, setSelected] = useState(null);
+    const [showToast, setShowToast] = useState(false);
+
+    const item = ITEMS[index];
+    const ev = evals[item.id];
+
+    const statusOf = (it) => {
+      const e = evals[it.id];
+      if (!e) return "none";
+      return e.correct ? "solved" : "missed";
+    };
+    const solvedCount = Object.values(evals).filter((e) => e.correct).length;
+    const pct = Math.round((solvedCount / TOTAL) * 100);
+
+    const retry = () => {
+      setEvals((m) => { const c = { ...m }; delete c[item.id]; return c; });
+      setSelected(null);
+    };
+
+    const check = () => {
+      if (!item.det) {
+        setChecking(true);
+        setTimeout(() => {
+          setChecking(false);
+          setEvals((m) => ({ ...m, [item.id]: { correct: false, attempts: (m[item.id]?.attempts || 0) + 1 } }));
+        }, 600);
+        return;
+      }
+      const ok = selected === item.correct;
+      setEvals((m) => ({ ...m, [item.id]: { correct: ok, attempts: (m[item.id]?.attempts || 0) + 1 } }));
+      if (ok && solvedCount + 1 >= 4) setShowToast(true);
+    };
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">C</span>
+              <span className="sidebar__brand-name">Crestwood Academy</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {NAV.map((n) => <NavLink key={n.key} {...n} />)}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials="RK" />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>Rohan Kapoor</b>
+                  <span>rohan.k@crestwood.edu</span>
+                </div>
+                <Icon name="chevron-up" size={16} />
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <Breadcrumb items={[
+              { label: "Spaces", href: "#" },
+              { label: "DSA Mastery", href: "#" },
+              { label: "Binary Search & Hashing" },
+            ]} />
+            <div className="topbar__spacer" />
+            <div className="tb-kbd" role="button" aria-label="Search, command menu">
+              <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+            </div>
+            <IconButton icon={<Icon name="bell" size={20} />} label="Updates" />
+            <Avatar initials="RK" />
+          </header>
+
+          {/* MAIN */}
+          <main className="appshell__main" id="main-content">
+            <div className="pmain">
+              {/* aria-live region for solved count + verdict */}
+              <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1,
+                overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                Solved {solvedCount} of {TOTAL}
+              </div>
+
+              {/* HEADER */}
+              <div className="p-header">
+                <div className="p-title-wrap">
+                  <div className="p-dumbbell"><Icon name="dumbbell" size={22} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <h1 className="p-h1">Binary Search &amp; Hashing</h1>
+                    <div className="p-sub">Practice — retry as many times as you like.</div>
+                  </div>
+                </div>
+                <div className="p-solved">
+                  <div className="num">{solvedCount} / {TOTAL}</div>
+                  <div className="lbl">Solved</div>
+                </div>
+              </div>
+
+              {/* PROGRESS */}
+              <div className="prog-wrap">
+                <div className="prog-row">
+                  <span className="l">Progress</span>
+                  <span className="r">{pct}%</span>
+                </div>
+                <ProgressBar value={pct} variant="success" />
+              </div>
+
+              {/* DIFFICULTY FILTER */}
+              <div className="filter-row" role="group" aria-label="Filter by difficulty">
+                <span className="flbl">Difficulty</span>
+                {["All", "Easy", "Medium", "Hard"].map((d) => (
+                  <button key={d} className="chip-btn" aria-pressed={filter === d}
+                    onClick={() => { setFilter(d); }}>
+                    <Chip active={filter === d}>{d}</Chip>
+                  </button>
+                ))}
+              </div>
+
+              {/* QUESTION NAVIGATOR */}
+              <div className="nav-wrap">
+                <div className="eyebrow" style={{ margin: 0 }}>Questions</div>
+                <div className="nav-grid" role="navigation" aria-label="Question navigator">
+                  {ITEMS.map((it, i) => {
+                    const st = statusOf(it);
+                    const isCur = i === index;
+                    const lbl = st === "solved" ? "Solved" : st === "missed" ? "Needs another look" : "Not attempted";
+                    return (
+                      <button key={it.id}
+                        className={"qnode" + (isCur ? " qnode--current" : "") +
+                          (st === "solved" ? " qnode--solved" : st === "missed" ? " qnode--missed" : "")}
+                        aria-label={"Question " + (i + 1) + ": " + lbl}
+                        aria-current={isCur ? "step" : undefined}
+                        onClick={() => { setIndex(i); setSelected(null); }}>
+                        <span>{i + 1}</span>
+                        <span className="qnode__glyph"><NodeGlyph status={st} /></span>
+                      </button>
+                    );
+                  })}
+                  <span style={{ alignSelf: "center", fontSize: "var(--text-xs)", color: "var(--text-muted)",
+                    fontFamily: "var(--font-mono)", marginLeft: "var(--space-1)" }}>…of {TOTAL}</span>
+                </div>
+              </div>
+
+              {/* CURRENT QUESTION */}
+              <Card>
+                <div className="q-card">
+                  <div className="q-top">
+                    <span className="q-counter">Question {index + 1} of {TOTAL}</span>
+                    <div className="q-top-right">
+                      <DiffChip diff={item.diff} />
+                      {ev && (ev.correct
+                        ? <Badge variant="success" icon={<Icon name="check" size={12} />}>Solved</Badge>
+                        : <Badge variant="warning" icon={<Icon name="minus-circle" size={12} />}>Needs another look</Badge>)}
+                    </div>
+                  </div>
+
+                  <QuestionCard type={item.type} points={item.diff === "Hard" ? 3 : item.diff === "Medium" ? 2 : 1}
+                    prompt={item.prompt}>
+                    <div className="q-opts" style={{ marginTop: "var(--space-4)" }}>
+                      {item.opts ? item.opts.map((o, oi) => (
+                        <Option key={oi}
+                          selected={selected === oi}
+                          marker={String.fromCharCode(65 + oi)}>
+                          <span onClick={() => !ev && setSelected(oi)} style={{ cursor: ev ? "default" : "pointer" }}>{o}</span>
+                        </Option>
+                      )) : (
+                        <Textarea placeholder="Type your answer — there's no wrong attempt here, just reps."
+                          rows={3} defaultValue="" />
+                      )}
+                    </div>
+
+                    <div className="q-actions">
+                      <Button variant="primary" loading={checking} disabled={!!ev || (item.opts && selected === null)}
+                        onClick={check}>
+                        {checking ? "Checking…" : "Check answer"}
+                      </Button>
+                      <Button variant="ghost" leadingIcon={<Icon name="message-circle-question" size={16} />}
+                        onClick={() => setTutorOpen(true)}>Ask tutor</Button>
+                    </div>
+                  </QuestionCard>
+
+                  {/* FEEDBACK PANEL (post-submit) */}
+                  {ev && ev.correct && (
+                    <div className="fb fb--ok" role="status">
+                      <div className="fb-head"><Icon name="check-circle" size={18} /> Got it!</div>
+                      <div className="fb-body">{item.explain}</div>
+                      {item.foci.length > 0 && (
+                        <ul className="fb-foci">
+                          {item.foci.map((f, fi) => (
+                            <li key={fi}><Icon name="check" size={15} style={{ color: "var(--status-success)" }} /> {f}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="fb-actions">
+                        <span className="fb-attempts">Solved on attempt {ev.attempts}</span>
+                      </div>
+                    </div>
+                  )}
+                  {ev && !ev.correct && (
+                    <div className="fb fb--miss" role="status">
+                      <div className="fb-head"><Icon name="alert-triangle" size={18} /> Let's look at this one again</div>
+                      <div className="fb-body">{item.explain}</div>
+                      {item.foci.length > 0 && (
+                        <ul className="fb-foci">
+                          {item.foci.map((f, fi) => (
+                            <li key={fi}><Icon name="target" size={15} style={{ color: "var(--status-warning)" }} /> {f}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="fb-actions">
+                        <Button variant="secondary" leadingIcon={<Icon name="rotate-ccw" size={16} />} onClick={retry}>
+                          Try again
+                        </Button>
+                        <span className="fb-attempts">{ev.attempts} attempts so far · unlimited</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* FOOTER NAV */}
+              <div className="footnav">
+                <Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16} />}
+                  disabled={index === 0} onClick={() => { setIndex(Math.max(0, index - 1)); setSelected(null); }}>
+                  Previous
+                </Button>
+                <Button variant="secondary" trailingIcon={<Icon name="arrow-right" size={16} />}
+                  disabled={index === ITEMS.length - 1}
+                  onClick={() => { setIndex(Math.min(ITEMS.length - 1, index + 1)); setSelected(null); }}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        {/* quiet encouraging Toast on clearing a set (NO celebration burst) */}
+        {showToast && (
+          <div className="toast-host">
+            <Toast variant="success" title="Nice — that's the Easy set cleared!"
+              body="Keep the reps going whenever you like." />
+          </div>
+        )}
+
+        {/* TUTOR DRAWER (right side, default closed) */}
+        <Drawer open={tutorOpen} onClose={() => setTutorOpen(false)} title="Ask the tutor">
+          <div className="tutor-stack">
+            <TutorChatBubble from="tutor" author="Tutor">
+              Stuck on this one? Ask away — no wrong questions here.
+            </TutorChatBubble>
+            <TutorChatBubble from="user" author="You">
+              Why isn't a balanced BST also O(1) for lookups?
+            </TutorChatBubble>
+            <TutorChatBubble from="tutor" author="Tutor">
+              Good question. A balanced BST guarantees O(log n) because every lookup walks down the tree's
+              height. A hash table can hit O(1) on average — but only because it trades that guarantee for
+              the chance of collisions. What do you think happens to lookups when many keys land in the same bucket?
+            </TutorChatBubble>
+            <div className="tutor-input">
+              <Input placeholder="Type your question…" />
+              <Button variant="primary"><Icon name="send" size={16} /></Button>
+            </div>
+          </div>
+        </Drawer>
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* LOADING */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (skeleton matches layout)</div>
+          <div className="skel-stack">
+            <div className="skel-row">
+              <Skeleton variant="circle" width="44px" height="44px" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="55%" height="22px" />
+                <Skeleton width="40%" height="13px" />
+              </div>
+              <Skeleton width="110px" height="48px" />
+            </div>
+            <Skeleton height="10px" />
+            <div className="skel-row">
+              {[0,1,2,3].map((i) => <Skeleton key={i} width="64px" height="28px" />)}
+            </div>
+            <div className="skel-row">
+              {[0,1,2,3,4,5].map((i) => <Skeleton key={i} variant="circle" width="40px" height="40px" />)}
+            </div>
+            <Skeleton height="180px" />
+          </div>
+        </div>
+
+        {/* EMPTY — no items */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (no practice items)</div>
+          <EmptyState icon="dumbbell"
+            title="No practice questions here yet"
+            body="This story point doesn't have practice questions yet — check back soon, or head back to the lesson."
+            action={<Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16} />}>Back to lesson</Button>} />
+        </div>
+
+        {/* EMPTY — filter excludes all */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (filter excludes all)</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-5)",
+            border: "1px dashed var(--border-strong)", borderRadius: "var(--radius-md)",
+            background: "var(--bg-surface-sunken)" }}>
+            <Icon name="filter-x" size={20} style={{ color: "var(--text-muted)" }} />
+            <div style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+              No Hard questions in this set — try another difficulty.
+            </div>
+            <Button variant="ghost" size="sm">Show all</Button>
+          </div>
+        </div>
+
+        {/* ERROR — load failed */}
+        <div className="tile">
+          <div className="eyebrow">State: error (item load failed — distinct from empty)</div>
+          <EmptyState icon="cloud-off"
+            title="We couldn't load this practice set"
+            body="Something hiccuped on our end. Give it another go."
+            action={<Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16} />}>Retry</Button>} />
+        </div>
+
+        {/* PARTIAL — cache restored, durable write deferred */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">State: partial (cache restored · durable save deferred)</div>
+          <Alert variant="warning" title="Your progress is saved on this device">
+            We'll sync it to your account when you're back online — keep practicing, nothing's lost.
+          </Alert>
+          <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)", alignItems: "center",
+            fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            <Icon name="hard-drive" size={14} /> 3 evaluations cached · reconciling in background
+          </div>
+        </div>
+
+        {/* LOW-PRESSURE / NO-TIMER affirmation + answer-key guarantee */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">Domain: no timer · no key reveal · feedback-rich by design</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <div className="row-gap" style={{ alignItems: "flex-start" }}>
+              <Icon name="infinity" size={20} style={{ color: "var(--brand-primary)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>No timer, no penalty</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Practice has no server deadline and no auto-submit. Retry any question as many times as you like.
+                </div>
+              </div>
+            </div>
+            <div className="row-gap" style={{ alignItems: "flex-start" }}>
+              <Icon name="shield-check" size={20} style={{ color: "var(--status-success)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Guidance, never the key</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Feedback shows what to focus on — the raw answer key stays server-sealed for any item you
+                  haven't solved yet.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <PracticeScreen />
+        <div>
+          <div className="eyebrow">Spec'd secondary states</div>
+          <StateTiles />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

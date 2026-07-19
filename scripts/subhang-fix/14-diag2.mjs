@@ -1,0 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+const sa = JSON.parse(readFileSync('/Users/subhang/Desktop/Projects/auto-levleup/lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json', 'utf8'));
+const app = initializeApp({ credential: cert(sa), projectId: 'lvlup-ff6fa' });
+const db = getFirestore(app);
+const q=(await db.doc('tenants/tenant_subhang/spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/I8yX8s8TeE3qF1rNp5qF').get()).data();
+console.log('QUESTION top-level content contains imgs:auto?', /imgs:auto/.test(q.content||''), ' len:', q.content?.length);
+console.log('QUESTION top-level tail:', JSON.stringify(q.content?.slice(-200)));
+console.log('QUESTION meta._imagesPatchedV2:', q.meta?._imagesPatchedV2);
+const m=(await db.doc('tenants/tenant_subhang/spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/5eIFRnFmtSubC9bO0qPZ').get()).data();
+const b = m.payload?.richContent?.blocks || [];
+console.log('MATERIAL blocks:', b.length, ' tail:', JSON.stringify(b.slice(-1)));
+console.log('MATERIAL meta._imagesPatchedV2:', m.meta?._imagesPatchedV2);
+process.exit(0);

@@ -1,0 +1,599 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Item / Story Point Preview" subtitle="Student-eye preview · mock timer · staff answer-key" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);min-width:0;}
+.sx-bc i{width:14px;height:14px;flex:none;}
+.sx-bc a{color:var(--text-muted);text-decoration:none;cursor:pointer;white-space:nowrap;}
+.sx-bc a:hover{color:var(--brand-primary);}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:24vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search .kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 5px;background:var(--bg-surface);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+.sx-scroll{flex:1;overflow-y:auto;}
+/* reading-width centered column */
+.col{max-width:760px;margin:0 auto;padding:var(--space-4) var(--space-6) var(--space-12);display:flex;flex-direction:column;gap:var(--space-4);}
+/* preview-mode banner (info / sky) */
+.pbanner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-info);background:var(--status-info-subtle);}
+.pbanner .lead{width:18px;height:18px;flex:none;margin-top:1px;color:var(--status-info);}
+.pbanner .bt{font-weight:var(--weight-semibold);font-size:var(--text-sm);}
+.pbanner .bb{color:var(--text-secondary);font-size:var(--text-xs);margin-top:2px;line-height:var(--leading-xs);}
+.pbanner .sp{flex:1;}
+/* breadcrumb tail in column */
+.crumb{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-mono);}
+.crumb i{width:13px;height:13px;}
+.crumb b{color:var(--text-primary);font-weight:var(--weight-medium);}
+/* sticky control bar */
+.ctrl{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);}
+.ctrl .qn{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);white-space:nowrap;}
+.ctrl .qn .of{color:var(--text-muted);font-weight:var(--weight-regular);}
+.secchip{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);white-space:nowrap;}
+.secchip i{width:12px;height:12px;}
+.ctrl .sp{flex:1;}
+/* timer */
+.timer{display:flex;align-items:center;gap:var(--space-2);min-width:184px;}
+.timer .tlbl{display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);white-space:nowrap;}
+.timer .tlbl i{width:14px;height:14px;color:var(--text-secondary);}
+.timer .tbar{flex:1;height:6px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);overflow:hidden;min-width:64px;}
+.timer .tbar span{display:block;height:100%;border-radius:var(--radius-pill);background:var(--brand-primary);transition:width 1s linear;}
+.timer.warn .tbar span{background:var(--status-warning);}
+.timer.warn .tlbl{color:var(--status-warning);}
+.timer.crit .tbar span{background:var(--status-error);}
+.timer.crit .tlbl{color:var(--status-error);}
+.sim{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:3px;white-space:nowrap;}
+.sim i{width:11px;height:11px;}
+/* answer-key toggle */
+.akt{display:flex;align-items:center;gap:var(--space-2);white-space:nowrap;}
+.akt .tlab{font-size:var(--text-xs);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:5px;}
+.akt .tlab i{width:13px;height:13px;color:var(--text-secondary);}
+.sw{width:40px;height:22px;border-radius:var(--radius-pill);background:var(--border-strong);border:none;cursor:pointer;position:relative;flex:none;transition:background var(--dur-fast) var(--ease-standard);}
+.sw.on{background:var(--brand-primary);}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--bg-surface);transition:transform var(--dur-fast) var(--ease-standard);}
+.sw.on::after{transform:translateX(18px);}
+.sw[disabled]{opacity:.45;cursor:not-allowed;}
+/* navigator chips */
+.nav{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;}
+.nav .navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-right:var(--space-1);}
+.chipn{min-width:34px;height:34px;padding:0 8px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-mono);font-size:var(--text-xs);font-weight:var(--weight-medium);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:all var(--dur-fast) var(--ease-standard);}
+.chipn:hover{border-color:var(--border-strong);color:var(--text-primary);}
+.chipn.answered{border-color:var(--mastery-in-progress);background:var(--status-success-subtle);color:var(--status-success);}
+.chipn.answered i{width:11px;height:11px;}
+.chipn.cur{border-color:var(--brand-primary);background:var(--brand-primary);color:var(--text-on-accent);}
+.chipn:focus-visible{outline:none;box-shadow:var(--ring-focus);}
+/* question card */
+.qcard{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);overflow:hidden;}
+.qcard.anim{animation:cardin var(--dur-base) var(--ease-standard);}
+@keyframes cardin{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:translateX(0);}}
+.qcard.back{animation:cardback var(--dur-base) var(--ease-standard);}
+@keyframes cardback{from{opacity:0;transform:translateX(-14px);}to{opacity:1;transform:translateX(0);}}
+.qhead{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding:var(--space-4) var(--space-5) var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);}
+.qhead .tag{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);}
+.qhead .tag i{width:12px;height:12px;}
+.qhead .tag.mono{font-family:var(--font-mono);}
+.qhead .tag.easy{color:var(--status-success);border-color:var(--status-success);background:var(--status-success-subtle);}
+.qhead .tag.medium{color:var(--status-warning);border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.qhead .tag.hard{color:var(--status-error);border-color:var(--status-error);background:var(--status-error-subtle);}
+.qhead .sp{flex:1;}
+.qbody{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);}
+.stem{font-size:var(--text-base);line-height:var(--leading-base);color:var(--text-primary);}
+.stem .math{font-family:var(--font-mono);background:var(--bg-surface-sunken);border-radius:var(--radius-sm);padding:2px 7px;font-size:var(--text-sm);}
+.stem p{margin:0 0 var(--space-3);}
+/* answer input (ephemeral) */
+.ai{display:flex;flex-direction:column;gap:var(--space-2);}
+.aopt{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:pointer;text-align:left;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);transition:all var(--dur-fast) var(--ease-standard);}
+.aopt:hover{border-color:var(--border-strong);background:var(--bg-surface-sunken);}
+.aopt .mk{width:24px;height:24px;border-radius:var(--radius-pill);border:1.5px solid var(--border-strong);display:grid;place-items:center;flex:none;font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-secondary);}
+.aopt.sel{border-color:var(--brand-primary);background:var(--brand-subtle);}
+.aopt.sel .mk{border-color:var(--brand-primary);background:var(--brand-primary);color:var(--text-on-accent);}
+.aopt .ot{flex:1;}
+/* correct highlight (only inside revealed key path) */
+.aopt.correct{border-color:var(--status-success);background:var(--status-success-subtle);}
+.aopt.correct .mk{border-color:var(--status-success);background:var(--status-success);color:var(--text-on-accent);}
+.aopt .crt{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--status-success);}
+.aopt .crt i{width:13px;height:13px;}
+.atext{width:100%;min-height:88px;font-family:var(--font-ui);font-size:var(--text-sm);line-height:var(--leading-sm);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);resize:vertical;}
+.atext:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.anum{width:200px;font-family:var(--font-mono);font-size:var(--text-sm);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);}
+.anum:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.disabled-input{border:1.5px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface-sunken);padding:var(--space-5);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--text-muted);}
+.disabled-input .ic{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--bg-surface);border:1px solid var(--border-subtle);display:grid;place-items:center;}
+.disabled-input .ic i{width:18px;height:18px;}
+.disabled-input .t{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.disabled-input .b{font-size:var(--text-2xs);}
+/* answer key lock band */
+.keyband{margin:0 var(--space-5) var(--space-5);}
+.keylock{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4);border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.keylock .kic{width:34px;height:34px;border-radius:var(--radius-pill);background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary);display:grid;place-items:center;flex:none;}
+.keylock .kic i{width:17px;height:17px;}
+.keylock .kt{font-size:var(--text-sm);font-weight:var(--weight-semibold);display:flex;align-items:center;gap:6px;}
+.keylock .kt i{width:14px;height:14px;color:var(--text-muted);}
+.keylock .kb{font-size:var(--text-xs);color:var(--text-muted);margin-top:3px;line-height:var(--leading-xs);}
+/* revealed key */
+.keyopen{border:1px solid var(--status-success);border-radius:var(--radius-md);background:var(--status-success-subtle);overflow:hidden;animation:keyin var(--dur-fast) var(--ease-entrance);}
+@keyframes keyin{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+.keyopen .khd{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--status-success);background:var(--status-success-subtle);}
+.keyopen .khd i{width:15px;height:15px;color:var(--status-success);}
+.keyopen .khd .kh{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--status-success);}
+.keyopen .khd .km{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--status-success);display:inline-flex;align-items:center;gap:4px;}
+.keyopen .kbody{padding:var(--space-4);background:var(--bg-surface);display:flex;flex-direction:column;gap:var(--space-3);}
+.kfield{display:flex;flex-direction:column;gap:4px;}
+.kfield .kfl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+.kfield .kfv{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);}
+.kpill{display:inline-flex;align-items:center;gap:5px;padding:4px var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-semibold);background:var(--status-success-subtle);color:var(--status-success);border:1px solid var(--status-success);width:fit-content;font-family:var(--font-mono);}
+.kpill i{width:14px;height:14px;}
+/* rubric */
+.rub{display:flex;flex-direction:column;gap:var(--space-2);}
+.rubrow{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.rubrow .rt{flex:1;}
+.rubrow .rn{font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.rubrow .rd{font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px;line-height:var(--leading-2xs);}
+.rubrow .rs{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--brand-primary);white-space:nowrap;}
+/* prev/next footer */
+.foot-nav{display:flex;align-items:center;gap:var(--space-3);}
+.foot-nav .mid{flex:1;text-align:center;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);}
+.btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);cursor:pointer;white-space:nowrap;background:var(--bg-surface);color:var(--text-primary);min-height:44px;}
+.btn i{width:16px;height:16px;}
+.btn:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:none;border-color:transparent;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+/* simulated time-up alert */
+.tup{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-warning);background:var(--status-warning-subtle);}
+.tup i.lead{width:18px;height:18px;flex:none;margin-top:1px;color:var(--status-warning);}
+.tup .tt{font-weight:var(--weight-semibold);font-size:var(--text-sm);}
+.tup .tb{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;}
+/* error / empty / partial */
+.berr{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-error);background:var(--status-error-subtle);}
+.berr i.lead{width:18px;height:18px;flex:none;margin-top:1px;color:var(--status-error);}
+.berr .bt{font-weight:var(--weight-semibold);font-size:var(--text-sm);}
+.berr .bb{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;line-height:var(--leading-xs);}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-12) var(--space-6);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);}
+.empty .eic{width:54px;height:54px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-muted);display:grid;place-items:center;}
+.empty .eic i{width:26px;height:26px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-muted);max-width:380px;}
+.partial{padding:var(--space-6);text-align:center;color:var(--text-muted);font-size:var(--text-sm);background:var(--bg-surface-sunken);border:1px dashed var(--border-strong);border-radius:var(--radius-md);}
+.partial .mono{font-family:var(--font-mono);color:var(--text-secondary);}
+/* skeleton */
+.sk{background:var(--bg-surface-sunken);border-radius:var(--radius-md);position:relative;overflow:hidden;}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--bg-surface),transparent);animation:shim 1.3s infinite;}
+@keyframes shim{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+/* shuffle note */
+.shnote{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+.shnote i{width:12px;height:12px;}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* demo switcher */
+.demo{position:fixed;left:var(--space-4);bottom:var(--space-4);z-index:80;display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:5px;flex-wrap:wrap;max-width:70vw;}
+.demo .dl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding:0 var(--space-2);}
+.demo button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:none;background:none;color:var(--text-secondary);border-radius:var(--radius-pill);padding:5px var(--space-3);cursor:pointer;}
+.demo button.on{background:var(--brand-primary);color:var(--text-on-accent);}
+@media (max-width:900px){.col{max-width:100%;}}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { Icon } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ---- mock story point: timed_test, 6 questions across 2 sections ---- */
+const SECTIONS = {
+  algebra: { id:"sec_algebra", title:"Algebra" },
+  geom:    { id:"sec_geometry", title:"Geometry" },
+};
+const QUESTIONS = [
+  { id:"itm_0413", n:1, type:"mcq", typeLabel:"Multiple choice", diff:"easy", pts:2, section:"algebra",
+    stem:(<p>Solve the linear equation for <span className="math">x</span>: <span className="math">3x − 7 = 11</span>.</p>),
+    options:[{l:"A",t:"x = 3"},{l:"B",t:"x = 6"},{l:"C",t:"x = 9"},{l:"D",t:"x = 18"}],
+    correctIdx:1, key:{kind:"option", value:"B — x = 6"} },
+  { id:"itm_0414", n:2, type:"numerical", typeLabel:"Numerical", diff:"medium", pts:3, section:"algebra",
+    stem:(<p>Evaluate <span className="math">5(x + 2)</span> when <span className="math">x = 3</span>. Enter a single integer.</p>),
+    key:{kind:"numerical", value:"25", tolerance:"± 0"} },
+  { id:"itm_0415", n:3, type:"true-false", typeLabel:"True / False", diff:"easy", pts:1, section:"algebra",
+    stem:(<p>The equation <span className="math">2x + 4 = 2(x + 2)</span> has exactly one solution.</p>),
+    options:[{l:"T",t:"True"},{l:"F",t:"False — it holds for all x (identity)"}],
+    correctIdx:1, key:{kind:"option", value:"False — identity, infinitely many solutions"} },
+  { id:"itm_0416", n:4, type:"paragraph", typeLabel:"Paragraph · AI-graded", diff:"hard", pts:8, section:"algebra",
+    stem:(<p>Explain, in your own words, why applying the same inverse operation to both sides of an equation preserves equality. Reference the additive and multiplicative properties.</p>),
+    key:{kind:"rubric", model:"A correct response states that equality is an equivalence relation; adding/subtracting the same value (additive property) or multiplying/dividing by the same nonzero value (multiplicative property) yields an equivalent equation with the same solution set.",
+      criteria:[
+        {n:"Names additive property", d:"Identifies add/subtract same value to both sides.", s:2, max:2},
+        {n:"Names multiplicative property", d:"Identifies multiply/divide by same nonzero value.", s:0, max:2},
+        {n:"Correct conclusion", d:"States the solution set is preserved.", s:4, max:4},
+      ] } },
+  { id:"itm_0417", n:5, type:"audio", typeLabel:"Audio response · AI-graded", diff:"medium", pts:5, section:"geom",
+    stem:(<p>Record yourself stating the Pythagorean theorem and giving one real-world example of its use.</p>),
+    key:{kind:"rubric", model:"Mentions a² + b² = c² for a right triangle; gives a valid applied example (e.g. ladder against a wall).",
+      criteria:[
+        {n:"States the theorem", d:"a² + b² = c² with right-triangle condition.", s:3, max:3},
+        {n:"Valid example", d:"One coherent real-world application.", s:2, max:2},
+      ] } },
+  { id:"itm_0418", n:6, type:"image_evaluation", typeLabel:"Image evaluation · AI-graded", diff:"hard", pts:6, section:"geom",
+    stem:(<p>Upload a photo of your hand-drawn coordinate plane with the line <span className="math">y = 2x − 1</span> plotted and its intercepts labelled.</p>),
+    key:{kind:"rubric", model:"Correct slope (rise 2 / run 1), y-intercept at (0, −1), x-intercept at (0.5, 0), axes labelled.",
+      criteria:[
+        {n:"Correct slope", d:"Line rises 2 for every 1 across.", s:2, max:2},
+        {n:"Intercepts labelled", d:"(0,−1) and (0.5,0) marked.", s:2, max:2},
+        {n:"Axes & scale", d:"Axes labelled with consistent scale.", s:2, max:2},
+      ] } },
+];
+const DURATION_MIN = 30;
+
+function Nav({icon,label,count,active}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+
+function Shell({children}){
+  return <div className="sx">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+          <Nav icon="layout-dashboard" label="Dashboard"/>
+          <Nav icon="school" label="Classes" count="6"/>
+          <Nav icon="layers" label="Spaces" count="9" active/>
+          <Nav icon="file-check" label="Exams" count="4"/>
+          <Nav icon="graduation-cap" label="Students"/></div>
+        <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+          <Nav icon="bar-chart-3" label="Analytics"/>
+          <Nav icon="sparkles" label="AI tutor"/></div>
+      </nav>
+      <div className="foot"><div className="sx-uc"><div className="av">RM</div>
+        <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div></div>
+    </aside>
+    <div className="sx-main">
+      <header className="sx-top">
+        <nav className="sx-bc" aria-label="Breadcrumb">
+          <a>Spaces</a>{I("chevron-right",14)}<a>Algebra I</a>{I("chevron-right",14)}
+          <a>Linear Equations</a>{I("chevron-right",14)}<b>Preview</b>
+        </nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search…</span><span className="kbd">⌘K</span></div>
+        <button className="sx-icbtn" aria-label="Notifications">{I("bell",18)}</button>
+      </header>
+      <div className="sx-scroll">{children}</div>
+    </div>
+  </div>;
+}
+
+/* ---- answer-key lock (DEFAULT locked; reveals only when staff toggle is ON) ---- */
+function AnswerKeyBand({q, show, isStaff}){
+  // Non-staff path: the toggle is absent and keys were never merged — render nothing.
+  if(!isStaff) return null;
+  if(!show){
+    return <div className="keyband">
+      <div className="keylock">
+        <div className="kic">{I("lock",17)}</div>
+        <div>
+          <div className="kt">{I("shield-check",14)} Answer key is server-protected</div>
+          <div className="kb" aria-label="Answer key hidden, server-protected">
+            Students never see this. Correct answers are stripped from item docs on save and live in a
+            server-only subcollection — re-merged for staff only via <span style={{fontFamily:"var(--font-mono)"}}>getItemForEdit</span>.
+            Flip “Show answer key” above to reveal.
+          </div>
+        </div>
+      </div>
+    </div>;
+  }
+  const k = q.key;
+  return <div className="keyband">
+    <div className="keyopen">
+      <div className="khd">
+        {I("shield-check",15)}<span className="kh">Answer key (staff only)</span>
+        <span className="km">{I("server",11)} getItemForEdit · merged</span>
+      </div>
+      <div className="kbody">
+        {k.kind==="option" && <div className="kfield">
+          <div className="kfl">Correct option</div>
+          <div className="kpill">{I("check-circle-2",14)}{k.value}</div>
+        </div>}
+        {k.kind==="numerical" && <>
+          <div className="kfield"><div className="kfl">Correct answer</div>
+            <div className="kpill">{I("check-circle-2",14)}{k.value}</div></div>
+          <div className="kfield"><div className="kfl">Tolerance</div>
+            <div className="kfv">{k.tolerance}</div></div>
+        </>}
+        {k.kind==="rubric" && <>
+          <div className="kfield"><div className="kfl">Model answer</div>
+            <div className="kfv" style={{fontFamily:"var(--font-ui)",fontSize:"var(--text-sm)",lineHeight:"var(--leading-sm)",color:"var(--text-secondary)"}}>{k.model}</div></div>
+          <div className="kfield"><div className="kfl">Rubric breakdown</div>
+            <div className="rub">
+              {k.criteria.map((c,i)=>
+                <div className="rubrow" key={i}>
+                  <div className="rt"><div className="rn">{c.n}</div><div className="rd">{c.d}</div></div>
+                  <div className="rs">{c.s} / {c.max}</div>
+                </div>)}
+            </div></div>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ---- per-type ephemeral answer input ---- */
+function AnswerInput({q, value, onSelect, showKey, isStaff}){
+  const revealCorrect = showKey && isStaff;
+  if(q.type==="mcq" || q.type==="true-false"){
+    return <div className="ai" role="radiogroup" aria-label="Answer options">
+      {q.options.map((o,i)=>{
+        const sel = value===i;
+        const correct = revealCorrect && q.correctIdx===i;
+        return <button key={i} className={"aopt"+(sel?" sel":"")+(correct?" correct":"")}
+          role="radio" aria-checked={sel} onClick={()=>onSelect(i)}>
+          <span className="mk">{o.l}</span><span className="ot">{o.t}</span>
+          {correct && <span className="crt">{I("check-circle-2",13)}Correct</span>}
+        </button>;
+      })}
+    </div>;
+  }
+  if(q.type==="numerical"){
+    return <div className="ai">
+      <input className="anum" inputMode="decimal" placeholder="Your answer…"
+        aria-label="Numerical answer" defaultValue={value||""} onChange={e=>onSelect(e.target.value)}/>
+    </div>;
+  }
+  if(q.type==="paragraph"){
+    return <div className="ai">
+      <textarea className="atext" placeholder="Type your response… (not saved in preview)"
+        aria-label="Paragraph answer" defaultValue={value||""} onChange={e=>onSelect(e.target.value)}></textarea>
+    </div>;
+  }
+  // audio / image_evaluation — record/upload, visually disabled in preview
+  return <div className="ai">
+    <div className="disabled-input">
+      <div className="ic">{I(q.type==="audio"?"mic":"image-up",18)}</div>
+      <div className="t">{q.type==="audio"?"Record audio response":"Upload an image"}</div>
+      <div className="b">Capture is disabled in preview · this is how students will submit</div>
+    </div>
+  </div>;
+}
+
+/* ---- mock countdown timer ---- */
+function useMockTimer(totalSec, running){
+  const [left,setLeft]=useState(totalSec);
+  useEffect(()=>{ setLeft(totalSec); },[totalSec]);
+  useEffect(()=>{
+    if(!running) return;
+    if(left<=0) return;
+    const t=setTimeout(()=>setLeft(l=>Math.max(0,l-1)),1000);
+    return ()=>clearTimeout(t);
+  },[left,running]);
+  return [left,setLeft];
+}
+function fmt(s){ const m=Math.floor(s/60), ss=s%60; return `${m}:${String(ss).padStart(2,"0")}`; }
+
+function Screen(){
+  // state: default | loading | empty | error | partial | standard
+  const [variant,setVariant]=useState("default");
+  const [isStaff,setIsStaff]=useState(true);     // teacher/tenantAdmin vs degraded student view
+  const [idx,setIdx]=useState(0);
+  const [dir,setDir]=useState("fwd");
+  const [showKey,setShowKey]=useState(false);    // session-sticky answer-key toggle
+  const [answers,setAnswers]=useState({});       // ephemeral, never persisted
+
+  const timed = variant!=="standard";            // standard story point = no timer/nav region
+  // seed mock timer near the warning threshold so the simulated banner is reachable
+  const [left,setLeft]=useMockTimer(timed?(4*60+18):0, timed && variant==="default");
+  const total = DURATION_MIN*60;
+
+  const list = QUESTIONS;
+  const q = list[idx];
+  const elapsedMin = Math.round((total - left)/60);
+  const pct = Math.max(0, Math.min(100, (left/total)*100));
+  const tone = left<=60 ? "crit" : left<=5*60 ? "warn" : "";
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+  const go=(n)=>{ if(n<0||n>=list.length) return; setDir(n>idx?"fwd":"back"); setIdx(n); };
+  const pick=(v)=>{ setAnswers(a=>({...a,[q.id]:v})); };
+
+  // ←/→ navigate when focus is outside a text field; Esc "exits"
+  useEffect(()=>{
+    const h=(e)=>{
+      const tag=(e.target.tagName||"").toLowerCase();
+      const typing = tag==="input"||tag==="textarea"||e.target.isContentEditable;
+      if(typing) return;
+      if(e.key==="ArrowRight") go(idx+1);
+      if(e.key==="ArrowLeft") go(idx-1);
+    };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  });
+
+  /* ---- LOADING ---- */
+  if(variant==="loading"){
+    return <Shell>
+      <div className="col">
+        <div className="sk" style={{height:64}}></div>
+        <div className="sk" style={{height:36,width:"60%"}}></div>
+        <div className="sk" style={{height:300}}></div>
+        <DemoBar variant={variant} setVariant={setVariant} isStaff={isStaff} setIsStaff={setIsStaff}/>
+      </div>
+    </Shell>;
+  }
+
+  return <Shell>
+    <div className="col">
+
+      {/* preview-mode banner */}
+      <div className="pbanner" role="status">
+        <span className="lead">{I("eye",18)}</span>
+        <div>
+          <div className="bt">Preview mode — answers are not saved</div>
+          <div className="bb">This simulates the student experience. No test session is created.</div>
+        </div>
+        <span className="sp"></span>
+        <button className="btn btn--ghost" aria-label="Exit preview">{I("log-out",16)}Exit preview</button>
+      </div>
+
+      {/* breadcrumb tail */}
+      <div className="crumb">{I("git-branch",13)} Spaces / Algebra I / <b>Preview: Linear Equations</b>
+        <span style={{marginLeft:"auto",fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>
+          {timed?"timed_test":"standard"} · {DURATION_MIN} min · pass ≥ 70%</span>
+      </div>
+
+      {/* ERROR */}
+      {variant==="error" && <div className="berr" role="alert">
+        <span className="lead">{I("alert-circle",18)}</span>
+        <div style={{flex:1}}>
+          <div className="bt">Couldn’t load this preview</div>
+          <div className="bb">Your session may have expired or the connection dropped. The answer-key toggle
+            is disabled until the preview reloads — we never show stale or guessed keys.</div>
+          <button className="btn" style={{marginTop:"var(--space-3)"}}>{I("rotate-cw",15)}Retry</button>
+        </div>
+      </div>}
+
+      {/* EMPTY */}
+      {variant==="empty" && <div className="empty">
+        <div className="eic">{I("inbox",26)}</div>
+        <div className="et">Nothing to preview yet</div>
+        <div className="eb">Add questions to this story point to preview the student experience.</div>
+        <button className="btn btn--ghost" style={{marginTop:"var(--space-3)"}}>{I("arrow-left",16)}Back to editor</button>
+      </div>}
+
+      {/* DEFAULT / PARTIAL / STANDARD */}
+      {(variant==="default"||variant==="partial"||variant==="standard") && <>
+
+        {/* sticky control bar (timed only renders timer; standard collapses it) */}
+        <div className="ctrl" role="region" aria-label="Preview controls">
+          <span className="qn">Q {q.n} <span className="of">/ {list.length}</span></span>
+          <span className="secchip">{I("folder",12)}{SECTIONS[q.section].title}</span>
+          {timed && <>
+            <span className="sp"></span>
+            <div className={"timer "+tone} role="timer" aria-live="off">
+              <span className="tlbl">{I("clock",14)}{fmt(left)}</span>
+              <div className="tbar" aria-hidden="true"><span style={{width:pct+"%"}}></span></div>
+            </div>
+            <span className="sim">{I("flask-conical",11)}simulated · {elapsedMin}m elapsed</span>
+          </>}
+          {!timed && <span className="sp"></span>}
+          {isStaff && <div className="akt">
+            <span className="tlab" id="akt-lbl">{I("key-round",13)}Show answer key</span>
+            <button className={"sw"+(showKey?" on":"")} role="switch" aria-checked={showKey}
+              aria-labelledby="akt-lbl" disabled={variant==="error"}
+              onClick={()=>setShowKey(s=>!s)}></button>
+          </div>}
+        </div>
+
+        {/* simulated time-up */}
+        {timed && left===0 && <div className="tup" role="status">
+          <span className="lead">{I("timer-off",18)}</span>
+          <div><div className="tt">Time’s up (simulated)</div>
+            <div className="tb">In a real attempt this would submit automatically. Preview does not auto-submit — no session exists.</div></div>
+        </div>}
+
+        {/* navigator chips */}
+        <div className="nav" role="tablist" aria-label="Question navigator">
+          <span className="navlbl">Questions</span>
+          {list.map((it,i)=>{
+            const answered = answers[it.id]!=null;
+            const cur = i===idx;
+            return <button key={it.id} className={"chipn"+(cur?" cur":answered?" answered":"")}
+              role="tab" aria-selected={cur} tabIndex={cur?0:-1}
+              aria-label={"Question "+it.n+(answered?", answered":"")}
+              onClick={()=>go(i)}>
+              {answered && !cur ? I("check",11) : null}{it.n}
+            </button>;
+          })}
+          {variant==="default" && <span className="shnote" style={{marginLeft:"auto"}}>
+            {I("shuffle",12)}shuffle on for students · preview shows canonical order</span>}
+        </div>
+
+        {/* question card */}
+        <div className={"qcard "+(dir==="fwd"?"anim":"back")} key={q.id+dir+idx}>
+          <div className="qhead">
+            <span className="tag mono">{q.id}</span>
+            <span className="tag">{I("shapes",12)}{q.typeLabel}</span>
+            <span className={"tag "+q.diff}>
+              {I(q.diff==="easy"?"signal-low":q.diff==="medium"?"signal-medium":"signal-high",12)}
+              {q.diff[0].toUpperCase()+q.diff.slice(1)}</span>
+            <span className="sp"></span>
+            <span className="tag mono">{I("award",12)}{q.pts} pts</span>
+          </div>
+
+          {/* PARTIAL: unknown/malformed type on this item */}
+          {variant==="partial" && idx===1
+            ? <div className="qbody"><div className="partial">
+                {I("file-question",24)}<div style={{marginTop:"var(--space-2)"}}>
+                  Preview not available for type <span className="mono">"matrix_input"</span>.</div>
+                <div style={{marginTop:6,fontSize:"var(--text-2xs)"}}>Other questions still render — navigation works.</div>
+              </div></div>
+            : <>
+                <div className="qbody">
+                  <div className="stem">{q.stem}</div>
+                  <AnswerInput q={q} value={answers[q.id]} onSelect={pick} showKey={showKey} isStaff={isStaff}/>
+                </div>
+                <AnswerKeyBand q={q} show={showKey} isStaff={isStaff}/>
+              </>}
+        </div>
+
+        {/* prev / n-of-N / next */}
+        <div className="foot-nav">
+          <button className="btn" disabled={idx===0} onClick={()=>go(idx-1)}>{I("arrow-left",16)}Previous</button>
+          <span className="mid">{q.n} / {list.length}</span>
+          <button className="btn" disabled={idx===list.length-1} onClick={()=>go(idx+1)}>Next{I("arrow-right",16)}</button>
+        </div>
+      </>}
+
+      <DemoBar variant={variant} setVariant={setVariant} isStaff={isStaff} setIsStaff={setIsStaff}/>
+    </div>
+  </Shell>;
+}
+
+function DemoBar({variant,setVariant,isStaff,setIsStaff}){
+  return <div className="demo" role="group" aria-label="Preview states">
+    <span className="dl">state</span>
+    {[["default","Default (timed)"],["standard","Standard (no timer)"],["loading","Loading"],
+      ["empty","Empty"],["error","Error"],["partial","Partial / bad type"]].map(([v,l])=>
+      <button key={v} className={variant===v?"on":""} onClick={()=>setVariant(v)}>{l}</button>)}
+    <span className="dl">role</span>
+    <button className={isStaff?"on":""} onClick={()=>setIsStaff(true)}>Staff</button>
+    <button className={!isStaff?"on":""} onClick={()=>setIsStaff(false)}>Student (degraded)</button>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

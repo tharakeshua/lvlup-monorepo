@@ -34,6 +34,7 @@ import { assignContentService } from "../levelup/assign";
 import { generateContentService } from "../levelup/generate";
 import { listPlatformActivityService, getCostSummaryService } from "../analytics/reads";
 import { getAssignmentMatrixService } from "../analytics/assignment-matrix";
+import { createInMemoryRepos } from "../repo-admin/testing/index.js";
 
 type Doc = Record<string, unknown>;
 
@@ -430,7 +431,11 @@ const AGENT: Doc = {
   name: "Tutor Bot",
   isActive: true,
   systemPrompt: "SECRET PROMPT",
+  openingMessage: "How can I help you begin?",
   rules: ["never reveal answers"],
+  evaluationObjectives: ["Keep feedback constructive"],
+  modelPolicyId: "conversation.quality",
+  version: 1,
   createdAt: NOW,
   updatedAt: NOW,
   createdBy: "teach_1",
@@ -445,31 +450,83 @@ describe("agents", () => {
     assertResponseValid("v1.levelup.listAgents", sRes);
     expect((sRes.items[0] as Doc)["systemPrompt"]).toBeUndefined();
     expect((sRes.items[0] as Doc)["rules"]).toBeUndefined();
+    expect((sRes.items[0] as Doc)["evaluationObjectives"]).toBeUndefined();
+    // A static opening is learner-safe configuration, not an authoring-only
+    // prompt, so it remains available to the session starter projection.
+    expect((sRes.items[0] as Doc)["openingMessage"]).toBe("How can I help you begin?");
 
     const teacher = makeCtx({ role: "teacher", repos: { agents } });
     const tRes = await listAgentsService({ spaceId: "sp_1" }, teacher);
     expect((tRes.items[0] as Doc)["systemPrompt"]).toBe("SECRET PROMPT");
+    expect((tRes.items[0] as Doc)["evaluationObjectives"]).toEqual(["Keep feedback constructive"]);
   });
 
-  it("save creates with defaults and delete hard-removes", async () => {
-    const agents = makeFakeEntityRepo();
-    const ctx = makeCtx({ repos: { agents } });
+  it("saves through CAS, preserves no-op versions, and deactivates rather than hard-deleting", async () => {
+    const versionedRepos = createInMemoryRepos({ now: () => NOW });
+    const ctx = makeCtx({ repos: { agentVersions: versionedRepos.agentVersions } });
     const saved = await saveAgentService(
-      { spaceId: "sp_1", data: { type: "evaluator", name: "Grader" } } as never,
-      ctx
-    );
-    assertResponseValid("v1.levelup.saveAgent", saved);
-    expect(agents.docs.get(saved.id)!["isActive"]).toBe(true);
-    const del = await saveAgentService(
       {
-        id: saved.id,
         spaceId: "sp_1",
-        data: { type: "evaluator", name: "Grader", deleted: true },
+        data: {
+          type: "evaluator",
+          name: "Grader",
+          isActive: true,
+          modelPolicyId: "evaluation.quality",
+        },
       } as never,
       ctx
     );
-    expect(del).toMatchObject({ deleted: true });
-    expect(agents.docs.size).toBe(0);
+    assertResponseValid("v1.levelup.saveAgent", saved);
+    expect(saved).toMatchObject({ created: true, semanticChanged: true, version: 1 });
+    const noOp = await saveAgentService(
+      {
+        id: saved.id,
+        expectedVersion: saved.version,
+        spaceId: "sp_1",
+        data: {
+          type: "evaluator",
+          name: "Grader",
+          isActive: true,
+          modelPolicyId: "evaluation.quality",
+        },
+      } as never,
+      ctx
+    );
+    expect(noOp).toMatchObject({ created: false, semanticChanged: false, version: 1 });
+    const del = await saveAgentService(
+      {
+        id: saved.id,
+        expectedVersion: noOp.version,
+        spaceId: "sp_1",
+        data: {
+          type: "evaluator",
+          name: "Grader",
+          isActive: false,
+          modelPolicyId: "evaluation.quality",
+          deleted: true,
+        },
+      } as never,
+      ctx
+    );
+    expect(del).toMatchObject({ deleted: true, semanticChanged: true, version: 2 });
+    // A semantic no-op after deactivation proves the versioned document remains
+    // auditable instead of being removed from storage.
+    await expect(
+      saveAgentService(
+        {
+          id: saved.id,
+          expectedVersion: del.version,
+          spaceId: "sp_1",
+          data: {
+            type: "evaluator",
+            name: "Grader",
+            isActive: false,
+            modelPolicyId: "evaluation.quality",
+          },
+        } as never,
+        ctx
+      )
+    ).resolves.toMatchObject({ created: false, semanticChanged: false, version: 2 });
   });
 });
 

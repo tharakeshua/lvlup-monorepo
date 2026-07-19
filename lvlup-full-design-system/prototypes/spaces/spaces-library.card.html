@@ -1,0 +1,776 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Spaces Library ★" subtitle="Authoring home · status filter · SpaceCard grid" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local LAYOUT-ONLY rules — Lyceum vars only, NO raw hex, NO :root redefinition */
+html,body{margin:0}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:820px;overflow:hidden;position:relative}
+
+/* ---- topbar bits ---- */
+.tb-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:var(--bg-surface)}
+.tb-tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tb-search{flex:1;max-width:420px;position:relative;display:flex;align-items:center}
+.tb-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tb-search .input{padding-left:var(--space-8);width:100%}
+.tb-kbd{position:absolute;right:var(--space-2);display:flex;gap:2px}
+.tb-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--text-secondary)}
+.tb-icon:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+
+/* ---- main scroll region ---- */
+.lib-main{display:flex;flex-direction:column;gap:var(--space-5);max-width:1200px;height:100%}
+.lib-scroll{overflow-y:auto;padding-right:var(--space-1);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* ---- header row ---- */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.page-head h1{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+.page-sub{color:var(--text-secondary);font-size:var(--text-base);margin-top:var(--space-1)}
+.head-actions{display:flex;align-items:center;gap:var(--space-3)}
+
+/* ---- view toggle ---- */
+.viewtoggle{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:3px;gap:2px}
+.viewtoggle button{display:grid;place-items:center;width:34px;height:30px;border-radius:var(--radius-sm);color:var(--text-secondary)}
+.viewtoggle button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+
+/* ---- sticky toolbar ---- */
+.toolbar{position:sticky;top:0;z-index:20;display:flex;flex-direction:column;gap:var(--space-3);background:var(--bg-canvas);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.toolbar__row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.tool-search{position:relative;display:flex;align-items:center;flex:1;min-width:240px;max-width:380px}
+.tool-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tool-search .input{padding-left:var(--space-8);width:100%}
+.tool-search__clear{position:absolute;right:var(--space-2);display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-pill);color:var(--text-muted)}
+.tool-search__clear:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+.tool-select{min-width:148px}
+
+/* status segmented control (radiogroup) */
+.segmented{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.segmented button{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6}
+.segmented button:hover{color:var(--text-primary)}
+.segmented button[aria-checked="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+.seg-count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.segmented button[aria-checked="true"] .seg-count{color:var(--brand-primary)}
+
+.toolbar__meta{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;min-height:24px}
+.active-chips{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.count-pill{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.count-pill b{color:var(--text-primary);font-weight:var(--weight-semibold)}
+
+/* ---- grid ---- */
+.space-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);align-content:start}
+
+/* ---- custom SpaceCard (richer than the bundle's SpaceCard for this authoring surface) ---- */
+.scard{position:relative;display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard)}
+.scard:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong);transform:translateY(-2px)}
+.scard:hover .scard__title{color:var(--brand-primary)}
+.scard:focus-within{box-shadow:var(--ring-focus)}
+.scard--archived{opacity:.72}
+.scard__thumb{height:84px;background:var(--bg-surface-sunken);border-bottom:1px solid var(--border-subtle);position:relative;display:grid;place-items:center;color:var(--text-muted)}
+.scard__thumb--learning{background:linear-gradient(135deg,var(--brand-subtle),var(--bg-surface-sunken))}
+.scard__thumb--practice{background:linear-gradient(135deg,var(--status-info-subtle),var(--bg-surface-sunken))}
+.scard__thumb--assessment{background:linear-gradient(135deg,var(--status-warning-subtle),var(--bg-surface-sunken))}
+.scard__status{position:absolute;top:var(--space-2);right:var(--space-2)}
+.scard__body{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4)}
+.scard__title{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold);color:var(--text-primary);transition:color var(--dur-fast) var(--ease-standard);text-decoration:none;outline:none}
+.scard__desc{font-size:var(--text-sm);line-height:var(--leading-sm);color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:calc(var(--leading-sm) * 2)}
+.scard__chips{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-1)}
+.scard__stats{display:flex;align-items:center;gap:var(--space-4);padding-top:var(--space-3);margin-top:var(--space-1);border-top:1px solid var(--border-subtle);flex-wrap:wrap}
+.stat-cell{display:flex;align-items:baseline;gap:4px}
+.stat-cell__n{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.stat-cell__l{font-size:var(--text-2xs);color:var(--text-muted)}
+.scard__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.scard__owner{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.scard__owner-meta{display:flex;flex-direction:column;min-width:0}
+.scard__owner-name{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scard__edited{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.scard__menu-wrap{position:relative}
+
+/* store link inline */
+.store-link{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--status-info);font-weight:var(--weight-medium)}
+
+/* ---- overflow popover menu ---- */
+.menu{position:absolute;top:calc(100% + 6px);right:0;z-index:40;min-width:208px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-1);display:flex;flex-direction:column;gap:1px}
+.menu__item{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-secondary)}
+.menu__item:hover:not([disabled]){background:var(--bg-surface-sunken);color:var(--text-primary)}
+.menu__item[disabled]{opacity:.45;cursor:not-allowed}
+.menu__item--danger:hover:not([disabled]){background:var(--status-error-subtle);color:var(--status-error)}
+.menu__sep{height:1px;background:var(--border-subtle);margin:var(--space-1) 0}
+.menu__reason{font-size:var(--text-2xs);color:var(--text-muted);padding:0 var(--space-3) var(--space-2);line-height:1.4}
+
+/* ---- skeleton card ---- */
+.skcard{display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.skcard__thumb{height:84px;background:var(--bg-surface-sunken)}
+.skcard__body{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4)}
+
+/* ---- table view ---- */
+.tbl-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface)}
+
+/* ---- pagination row ---- */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding-top:var(--space-2)}
+.pager__note{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+
+/* ---- create / confirm modal ---- */
+.scrim{position:absolute;inset:0;background:rgba(15,18,32,.46);display:flex;align-items:flex-start;justify-content:center;padding-top:var(--space-12);z-index:80;animation:scrimIn var(--dur-base) var(--ease-entrance)}
+@keyframes scrimIn{from{opacity:0}to{opacity:1}}
+.dialog{width:560px;max-width:92vw;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);display:flex;flex-direction:column;overflow:hidden;animation:panelIn var(--dur-base) var(--ease-entrance)}
+.dialog--sm{width:480px}
+@keyframes panelIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+.dlg-head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-6) var(--space-4)}
+.dlg-head__icon{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-md);flex:none}
+.dlg-head__icon--brand{background:var(--brand-subtle);color:var(--brand-primary)}
+.dlg-head__icon--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.dlg-head__txt{flex:1;min-width:0}
+.dlg-title{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl);font-weight:var(--weight-semibold);margin:0}
+.dlg-sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-1)}
+.dlg-body{padding:0 var(--space-6) var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.fld{display:flex;flex-direction:column;gap:var(--space-2)}
+.fld__lab{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.tmpl{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);text-align:left}
+.tmpl:hover{border-color:var(--border-strong);background:var(--bg-surface-sunken)}
+.tmpl[aria-checked="true"]{border-color:var(--brand-primary);background:var(--brand-subtle);box-shadow:var(--ring-focus)}
+.tmpl__icon{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-sm);background:var(--bg-surface-sunken);color:var(--brand-primary);flex:none}
+.tmpl[aria-checked="true"] .tmpl__icon{background:var(--bg-surface)}
+.tmpl__name{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.tmpl__desc{font-size:var(--text-2xs);color:var(--text-muted);line-height:1.4;margin-top:2px;display:block}
+.dlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-subtle);background:var(--bg-surface)}
+
+/* ---- toast ---- */
+.toast-stack{position:absolute;right:var(--space-6);bottom:var(--space-6);z-index:120;display:flex;flex-direction:column;gap:var(--space-2)}
+.toast-card{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-4);min-width:300px;animation:toastIn var(--dur-base) var(--ease-entrance)}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.toast-card__icon{display:grid;place-items:center}
+.toast-card__icon--ok{color:var(--status-success)}
+.toast-card__icon--err{color:var(--status-error)}
+.toast-card__txt{flex:1;font-size:var(--text-sm);color:var(--text-primary)}
+
+/* ---- per-card loading overlay (duplicate) ---- */
+.card-overlay{position:absolute;inset:0;z-index:30;background:rgba(255,255,255,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);backdrop-filter:blur(1px)}
+[data-theme="dark"] .card-overlay{background:rgba(15,18,32,.5)}
+.card-overlay__txt{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-primary)}
+
+/* ---- prototype state switcher (chrome, not part of screen) ---- */
+.proto-bar{position:absolute;top:var(--space-3);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.proto-bar__lab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding-left:var(--space-2)}
+.proto-seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.proto-seg button{font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6}
+.proto-seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+.spin{width:20px;height:20px;border-radius:var(--radius-pill);border:2px solid var(--border-subtle);border-top-color:var(--brand-primary);animation:spin var(--dur-slow) linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .scrim,.dialog,.toast-card{animation:none}
+  .scard{transition:none}
+  .spin{animation:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Input, Select, Field, Badge, Chip,
+    Avatar, Skeleton, EmptyState, Alert, Breadcrumb, Kbd, DataTable
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ====== closed enums (labels verbatim from spec §7) ====== */
+  const TYPE_META = {
+    learning:   { label:"Learning",   icon:"book-open" },
+    practice:   { label:"Practice",   icon:"repeat" },
+    assessment: { label:"Assessment", icon:"clipboard-check" },
+    resource:   { label:"Resource",   icon:"library" },
+    hybrid:     { label:"Hybrid",     icon:"layers" },
+  };
+  const ACCESS_META = {
+    class_assigned: { label:"Class-assigned", icon:"users" },
+    tenant_wide:    { label:"Tenant-wide",    icon:"building-2" },
+    public_store:   { label:"Public store",   icon:"store" },
+  };
+  // status pairs color WITH icon + text (never color alone)
+  const STATUS_META = {
+    draft:     { label:"Draft",     icon:"file-pen-line",  variant:"warning" },
+    published: { label:"Published", icon:"check-circle-2", variant:"success" },
+    archived:  { label:"Archived",  icon:"archive",        variant:undefined },
+  };
+
+  /* allowed lifecycle transitions (spec §8 ALLOWED_TRANSITIONS) */
+  const ALLOWED = {
+    draft:     ["publish"],
+    published: ["archive","restore"],
+    archived:  ["restore"],
+  };
+
+  /* ====== mock tenant catalog (tenant_subhang / SUB001) ====== */
+  const SPACES = [
+    { id:"ZikR8xEHkqIaIsugmdQg", title:"Data Structures & Algorithms", type:"learning",   access:"class_assigned", status:"published",
+      desc:"Arrays, linked lists, trees, graphs, and the patterns that show up in every interview loop.",
+      sp:18, items:264, students:142, edited:"2h ago", owner:{name:"Tara Sen", initials:"TS", you:true}, store:false, owned:true },
+    { id:"PDFq1OluyAGNAz6Fpx0j", title:"System Design Fundamentals", type:"learning",   access:"public_store",   status:"published",
+      desc:"Load balancing, caching, sharding, and the trade-offs behind scalable architectures.",
+      sp:15, items:198, students:97, edited:"yesterday", owner:{name:"Anil Rao", initials:"AR"}, store:true, owned:true },
+    { id:"XTw3bLqiT4dMyvFJkI0g", title:"Low-Level Design Practice", type:"practice",    access:"class_assigned", status:"draft",
+      desc:"SOLID, design patterns, and hands-on object modelling drills for the LLD round.",
+      sp:9, items:0, students:0, edited:"5m ago", owner:{name:"Tara Sen", initials:"TS", you:true}, store:false, owned:true },
+    { id:"1AqFwKSf59FiIrqzaQ7i", title:"Behavioral Interview Prep", type:"assessment",  access:"tenant_wide",    status:"published",
+      desc:"STAR-method stories, leadership principles, and timed mock-panel checkpoints.",
+      sp:6, items:84, students:210, edited:"3d ago", owner:{name:"Meera Iyer", initials:"MI"}, store:false, owned:false },
+    { id:"Qd2mNxKpLrTvWzAb91Cs", title:"SQL & Databases", type:"hybrid",      access:"class_assigned", status:"draft",
+      desc:"Joins, indexing, transactions, and query-tuning labs mixed with graded checkpoints.",
+      sp:11, items:46, students:0, edited:"6d ago", owner:{name:"Sandeep Dey", initials:"SD"}, store:false, owned:false },
+    { id:"Rt8vUq3WeBnMxZ6Yk0Lp", title:"Frontend Foundations (2023)", type:"resource",   access:"class_assigned", status:"archived",
+      desc:"Legacy reference set — HTML/CSS/JS notes retired after the 2024 curriculum refresh.",
+      sp:7, items:112, students:38, edited:"4mo ago", owner:{name:"Tara Sen", initials:"TS", you:true}, store:false, owned:true },
+  ];
+
+  const STATUS_SEGMENTS = [
+    { value:"all",       label:"All" },
+    { value:"draft",     label:"Draft" },
+    { value:"published", label:"Published" },
+    { value:"archived",  label:"Archived" },
+  ];
+  const TYPE_OPTS = [{value:"",label:"All types"}].concat(Object.entries(TYPE_META).map(([v,m])=>({value:v,label:m.label})));
+  const ACCESS_OPTS = [{value:"",label:"All access"}].concat(Object.entries(ACCESS_META).map(([v,m])=>({value:v,label:m.label})));
+  const SORT_OPTS = [
+    { value:"recent",   label:"Recently edited" },
+    { value:"title",    label:"Title A–Z" },
+    { value:"sp",       label:"Story points" },
+    { value:"items",    label:"Items" },
+    { value:"students", label:"Students" },
+  ];
+
+  /* ================= chrome ================= */
+  function SidebarNav(){
+    const items = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"graduation-cap",   label:"Spaces", active:true },
+      { icon:"users",            label:"Students" },
+      { icon:"file-check-2",     label:"Exams" },
+      { icon:"bar-chart-3",      label:"Analytics" },
+      { icon:"settings",         label:"Settings" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <div className="sidebar__brand-mark">L</div>
+          <div className="sidebar__brand-name">LevelUp</div>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Teach</div>
+          {items.map((it,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+              <Icon name={it.icon} size={18} /><span>{it.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar({ searchRef }){
+    return (
+      <header className="appshell__topbar">
+        <div className="tb-tenant">
+          <Avatar initials="SA" size="sm" />
+          <div>Subhang Academy</div>
+          <span className="tb-tenant__code">SUB001</span>
+          <Icon name="chevron-down" size={14} />
+        </div>
+        <div className="tb-search">
+          <Icon name="search" size={16} />
+          <input className="input" placeholder="Search students, exams, spaces…" aria-label="Global search" />
+          <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+        </div>
+        <div className="topbar__spacer" />
+        <button className="tb-icon" aria-label="Notifications"><Icon name="bell" size={18} /></button>
+        <Avatar initials="TS" size="sm" />
+      </header>
+    );
+  }
+
+  /* ================= overflow menu ================= */
+  function OverflowMenu({ space, onAction, onClose }){
+    const ref = useRef(null);
+    useEffect(()=>{
+      const onDoc=(e)=>{ if(ref.current && !ref.current.contains(e.target)) onClose(); };
+      const onKey=(e)=>{ if(e.key==="Escape") onClose(); };
+      document.addEventListener("mousedown",onDoc);
+      document.addEventListener("keydown",onKey);
+      return ()=>{ document.removeEventListener("mousedown",onDoc); document.removeEventListener("keydown",onKey); };
+    },[onClose]);
+
+    const allowed = ALLOWED[space.status] || [];
+    const can = (t)=>allowed.includes(t);
+    const Item = ({icon,label,act,danger,disabled})=>(
+      <button role="menuitem" disabled={disabled} className={"menu__item"+(danger?" menu__item--danger":"")}
+        onClick={()=>{ if(!disabled){ onClose(); onAction(act,space); } }}>
+        <Icon name={icon} size={15} /> {label}
+      </button>
+    );
+    return (
+      <div className="menu" role="menu" ref={ref} aria-label={"Actions for "+space.title}>
+        <Item icon="pencil" label="Edit" act="edit" disabled={!space.owned} />
+        <Item icon="copy" label="Duplicate" act="duplicate" />
+        <div className="menu__sep" />
+        {can("publish") && <Item icon="rocket" label="Publish" act="publish" disabled={!space.owned} />}
+        {can("archive") && <Item icon="archive" label="Archive" act="archive" danger disabled={!space.owned} />}
+        {can("restore") && <Item icon="rotate-ccw" label="Restore to draft" act="restore" disabled={!space.owned} />}
+        {space.store && space.status==="published" && (
+          <>
+            <div className="menu__sep" />
+            <Item icon="external-link" label="View in store" act="store" />
+          </>
+        )}
+        {!space.owned && <div className="menu__reason">You can act only on spaces you own or co-teach.</div>}
+      </div>
+    );
+  }
+
+  /* ================= space card ================= */
+  function SpaceCardRich({ space, menuOpen, onMenu, onAction, duplicating }){
+    const st = STATUS_META[space.status];
+    const ty = TYPE_META[space.type];
+    const ac = ACCESS_META[space.access];
+    return (
+      <div className={"scard"+(space.status==="archived"?" scard--archived":"")}>
+        {duplicating && (
+          <div className="card-overlay"><div className="spin" /><div className="card-overlay__txt">Duplicating…</div></div>
+        )}
+        <div className={"scard__thumb scard__thumb--"+space.type}>
+          <Icon name={ty.icon} size={26} />
+          <span className="scard__status">
+            <Badge variant={st.variant} icon={<Icon name={st.icon} size={12} />}>{st.label}</Badge>
+          </span>
+        </div>
+        <div className="scard__body">
+          <a className="scard__title" href="#" aria-label={space.title+", "+st.label}>{space.title}</a>
+          <p className="scard__desc">{space.desc}</p>
+          <div className="scard__chips">
+            <Chip><Icon name={ty.icon} size={12} /> {ty.label}</Chip>
+            <Chip><Icon name={ac.icon} size={12} /> {ac.label}</Chip>
+            {space.store && space.status==="published" && (
+              <a className="store-link" href="#"><Icon name="external-link" size={12} /> In store</a>
+            )}
+          </div>
+          <div className="scard__stats" aria-label="Space statistics">
+            <span className="stat-cell"><span className="stat-cell__n">{space.sp}</span><span className="stat-cell__l">story points</span></span>
+            <span className="stat-cell"><span className="stat-cell__n">{space.items}</span><span className="stat-cell__l">items</span></span>
+            <span className="stat-cell"><span className="stat-cell__n">{space.students}</span><span className="stat-cell__l">students</span></span>
+          </div>
+        </div>
+        <div className="scard__foot">
+          <div className="scard__owner">
+            <Avatar initials={space.owner.initials} size="sm" />
+            <div className="scard__owner-meta">
+              <span className="scard__owner-name">{space.owner.you ? space.owner.name+" (you)" : space.owner.name}</span>
+              <span className="scard__edited">Edited {space.edited}</span>
+            </div>
+          </div>
+          <div className="scard__menu-wrap">
+            <IconButton icon={<Icon name="more-horizontal" size={18} />} label={"Actions for "+space.title}
+              size="sm" aria-haspopup="menu" aria-expanded={menuOpen} onClick={()=>onMenu(menuOpen?null:space.id)} />
+            {menuOpen && <OverflowMenu space={space} onAction={onAction} onClose={()=>onMenu(null)} />}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function SkeletonCard(){
+    return (
+      <div className="skcard" aria-busy="true">
+        <div className="skcard__thumb" />
+        <div className="skcard__body">
+          <Skeleton variant="text" width="70%" height={18} />
+          <Skeleton variant="text" width="100%" height={12} />
+          <Skeleton variant="text" width="85%" height={12} />
+          <div style={{display:"flex",gap:"var(--space-2)",marginTop:"var(--space-1)"}}>
+            <Skeleton variant="text" width={72} height={20} />
+            <Skeleton variant="text" width={90} height={20} />
+          </div>
+          <Skeleton variant="text" width="60%" height={12} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= create modal ================= */
+  const TEMPLATES = [
+    { value:"learning",   name:"Blank / Course", icon:"book-open",       desc:"Sequenced lessons & story points." },
+    { value:"practice",   name:"Practice",       icon:"repeat",          desc:"Drills and repeatable question sets." },
+    { value:"assessment", name:"Assessment",     icon:"clipboard-check", desc:"Graded, timed checkpoints." },
+    { value:"resource",   name:"Resource",       icon:"library",         desc:"Reference materials, no progression." },
+  ];
+  function CreateModal({ onClose, onCreate }){
+    const [tmpl,setTmpl] = useState("learning");
+    const [title,setTitle] = useState("");
+    const [saving,setSaving] = useState(false);
+    const [err,setErr] = useState(false);
+    useEffect(()=>{ const k=(e)=>{ if(e.key==="Escape"&&!saving) onClose(); }; document.addEventListener("keydown",k); return ()=>document.removeEventListener("keydown",k); },[saving,onClose]);
+    const submit = ()=>{
+      if(!title.trim()){ setErr(true); return; }
+      setSaving(true);
+      setTimeout(()=>{ onCreate(title.trim()); }, 750);
+    };
+    return (
+      <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget && !saving) onClose(); }}>
+        <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="cm-title">
+          <div className="dlg-head">
+            <div className="dlg-head__icon dlg-head__icon--brand"><Icon name="plus" size={20} /></div>
+            <div className="dlg-head__txt">
+              <h2 className="dlg-title" id="cm-title">New space</h2>
+              <div className="dlg-sub">Pick a starting template — you can change everything later.</div>
+            </div>
+            <IconButton icon={<Icon name="x" size={18} />} label="Close" size="sm" onClick={onClose} disabled={saving} />
+          </div>
+          <div className="dlg-body">
+            <div className="fld">
+              <div className="fld__lab" id="cm-tmpl">Template</div>
+              <div className="tmpl-grid" role="radiogroup" aria-labelledby="cm-tmpl">
+                {TEMPLATES.map(t=>(
+                  <button key={t.value} type="button" role="radio" aria-checked={tmpl===t.value}
+                    className="tmpl" onClick={()=>setTmpl(t.value)}>
+                    <span className="tmpl__icon"><Icon name={t.icon} size={18} /></span>
+                    <span>
+                      <span className="tmpl__name">{t.name}</span>
+                      <span className="tmpl__desc">{t.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Field label="Space title" required error={err?"Give your space a title to continue.":undefined}>
+              <Input value={title} error={err} placeholder="e.g. Dynamic Programming Deep-Dive"
+                onChange={(e)=>{ setTitle(e.target.value); if(err) setErr(false); }} autoFocus />
+            </Field>
+          </div>
+          <div className="dlg-foot">
+            <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button variant="primary" loading={saving} onClick={submit} leadingIcon={!saving?<Icon name="plus" size={16}/>:undefined}>
+              {saving ? "Creating…" : "Create space"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= confirm dialog (publish / archive / restore) ================= */
+  const CONFIRM_COPY = {
+    publish: { icon:"rocket",  tone:"brand", title:"Publish this space?",
+      body:"Assigned students will be notified and gain access immediately.",
+      cta:"Publish", variant:"primary" },
+    archive: { icon:"archive", tone:"warn",  title:"Archive this space?",
+      body:"In-progress test sessions will be ended and students will lose access.",
+      cta:"Archive", variant:"danger" },
+    restore: { icon:"rotate-ccw", tone:"warn", title:"Restore to draft?",
+      body:"Any public-store listing for this space will be removed until you publish again.",
+      cta:"Restore to draft", variant:"primary" },
+  };
+  function ConfirmDialog({ action, space, onClose, onConfirm }){
+    const c = CONFIRM_COPY[action];
+    const [busy,setBusy] = useState(false);
+    // publish-validation failure example: the draft with 0 items (LLD) cannot publish
+    const validationFail = action==="publish" && space.items===0;
+    useEffect(()=>{ const k=(e)=>{ if(e.key==="Escape"&&!busy) onClose(); }; document.addEventListener("keydown",k); return ()=>document.removeEventListener("keydown",k); },[busy,onClose]);
+    const go = ()=>{
+      if(validationFail) return; // server rejects; dialog stays open with reasons
+      setBusy(true);
+      setTimeout(()=>{ onConfirm(action,space); }, 650);
+    };
+    return (
+      <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget && !busy) onClose(); }}>
+        <div className="dialog dialog--sm" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+          <div className="dlg-head">
+            <div className={"dlg-head__icon "+(c.tone==="brand"?"dlg-head__icon--brand":"dlg-head__icon--warn")}><Icon name={c.icon} size={20} /></div>
+            <div className="dlg-head__txt">
+              <h2 className="dlg-title" id="cf-title">{c.title}</h2>
+              <div className="dlg-sub">{c.body}</div>
+            </div>
+          </div>
+          <div className="dlg-body">
+            <div style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>
+              <b style={{color:"var(--text-primary)"}}>{space.title}</b>
+            </div>
+            {validationFail && (
+              <Alert variant="error" title="This space isn’t ready to publish:">
+                <ul style={{margin:"var(--space-1) 0 0",paddingLeft:"var(--space-5)",fontSize:"var(--text-sm)",lineHeight:1.5}}>
+                  <li>Story point “Builder Pattern” has no items.</li>
+                  <li>Timed test “LLD Mock Round” needs a duration.</li>
+                </ul>
+              </Alert>
+            )}
+          </div>
+          <div className="dlg-foot">
+            <Button variant="ghost" onClick={onClose} disabled={busy}>{validationFail?"Close":"Cancel"}</Button>
+            {!validationFail && (
+              <Button variant={c.variant} loading={busy} onClick={go}>{busy?"Working…":c.cta}</Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= table view ================= */
+  function tableRows(rows){
+    return rows.map(s=>{
+      const st=STATUS_META[s.status], ty=TYPE_META[s.type], ac=ACCESS_META[s.access];
+      return {
+        ...s,
+        _title:(<span style={{display:"flex",alignItems:"center",gap:"var(--space-2)"}}>
+            <span style={{fontWeight:"var(--weight-semibold)",color:"var(--text-primary)"}}>{s.title}</span>
+            <Chip><Icon name={ty.icon} size={11} /> {ty.label}</Chip>
+          </span>),
+        _status:(<Badge variant={st.variant} icon={<Icon name={st.icon} size={11} />}>{st.label}</Badge>),
+        _access:(<span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"var(--text-xs)",color:"var(--text-secondary)"}}><Icon name={ac.icon} size={12} /> {ac.label}</span>),
+        _actions:(<IconButton icon={<Icon name="more-horizontal" size={16} />} label={"Actions for "+s.title} size="sm" />),
+      };
+    });
+  }
+  function TableView({ rows }){
+    const columns = [
+      { label:"Title", key:"_title", sortable:true, render:(r)=>r._title },
+      { label:"Status", key:"_status", render:(r)=>r._status },
+      { label:"Access", key:"_access", render:(r)=>r._access },
+      { label:"Story pts", key:"sp", numeric:true, sortable:true },
+      { label:"Items", key:"items", numeric:true, sortable:true },
+      { label:"Students", key:"students", numeric:true, sortable:true },
+      { label:"Edited", key:"edited" },
+      { label:"", key:"_actions", render:(r)=>r._actions },
+    ];
+    return <div className="tbl-wrap"><DataTable columns={columns} rows={tableRows(rows)} /></div>;
+  }
+
+  /* ================= app ================= */
+  function App(){
+    const [proto,setProto] = useState("default"); // default | loading | empty | filtered | error
+    const [view,setView] = useState("grid");       // grid | table
+    const [status,setStatus] = useState("all");
+    const [type,setType] = useState("");
+    const [access,setAccess] = useState("");
+    const [sort,setSort] = useState("recent");
+    const [q,setQ] = useState("");
+    const [openMenu,setOpenMenu] = useState(null);
+    const [createOpen,setCreateOpen] = useState(false);
+    const [confirm,setConfirm] = useState(null); // {action, space}
+    const [dupId,setDupId] = useState(null);
+    const [toasts,setToasts] = useState([]);
+    const searchRef = useRef(null);
+
+    const pushToast = (variant,text)=>{
+      const id = Math.random().toString(36).slice(2);
+      setToasts(t=>[...t,{id,variant,text}]);
+      setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)), 4200);
+    };
+
+    // counts per status for the segmented control
+    const counts = STATUS_SEGMENTS.reduce((m,s)=>{ m[s.value]= s.value==="all"?SPACES.length:SPACES.filter(x=>x.status===s.value).length; return m; },{});
+
+    // derive filtered list
+    let list = SPACES.slice();
+    if(status!=="all") list = list.filter(s=>s.status===status);
+    if(type) list = list.filter(s=>s.type===type);
+    if(access) list = list.filter(s=>s.access===access);
+    if(q.trim()) list = list.filter(s=>s.title.toLowerCase().includes(q.trim().toLowerCase()));
+    const SORTERS = {
+      recent:()=>0, title:(a,b)=>a.title.localeCompare(b.title),
+      sp:(a,b)=>b.sp-a.sp, items:(a,b)=>b.items-a.items, students:(a,b)=>b.students-a.students,
+    };
+    list.sort(SORTERS[sort]);
+
+    // proto overrides
+    if(proto==="empty" || proto==="filtered") list = [];
+
+    const activeFilters = [];
+    if(type) activeFilters.push({k:"type",label:TYPE_META[type].label});
+    if(access) activeFilters.push({k:"access",label:ACCESS_META[access].label});
+    if(status!=="all") activeFilters.push({k:"status",label:STATUS_META[status].label});
+    if(q.trim()) activeFilters.push({k:"q",label:"“"+q.trim()+"”"});
+
+    const clearFilters = ()=>{ setStatus("all"); setType(""); setAccess(""); setQ(""); if(proto==="filtered") setProto("default"); };
+    const removeFilter = (k)=>{ if(k==="type")setType(""); if(k==="access")setAccess(""); if(k==="status")setStatus("all"); if(k==="q")setQ(""); };
+
+    const handleAction = (act,space)=>{
+      if(act==="edit"){ pushToast("ok","Opening editor for "+space.title); return; }
+      if(act==="store"){ pushToast("ok","Opening store listing in a new tab"); return; }
+      if(act==="duplicate"){
+        setDupId(space.id);
+        setTimeout(()=>{ setDupId(null); pushToast("ok","Space duplicated — opening the copy"); }, 1200);
+        return;
+      }
+      if(act==="publish"||act==="archive"||act==="restore"){ setConfirm({action:act,space}); }
+    };
+    const handleConfirm = (act)=>{
+      setConfirm(null);
+      if(act==="publish") pushToast("ok","Published — students notified");
+      if(act==="archive") pushToast("ok","Space archived");
+      if(act==="restore") pushToast("ok","Restored to draft");
+    };
+
+    return (
+      <div className="shell appshell">
+        {/* prototype state switcher (chrome, not part of screen) */}
+        <div className="proto-bar" role="group" aria-label="Prototype state">
+          <span className="proto-bar__lab">State</span>
+          <div className="proto-seg">
+            {[["default","Default"],["loading","Loading"],["empty","Empty"],["filtered","No matches"],["error","Error"]].map(([v,l])=>(
+              <button key={v} aria-pressed={proto===v} onClick={()=>setProto(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <SidebarNav/>
+        <Topbar searchRef={searchRef}/>
+
+        <main className="appshell__main">
+          <div className="lib-main">
+            <Breadcrumb items={[{label:"Spaces"}]} />
+
+            {/* header row */}
+            <div className="page-head">
+              <div>
+                <h1>Spaces</h1>
+                <div className="page-sub">Build and manage your learning content.</div>
+              </div>
+              <div className="head-actions">
+                <div className="viewtoggle" role="group" aria-label="View">
+                  <button aria-pressed={view==="grid"} aria-label="Grid view" onClick={()=>setView("grid")}><Icon name="layout-grid" size={16} /></button>
+                  <button aria-pressed={view==="table"} aria-label="Table view" onClick={()=>setView("table")}><Icon name="list" size={16} /></button>
+                </div>
+                <Button variant="primary" leadingIcon={<Icon name="plus" size={16} />} onClick={()=>setCreateOpen(true)}>New Space</Button>
+              </div>
+            </div>
+
+            <div className="lib-scroll">
+              {/* sticky toolbar */}
+              <div className="toolbar">
+                <div className="toolbar__row">
+                  <div className="tool-search">
+                    <Icon name="search" size={16} />
+                    <input ref={searchRef} className="input" placeholder="Search spaces…" aria-label="Search spaces"
+                      value={q} onChange={(e)=>setQ(e.target.value)} />
+                    {q && <button className="tool-search__clear" aria-label="Clear search" onClick={()=>setQ("")}><Icon name="x" size={14} /></button>}
+                  </div>
+                  <div className="tool-select"><Select options={TYPE_OPTS} value={type} onChange={(e)=>setType(e.target.value)} aria-label="Type" /></div>
+                  <div className="tool-select"><Select options={ACCESS_OPTS} value={access} onChange={(e)=>setAccess(e.target.value)} aria-label="Access" /></div>
+                  <div style={{flex:1}} />
+                  <div className="tool-select"><Select options={SORT_OPTS} value={sort} onChange={(e)=>setSort(e.target.value)} aria-label="Sort" /></div>
+                </div>
+
+                <div className="toolbar__row">
+                  <div className="segmented" role="radiogroup" aria-label="Filter by status">
+                    {STATUS_SEGMENTS.map(s=>(
+                      <button key={s.value} role="radio" aria-checked={status===s.value} onClick={()=>setStatus(s.value)}>
+                        {s.label}<span className="seg-count">{counts[s.value]}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{flex:1}} />
+                  <div className="count-pill" aria-live="polite"><b>{proto==="loading"?"—":list.length}</b> {list.length===1?"space":"spaces"}</div>
+                </div>
+
+                {activeFilters.length>0 && (
+                  <div className="toolbar__meta">
+                    <div className="active-chips">
+                      {activeFilters.map(f=>(
+                        <span key={f.k} className="chip" style={{display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                          {f.label}
+                          <button aria-label={"Remove filter "+f.label} className="chip__remove" onClick={()=>removeFilter(f.k)}><Icon name="x" size={12} /></button>
+                        </span>
+                      ))}
+                      <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* content region */}
+              {proto==="loading" && (
+                <div className="space-grid" aria-busy="true" aria-label="Loading spaces">
+                  {Array.from({length:6}).map((_,i)=><SkeletonCard key={i} />)}
+                </div>
+              )}
+
+              {proto==="error" && (
+                <Alert variant="error" title="Couldn’t load spaces">
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-4)",width:"100%"}}>
+                    <span>Check your connection and try again.</span>
+                    <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={()=>setProto("default")}>Retry</Button>
+                  </div>
+                </Alert>
+              )}
+
+              {proto==="empty" && (
+                <EmptyState icon={<Icon name="book-open" size={28} />} title="No spaces yet"
+                  body="Create your first space to start building learning content."
+                  action={<Button variant="primary" leadingIcon={<Icon name="plus" size={16} />} onClick={()=>setCreateOpen(true)}>Create your first space</Button>} />
+              )}
+
+              {proto==="filtered" && (
+                <EmptyState icon={<Icon name="search-x" size={28} />} title="No matches"
+                  body="No spaces match your current filters."
+                  action={<Button variant="secondary" onClick={clearFilters}>Clear filters</Button>} />
+              )}
+
+              {proto==="default" && (
+                list.length===0 ? (
+                  <EmptyState icon={<Icon name="search-x" size={28} />} title="No matches"
+                    body="No spaces match your current filters."
+                    action={<Button variant="secondary" onClick={clearFilters}>Clear filters</Button>} />
+                ) : view==="grid" ? (
+                  <>
+                    <div className="space-grid">
+                      {list.map(s=>(
+                        <SpaceCardRich key={s.id} space={s} duplicating={dupId===s.id}
+                          menuOpen={openMenu===s.id} onMenu={setOpenMenu} onAction={handleAction} />
+                      ))}
+                    </div>
+                    <div className="pager">
+                      <span className="pager__note">Showing {list.length} of {SPACES.length}</span>
+                      <Button variant="secondary" size="sm" leadingIcon={<Icon name="chevron-down" size={14} />}>Load more</Button>
+                    </div>
+                  </>
+                ) : (
+                  <TableView rows={list} />
+                )
+              )}
+            </div>
+          </div>
+        </main>
+
+        {createOpen && <CreateModal onClose={()=>setCreateOpen(false)}
+          onCreate={()=>{ setCreateOpen(false); pushToast("ok","Space created — opening editor"); }} />}
+
+        {confirm && <ConfirmDialog action={confirm.action} space={confirm.space}
+          onClose={()=>setConfirm(null)} onConfirm={handleConfirm} />}
+
+        {/* toasts */}
+        <div className="toast-stack" role="status" aria-live="polite">
+          {toasts.map(t=>(
+            <div key={t.id} className="toast-card">
+              <span className={"toast-card__icon "+(t.variant==="err"?"toast-card__icon--err":"toast-card__icon--ok")}>
+                <Icon name={t.variant==="err"?"alert-circle":"check-circle-2"} size={18} />
+              </span>
+              <span className="toast-card__txt">{t.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

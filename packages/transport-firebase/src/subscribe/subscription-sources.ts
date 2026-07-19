@@ -133,6 +133,15 @@ export const SUBSCRIPTION_SOURCES = {
       nodePath: `gradingProgress/${T}/exam/${examId}/agg`,
     }),
   },
+  // Live question-extraction + rubric-generation progress. Slim status leaf;
+  // parent stays deny-all. Written by extractQuestions across its two passes.
+  "v1.autograde.extractionStatus": {
+    backend: "rtdb",
+    resolve: ({ examId }) => ({
+      kind: "rtdb",
+      nodePath: `extractionProgress/${T}/exam/${examId}/status`,
+    }),
+  },
 } as const satisfies { [S in SubscriptionName]: SourceDescriptor<S> };
 
 /** Substitute `__tenant__`/`__uid__` placeholders in a resolved path from PathContext. */

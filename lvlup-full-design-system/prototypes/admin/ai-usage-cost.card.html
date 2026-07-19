@@ -1,0 +1,578 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="AI Usage & Cost" subtitle="Tenant AI spend · budget vs quota · purpose & model breakdown · failed-grading DLQ" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);text-decoration:none;}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:280px;max-width:32vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1232px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-grid{display:grid;gap:var(--space-4);}
+.ax-g2{grid-template-columns:1fr 1fr;}
+.ax-g4{grid-template-columns:repeat(4,1fr);}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-wrap{flex-wrap:wrap;}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;border:1px solid transparent;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.btn i{width:15px;height:15px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-strong);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:transparent;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--sm{padding:var(--space-1) var(--space-3);font-size:var(--text-xs);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:1px solid var(--border-subtle);}
+.icon-btn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.icon-btn[disabled]{opacity:.4;cursor:not-allowed;}
+.icon-btn.bare{border:none;}
+.icon-btn i{width:17px;height:17px;}
+/* month picker */
+.mpick{display:inline-flex;align-items:center;gap:var(--space-2);}
+.mpick .lbl{min-width:84px;text-align:center;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--text-sm);color:var(--text-primary);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);}
+/* card / panel */
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);}
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.panel .ph{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.panel .ph .pt{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);margin-right:auto;display:flex;align-items:center;gap:var(--space-2);}
+.panel .ph .pt i{width:17px;height:17px;color:var(--text-secondary);}
+.panel .pb{padding:var(--space-5);}
+.panel .pf{padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:var(--text-xs);display:flex;align-items:center;gap:var(--space-2);}
+/* KPI */
+.kpi{display:flex;flex-direction:column;gap:var(--space-2);}
+.kpi .lh{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.kpi .lh i{width:15px;height:15px;}
+.kpi .vv{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;line-height:1.1;}
+.kpi .sub{font-size:var(--text-2xs);color:var(--text-muted);}
+/* budget */
+.bigfig{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--text-xl);color:var(--text-primary);}
+.bar-track{height:10px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden;}
+.bar-fill{height:100%;border-radius:var(--radius-pill);background:var(--status-success);transition:width var(--dur-base) var(--ease-standard);}
+.bar-fill.warn{background:var(--status-warning);}
+.bar-fill.err{background:var(--status-error);}
+.bar-fill.brand{background:var(--brand-primary);}
+/* mini bar chart */
+.chart{display:flex;align-items:flex-end;gap:6px;height:180px;padding-top:var(--space-4);border-bottom:1px solid var(--border-subtle);}
+.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);height:100%;justify-content:flex-end;cursor:default;}
+.chart .bar{width:100%;max-width:30px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-primary);transition:background var(--dur-fast) var(--ease-standard);}
+.chart .col:hover .bar{background:var(--brand-primary-hover);}
+.chart .xl{font-size:9px;color:var(--text-muted);text-align:center;font-family:var(--font-mono);}
+.cb-tip{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);margin-top:var(--space-2);min-height:16px;}
+/* horizontal purpose bars */
+.hbar{display:flex;flex-direction:column;gap:var(--space-1);}
+.hbar .hr{display:flex;align-items:center;justify-content:space-between;font-size:var(--text-sm);}
+.hbar .hr .hl{color:var(--text-secondary);display:inline-flex;align-items:center;gap:var(--space-2);}
+.hbar .hr .hl .sw{width:9px;height:9px;border-radius:var(--radius-sm);}
+.hbar .hr .hv{font-family:var(--font-mono);color:var(--text-primary);}
+.hbar .htk{height:8px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden;}
+.hbar .hf{height:100%;border-radius:var(--radius-pill);}
+/* table */
+.tbl-wrap{overflow-x:auto;}
+table.tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+table.tbl th{text-align:left;padding:var(--space-3) var(--space-4);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);white-space:nowrap;}
+table.tbl th.num{text-align:right;}
+table.tbl th button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+table.tbl th button i{width:12px;height:12px;}
+table.tbl td{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);color:var(--text-primary);vertical-align:middle;}
+table.tbl td.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+table.tbl tr:last-child td{border-bottom:none;}
+table.tbl tbody tr{transition:background var(--dur-fast) var(--ease-standard);}
+table.tbl tbody tr:hover{background:var(--bg-surface-sunken);}
+table.tbl tfoot td{padding:var(--space-3) var(--space-4);font-weight:var(--weight-semibold);border-top:1px solid var(--border-strong);background:var(--bg-surface-sunken);}
+table.tbl tfoot td.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+/* badge / chip */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.warn{background:var(--status-warning-subtle);color:var(--status-warning);}
+.badge.err{background:var(--status-error-subtle);color:var(--status-error);}
+.badge.info{background:var(--status-info-subtle);color:var(--status-info);}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-2xs);font-family:var(--font-mono);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);white-space:nowrap;}
+/* alert */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:var(--text-sm);background:var(--bg-surface);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.alert.warn i.lead{color:var(--status-warning);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert.err i.lead{color:var(--status-error);}
+.alert.info{border-color:var(--status-info);background:var(--status-info-subtle);}
+.alert.info i.lead{color:var(--status-info);}
+.alert .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;}
+.lnk{color:var(--brand-primary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;}
+.sec-label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);}
+.sec-label i{width:14px;height:14px;}
+/* empty / skeleton */
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:var(--space-10) var(--space-6);text-align:center;}
+.empty .ei{width:52px;height:52px;border-radius:var(--radius-lg);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);}
+.empty .ei i{width:24px;height:24px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:42ch;}
+.skl{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);animation:shim 1.3s var(--ease-standard) infinite;}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.5}}
+/* pagination */
+.pag{display:flex;align-items:center;gap:var(--space-3);justify-content:space-between;flex-wrap:wrap;padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);}
+.pag .nums{display:flex;align-items:center;gap:var(--space-1);}
+.pag .pg{min-width:30px;height:30px;display:grid;place-items:center;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);cursor:pointer;}
+.pag .pg.on{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);}
+/* overlay (export) */
+.lov{position:fixed;inset:0;background:var(--ink-900);opacity:.32;z-index:40;}
+.lov-box{position:fixed;inset:0;z-index:41;display:grid;place-items:center;pointer-events:none;}
+.lov-card{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);font-size:var(--text-sm);}
+.spin{width:18px;height:18px;border:2px solid var(--border-subtle);border-top-color:var(--brand-primary);border-radius:var(--radius-pill);animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:45;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-left:3px solid var(--status-success);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);font-size:var(--text-sm);max-width:360px;}
+.toast i.lead{width:17px;height:17px;color:var(--status-success);flex:none;margin-top:1px;}
+.toast .tt{font-weight:var(--weight-semibold);}
+/* export menu */
+.relpos{position:relative;}
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:170px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);display:flex;flex-direction:column;}
+.menu button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;}
+.menu button:hover{background:var(--bg-surface-sunken);}
+.menu button i{width:15px;height:15px;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+const Button = ({children,leadingIcon,trailingIcon,variant,size,disabled,onClick})=>
+  <button className={"btn btn--"+(variant||"primary")+(size?" btn--"+size:"")} disabled={disabled} onClick={onClick}>
+    {leadingIcon&&<i data-lucide={leadingIcon}></i>}{children}{trailingIcon&&<i data-lucide={trailingIcon}></i>}</button>;
+
+/* ---- Reusable admin shell (tokens-only frame; TENANT surface) ---- */
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined} href="#">
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood Academy · Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Overview</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active={active}/>
+          <Nav icon="rocket" label="Onboarding" route="/onboarding" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Management</div>
+          <Nav icon="users" label="Users" route="/users" active={active}/>
+          <Nav icon="school" label="Classes" route="/classes" active={active}/>
+          <Nav icon="shield-check" label="Staff & Permissions" route="/staff" active={active}/>
+          <Nav icon="file-check" label="Exams" route="/exams" active={active}/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active={active}/>
+          <Nav icon="book-open" label="Courses" route="/courses" active={active}/>
+          <Nav icon="calendar-range" label="Academic Sessions" route="/academic-sessions" active={active}/>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Analytics</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active={active}/>
+          <Nav icon="file-text" label="Reports" route="/reports" active={active}/>
+          <Nav icon="sparkles" label="AI Usage & Cost" route="/ai-usage" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Configuration</div>
+          <Nav icon="bell" label="Notifications" route="/notifications" active={active}/>
+          <Nav icon="download" label="Data Export" route="/data-export" active={active}/>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="building"></i><span>Switch tenant</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">AK</div>
+          <div><div className="nm">Anita Kapoor</div><div className="rl">Tenant Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">{crumb.map((c,i)=>(
+          <React.Fragment key={i}>{i>0&&<i data-lucide="chevron-right" style={{width:14,height:14}}></i>}{i===crumb.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>))}</nav>
+        <div className="sp"></div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn bare" aria-label="Toggle theme"><i data-lucide="sun"></i></button>
+        <button className="icon-btn bare" aria-label="Notifications, 3 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- server-authoritative sample data (render-only; materialized by dailyCostAggregation cron) ---- */
+// Purpose series → deterministic semantic hues (no spark; status.error reserved for over-budget signalling).
+const PURPOSES=[
+  {key:"grading",   label:"Grading",    calls:9120, cost:684.32, color:"var(--brand-primary)"},
+  {key:"evaluation",label:"Evaluation", calls:4310, cost:331.18, color:"var(--status-info)"},
+  {key:"extraction",label:"Extraction", calls:3640, cost:178.44, color:"var(--status-success)"},
+  {key:"tutoring",  label:"Tutoring",   calls:1332, cost: 90.56, color:"var(--text-secondary)"},
+];
+const MODELS=[
+  {model:"claude-3-5-sonnet", calls:11240, inTok:"28.4M", outTok:"6.1M", cost:912.10},
+  {model:"claude-3-haiku",    calls: 5180, inTok:"11.2M", outTok:"2.6M", cost:241.70},
+  {model:"text-embedding-3",  calls: 1982, inTok:" 2.5M", outTok:"  0",  cost:130.70},
+];
+// Daily trend ($/day) — 20 days elapsed in 2026-06.
+const DAILY=[
+  ["06-01",52.10],["06-02",61.40],["06-03",48.90],["06-04",70.20],["06-05",66.80],
+  ["06-06",31.20],["06-07",28.60],["06-08",74.10],["06-09",81.30],["06-10",69.40],
+  ["06-11",58.70],["06-12",63.90],["06-13",34.10],["06-14",30.80],["06-15",77.60],
+  ["06-16",84.20],["06-17",72.50],["06-18",66.10],["06-19",59.30],["06-20",54.50],
+];
+const DLQ=[
+  {sub:"SUB-4471", q:"Q3 · Essay", step:"rubric-grade", err:"Model output failed schema validation", attempts:5, last:"2026-06-20 09:14"},
+  {sub:"SUB-4468", q:"Q1 · Short answer", step:"rubric-grade", err:"Upstream timeout (30s)", attempts:3, last:"2026-06-20 08:51"},
+  {sub:"SUB-4452", q:"Q5 · Diagram", step:"extraction", err:"Image unreadable — extraction returned empty", attempts:4, last:"2026-06-19 22:07"},
+];
+const SPEND=1284.50, BUDGET=2000.00, PCT=64, AVG=64.20, DAYS=20, PROJ=1930.00, THRESH=80;
+const TOTAL_CALLS=18402, IN_TOK="42.1M", OUT_TOK="9.3M";
+
+function SortableTh({label,active,dir,onClick,num}){
+  return <th className={num?"num":""}>
+    <button onClick={onClick} aria-label={"Sort by "+label}>{label}
+      <i data-lucide={active?(dir==="asc"?"arrow-up":"arrow-down"):"chevrons-up-down"}></i></button></th>;
+}
+
+function Screen(){
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  const [bannerOpen,setBannerOpen]=React.useState(true);
+  const [exportMenu,setExportMenu]=React.useState(false);
+  const [exporting,setExporting]=React.useState(false);
+  const [toast,setToast]=React.useState(false);
+  const [hover,setHover]=React.useState(null);
+  const [pSort,setPSort]=React.useState({key:"cost",dir:"desc"});
+
+  const maxDaily=Math.max(...DAILY.map(d=>d[1]));
+  const maxPCost=Math.max(...PURPOSES.map(p=>p.cost));
+  const purposeRows=[...PURPOSES].sort((a,b)=>{
+    const m=pSort.dir==="asc"?1:-1;
+    return pSort.key==="cost"?(a.cost-b.cost)*m:(a.calls-b.calls)*m;
+  });
+  const sortP=(key)=>setPSort(s=>({key,dir:s.key===key&&s.dir==="desc"?"asc":"desc"}));
+
+  const doExport=(kind)=>{
+    setExportMenu(false); setExporting(true);
+    setTimeout(()=>{ setExporting(false); setToast(kind); setTimeout(()=>setToast(false),3600); }, 1200);
+  };
+
+  return <Shell active="/ai-usage" crumb={["Home","AI Usage & Cost"]}>
+
+    {/* ===== QuotaWarningBanner — approaching budget (icon + text + value, never color-alone) ===== */}
+    {bannerOpen &&
+      <div className="alert warn" role="status">
+        <i data-lucide="triangle-alert" className="lead"></i>
+        <div className="ab"><span className="at">Approaching monthly AI budget — 64% used ($1,284.50 / $2,000.00). </span>
+          <span className="ax-sec">AI grading pauses automatically if the budget is reached.</span></div>
+        <span className="lnk">View usage</span>
+        <button className="icon-btn bare" aria-label="Dismiss banner for this session" onClick={()=>setBannerOpen(false)}><i data-lucide="x"></i></button>
+      </div>}
+
+    {/* ===== Page header — title + subtitle + month picker + export ===== */}
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">AI Usage & Cost</h1>
+        <div className="ax-sub">AI and LLM consumption and cost for Northwood Academy, by month.</div></div>
+      <div className="ac">
+        <div className="mpick" role="group" aria-label="Select month">
+          <button className="icon-btn" aria-label="Previous month"><i data-lucide="chevron-left"></i></button>
+          <span className="lbl" aria-live="polite">2026-06</span>
+          <button className="icon-btn" aria-label="Next month" disabled title="No future months"><i data-lucide="chevron-right"></i></button>
+        </div>
+        <div className="relpos">
+          <Button variant="secondary" leadingIcon="download" trailingIcon="chevron-down" onClick={()=>setExportMenu(o=>!o)}>Export</Button>
+          {exportMenu && <div className="menu" role="menu" onMouseLeave={()=>setExportMenu(false)}>
+            <button role="menuitem" onClick={()=>doExport("pdf")}><i data-lucide="file-text"></i>Export PDF</button>
+            <button role="menuitem" onClick={()=>doExport("csv")}><i data-lucide="table"></i>Export CSV</button>
+          </div>}
+        </div>
+      </div>
+    </div>
+
+    {/* ===== ROW A — KPI strip (server-authoritative, mono figures) ===== */}
+    <div className="ax-grid ax-g4">
+      <div className="card kpi"><div className="lh"><i data-lucide="dollar-sign"></i><span>Monthly Cost</span></div>
+        <div className="vv">$1,284.50</div><div className="sub">Month to date · 2026-06</div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="activity"></i><span>Total Calls</span></div>
+        <div className="vv">18,402</div><div className="sub">Across all purposes</div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="arrow-down-to-line"></i><span>Input Tokens</span></div>
+        <div className="vv" title="42,118,940 input tokens">42.1M</div><div className="sub">Hover for exact count</div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="arrow-up-from-line"></i><span>Output Tokens</span></div>
+        <div className="vv" title="9,302,510 output tokens">9.3M</div><div className="sub">Hover for exact count</div></div>
+    </div>
+
+    {/* ===== ROW B — Budget panel ===== */}
+    <div className="card ax-col" style={{gap:"var(--space-4)"}}>
+      <div className="ax-row" style={{justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:"var(--space-3)"}}>
+        <div className="ax-col" style={{gap:"2px"}}>
+          <span style={{fontFamily:"var(--font-display)",fontSize:"var(--text-base)",fontWeight:"var(--weight-semibold)"}}>Monthly Budget Usage</span>
+          <span className="bigfig">$1,284.50 <span className="ax-muted" style={{fontSize:"var(--text-base)"}}>/ $2,000.00</span></span>
+        </div>
+        <span className="badge warn"><i data-lucide="triangle-alert"></i>Approaching budget</span>
+      </div>
+      <div className="bar-track" role="progressbar" aria-label="Monthly AI budget: $1,284.50 of $2,000.00 used, approaching budget"
+        aria-valuenow={PCT} aria-valuemin="0" aria-valuemax="100">
+        <div className="bar-fill warn" style={{width:PCT+"%"}}></div>
+      </div>
+      <div className="ax-row" style={{justifyContent:"space-between",flexWrap:"wrap",gap:"var(--space-3)"}}>
+        <span className="ax-sec" style={{fontSize:"var(--text-sm)"}}><span className="ax-mono">64%</span> of monthly budget used · warns at <span className="ax-mono">80%</span></span>
+        <span className="ax-sec" style={{fontSize:"var(--text-sm)"}}>Month-end projection: <span className="ax-mono" style={{color:"var(--text-primary)"}}>$1,930.00</span>
+          <span className="ax-muted"> · Based on <span className="ax-mono">$64.20</span>/day over <span className="ax-mono">20</span> days</span></span>
+      </div>
+    </div>
+
+    {/* ===== ROW C — Daily trend + Cost by purpose ===== */}
+    <div className="ax-grid ax-g2">
+      <div className="panel">
+        <div className="ph"><span className="pt"><i data-lucide="bar-chart-3"></i>Daily Cost Trend</span>
+          <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>$ per day · 2026-06</span></div>
+        <div className="pb">
+          <div className="chart" role="img" aria-label="Bar chart of daily AI cost for 2026-06, ranging $28.60 to $84.20 per day.">
+            {DAILY.map(([d,v],i)=>(
+              <div className="col" key={d} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)}>
+                <div className="bar" style={{height:Math.round(v/maxDaily*100)+"%"}}></div>
+                <span className="xl">{d.slice(3)}</span>
+              </div>))}
+          </div>
+          <div className="cb-tip" aria-live="polite">{hover!=null ? DAILY[hover][0]+" · $"+DAILY[hover][1].toFixed(2) : "Hover a bar for the exact daily figure."}</div>
+          <table className="ax-sr"><caption>Daily AI cost for 2026-06</caption><thead><tr><th>Date</th><th>Cost</th></tr></thead>
+            <tbody>{DAILY.map(([d,v])=><tr key={d}><td>{d}</td><td>${v.toFixed(2)}</td></tr>)}</tbody></table>
+        </div>
+      </div>
+      <div className="panel">
+        <div className="ph"><span className="pt"><i data-lucide="pie-chart"></i>Cost by Purpose</span>
+          <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Share of spend</span></div>
+        <div className="pb"><div className="ax-col" style={{gap:"var(--space-4)"}}
+          role="img" aria-label="Horizontal bars of AI cost by purpose: Grading $684.32, Evaluation $331.18, Extraction $178.44, Tutoring $90.56.">
+          {PURPOSES.map(p=>(
+            <div className="hbar" key={p.key}>
+              <div className="hr"><span className="hl"><span className="sw" style={{background:p.color}}></span>{p.label}</span>
+                <span className="hv">${p.cost.toFixed(2)}</span></div>
+              <div className="htk"><div className="hf" style={{width:Math.round(p.cost/maxPCost*100)+"%",background:p.color}}></div></div>
+            </div>))}
+        </div></div>
+      </div>
+    </div>
+
+    {/* ===== ROW D — Purpose breakdown (sortable) ===== */}
+    <div className="panel">
+      <div className="ph"><span className="pt"><i data-lucide="list-tree"></i>Purpose breakdown</span></div>
+      <div className="tbl-wrap"><table className="tbl" aria-label="Cost by purpose">
+        <thead><tr>
+          <th>Purpose</th>
+          <SortableTh label="Calls" num active={pSort.key==="calls"} dir={pSort.dir} onClick={()=>sortP("calls")}/>
+          <SortableTh label="Cost" num active={pSort.key==="cost"} dir={pSort.dir} onClick={()=>sortP("cost")}/>
+          <th className="num">Avg cost/call <i data-lucide="info" style={{width:12,height:12,verticalAlign:"middle"}} title="Total cost divided by total calls for this purpose."></i></th>
+        </tr></thead>
+        <tbody>{purposeRows.map(p=>(
+          <tr key={p.key}>
+            <td><span className="ax-row" style={{gap:"var(--space-2)"}}><span className="sw" style={{width:9,height:9,borderRadius:"var(--radius-sm)",background:p.color,display:"inline-block"}}></span>{p.label}</span></td>
+            <td className="num">{p.calls.toLocaleString()}</td>
+            <td className="num">${p.cost.toFixed(2)}</td>
+            <td className="num">${(p.cost/p.calls).toFixed(4)}</td>
+          </tr>))}
+        </tbody>
+        <tfoot><tr><td>Total</td><td className="num">18,402</td><td className="num">$1,284.50</td><td className="num">$0.0698</td></tr></tfoot>
+      </table></div>
+    </div>
+
+    {/* ===== ROW E — Cost by Model (NEW — surfaces byModel) ===== */}
+    <div className="panel">
+      <div className="ph"><span className="pt"><i data-lucide="cpu"></i>Cost by Model</span></div>
+      <div className="tbl-wrap"><table className="tbl" aria-label="Cost by model">
+        <thead><tr><th>Model</th><th className="num">Calls</th><th className="num">Input tokens</th><th className="num">Output tokens</th><th className="num">Cost</th></tr></thead>
+        <tbody>{MODELS.map(m=>(
+          <tr key={m.model}>
+            <td><span className="tag">{m.model}</span></td>
+            <td className="num">{m.calls.toLocaleString()}</td>
+            <td className="num">{m.inTok.trim()}</td>
+            <td className="num">{m.outTok.trim()}</td>
+            <td className="num">${m.cost.toFixed(2)}</td>
+          </tr>))}
+        </tbody>
+        <tfoot><tr><td>Total</td><td className="num">18,402</td><td className="num">42.1M</td><td className="num">9.3M</td><td className="num">$1,284.50</td></tr></tfoot>
+      </table></div>
+    </div>
+
+    {/* ===== ROW F — Daily breakdown (paginated 25/pg) ===== */}
+    <div className="panel">
+      <div className="ph"><span className="pt"><i data-lucide="calendar-days"></i>Daily breakdown</span>
+        <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Sorted by date, newest first</span></div>
+      <div className="tbl-wrap"><table className="tbl" aria-label="Daily breakdown">
+        <thead><tr><th>Date</th><th className="num">Calls</th><th className="num">Input tokens</th><th className="num">Output tokens</th><th className="num">Cost</th></tr></thead>
+        <tbody>{[...DAILY].reverse().slice(0,8).map(([d,v],i)=>{
+          const calls=Math.round(v*14+120), it=(v*0.034).toFixed(1), ot=(v*0.0075).toFixed(2);
+          return <tr key={d}>
+            <td className="ax-mono ax-sec">2026-{d}</td>
+            <td className="num">{calls.toLocaleString()}</td>
+            <td className="num">{it}M</td>
+            <td className="num">{(ot)}M</td>
+            <td className="num">${v.toFixed(2)}</td>
+          </tr>;})}
+        </tbody>
+      </table></div>
+      <div className="pag">
+        <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Showing <span className="ax-mono">1–8</span> of <span className="ax-mono">20</span> days</span>
+        <div className="nums">
+          <button className="pg" aria-label="Previous page"><i data-lucide="chevron-left" style={{width:14,height:14}}></i></button>
+          <button className="pg on" aria-current="page">1</button>
+          <button className="pg" aria-label="Next page"><i data-lucide="chevron-right" style={{width:14,height:14}}></i></button>
+        </div>
+        <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>25 / page</span>
+      </div>
+    </div>
+
+    {/* ===== ROW G — Failed Grading Attempts (DLQ; rendered only because non-empty) ===== */}
+    <div className="panel">
+      <div className="ph"><span className="pt"><i data-lucide="alert-octagon" style={{color:"var(--status-error)"}}></i>Failed Grading Attempts</span>
+        <span className="badge err"><i data-lucide="x-circle"></i>3 in queue</span></div>
+      <div className="tbl-wrap"><table className="tbl" aria-label="Failed grading attempts dead-letter queue">
+        <thead><tr><th>Submission</th><th>Question</th><th>Step</th><th>Error</th><th className="num">Attempts</th><th>Last attempt</th></tr></thead>
+        <tbody>{DLQ.map(r=>(
+          <tr key={r.sub}>
+            <td className="ax-mono ax-sec">{r.sub}</td>
+            <td className="ax-sec">{r.q}</td>
+            <td><span className="tag">{r.step}</span></td>
+            <td className="ax-sec">{r.err}</td>
+            <td className="num">{r.attempts}</td>
+            <td className="ax-mono ax-sec">{r.last}</td>
+          </tr>))}
+        </tbody>
+      </table></div>
+      <div className="pf"><i data-lucide="info" style={{width:13,height:13}}></i>These attempts have exhausted retries and are not consuming further budget. Resolve from the submission in Exams.</div>
+    </div>
+
+    {/* ================================================================== */}
+    {/* ===== Other §5 states (reference — stacked & labelled) ============ */}
+    {/* ================================================================== */}
+    <div className="sec-label" style={{marginTop:"var(--space-4)"}}><i data-lucide="layers"></i>Other states (reference)</div>
+
+    {/* Over-budget banner (status.error — AI grading paused) */}
+    <div className="alert err" role="alert">
+      <i data-lucide="octagon-x" className="lead"></i>
+      <div className="ab"><span className="at">Monthly AI budget exceeded. AI grading is paused. </span>
+        <span className="ax-sec">Increase the budget in Settings to resume. <span className="ax-mono">$2,071.40 / $2,000.00</span></span></div>
+      <span className="lnk">Go to Settings</span>
+    </div>
+
+    {/* Over-budget panel variant */}
+    <div className="card ax-col" style={{gap:"var(--space-3)"}}>
+      <div className="ax-row" style={{justifyContent:"space-between",flexWrap:"wrap",gap:"var(--space-3)"}}>
+        <span style={{fontFamily:"var(--font-display)",fontSize:"var(--text-base)",fontWeight:"var(--weight-semibold)"}}>Monthly Budget Usage — over budget</span>
+        <span className="badge err"><i data-lucide="octagon-x"></i>Over budget</span>
+      </div>
+      <div className="bar-track" role="progressbar" aria-label="Monthly AI budget exceeded: $2,071.40 of $2,000.00" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+        <div className="bar-fill err" style={{width:"100%"}}></div></div>
+      <span className="ax-sec" style={{fontSize:"var(--text-sm)"}}>Month-end projection: <span className="ax-mono" style={{color:"var(--status-error)"}}>$3,180.00</span> — exceeds budget.</span>
+    </div>
+
+    {/* On-track panel variant */}
+    <div className="card ax-col" style={{gap:"var(--space-3)"}}>
+      <div className="ax-row" style={{justifyContent:"space-between",flexWrap:"wrap",gap:"var(--space-3)"}}>
+        <span style={{fontFamily:"var(--font-display)",fontSize:"var(--text-base)",fontWeight:"var(--weight-semibold)"}}>Monthly Budget Usage — on track</span>
+        <span className="badge suc"><i data-lucide="check-circle-2"></i>On track</span>
+      </div>
+      <div className="bar-track" role="progressbar" aria-label="Monthly AI budget: $412.00 of $2,000.00 used, on track" aria-valuenow="21" aria-valuemin="0" aria-valuemax="100">
+        <div className="bar-fill" style={{width:"21%"}}></div></div>
+      <span className="ax-sec" style={{fontSize:"var(--text-sm)"}}><span className="ax-mono">21%</span> of monthly budget used.</span>
+    </div>
+
+    {/* Partial — no budget configured (info) */}
+    <div className="card ax-col" style={{gap:"var(--space-3)"}}>
+      <span style={{fontFamily:"var(--font-display)",fontSize:"var(--text-base)",fontWeight:"var(--weight-semibold)"}}>Monthly Budget Usage — no budget set</span>
+      <div className="alert info" role="status"><i data-lucide="info" className="lead"></i>
+        <div className="ab"><span className="at">No monthly AI budget set. </span>
+          <span className="ax-sec">Spend is unlimited and unmonitored. Set a budget in Settings to enable quota warnings and projections.</span></div>
+        <span className="lnk">Set budget</span></div>
+    </div>
+
+    {/* Error — read failure (status.error InlineAlert with Retry) */}
+    <div className="panel"><div className="pb">
+      <div className="alert err" role="alert"><i data-lucide="alert-octagon" className="lead"></i>
+        <div className="ab"><span className="at">Couldn't load AI usage. </span>
+          <span className="ax-sec">The analytics service didn't respond. No figures were changed.</span></div>
+        <span className="lnk">Retry</span></div>
+    </div></div>
+
+    {/* Error — permission / tenant isolation (reveals no data) */}
+    <div className="panel"><div className="pb">
+      <div className="alert err" role="alert"><i data-lucide="shield-x" className="lead"></i>
+        <div className="ab"><span className="at">You don't have access to this tenant's usage. </span>
+          <span className="ax-sec">This screen is scoped to your academy only. No data is shown.</span></div></div>
+    </div></div>
+
+    {/* Empty — no usage this month */}
+    <div className="panel"><div className="empty">
+      <div className="ei"><i data-lucide="receipt"></i></div>
+      <div className="et">No AI usage this month</div>
+      <div className="eb">No AI grading, extraction, or tutoring ran in 2026-05. Costs will appear here once activity is recorded.</div>
+    </div></div>
+
+    {/* Loading — skeleton (no layout shift) */}
+    <div className="ax-grid ax-g4" aria-busy="true" aria-label="Loading KPI strip">
+      {[0,1,2,3].map(i=>(
+        <div className="card kpi" key={i}>
+          <div className="skl" style={{width:96,height:12}}></div>
+          <div className="skl" style={{width:120,height:26,marginTop:"var(--space-2)"}}></div>
+          <div className="skl" style={{width:72,height:10,marginTop:"var(--space-1)"}}></div>
+        </div>))}
+    </div>
+    <div className="panel" aria-busy="true" aria-label="Loading chart">
+      <div className="ph"><div className="skl" style={{width:150,height:14}}></div></div>
+      <div className="pb"><div className="skl" style={{width:"100%",height:180,borderRadius:"var(--radius-md)"}}></div></div>
+    </div>
+
+    {/* Export LoadingOverlay (during PDF/CSV generation) */}
+    {exporting && <React.Fragment>
+      <div className="lov"></div>
+      <div className="lov-box"><div className="lov-card"><div className="spin"></div><span>Generating export…</span></div></div>
+    </React.Fragment>}
+
+    {/* Export success Toast (signed-URL download, 1-hour expiry) */}
+    {toast && <div className="toast" role="status">
+      <i data-lucide="check-circle-2" className="lead"></i>
+      <div className="ab"><div className="tt">Export ready</div>
+        <div className="ax-sec" style={{fontSize:"var(--text-xs)"}}>{toast==="pdf"?"AI-usage-2026-06.pdf":"AI-usage-2026-06.csv"} · download link expires in 1 hour.</div></div>
+    </div>}
+
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

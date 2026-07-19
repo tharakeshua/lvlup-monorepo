@@ -39,6 +39,7 @@ export {
 
 // class assignment-tracker matrix (C12)
 export { getAssignmentMatrixService } from "./assignment-matrix.js";
+export { getSpaceAnalyticsService, buildSpaceAnalyticsProjection } from "./space-analytics.js";
 
 // server-only projection / recompute
 export {

@@ -1,0 +1,532 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Gamification — XP, Levels & Streaks ★" subtitle="XPMeter/LevelBadge/StreakFlame · spark-burst moment" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gamification — XP, Levels & Streaks ★</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body, #root, .appshell { height: 100%; }
+
+  .prog { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1200px; }
+
+  .prog__head-title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0; letter-spacing: var(--tracking-display); }
+  .prog__head-sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: var(--space-1); }
+
+  .card-surface { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); }
+
+  .hero-row { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-6); align-items: stretch; }
+
+  /* HERO XP CARD */
+  .hero { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); position: relative; overflow: visible; }
+  .hero__top { display: flex; align-items: center; gap: var(--space-4); }
+  .hero__level-block { display: flex; align-items: center; gap: var(--space-3); }
+  .hero__meta { display: flex; flex-direction: column; gap: 2px; }
+  .hero__lv-line { display: flex; align-items: center; gap: var(--space-2); }
+  .hero__lv-text { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); }
+  .hero__numbers { display: flex; align-items: baseline; gap: var(--space-3); }
+  .hero__big { font-family: var(--font-display); font-size: var(--text-5xl); line-height: var(--leading-5xl); font-weight: var(--weight-bold); }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .hero__big .mono { font-family: var(--font-display); }
+  .hero__slash { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--text-2xl); }
+  .hero__next { color: var(--text-secondary); font-size: var(--text-base); align-self: flex-end; padding-bottom: var(--space-2); }
+  .hero__cap { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--spark-hover); font-variant-numeric: tabular-nums; }
+  .hero__life { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); }
+  .hero__life .mono { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+  .xpbar { height: 14px; border-radius: var(--radius-pill); background: var(--bg-inset); overflow: hidden; }
+  .xpbar__fill { height: 100%; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--marigold-400), var(--marigold-500)); transition: width var(--dur-slow) var(--ease-entrance); }
+
+  /* STREAK CARD */
+  .streakcard { padding: var(--space-6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); text-align: center; position: relative; overflow: visible; }
+  .streakcard__flame { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--spark-subtle); color: var(--spark); border: 2px solid var(--marigold-200); }
+  .streakcard__flame svg { fill: currentColor; stroke: var(--red-500); stroke-width: 1; }
+  .streakcard__flame--cold { background: var(--bg-surface-sunken); color: var(--text-muted); border-color: var(--border-subtle); }
+  .streakcard__flame--cold svg { stroke: var(--text-muted); }
+  .streakcard__days { font-family: var(--font-mono); font-size: var(--text-4xl); line-height: 1; font-weight: var(--weight-semibold); color: var(--spark-hover); font-variant-numeric: tabular-nums; }
+  .streakcard__label { font-size: var(--text-sm); color: var(--text-secondary); }
+  .streakcard__best { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); }
+
+  /* TIER TRACK */
+  .tier { padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+  .tier__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tier__title { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+  .tier__rail { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding-top: var(--space-2); }
+  .tier__node { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); flex: 0 0 auto; min-width: 96px; background: none; border: none; cursor: pointer; font-family: var(--font-ui); padding: var(--space-1); border-radius: var(--radius-md); }
+  .tier__node:focus-visible { outline: var(--ring-focus); outline-offset: 2px; }
+  .tier__dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-surface-sunken); color: var(--text-muted); border: 2px solid var(--border-subtle); }
+  .tier__dot--done { background: var(--brand-subtle); color: var(--brand-primary); border-color: var(--brand-muted); }
+  .tier__dot--current { background: var(--spark-subtle); color: var(--spark-hover); border-color: var(--spark); box-shadow: var(--glow-spark); }
+  .tier__name { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-secondary); }
+  .tier__name--current { color: var(--spark-hover); font-weight: var(--weight-semibold); }
+  .tier__you { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--spark-hover); text-transform: uppercase; letter-spacing: 0.06em; }
+  .tier__conn { flex: 1 1 24px; height: 2px; min-width: 16px; margin-top: 18px; background: var(--border-subtle); }
+  .tier__conn--done { background: var(--brand-muted); }
+  .tier__cap { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+  .tier__cap strong { color: var(--spark-hover); }
+
+  /* RECENT POINTS */
+  .points { padding: var(--space-2) var(--space-2) var(--space-4); }
+  .points__head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); }
+  .points__title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+  .prow { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid transparent; transition: background-color var(--dur-fast) var(--ease-standard); }
+  .prow:hover { background: var(--bg-surface-sunken); }
+  .prow__delta { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--status-success); font-variant-numeric: tabular-nums; min-width: 56px; }
+  .prow__icon { width: 34px; height: 34px; border-radius: var(--radius-md); display: grid; place-items: center; flex: 0 0 auto; }
+  .prow__icon--learning { background: var(--brand-subtle); color: var(--brand-primary); }
+  .prow__icon--consistency { background: var(--spark-subtle); color: var(--spark-hover); }
+  .prow__icon--excellence { background: var(--status-success-subtle); color: var(--status-success); }
+  .prow__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .prow__label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-primary); }
+  .prow__time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); }
+
+  /* CELEBRATION BURST */
+  .burst-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; display: grid; place-items: center; }
+  .burst-banner { position: fixed; top: var(--space-6); left: 50%; transform: translateX(-50%); z-index: 10000; pointer-events: none; }
+  .burst-card { display: inline-flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-5); background: var(--spark); color: var(--ink-900); border-radius: var(--radius-pill); box-shadow: var(--glow-spark), var(--shadow-e3); font-weight: var(--weight-semibold); animation: bannerPop var(--dur-base) var(--ease-entrance); }
+  @keyframes bannerPop { 0% { transform: translateX(-50%) scale(0.7); opacity: 0; } 60% { transform: translateX(-50%) scale(1.06); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+  .spark-particle { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--marigold-500); box-shadow: var(--glow-spark); animation: sparkFly 900ms var(--ease-exit) forwards; }
+  @keyframes sparkFly { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }
+  .spring-pop { animation: springPop 520ms cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes springPop { 0% { transform: scale(1); } 35% { transform: scale(1.18); } 70% { transform: scale(0.96); } 100% { transform: scale(1); } }
+  .spark-ring { box-shadow: 0 0 0 3px var(--spark), var(--glow-spark) !important; }
+
+  /* STATE PREVIEW BLOCKS */
+  .states { display: flex; flex-direction: column; gap: var(--space-5); margin-top: var(--space-4); }
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); align-items: start; }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .xpbar__fill, .prow { transition: none !important; }
+    .burst-card, .spark-particle, .spring-pop, .countup { animation: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Card, Section, Panel,
+    Avatar, Badge, Chip, Stat, Timeline, EmptyState, Skeleton,
+    Alert, Tooltip, NavItem, ProgressBar,
+    XPMeter, LevelBadge, StreakFlame, Achievement
+  } = LU;
+
+  const { useState, useEffect, useRef, useCallback } = React;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- server-authoritative data (read-only; client never increments) ---- */
+  const DATA = {
+    level: 7, tier: "gold", currentXP: 640, xpToNext: 900, totalXP: 4210,
+    streakDays: 12, bestStreak: 18, xpToPlatinum: 260, badgeCount: 9,
+  };
+  const TIERS = [
+    { key: "bronze",   label: "Bronze",   icon: "shield" },
+    { key: "silver",   label: "Silver",   icon: "shield" },
+    { key: "gold",     label: "Gold",     icon: "crown" },
+    { key: "platinum", label: "Platinum", icon: "gem" },
+    { key: "diamond",  label: "Diamond",  icon: "diamond" },
+  ];
+  const POINTS = [
+    { delta: 40, label: "Completed “Recursion”",   time: "2h ago",    cat: "learning",    icon: "book-open" },
+    { delta: 25, label: "5-day streak bonus",                time: "today",     cat: "consistency", icon: "flame" },
+    { delta: 60, label: "Exam “Arrays” passed",     time: "yesterday", cat: "excellence",  icon: "file-check" },
+    { delta: 30, label: "Completed “Hash Maps”",    time: "yesterday", cat: "learning",    icon: "book-open" },
+    { delta: 15, label: "Daily login bonus",                 time: "2d ago",    cat: "consistency", icon: "sun" },
+  ];
+
+  /* ---- CountUp (mount only, reduced-motion safe) ---- */
+  function CountUp({ end, dur }) {
+    const [val, setVal] = useState(reduceMotion ? end : 0);
+    useEffect(() => {
+      if (reduceMotion) { setVal(end); return; }
+      let raf, start; const d = dur || 700;
+      const step = (t) => {
+        if (start == null) start = t;
+        const p = Math.min(1, (t - start) / d);
+        setVal(end * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) raf = requestAnimationFrame(step); else setVal(end);
+      };
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }, [end]);
+    return <span className="mono">{Math.round(val).toLocaleString()}</span>;
+  }
+
+  /* ===================== THE ONE CELEBRATORY MOMENT ===================== */
+  /* CelebrationBurst — spring pop + marigold spark burst. Fires only for     */
+  /* XP gain / level-up / streak-extension. Driven by observed server delta,  */
+  /* coalesced (level-up wins). aria-hidden; auto-dismisses ~2000ms.          */
+  function CelebrationBurst({ event, onComplete }) {
+    useEffect(() => {
+      if (!event) return;
+      const t = setTimeout(onComplete, 2000);
+      return () => clearTimeout(t);
+    }, [event]);
+    if (!event) return null;
+    if (reduceMotion) return null; /* reduced-motion: no burst; live-region carries it */
+    const particles = Array.from({ length: 14 }, (_, i) => {
+      const ang = (i / 14) * Math.PI * 2;
+      const r = 90 + (i % 3) * 26;
+      return { dx: Math.cos(ang) * r + "px", dy: Math.sin(ang) * r + "px", delay: (i % 4) * 30 };
+    });
+    return (
+      <div className="burst-overlay" aria-hidden="true">
+        <div style={{ position: "relative", width: 0, height: 0 }}>
+          {particles.map((p, i) => (
+            <span key={i} className="spark-particle"
+              style={{ "--dx": p.dx, "--dy": p.dy, animationDelay: p.delay + "ms" }}/>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  function BurstBanner({ event }) {
+    if (!event || reduceMotion) return null;
+    const txt = event === "levelup" ? "Level up! You’re Level 8 now 🎉"
+      : event === "streak" ? "12 days and counting — nice work."
+      : "Nice — you just banked some XP.";
+    return (
+      <div className="burst-banner" aria-hidden="true">
+        <div className="burst-card"><Icon name="sparkles" size={18}/> {txt}</div>
+      </div>
+    );
+  }
+
+  /* ===================== TIER TRACK (proposed component) ===================== */
+  function TierTrack({ currentTier }) {
+    const [open, setOpen] = useState(null);
+    const curIdx = TIERS.findIndex(t => t.key === currentTier);
+    return (
+      <div className="card-surface tier">
+        <div className="tier__head">
+          <span className="tier__title">Tier progression</span>
+          <span className="tier__cap"><strong className="mono">{DATA.xpToPlatinum} XP</strong> to Platinum — you’re close.</span>
+        </div>
+        <div className="tier__rail" role="list" aria-label="Tier progression: Bronze to Diamond">
+          {TIERS.map((t, i) => {
+            const state = i < curIdx ? "done" : i === curIdx ? "current" : "locked";
+            const node = (
+              <button key={t.key} className="tier__node" role="listitem"
+                onFocus={() => setOpen(t.key)} onBlur={() => setOpen(null)}
+                onMouseEnter={() => setOpen(t.key)} onMouseLeave={() => setOpen(null)}
+                aria-label={t.label + (state === "current"
+                  ? ", current tier, " + DATA.xpToPlatinum + " XP to Platinum"
+                  : state === "done" ? ", reached" : ", locked")}>
+                <span className={"tier__dot tier__dot--" + state}>
+                  <Icon name={state === "done" ? "check" : t.icon} size={16}/>
+                </span>
+                <span className={"tier__name" + (state === "current" ? " tier__name--current" : "")}>{t.label}</span>
+                {state === "current" && <span className="tier__you">◉ You</span>}
+                {open === t.key && (
+                  <span className="sr-only">
+                    {state === "current" ? "Gold tier. 260 XP to reach Platinum."
+                      : state === "done" ? t.label + " tier reached."
+                      : t.label + " tier. Keep earning XP to unlock."}
+                  </span>
+                )}
+              </button>
+            );
+            if (i === TIERS.length - 1) return node;
+            return [node, <span key={"c"+i} className={"tier__conn" + (i < curIdx ? " tier__conn--done" : "")} aria-hidden="true"/>];
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================== RECENT POINTS ===================== */
+  function PointsRow({ p }) {
+    return (
+      <div className="prow" role="listitem">
+        <span className="prow__delta">+{p.delta}</span>
+        <span className={"prow__icon prow__icon--" + p.cat}><Icon name={p.icon} size={17}/></span>
+        <div className="prow__main">
+          <span className="prow__label">{p.label}</span>
+          <span className="prow__time">{p.time}</span>
+        </div>
+        <Chip>{p.cat}</Chip>
+      </div>
+    );
+  }
+  function RecentPoints() {
+    return (
+      <div className="card-surface points">
+        <div className="points__head">
+          <span className="points__title">Recent points</span>
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>}>View all activity</Button>
+        </div>
+        <div role="list">
+          {POINTS.map((p, i) => <PointsRow key={i} p={p}/>)}
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================== HERO XP CARD ===================== */
+  function HeroXP({ levelUpRing }) {
+    const pct = Math.min(100, (DATA.currentXP / DATA.xpToNext) * 100);
+    const [w, setW] = useState(reduceMotion ? pct : 0);
+    useEffect(() => { const t = setTimeout(() => setW(pct), 60); return () => clearTimeout(t); }, []);
+    return (
+      <div className={"card-surface hero" + (levelUpRing ? " spark-ring" : "")}>
+        <div className="hero__top">
+          <span className={"level-badge level-badge--spark" + (levelUpRing ? " spring-pop" : "")} aria-hidden="true">
+            <span className="level-badge__num">{DATA.level}</span>
+            <span className="level-badge__cap">lvl</span>
+          </span>
+          <div className="hero__meta">
+            <div className="hero__lv-line">
+              <span className="hero__lv-text">Level {DATA.level}</span>
+              <Badge variant="spark" icon={<Icon name="crown" size={13}/>}>Gold</Badge>
+            </div>
+            <span className="hero__cap mono">{DATA.currentXP} / {DATA.xpToNext} XP to Level 8</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="hero__numbers">
+            <span className="hero__big"><span className="mono"><CountUp end={DATA.currentXP} dur={900}/></span></span>
+            <span className="hero__slash">/</span>
+            <span className="hero__next mono">{DATA.xpToNext} XP</span>
+          </div>
+          <div className="xpbar" role="progressbar"
+            aria-valuenow={DATA.currentXP} aria-valuemin={0} aria-valuemax={DATA.xpToNext}
+            aria-label={"Level " + DATA.level + " progress: " + DATA.currentXP + " of " + DATA.xpToNext + " XP"}
+            style={{ marginTop: "var(--space-3)" }}>
+            <div className="xpbar__fill" style={{ width: w + "%" }}/>
+          </div>
+        </div>
+
+        <div className="hero__life">
+          <Icon name="sparkles" size={16}/>
+          <span><span className="mono"><CountUp end={DATA.totalXP} dur={1000}/></span> XP earned all-time</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================== STREAK CARD ===================== */
+  function StreakCard({ streakRing }) {
+    return (
+      <div className={"card-surface streakcard" + (streakRing ? " spark-ring" : "")}>
+        <span className={"streakcard__flame" + (streakRing ? " spring-pop" : "")} aria-hidden="true">
+          <Icon name="flame" size={34}/>
+        </span>
+        <span className="streakcard__days mono" role="status" aria-label={DATA.streakDays + " day streak"}>{DATA.streakDays}</span>
+        <span className="streakcard__label">day streak — keep the spark going.</span>
+        <span className="streakcard__best mono">Best: {DATA.bestStreak} days</span>
+      </div>
+    );
+  }
+
+  /* ===================== APP FRAME ===================== */
+  function Sidebar() {
+    const nav = [
+      { icon: "home", label: "Home" },
+      { icon: "layout-grid", label: "Spaces" },
+      { icon: "file-check", label: "Exams" },
+      { icon: "trending-up", label: "Progress", active: true },
+      { icon: "award", label: "Achievements", badge: DATA.badgeCount },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map(n => <NavItem key={n.label} icon={n.icon} active={n.active} badge={n.badge} href="#">{n.label}</NavItem>)}
+        </nav>
+        <div className="sidebar__section-label">School</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="users" href="#">Class · Grade 10-B</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            <Avatar initials="AK" size="sm"/>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>Aisha Khan</div>
+              <div className="u-caption" style={{ color: "var(--text-muted)" }}>SUB001 · Student</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+  function Topbar({ onCelebrate }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <Input placeholder="Search spaces, exams…  ⌘K"/>
+        </div>
+        <div className="topbar__spacer" style={{ flex: 1 }}/>
+        <Tooltip><Button variant="spark" size="sm" leadingIcon={<Icon name="sparkles" size={15}/>} onClick={onCelebrate}>Replay level-up</Button></Tooltip>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <Avatar initials="AK" size="sm"/>
+      </header>
+    );
+  }
+
+  /* ===================== SECONDARY STATE BLOCKS ===================== */
+  function LoadingState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your progress">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading skeleton — no numbers until real data lands</div>
+        <div className="state-grid">
+          <div className="skel-card">
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+              <Skeleton variant="circle" width="44px" height="44px"/>
+              <Skeleton width="40%" height="1rem"/>
+            </div>
+            <Skeleton width="55%" height="2rem"/>
+            <Skeleton width="100%" height="0.9rem"/>
+            <Skeleton width="60%" height="0.7rem"/>
+          </div>
+          <div className="skel-card" style={{ alignItems: "center" }}>
+            <Skeleton variant="circle" width="64px" height="64px"/>
+            <Skeleton width="45%" height="1.6rem"/>
+            <Skeleton width="60%" height="0.7rem"/>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  function EmptyPointsState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="inbox" size={13}/> State: empty — brand-new learner, points history empty (hero never empty)</div>
+        <div className="card-surface" style={{ padding: "var(--space-4)" }}>
+          <EmptyState icon="sparkles"
+            title="Your wins will show up here."
+            body="Complete a story point or pass a test to earn your first points."
+            action={<Button variant="primary" trailingIcon={<Icon name="arrow-right" size={15}/>}>Start learning</Button>}/>
+        </div>
+      </div>
+    );
+  }
+  function ColdStreakState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="flame" size={13}/> State: streak at 0 — gentle, never punitive</div>
+        <div className="card-surface streakcard" style={{ padding: "var(--space-5)" }}>
+          <span className="streakcard__flame streakcard__flame--cold" aria-hidden="true"><Icon name="flame" size={30}/></span>
+          <span className="streakcard__days mono" style={{ color: "var(--text-muted)" }} role="status" aria-label="No active streak">0</span>
+          <span className="streakcard__label">Start a streak today — every day counts.</span>
+        </div>
+      </div>
+    );
+  }
+  function PartialErrorState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: partial / error — hero stays, history region degrades alone (warning tone)</div>
+        <Alert variant="warning" title="Couldn’t load your recent points">
+          We couldn’t load your progress just now — your points are safe.{" "}
+          <a href="#" style={{ color: "var(--brand-primary)", fontWeight: "var(--weight-medium)" }}>Try again</a>
+        </Alert>
+      </div>
+    );
+  }
+  function ReducedMotionState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="accessibility" size={13}/> State: reduced-motion / level-up announce — no burst, static spark-ring + live text</div>
+        <div className="card-surface" style={{ padding: "var(--space-4)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <span className="level-badge level-badge--spark spark-ring" aria-hidden="true">
+            <span className="level-badge__num">8</span><span className="level-badge__cap">lvl</span>
+          </span>
+          <div>
+            <div style={{ fontWeight: "var(--weight-semibold)" }}>Level up! You’re Level 8 now</div>
+            <div className="u-caption" style={{ color: "var(--text-muted)" }}>Announced via aria-live, no motion. Values appear statically.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================== SCREEN ===================== */
+  function Screen() {
+    const [event, setEvent] = useState(null);          /* null | 'xp' | 'streak' | 'levelup' */
+    const [announce, setAnnounce] = useState("");
+    const fire = useCallback((ev) => {
+      setEvent(ev);
+      setAnnounce(ev === "levelup" ? "Level up! You’re Level 8 now"
+        : ev === "streak" ? "12 day streak — nice work."
+        : "You earned XP.");
+    }, []);
+    /* auto-fire the canonical level-up celebration once on mount (coalesced) */
+    useEffect(() => { const t = setTimeout(() => fire("levelup"), 600); return () => clearTimeout(t); }, []);
+
+    const levelUpRing = event === "levelup";
+    const streakRing = event === "streak";
+
+    return (
+      <div className="appshell" style={{ position: "relative" }}>
+        <Sidebar/>
+        <Topbar onCelebrate={() => fire("levelup")}/>
+        <main className="appshell__main">
+          {/* single polite live-region — announces level-up / streak exactly once */}
+          <div aria-live="polite" className="sr-only">{announce}</div>
+
+          <div className="prog">
+            <header>
+              <h1 className="prog__head-title">Your progress</h1>
+              <p className="prog__head-sub">Keep the spark going.</p>
+            </header>
+
+            <div className="hero-row">
+              <HeroXP levelUpRing={levelUpRing}/>
+              <StreakCard streakRing={streakRing}/>
+            </div>
+
+            <TierTrack currentTier={DATA.tier}/>
+
+            <RecentPoints/>
+
+            {/* ---- demo triggers (this screen owns the one celebratory moment) ---- */}
+            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
+              <span className="eyebrow-state" style={{ margin: 0 }}><Icon name="sparkles" size={13}/> Celebration triggers (observed-delta driven, coalesced):</span>
+              <Button variant="spark" size="sm" leadingIcon={<Icon name="arrow-up" size={14}/>} onClick={() => fire("levelup")}>Level-up</Button>
+              <Button variant="secondary" size="sm" leadingIcon={<Icon name="flame" size={14}/>} onClick={() => fire("streak")}>Streak +1</Button>
+              <Button variant="ghost" size="sm" leadingIcon={<Icon name="plus" size={14}/>} onClick={() => fire("xp")}>XP gain</Button>
+            </div>
+
+            {/* ---- spec'd secondary states ---- */}
+            <section className="states" aria-label="Additional states">
+              <LoadingState/>
+              <div className="state-grid">
+                <EmptyPointsState/>
+                <ColdStreakState/>
+              </div>
+              <PartialErrorState/>
+              <ReducedMotionState/>
+            </section>
+          </div>
+        </main>
+
+        <BurstBanner event={event}/>
+        <CelebrationBurst event={event} onComplete={() => setEvent(null)}/>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

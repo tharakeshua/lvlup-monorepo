@@ -1,0 +1,102 @@
+<!-- @dsCard group="Components" name="Data & Feedback" subtitle="Tables, stats, badges, toasts & alerts" viewport="1240x1400" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyceum — Data & Feedback</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="ds-card">
+  <div class="ds-card__head">
+    <div class="u-eyebrow">Components · §5.3 / §5.4</div>
+    <h1 class="ds-card__title">Data & Feedback</h1>
+    <p class="ds-card__subtitle">How the platform presents records, metrics and system response.</p>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Data table</div>
+    <div class="panel">
+      <table class="table">
+        <thead><tr><th>Student</th><th>Submitted</th><th>Score</th><th>Confidence</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr aria-selected="true"><td style="color:var(--text-primary); font-weight:var(--weight-medium)">Amara Reyes</td><td>2:14 PM</td><td class="num">94/100</td><td><span class="confidence confidence--high"><span class="confidence__dot"></span>0.96</span></td><td><span class="badge badge--success">Auto-accepted</span></td></tr>
+          <tr><td style="color:var(--text-primary); font-weight:var(--weight-medium)">Diego Marín</td><td>2:09 PM</td><td class="num">78/100</td><td><span class="confidence confidence--med"><span class="confidence__dot"></span>0.81</span></td><td><span class="badge badge--warning">Spot-check</span></td></tr>
+          <tr><td style="color:var(--text-primary); font-weight:var(--weight-medium)">Priya Anand</td><td>2:02 PM</td><td class="num">—</td><td><span class="confidence confidence--low"><span class="confidence__dot"></span>0.62</span></td><td><span class="badge badge--error">Needs review</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Stats & KPI</div>
+    <div class="ds-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="card"><div class="stat"><span class="stat__label">Graded today</span><span class="stat__value">318</span><span class="stat__delta stat__delta--up">▲ 12% vs. avg</span></div></div>
+      <div class="card"><div class="stat"><span class="stat__label">Avg. score</span><span class="stat__value">82.4</span><span class="stat__delta stat__delta--down">▼ 1.8 pts</span></div></div>
+      <div class="card"><div class="stat"><span class="stat__label">Auto-accept rate</span><span class="stat__value">71%</span></div></div>
+      <div class="card"><div class="stat"><span class="stat__label">Median time</span><span class="stat__value">4.2<span style="font-size:var(--text-lg)">s</span></span></div></div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Badges · chips · progress</div>
+    <div class="ds-row">
+      <span class="badge">Default</span>
+      <span class="badge badge--brand">Brand</span>
+      <span class="badge badge--success">Success</span>
+      <span class="badge badge--warning">Warning</span>
+      <span class="badge badge--error">Error</span>
+      <span class="badge badge--info">Info</span>
+      <span class="badge badge--spark">Spark</span>
+      <span class="badge badge--dot badge--success">Live</span>
+    </div>
+    <div class="ds-row">
+      <span class="chip chip--active">Physics<span class="chip__remove"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg></span></span>
+      <span class="chip">Chemistry</span>
+      <span class="chip">Biology</span>
+    </div>
+    <div class="ds-row" style="gap:var(--space-6)">
+      <div style="width:200px"><div class="progress"><div class="progress__fill" style="width:64%"></div></div></div>
+      <div style="width:200px"><div class="progress"><div class="progress__fill progress__fill--success" style="width:88%"></div></div></div>
+      <div class="ring" style="--ring-pct:72"><span class="ring__label">72%</span></div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Avatars · pagination · timeline</div>
+    <div class="ds-row" style="gap:var(--space-8); align-items:flex-start">
+      <div class="avatar-group">
+        <span class="avatar">AR</span><span class="avatar">DM</span><span class="avatar">PA</span><span class="avatar" style="background:var(--bg-inset); color:var(--text-muted)">+6</span>
+      </div>
+      <div class="pagination">
+        <span class="pagination__item">‹</span>
+        <span class="pagination__item" aria-current="page">1</span>
+        <span class="pagination__item">2</span>
+        <span class="pagination__item">3</span>
+        <span class="pagination__item">›</span>
+      </div>
+      <div class="timeline">
+        <div class="timeline__item"><span class="timeline__dot timeline__dot--success"></span><div class="timeline__time">2:14 PM</div><div style="font-size:var(--text-sm)">Submission auto-graded</div></div>
+        <div class="timeline__item"><span class="timeline__dot"></span><div class="timeline__time">2:09 PM</div><div style="font-size:var(--text-sm)">Flagged for review</div></div>
+        <div class="timeline__item"><span class="timeline__dot timeline__dot--muted"></span><div class="timeline__time">1:58 PM</div><div style="font-size:var(--text-sm); color:var(--text-muted)">Queued</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Toasts & alerts</div>
+    <div class="ds-row" style="align-items:flex-start; gap:var(--space-4)">
+      <div class="toast toast--success">
+        <span class="toast__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div><div class="toast__title">42 grades published</div><div class="toast__body">Students notified by email.</div></div>
+      </div>
+      <div class="ds-col" style="gap:var(--space-2); flex:1; max-width:420px">
+        <div class="alert alert--info"><span class="alert__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span><div><span class="alert__title">Review recommended. </span><span class="alert__body">3 low-confidence items need a human check.</span></div></div>
+        <div class="alert alert--warning"><span class="alert__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><span class="alert__title">Answer key locked. </span><span class="alert__body">Editing disabled while grading runs.</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

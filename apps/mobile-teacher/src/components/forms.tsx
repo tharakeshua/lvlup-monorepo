@@ -33,7 +33,7 @@ export function TextField({
       )}
       <View
         className={cx(
-          "bg-surface flex-row items-center gap-2 rounded-md border px-3",
+          "bg-surface flex-row items-center gap-2 rounded-lg border px-3",
           multiline ? "py-2" : "py-0.5",
           error ? "border-error" : focused ? "border-brand" : "border-border-strong"
         )}
@@ -77,7 +77,7 @@ export function SearchField({
   return (
     <View
       className={cx(
-        "rounded-pill border-border-subtle bg-surface-sunken flex-row items-center gap-2 border px-3.5 py-2.5",
+        "rounded-pill border-border-subtle bg-surface min-h-12 flex-row items-center gap-2 border px-4 py-2.5 shadow-sm",
         className
       )}
     >

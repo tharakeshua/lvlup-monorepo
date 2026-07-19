@@ -1,0 +1,521 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Global Users (Cross-Tenant)" subtitle="Super Admin · cross-tenant lookup · audited elevated actions · forensic tool" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-scopechip{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-strong);border-radius:var(--radius-pill);font-size:var(--text-xs);color:var(--text-secondary);font-weight:var(--weight-medium);}
+.ax-scopechip i{width:13px;height:13px;color:var(--text-secondary);}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);width:100%;max-width:1200px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* card / panel */
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);}
+.card.pad{padding:var(--space-4);}
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;position:relative;}
+.panel .pf{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:var(--text-xs);}
+/* elevated-scope banner */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-info);background:var(--status-info-subtle);font-size:var(--text-sm);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;color:var(--status-info);}
+.alert.err i.lead{color:var(--status-error);}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+/* search input */
+.srch{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);transition:border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard);}
+.srch.foc{border-color:var(--border-focus);box-shadow:var(--ring-focus);background:var(--bg-surface);}
+.srch i{width:18px;height:18px;color:var(--text-muted);flex:none;}
+.srch input{flex:1;border:none;outline:none;background:none;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);}
+.srch input::placeholder{font-family:var(--font-ui);color:var(--text-muted);}
+.hint{font-size:var(--text-xs);color:var(--text-muted);padding:var(--space-2) var(--space-1) 0;}
+/* table */
+.utbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+.utbl thead th{text-align:left;font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);white-space:nowrap;}
+.utbl thead th.so{cursor:pointer;}
+.utbl thead th.so i{width:12px;height:12px;vertical-align:-1px;margin-left:3px;color:var(--text-muted);}
+.utbl tbody td{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);vertical-align:top;}
+.utbl tbody tr:last-child td{border-bottom:none;}
+.utbl tbody tr{transition:background var(--dur-fast) var(--ease-standard);}
+.utbl tbody tr:hover{background:var(--bg-surface-sunken);}
+.utbl tbody tr.dim{opacity:.55;}
+.uname{display:flex;align-items:center;gap:var(--space-3);}
+.uname .av{width:32px;height:32px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);flex:none;}
+.uname .nmw{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.uname .pn{font-weight:var(--weight-medium);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2);}
+.uemail{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);}
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-2);max-width:300px;}
+.mchip{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.mchip:hover{border-color:var(--brand-primary);color:var(--brand-primary);}
+.mchip .role{color:var(--text-muted);}
+.mchip:hover .role{color:var(--brand-primary);}
+.mchip.none{cursor:default;color:var(--text-muted);}
+.mchip.none:hover{border-color:var(--border-subtle);color:var(--text-muted);}
+.mchip .tc{font-family:var(--font-mono);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:1px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:11px;height:11px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.dis{background:var(--status-error-subtle);color:var(--status-error);}
+.badge.sa{background:transparent;color:var(--text-secondary);border-color:var(--border-strong);}
+.llt{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--text-xs);color:var(--text-secondary);}
+.rowact{position:relative;display:flex;justify-content:flex-end;}
+.icon-btn{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.icon-btn:hover{background:var(--bg-inset);color:var(--text-primary);}
+.icon-btn i{width:17px;height:17px;}
+.icon-btn .spin{animation:axspin 1s linear infinite;}
+@keyframes axspin{to{transform:rotate(360deg);}}
+/* popover menu */
+.menu{position:absolute;top:36px;right:0;z-index:30;min-width:212px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-1);}
+.mi{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-sm);color:var(--text-primary);background:none;border:none;cursor:pointer;}
+.mi i{width:15px;height:15px;color:var(--text-muted);}
+.mi:hover{background:var(--bg-surface-sunken);}
+.mi.danger{color:var(--status-error);}
+.mi.danger i{color:var(--status-error);}
+.mi.dis{color:var(--text-muted);cursor:not-allowed;}
+.mi.dis i{color:var(--text-muted);}
+.mi.dis:hover{background:none;}
+.mi .tip{margin-left:auto;font-size:var(--text-2xs);color:var(--text-muted);}
+.msep{height:1px;background:var(--border-subtle);margin:var(--space-1) 0;}
+.mlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-3) var(--space-1);}
+/* shimmer top bar on refetch */
+.shim{position:absolute;top:0;left:0;height:2px;width:100%;overflow:hidden;}
+.shim::after{content:"";position:absolute;inset:0;width:40%;background:var(--brand-primary);animation:axshim 1.1s var(--ease-standard) infinite;}
+@keyframes axshim{0%{transform:translateX(-100%);}100%{transform:translateX(350%);}}
+/* skeleton */
+.sk{background:var(--bg-inset);border-radius:var(--radius-sm);animation:axpulse 1.4s ease-in-out infinite;}
+.sk.circ{border-radius:var(--radius-pill);}
+@keyframes axpulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-12) var(--space-8);text-align:center;}
+.empty i{width:38px;height:38px;color:var(--text-muted);}
+.empty .et{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:380px;}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:grid;place-items:center;z-index:60;padding:var(--space-6);}
+.dlg{width:100%;max-width:480px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);overflow:hidden;}
+.dlg .dh{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3);}
+.dlg .dh .ic{width:34px;height:34px;border-radius:var(--radius-md);display:grid;place-items:center;flex:none;}
+.dlg .dh .ic i{width:18px;height:18px;}
+.dlg .dh .ic.danger{background:var(--status-error-subtle);color:var(--status-error);}
+.dlg .dh .ic.info{background:var(--status-info-subtle);color:var(--status-info);}
+.dlg .dt{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.dlg .db{padding:0 var(--space-5) var(--space-4);font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);display:flex;flex-direction:column;gap:var(--space-3);}
+.dlg .db b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.dlg .df{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken);}
+.fld{display:flex;flex-direction:column;gap:var(--space-1);}
+.fld label{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-primary);}
+.fld label .rq{color:var(--status-error);}
+.fld .ipt,.fld .sel,.fld .ta{width:100%;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--text-sm);padding:var(--space-2) var(--space-3);box-sizing:border-box;}
+.fld .ta{resize:vertical;min-height:64px;font-family:var(--font-ui);}
+.fld .ipt:focus,.fld .sel:focus,.fld .ta:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.gate{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer;}
+.gate input{margin-top:2px;}
+.helper{font-size:var(--text-xs);color:var(--text-muted);}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;border:1px solid transparent;transition:background var(--dur-fast) var(--ease-standard);}
+.btn i{width:15px;height:15px;}
+.btn.sec{background:var(--bg-surface);border-color:var(--border-strong);color:var(--text-primary);}
+.btn.sec:hover{background:var(--bg-surface-sunken);}
+.btn.danger{background:var(--status-error);color:var(--text-on-accent);}
+.btn.danger:hover{filter:brightness(.95);}
+.btn.danger:disabled{background:var(--bg-inset);color:var(--text-muted);cursor:not-allowed;}
+.btn.ghostlnk{background:none;color:var(--brand-primary);padding:var(--space-1) var(--space-2);}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:80;display:flex;align-items:flex-start;gap:var(--space-3);max-width:360px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-left:3px solid var(--status-success);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-4);}
+.toast.err{border-left-color:var(--status-error);}
+.toast i{width:18px;height:18px;flex:none;margin-top:1px;color:var(--status-success);}
+.toast.err i{color:var(--status-error);}
+.toast .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.toast .tb{font-size:var(--text-xs);color:var(--text-secondary);}
+.statelbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);}
+.pgn{display:flex;align-items:center;gap:var(--space-1);margin-left:auto;}
+.pgbtn{display:inline-grid;place-items:center;height:30px;min-width:30px;padding:0 var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-secondary);font-size:var(--text-xs);cursor:pointer;}
+.pgbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.pgbtn[disabled]{opacity:.45;cursor:not-allowed;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation:none !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+
+/* ---- super-admin shell (tokens-only frame; platform-scope topbar) ---- */
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined}>
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Platform · Super Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Platform</div>
+          <Nav icon="layout-dashboard" label="Overview" route="/" active={active}/>
+          <Nav icon="building-2" label="Tenants" route="/tenants" active={active}/>
+          <Nav icon="users" label="Global Users" route="/users" active={active}/>
+          <Nav icon="bar-chart-3" label="Platform Analytics" route="/analytics" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Control</div>
+          <Nav icon="flag" label="Feature Flags" route="/feature-flags" active={active}/>
+          <Nav icon="sliders-horizontal" label="Evaluation Presets" route="/presets" active={active}/>
+          <Nav icon="cpu" label="LLM Usage" route="/llm-usage" active={active}/>
+          <Nav icon="activity" label="System Health" route="/system" active={active}/>
+          <Nav icon="credit-card" label="Billing" route="/billing" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Broadcast</div>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Config</div>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="globe"></i><span>All tenants</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">SA</div>
+          <div><div className="nm">Sam Avery</div><div className="rl">Super Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">{crumb.map((c,i)=>(
+          <React.Fragment key={i}>{i>0&&<i data-lucide="chevron-right" style={{width:14,height:14}}></i>}{i===crumb.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>))}</nav>
+        <div className="sp"></div>
+        {/* platform-scope indicator replaces the tenant switcher on super-admin */}
+        <div className="ax-scopechip"><i data-lucide="globe"></i><span>Platform scope · All tenants</span></div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Find user…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn" aria-label="Notifications, 2 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- sample data: server-authoritative SearchUsersResponse shape (render-only) ---- */
+const ME_UID = "u_sam_avery";
+const ROWS = [
+  {uid:"u_arao",displayName:"Ananya Rao",email:"ananya.rao@x.edu",isSuperAdmin:false,status:"active",
+   memberships:[{tenantId:"t_sub",tenantCode:"SUB001",role:"teacher"},{tenantId:"t_dps",tenantCode:"DPS02",role:"parent"}],last:"3d ago",lastAbs:"17 Jun 2026, 09:12"},
+  {uid:"u_sam_avery",displayName:"Sam Avery",email:"sam.avery@platform.io",isSuperAdmin:true,status:"active",
+   memberships:[],last:"1h ago",lastAbs:"20 Jun 2026, 10:40"},
+  {uid:"u_mkhan",displayName:"Maya Khan",email:"maya.khan@northwood.edu",isSuperAdmin:false,status:"disabled",
+   memberships:[{tenantId:"t_nwa",tenantCode:"NWA04",role:"student"}],last:"22d ago",lastAbs:"29 May 2026, 14:05"},
+  {uid:"u_jpatel",displayName:"Jay Patel",email:"jay.patel@sub001.in",isSuperAdmin:false,status:"active",
+   memberships:[{tenantId:"t_sub",tenantCode:"SUB001",role:"admin"},{tenantId:"t_oak",tenantCode:"OAK11",role:"teacher"},{tenantId:"t_dps",tenantCode:"DPS02",role:"teacher"}],last:"6h ago",lastAbs:"20 Jun 2026, 05:30"},
+  {uid:"u_rsingh",displayName:"Rhea Singh",email:"rhea.singh@platform.io",isSuperAdmin:true,status:"active",
+   memberships:[],last:"4d ago",lastAbs:"16 Jun 2026, 18:22"},
+  {uid:"u_lchen",displayName:null,email:"l.chen@oak11.edu",isSuperAdmin:false,status:"active",
+   memberships:[],last:"31d ago",lastAbs:"20 May 2026, 11:09"},
+];
+
+function Avatar({name,email}){
+  const s=(name||email||"?").replace(/[^A-Za-z]/g,"");
+  const init=(name?name.split(" ").map(w=>w[0]).slice(0,2).join(""):s.slice(0,2)).toUpperCase();
+  return <div className="av" aria-hidden="true">{init}</div>;
+}
+
+function RowMenu({row,onAction,onClose}){
+  const isSelf=row.uid===ME_UID;
+  const isOtherSA=row.isSuperAdmin && !isSelf;
+  // backend callables not shipped yet → reset/disable/impersonate disabled with tooltip (§4.3 / self-protection §8.4)
+  const disableReason = isSelf ? "You cannot disable your own account" : "Backend action coming soon";
+  const impReason = isSelf ? "You cannot impersonate yourself" : isOtherSA ? "Cannot impersonate another super admin" : "Backend action coming soon";
+  return <div className="menu" role="menu" aria-label={"Actions for "+(row.displayName||row.email)} onClick={e=>e.stopPropagation()}>
+    <button className="mi" role="menuitem" onClick={()=>onAction("open",row)}>
+      <i data-lucide="log-in"></i>Open in tenant…</button>
+    <div className="msep"></div>
+    <div className="mlbl">Elevated · audited</div>
+    <button className={"mi danger"+(true?" dis":"")} role="menuitem" aria-disabled="true" title={disableReason}>
+      <i data-lucide={row.status==="disabled"?"user-check":"user-x"}></i>{row.status==="disabled"?"Re-enable account":"Disable account"}<span className="tip">soon</span></button>
+    <button className="mi dis" role="menuitem" aria-disabled="true" title="Backend action coming soon">
+      <i data-lucide="key-round"></i>Force password reset<span className="tip">soon</span></button>
+    <button className={"mi danger"+((isSelf||isOtherSA)?" dis":"")} role="menuitem"
+      aria-disabled={(isSelf||isOtherSA)||undefined}
+      title={(isSelf||isOtherSA)?impReason:undefined}
+      onClick={()=>{ if(!(isSelf||isOtherSA)) onAction("impersonate",row); }}>
+      <i data-lucide="venetian-mask"></i>Impersonate-scope…{(isSelf||isOtherSA)&&<span className="tip">blocked</span>}</button>
+  </div>;
+}
+
+function MembershipChips({memberships,onPivot}){
+  if(!memberships.length) return <div className="chips"><span className="mchip none"><i data-lucide="circle-slash" style={{width:11,height:11}}></i>No active memberships</span></div>;
+  return <div className="chips">{memberships.map(m=>
+    <a key={m.tenantId} className="mchip" role="link" tabIndex="0"
+       aria-label={"Open tenant "+m.tenantCode+" ("+m.role+")"} onClick={()=>onPivot(m)}>
+      <span className="role">{m.role} @</span><span className="tc">{m.tenantCode}</span></a>)}</div>;
+}
+
+function Row({row,busy,onPivot,onMenuAction}){
+  const [open,setOpen]=React.useState(false);
+  React.useEffect(()=>{ if(!open) return; const h=()=>setOpen(false); window.addEventListener("click",h); return ()=>window.removeEventListener("click",h); },[open]);
+  return <tr className={busy?"dim":undefined}>
+    <td>
+      <div className="uname"><Avatar name={row.displayName} email={row.email}/>
+        <div className="nmw"><span className="pn">
+          {row.isSuperAdmin && <span aria-hidden="true" style={{color:"var(--text-secondary)"}}>◆</span>}
+          {row.displayName||<span className="ax-muted">—</span>}
+          {row.isSuperAdmin && <span className="badge sa"><i data-lucide="shield"></i>Super Admin</span>}
+          {row.status==="active"
+            ? <span className="badge suc"><i data-lucide="check"></i>Active</span>
+            : <span className="badge dis"><i data-lucide="ban"></i>Disabled</span>}
+        </span></div></div>
+    </td>
+    <td><span className="uemail">{row.email}</span></td>
+    <td><MembershipChips memberships={row.memberships} onPivot={onPivot}/></td>
+    <td><span className="llt" title={row.lastAbs}>{row.last}</span></td>
+    <td>
+      <div className="rowact">
+        <button className="icon-btn" aria-haspopup="menu" aria-expanded={open} aria-label={"Actions for "+(row.displayName||row.email)}
+          onClick={e=>{e.stopPropagation();setOpen(o=>!o);}}>
+          {busy?<i data-lucide="loader-2" className="spin"></i>:<i data-lucide="more-horizontal"></i>}</button>
+        {open && <RowMenu row={row} onAction={(a,r)=>{setOpen(false);onMenuAction(a,r);}} onClose={()=>setOpen(false)}/>}
+      </div>
+    </td>
+  </tr>;
+}
+
+function SkeletonRows(){
+  return <tbody aria-busy="true">{[0,1,2,3,4].map(i=>
+    <tr key={i}>
+      <td><div className="uname"><div className="sk circ" style={{width:32,height:32}}></div>
+        <div className="nmw"><div className="sk" style={{width:120,height:11}}></div><div className="sk" style={{width:80,height:9}}></div></div></div></td>
+      <td><div className="sk" style={{width:160,height:11}}></div></td>
+      <td><div className="sk" style={{width:140,height:18,borderRadius:"var(--radius-pill)"}}></div></td>
+      <td><div className="sk" style={{width:52,height:11}}></div></td>
+      <td><div className="sk circ" style={{width:24,height:24,marginLeft:"auto"}}></div></td>
+    </tr>)}</tbody>;
+}
+
+/* ---- impersonate-scope modal: required tenant + reason + consent (§6/§7) ---- */
+function ImpersonateModal({row,onClose,onConfirm}){
+  const [tenant,setTenant]=React.useState(row.memberships[0]?row.memberships[0].tenantId:"");
+  const [reason,setReason]=React.useState("");
+  const [ack,setAck]=React.useState(false);
+  React.useEffect(()=>{ const h=e=>{ if(e.key==="Escape") onClose(); }; window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h); },[onClose]);
+  const code=(row.memberships.find(m=>m.tenantId===tenant)||{}).tenantCode||"—";
+  const ready=tenant && reason.trim().length>0 && ack;
+  return <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="imp-t" onClick={onClose}>
+    <div className="dlg" onClick={e=>e.stopPropagation()}>
+      <div className="dh"><div className="ic danger"><i data-lucide="venetian-mask"></i></div>
+        <div><div className="dt" id="imp-t">Enter a tenant as this user</div>
+          <div className="helper" style={{marginTop:4}}>Acting as <b style={{color:"var(--text-primary)"}}>{row.email}</b></div></div></div>
+      <div className="db">
+        <div className="fld"><label htmlFor="imp-ten">Tenant</label>
+          <select id="imp-ten" className="sel" value={tenant} onChange={e=>setTenant(e.target.value)}>
+            {row.memberships.map(m=><option key={m.tenantId} value={m.tenantId}>{m.role} @ {m.tenantCode}</option>)}</select></div>
+        <div className="fld"><label htmlFor="imp-rsn">Reason <span className="rq">(required)</span></label>
+          <textarea id="imp-rsn" className="ta" placeholder="e.g. Investigating login failure — ticket No. 1234"
+            value={reason} onChange={e=>setReason(e.target.value)}></textarea></div>
+        <label className="gate"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/>
+          <span>I understand this session is time-boxed and audited.</span></label>
+        <div className="helper">You will act inside <b style={{color:"var(--text-primary)"}}>{code}</b> only. Ends automatically in 30 min.</div>
+      </div>
+      <div className="df">
+        <button className="btn sec" onClick={onClose}>Cancel</button>
+        <button className="btn danger" disabled={!ready} onClick={()=>onConfirm(row,code)}>Start scoped session</button>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ---- open-in-tenant picker (>1 membership chooses which first, §6) ---- */
+function OpenModal({row,onClose,onConfirm}){
+  const [tenant,setTenant]=React.useState(row.memberships[0]?row.memberships[0].tenantId:"");
+  React.useEffect(()=>{ const h=e=>{ if(e.key==="Escape") onClose(); }; window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h); },[onClose]);
+  return <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="opn-t" onClick={onClose}>
+    <div className="dlg" onClick={e=>e.stopPropagation()}>
+      <div className="dh"><div className="ic info"><i data-lucide="log-in"></i></div>
+        <div><div className="dt" id="opn-t">Open which tenant?</div>
+          <div className="helper" style={{marginTop:4}}>{row.email} holds {row.memberships.length} active memberships.</div></div></div>
+      <div className="db">
+        <div className="fld"><label htmlFor="opn-ten">Tenant</label>
+          <select id="opn-ten" className="sel" value={tenant} onChange={e=>setTenant(e.target.value)}>
+            {row.memberships.map(m=><option key={m.tenantId} value={m.tenantId}>{m.role} @ {m.tenantCode}</option>)}</select></div>
+      </div>
+      <div className="df">
+        <button className="btn sec" onClick={onClose}>Cancel</button>
+        <button className="btn sec" style={{borderColor:"var(--brand-primary)",color:"var(--brand-primary)"}} onClick={()=>onConfirm(row,tenant)}>Open tenant detail</button>
+      </div>
+    </div>
+  </div>;
+}
+
+const COLS=[
+  {k:"name",label:"Name",so:true},
+  {k:"email",label:"Email"},
+  {k:"mem",label:"Memberships"},
+  {k:"last",label:"Last login",so:true},
+  {k:"act",label:"",so:false},
+];
+
+function Screen(){
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  const [q,setQ]=React.useState("a");          // primary success state seeds a query
+  const [foc,setFoc]=React.useState(false);
+  const [phase,setPhase]=React.useState("success"); // success | loading | refetch | empty | error
+  const [busyUid,setBusyUid]=React.useState(null);
+  const [impRow,setImpRow]=React.useState(null);
+  const [openRow,setOpenRow]=React.useState(null);
+  const [toast,setToast]=React.useState(null);
+  const inputRef=React.useRef(null);
+
+  React.useEffect(()=>{ inputRef.current && inputRef.current.focus(); },[]); // autofocus on mount (§3)
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  React.useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(null),3200); return ()=>clearTimeout(t); },[toast]);
+
+  const rows = q ? ROWS.filter(r=>(r.email||"").toLowerCase().startsWith(q.toLowerCase())||(r.displayName||"").toLowerCase().startsWith(q.toLowerCase())) : [];
+  const showRows = phase==="success"||phase==="refetch";
+
+  function pivot(m){ setToast({ok:true,t:"Opening "+m.tenantCode,b:"Navigating to tenant detail (page transition)."}); }
+  function menuAction(a,row){
+    if(a==="open"){ if(row.memberships.length>1) setOpenRow(row); else if(row.memberships.length===1) pivot(row.memberships[0]); else setToast({ok:false,t:"No tenant to open",b:"This user holds no active memberships."}); }
+    if(a==="impersonate"){ setImpRow(row); }
+  }
+
+  return <Shell active="/users" crumb={["Platform","Users"]}>
+    {/* PAGE HEADER — deliberately sparse: lookup tool, not a CRUD roster (§3) */}
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Global Users</h1>
+        <div className="ax-sub">Search and act on users across every tenant</div></div>
+    </div>
+
+    {/* ELEVATED-SCOPE BANNER — persistent on this route; cross-tenant + audited (§8.1) */}
+    <div className="alert" role="status">
+      <i data-lucide="shield-alert" className="lead"></i>
+      <div className="ab"><span className="at">Cross-tenant view. </span>
+        <span className="ax-sec">You are operating outside any single tenant — every action here is platform-level and written to the audit log.</span></div>
+    </div>
+
+    {/* SEARCH CARD */}
+    <div className="card pad">
+      <div className={"srch"+(foc?" foc":"")}>
+        <i data-lucide="search"></i>
+        <input ref={inputRef} type="text" value={q} aria-label="Search users by email or name"
+          placeholder="Search by email or name…" autoComplete="off" spellCheck="false"
+          onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
+          onChange={e=>{ const v=e.target.value; setQ(v); setPhase(v.trim().length<1?"initial":(v==="zzz"?"empty":(v==="err"?"error":"success"))); }}/>
+        {phase==="refetch" && <span className="statelbl">updating…</span>}
+      </div>
+      <div className="hint">Prefix match — searches the start of an email or display name.</div>
+    </div>
+
+    {/* RESULTS CARD */}
+    <div className="panel" aria-label="User search results">
+      {phase==="refetch" && <div className="shim" aria-hidden="true"></div>}
+      <table className="utbl">
+        <caption className="ax-sr">User search results</caption>
+        <thead><tr>{COLS.map(c=>
+          <th key={c.k} className={c.so?"so":undefined} scope="col"
+              aria-sort={c.k==="name"?"ascending":(c.so?"none":undefined)}>
+            {c.label}{c.so&&<i data-lucide={c.k==="name"?"chevron-up":"chevrons-up-down"}></i>}</th>)}</tr></thead>
+
+        {phase==="loading" && <SkeletonRows/>}
+
+        {phase==="initial" &&
+          <tbody><tr><td colSpan="5"><div className="empty">
+            <i data-lucide="user-circle-2"></i>
+            <div className="et">Search the platform</div>
+            <div className="eb">Type an email or name to find a user across every tenant.</div>
+          </div></td></tr></tbody>}
+
+        {phase==="empty" &&
+          <tbody><tr><td colSpan="5"><div className="empty">
+            <i data-lucide="search-x"></i>
+            <div className="et">No users found</div>
+            <div className="eb">Nothing matches “{q}”. Search matches the start of an email or name — try the full email.</div>
+          </div></td></tr></tbody>}
+
+        {phase==="error" &&
+          <tbody><tr><td colSpan="5" style={{padding:"var(--space-5)"}}>
+            <div className="alert err" role="alert">
+              <i data-lucide="alert-octagon" className="lead"></i>
+              <div className="ab"><span className="at">Couldn’t search users. </span>
+                <span className="ax-sec">The lookup service is unavailable. Try again.</span></div>
+              <button className="btn sec" onClick={()=>setPhase("success")}><i data-lucide="rotate-ccw"></i>Retry</button>
+            </div></td></tr></tbody>}
+
+        {showRows &&
+          <tbody>{rows.map(r=>
+            <Row key={r.uid} row={r} busy={busyUid===r.uid} onPivot={pivot} onMenuAction={menuAction}/>)}
+          </tbody>}
+      </table>
+
+      <div className="pf">
+        <span aria-live="polite">
+          {showRows ? `Showing ${rows.length} result${rows.length===1?"":"s"}` : phase==="loading" ? "Searching…" : "—"}
+          {phase==="refetch" && <span className="ax-muted"> (updating…)</span>}
+        </span>
+        {showRows && <nav className="pgn" aria-label="Pagination">
+          <button className="pgbtn" disabled aria-label="Previous page">‹ Prev</button>
+          <button className="pgbtn" onClick={()=>setPhase("refetch")}>Load more</button>
+        </nav>}
+      </div>
+    </div>
+
+    {/* ---------- secondary labelled state examples (so each §5 state is present) ---------- */}
+    <div style={{marginTop:"var(--space-2)"}}>
+      <div className="statelbl" style={{marginBottom:"var(--space-3)"}}>State reference · loading · empty · error</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--space-4)"}}>
+        <div className="panel">
+          <div className="pf" style={{borderTop:"none",borderBottom:"1px solid var(--border-subtle)"}}><i data-lucide="loader-2" className="spin" style={{width:14,height:14}}></i>Loading (skeleton)</div>
+          <table className="utbl"><SkeletonRows/></table>
+        </div>
+        <div className="panel">
+          <div className="pf" style={{borderTop:"none",borderBottom:"1px solid var(--border-subtle)"}}><i data-lucide="search-x" style={{width:14,height:14}}></i>Empty (no matches)</div>
+          <div className="empty" style={{padding:"var(--space-8)"}}>
+            <i data-lucide="search-x"></i><div className="et">No users found</div>
+            <div className="eb">Nothing matches “joanna”. Try the full email.</div></div>
+        </div>
+      </div>
+    </div>
+
+    {/* modals */}
+    {impRow && <ImpersonateModal row={impRow} onClose={()=>setImpRow(null)}
+      onConfirm={(r,code)=>{ setImpRow(null); setBusyUid(r.uid);
+        setTimeout(()=>{ setBusyUid(null); setToast({ok:true,t:"Scoped session started · audit logged",b:"Operating in "+code+" as "+r.email+". Ends in 30 min."}); },700); }}/>}
+    {openRow && <OpenModal row={openRow} onClose={()=>setOpenRow(null)}
+      onConfirm={(r,tid)=>{ setOpenRow(null); const m=r.memberships.find(x=>x.tenantId===tid); pivot(m); }}/>}
+
+    {/* toast */}
+    {toast && <div className={"toast"+(toast.ok?"":" err")} role="status">
+      <i data-lucide={toast.ok?"check-circle-2":"alert-triangle"}></i>
+      <div><div className="tt">{toast.t}</div><div className="tb">{toast.b}</div></div></div>}
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

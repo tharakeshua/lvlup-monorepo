@@ -25,6 +25,9 @@ import {
 import { xrepos } from "../shared/extended-repos.js";
 import { autoEvaluateDeterministic, DETERMINISTIC_TYPES } from "./grading.js";
 import { applyProgress } from "./progress-updater.js";
+import { resolveLevelupEvaluationConfig } from "../evaluation/resolve.js";
+import { evaluateWithAi } from "../evaluation/evaluate.js";
+import type { TranscriptTurn } from "../evaluation/types.js";
 
 type Doc = Record<string, unknown>;
 
@@ -94,14 +97,26 @@ function answerHash(answer: unknown): string {
   return (h >>> 0).toString(36);
 }
 
-/** Score one item — deterministic for objective types, AI for subjective. */
-async function scoreOne(
+/**
+ * Score one item — deterministic for objective types, Evaluation Core (AI) for
+ * subjective. Exported so `submitTestSession` grades its AI-pending items
+ * through the SAME path (AI-EVALUATION-CORE-PLAN.md Phase 2).
+ */
+export async function scoreOne(
   ctx: AuthContext,
   tenantId: string,
   item: Doc,
   itemId: string,
   answer: unknown,
-  mediaUrls?: string[]
+  mediaUrls?: string[],
+  spaceId?: string,
+  mode: "interactive" | "batch" = "interactive",
+  /**
+   * LLM-tracking attribution context threaded from the callers (evaluateAnswer /
+   * recordItemAttempt carry `storyPointId`; submitTestSession carries the
+   * `testSessionId`). Both ride the online usage `related` block below.
+   */
+  opts?: { storyPointId?: string; testSessionId?: string }
 ): Promise<StoredEvaluation> {
   // The captured-media answer is normalized client-side to `{ text, mediaUrls }`
   // (question-view.tsx) when the learner attaches an image/recording; a plain
@@ -156,6 +171,16 @@ async function scoreOne(
       (item["questionType"] as string | undefined) ??
       "short_answer"
   );
+  // A conversational assessment is finalized exclusively from its immutable
+  // conversation submission. Generic practice/test pathways must never accept a
+  // transcript or re-evaluate it, or they could create a second score/progress
+  // effect outside the lease-fenced finalization workflow.
+  if (type === "chat_agent_question") {
+    fail(
+      "PRECONDITION_FAILED",
+      "Conversational assessments must be finalized through finishConversation"
+    );
+  }
   const maxScore =
     (item["maxScore"] as number | undefined) ?? (question["points"] as number | undefined) ?? 1;
   const key = await ctx.repos.answerKeys.get(tenantId, itemId);
@@ -188,12 +213,11 @@ async function scoreOne(
     } as StoredEvaluation;
   }
 
-  // Subjective → AI gateway (cost/quota/key all server-side). Strip cost on the way out.
-  // The gateway is `generate(req, ctx: AiCallContext)`: the second arg carries the
-  // server clock/tenant/uid the gateway needs for quota + cost-logging.
-  // The `answerGrading` prompt requires { question, maxMarks, rubric, answer } — pass
-  // them explicitly (a bare { item, answer } leaves the template var `question` unfilled
-  // → "missing required variable question"). The ⚷ answer key is NOT sent to the LLM.
+  // Subjective → Evaluation Core (AI-EVALUATION-CORE-PLAN.md Phase 2): resolve
+  // the config triad (evaluator agent → persona, question rubric, evaluation
+  // settings → response dimensions) and run ONE unified gateway call. The ⚷
+  // answer key stays server-side; the ⚷ rubric secrets legitimately ride the
+  // server-side prompt. Cost stripped on the way out.
   const questionText = String(
     item["content"] ??
       question["text"] ??
@@ -204,53 +228,106 @@ async function scoreOne(
   );
   // Attach any captured media as gateway image/audio parts so Gemini actually
   // SEES the learner's image/recording: pass the Storage PATH as `storagePath`
-  // and the ai gateway downloads + inlines the bytes (FIX-1 P0-B seam). When
-  // the learner answered ONLY with media (empty text), tell the grader to read the
-  // attachment rather than grading an empty string down to zero.
+  // and the ai gateway downloads + inlines the bytes (FIX-1 P0-B seam).
   const images = media.map((url) => ({ storagePath: url, mimeType: guessMediaMime(url) }));
-  const answerForGrader =
-    answerText.trim().length > 0
-      ? images.length > 0
-        ? `${answerText}\n\n(The learner also attached ${images.length} media file(s) — consider the attached image/audio.)`
-        : answerText
-      : images.length > 0
-        ? "(The learner's response is provided as attached media — grade the attached image/audio.)"
-        : answerText;
-  const ai = await ctx.ai.generate(
+  // Chat-agent questions submit their transcript as the answer (registry
+  // learner shape `{ transcript: [{role, content}] }`) — evaluate the
+  // conversation, not the JSON stringification of it.
+  const rawTranscript = answerObj?.["transcript"];
+  const transcript: TranscriptTurn[] | undefined = Array.isArray(rawTranscript)
+    ? (rawTranscript as Doc[])
+        .filter((t) => t && typeof t === "object")
+        .map((t) => ({ role: String(t["role"] ?? "user"), content: String(t["content"] ?? "") }))
+    : undefined;
+
+  // LLM-tracking feature attribution (LLM-TRACKING-FRAMEWORK-PLAN.md): a
+  // transcript-shaped answer is a chat-agent question; a batch score is a timed
+  // test-session grade; everything else is interactive practice.
+  const feature =
+    transcript && transcript.length > 0
+      ? "levelup.agent_question"
+      : mode === "batch"
+        ? "levelup.timed_test"
+        : "levelup.practice";
+  const storyPointId = opts?.storyPointId;
+  const testSessionId = opts?.testSessionId;
+
+  const config = await resolveLevelupEvaluationConfig(ctx, tenantId, spaceId, item);
+  const outcome = await evaluateWithAi(
+    ctx.ai,
     {
-      promptKey: "answerGrading",
-      operation: "answer.evaluate",
-      variables: {
-        question: questionText,
-        maxMarks: maxScore,
-        rubric: JSON.stringify(item["effectiveRubric"] ?? item["rubric"] ?? {}),
-        answer: answerForGrader,
+      tenantId,
+      uid: ctx.uid,
+      role: ctx.role ?? "student",
+      resourceType: "item",
+      resourceId: itemId,
+      now: ctx.now,
+      ...(spaceId ? { spaceId } : {}),
+      itemId,
+      ...(storyPointId ? { storyPointId } : {}),
+      ...(testSessionId ? { testSessionId } : {}),
+      usage: {
+        actorUserId: ctx.uid,
+        actorRole: ctx.role ?? "student",
+        initiatedByUserId: ctx.uid,
+        initiatorRole: ctx.role ?? "student",
+        subjectUserId: ctx.uid,
+        billingUserId: ctx.uid,
+        related: {
+          itemId,
+          ...(spaceId ? { spaceId } : {}),
+          ...(storyPointId ? { storyPointId } : {}),
+          ...(testSessionId ? { testSessionId } : {}),
+        },
       },
-      ...(images.length > 0 ? { images } : {}),
-      // REQUIRED for structured output: the gateway only populates the parsed JSON
-      // (`data`/`json`) when a `responseSchema` is set — both the Gemini provider
-      // (`responseMimeType: application/json`) and the emulator stub key off it.
-      // Without it the grader returns free text and the eval collapses to zeros.
-      responseSchema: { type: "object" },
     },
-    { tenantId, uid: ctx.uid, now: ctx.now }
+    {
+      question: {
+        text: questionText,
+        questionType: type,
+        maxScore,
+        typeData: { ...question, ...questionData },
+      },
+      answer:
+        transcript && transcript.length > 0
+          ? { transcript }
+          : {
+              ...(answerText.trim() ? { text: answerText } : {}),
+              ...(images.length > 0 ? { media: images } : {}),
+            },
+      agent: config.agent,
+      rubric: config.rubric,
+      settings: config.settings,
+      mode,
+      operation: "answer.evaluate",
+      feature,
+    }
   );
-  const raw = (ai.json as Doc | undefined) ?? {};
-  // The `answerGrading` prompt only guarantees `score`; `correctness`/`percentage`
-  // are optional. Derive them from score/maxScore when the model omits them so the
-  // progress `solved`/`percentage` reconciliation stays correct.
-  const score = Number(raw["score"] ?? 0);
-  const ratio = maxScore > 0 ? Math.min(1, Math.max(0, score / maxScore)) : 0;
+
   const evaluation: StoredEvaluation = {
-    score,
-    maxScore,
-    correctness: raw["correctness"] != null ? Number(raw["correctness"]) : ratio,
-    percentage: raw["percentage"] != null ? Number(raw["percentage"]) : ratio * 100,
-    strengths: (raw["strengths"] as string[] | undefined) ?? [],
-    weaknesses: (raw["weaknesses"] as string[] | undefined) ?? [],
-    missingConcepts: (raw["missingConcepts"] as string[] | undefined) ?? [],
+    score: outcome.score,
+    maxScore: outcome.maxScore,
+    correctness: outcome.correctness,
+    percentage: outcome.percentage,
+    strengths: outcome.strengths,
+    weaknesses: outcome.weaknesses,
+    missingConcepts: outcome.missingConcepts,
+    ...(outcome.summary ? { summary: outcome.summary } : {}),
+    ...(outcome.mistakeClassification
+      ? {
+          mistakeClassification:
+            outcome.mistakeClassification as StoredEvaluation["mistakeClassification"],
+        }
+      : {}),
+    confidence: outcome.confidence,
+    ...(outcome.structuredFeedback
+      ? { structuredFeedback: outcome.structuredFeedback as StoredEvaluation["structuredFeedback"] }
+      : {}),
+    ...(outcome.rubricBreakdown
+      ? { rubricBreakdown: outcome.rubricBreakdown as StoredEvaluation["rubricBreakdown"] }
+      : {}),
   };
-  return stripEvaluationCost(evaluation) as StoredEvaluation;
+  return stripEvaluationCost(evaluation as unknown as Doc) as StoredEvaluation;
 }
 
 // ── evaluateAnswer (ai; persists progress server-side) ────────────────────────
@@ -282,7 +359,10 @@ export async function evaluateAnswerService(
       item,
       input.itemId,
       input.answer,
-      input.mediaUrls
+      input.mediaUrls,
+      input.spaceId,
+      "interactive",
+      input.storyPointId ? { storyPointId: input.storyPointId } : undefined
     );
 
     // Persist progress server-side (no second client call) when story point known.
@@ -325,7 +405,17 @@ export async function recordItemAttemptService(
     const item = await ctx.repos.items.get(tenantId, input.itemId);
     if (!item) fail("NOT_FOUND", "item not found");
 
-    const evaluation = await scoreOne(ctx, tenantId, item, input.itemId, input.answer);
+    const evaluation = await scoreOne(
+      ctx,
+      tenantId,
+      item,
+      input.itemId,
+      input.answer,
+      undefined,
+      input.spaceId,
+      "interactive",
+      { storyPointId: input.storyPointId }
+    );
 
     const result = await applyProgress(
       {
@@ -413,6 +503,15 @@ function projectStoredEvaluation(v: unknown): Doc | undefined {
           ? { keyTakeaway: summary, overallComment: summary }
           : undefined,
     mistakeClassification: optStrU(e["mistakeClassification"]),
+    // Evaluation-Core enrichments (optional on StoredEvaluationSchema).
+    confidence: optNum(e["confidence"]),
+    structuredFeedback:
+      e["structuredFeedback"] && typeof e["structuredFeedback"] === "object"
+        ? (e["structuredFeedback"] as Doc)
+        : undefined,
+    rubricBreakdown: Array.isArray(e["rubricBreakdown"])
+      ? (e["rubricBreakdown"] as Doc[])
+      : undefined,
   });
 }
 

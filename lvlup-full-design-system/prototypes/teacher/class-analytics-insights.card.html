@@ -1,0 +1,608 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Class Analytics & Insights" subtitle="Single-class console · KPIs · distribution · trend · insights" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* screen-local layout only — Lyceum vars only, NO raw hex, NO :root redefinition */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+.page{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.pagehead__crumb{font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2)}
+.pagehead__controls{display:flex;align-items:flex-end;gap:var(--space-3);flex-wrap:wrap}
+.picker{min-width:240px}
+.picker__label{display:block;font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-1);font-weight:var(--weight-medium)}
+.fresh{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-secondary)}
+.fresh time{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* kpi strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.kpi{position:relative}
+.kpi .stat{height:100%}
+.kpi__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.kpi__cap--warn{color:var(--status-error)}
+.kpi__cap .u-mono{font-family:var(--font-mono)}
+
+/* card chrome */
+.dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.dcard__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.dcard__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.dcard__body{padding:0 var(--space-5) var(--space-5)}
+.dcard__foot{padding:var(--space-3) var(--space-5) var(--space-4);border-top:1px solid var(--border-subtle)}
+.dcard__stamp{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted)}
+.dcard__stamp .u-mono{font-family:var(--font-mono)}
+
+/* two-column grids */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:start}
+
+/* histogram (score distribution) */
+.hist{display:flex;align-items:flex-end;gap:var(--space-3);height:180px;padding-top:var(--space-4)}
+.hist__col{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);height:100%;justify-content:flex-end}
+.hist__bar{width:100%;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-primary);transition:filter var(--dur-fast) var(--ease-standard);position:relative}
+.hist__bar--fail{background:var(--status-error)}
+.hist__col:hover .hist__bar{filter:brightness(1.08)}
+.hist__count{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary);font-weight:var(--weight-medium)}
+.hist__band{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.hist__band--fail{color:var(--status-error)}
+
+/* trend (performance over time) */
+.trend{display:flex;align-items:flex-end;gap:var(--space-4);height:180px;padding-top:var(--space-4)}
+.trend__col{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);height:100%;justify-content:flex-end}
+.trend__bar{width:60%;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-primary);position:relative}
+.trend__col:hover .trend__bar{filter:brightness(1.08)}
+.trend__val{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary);font-weight:var(--weight-medium)}
+.trend__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* topic strength/weakness rows */
+.topiclist{display:flex;flex-direction:column;gap:var(--space-4)}
+.topicrow{display:grid;grid-template-columns:140px 1fr 56px;align-items:center;gap:var(--space-4)}
+.topicrow__name{font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+.topicrow__track{height:14px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);overflow:hidden}
+.topicrow__fill{height:100%;border-radius:var(--radius-pill)}
+.topicrow__fill--strong{background:var(--status-success)}
+.topicrow__fill--mid{background:var(--status-warning)}
+.topicrow__fill--weak{background:var(--status-error)}
+.topicrow__val{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);text-align:right}
+.legend{display:flex;align-items:center;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-secondary)}
+.legend__item{display:inline-flex;align-items:center;gap:var(--space-1)}
+.legend__sw{width:12px;height:12px;border-radius:var(--radius-sm)}
+.legend__sw--strong{background:var(--status-success)}
+.legend__sw--weak{background:var(--status-error)}
+
+/* performer rows */
+.perflist{display:flex;flex-direction:column}
+.perf-sub{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;padding:var(--space-3) var(--space-5) var(--space-2);border-top:1px solid var(--border-subtle)}
+.perf-sub:first-child{border-top:none}
+.perf-row{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;padding:var(--space-3) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.perf-row:hover{background:var(--bg-surface-sunken)}
+.perf-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.perf-row__rank{flex:0 0 auto;width:20px;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.perf-row__main{flex:1 1 auto;min-width:0}
+.perf-row__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.perf-row__score{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.perf-row__link{flex:0 0 auto;font-size:var(--text-xs);color:var(--brand-primary);display:inline-flex;align-items:center;gap:2px}
+
+/* at-risk rows */
+.risk-list{display:flex;flex-direction:column}
+.risk-row{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-4) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.risk-row:first-child{border-top:none}
+.risk-row:hover{background:var(--bg-surface-sunken)}
+.risk-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.risk-row__main{flex:1 1 auto;min-width:0}
+.risk-row__top{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.risk-row__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.risk-row__reasons{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+.risk-row__chev{flex:0 0 auto;color:var(--text-muted);align-self:center}
+.calm-empty{padding:var(--space-6) var(--space-5);display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+
+/* insights grid */
+.insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.insight-wrap{position:relative}
+.insight-wrap .insight{height:100%}
+.insight-actions{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3)}
+
+/* states rail */
+.staterail{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+.statemini{flex:1 1 300px;min-width:280px;display:flex;flex-direction:column;gap:var(--space-2)}
+.statemini__body{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);min-height:140px;display:flex;flex-direction:column;gap:var(--space-3)}
+.sk-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-3)}
+.sk-tile{border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2)}
+
+.u-mono{font-family:var(--font-mono)}
+.u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+@media (prefers-reduced-motion: reduce){.perf-row,.risk-row,.hist__bar{transition:none}}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Select, Badge, Chip, Skeleton, Alert, EmptyState,
+  Stat, AtRiskBadge, InsightCard, Tooltip, NavItem, Avatar } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+/* ---------- App shell (canonical) ---------- */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---------- sample data (server-authoritative, precomputed — never client-recomputed) ---------- */
+const CLASSES = [
+  { value:'cls_dsa_11a', label:'DSA · Grade 11-A' },
+  { value:'cls_sd_11b',  label:'System Design · Grade 11-B' },
+  { value:'cls_lld_12c', label:'LLD · Grade 12-C' },
+  { value:'cls_beh_11a', label:'Behavioral · Grade 11-A' },
+  { value:'cls_dsa_12b', label:'DSA · Grade 12-B' },
+];
+
+/* score-distribution buckets (from getPerformanceTrends) */
+const DIST = [
+  { band:'0–20', count:1, fail:true },
+  { band:'21–40', count:2, fail:true },
+  { band:'41–60', count:5, fail:true },
+  { band:'61–80', count:18, fail:false },
+  { band:'81–100', count:16, fail:false },
+];
+const DIST_MAX = 18;
+
+/* performance over time (avg score by period) */
+const TREND = [
+  { lab:'Feb', val:64 },
+  { lab:'Mar', val:67 },
+  { lab:'Apr', val:70 },
+  { lab:'May', val:69 },
+  { lab:'Jun', val:72 },
+];
+
+/* per-topic strength/weakness */
+const TOPICS = [
+  { name:'Arrays & Hashing', pct:88 },
+  { name:'Trees & Graphs', pct:74 },
+  { name:'Recursion', pct:69 },
+  { name:'Dynamic Programming', pct:52 },
+  { name:'Sorting', pct:81 },
+  { name:'Greedy', pct:46 },
+];
+
+const TOP = [
+  { id:'stu_4401', rank:1, name:'Ananya Rao', score:96 },
+  { id:'stu_4402', rank:2, name:'Vikram Shah', score:93 },
+  { id:'stu_4403', rank:3, name:'Meera Iyer', score:91 },
+  { id:'stu_4404', rank:4, name:'Rohan Gupta', score:89 },
+  { id:'stu_4405', rank:5, name:'Sara Khan', score:88 },
+];
+const BOTTOM = [
+  { id:'stu_8842', rank:38, name:'Aarav Mehta', score:41 },
+  { id:'stu_8843', rank:37, name:'Dev Patel', score:48 },
+  { id:'stu_8844', rank:36, name:'Nisha Verma', score:53 },
+  { id:'stu_8845', rank:35, name:'Karan Joshi', score:57 },
+  { id:'stu_8846', rank:34, name:'Ishaan Roy', score:59 },
+];
+
+const RISK = [
+  { id:'stu_8842', name:'Aarav Mehta', level:'risk', reasons:['Low recent scores','Zero streak','Inactive 9 days'] },
+  { id:'stu_8843', name:'Dev Patel', level:'risk', reasons:['Declining completion','2 missed exams'] },
+  { id:'stu_8844', name:'Nisha Verma', level:'watch', reasons:['Below cohort average'] },
+];
+
+const INSIGHTS = [
+  { id:'i1', icon:'trending-down', title:'Dynamic Programming is the weakest topic',
+    body:'The class averages 52% on Dynamic Programming — 20 points below the class mean. Consider a targeted review space.',
+    target:'/classes/cls_dsa_11a' },
+  { id:'i2', icon:'users', title:'3 students slipping below the pass line',
+    body:'Aarav, Dev, and Nisha have each dropped more than 12 points over the last two assessments.',
+    target:'/students/stu_8842/report' },
+];
+
+function go(){ /* navigation deep-link (no-op in prototype) */ }
+
+/* ---------- header ---------- */
+function PageHeader(props){
+  return (
+    <div className="pagehead">
+      <div>
+        <div className="pagehead__crumb"><span>Analytics</span><Icon name="chevron-right" size={12}/><span>Classes</span></div>
+        <h1>Class analytics</h1>
+        <div className="pagehead__sub">
+          <span>Read-only diagnostic console · precomputed summaries.</span>
+        </div>
+      </div>
+      <div className="pagehead__controls">
+        <div className="picker">
+          <label className="picker__label" htmlFor="class-picker">Class</label>
+          <Select id="class-picker" options={CLASSES} value={props.classId}
+            onChange={e=>props.onPick(e.target.value)} aria-label="Select a class"/>
+        </div>
+        <span className="fresh"><Icon name="server" size={13}/> Updated <time dateTime="2026-06-20T11:48:00">2 hours ago</time></span>
+        <IconButton icon={<Icon name="refresh-cw" size={16}/>} label="Refresh analytics"/>
+        <Button variant="spark" leadingIcon={<Icon name="download" size={16}/>}
+          loading={props.exporting} onClick={props.onExport}>
+          {props.exporting ? 'Generating report…' : 'Export report'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- KPI strip (2–4 real tiles only) ---------- */
+function Kpis(){
+  return (
+    <div className="kpis" role="group" aria-label="Key class metrics">
+      <div className="kpi" aria-label="Average score, 72 percent">
+        <Stat label="Average score" value="72%" delta="3%" trend="up"/>
+        <div className="kpi__cap"><Icon name="server" size={12}/> across graded activity</div>
+      </div>
+      <div className="kpi" aria-label="Pass rate, 81 percent">
+        <Stat label="Pass rate" value="81%" delta="2%" trend="up"/>
+        <div className="kpi__cap"><Icon name="check-circle-2" size={12}/> at or above passing</div>
+      </div>
+      <div className="kpi" aria-label="Completion, 64 percent">
+        <Stat label="Completion" value="64%"/>
+        <div className="kpi__cap"><Icon name="activity" size={12}/> exams &amp; learning activity</div>
+      </div>
+      <div className="kpi" aria-label="At-risk, 3 of 38 students">
+        <Stat label="At-risk" value="3 of 38"/>
+        <div className="kpi__cap kpi__cap--warn"><Icon name="alert-triangle" size={12}/> <span className="u-mono">3</span> students flagged</div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- score distribution ---------- */
+function Distribution(){
+  return (
+    <section className="dcard" aria-labelledby="dist-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="dist-title">Score distribution</h2>
+          <div className="dcard__sub">Students per score band · most students sit in the 61–80 band</div>
+        </div>
+      </div>
+      <div className="dcard__body">
+        <div className="hist" role="img" aria-label="Score distribution histogram: 0–20: 1 student, 21–40: 2, 41–60: 5, 61–80: 18, 81–100: 16. Most students are in the 61–80 band.">
+          {DIST.map((d,i)=>(
+            <Tooltip key={i} content={d.band + ': ' + d.count + ' students'}>
+              <div className="hist__col">
+                <span className="hist__count">{d.count}</span>
+                <div className={'hist__bar'+(d.fail?' hist__bar--fail':'')} style={{height:(d.count/DIST_MAX*100)+'%'}}></div>
+                <span className={'hist__band'+(d.fail?' hist__band--fail':'')}>{d.band}%</span>
+              </div>
+            </Tooltip>
+          ))}
+        </div>
+        <div className="legend" style={{marginTop:'var(--space-4)'}}>
+          <span className="legend__item"><span className="legend__sw legend__sw--weak"></span> Below passing (&lt;60%)</span>
+          <span className="legend__item"><Icon name="server" size={12}/> server-computed buckets</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- performance over time ---------- */
+function TrendChart(){
+  const max=Math.max.apply(null, TREND.map(t=>t.val));
+  return (
+    <section className="dcard" aria-labelledby="trend-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="trend-title">Performance over time</h2>
+          <div className="dcard__sub">Average class score · last 5 periods</div>
+        </div>
+      </div>
+      <div className="dcard__body">
+        <div className="trend" role="img" aria-label="Average class score by month: February 64 percent, March 67, April 70, May 69, June 72. Trend rising.">
+          {TREND.map((t,i)=>(
+            <Tooltip key={i} content={t.lab + ': ' + t.val + '%'}>
+              <div className="trend__col">
+                <span className="trend__val">{t.val}%</span>
+                <div className="trend__bar" style={{height:(t.val/max*100)+'%'}}></div>
+                <span className="trend__lab">{t.lab}</span>
+              </div>
+            </Tooltip>
+          ))}
+        </div>
+        <div className="dcard__stamp" style={{marginTop:'var(--space-4)'}}><Icon name="server" size={12}/> from analytics.getPerformanceTrends</div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- topic strength / weakness ---------- */
+function Topics(){
+  const tone=(p)=> p>=70?'strong':(p>=55?'mid':'weak');
+  return (
+    <section className="dcard" aria-labelledby="topic-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="topic-title">Topic strengths &amp; weaknesses</h2>
+          <div className="dcard__sub">Average mastery per topic across this class</div>
+        </div>
+        <div className="legend">
+          <span className="legend__item"><span className="legend__sw legend__sw--strong"></span> Strong</span>
+          <span className="legend__item"><span className="legend__sw legend__sw--weak"></span> Needs work</span>
+        </div>
+      </div>
+      <div className="dcard__body">
+        <div className="topiclist" role="img" aria-label="Topic mastery: Arrays and Hashing 88 percent, Trees and Graphs 74, Recursion 69, Dynamic Programming 52, Sorting 81, Greedy 46. Strongest: Arrays and Hashing. Weakest: Greedy.">
+          {TOPICS.map((t,i)=>(
+            <div className="topicrow" key={i}>
+              <span className="topicrow__name">{t.name}</span>
+              <span className="topicrow__track"><span className={'topicrow__fill topicrow__fill--'+tone(t.pct)} style={{width:t.pct+'%'}}></span></span>
+              <span className="topicrow__val">{t.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- performers ---------- */
+function PerfRow(p){
+  return (
+    <button className="perf-row" onClick={go} aria-label={p.name + ', average ' + p.score + ' percent. View report.'}>
+      <span className="perf-row__rank">{p.rank}</span>
+      <span className="perf-row__main"><span className="perf-row__name">{p.name}</span></span>
+      <span className="perf-row__score">{p.score}%</span>
+      <span className="perf-row__link">View report <Icon name="arrow-up-right" size={13}/></span>
+    </button>
+  );
+}
+function Performers(){
+  return (
+    <section className="dcard" aria-labelledby="perf-title">
+      <div className="dcard__head">
+        <h2 className="dcard__title" id="perf-title">Top &amp; bottom performers</h2>
+      </div>
+      <div className="perflist">
+        <div className="perf-sub">Top performers</div>
+        {TOP.map(s=><PerfRow key={s.id} {...s}/>)}
+        <div className="perf-sub">Bottom performers</div>
+        {BOTTOM.map(s=><PerfRow key={s.id} {...s}/>)}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- needs attention (at-risk teaser) ---------- */
+function AtRisk(){
+  return (
+    <section className="dcard" aria-labelledby="risk-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="risk-title">Needs attention</h2>
+          <div className="dcard__sub"><span className="u-mono">3</span> students flagged by the nightly review</div>
+        </div>
+        <span className="dcard__stamp"><Icon name="moon" size={12}/> nightly</span>
+      </div>
+      <div className="risk-list">
+        {RISK.map(r=>(
+          <button className="risk-row" key={r.id} onClick={go}
+            aria-label={r.name + (r.level==='watch'?', watch':', at risk') + '. Reasons: ' + r.reasons.join(', ') + '. View student.'}>
+            <span className="risk-row__main">
+              <span className="risk-row__top">
+                <span className="risk-row__name">{r.name}</span>
+                {r.level==='watch' ? <AtRiskBadge level="watch">Watch</AtRiskBadge> : <AtRiskBadge>At risk</AtRiskBadge>}
+              </span>
+              <span className="risk-row__reasons">
+                {r.reasons.map((rs,i)=><Chip key={i}>{rs}</Chip>)}
+              </span>
+            </span>
+            <span className="risk-row__chev"><Icon name="chevron-right" size={18}/></span>
+          </button>
+        ))}
+      </div>
+      <div className="dcard__foot">
+        <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={go}>View all at-risk</Button>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- insights ---------- */
+function Insights(){
+  const [items,setItems]=useState(INSIGHTS);
+  if(items.length===0) return null;
+  return (
+    <section aria-labelledby="ins-title">
+      <div className="dcard__head" style={{padding:'0 0 var(--space-4)'}}>
+        <div>
+          <h2 className="dcard__title" id="ins-title" style={{fontSize:'var(--text-xl)'}}>Insights</h2>
+          <div className="dcard__sub">Generated server-side · review and dismiss</div>
+        </div>
+        <Badge variant="brand" icon={<Icon name="sparkles" size={12}/>}>Generated</Badge>
+      </div>
+      <div className="insights-grid">
+        {items.map(it=>(
+          <div className="insight-wrap" key={it.id}>
+            <InsightCard icon={it.icon} title={it.title}>
+              {it.body}
+              <div className="insight-actions">
+                <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-up-right" size={14}/>} onClick={go}>Open</Button>
+                <Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={14}/>}
+                  onClick={()=>setItems(prev=>prev.filter(x=>x.id!==it.id))}>Dismiss</Button>
+              </div>
+            </InsightCard>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- states rail ---------- */
+function StatesRail(){
+  return (
+    <section aria-labelledby="states-title">
+      <h2 className="dcard__title" id="states-title" style={{fontSize:'var(--text-xl)',marginBottom:'var(--space-2)'}}>States</h2>
+      <div className="dcard__sub" style={{marginBottom:'var(--space-5)'}}>Every spec'd loading, empty, error, partial and role-gated variant in one place.</div>
+      <div className="staterail">
+
+        <div className="statemini">
+          <span className="u-caption">Loading (skeleton)</span>
+          <div className="statemini__body">
+            <Skeleton variant="text" width="45%" height={16}/>
+            <div className="sk-kpis">
+              <div className="sk-tile"><Skeleton variant="text" width="60%" height={10}/><Skeleton variant="text" width="40%" height={18}/></div>
+              <div className="sk-tile"><Skeleton variant="text" width="60%" height={10}/><Skeleton variant="text" width="40%" height={18}/></div>
+            </div>
+            <Skeleton variant="text" width="100%" height={48}/>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Empty — no classes (teacher)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="book-open" title="No classes to analyze"
+              body="You don't manage any classes in this tenant yet. Ask your admin to assign you a class."/>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Empty — no data for class</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="bar-chart-3" title="No data for this class yet"
+              body="Analytics appear once students complete exams or learning activity in this class."/>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Empty — at-risk (calm, neutral)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <div className="calm-empty"><Icon name="shield-check" size={18}/> No students are currently flagged at-risk.</div>
+            <div className="calm-empty" style={{paddingTop:0}}><Icon name="info" size={18}/> No insights generated for this class yet.</div>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Error — summary load failed</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="error" title="Couldn't load class analytics">
+              Something went wrong fetching this class's summary.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Error — access denied (out-of-scope class)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="error" title="You don't have access to this class">
+              The picker has reset to a class you manage.
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Partial — trend unavailable</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="info" title="Trend data unavailable">
+              Performance-over-time couldn't be loaded. The rest of the summary still rendered.
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Partial — topic card omitted</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="warning" title="Some metrics are still being computed">
+              Topic strengths &amp; weaknesses is omitted because no topic data exists yet — never shown as a misleading 0%.
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Export — report ready (toast)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="success" title="Class report ready">
+              <div style={{marginTop:'var(--space-2)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="download" size={14}/>}>Download</Button></div>
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Role — tenantAdmin (searchable picker)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="search" title="All tenant classes"
+              body="A tenantAdmin sees every class in the tenant via a searchable combobox. Same per-class surface — no extra write affordances."/>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+/* ---------- page ---------- */
+function App(){
+  const [classId,setClassId]=useState('cls_sd_11b');
+  const [exporting,setExporting]=useState(false);
+  const onExport=()=>{ setExporting(true); setTimeout(()=>setExporting(false),1600); };
+  return (
+    <Shell active="analytics-classes">
+      <div className="page">
+        <PageHeader classId={classId} onPick={setClassId} exporting={exporting} onExport={onExport}/>
+        <Kpis/>
+        <div className="grid2">
+          <Distribution/>
+          <TrendChart/>
+        </div>
+        <Topics/>
+        <div className="grid2">
+          <Performers/>
+          <AtRisk/>
+        </div>
+        <Insights/>
+        <StatesRail/>
+      </div>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

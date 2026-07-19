@@ -184,6 +184,37 @@ export const unregisterDeviceToken = wire(
 );
 export const sendDirectMessage = wire("v1.identity.sendDirectMessage", S.sendDirectMessageService);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// API key management — per-user BYOK, tenant-owned keys, platform fallback keys
+// ─────────────────────────────────────────────────────────────────────────────
+export const saveUserProviderKey = wire(
+  "v1.identity.saveUserProviderKey",
+  S.saveUserProviderKeyService
+);
+export const listUserProviderKeys = wire(
+  "v1.identity.listUserProviderKeys",
+  S.listUserProviderKeysService
+);
+export const setUserProviderKeyEnabled = wire(
+  "v1.identity.setUserProviderKeyEnabled",
+  S.setUserProviderKeyEnabledService
+);
+export const deleteUserProviderKey = wire(
+  "v1.identity.deleteUserProviderKey",
+  S.deleteUserProviderKeyService
+);
+export const rotateTenantKey = wire("v1.identity.rotateTenantKey", S.rotateTenantKeyService);
+export const revokeTenantKey = wire("v1.identity.revokeTenantKey", S.revokeTenantKeyService);
+export const getTenantKeyStatus = wire(
+  "v1.identity.getTenantKeyStatus",
+  S.getTenantKeyStatusService
+);
+export const savePlatformKey = wire("v1.identity.savePlatformKey", S.savePlatformKeyService);
+export const getPlatformKeyStatus = wire(
+  "v1.identity.getPlatformKeyStatus",
+  S.getPlatformKeyStatusService
+);
+
 // ═════════════════════════════════════════════════════════════════════════════
 // GAP-FILL THIN SHELLS — no canonical `@levelup/services` export exists yet.
 // Pure contract-shaped repo reads/writes; NO business rules. Replace each with a

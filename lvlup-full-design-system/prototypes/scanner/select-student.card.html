@@ -1,0 +1,302 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Select Student" subtitle="Flow step 2 · pick the student whose sheet you're scanning" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Student</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  /* phone frame shell (shared across all 9 scanner cards) */
+  .ph { width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+        border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+        background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+  .ph__top { height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+        padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .ph__body { flex:1; overflow-y:auto; position:relative; }
+  .ph__tabs { flex:0 0 auto; }
+  .ph__brand { display:flex; align-items:center; gap:var(--space-2); }
+  .ph__mark { width:26px; height:26px; border-radius:var(--radius-md); background:var(--brand-primary);
+        color:var(--text-on-accent); display:grid; place-items:center; }
+  .ph__title { font-family:var(--font-display); font-size:var(--text-sm); font-weight:var(--weight-semibold); }
+  .ph__spacer { margin-left:auto; }
+
+  /* ===== select-student view layout ===== */
+  .select-head { position:sticky; top:0; z-index:3; background:var(--bg-surface);
+        border-bottom:1px solid var(--border-subtle); padding:var(--space-3) var(--space-4) var(--space-4); }
+  .select-head__row { display:flex; align-items:flex-start; gap:var(--space-2); }
+  .select-head__back { flex:0 0 auto; }
+  .select-head__exam { min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .select-head__eyebrow { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:.04em;
+        text-transform:uppercase; color:var(--text-muted); }
+  .select-head__title { font-family:var(--font-display); font-size:var(--text-lg); line-height:var(--leading-lg);
+        font-weight:var(--weight-semibold); color:var(--text-primary);
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .select-search { margin-top:var(--space-3); position:relative; }
+  .select-search__icon { position:absolute; left:var(--space-3); top:50%; transform:translateY(-50%);
+        color:var(--text-muted); pointer-events:none; display:flex; }
+  .select-search input { padding-left:var(--space-10); }
+
+  .select-count { padding:var(--space-3) var(--space-4) var(--space-2); display:flex; align-items:center; gap:var(--space-2);
+        font-size:var(--text-xs); color:var(--text-muted); }
+
+  .select-list { display:flex; flex-direction:column; padding:0 var(--space-3) var(--space-6); }
+
+  .select-row { all:unset; box-sizing:border-box; display:flex; align-items:center; gap:var(--space-3);
+        min-height:64px; padding:var(--space-3); border-radius:var(--radius-lg); cursor:pointer;
+        transition:background-color var(--dur-fast) var(--ease-standard); }
+  .select-row:hover { background:var(--bg-surface-sunken); }
+  .select-row:focus-visible { outline:2px solid var(--border-focus); outline-offset:-2px; }
+  .select-row + .select-row { border-top:1px solid var(--border-subtle); }
+  .select-row__main { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
+  .select-row__nameline { display:flex; align-items:center; gap:var(--space-2); }
+  .select-row__name { font-family:var(--font-display); font-size:var(--text-base); font-weight:var(--weight-semibold);
+        color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .select-row__meta { display:flex; align-items:center; gap:var(--space-2); font-size:var(--text-xs); color:var(--text-muted); }
+  .select-row__roll { font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--text-secondary); }
+  .select-row__dot { width:3px; height:3px; border-radius:50%; background:var(--border-strong); display:inline-block; }
+  .select-row__chev { flex:0 0 auto; color:var(--text-muted); display:flex; }
+
+  .select-state { padding:var(--space-6) var(--space-4); }
+
+  /* documentation state tiles (below the phone) */
+  .select-tiles { max-width:390px; margin:0 auto var(--space-16); display:flex; flex-direction:column; gap:var(--space-4); }
+  .select-tile { border:1px dashed var(--border-strong); border-radius:var(--radius-lg); padding:var(--space-4); background:var(--bg-surface); }
+  .select-tile__cap { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:.04em; text-transform:uppercase;
+        color:var(--text-muted); margin:0 0 var(--space-3); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Icon, IconButton, Input, Avatar, Badge, Chip, EmptyState, Skeleton,
+          Alert, Button, Drawer, Tabbar } = LU;
+  const { useState, useMemo } = React;
+
+  /* ---- mock roster (only active students surface) ---- */
+  const MOCK_STUDENTS = [
+    { id:"s_aarav", name:"Aarav Sharma",  initials:"AS", roll:"1024", klass:"10-A", status:"active" },
+    { id:"s_diya",  name:"Diya Patel",    initials:"DP", roll:"1031", klass:"10-A", status:"active", submitted:true },
+    { id:"s_kabir", name:"Kabir Mehta",   initials:"KM", roll:"1042", klass:"10-A", status:"active" },
+    { id:"s_anaya", name:"Anaya Reddy",   initials:"AR", roll:"1056", klass:"10-B", status:"active" },
+    { id:"s_vihaan",name:"Vihaan Nair",   initials:"VN", roll:"1063", klass:"10-B", status:"active" },
+    { id:"s_isha",  name:"Isha Krishnan", initials:"IK", roll:"1078", klass:"10-B", status:"active" },
+  ];
+  const MOCK_EXAM = { id:"EX1", title:"Mathematics — Mid-Term", klass:"Class 10" };
+
+  /* ----- single roster row (whole row is the target) ----- */
+  function StudentRow({ s, onPick }) {
+    const aria = [s.name, "class " + s.klass, "roll " + s.roll,
+                  s.submitted ? "already submitted" : "not yet submitted", "tap to capture"].join(", ");
+    return (
+      <button type="button" className="select-row" aria-label={aria} onClick={() => onPick(s)}>
+        <Avatar initials={s.initials} size="sm" />
+        <span className="select-row__main">
+          <span className="select-row__nameline">
+            <span className="select-row__name">{s.name}</span>
+            {s.submitted && (
+              <Badge variant="warning"><Icon name="check" size={12}/> Submitted</Badge>
+            )}
+          </span>
+          <span className="select-row__meta">
+            <Chip>{s.klass}</Chip>
+            <span className="select-row__dot" />
+            <span>roll <span className="select-row__roll">{s.roll}</span></span>
+          </span>
+        </span>
+        <span className="select-row__chev" aria-hidden="true"><Icon name="chevron-right" size={18}/></span>
+      </button>
+    );
+  }
+
+  /* =====================================================================
+     SPA VIEW — phone body only (no topbar / tabbar; SPA shell provides them).
+     ===================================================================== */
+  function SelectStudentView({ nav, params, ctx }) {
+    ctx = ctx || {};
+    const examId = (params && params.examId) || "EX1";
+    const exam = ctx.selectedExam || MOCK_EXAM;
+    const roster = (Array.isArray(ctx.students) && ctx.students.length ? ctx.students : MOCK_STUDENTS)
+      .filter(s => (s.status || "active") === "active");
+
+    const [q, setQ] = useState("");
+    const [confirm, setConfirm] = useState(null); // already-submitted student awaiting confirm
+
+    const captureRoute = (s) => "#/scan/e/" + examId + "/s/" + s.id + "/capture";
+
+    const results = useMemo(() => {
+      const t = q.trim().toLowerCase();
+      if (!t) return roster;
+      return roster.filter(s =>
+        s.name.toLowerCase().includes(t) || String(s.roll).toLowerCase().includes(t));
+    }, [q, roster]);
+
+    function pick(s) {
+      if (s.submitted) { setConfirm(s); return; }   // warn, don't silently re-submit
+      nav.go(captureRoute(s));
+    }
+    function proceed() {
+      const s = confirm; setConfirm(null);
+      if (s) nav.go(captureRoute(s));
+    }
+
+    return (
+      <>
+        {/* sticky exam header + search */}
+        <div className="select-head">
+          <div className="select-head__row">
+            <span className="select-head__back">
+              <IconButton size="sm" icon={<Icon name="chevron-left" size={20}/>}
+                          label="Back to exams" onClick={() => nav.back()} />
+            </span>
+            <span className="select-head__exam">
+              <span className="select-head__eyebrow">Step 2 · Select student</span>
+              <span className="select-head__title" title={exam.title}>{exam.title}</span>
+            </span>
+          </div>
+
+          <div className="select-search">
+            <span className="select-search__icon"><Icon name="search" size={16}/></span>
+            <Input value={q} onChange={(e)=>setQ(e.target.value)}
+                   placeholder="Search name or roll number"
+                   aria-label="Search students by name or roll number" inputMode="search" />
+          </div>
+        </div>
+
+        {/* count line (announced) */}
+        <div className="select-count" aria-live="polite">
+          <Icon name="users" size={14}/>
+          <span><span className="select-row__roll">{results.length}</span> active {results.length === 1 ? "student" : "students"}{q.trim() ? " match" : ""}</span>
+        </div>
+
+        {/* list / empty states */}
+        {results.length > 0 ? (
+          <div className="select-list" role="list" aria-label="Active students">
+            {results.map(s => <StudentRow key={s.id} s={s} onPick={pick} />)}
+          </div>
+        ) : q.trim() ? (
+          <div className="select-state">
+            <EmptyState icon="search-x" title="No students match"
+              body={"Nothing matches “" + q.trim() + "”. Check the roll number on the sheet header."}
+              action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={16}/>}
+                        onClick={()=>setQ("")}>Clear search</Button>} />
+          </div>
+        ) : (
+          <div className="select-state">
+            <EmptyState icon="users" title="No active students"
+              body="This exam's class has no active students enrolled yet. Ask the teacher to add them, then pull to refresh." />
+          </div>
+        )}
+
+        {/* already-submitted confirm sheet (view owns its overlay) */}
+        <Drawer open={confirm != null} onClose={()=>setConfirm(null)} title="Already submitted">
+          {confirm && (
+            <div style={{display:"flex", flexDirection:"column", gap:"var(--space-4)"}}>
+              <Alert variant="warning" title={confirm.name + " was already scanned"}>
+                A new capture creates a duplicate. The server may reject it, or it can overwrite the earlier sheet.
+                Continue only if you're re-scanning a corrected paper.
+              </Alert>
+              <div style={{display:"flex", gap:"var(--space-2)"}}>
+                <Button variant="secondary" size="lg" block onClick={()=>setConfirm(null)}>Cancel</Button>
+                <Button variant="spark" size="lg" block
+                        leadingIcon={<Icon name="camera" size={18}/>} onClick={proceed}>Capture anyway</Button>
+              </div>
+            </div>
+          )}
+        </Drawer>
+      </>
+    );
+  }
+
+  /* =====================================================================
+     Standalone Demo — mounts the view in the shared phone frame.
+     ===================================================================== */
+  function LoadingRows() {
+    return (
+      <div className="select-list" aria-hidden="true">
+        {[0,1,2,3,4].map(i => (
+          <div key={i} className="select-row" style={{cursor:"default"}}>
+            <Skeleton variant="circle" width="36px" height="36px" />
+            <span className="select-row__main">
+              <Skeleton width="58%" height="14px" />
+              <Skeleton width="40%" height="12px" />
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function PhoneFrame({ children }) {
+    return (
+      <div className="ph">
+        <div className="ph__top">
+          <span className="ph__brand">
+            <span className="ph__mark"><Icon name="scan-line" size={16}/></span>
+            <span className="ph__title">AutoGrade Scan</span>
+          </span>
+          <span className="ph__spacer" />
+          <IconButton size="sm" icon={<Icon name="settings" size={18}/>} label="Settings" />
+        </div>
+        <div className="ph__body">{children}</div>
+        <div className="ph__tabs">
+          <Tabbar items={[
+            { icon:"camera",  label:"Scan",    active:true },
+            { icon:"upload-cloud", label:"Queue" },
+            { icon:"history", label:"History" },
+          ]}/>
+        </div>
+      </div>
+    );
+  }
+
+  function Demo() {
+    const ctx = {
+      scanner: { name:"Ravi Kumar", initials:"RK", school:"Sunrise Public School", code:"SUB001" },
+      selectedExam: MOCK_EXAM,
+      students: MOCK_STUDENTS,
+      online: true,
+      toast: () => {},
+    };
+    const nav = { go: () => {}, back: () => {} };
+    return (
+      <>
+        <PhoneFrame>
+          <SelectStudentView nav={nav} params={{ examId:"EX1" }} ctx={ctx} />
+        </PhoneFrame>
+
+        <div className="select-tiles">
+          <div className="select-tile">
+            <p className="select-tile__cap">State · loading roster</p>
+            <LoadingRows />
+          </div>
+          <div className="select-tile">
+            <p className="select-tile__cap">State · no match (search)</p>
+            <EmptyState icon="search-x" title="No students match"
+              body="Nothing matches “zzz”. Check the roll number on the sheet header."
+              action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={16}/>}>Clear search</Button>} />
+          </div>
+          <div className="select-tile">
+            <p className="select-tile__cap">State · empty roster</p>
+            <EmptyState icon="users" title="No active students"
+              body="This exam's class has no active students enrolled yet." />
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+</script>
+</body>
+</html>

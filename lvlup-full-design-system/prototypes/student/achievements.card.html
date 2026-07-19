@@ -1,0 +1,609 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Achievements Gallery" subtitle="Earned wins · how close the next badge is" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Achievements Gallery</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body { height: 100%; }
+  #root, .appshell { height: 100%; }
+
+  .ach { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1200px; }
+
+  /* ---- header row ---- */
+  .ach-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
+  .ach-head__title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0; letter-spacing: var(--tracking-display); }
+  .ach-head__sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: var(--space-1); }
+  .ach-head__sub .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .ach-head__new { color: var(--spark-hover); font-weight: var(--weight-semibold); }
+
+  .level-strip { display: flex; align-items: center; gap: var(--space-4); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-4) var(--space-5); }
+  .level-strip__xp { min-width: 200px; }
+  .level-strip__sep { width: 1px; align-self: stretch; background: var(--border-subtle); }
+
+  /* ---- chip filter ---- */
+  .ach-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .ach-chips button { all: unset; cursor: pointer; }
+  .ach-chips button:focus-visible { outline: none; box-shadow: var(--ring-focus); border-radius: var(--radius-pill); }
+  .chip-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; opacity: 0.85; margin-left: 4px; }
+
+  /* ---- badge grid ---- */
+  .ach-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+
+  .badge-card { position: relative; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-5) var(--space-4) var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; cursor: pointer; transition: box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard); width: 100%; }
+  .badge-card:hover { box-shadow: var(--shadow-e2); transform: translateY(-2px); }
+  .badge-card:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .badge-card--new { border-color: var(--spark); box-shadow: var(--glow-spark); }
+
+  .badge-card__new-dot { position: absolute; top: var(--space-3); right: var(--space-3); display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-2xs); font-weight: var(--weight-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--spark-hover); background: var(--spark-subtle); border-radius: var(--radius-pill); padding: 2px var(--space-2); }
+  .badge-card__title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-semibold); margin: 0; line-height: var(--leading-lg); }
+  .badge-card__labels { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }
+  .badge-card__date { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .badge-card__prog { width: 100%; display: flex; flex-direction: column; gap: var(--space-2); margin-top: auto; }
+  .badge-card__prog-num { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); font-variant-numeric: tabular-nums; display: flex; align-items: center; justify-content: space-between; }
+  .badge-card__remain { font-size: var(--text-sm); color: var(--text-secondary); }
+  .badge-card__remain strong { color: var(--text-primary); font-weight: var(--weight-semibold); }
+  .badge-card__remain--indet { font-family: var(--font-mono); }
+
+  /* override the medal grayscale on hover for locked = still subtle, keep label readable */
+  .badge-card .achievement { width: auto; gap: 0; }
+
+  /* spark celebration burst */
+  .burst { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; overflow: visible; }
+  .burst__spark { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--spark); opacity: 0; }
+  @keyframes burstOut { 0% { transform: translate(0,0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--bx), var(--by)) scale(0); opacity: 0; } }
+  @keyframes medalPop { 0% { transform: scale(0.8); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  .burst--on .burst__spark { animation: burstOut var(--dur-slow) var(--ease-exit) forwards; }
+  .badge-card--popping .badge-card__medal { animation: medalPop var(--dur-base) var(--ease-entrance); }
+
+  /* state band scaffolding */
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+  .skel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5) var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+
+  /* detail popover — scrim reuses .modal-scrim (token-correct background) */
+  .ach-detail { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); box-shadow: var(--shadow-e3); width: min(480px, 92%); padding: var(--space-6); position: relative; }
+  .ach-detail__close { position: absolute; top: var(--space-3); right: var(--space-3); }
+  .ach-detail__head { display: flex; gap: var(--space-4); align-items: center; margin-bottom: var(--space-4); }
+  .ach-detail__title { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: var(--weight-semibold); margin: 0; }
+  .ach-detail__crit { background: var(--bg-surface-sunken); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); }
+  .ach-detail__crit strong { color: var(--text-primary); }
+  .ach-detail__row { display: flex; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-4) 0; }
+
+  .divider { height: 1px; background: var(--border-subtle); border: none; margin: var(--space-3) 0; }
+  .u-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .badge-card, .badge-card .achievement { transition: none !important; }
+    .burst--on .burst__spark, .badge-card--popping .badge-card__medal { animation: none !important; }
+    .badge-card--new .badge-card__medal { box-shadow: var(--glow-spark); border-radius: 50%; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Card, Section, Avatar, Badge, Chip,
+    ProgressBar, XPMeter, LevelBadge, StreakFlame, Achievement,
+    EmptyState, Skeleton, Alert, NavItem, Tooltip, CommandPalette
+  } = LU;
+
+  const { useState, useEffect, useRef } = React;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ========================== DATA ========================== */
+  const CATEGORIES = [
+    { key: "all", label: "All", count: 40 },
+    { key: "learning", label: "Learning", count: 11 },
+    { key: "consistency", label: "Consistency", count: 7 },
+    { key: "excellence", label: "Excellence", count: 9 },
+    { key: "exploration", label: "Exploration", count: 6 },
+    { key: "social", label: "Social", count: 4 },
+    { key: "milestone", label: "Milestone", count: 3 },
+  ];
+
+  // rarity + tier are ALWAYS icon + text (never color alone)
+  const rarityMap = {
+    common:    { label: "Common",    icon: "circle" },
+    rare:      { label: "Rare",      icon: "gem" },
+    epic:      { label: "Epic",      icon: "diamond" },
+    legendary: { label: "Legendary", icon: "crown" },
+  };
+  const tierMap = {
+    bronze:  { label: "Bronze",  icon: "shield" },
+    silver:  { label: "Silver",  icon: "shield-half" },
+    gold:    { label: "Gold",    icon: "shield-check" },
+    diamond: { label: "Diamond", icon: "shield-plus" },
+  };
+
+  const EARNED = [
+    { id:"streak7", cat:"consistency", icon:"flame", title:"On Fire", desc:"Keep a 7-day learning streak alive.", rarity:"rare", tier:"silver", xp:120, date:"Jun 18", seen:false, criteria:"Maintain a 7-day streak." },
+    { id:"perfect", cat:"excellence", icon:"target", title:"Bullseye", desc:"Score a perfect 100% on any exam.", rarity:"epic", tier:"gold", xp:200, date:"Jun 16", seen:false, criteria:"Score 100% on one exam." },
+    { id:"scholar", cat:"learning", icon:"graduation-cap", title:"Scholar", desc:"Complete 10 story points across your spaces.", rarity:"rare", tier:"gold", xp:150, date:"Jun 12", seen:false, criteria:"Complete 10 story points in any space." },
+    { id:"starter", cat:"learning", icon:"rocket", title:"Fast Starter", desc:"Finish your first story point.", rarity:"common", tier:"bronze", xp:40, date:"May 28", seen:true, criteria:"Complete your first story point." },
+    { id:"firstspace", cat:"milestone", icon:"flag", title:"First Summit", desc:"Complete an entire space, start to finish.", rarity:"epic", tier:"gold", xp:250, date:"Jun 10", seen:true, criteria:"Reach 100% in one space." },
+    { id:"earlybird", cat:"consistency", icon:"sunrise", title:"Early Bird", desc:"Study before 9am five times.", rarity:"common", tier:"bronze", xp:60, date:"Jun 02", seen:true, criteria:"Study before 9am on 5 days." },
+    { id:"explorer", cat:"exploration", icon:"compass", title:"Explorer", desc:"Open three different subject spaces.", rarity:"common", tier:"silver", xp:80, date:"May 30", seen:true, criteria:"Open 3 distinct spaces." },
+    { id:"helper", cat:"social", icon:"hand-heart", title:"Good Neighbor", desc:"Answer a classmate's question in discussion.", rarity:"rare", tier:"bronze", xp:90, date:"Jun 06", seen:true, criteria:"Post one helpful discussion reply." },
+    { id:"comeback", cat:"consistency", icon:"undo-2", title:"Comeback Kid", desc:"Return after a 3-day break and finish a story point.", rarity:"common", tier:"bronze", xp:50, date:"Jun 14", seen:true, criteria:"Resume after a break and complete a story point." },
+    { id:"quickfire", cat:"excellence", icon:"zap", title:"Quickfire", desc:"Finish a timed practice with time to spare.", rarity:"rare", tier:"silver", xp:110, date:"Jun 08", seen:true, criteria:"Finish a timed test under the limit." },
+    { id:"curious", cat:"exploration", icon:"book-marked", title:"Curious Mind", desc:"Read 25 learning materials.", rarity:"common", tier:"silver", xp:70, date:"Jun 04", seen:true, criteria:"Read 25 materials." },
+    { id:"streaker", cat:"consistency", icon:"calendar-check", title:"Steady Hand", desc:"Hit a 3-day streak.", rarity:"common", tier:"bronze", xp:30, date:"May 25", seen:true, criteria:"Maintain a 3-day streak." },
+  ];
+
+  // locked: progress vs threshold, closest-to-unlock first
+  const LOCKED = [
+    { id:"mastery", cat:"learning", icon:"award", title:"Polymath", desc:"Master story points across every active space.", rarity:"epic", tier:"gold", xp:300, progress:7, threshold:10, unit:"story points", criteria:"Complete 10 story points in any space.", remain:<span>Just <strong>3 more story points</strong> to unlock Polymath</span> },
+    { id:"streak14", cat:"consistency", icon:"flame", title:"Unstoppable", desc:"Keep your streak alive for 14 days.", rarity:"epic", tier:"gold", xp:280, progress:7, threshold:14, unit:"days", criteria:"Maintain a 14-day streak.", remain:<span>Keep your streak <strong>7 more days</strong></span> },
+    { id:"perfect3", cat:"excellence", icon:"crosshair", title:"Sharpshooter", desc:"Score 100% on three exams.", rarity:"legendary", tier:"diamond", xp:400, progress:2, threshold:3, unit:"perfect exams", criteria:"Score 100% on 3 exams.", remain:<span><strong>1 more perfect exam</strong> to go</span> },
+    { id:"tenexam", cat:"excellence", icon:"file-check", title:"Battle-Tested", desc:"Complete 10 graded exams.", rarity:"rare", tier:"silver", xp:160, progress:9, threshold:10, unit:"exams", criteria:"Complete 10 graded exams.", remain:<span><strong>1 more exam</strong> and it's yours</span> },
+    { id:"allspaces", cat:"exploration", icon:"map", title:"Cartographer", desc:"Open all six subject spaces.", rarity:"rare", tier:"silver", xp:140, progress:3, threshold:6, unit:"spaces", criteria:"Open all 6 spaces.", remain:<span><strong>3 more spaces</strong> to explore</span> },
+    { id:"points5k", cat:"milestone", icon:"coins", title:"High Roller", desc:"Earn 5,000 total points.", rarity:"epic", tier:"gold", xp:260, progress:1840, threshold:5000, unit:"points", criteria:"Earn 5,000 total points.", remain:<span><strong>3,160 more points</strong> to bank</span> },
+    { id:"social5", cat:"social", icon:"users", title:"Study Buddy", desc:"Help five classmates in discussions.", rarity:"rare", tier:"bronze", xp:130, progress:1, threshold:5, unit:"helpful replies", criteria:"Post 5 helpful replies.", remain:<span><strong>4 more helpful replies</strong> to go</span> },
+    { id:"weekperfect", cat:"consistency", icon:"calendar-heart", title:"Perfect Week", desc:"Learn every day for a full week.", rarity:"epic", tier:"gold", xp:240, progress:0, threshold:7, unit:"days", criteria:"Learn 7 days in a row.", start:true, remain:<span>Start this one with <strong>a study session today</strong></span> },
+  ];
+
+  /* ====================== small pieces ====================== */
+  function RarityTier({ rarity, tier }) {
+    const r = rarityMap[rarity], t = tierMap[tier];
+    return (
+      <div className="badge-card__labels">
+        <Badge icon={<Icon name={r.icon} size={12}/>}>{r.label}</Badge>
+        <Badge variant="spark" icon={<Icon name={t.icon} size={12}/>}>{t.label}</Badge>
+      </div>
+    );
+  }
+
+  function Burst({ on }) {
+    // 10 marigold spark particles flung outward — decorative
+    const parts = [];
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2;
+      const dist = 46 + (i % 3) * 10;
+      parts.push(
+        <span key={i} className="burst__spark"
+          style={{ "--bx": Math.cos(ang)*dist + "px", "--by": Math.sin(ang)*dist + "px", animationDelay: (i*12) + "ms" }}/>
+      );
+    }
+    return <div className={"burst" + (on ? " burst--on" : "")} aria-hidden="true">{parts}</div>;
+  }
+
+  /* ====================== badge cards ====================== */
+  function EarnedCard({ a, isNew, popping, onOpen }) {
+    const aria = a.title + ", earned, " + rarityMap[a.rarity].label + ", " + tierMap[a.tier].label + " tier" + (isNew ? ", new" : "") + ". Earned " + a.date + ".";
+    return (
+      <button
+        className={"badge-card" + (isNew ? " badge-card--new" : "") + (popping ? " badge-card--popping" : "")}
+        aria-label={aria}
+        onClick={() => onOpen(a, false)}
+      >
+        {isNew && <span className="badge-card__new-dot"><Icon name="sparkles" size={11}/> New</span>}
+        <div className="badge-card__medal" style={{ position:"relative" }}>
+          {isNew && <Burst on={popping}/>}
+          <Achievement icon={a.icon} name=""/>
+        </div>
+        <h3 className="badge-card__title">{a.title}</h3>
+        <RarityTier rarity={a.rarity} tier={a.tier}/>
+        <div style={{ display:"flex", alignItems:"center", gap:"var(--space-2)", marginTop:"auto" }}>
+          <span className="badge-card__date"><Icon name="calendar-check" size={12}/> Earned {a.date}</span>
+        </div>
+        <Badge variant="spark" icon={<Icon name="zap" size={12}/>}>+{a.xp} XP</Badge>
+      </button>
+    );
+  }
+
+  function LockedCard({ a, indeterminate, onOpen }) {
+    const pct = Math.round((a.progress / a.threshold) * 100);
+    const aria = a.title + ", locked, " + rarityMap[a.rarity].label + ", " + tierMap[a.tier].label + " tier"
+      + (indeterminate ? ", progress loading" : (", " + a.progress + " of " + a.threshold + " " + a.unit + (a.start ? " — not started" : " — keep going")));
+    return (
+      <button className="badge-card" aria-label={aria} onClick={() => onOpen(a, true)}>
+        <div className="badge-card__medal">
+          <Achievement icon={a.icon} name="" locked/>
+        </div>
+        <h3 className="badge-card__title">{a.title}</h3>
+        <RarityTier rarity={a.rarity} tier={a.tier}/>
+        <div className="badge-card__prog">
+          {indeterminate ? (
+            <>
+              <div className="badge-card__prog-num"><span>Progress</span><span className="u-mono">—</span></div>
+              <ProgressBar value={0} variant="success"/>
+              <div className="badge-card__remain badge-card__remain--indet">We'll show your progress in a moment</div>
+            </>
+          ) : (
+            <>
+              <div className="badge-card__prog-num">
+                <span>{a.start ? "Not started" : "Progress"}</span>
+                <span>{a.progress.toLocaleString()} / {a.threshold.toLocaleString()}</span>
+              </div>
+              <ProgressBar value={pct}
+                aria-valuemin={0} aria-valuemax={a.threshold} aria-valuenow={a.progress}
+                aria-label={a.progress + " of " + a.threshold + " " + a.unit}/>
+              <div className="badge-card__remain">{a.remain}</div>
+            </>
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  /* ====================== detail popover ====================== */
+  function DetailPopover({ data, onClose }) {
+    const ref = useRef(null);
+    useEffect(() => { if (ref.current) ref.current.focus(); }, []);
+    useEffect(() => {
+      const onKey = (e) => { if (e.key === "Escape") onClose(); };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [onClose]);
+    if (!data) return null;
+    const { a, locked } = data;
+    return (
+      <div className="modal-scrim" onClick={onClose}>
+        <div className="ach-detail" role="dialog" aria-modal="true" aria-label={a.title + " details"}
+          tabIndex={-1} ref={ref} onClick={(e)=>e.stopPropagation()}>
+          <div className="ach-detail__close">
+            <IconButton icon={<Icon name="x" size={18}/>} label="Close details" onClick={onClose}/>
+          </div>
+          <div className="ach-detail__head">
+            <div style={{ flex:"0 0 auto" }}><Achievement icon={a.icon} name="" locked={locked}/></div>
+            <div>
+              <h2 className="ach-detail__title">{a.title}</h2>
+              <div style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:2 }}>{a.desc}</div>
+            </div>
+          </div>
+          <div className="ach-detail__row">
+            <RarityTier rarity={a.rarity} tier={a.tier}/>
+            <Badge variant="spark" icon={<Icon name="zap" size={12}/>}>+{a.xp} XP</Badge>
+          </div>
+          <div className="ach-detail__crit">
+            <Icon name="check-circle" size={13}/> <strong>How to earn it: </strong>{a.criteria}
+            {locked && !a.indet && <span> You're at <strong className="u-mono">{a.progress.toLocaleString()} / {a.threshold.toLocaleString()}</strong>.</span>}
+          </div>
+          <div className="divider"/>
+          {locked
+            ? <div style={{ fontSize:"var(--text-base)", color:"var(--text-secondary)" }}>{a.remain}</div>
+            : <div style={{ fontSize:"var(--text-base)", color:"var(--text-secondary)" }}>
+                <Icon name="calendar-check" size={14}/> Earned on <span className="u-mono">{a.date}</span> — nicely done.
+              </div>}
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================== sidebar / topbar ====================== */
+  function Sidebar() {
+    const nav = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"book-open", label:"My Spaces" },
+      { icon:"trending-up", label:"Progress" },
+      { icon:"file-check", label:"Exams" },
+      { icon:"award", label:"Achievements", active:true },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map(n => <NavItem key={n.label} icon={n.icon} active={n.active} href="#">{n.label}</NavItem>)}
+        </nav>
+        <div className="sidebar__section-label">School</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="users" href="#">Class · Grade 10-B</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop:"auto", padding:"var(--space-4)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+            <Avatar initials="AK" size="sm"/>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)" }}>Aisha Khan</div>
+              <div className="u-caption" style={{ color:"var(--text-muted)" }}>SUB001 · Student</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenPalette }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          <Input placeholder="Search spaces, exams…  ⌘K" onFocus={onOpenPalette}/>
+        </div>
+        <div className="topbar__spacer"/>
+        <Tooltip><IconButton icon={<Icon name="command" size={18}/>} label="Command palette (⌘K)" onClick={onOpenPalette}/></Tooltip>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <Avatar initials="AK" size="sm"/>
+      </header>
+    );
+  }
+
+  /* ====================== state preview blocks ====================== */
+  function LoadingBlock() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your achievements">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading skeleton — “Loading your achievements…”</div>
+        <div style={{ display:"flex", gap:"var(--space-2)", marginBottom:"var(--space-4)" }}>
+          {[0,1,2,3].map(i => <Skeleton key={i} variant="text" width="84px" height="2rem"/>)}
+        </div>
+        <div className="skel-grid">
+          {[0,1,2,3].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton variant="circle" width="56px" height="56px"/>
+              <Skeleton width="60%" height="1rem"/>
+              <Skeleton width="80%" height="0.6rem"/>
+              <Skeleton width="100%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function NewLearnerEmpty() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="sparkles" size={13}/> State: empty (new learner) — lead with “Keep going”, no 0-of-N</div>
+        <EmptyState
+          icon="trophy"
+          title="Your first badge is closer than you think"
+          body="Finish a story point or keep your streak alive to start your collection."
+          action={<Button variant="spark" leadingIcon={<Icon name="rocket" size={16}/>}>Start a story point</Button>}
+        />
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-3)", marginTop:"var(--space-4)" }}>
+          <LockedCard a={LOCKED[7]} onOpen={()=>{}}/>
+          <LockedCard a={LOCKED[6]} onOpen={()=>{}}/>
+        </div>
+      </div>
+    );
+  }
+
+  function CategoryEmpty() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="filter" size={13}/> State: empty (category — no matches yet)</div>
+        <EmptyState
+          icon="trophy"
+          title="Nothing here yet — but it's coming"
+          body="Keep learning and Social badges will show up here."
+          action={<Button variant="secondary" leadingIcon={<Icon name="grid-3x3" size={16}/>}>Back to all</Button>}
+        />
+      </div>
+    );
+  }
+
+  function NoCatalogEmpty() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="school" size={13}/> State: empty (no catalog — content-config, not a fault)</div>
+        <EmptyState
+          icon="gift"
+          title="Achievements are on their way to your school"
+          body="Your school hasn't set up badges yet — check back soon and your wins will start collecting here."
+        />
+      </div>
+    );
+  }
+
+  function PartialBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="layers" size={13}/> State: partial — getSummary failed, progress shows “—”</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-3)" }}>
+          <LockedCard a={LOCKED[0]} indeterminate onOpen={()=>{}}/>
+          <LockedCard a={LOCKED[2]} indeterminate onOpen={()=>{}}/>
+        </div>
+        <div style={{ marginTop:"var(--space-4)" }}>
+          <Alert variant="info" title="Couldn't load the full collection">
+            Your earned badges are all here. <a href="#" onClick={(e)=>e.preventDefault()} style={{ color:"var(--brand-primary)", fontWeight:"var(--weight-semibold)" }}>Retry</a>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  function ErrorBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: error (whole trophy room)</div>
+        <EmptyState
+          icon="cloud-off"
+          title="We're having trouble loading your trophy room"
+          body="Let's try again — this one's on us, not you."
+          action={<Button variant="primary" leadingIcon={<Icon name="rotate-cw" size={16}/>}>Retry</Button>}
+        />
+      </div>
+    );
+  }
+
+  /* ====================== main screen ====================== */
+  function Screen() {
+    const [cat, setCat] = useState("all");
+    const [detail, setDetail] = useState(null);   // { a, locked }
+    const [palette, setPalette] = useState(false);
+    const [seenMap, setSeenMap] = useState(() => {
+      const m = {}; EARNED.forEach(a => m[a.id] = a.seen); return m;
+    });
+    const [popping, setPopping] = useState(false);
+    const [announce, setAnnounce] = useState("");
+    const chipRefs = useRef([]);
+
+    const newOnes = EARNED.filter(a => !seenMap[a.id]);
+
+    // The ONE celebratory moment: fire once on mount for the newly-earned set, then mark-seen.
+    useEffect(() => {
+      if (newOnes.length === 0) return;
+      setAnnounce("You unlocked " + newOnes.map(a => a.title).join(", ") + "!");
+      let t1, t2;
+      if (!reduceMotion) {
+        setPopping(true);
+        t1 = setTimeout(() => setPopping(false), 900);
+      }
+      // optimistic mark-seen reconciliation after the burst
+      t2 = setTimeout(() => {
+        setSeenMap(prev => { const n = { ...prev }; EARNED.forEach(a => n[a.id] = true); return n; });
+      }, reduceMotion ? 1200 : 1600);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line
+    }, []);
+
+    useEffect(() => {
+      const onKey = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette(true); }
+        if (e.key === "Escape") setPalette(false);
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const matches = (a) => cat === "all" || a.cat === cat;
+    const earnedShown = EARNED.filter(matches)
+      .slice().sort((a,b) => (seenMap[a.id]===seenMap[b.id] ? 0 : (seenMap[a.id] ? 1 : -1)));
+    const lockedShown = LOCKED.filter(matches)
+      .slice().sort((a,b) => (b.progress/b.threshold) - (a.progress/a.threshold));
+
+    const openDetail = (a, locked) => setDetail({ a, locked });
+
+    const onChipKey = (e, i) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const dir = e.key === "ArrowRight" ? 1 : -1;
+        const next = (i + dir + CATEGORIES.length) % CATEGORIES.length;
+        setCat(CATEGORIES[next].key);
+        if (chipRefs.current[next]) chipRefs.current[next].focus();
+      }
+    };
+
+    const newCount = newOnes.length;
+
+    return (
+      <div className="appshell" style={{ position:"relative" }}>
+        <Sidebar/>
+        <Topbar onOpenPalette={() => setPalette(true)}/>
+        <main className="appshell__main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <div className="live-region" role="status" aria-live="polite">{announce}</div>
+
+          <div className="ach" id="main">
+            {/* HEADER ROW */}
+            <div className="ach-head">
+              <div>
+                <h1 className="ach-head__title">Your Achievements</h1>
+                <p className="ach-head__sub">
+                  <span className="mono">12</span> of <span className="mono">40</span> earned
+                  {newCount > 0 && <> · <span className="ach-head__new"><span className="mono">{newCount}</span> new this week</span></>}
+                </p>
+              </div>
+              <div className="level-strip" role="group" aria-label="Level 7, 1,240 of 1,800 XP, 7-day streak">
+                <LevelBadge level={7} spark/>
+                <div className="level-strip__xp"><XPMeter level={7} xp={1240} next={1800}/></div>
+                <div className="level-strip__sep"/>
+                <StreakFlame days={7}/>
+              </div>
+            </div>
+
+            {/* CATEGORY FILTER */}
+            <div className="ach-chips" role="radiogroup" aria-label="Filter by category">
+              {CATEGORIES.map((c, i) => (
+                <button
+                  key={c.key}
+                  ref={el => chipRefs.current[i] = el}
+                  role="radio"
+                  aria-checked={cat === c.key}
+                  tabIndex={cat === c.key ? 0 : -1}
+                  onClick={() => setCat(c.key)}
+                  onKeyDown={(e) => onChipKey(e, i)}
+                >
+                  <Chip active={cat === c.key}>{c.label}<span className="chip-count">{c.count}</span></Chip>
+                </button>
+              ))}
+            </div>
+
+            {/* EARNED */}
+            {earnedShown.length > 0 && (
+              <Section title={"Earned (" + earnedShown.length + ")"}>
+                <div className="ach-grid">
+                  {earnedShown.map(a => (
+                    <EarnedCard key={a.id} a={a} isNew={!seenMap[a.id]} popping={popping && !seenMap[a.id]} onOpen={openDetail}/>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* KEEP GOING */}
+            <Section title={"Keep going (" + lockedShown.length + ")"}>
+              <div className="ach-grid">
+                {lockedShown.map(a => (
+                  <LockedCard key={a.id} a={a} onOpen={openDetail}/>
+                ))}
+              </div>
+            </Section>
+
+            {/* OTHER STATES (for review) */}
+            <Section title="Other states (for review)">
+              <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-6)" }}>
+                <LoadingBlock/>
+                <div className="state-grid-2">
+                  <NewLearnerEmpty/>
+                  <CategoryEmpty/>
+                </div>
+                <div className="state-grid-2">
+                  <NoCatalogEmpty/>
+                  <ErrorBlock/>
+                </div>
+                <PartialBlock/>
+              </div>
+            </Section>
+
+            <div style={{ height:"var(--space-6)" }}/>
+          </div>
+        </main>
+
+        {/* DETAIL POPOVER (default closed; opens on badge click) */}
+        {detail && <DetailPopover data={detail} onClose={() => setDetail(null)}/>}
+
+        {/* COMMAND PALETTE (⌘K) */}
+        {palette && (
+          <div className="modal-scrim" onClick={() => setPalette(false)}>
+            <div onClick={(e)=>e.stopPropagation()} style={{ position:"absolute", top:"14%", left:"50%", transform:"translateX(-50%)", width:"min(560px, 90%)" }}>
+              <CommandPalette
+                placeholder="Search or jump to…"
+                selected={0}
+                items={[
+                  { icon:"award", label:"Achievements", kbd:"A" },
+                  { icon:"layout-dashboard", label:"Dashboard", kbd:"D" },
+                  { icon:"book-open", label:"My Spaces", kbd:"S" },
+                  { icon:"trending-up", label:"View full progress", kbd:"P" },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

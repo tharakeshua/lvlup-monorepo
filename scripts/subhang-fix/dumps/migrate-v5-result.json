@@ -1,0 +1,14 @@
+{
+  "srcScanned": 3569,
+  "srcWithAtt": 1103,
+  "dstExists": 1103,
+  "dstMissing": 0,
+  "planned": 1103,
+  "byKind": {
+    "material-paragraph-md": 182,
+    "question-toplevel-md": 921
+  },
+  "imagesInjected": 2246,
+  "alreadyPatched": 0,
+  "skippedShape": 0
+}

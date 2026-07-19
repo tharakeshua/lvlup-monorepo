@@ -1,0 +1,313 @@
+<!-- @dsCard group="Parent" viewport="1440x940" name="Parent Settings" subtitle="Profile · notification prefs · account" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-only global resets (composer ignores these — kept OUTSIDE the SPA markers) */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+/* ==SPA-STYLE:parent-settings== */
+.v-parent-settings{max-width:var(--reading-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8);position:relative}
+
+/* page header */
+.v-parent-settings .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-parent-settings .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-settings .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* panel internals */
+.v-parent-settings .pintro{font-size:var(--text-sm);color:var(--text-secondary);margin:0 0 var(--space-5)}
+
+/* identity row */
+.v-parent-settings .idrow{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-5)}
+.v-parent-settings .idrow__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em}
+.v-parent-settings .idrow__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+
+/* form rows (switch list) */
+.v-parent-settings .frow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.v-parent-settings .frow:first-of-type{border-top:none}
+.v-parent-settings .frow__main{min-width:0;flex:1 1 auto}
+.v-parent-settings .frow__label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .frow__label svg{color:var(--text-muted)}
+.v-parent-settings .frow__desc{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-settings .frow__ctrl{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-3)}
+
+/* panel footer */
+.v-parent-settings .pfoot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--border-subtle)}
+.v-parent-settings .pfoot__hint{font-size:var(--text-xs);color:var(--text-muted)}
+
+/* linked children */
+.v-parent-settings .kids{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:767px){.v-parent-settings .kids{grid-template-columns:1fr}}
+.v-parent-settings .kid{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+.v-parent-settings .kid__id{min-width:0;flex:1 1 auto}
+.v-parent-settings .kid__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .kid__meta{font-size:var(--text-2xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-settings .kid__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* account row */
+.v-parent-settings .acctrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.v-parent-settings .acctrow__txt{min-width:0}
+.v-parent-settings .acctrow__lab{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .acctrow__desc{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+
+/* states rail */
+.v-parent-settings .states__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:767px){.v-parent-settings .states__grid{grid-template-columns:1fr}}
+.v-parent-settings .mini{border:1px dashed var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);background:var(--bg-surface)}
+.v-parent-settings .u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);display:block}
+.v-parent-settings .sk-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0}
+
+/* toast host */
+.v-parent-settings .toast-host{position:absolute;right:var(--space-4);bottom:calc(-1 * var(--space-2));z-index:50;width:360px}
+
+.v-parent-settings .u-mono{font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.v-parent-settings *{transition:none!important}}
+/* ==/SPA-STYLE== */
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Badge, Panel, DefinitionList, Switch, Select,
+  Toast, Alert, Skeleton, AtRiskBadge, NavItem } = window.LvlupV0DesignSystem_5d0725;
+const { useState, useEffect } = React;
+
+function go(h){ if(h) window.location.hash = h; }
+
+/* ---------- sample data (claims-derived, read-only identity) ---------- */
+const PROFILE = [
+  { term:'Name',   value:'Anita Sharma' },
+  { term:'Email',  value:<span>anita.sharma@example.com <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>· managed by your school</span></span> },
+  { term:'Role',   value:<Badge variant="brand">Parent</Badge> },
+  { term:'School', value:<span>Beacon Hill Academy <span className="u-mono" style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>BHA-204</span></span> },
+];
+
+const NOTIF_ROWS = [
+  { key:'exam_results_released', icon:'clipboard-check', label:'Exam results released', desc:"When a child's exam results are released to you." },
+  { key:'student_at_risk',       icon:'alert-triangle',  label:'At-risk alerts',        desc:'When a child is flagged at risk by the nightly review.' },
+  { key:'weekly_digest',         icon:'calendar',        label:'Weekly digest',         desc:'A weekly email summarising each child’s progress.' },
+  { key:'announcements',         icon:'megaphone',       label:'Announcements',         desc:'Announcements posted by Beacon Hill Academy.' },
+];
+
+const KIDS = [
+  { id:'aarav', initials:'AS', name:'Aarav Sharma', grade:'Grade 9', atRisk:false },
+  { id:'diya',  initials:'DS', name:'Diya Sharma',  grade:'Grade 7', atRisk:true  },
+];
+
+const THEME_OPTS = [
+  { value:'light',  label:'Light' },
+  { value:'dark',   label:'Dark' },
+  { value:'system', label:'System' },
+];
+
+/* ==SPA-VIEW:parent-settings== */
+function SettingsView(){
+  const [enabled,setEnabled] = useState({ exam_results_released:true, student_at_risk:true, weekly_digest:false, announcements:true });
+  const [dirty,setDirty] = useState(false);
+  const [theme,setTheme] = useState('system');
+  const [toast,setToast] = useState(null);
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){ const id=setTimeout(()=>setToast(null),2600); return ()=>clearTimeout(id); } },[toast]);
+
+  const toggle = (k)=>{ setEnabled({...enabled,[k]:!enabled[k]}); setDirty(true); };
+  const save = (e)=>{ e.preventDefault(); setToast({variant:'success', title:'Preferences saved'}); setDirty(false); };
+
+  return (
+    <div className="v-parent-settings">
+
+      <div className="pagehead">
+        <h1>Settings</h1>
+        <div className="pagehead__sub">
+          <Icon name="server" size={14}/> Your account ·
+          <span className="u-mono">Beacon Hill Academy</span> ·
+          <span className="u-mono">BHA-204</span>
+        </div>
+      </div>
+
+      {/* 1 — Profile (read-only) */}
+      <Panel title="Profile">
+        <p className="pintro">Your identity is managed by your school and shown here for reference. It can’t be edited.</p>
+        <div className="idrow">
+          <Avatar initials="AS" size="lg"/>
+          <div>
+            <div className="idrow__name">Anita Sharma</div>
+            <div className="idrow__sub">Parent · Beacon Hill Academy</div>
+          </div>
+        </div>
+        <DefinitionList items={PROFILE}/>
+      </Panel>
+
+      {/* 2 — Notification preferences */}
+      <form onSubmit={save}>
+        <Panel title="Notification preferences">
+          <p className="pintro">Choose which alerts you receive about your linked children.</p>
+          {NOTIF_ROWS.map(r=>(
+            <div className="frow" key={r.key}>
+              <div className="frow__main">
+                <label className="frow__label" id={'lbl-'+r.key} htmlFor={'sw-'+r.key}>
+                  <Icon name={r.icon} size={15}/> {r.label}
+                </label>
+                <div className="frow__desc" id={'desc-'+r.key}>{r.desc}</div>
+              </div>
+              <div className="frow__ctrl">
+                <Switch id={'sw-'+r.key} checked={enabled[r.key]}
+                  aria-labelledby={'lbl-'+r.key} aria-describedby={'desc-'+r.key}
+                  onChange={()=>toggle(r.key)}/>
+              </div>
+            </div>
+          ))}
+          <div className="pfoot">
+            <span className="pfoot__hint">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+            <Button type="submit" variant="primary" disabled={!dirty} leadingIcon={<Icon name="check" size={16}/>}>Save preferences</Button>
+          </div>
+        </Panel>
+      </form>
+
+      {/* 3 — Appearance */}
+      <Panel title="Appearance">
+        <p className="pintro">Theme applies instantly across the portal — no save needed.</p>
+        <div className="frow">
+          <div className="frow__main">
+            <label className="frow__label" htmlFor="theme"><Icon name="palette" size={15}/> Theme</label>
+            <div className="frow__desc">Use a light or dark theme, or follow your device setting.</div>
+          </div>
+          <div className="frow__ctrl">
+            <Select id="theme" value={theme} options={THEME_OPTS} onChange={e=>setTheme(e.target.value)} aria-label="Theme"/>
+          </div>
+        </div>
+      </Panel>
+
+      {/* 4 — Linked children */}
+      <Panel title="Linked children" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children')}>View all</Button>}>
+        <p className="pintro">Children connected to your account at Beacon Hill Academy.</p>
+        <div className="kids">
+          {KIDS.map(k=>(
+            <div className="kid" key={k.id}>
+              <Avatar initials={k.initials}/>
+              <div className="kid__id">
+                <div className="kid__name">{k.name}</div>
+                <div className="kid__meta">
+                  <span>{k.grade}</span>
+                  {k.atRisk
+                    ? <AtRiskBadge level="watch">Watch</AtRiskBadge>
+                    : <Badge variant="success" icon={<Icon name="check" size={11}/>}>On track</Badge>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* 5 — Account */}
+      <Panel title="Account">
+        <div className="acctrow">
+          <div className="acctrow__txt">
+            <div className="acctrow__lab">Log out</div>
+            <div className="acctrow__desc">End your session on this device and return to sign-in.</div>
+          </div>
+          <Button variant="danger" leadingIcon={<Icon name="log-out" size={16}/>} onClick={()=>go('#/login')}>Log out</Button>
+        </div>
+      </Panel>
+
+      {/* ---- STATES RAIL ---- */}
+      <Panel title="States">
+        <div className="states__grid">
+          <div className="mini">
+            <span className="u-caption">Default · preferences saved</span>
+            <Button variant="primary" size="sm" disabled leadingIcon={<Icon name="check" size={14}/>}>Save preferences</Button>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Dirty · unsaved changes</span>
+            <Button variant="primary" size="sm" leadingIcon={<Icon name="check" size={14}/>}>Save preferences</Button>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Success · save confirmed</span>
+            <Toast variant="success" title="Preferences saved"/>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Error · save failed</span>
+            <Alert variant="error" title="Couldn’t save your changes">
+              Something went wrong.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Loading · per-row skeleton</span>
+            <div role="status" aria-label="Loading preferences">
+              {[0,1,2].map(i=>(
+                <div key={i} className="sk-row">
+                  <div style={{flex:1}}>
+                    <Skeleton variant="text" width="45%" height={12}/>
+                    <div style={{height:6}}/>
+                    <Skeleton variant="text" width="72%" height={10}/>
+                  </div>
+                  <Skeleton variant="circle" width={36} height={20}/>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Read-only · identity from claims</span>
+            <DefinitionList items={[
+              {term:'Role', value:<Badge variant="brand">Parent</Badge>},
+              {term:'School', value:<span>Beacon Hill Academy <span className="u-mono" style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>BHA-204</span></span>},
+            ]}/>
+          </div>
+        </div>
+      </Panel>
+
+      {/* toast layer */}
+      {toast && (
+        <div className="toast-host">
+          <Toast variant={toast.variant} title={toast.title}/>
+        </div>
+      )}
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+
+/* ==PARENT-SHELL (verbatim)== */
+function ParentShell(props){
+  const a = props.active;
+  return (
+    <div className="appshell" style={{height:'100vh'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">B</div><div className="sidebar__brand-name">Beacon Hill</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="#/" active={a==='dashboard'}>Dashboard</NavItem>
+          <NavItem icon="alert-triangle" href="#/alerts" active={a==='alerts'} badge={<Badge variant="error">1</Badge>}>Alerts</NavItem>
+          <NavItem icon="megaphone" href="#/announcements" active={a==='announcements'}>Announcements</NavItem>
+          <div className="sidebar__section-label">My Children</div>
+          <NavItem icon="users" href="#/children" active={a==='children'}>Children</NavItem>
+          <NavItem icon="trending-up" href="#/children/aarav/progress" active={a==='progress'}>Progress</NavItem>
+          <NavItem icon="clipboard-check" href="#/children/aarav/results" active={a==='results'}>Exam Results</NavItem>
+          <NavItem icon="orbit" href="#/progress" active={a==='spaces'}>Space Progress</NavItem>
+          <NavItem icon="git-compare" href="#/compare" active={a==='compare'}>Compare</NavItem>
+          <div className="sidebar__section-label">Account</div>
+          <NavItem icon="bell" href="#/notifications" active={a==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="#/settings" active={a==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="BH" size="sm"/>Beacon Hill Academy<Icon name="chevron-down" size={14}/></button>
+        <button className="chip" aria-haspopup="menu"><Avatar initials="AS" size="sm"/>Aarav Sharma<Icon name="chevron-down" size={14}/></button>
+        <div style={{flex:1}}></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="AS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+function App(){ return (<ParentShell active="settings"><SettingsView/></ParentShell>); }
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

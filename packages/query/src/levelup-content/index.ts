@@ -28,6 +28,31 @@ export {
   useChatSession,
 } from "./queries.js";
 
+// ── conversation runtime (versioned callable repository only) ───────────────
+export {
+  useConversations,
+  useConversation,
+  useStartConversation,
+  useSendConversationTurn,
+  useFinishConversation,
+  useAbandonConversation,
+} from "./conversations.js";
+export type {
+  ConversationListFilter,
+  ConversationDetailInput,
+  ConversationMessagesPage,
+  ConversationResponse,
+  ConversationsResponse,
+  StartConversationVariables,
+  StartConversationResponse,
+  SendConversationTurnVariables,
+  SendConversationTurnResponse,
+  FinishConversationVariables,
+  FinishConversationResponse,
+  AbandonConversationVariables,
+  AbandonConversationResponse,
+} from "./conversations.js";
+
 // ── mutation hooks ────────────────────────────────────────────────────────────
 export {
   useSaveSpace,
@@ -47,7 +72,12 @@ export {
 export { useDuplicateSpace } from "./duplicate.js";
 
 // ── subscription hooks ────────────────────────────────────────────────────────
-export { useChatStream, useServerTime, type ServerTime } from "./subscriptions.js";
+export {
+  useChatStream,
+  useConversationBump,
+  useServerTime,
+  type ServerTime,
+} from "./subscriptions.js";
 
 // ── question form helpers (pure TS, RN-safe) ─────────────────────────────────
 export {

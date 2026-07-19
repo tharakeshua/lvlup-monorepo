@@ -1,0 +1,80 @@
+<!-- @dsCard group="Spacing" name="Spacing, Radius, Elevation & Motion" subtitle="4px base · warm-tinted shadows · scholarly easing" viewport="1240x1180" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyceum — Spacing & Elevation</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .space-row { display: flex; align-items: center; gap: var(--space-4); }
+  .space-row__bar { height: 16px; background: var(--brand-muted); border-radius: var(--radius-sm); }
+  .space-row__label { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); width: 130px; flex: 0 0 auto; }
+  .radii { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+  .radii__box { width: 96px; height: 96px; background: var(--brand-subtle); border: 1px solid var(--brand-muted); display: grid; place-items: end center; padding-bottom: var(--space-2); font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--brand-primary); }
+  .elev { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+  .elev__box { width: 150px; height: 96px; background: var(--bg-surface); border-radius: var(--radius-lg); display: grid; place-items: center; font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+  .motion { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+  .motion__chip { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); padding: var(--space-2) var(--space-3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); }
+  .motion__chip b { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="ds-card">
+  <div class="ds-card__head">
+    <div class="u-eyebrow">Foundation · §4</div>
+    <h1 class="ds-card__title">Spacing, Elevation & Motion</h1>
+    <p class="ds-card__subtitle">A 4px rhythm, five radii steps, warm-tinted shadows that never go pure black, and easing tuned for calm authority.</p>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Spacing scale — 4px base</div>
+    <div class="ds-col" style="gap:var(--space-2)">
+      <div class="space-row"><span class="space-row__label">space-1 · 4</span><span class="space-row__bar" style="width:4px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-2 · 8</span><span class="space-row__bar" style="width:8px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-3 · 12</span><span class="space-row__bar" style="width:12px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-4 · 16</span><span class="space-row__bar" style="width:16px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-6 · 24</span><span class="space-row__bar" style="width:24px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-8 · 32</span><span class="space-row__bar" style="width:32px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-12 · 48</span><span class="space-row__bar" style="width:48px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-16 · 64</span><span class="space-row__bar" style="width:64px"></span></div>
+      <div class="space-row"><span class="space-row__label">space-24 · 96</span><span class="space-row__bar" style="width:96px"></span></div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Radius</div>
+    <div class="radii">
+      <div class="radii__box" style="border-radius:var(--radius-sm)">sm · 6</div>
+      <div class="radii__box" style="border-radius:var(--radius-md)">md · 10</div>
+      <div class="radii__box" style="border-radius:var(--radius-lg)">lg · 14</div>
+      <div class="radii__box" style="border-radius:var(--radius-xl)">xl · 20</div>
+      <div class="radii__box" style="border-radius:var(--radius-pill)">pill</div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Elevation — warm-tinted, ink @ low alpha</div>
+    <div class="elev">
+      <div class="elev__box" style="box-shadow:var(--shadow-e1)">e1</div>
+      <div class="elev__box" style="box-shadow:var(--shadow-e2)">e2</div>
+      <div class="elev__box" style="box-shadow:var(--shadow-e3)">e3</div>
+      <div class="elev__box" style="box-shadow:var(--glow-spark); background:var(--spark); color:var(--ink-900)">glow-spark</div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Motion</div>
+    <div class="motion">
+      <span class="motion__chip">instant <b>100ms</b></span>
+      <span class="motion__chip">fast <b>160ms</b></span>
+      <span class="motion__chip">base <b>220ms</b></span>
+      <span class="motion__chip">slow <b>320ms</b></span>
+      <span class="motion__chip">page <b>420ms</b></span>
+      <span class="motion__chip">ease-standard <b>0.2,0,0,1</b></span>
+      <span class="motion__chip">ease-entrance <b>0.05,0.7,0.1,1</b></span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

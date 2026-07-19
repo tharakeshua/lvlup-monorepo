@@ -22,7 +22,16 @@
  * stays dotted everywhere else (registry key, api-client, typing).
  */
 import { httpsCallable, type Functions } from "firebase/functions";
-import type { CallableName, ReqOf, ResOf } from "@levelup/api-contract";
+import { CALLABLES, type CallableName, type ReqOf, type ResOf } from "@levelup/api-contract";
+
+/**
+ * firebase-js-sdk's `httpsCallable` default client deadline is 70s — it aborts the
+ * request client-side even though the Cloud Function keeps running. AI-tier
+ * callables (the live two-pass extraction, grading kicks) can legitimately run to
+ * the server's 540s ceiling, so we widen the client deadline to match for those.
+ * Contract-driven (`rateTier === "ai"`), never per-callable.
+ */
+const AI_CLIENT_TIMEOUT_MS = 540_000;
 
 /**
  * Map a dotted contract name to the Firebase-deployed function id.
@@ -41,7 +50,12 @@ export async function invokeViaCallable<N extends CallableName>(
   // httpsCallable is typed <Request, Response>; the registry's ReqOf/ResOf are the
   // single source of truth, so we bind the callable to those exact shapes. The
   // resolver target is the DEPLOYED id (dashed), not the dotted contract name.
-  const callable = httpsCallable<ReqOf<N>, ResOf<N>>(functions, toDeployedCallableId(name));
+  const isAiTier = (CALLABLES[name] as { rateTier?: string } | undefined)?.rateTier === "ai";
+  const callable = httpsCallable<ReqOf<N>, ResOf<N>>(
+    functions,
+    toDeployedCallableId(name),
+    isAiTier ? { timeout: AI_CLIENT_TIMEOUT_MS } : undefined
+  );
   const result = await callable(data);
   return result.data;
 }

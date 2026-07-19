@@ -1,0 +1,627 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="B2C Checkout (Cart & Purchase)" subtitle="Order summary · payment · entitlement grant" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2C Checkout (Cart & Purchase)</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* live desktop shell — gives Modal a positioned ancestor */
+  .shell-frame { position: relative; height: 800px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  /* sidebar foot */
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-bell { position: relative; }
+  .tb-bell-badge { position: absolute; top: -4px; right: -4px; }
+
+  /* main scroll area */
+  .co-main { background: var(--bg-canvas); padding: var(--space-6) var(--space-8); height: 100%;
+    overflow-y: auto; }
+  .co-wrap { max-width: 1000px; margin: 0 auto; }
+  .co-back { margin-bottom: var(--space-4); }
+  .co-h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .co-sub { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1);
+    margin-bottom: var(--space-6); }
+
+  .co-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--space-6); align-items: start; }
+  .co-rail { position: sticky; top: 0; }
+
+  /* line item */
+  .li { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    box-shadow: var(--shadow-e1); transition: border-color var(--dur-fast) var(--ease-standard); }
+  .li + .li { margin-top: var(--space-3); }
+  .li:hover { border-color: var(--border-strong); }
+  .li__thumb { width: 64px; height: 64px; flex: 0 0 auto; border-radius: var(--radius-md);
+    display: grid; place-items: center; color: var(--text-on-accent); font-family: var(--font-display);
+    font-weight: var(--weight-semibold); font-size: var(--text-xl); }
+  .li__thumb--a { background: var(--brand-primary); }
+  .li__thumb--b { background: var(--brand-primary-hover); }
+  .li__thumb--c { background: var(--spark); }
+  .li__body { flex: 1; min-width: 0; }
+  .li__title { font-weight: var(--weight-semibold); font-size: var(--text-md); color: var(--text-primary);
+    text-decoration: none; }
+  .li__title:hover { color: var(--brand-primary); text-decoration: underline; }
+  .li__meta { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+  .li__price { font-family: var(--font-mono); font-size: var(--text-md); color: var(--text-primary);
+    margin-top: var(--space-2); font-variant-numeric: tabular-nums; }
+  .li__right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+  .li--failed { border-color: var(--status-error); background: var(--status-error-subtle); }
+  .li__err { display: flex; align-items: center; gap: var(--space-1); color: var(--status-error);
+    font-size: var(--text-xs); margin-top: var(--space-2); }
+
+  .clear-row { margin-top: var(--space-4); }
+
+  /* order summary */
+  .os-total { display: flex; align-items: baseline; justify-content: space-between;
+    padding-top: var(--space-3); margin-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+  .os-total__label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--weight-semibold); }
+  .os-total__val { font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: var(--weight-semibold);
+    color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .pay-slot { border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+    background: var(--bg-surface-sunken); padding: var(--space-3); margin: var(--space-4) 0; }
+  .pay-slot__label { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs);
+    font-weight: var(--weight-semibold); color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.04em; margin-bottom: var(--space-2); }
+  .pay-slot__flag { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted);
+    margin-top: var(--space-2); }
+  .reassure { display: flex; align-items: center; gap: var(--space-2); justify-content: center;
+    color: var(--text-muted); font-size: var(--text-xs); margin-top: var(--space-3); }
+  .summary-rel { position: relative; }
+
+  /* success panel */
+  .done { text-align: center; padding: var(--space-4) var(--space-2); }
+  .done__check { width: 56px; height: 56px; border-radius: var(--radius-pill); margin: 0 auto var(--space-3);
+    display: grid; place-items: center; background: var(--status-success-subtle); color: var(--status-success);
+    animation: pop var(--dur-base) var(--ease-entrance); }
+  @keyframes pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .done__check { animation: none; } }
+  .done__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); }
+  .done__body { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-2); }
+  .done__list { text-align: left; margin: var(--space-4) 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .done__row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+    color: var(--text-secondary); }
+  .done__actions { display: flex; flex-direction: column; gap: var(--space-2); }
+
+  .enrolled-mini { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+  .enrolled-mini__row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+    color: var(--text-secondary); }
+
+  /* secondary state tiles */
+  .state-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); box-shadow: var(--shadow-e1); }
+  .tile--wide { grid-column: span 2; }
+  .skel-line { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; }
+
+  /* mobile sticky bar preview */
+  .mini { position: relative; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+    overflow: hidden; height: 360px; background: var(--bg-canvas); max-width: 320px; }
+  .mini-main { padding: var(--space-3); height: calc(100% - 56px - 52px); overflow: hidden; }
+  .mini-li { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-2);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface);
+    margin-bottom: var(--space-2); }
+  .mini-li__t { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--brand-primary); flex: 0 0 auto; }
+  .mini-bar { position: absolute; left: 0; right: 0; bottom: 52px; padding: var(--space-3);
+    background: var(--bg-surface); border-top: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: var(--space-3); box-shadow: var(--shadow-e2); }
+  .mini-bar__total { flex: 1; }
+  .mini-bar__total b { font-family: var(--font-mono); font-size: var(--text-lg); display: block;
+    font-variant-numeric: tabular-nums; }
+  .mini-bar__total span { font-size: var(--text-2xs); color: var(--text-muted); }
+  .mini-tabbar { position: absolute; left: 0; right: 0; bottom: 0; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Tabbar,
+    Card, Panel, Modal, Alert, EmptyState, Skeleton, DefinitionList,
+    Stat, Toast, LoadingOverlay, Kbd, Chip
+  } = LU;
+  const { useState, useEffect } = React;
+
+  const money = (n) => "US$ " + n.toFixed(2);
+
+  const B2C_NAV = [
+    { icon: "graduation-cap", label: "My Learning", key: "learning" },
+    { icon: "store", label: "Store", key: "store" },
+    { icon: "shopping-cart", label: "Cart", key: "cart", badge: "2" },
+    { icon: "user", label: "Profile", key: "profile" },
+  ];
+
+  function NavLink({ icon, label, active, badge, onClick }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => { e.preventDefault(); onClick && onClick(); }}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+        {badge && <span className="nav-item__badge"><Badge>{badge}</Badge></span>}
+      </a>
+    );
+  }
+
+  const INITIAL_CART = [
+    { id: "sp1", title: "Data Structures & Algorithms", subject: "Computer Science", price: 19, thumb: "a", mark: "D" },
+    { id: "sp2", title: "System Design Foundations", subject: "Engineering", price: 19, thumb: "b", mark: "S" },
+  ];
+
+  /* ========================== PRIMARY SCREEN ========================== */
+  function Screen() {
+    const [cart, setCart] = useState(INITIAL_CART);
+    const [confirmPurchase, setConfirmPurchase] = useState(false);
+    const [confirmClear, setConfirmClear] = useState(false);
+    const [processing, setProcessing] = useState(false);
+    const [done, setDone] = useState(false);
+    const [toast, setToast] = useState(null);     // {variant,title,body, undo?}
+    const [revalidating, setRevalidating] = useState(false);
+
+    const subtotal = cart.reduce((s, l) => s + l.price, 0);
+    const n = cart.length;
+    const free = subtotal === 0;
+
+    // simulate the price re-validation skeleton on first mount
+    useEffect(() => {
+      setRevalidating(true);
+      const t = setTimeout(() => setRevalidating(false), 1100);
+      return () => clearTimeout(t);
+    }, []);
+
+    const announce = (title, body, variant) => setToast({ variant, title, body });
+    useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
+
+    const removeLine = (id) => {
+      const removed = cart.find((l) => l.id === id);
+      setCart((c) => c.filter((l) => l.id !== id));
+      setToast({ variant: "info", title: "Removed from cart", body: removed ? "“" + removed.title + "” — Undo available", undo: removed });
+    };
+    const undoRemove = () => {
+      if (toast && toast.undo) { setCart((c) => [...c, toast.undo]); setToast(null); }
+    };
+    const doClear = () => { setCart([]); setConfirmClear(false); setToast({ variant: "info", title: "Cart cleared", body: "You can always add them back — Undo" }); };
+
+    const runPurchase = () => {
+      setConfirmPurchase(false);
+      setProcessing(true);
+      // not optimistic — server confirms before success shows
+      setTimeout(() => { setProcessing(false); setDone(true); }, 1500);
+    };
+
+    return (
+      <div className="stage">
+
+        {/* ============ PRIMARY: live populated checkout in shell ============ */}
+        <div>
+          <div className="eyebrow">State: populated (primary) · /store/checkout</div>
+          <div className="shell-frame">
+            <div className="appshell">
+              {/* SIDEBAR (ConsumerLayout nav) */}
+              <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+                <div className="sidebar__brand">
+                  <span className="sidebar__brand-mark">L</span>
+                  <span className="sidebar__brand-name">LevelUp</span>
+                </div>
+                <div className="sidebar__nav" style={{ flex: 1 }}>
+                  <div className="sidebar__section-label">Your space</div>
+                  {B2C_NAV.map((nav) => (
+                    <NavLink key={nav.key} icon={nav.icon} label={nav.label} badge={nav.badge}
+                      active={nav.key === "cart"} />
+                  ))}
+                </div>
+                <div className="sb-foot">
+                  <div className="sb-avatar-row">
+                    <Avatar initials="MS" />
+                    <div className="sb-meta" style={{ flex: 1 }}>
+                      <b>Mira Sharma</b>
+                      <span>mira@hey.com</span>
+                    </div>
+                    <Icon name="chevron-up" size={16} />
+                  </div>
+                </div>
+              </nav>
+
+              {/* TOPBAR */}
+              <header className="appshell__topbar">
+                <Breadcrumb items={[{ label: "Store", href: "#" }, { label: "Checkout" }]} />
+                <div className="topbar__spacer" />
+                <div className="tb-kbd" role="button" aria-label="Search">
+                  <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+                </div>
+                <div className="tb-bell">
+                  <IconButton icon={<Icon name="shopping-cart" size={20} />} label="2 items in cart" />
+                  <span className="tb-bell-badge"><Badge variant="spark">2</Badge></span>
+                </div>
+                <Avatar initials="MS" />
+              </header>
+
+              {/* MAIN */}
+              <main className="appshell__main" id="main-content" style={{ padding: 0, overflow: "hidden" }}>
+                <div className="co-main">
+                  <div className="co-wrap">
+                    <div className="co-back">
+                      <Button variant="ghost" size="sm" leadingIcon={<Icon name="arrow-left" size={16} />}>
+                        Back to store
+                      </Button>
+                    </div>
+                    <h1 className="co-h1">Checkout</h1>
+                    <div className="co-sub">Review your spaces before you start learning.</div>
+
+                    {cart.length === 0 && !done ? (
+                      <EmptyState
+                        icon="shopping-cart"
+                        title="Your cart is empty"
+                        body="Browse the store and add a space whenever something sparks your interest."
+                        action={<Button variant="primary" leadingIcon={<Icon name="store" size={16} />}>Browse the store</Button>}
+                      />
+                    ) : (
+                      <div className="co-grid">
+                        {/* LEFT — cart list */}
+                        <div>
+                          {cart.map((l) => (
+                            <div className="li" key={l.id}>
+                              <div className={"li__thumb li__thumb--" + l.thumb} aria-hidden="true">{l.mark}</div>
+                              <div className="li__body">
+                                <a className="li__title" href="#" onClick={(e) => e.preventDefault()}>{l.title}</a>
+                                <div className="li__meta">
+                                  <Chip>{l.subject}</Chip>
+                                </div>
+                                {revalidating ? (
+                                  <div style={{ marginTop: "var(--space-2)" }}><Skeleton width="72px" height="1rem" /></div>
+                                ) : l.price === 0 ? (
+                                  <div style={{ marginTop: "var(--space-2)" }}>
+                                    <Badge variant="success" icon={<Icon name="gift" size={12} />}>Free</Badge>
+                                  </div>
+                                ) : (
+                                  <div className="li__price" aria-label={"Price " + money(l.price)}>{money(l.price)}</div>
+                                )}
+                              </div>
+                              <div className="li__right">
+                                <IconButton
+                                  icon={<Icon name="trash-2" size={18} />}
+                                  label={'Remove "' + l.title + '" from cart'}
+                                  onClick={() => removeLine(l.id)}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          <div className="clear-row">
+                            <Button variant="ghost" size="sm" leadingIcon={<Icon name="trash" size={15} />}
+                              onClick={() => setConfirmClear(true)}>
+                              Clear cart
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* RIGHT — order summary (sticky) */}
+                        <div className="co-rail">
+                          <div className="summary-rel">
+                            {processing && <LoadingOverlay />}
+                            <Panel title={done ? null : "Order summary"}>
+                              {done ? (
+                                <div className="done">
+                                  <div className="done__check"><Icon name="check" size={28} /></div>
+                                  <div className="done__title">You're all set!</div>
+                                  <div className="done__body">2 spaces added to your library. Time to dive in.</div>
+                                  <div className="done__list">
+                                    <div className="done__row"><Icon name="check-circle" size={16} style={{ color: "var(--status-success)" }} /> Data Structures &amp; Algorithms</div>
+                                    <div className="done__row"><Icon name="check-circle" size={16} style={{ color: "var(--status-success)" }} /> System Design Foundations</div>
+                                  </div>
+                                  <div className="done__actions">
+                                    <Button variant="spark" block leadingIcon={<Icon name="graduation-cap" size={16} />}>Start learning</Button>
+                                    <Button variant="ghost" block>Keep browsing</Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div aria-live="polite">
+                                  <DefinitionList items={[
+                                    { term: n === 1 ? "1 space" : n + " spaces", value: revalidating ? <Skeleton width="64px" height="0.9rem" /> : money(subtotal) },
+                                  ]} />
+                                  <div className="os-total">
+                                    <span className="os-total__label">Total</span>
+                                    <span className="os-total__val">{revalidating ? <Skeleton width="88px" height="1.6rem" /> : money(subtotal)}</span>
+                                  </div>
+
+                                  <div className="pay-slot">
+                                    <div className="pay-slot__label">
+                                      <Icon name="credit-card" size={14} /> Payment method
+                                    </div>
+                                    <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                                      {free ? "No payment needed — these spaces are free." : "Free during beta — no card required yet."}
+                                    </div>
+                                    <div className="pay-slot__flag">PaymentMethodSlot · proposed FOUNDATION addition (not yet promoted)</div>
+                                  </div>
+
+                                  <Button variant="spark" block
+                                    loading={processing}
+                                    disabled={processing || revalidating}
+                                    leadingIcon={!processing && <Icon name="sparkles" size={16} />}
+                                    onClick={() => setConfirmPurchase(true)}>
+                                    {processing ? "Processing…" : (free ? "Enroll now" : "Complete purchase")}
+                                  </Button>
+                                  <div className="reassure">
+                                    <Icon name="lock" size={13} /> Secure checkout · cancel anytime before you start.
+                                  </div>
+                                </div>
+                              )}
+                            </Panel>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </main>
+            </div>
+
+            {/* Confirm enrollment dialog */}
+            <Modal open={confirmPurchase} onClose={() => setConfirmPurchase(false)} title="Ready to start?"
+              footer={(<>
+                <Button variant="ghost" onClick={() => setConfirmPurchase(false)}>Not yet</Button>
+                <Button variant="spark" leadingIcon={<Icon name="sparkles" size={16} />} onClick={runPurchase}>
+                  {free ? "Enroll now" : "Complete purchase"}
+                </Button>
+              </>)}>
+              <div style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+                You're enrolling in {n} {n === 1 ? "space" : "spaces"}.{!free && " Total: " + money(subtotal) + "."}
+              </div>
+            </Modal>
+
+            {/* Clear cart dialog (destructive) */}
+            <Modal open={confirmClear} onClose={() => setConfirmClear(false)} title="Clear your cart?"
+              footer={(<>
+                <Button variant="ghost" onClick={() => setConfirmClear(false)}>Keep them</Button>
+                <Button variant="danger" leadingIcon={<Icon name="trash" size={16} />} onClick={doClear}>Clear cart</Button>
+              </>)}>
+              <div style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+                This removes all {n} {n === 1 ? "space" : "spaces"}. You can always add them back.
+              </div>
+            </Modal>
+
+            {/* Toast host */}
+            {toast && (
+              <div style={{ position: "absolute", right: "var(--space-5)", bottom: "var(--space-5)", width: 320, zIndex: 60 }}>
+                <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+                {toast.undo && (
+                  <div style={{ marginTop: "var(--space-2)", textAlign: "right" }}>
+                    <Button variant="secondary" size="sm" leadingIcon={<Icon name="undo-2" size={14} />} onClick={undoRemove}>Undo</Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ============ SECONDARY STATES ============ */}
+        <div>
+          <div className="eyebrow">Other spec'd states</div>
+          <div className="state-tiles">
+
+            {/* loading */}
+            <div className="tile">
+              <div className="eyebrow">State: loading (price re-validation)</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "var(--text-xs)", marginBottom: "var(--space-3)" }}>
+                Titles render instantly from localStorage; only the money shimmers while we re-confirm the price.
+              </div>
+              <div className="skel-line">
+                <Skeleton variant="circle" width="48px" height="48px" />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="62%" height="0.9rem" />
+                  <div style={{ marginTop: "var(--space-2)" }}><Skeleton width="40%" height="0.75rem" /></div>
+                </div>
+                <Skeleton width="64px" height="1rem" />
+              </div>
+              <div className="skel-line">
+                <Skeleton variant="circle" width="48px" height="48px" />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="54%" height="0.9rem" />
+                  <div style={{ marginTop: "var(--space-2)" }}><Skeleton width="36%" height="0.75rem" /></div>
+                </div>
+                <Skeleton width="64px" height="1rem" />
+              </div>
+            </div>
+
+            {/* empty */}
+            <div className="tile">
+              <div className="eyebrow">State: empty cart</div>
+              <EmptyState
+                icon="shopping-cart"
+                title="Your cart is empty"
+                body="Browse the store and add a space whenever something sparks your interest."
+                action={<Button variant="primary" leadingIcon={<Icon name="store" size={16} />}>Browse the store</Button>}
+              />
+            </div>
+
+            {/* error */}
+            <div className="tile">
+              <div className="eyebrow">State: error (all purchases failed)</div>
+              <Alert variant="error" title="That didn't go through">
+                Something interrupted your checkout — your cart is safe. Let's try that again.
+              </Alert>
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16} />}>Try again</Button>
+              </div>
+            </div>
+
+            {/* offline */}
+            <div className="tile">
+              <div className="eyebrow">State: offline</div>
+              <Alert variant="warning" title="You're offline">
+                We'll keep your cart safe. Reconnect to complete your purchase.
+              </Alert>
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <Button variant="spark" disabled block leadingIcon={<Icon name="wifi-off" size={16} />}>
+                  Complete purchase
+                </Button>
+              </div>
+            </div>
+
+            {/* partial */}
+            <div className="tile tile--wide">
+              <div className="eyebrow">State: partial success (some enrolled, some failed)</div>
+              <Alert variant="warning" title="1 enrolled, 1 still pending">
+                We kept the one that didn't go through in your cart so you can retry. Nothing was double-charged.
+              </Alert>
+              <div className="enrolled-mini">
+                <div className="enrolled-mini__row">
+                  <Icon name="check-circle" size={16} style={{ color: "var(--status-success)" }} />
+                  Enrolled — Data Structures &amp; Algorithms
+                </div>
+              </div>
+              <div className="li li--failed" style={{ marginTop: "var(--space-3)" }}>
+                <div className="li__thumb li__thumb--b" aria-hidden="true">S</div>
+                <div className="li__body">
+                  <a className="li__title" href="#" onClick={(e) => e.preventDefault()}>System Design Foundations</a>
+                  <div className="li__err">
+                    <Icon name="alert-triangle" size={14} /> This space isn't available right now — kept in your cart.
+                  </div>
+                </div>
+                <div className="li__right">
+                  <IconButton icon={<Icon name="trash-2" size={18} />} label='Remove "System Design Foundations" from cart' />
+                </div>
+              </div>
+              <div style={{ marginTop: "var(--space-3)", maxWidth: 280 }}>
+                <Button variant="spark" block leadingIcon={<Icon name="rotate-ccw" size={16} />}>Retry remaining (1)</Button>
+              </div>
+            </div>
+
+            {/* stale price */}
+            <div className="tile">
+              <div className="eyebrow">State: stale price (acknowledge required)</div>
+              <Alert variant="info" title="Price updated since you added this">
+                Now US$ 24.00. Tap to accept the new price before you continue.
+              </Alert>
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <Button variant="secondary" leadingIcon={<Icon name="check" size={16} />}>Accept new price</Button>
+              </div>
+            </div>
+
+            {/* free / enroll */}
+            <div className="tile">
+              <div className="eyebrow">State: free space (Enroll now)</div>
+              <DefinitionList items={[{ term: "1 space", value: <Badge variant="success" icon={<Icon name="gift" size={12} />}>Free</Badge> }]} />
+              <div className="os-total">
+                <span className="os-total__label">Total</span>
+                <span className="os-total__val">US$ 0.00</span>
+              </div>
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <Button variant="spark" block leadingIcon={<Icon name="sparkles" size={16} />}>Enroll now</Button>
+              </div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "var(--space-2)", textAlign: "center" }}>
+                No payment needed — these spaces are free.
+              </div>
+            </div>
+
+            {/* success */}
+            <div className="tile">
+              <div className="eyebrow">State: success (tasteful — no celebration burst)</div>
+              <Panel>
+                <div className="done">
+                  <div className="done__check"><Icon name="check" size={28} /></div>
+                  <div className="done__title">You're all set!</div>
+                  <div className="done__body">2 spaces added to your library. Time to dive in.</div>
+                  <div className="done__list">
+                    <div className="done__row"><Icon name="check-circle" size={16} style={{ color: "var(--status-success)" }} /> Data Structures &amp; Algorithms</div>
+                    <div className="done__row" style={{ color: "var(--text-muted)" }}>
+                      <Icon name="library" size={16} /> You already had "Behavioral Prep" — it's waiting in your library.
+                    </div>
+                  </div>
+                  <div className="done__actions">
+                    <Button variant="spark" block leadingIcon={<Icon name="graduation-cap" size={16} />}>Start learning</Button>
+                    <Button variant="ghost" block>Keep browsing</Button>
+                  </div>
+                </div>
+              </Panel>
+            </div>
+
+            {/* processing */}
+            <div className="tile">
+              <div className="eyebrow">State: saving (processing purchase)</div>
+              <div className="summary-rel" style={{ minHeight: 120 }}>
+                <LoadingOverlay />
+                <Panel title="Order summary">
+                  <DefinitionList items={[{ term: "2 spaces", value: "US$ 38.00" }]} />
+                  <div className="os-total">
+                    <span className="os-total__label">Total</span>
+                    <span className="os-total__val">US$ 38.00</span>
+                  </div>
+                  <div style={{ marginTop: "var(--space-3)" }}>
+                    <Button variant="spark" block loading disabled>Processing…</Button>
+                  </div>
+                </Panel>
+              </div>
+            </div>
+
+            {/* permission gated */}
+            <div className="tile">
+              <div className="eyebrow">State: permission-gated (B2B student redirected)</div>
+              <Alert variant="info" title="The store is for self-serve learners">
+                School students get their spaces assigned by their teacher — no checkout needed. You'll be taken back to My Learning.
+              </Alert>
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16} />}>Go to My Learning</Button>
+              </div>
+            </div>
+
+            {/* mobile sticky bar */}
+            <div className="tile">
+              <div className="eyebrow">State: mobile (Order Summary → bottom sticky bar)</div>
+              <div className="mini">
+                <div className="mini-main">
+                  <div className="mini-li"><div className="mini-li__t" /><div style={{ flex: 1, fontSize: "var(--text-xs)" }}>DSA<br /><span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>US$ 19.00</span></div></div>
+                  <div className="mini-li"><div className="mini-li__t" style={{ background: "var(--brand-primary-hover)" }} /><div style={{ flex: 1, fontSize: "var(--text-xs)" }}>System Design<br /><span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>US$ 19.00</span></div></div>
+                </div>
+                <div className="mini-bar">
+                  <div className="mini-bar__total"><b>US$ 38.00</b><span>2 spaces · tap to expand</span></div>
+                  <Button variant="spark" size="sm" leadingIcon={<Icon name="sparkles" size={14} />}>Complete</Button>
+                </div>
+                <div className="mini-tabbar">
+                  <Tabbar items={[
+                    { icon: "graduation-cap", label: "Learn" },
+                    { icon: "store", label: "Store" },
+                    { icon: "shopping-cart", label: "Cart", active: true },
+                    { icon: "user", label: "Profile" },
+                  ]} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

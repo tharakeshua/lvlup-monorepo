@@ -12,7 +12,20 @@
  * → items → exams → submissions → sessions → progress → gamification → notifications).
  */
 
-import type { SeedConfig, SpaceConfig, TenantConfig } from "./types.js";
+import type {
+  AgentConfig,
+  ChatAgentQuestionSeedConfig,
+  SeedConfig,
+  SpaceConfig,
+  TenantConfig,
+  UnifiedRubricInput,
+} from "./types.js";
+
+const MODEL_POLICY_IDS = new Set([
+  "conversation.fast",
+  "conversation.quality",
+  "evaluation.quality",
+]);
 
 /** A single FK violation (collected, then thrown together for a readable report). */
 interface FkError {
@@ -31,7 +44,7 @@ interface TenantKeyIndex {
   spaces: Set<string>;
   storyPoints: Map<string, Set<string>>; // spaceKey -> storyPointKeys
   items: Map<string, Set<string>>; // `${spaceKey}/${storyPointKey}` -> itemKeys
-  agents: Set<string>;
+  agents: Map<string, AgentConfig>;
   rubricPresets: Set<string>;
   exams: Set<string>;
   examQuestions: Map<string, Set<string>>; // examKey -> questionKeys
@@ -50,7 +63,7 @@ function indexTenant(tc: TenantConfig): TenantKeyIndex {
     spaces: new Set(),
     storyPoints: new Map(),
     items: new Map(),
-    agents: new Set(),
+    agents: new Map(),
     rubricPresets: new Set(),
     exams: new Set(),
     examQuestions: new Map(),
@@ -75,7 +88,7 @@ function indexTenant(tc: TenantConfig): TenantKeyIndex {
 
   for (const c of tc.classes ?? []) idx.classes.add(c.key);
   for (const s of tc.academicSessions ?? []) idx.sessions.add(s.key);
-  for (const a of tc.agents ?? []) idx.agents.add(a.key);
+  for (const a of tc.agents ?? []) idx.agents.set(a.key, a);
   for (const r of tc.rubricPresets ?? []) idx.rubricPresets.add(r.key);
   for (const e of tc.evaluationSettings ?? []) idx.evalSettings.add(e.key);
   for (const a of tc.achievements ?? []) idx.achievements.add(a.key);
@@ -121,6 +134,24 @@ function checkTenant(tc: TenantConfig, errs: FkError[]): void {
   ) => {
     for (const k of keys ?? []) need(set, k, where, kind);
   };
+
+  // ── agents → space / model-policy / semantic version ──
+  for (const agent of tc.agents ?? []) {
+    need(idx.spaces, agent.spaceKey, `agent ${agent.key}.spaceKey`, "space");
+    if (agent.modelPolicyId && !MODEL_POLICY_IDS.has(agent.modelPolicyId)) {
+      err(`agent ${agent.key}.modelPolicyId`, "must be an allowlisted stable model policy ID");
+    }
+    if (agent.version !== undefined && (!Number.isInteger(agent.version) || agent.version < 1)) {
+      err(`agent ${agent.key}.version`, "must be a positive integer");
+    }
+    if (
+      agent.type === "evaluator" &&
+      agent.modelPolicyId &&
+      agent.modelPolicyId !== "evaluation.quality"
+    ) {
+      err(`agent ${agent.key}.modelPolicyId`, "evaluator agents must use evaluation.quality");
+    }
+  }
 
   // ── people → classes ──
   for (const t of tc.teachers ?? [])
@@ -173,7 +204,7 @@ function checkTenant(tc: TenantConfig, errs: FkError[]): void {
       );
     }
     if (cs.agentKey != null)
-      need(idx.agents, cs.agentKey, `chatSession ${cs.key}.agentKey`, "agent");
+      need(new Set(idx.agents.keys()), cs.agentKey, `chatSession ${cs.key}.agentKey`, "agent");
   }
 
   // ── evaluation settings → rubric presets ──
@@ -318,7 +349,7 @@ function checkTenant(tc: TenantConfig, errs: FkError[]): void {
 }
 
 function checkSpace(
-  _tc: TenantConfig,
+  tc: TenantConfig,
   space: SpaceConfig,
   idx: TenantKeyIndex,
   err: (where: string, message: string) => void,
@@ -342,8 +373,130 @@ function checkSpace(
           "rubricPreset"
         );
       }
+      if (item.kind === "question" && item.questionType === "chat_agent_question") {
+        checkChatAssessmentItem(tc, space, sp.key, item, idx, err);
+      }
     }
   }
+}
+
+/** Assessment-only FK/invariant checks that cannot be expressed by Zod alone. */
+function checkChatAssessmentItem(
+  tc: TenantConfig,
+  space: SpaceConfig,
+  storyPointKey: string,
+  item: ChatAgentQuestionSeedConfig,
+  idx: TenantKeyIndex,
+  err: (where: string, message: string) => void
+): void {
+  const where = `chat_agent_question ${space.key}/${storyPointKey}/${item.key}`;
+  const agent = idx.agents.get(item.interviewerAgentKey);
+  if (!agent) {
+    err(
+      `${where}.interviewerAgentKey`,
+      `references unknown agent key "${item.interviewerAgentKey}"`
+    );
+  } else {
+    if (agent.spaceKey !== space.key) {
+      err(`${where}.interviewerAgentKey`, "must reference an agent in the same space");
+    }
+    if (agent.type !== "interviewer") {
+      err(`${where}.interviewerAgentKey`, 'must reference an agent with type "interviewer"');
+    }
+    if (agent.isActive === false) {
+      err(`${where}.interviewerAgentKey`, "must reference an active interviewer agent");
+    }
+    if (!agent.modelPolicyId) {
+      err(`${where}.interviewerAgentKey`, "interviewer agent must declare a modelPolicyId");
+    } else if (
+      !MODEL_POLICY_IDS.has(agent.modelPolicyId) ||
+      agent.modelPolicyId === "evaluation.quality"
+    ) {
+      err(
+        `${where}.interviewerAgentKey`,
+        "interviewer agent must use an allowlisted conversation policy"
+      );
+    }
+  }
+
+  if (item.evaluatorAgentKey) {
+    const evaluator = idx.agents.get(item.evaluatorAgentKey);
+    if (!evaluator) {
+      err(`${where}.evaluatorAgentKey`, `references unknown agent key "${item.evaluatorAgentKey}"`);
+    } else {
+      if (evaluator.spaceKey !== space.key) {
+        err(`${where}.evaluatorAgentKey`, "must reference an agent in the same space");
+      }
+      if (evaluator.type !== "evaluator") {
+        err(`${where}.evaluatorAgentKey`, 'must reference an agent with type "evaluator"');
+      }
+      if (evaluator.isActive === false) {
+        err(`${where}.evaluatorAgentKey`, "must reference an active evaluator agent");
+      }
+      if (!evaluator.modelPolicyId) {
+        err(
+          `${where}.evaluatorAgentKey`,
+          "evaluator agent must declare the evaluation.quality model policy"
+        );
+      } else if (evaluator.modelPolicyId !== "evaluation.quality") {
+        err(
+          `${where}.evaluatorAgentKey`,
+          "evaluator agent must use the evaluation.quality model policy"
+        );
+      }
+    }
+  }
+
+  const publicIds = item.publicLearningObjectives.map((objective) => objective.key);
+  if (new Set(publicIds).size !== publicIds.length) {
+    err(`${where}.publicLearningObjectives`, "contains duplicate objective keys");
+  }
+  const privateIds = item.answer.privateEvaluationObjectives.map((objective) => objective.key);
+  if (new Set(privateIds).size !== privateIds.length) {
+    err(`${where}.answer.privateEvaluationObjectives`, "contains duplicate objective keys");
+  }
+
+  const rubric = resolveRubric(tc, item);
+  if (!rubric) {
+    err(where, "requires rubricPresetKey or rubric for assessment evaluation");
+    return;
+  }
+  const dimensions = rubric.dimensions ?? [];
+  const dimensionKeys = new Set(dimensions.map((dimension) => dimension.key));
+  if (dimensions.length === 0) {
+    // Every private objective is explicitly keyed to a rubric dimension; a
+    // holistic score alone therefore cannot satisfy the assessment contract.
+    err(
+      `${where}.answer.privateEvaluationObjectives`,
+      "requires a dimension-based rubric with matching rubricDimensionKey values"
+    );
+    if ((rubric.totalPoints ?? 0) <= 0) {
+      err(where, "holistic rubric must declare positive totalPoints");
+    }
+    return;
+  }
+  for (const objective of item.answer.privateEvaluationObjectives) {
+    if (!dimensionKeys.has(objective.rubricDimensionKey)) {
+      err(
+        `${where}.answer.privateEvaluationObjectives.${objective.key}.rubricDimensionKey`,
+        `references unknown rubric dimension key "${objective.rubricDimensionKey}"`
+      );
+    }
+  }
+  const invalidWeight = dimensions.some(
+    (dimension) => !Number.isFinite(dimension.weight) || dimension.weight <= 0
+  );
+  if (invalidWeight) err(where, "rubric dimensions must have positive finite weights");
+}
+
+function resolveRubric(
+  tc: TenantConfig,
+  item: ChatAgentQuestionSeedConfig
+): UnifiedRubricInput | undefined {
+  if (item.rubricPresetKey) {
+    return tc.rubricPresets?.find((preset) => preset.key === item.rubricPresetKey)?.rubric;
+  }
+  return item.rubric;
 }
 
 /**

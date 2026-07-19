@@ -1,0 +1,30 @@
+<!-- @dsCard group="Learning" viewport="700x360" name="TutorChatBubble" subtitle="Tutor + student turns" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-col{display:flex;flex-direction:column;gap:8px;max-width:560px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:4px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { TutorChatBubble } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){ return (<div>
+    <div className="ds-cap">Tutoring conversation</div>
+    <div className="ds-col">
+      <TutorChatBubble from="tutor" author="AI Tutor">
+        A binary search only works on a <strong>sorted</strong> array. On each step you compare the middle element to your target and discard half the range. Want to walk through why that gives O(log n)?
+      </TutorChatBubble>
+      <TutorChatBubble from="user" author="You">
+        Yes &mdash; I get that we halve it each time, but I'm not sure where the log actually comes from.
+      </TutorChatBubble>
+      <TutorChatBubble from="tutor" author="AI Tutor">
+        Great question. If you keep halving n, you can only do that about log&#8322;(n) times before one element is left. So a 1,024-item array needs at most 10 comparisons. That repeated halving is exactly what log&#8322; measures.
+      </TutorChatBubble>
+    </div>
+  </div>); }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

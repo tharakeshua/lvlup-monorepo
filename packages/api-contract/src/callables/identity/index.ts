@@ -86,6 +86,17 @@ import {
   startImpersonation,
   endImpersonation,
 } from "./platform.js";
+import {
+  saveUserProviderKey,
+  listUserProviderKeys,
+  setUserProviderKeyEnabled,
+  deleteUserProviderKey,
+  rotateTenantKey,
+  revokeTenantKey,
+  getTenantKeyStatus,
+  savePlatformKey,
+  getPlatformKeyStatus,
+} from "./keys.js";
 
 export * from "./_shared.js";
 export * from "./tenant.js";
@@ -93,6 +104,7 @@ export * from "./entities.js";
 export * from "./users.js";
 export * from "./notifications.js";
 export * from "./platform.js";
+export * from "./keys.js";
 
 /**
  * The identity module slice of the registry, keyed by the canonical callable name
@@ -164,6 +176,16 @@ export const IDENTITY_CALLABLES = {
   "v1.identity.sendPasswordReset": sendPasswordReset,
   "v1.identity.startImpersonation": startImpersonation,
   "v1.identity.endImpersonation": endImpersonation,
+  // API key management — per-user BYOK, tenant keys, platform fallback keys
+  "v1.identity.saveUserProviderKey": saveUserProviderKey,
+  "v1.identity.listUserProviderKeys": listUserProviderKeys,
+  "v1.identity.setUserProviderKeyEnabled": setUserProviderKeyEnabled,
+  "v1.identity.deleteUserProviderKey": deleteUserProviderKey,
+  "v1.identity.rotateTenantKey": rotateTenantKey,
+  "v1.identity.revokeTenantKey": revokeTenantKey,
+  "v1.identity.getTenantKeyStatus": getTenantKeyStatus,
+  "v1.identity.savePlatformKey": savePlatformKey,
+  "v1.identity.getPlatformKeyStatus": getPlatformKeyStatus,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as const satisfies Record<string, CallableDef<any, any>>;
 

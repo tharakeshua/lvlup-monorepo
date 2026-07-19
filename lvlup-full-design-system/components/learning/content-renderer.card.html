@@ -1,0 +1,47 @@
+<!-- @dsCard group="Learning" viewport="780x480" name="ContentRenderer" subtitle="Markdown + math + code" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:flex-start;margin-bottom:var(--space-4)}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:var(--space-1);text-transform:uppercase;letter-spacing:var(--tracking-caption)}
+.ds-lesson{width:100%;max-width:var(--reading-max);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-5);box-shadow:var(--shadow-e1)}
+.ds-math{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl);color:var(--brand-primary);padding:var(--space-3) var(--space-4);margin-top:var(--space-3);background:var(--bg-surface-sunken);border-left:3px solid var(--spark);border-radius:var(--radius-md)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { ContentRenderer } = window.LvlupV0DesignSystem_5d0725;
+  const lesson = `
+    <h3>Big-O of Binary Search</h3>
+    <p>Binary search repeatedly halves the search interval, so a sorted array of
+    <code>n</code> elements is resolved in logarithmic time. Each comparison
+    discards half of the remaining candidates.</p>
+    <blockquote>A halving strategy turns linear work into logarithmic work &mdash;
+    the single most important idea behind efficient lookup.</blockquote>
+    <p>The recurrence for the running time is solved below, and the loop body is:</p>
+    <pre><code>while (lo &lt;= hi) {
+  const mid = (lo + hi) >> 1;
+  if (a[mid] === target) return mid;
+  if (a[mid] &lt; target) lo = mid + 1;
+  else hi = mid - 1;
+}</code></pre>
+  `;
+  function Demo(){
+    return (
+      <div>
+        <div className="ds-cap">html prop &mdash; rich lesson content</div>
+        <div className="ds-row">
+          <div className="ds-lesson">
+            <ContentRenderer html={lesson} />
+            <div className="ds-cap">display-font math expression</div>
+            <div className="ds-math">T(n) = T(n/2) + O(1)  &rArr;  T(n) = O(log n)</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

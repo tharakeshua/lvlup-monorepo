@@ -20,6 +20,7 @@ import { createQuestionBankRepo, type QuestionBankRepo } from "./question-bank";
 import { createRubricPresetRepo, type RubricPresetRepo } from "./rubric-preset";
 import { createAgentRepo, type AgentRepo } from "./agent";
 import { createChatRepo, type ChatRepo } from "./chat";
+import { createConversationRepo, type ConversationRepo } from "./conversation";
 import { createStoreRepo, type StoreRepo } from "./store";
 import { createVersionRepo, type VersionRepo } from "./version";
 import { createAssignmentRepo, type AssignmentRepo } from "./assignment";
@@ -34,6 +35,7 @@ export interface LevelupContentRepos {
   rubricPresetRepo: RubricPresetRepo;
   agentRepo: AgentRepo;
   chatRepo: ChatRepo;
+  conversationRepo: ConversationRepo;
   storeRepo: StoreRepo;
   versionRepo: VersionRepo;
   assignmentRepo: AssignmentRepo;
@@ -51,6 +53,7 @@ export function createLevelupContentRepos(api: ApiClientLike): LevelupContentRep
     rubricPresetRepo: createRubricPresetRepo(api),
     agentRepo: createAgentRepo(api),
     chatRepo: createChatRepo(api),
+    conversationRepo: createConversationRepo(api),
     storeRepo: createStoreRepo(api),
     versionRepo: createVersionRepo(api),
     assignmentRepo: createAssignmentRepo(api),
@@ -70,6 +73,7 @@ export * from "./question-bank";
 export * from "./rubric-preset";
 export * from "./agent";
 export * from "./chat";
+export * from "./conversation";
 export * from "./store";
 export * from "./version";
 export * from "./assignment";

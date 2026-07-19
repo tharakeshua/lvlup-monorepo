@@ -1,0 +1,463 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Announcements — Compose" subtitle="Compose/list staff announcements · draft/publish/archive" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .num,.u-mono{font-family:var(--font-mono)}
+  .u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-caption)}
+  .main-wrap{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+  .page-head h1{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);margin:0 0 var(--space-2) 0;letter-spacing:var(--tracking-display)}
+  .page-head p{margin:0;color:var(--text-secondary);font-size:var(--text-sm);line-height:var(--leading-sm)}
+
+  .split{display:grid;grid-template-columns:minmax(420px,520px) 1fr;gap:var(--space-6);align-items:start}
+  .composer{position:sticky;top:0}
+
+  .cgroup{border-top:1px solid var(--border-subtle);padding:var(--space-5) 0}
+  .cgroup:first-child{border-top:none;padding-top:0}
+  .cgroup__label{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:var(--tracking-caption);color:var(--text-muted);margin:0 0 var(--space-3) 0}
+
+  .radio-row{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3)}
+  .opt-pill{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:pointer;font-size:var(--text-sm);color:var(--text-secondary)}
+  .opt-pill:hover{border-color:var(--border-strong)}
+  .opt-pill--on{border-color:var(--brand-primary);background:var(--brand-subtle);color:var(--text-primary)}
+  .opt-pill__dot{width:15px;height:15px;border-radius:var(--radius-pill);border:2px solid var(--border-strong);flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  .opt-pill--on .opt-pill__dot{border-color:var(--brand-primary)}
+  .opt-pill--on .opt-pill__dot::after{content:"";width:7px;height:7px;border-radius:var(--radius-pill);background:var(--brand-primary)}
+
+  .ms{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);padding:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;min-height:42px}
+  .ms__ph{color:var(--text-muted);font-size:var(--text-sm);padding:0 var(--space-2)}
+  .ms__add{margin-left:auto}
+
+  .aud-size{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)}
+  .aud-size strong{font-family:var(--font-mono);color:var(--text-primary);font-weight:var(--weight-semibold)}
+
+  .counter{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-align:right;margin-top:4px}
+
+  .editor{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);overflow:hidden}
+  .editor__bar{display:flex;align-items:center;gap:var(--space-1);padding:var(--space-2);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+  .ebtn{width:30px;height:28px;border-radius:var(--radius-sm);border:1px solid transparent;background:transparent;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--font-mono);font-size:var(--text-xs)}
+  .ebtn:hover{background:var(--bg-inset);color:var(--text-primary)}
+  .editor__area{padding:var(--space-3);min-height:128px;font-size:var(--text-sm);line-height:var(--leading-md);color:var(--text-primary);max-width:68ch}
+  .editor__area p{margin:0 0 var(--space-2) 0}
+  .editor__hint{color:var(--text-muted)}
+
+  .opt-line{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)}
+  .date-inline{display:flex;align-items:center;gap:var(--space-2);margin-left:var(--space-6);margin-top:calc(-1 * var(--space-1));margin-bottom:var(--space-3)}
+
+  .actions{display:flex;gap:var(--space-3);justify-content:flex-end;padding-top:var(--space-5);border-top:1px solid var(--border-subtle)}
+
+  .list-toolbar{display:flex;gap:var(--space-2);align-items:center;margin:var(--space-4) 0;flex-wrap:wrap}
+  .list-toolbar .grow{flex:1 1 200px}
+
+  .a-title-cell{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);text-align:left;background:none;border:none;cursor:pointer;padding:0}
+  .a-title-cell:hover{color:var(--brand-primary)}
+
+  .states-row{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+  .state-mini{flex:1 1 280px;min-width:260px;display:flex;flex-direction:column;gap:var(--space-2)}
+  .state-box{border:1px dashed var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);padding:var(--space-4)}
+
+  .roster-row{display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+  .roster-row:last-child{border-bottom:none}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Textarea, Select, Checkbox, Switch,
+  Card, Panel, Section, Tabs, Drawer, Modal,
+  DataTable, EmptyState, Stat, Timeline, Skeleton, Pagination, Avatar, Badge, Chip, ProgressBar,
+  Alert, NavItem, Breadcrumb, ContentRenderer } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+const PILL = (label, on, onClick, icon) => (
+  <button type="button" className={"opt-pill"+(on?" opt-pill--on":"")} aria-pressed={on} onClick={onClick}>
+    <span className="opt-pill__dot" aria-hidden="true"></span>
+    {icon ? <Icon name={icon} size={14}/> : null}{label}
+  </button>
+);
+
+function StatusBadge({status}){
+  const map = {
+    Sent: {variant:'success', icon:'check-circle-2'},
+    Draft: {variant:'warning', icon:'pencil-line'},
+    Scheduled: {variant:'info', icon:'clock'},
+    Archived: {variant:undefined, icon:'archive'}
+  };
+  const m = map[status] || {};
+  return <Badge variant={m.variant} icon={m.icon ? <Icon name={m.icon} size={12}/> : undefined}>{status}</Badge>;
+}
+
+function ReadCell({read, audience}){
+  if(read==null) return <span className="u-mono" style={{color:'var(--text-muted)'}}>—</span>;
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:96}}>
+      <span className="u-mono" style={{fontSize:'var(--text-xs)'}}>{read} / {audience} read</span>
+      <ProgressBar value={Math.round(read/audience*100)} variant="success"/>
+    </div>
+  );
+}
+
+const ROWS = [
+  {id:'a1', title:'Friday’s exam moved to room 204', audience:'2 classes', status:'Sent', when:'Jun 18', read:41, size:58, pinned:true},
+  {id:'a2', title:'Mock interview slots open next week', audience:'Grade 10A', status:'Sent', when:'Jun 16', read:22, size:31, pinned:false},
+  {id:'a3', title:'Homework 7 — submit by Sunday', audience:'Grade 10A', status:'Draft', when:'—', read:null, size:31, pinned:false},
+  {id:'a4', title:'Holiday — no class on Monday', audience:'All classes', status:'Scheduled', when:'Jun 22 09:00', read:null, size:89, pinned:false},
+  {id:'a5', title:'Results released for Unit 3 test', audience:'3 classes', status:'Sent', when:'Jun 12', read:67, size:72, pinned:false},
+  {id:'a6', title:'Old syllabus note (superseded)', audience:'Grade 9B', status:'Archived', when:'May 28', read:25, size:27, pinned:false}
+];
+
+function App(){
+  const [audMode, setAudMode] = useState('select');
+  const [classes, setClasses] = useState([{id:'10a',label:'Grade 10A',n:31},{id:'9b',label:'Grade 9B',n:27}]);
+  const [title, setTitle] = useState('Friday’s exam moved to room 204');
+  const [pinned, setPinned] = useState(false);
+  const [sched, setSched] = useState('now');
+  const [drawer, setDrawer] = useState(null);
+  const [confirm, setConfirm] = useState(false);
+
+  const size = classes.reduce((s,c)=>s+c.n,0);
+  const removeClass = (id) => setClasses(classes.filter(c=>c.id!==id));
+
+  const columns = [
+    {label:'Title', key:'title', sortable:true, render:(r)=>(
+      <div style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+        <button className="a-title-cell" onClick={()=>setDrawer(r)}>{r.title}</button>
+        {r.pinned ? <Badge variant="spark" icon={<Icon name="pin" size={11}/>}>Pinned</Badge> : null}
+      </div>
+    )},
+    {label:'Audience', key:'audience', render:(r)=><Chip>{r.audience}</Chip>},
+    {label:'Status', key:'status', render:(r)=><StatusBadge status={r.status}/>},
+    {label:'Sent', key:'when', render:(r)=><span className="u-mono" style={{fontSize:'var(--text-xs)',color:'var(--text-secondary)'}}>{r.when}</span>},
+    {label:'Read', key:'read', render:(r)=><ReadCell read={r.read} audience={r.size}/>},
+    {label:'', key:'act', render:(r)=><IconButton icon={<Icon name="more-horizontal" size={18}/>} label={"Actions for "+r.title} size="sm"/>}
+  ];
+
+  return (
+    <Shell active="announcements">
+      <div className="main-wrap">
+        <div>
+          <Breadcrumb items={[{label:'People', href:'/students'},{label:'Announcements', href:'/announcements'}]}/>
+          <div className="page-head" style={{marginTop:'var(--space-3)'}}>
+            <h1>Announcements</h1>
+            <p>Compose a message for your classes and review what you&rsquo;ve sent.</p>
+          </div>
+        </div>
+
+        <div className="split">
+          {/* ============ COMPOSER ============ */}
+          <Panel className="composer">
+            {/* Audience */}
+            <div className="cgroup">
+              <p className="cgroup__label">Audience</p>
+              <div className="radio-row" role="radiogroup" aria-label="Audience mode">
+                {PILL('My classes', audMode==='my', ()=>setAudMode('my'))}
+                {PILL('Select classes', audMode==='select', ()=>setAudMode('select'))}
+              </div>
+              {audMode==='select' && (
+                <div className="ms" role="group" aria-label="Selected classes">
+                  {classes.length===0 && <span className="ms__ph">Choose classes&hellip;</span>}
+                  {classes.map(c=>(
+                    <Chip key={c.id} removable onRemove={()=>removeClass(c.id)} aria-label={"Remove "+c.label}>{c.label}</Chip>
+                  ))}
+                  <span className="ms__add"><Button variant="ghost" size="sm" leadingIcon={<Icon name="plus" size={14}/>}>Add</Button></span>
+                </div>
+              )}
+              <div className="aud-size" role="status" aria-live="polite">
+                <Icon name="users" size={15}/>
+                <span>Audience: <strong>{size}</strong> students &middot; <strong>{classes.length}</strong> classes</span>
+                <span className="u-caption" style={{marginLeft:'auto'}}>server-resolved</span>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="cgroup">
+              <p className="cgroup__label">Title</p>
+              <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder={'Subject line (e.g. "Friday’s exam moved to room 204")'} maxLength={120}/>
+              <div className="counter">{title.length}/120</div>
+            </div>
+
+            {/* Message */}
+            <div className="cgroup">
+              <p className="cgroup__label">Message</p>
+              <Tabs items={[
+                {label:'Write', content:(
+                  <div className="editor" style={{marginTop:'var(--space-2)'}}>
+                    <div className="editor__bar" role="toolbar" aria-label="Formatting">
+                      <button className="ebtn" aria-label="Bold" style={{fontWeight:'var(--weight-bold)'}}>B</button>
+                      <button className="ebtn" aria-label="Italic" style={{fontStyle:'italic'}}>I</button>
+                      <button className="ebtn" aria-label="Bulleted list"><Icon name="list" size={15}/></button>
+                      <button className="ebtn" aria-label="Code">&lt;/&gt;</button>
+                      <button className="ebtn" aria-label="Math">$x$</button>
+                      <button className="ebtn" aria-label="Link"><Icon name="link" size={15}/></button>
+                    </div>
+                    <div className="editor__area" contentEditable suppressContentEditableWarning>
+                      <p>Hi everyone &mdash; <strong>Friday&rsquo;s exam has moved to room 204</strong>. Same time, 9:00 AM.</p>
+                      <p>Bring your calculator. Topics: probability and the binomial theorem (n choose k).</p>
+                    </div>
+                  </div>
+                )},
+                {label:'Preview', content:(
+                  <Card style={{marginTop:'var(--space-2)'}}>
+                    <ContentRenderer math>
+                      <p>Hi everyone &mdash; <strong>Friday&rsquo;s exam has moved to room 204</strong>. Same time, 9:00 AM.</p>
+                      <p>Bring your calculator. Topics: probability and the binomial theorem.</p>
+                    </ContentRenderer>
+                  </Card>
+                )}
+              ]}/>
+              <p className="editor__hint" style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',margin:'var(--space-2) 0 0'}}>Write your message. Students see it formatted exactly as the preview.</p>
+            </div>
+
+            {/* Options */}
+            <div className="cgroup">
+              <p className="cgroup__label">Options</p>
+              <div className="opt-line"><Checkbox checked={pinned} onChange={e=>setPinned(e.target.checked)} label="Pin to top"/></div>
+              <div className="radio-row" role="radiogroup" aria-label="Schedule">
+                {PILL('Send now', sched==='now', ()=>setSched('now'), 'send')}
+                {PILL('Send later', sched==='later', ()=>setSched('later'), 'calendar-clock')}
+              </div>
+              {sched==='later' && (
+                <div className="date-inline">
+                  <Icon name="calendar" size={15}/>
+                  <Input type="text" defaultValue="Jun 22, 2026 · 09:00 AM" aria-label="Choose date & time" style={{maxWidth:240}}/>
+                </div>
+              )}
+              <div className="opt-line" style={{marginTop:'var(--space-2)'}}>
+                <Icon name="hourglass" size={15} style={{color:'var(--text-muted)'}}/>
+                <span style={{color:'var(--text-muted)'}}>Expires (optional)</span>
+                <Input type="text" placeholder="No expiry" aria-label="Expires" style={{maxWidth:200,marginLeft:'auto'}}/>
+              </div>
+            </div>
+
+            <div className="actions">
+              <Button variant="secondary" leadingIcon={<Icon name="save" size={16}/>}>Save draft</Button>
+              <Button variant="spark" leadingIcon={<Icon name="send" size={16}/>} onClick={()=>setConfirm(true)}>Send</Button>
+            </div>
+          </Panel>
+
+          {/* ============ SENT & DRAFTS ============ */}
+          <Panel title="Sent &amp; drafts">
+            <Tabs items={[
+              {label:'All', content:(
+                <div>
+                  <div className="list-toolbar">
+                    <span className="grow"><Input placeholder="Search by title" leadingIcon={<Icon name="search" size={16}/>}/></span>
+                    <Select options={[{value:'all',label:'All statuses'},{value:'draft',label:'Draft'},{value:'scheduled',label:'Scheduled'},{value:'sent',label:'Sent'},{value:'archived',label:'Archived'}]} aria-label="Status filter"/>
+                  </div>
+                  <DataTable columns={columns} rows={ROWS}/>
+                  <div style={{marginTop:'var(--space-4)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span className="u-caption">Last updated 2 min ago &middot; server</span>
+                    <Pagination pages={3} current={1}/>
+                  </div>
+                </div>
+              )},
+              {label:'Drafts', content:(
+                <div style={{paddingTop:'var(--space-3)'}}>
+                  <DataTable columns={columns} rows={ROWS.filter(r=>r.status==='Draft')}/>
+                </div>
+              )},
+              {label:'Scheduled', content:(
+                <div style={{paddingTop:'var(--space-3)'}}>
+                  <DataTable columns={columns} rows={ROWS.filter(r=>r.status==='Scheduled')}/>
+                </div>
+              )},
+              {label:'Sent', content:(
+                <div style={{paddingTop:'var(--space-3)'}}>
+                  <DataTable columns={columns} rows={ROWS.filter(r=>r.status==='Sent')}/>
+                </div>
+              )}
+            ]}/>
+          </Panel>
+        </div>
+
+        {/* ============ STATES RAIL ============ */}
+        <Section title="States">
+          <div className="states-row">
+            <div className="state-mini">
+              <span className="u-caption">Loading</span>
+              <div className="state-box">
+                <Skeleton variant="text" width="40%" height={14}/>
+                <div style={{height:'var(--space-3)'}}/>
+                <Skeleton variant="text" width="100%" height={36}/>
+                <div style={{height:'var(--space-2)'}}/>
+                <Skeleton variant="text" width="100%" height={36}/>
+                <div style={{height:'var(--space-2)'}}/>
+                <Skeleton variant="text" width="100%" height={36}/>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty &middot; no announcements</span>
+              <div className="state-box">
+                <EmptyState icon="megaphone" title="No announcements yet" body="Anything you send to your classes will appear here, with read counts."/>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Error &middot; list load</span>
+              <div className="state-box">
+                <Alert variant="error" title="Couldn't load announcements.">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'var(--space-3)'}}>
+                    <span>The list couldn&rsquo;t be loaded. The composer is still usable.</span>
+                    <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Retry</Button>
+                  </div>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Composer error &middot; classes failed</span>
+              <div className="state-box">
+                <Alert variant="warning" title="Couldn't load your classes">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'var(--space-3)'}}>
+                    <span>Try again before sending. Send is disabled until resolved.</span>
+                    <Button variant="secondary" size="sm">Retry</Button>
+                  </div>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty tab &middot; scheduled</span>
+              <div className="state-box">
+                <EmptyState icon="clock" title="Nothing scheduled." body="Scheduled announcements show here until their effective time."/>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Teacher &middot; no managed classes</span>
+              <div className="state-box">
+                <EmptyState icon="users" title="You don't manage any classes yet." body="Announcements are sent to your classes."/>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Permission-gated &middot; read-only</span>
+              <div className="state-box">
+                <Alert variant="info" title="Read-only">
+                  You don&rsquo;t have permission to send announcements. Contact your administrator.
+                </Alert>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Partial &middot; read counts pending</span>
+              <div className="state-box">
+                <div className="roster-row"><span>Results released for Unit 3 test</span><span className="u-mono" style={{color:'var(--text-muted)'}}>&mdash;</span></div>
+                <div className="roster-row"><span>Mock interview slots open</span><span className="u-mono" style={{fontSize:'var(--text-xs)'}}>22 / 31 read</span></div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </div>
+
+      {/* ============ SEND CONFIRM (guarded) ============ */}
+      <Modal
+        open={confirm}
+        onClose={()=>setConfirm(false)}
+        title="Send this announcement?"
+        footer={<div style={{display:'flex',gap:'var(--space-3)',justifyContent:'flex-end'}}>
+          <Button variant="secondary" onClick={()=>setConfirm(false)}>Keep editing</Button>
+          <Button variant="spark" leadingIcon={<Icon name="send" size={16}/>} onClick={()=>setConfirm(false)}>{sched==='later'?'Schedule':'Send now'}</Button>
+        </div>}
+      >
+        {sched==='later'
+          ? <p style={{margin:0,color:'var(--text-secondary)',lineHeight:'var(--leading-md)'}}>Schedule &ldquo;<strong>{title}</strong>&rdquo; for <strong className="u-mono">Jun 22, 9:00 AM</strong>? <span className="u-mono">{size}</span> students across <span className="u-mono">{classes.length}</span> classes will be notified then.</p>
+          : <p style={{margin:0,color:'var(--text-secondary)',lineHeight:'var(--leading-md)'}}>Send &ldquo;<strong>{title}</strong>&rdquo; to <strong className="u-mono">{size}</strong> students across <span className="u-mono">{classes.length}</span> classes? They&rsquo;ll be notified right away.</p>
+        }
+      </Modal>
+
+      {/* ============ DETAIL DRAWER (read-only) ============ */}
+      <Drawer open={!!drawer} onClose={()=>setDrawer(null)} side="left" title={drawer ? drawer.title : ''}>
+        {drawer && (
+          <div style={{display:'flex',flexDirection:'column',gap:'var(--space-5)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+              <StatusBadge status={drawer.status}/>
+              {drawer.pinned ? <Badge variant="spark" icon={<Icon name="pin" size={11}/>}>Pinned</Badge> : null}
+              <span className="u-mono" style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginLeft:'auto'}}>{drawer.when}</span>
+            </div>
+
+            <div>
+              <p className="u-caption" style={{marginBottom:'var(--space-2)'}}>Message</p>
+              <Card>
+                <ContentRenderer math>
+                  <p>Hi everyone &mdash; <strong>Friday&rsquo;s exam has moved to room 204</strong>. Same time, 9:00 AM.</p>
+                  <p>Bring your calculator. Topics: probability and the binomial theorem.</p>
+                </ContentRenderer>
+              </Card>
+            </div>
+
+            <div>
+              <p className="u-caption" style={{marginBottom:'var(--space-2)'}}>Audience</p>
+              <span style={{fontSize:'var(--text-sm)',color:'var(--text-secondary)'}}><span className="u-mono">{drawer.size}</span> students &middot; {drawer.audience}</span>
+            </div>
+
+            <div>
+              <p className="u-caption" style={{marginBottom:'var(--space-2)'}}>Read by</p>
+              <div style={{display:'flex',alignItems:'center',gap:'var(--space-3)',marginBottom:'var(--space-2)'}}>
+                <span className="u-mono" style={{fontSize:'var(--text-sm)'}}>{drawer.read==null?'—':drawer.read} of {drawer.size}</span>
+                <div style={{flex:1}}><ProgressBar value={drawer.read==null?0:Math.round(drawer.read/drawer.size*100)} variant="success"/></div>
+              </div>
+              <div className="roster-row"><span style={{display:'flex',alignItems:'center',gap:8}}><Avatar initials="AR" size="sm"/>Aarav Rao</span><Badge variant="success" icon={<Icon name="check" size={11}/>}>Read</Badge></div>
+              <div className="roster-row"><span style={{display:'flex',alignItems:'center',gap:8}}><Avatar initials="MK" size="sm"/>Mira Khan</span><Badge variant="success" icon={<Icon name="check" size={11}/>}>Read</Badge></div>
+              <div className="roster-row"><span style={{display:'flex',alignItems:'center',gap:8}}><Avatar initials="DP" size="sm"/>Dev Patel</span><Badge icon={<Icon name="circle" size={11}/>}>Unread</Badge></div>
+            </div>
+
+            <div>
+              <p className="u-caption" style={{marginBottom:'var(--space-2)'}}>Timeline</p>
+              <Timeline items={[
+                {time:'Jun 17', label:'Draft created', variant:'muted'},
+                {time:'Jun 18', label:'Sent to audience', variant:'success'}
+              ]}/>
+            </div>
+          </div>
+        )}
+      </Drawer>
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

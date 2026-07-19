@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type {
   UnifiedRubric,
   RubricScoringMode,
   RubricCriterion,
   EvaluationDimension,
-} from "@levelup/shared-types";
+} from "@levelup/domain";
 import { Save, Plus, Trash2 } from "lucide-react";
 import {
   Button,
@@ -16,7 +16,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
 } from "@levelup/shared-ui";
+import { buildRubric, validateRubricDraft } from "./rubric-authoring-model";
 
 const SCORING_MODES: { value: RubricScoringMode; label: string; desc: string }[] = [
   {
@@ -55,32 +57,49 @@ export default function RubricEditor({ rubric, onSave }: Props) {
   const [passingPercentage, setPassingPercentage] = useState(rubric?.passingPercentage ?? 40);
   const [evaluatorGuidance, setEvaluatorGuidance] = useState(rubric?.evaluatorGuidance ?? "");
   const [modelAnswer, setModelAnswer] = useState(rubric?.modelAnswer ?? "");
+  const [showModelAnswer, setShowModelAnswer] = useState(rubric?.showModelAnswer ?? false);
 
   useEffect(() => {
-    if (rubric) {
-      setMode(rubric.scoringMode);
-      setCriteria(rubric.criteria ?? []);
-      setDimensions(rubric.dimensions ?? []);
-      setHolisticGuidance(rubric.holisticGuidance ?? "");
-      setHolisticMaxScore(rubric.holisticMaxScore ?? 100);
-      setPassingPercentage(rubric.passingPercentage ?? 40);
-      setEvaluatorGuidance(rubric.evaluatorGuidance ?? "");
-      setModelAnswer(rubric.modelAnswer ?? "");
-    }
+    setMode(rubric?.scoringMode ?? "criteria_based");
+    setCriteria(rubric?.criteria ?? []);
+    setDimensions(rubric?.dimensions ?? []);
+    setHolisticGuidance(rubric?.holisticGuidance ?? "");
+    setHolisticMaxScore(rubric?.holisticMaxScore ?? 100);
+    setPassingPercentage(rubric?.passingPercentage ?? 40);
+    setEvaluatorGuidance(rubric?.evaluatorGuidance ?? "");
+    setModelAnswer(rubric?.modelAnswer ?? "");
+    setShowModelAnswer(rubric?.showModelAnswer ?? false);
   }, [rubric]);
 
-  const handleSave = () => {
-    onSave({
-      scoringMode: mode,
-      criteria: mode === "criteria_based" || mode === "hybrid" ? criteria : undefined,
-      dimensions: mode === "dimension_based" ? dimensions : undefined,
-      holisticGuidance:
-        mode === "holistic" || mode === "hybrid" ? holisticGuidance || undefined : undefined,
-      holisticMaxScore: mode === "holistic" || mode === "hybrid" ? holisticMaxScore : undefined,
+  const draft = useMemo(
+    () => ({
+      mode,
+      criteria,
+      dimensions,
+      holisticGuidance,
+      holisticMaxScore,
       passingPercentage,
-      evaluatorGuidance: evaluatorGuidance || undefined,
-      modelAnswer: modelAnswer || undefined,
-    });
+      evaluatorGuidance,
+      modelAnswer,
+      showModelAnswer,
+    }),
+    [
+      mode,
+      criteria,
+      dimensions,
+      holisticGuidance,
+      holisticMaxScore,
+      passingPercentage,
+      evaluatorGuidance,
+      modelAnswer,
+      showModelAnswer,
+    ]
+  );
+  const validationErrors = useMemo(() => validateRubricDraft(draft), [draft]);
+
+  const handleSave = () => {
+    if (validationErrors.length > 0) return;
+    onSave(buildRubric(draft));
   };
 
   const addCriterion = () => {
@@ -89,7 +108,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
       {
         id: `crit_${Date.now()}`,
         name: "",
-        maxPoints: 10,
+        maxScore: 10,
         levels: [
           { score: 0, label: "Missing", description: "" },
           { score: 5, label: "Partial", description: "" },
@@ -116,9 +135,6 @@ export default function RubricEditor({ rubric, onSave }: Props) {
         description: "",
         priority: "MEDIUM",
         promptGuidance: "",
-        enabled: true,
-        isDefault: false,
-        isCustom: true,
         weight: 1,
         scoringScale: 10,
       },
@@ -132,8 +148,10 @@ export default function RubricEditor({ rubric, onSave }: Props) {
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {SCORING_MODES.map((m) => (
             <button
+              type="button"
               key={m.value}
               onClick={() => setMode(m.value)}
+              aria-pressed={mode === m.value}
               className={`duration-fast ease-standard rounded-lg border p-3 text-left transition-colors ${
                 mode === m.value
                   ? "border-brand bg-brand-subtle"
@@ -173,10 +191,10 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                     <Label className="text-xs">Max Points</Label>
                     <Input
                       type="number"
-                      value={crit.maxPoints}
+                      value={crit.maxScore}
                       onChange={(e) =>
                         updateCriterion(idx, {
-                          maxPoints: Number(e.target.value),
+                          maxScore: Number(e.target.value),
                         })
                       }
                       className="mt-1 h-8 font-mono"
@@ -264,6 +282,7 @@ export default function RubricEditor({ rubric, onSave }: Props) {
                   </div>
                 ))}
                 <button
+                  type="button"
                   onClick={() => {
                     const levels = [
                       ...(crit.levels ?? []),
@@ -464,9 +483,33 @@ export default function RubricEditor({ rubric, onSave }: Props) {
             className="mt-1"
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="show-model-answer"
+            checked={showModelAnswer}
+            onCheckedChange={setShowModelAnswer}
+          />
+          <Label htmlFor="show-model-answer" className="cursor-pointer">
+            Show model answer after submission
+          </Label>
+        </div>
       </div>
 
-      <Button onClick={handleSave}>
+      {validationErrors.length > 0 && (
+        <div
+          role="alert"
+          className="border-error/40 bg-error-subtle text-error rounded-md border px-3 py-2 text-sm"
+        >
+          <p className="font-medium">Fix before saving:</p>
+          <ul className="mt-1 list-disc pl-5">
+            {validationErrors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Button onClick={handleSave} disabled={validationErrors.length > 0}>
         <Save className="h-4 w-4" /> Save Rubric
       </Button>
     </div>

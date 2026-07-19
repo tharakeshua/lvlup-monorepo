@@ -14,9 +14,33 @@
 import { CALLABLES } from "@levelup/api-contract";
 import { buildGraphFromContract } from "./derive-from-contract.js";
 import type { InvalidationRule } from "./types.js";
+import { conversationKeys } from "../keys/registry.js";
 
 type Vars = Record<string, unknown>;
 const str = (v: unknown): string => (typeof v === "string" ? v : String(v ?? ""));
+
+/** Extract only a public session ID from a callable input/result envelope. */
+function conversationSessionId(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const direct = (value as { sessionId?: unknown }).sessionId;
+  if (typeof direct === "string" && direct.length > 0) return direct;
+
+  const session = (value as { session?: { id?: unknown } }).session;
+  return typeof session?.id === "string" && session.id.length > 0 ? session.id : undefined;
+}
+
+/**
+ * Conversation writes affect history summaries and exactly one session. Avoid
+ * invalidating every transcript/detail cache under the root; a detail prefix
+ * also covers its `messages(sessionId, page)` children.
+ */
+function conversationFanout(ctx: {
+  vars: unknown;
+  data: unknown;
+}): readonly (readonly unknown[])[] {
+  const sessionId = conversationSessionId(ctx.data) ?? conversationSessionId(ctx.vars);
+  return [conversationKeys.lists(), ...(sessionId ? [conversationKeys.detail(sessionId)] : [])];
+}
 
 /**
  * Hand-authored cross-domain rules, merged OVER the contract's `invalidates`
@@ -69,6 +93,32 @@ const OVERRIDES: Record<string, InvalidationRule> = {
       const v = (vars ?? {}) as Vars;
       return v.sessionId !== undefined ? [keys.chat.sub(str(v.sessionId), "messages")] : [];
     },
+  },
+
+  // --- levelup: server-authoritative conversations ---
+  // Contract hints correctly identify the `conversations` domain. At the query
+  // boundary we can do better: only history lists and the affected session
+  // detail/transcript page become stale. `finish` retains the mandated progress
+  // root because its response has no universally available progress key.
+  "v1.levelup.startConversation": {
+    roots: [],
+    replace: true,
+    fanout: conversationFanout,
+  },
+  "v1.levelup.sendConversationTurn": {
+    roots: [],
+    replace: true,
+    fanout: conversationFanout,
+  },
+  "v1.levelup.finishConversation": {
+    roots: ["progress"],
+    replace: true,
+    fanout: conversationFanout,
+  },
+  "v1.levelup.abandonConversation": {
+    roots: [],
+    replace: true,
+    fanout: conversationFanout,
   },
 
   // --- levelup: gamification ---

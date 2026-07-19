@@ -64,7 +64,7 @@ export default function StoryPointEditorScreen() {
   const isEditing = !!storyPointId;
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="bg-canvas flex-1">
       <View className="bg-surface border-border-subtle flex-row items-center gap-3 border-b px-4 py-3">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="arrow-left" size={22} color={colors.textPrimary} />

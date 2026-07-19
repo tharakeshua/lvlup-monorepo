@@ -1,0 +1,411 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Students Directory" subtitle="Cross-class register · search/filter · in-table light admin" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .page{display:flex;flex-direction:column;gap:var(--space-8);max-width:var(--content-max);margin:0 auto}
+  .page__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+  .page__title{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+  .page__sub{font-family:var(--font-ui);font-size:var(--text-base);color:var(--text-secondary);margin:var(--space-2) 0 0}
+  .page__actions{display:flex;align-items:center;gap:var(--space-3)}
+  .toolbar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+  .toolbar__search{position:relative;flex:1 1 320px;min-width:280px}
+  .toolbar__search .input{padding-left:var(--space-10);width:100%}
+  .toolbar__search-icon{position:absolute;left:var(--space-3);top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;display:flex}
+  .toolbar__filters{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+  .toolbar__filters .select{min-width:148px}
+  .activefilters{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .activefilters__label{font-size:var(--text-sm);color:var(--text-muted)}
+  .bulkbar{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-4);background:var(--brand-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+  .bulkbar__count{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2)}
+  .bulkbar__spacer{flex:1}
+  .tablewrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);overflow:hidden}
+  .tablewrap .table{margin:0}
+  .stcell{display:flex;align-items:center;gap:var(--space-3)}
+  .stcell__name{font-weight:var(--weight-medium);color:var(--text-primary);line-height:1.2}
+  .stcell__meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+  .scorecell{display:flex;align-items:center;gap:var(--space-3);min-width:120px}
+  .scorecell__num{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-medium);width:2.4ch;text-align:right}
+  .scorecell .progress{flex:1;max-width:64px}
+  .chiprow{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .lastactive{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-secondary)}
+  .rowmeta{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
+  .rowmeta__count{font-size:var(--text-sm);color:var(--text-muted)}
+  .rowmeta__count .num{font-family:var(--font-mono);color:var(--text-secondary)}
+  .lastupd{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+  .lastupd .num{font-family:var(--font-mono)}
+  .servertag{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-caption);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:1px var(--space-2)}
+  .states__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5)}
+  .states__mini{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+  .skelrow{display:flex;align-items:center;gap:var(--space-3)}
+  .skelrow__col{flex:1;display:flex;flex-direction:column;gap:var(--space-2)}
+  .miniscore{display:inline-flex;align-items:center;gap:var(--space-2)}
+  .iconbtn-bare{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:var(--space-1);display:inline-flex;border-radius:var(--radius-sm)}
+  .iconbtn-bare:hover{color:var(--text-primary);background:var(--bg-surface-sunken)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+  .form-grid .span2{grid-column:1 / -1}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Checkbox, Field,
+  Card, Section, Modal, Popover, Tooltip,
+  DataTable, EmptyState, Skeleton, Pagination, Avatar, Badge, Chip, ProgressBar,
+  Alert, NavItem, Breadcrumb, AtRiskBadge } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+/* ---- Canonical Shell ------------------------------------------------------ */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---- Sample data ---------------------------------------------------------- */
+const CLASS_OPTS = [
+  {value:'all', label:'All classes'},
+  {value:'8a', label:'Grade 8-A'},
+  {value:'9b', label:'Grade 9-B'},
+  {value:'10c', label:'Grade 10-C'},
+  {value:'math', label:'Mathematics'},
+];
+const STATUS_OPTS = [
+  {value:'all', label:'All'},{value:'active', label:'Active'},{value:'archived', label:'Archived'},
+];
+const RISK_OPTS = [
+  {value:'all', label:'All'},{value:'risk', label:'At risk only'},{value:'norisk', label:'Not at risk'},
+];
+const SORT_OPTS = [
+  {value:'naz', label:'Name A–Z'},{value:'nza', label:'Name Z–A'},
+  {value:'shi', label:'Score high–low'},{value:'slo', label:'Score low–high'},
+  {value:'recent', label:'Recently active'},
+];
+
+const STUDENTS = [
+  {id:'s1', name:'Aarav Sharma', uid:'ADM-2021-0481', initials:'AS', roll:'21', classes:['8-A','Mathematics'], extra:[], status:'active', score:84, risk:false, last:'2d'},
+  {id:'s2', name:'Diya Nair', uid:'ADM-2021-0507', initials:'DN', roll:'07', classes:['9-B'], extra:[], status:'active', score:41, risk:true, reasons:['Low recent scores','No activity in 14 days'], last:'9d'},
+  {id:'s3', name:'Kabir Rao', uid:'ADM-2020-0333', initials:'KR', roll:'33', classes:['8-A'], extra:[], status:'archived', score:null, risk:false, last:'31d'},
+  {id:'s4', name:'Ananya Iyer', uid:'ADM-2021-0612', initials:'AI', roll:'12', classes:['10-C','Mathematics','9-B'], extra:['Physics Club'], status:'active', score:92, risk:false, last:'4h'},
+  {id:'s5', name:'Vihaan Gupta', uid:'ADM-2022-0044', initials:'VG', roll:'44', classes:['9-B','Mathematics'], extra:[], status:'active', score:58, risk:true, reasons:['Declining mastery in Algebra'], last:'1d'},
+  {id:'s6', name:'Saanvi Reddy', uid:'ADM-2021-0298', initials:'SR', roll:'29', classes:['10-C'], extra:[], status:'active', score:76, risk:false, last:'6h'},
+  {id:'s7', name:'Arjun Mehta', uid:'ADM-2022-0119', initials:'AM', roll:'19', classes:['8-A','9-B','10-C','Mathematics'], extra:['Robotics'], status:'active', score:67, risk:false, last:'3d'},
+  {id:'s8', name:'Ishaan Verma', uid:'ADM-2023-0071', initials:'IV', roll:'71', classes:['8-A'], extra:[], status:'active', score:null, risk:false, last:'—'},
+];
+
+function scoreVariant(s){ if(s>=80) return 'success'; if(s>=50) return undefined; return undefined; }
+function scoreColor(s){ if(s>=80) return 'var(--grade-a)'; if(s>=70) return 'var(--grade-b)'; if(s>=55) return 'var(--grade-c)'; if(s>=40) return 'var(--grade-d)'; return 'var(--grade-f)'; }
+
+/* ---- Cells ---------------------------------------------------------------- */
+function ClassesCell({s}){
+  const [open,setOpen]=useState(false);
+  const shown=s.classes.slice(0,2);
+  const overflow=s.classes.slice(2).concat(s.extra||[]);
+  return (
+    <div className="chiprow" style={{position:'relative'}}>
+      {shown.map((c,i)=><Chip key={i}>{c}</Chip>)}
+      {overflow.length>0 && (
+        <span style={{position:'relative'}}>
+          <button className="chip chip--active" onClick={()=>setOpen(o=>!o)} aria-haspopup="true" aria-expanded={open} style={{cursor:'pointer'}}>+{overflow.length}</button>
+          {open && (
+            <div style={{position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:20, minWidth:160}}>
+              <Popover>
+                <div className="u-caption" style={{marginBottom:'var(--space-2)'}}>All classes</div>
+                <div className="chiprow">{s.classes.concat(s.extra||[]).map((c,i)=><Chip key={i}>{c}</Chip>)}</div>
+              </Popover>
+            </div>
+          )}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ScoreCell({s}){
+  if(s.score==null){
+    return <span className="lastactive" title="No activity yet" aria-label="No activity yet">—</span>;
+  }
+  return (
+    <div className="scorecell">
+      <span className="scorecell__num">{s.score}</span>
+      <div className="progress" role="progressbar" aria-valuenow={s.score} aria-valuemin={0} aria-valuemax={100}>
+        <div className="progress__fill" style={{width:s.score+'%', background:scoreColor(s.score)}}></div>
+      </div>
+    </div>
+  );
+}
+
+function RiskCell({s}){
+  const [open,setOpen]=useState(false);
+  if(!s.risk) return <span className="lastactive" style={{color:'var(--text-muted)'}}>—</span>;
+  return (
+    <span style={{position:'relative', display:'inline-block'}}
+      onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)} tabIndex={0}>
+      <AtRiskBadge level="watch">At risk</AtRiskBadge>
+      {open && (
+        <div style={{position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:20, minWidth:200}}>
+          <Popover>
+            <div className="u-caption" style={{marginBottom:'var(--space-2)'}}>Flagged by the nightly review</div>
+            <ul style={{margin:0, paddingLeft:'var(--space-4)', fontSize:'var(--text-sm)', color:'var(--text-secondary)'}}>
+              {s.reasons.map((r,i)=><li key={i}>{r}</li>)}
+            </ul>
+          </Popover>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function StatusBadge({status}){
+  return status==='active'
+    ? <Badge variant="success" icon={<Icon name="circle-dot" size={12}/>}>Active</Badge>
+    : <Badge icon={<Icon name="archive" size={12}/>}>Archived</Badge>;
+}
+
+/* ---- Directory table ------------------------------------------------------ */
+function Directory(){
+  const [selected,setSelected]=useState({s2:true, s4:true, s5:true, s6:true});
+  const selIds=Object.keys(selected).filter(k=>selected[k]);
+  const allOnPage=STUDENTS.every(s=>selected[s.id]);
+  const someOnPage=selIds.length>0 && !allOnPage;
+
+  function toggle(id){ setSelected(p=>{const n={...p}; if(n[id]) delete n[id]; else n[id]=true; return n;}); }
+  function toggleAll(){ if(allOnPage){ setSelected({}); } else { const n={}; STUDENTS.forEach(s=>n[s.id]=true); setSelected(n);} }
+  function clearSel(){ setSelected({}); }
+
+  const columns = [
+    { label: <input type="checkbox" className="checkbox" aria-label="Select all on page" checked={allOnPage} ref={el=>{if(el) el.indeterminate=someOnPage;}} onChange={toggleAll}/>, key:'sel',
+      render:(r)=><input type="checkbox" className="checkbox" aria-label={"Select "+r.name} checked={!!selected[r.id]} onChange={()=>toggle(r.id)} onClick={e=>e.stopPropagation()}/> },
+    { label:'Student', key:'student', sortable:true, render:(r)=>(
+        <a className="stcell" href={"/students/"+r.id+"/report"} style={{textDecoration:'none', color:'inherit'}}>
+          <Avatar initials={r.initials}/>
+          <span><div className="stcell__name">{r.name}</div><div className="stcell__meta">{r.uid}</div></span>
+        </a>) },
+    { label:'Roll', key:'roll', numeric:true, sortable:true, render:(r)=><span className="u-mono">{r.roll}</span> },
+    { label:'Classes', key:'classes', render:(r)=><ClassesCell s={r}/> },
+    { label:'Status', key:'status', render:(r)=><StatusBadge status={r.status}/> },
+    { label:'Overall score', key:'score', sortable:true, render:(r)=><ScoreCell s={r}/> },
+    { label:'At risk', key:'risk', render:(r)=><RiskCell s={r}/> },
+    { label:'Last active', key:'last', sortable:true, render:(r)=><span className="lastactive">{r.last}</span> },
+    { label:'', key:'kebab', render:(r)=>(
+        <button className="iconbtn-bare" aria-label={"Actions for "+r.name} onClick={e=>e.stopPropagation()}><Icon name="more-vertical" size={18}/></button>) },
+  ];
+
+  return (
+    <Section title="Register"
+      actions={<span className="lastupd"><Icon name="server" size={13}/>Last updated <span className="num">3m</span> ago · server-authoritative</span>}>
+      {selIds.length>0 && (
+        <div className="bulkbar" role="region" aria-label="Bulk actions">
+          <span className="bulkbar__count"><Icon name="check-square" size={16}/><span className="u-mono">{selIds.length}</span> selected on this page</span>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="mail" size={16}/>}>Message</Button>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="download" size={16}/>}>Export</Button>
+          <span className="bulkbar__spacer"></span>
+          <Button variant="ghost" size="sm" onClick={clearSel}>Clear</Button>
+        </div>
+      )}
+      <div className="tablewrap">
+        <DataTable className="" columns={columns} rows={STUDENTS}/>
+        <div className="rowmeta">
+          <span className="rowmeta__count" role="status" aria-live="polite">Showing <span className="num">1–8</span> of <span className="num">84</span> students</span>
+          <Pagination pages={5} current={1}/>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ---- States rail ---------------------------------------------------------- */
+function SkelRow(){
+  return (
+    <div className="skelrow">
+      <Skeleton variant="circle" width="32px" height="32px"/>
+      <div className="skelrow__col"><Skeleton width="60%" height="0.8rem"/><Skeleton width="38%" height="0.6rem"/></div>
+      <Skeleton width="48px" height="0.7rem"/>
+      <Skeleton width="64px" height="0.7rem"/>
+    </div>
+  );
+}
+
+function StatesRail(){
+  return (
+    <Section title="States">
+      <div className="states__grid">
+        <div className="states__mini">
+          <span className="u-caption">Loading — skeleton rows</span>
+          <SkelRow/><SkelRow/><SkelRow/>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Empty — no students yet (admin / has permission)</span>
+          <EmptyState icon="users" title="No students yet"
+            body="Add your first student, or import a roster to get started."
+            action={<div style={{display:'flex', gap:'var(--space-3)', justifyContent:'center'}}>
+              <Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>}>Add student</Button>
+              <Button variant="ghost" trailingIcon={<Icon name="external-link" size={14}/>}>Import students</Button>
+            </div>}/>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Empty — filtered no-match</span>
+          <EmptyState icon="search-x" title="No students match these filters"
+            body="Try a different search or clear the filters."
+            action={<Button variant="secondary">Clear filters</Button>}/>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Empty — teacher with no assigned classes</span>
+          <EmptyState icon="book-dashed" title="No classes assigned to you yet"
+            body="Once you're assigned to a class, its students will appear here. Contact your administrator if this looks wrong."/>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Error — distinct from empty</span>
+          <Alert variant="error" title="Couldn't load students">
+            Something went wrong fetching the directory. This isn't your fault.
+            <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Try again</Button></div>
+          </Alert>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Partial — scores lazy-loading / batch failed</span>
+          <Alert variant="warning" title="Some scores couldn't load right now">
+            <div style={{marginTop:'var(--space-2)'}}><Button variant="ghost" size="sm">Retry</Button></div>
+          </Alert>
+          <div className="miniscore"><span className="u-caption" style={{minWidth:60}}>Aarav</span><Skeleton width="64px" height="0.7rem"/></div>
+          <div className="miniscore"><span className="u-caption" style={{minWidth:60}}>Ishaan</span><span className="lastactive" title="No activity yet">—</span><span className="u-caption">No activity yet</span></div>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Permission-gated — teacher without manageStudents</span>
+          <div style={{display:'flex', gap:'var(--space-2)', alignItems:'center', flexWrap:'wrap'}}>
+            <Badge icon={<Icon name="eye" size={12}/>}>Read-only</Badge>
+            <span className="lastactive" style={{color:'var(--text-muted)'}}>Add / Edit / Archive hidden</span>
+          </div>
+          <div className="iconbtn-bare" style={{cursor:'default'}}>Row menu → only "View report"</div>
+        </div>
+
+        <div className="states__mini">
+          <span className="u-caption">Permission-gated — no access (suspended / denied)</span>
+          <Alert variant="error" title="You don't have access to this">
+            Your role doesn't permit viewing this directory.
+          </Alert>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ---- Add student dialog --------------------------------------------------- */
+function StudentFormDialog({open,onClose}){
+  return (
+    <Modal open={open} onClose={onClose} title="Add student"
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" onClick={onClose}>Save</Button></>}>
+      <div className="form-grid">
+        <Field label="Display name" required><Input placeholder="e.g. Aarav Sharma"/></Field>
+        <Field label="Roll number"><Input className="u-mono" placeholder="21"/></Field>
+        <Field label="Admission number" className="span2"><Input className="u-mono" placeholder="ADM-2024-0000"/></Field>
+        <div className="span2">
+          <Field label="Class assignment" hint="Choose from the classes you manage">
+            <Select options={[{value:'8a',label:'Grade 8-A'},{value:'9b',label:'Grade 9-B'},{value:'10c',label:'Grade 10-C'},{value:'math',label:'Mathematics'}]}/>
+          </Field>
+        </div>
+        <Field label="Status">
+          <Select options={[{value:'active',label:'Active'},{value:'archived',label:'Archived'}]}/>
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---- Page ----------------------------------------------------------------- */
+function App(){
+  const [dialog,setDialog]=useState(false);
+  const [search,setSearch]=useState('');
+
+  return (
+    <Shell active="students">
+      <div className="page">
+        <Breadcrumb items={[{label:'People', href:'/'},{label:'Students'}]}/>
+
+        <div className="page__head">
+          <div>
+            <h1 className="page__title">Students</h1>
+            <p className="page__sub">Students across the classes you manage — <span className="u-mono">84</span> total.</p>
+          </div>
+          <div className="page__actions">
+            <Button variant="ghost" trailingIcon={<Icon name="external-link" size={14}/>}>Import students</Button>
+            <Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>setDialog(true)}>Add student</Button>
+          </div>
+        </div>
+
+        <Section>
+          <div className="toolbar">
+            <div className="toolbar__search">
+              <span className="toolbar__search-icon" aria-hidden="true"><Icon name="search" size={18}/></span>
+              <input className="input" type="search" value={search} onChange={e=>setSearch(e.target.value)}
+                placeholder="Search by name, roll, or admission number" aria-label="Search by name, roll, or admission number"/>
+            </div>
+            <div className="toolbar__filters">
+              <Select aria-label="Class" options={CLASS_OPTS}/>
+              <Select aria-label="Status" options={STATUS_OPTS}/>
+              <Select aria-label="At risk" options={RISK_OPTS} defaultValue="risk"/>
+              <Select aria-label="Sort" options={SORT_OPTS}/>
+            </div>
+          </div>
+          <div className="activefilters" style={{marginTop:'var(--space-3)'}}>
+            <span className="activefilters__label">Active filters</span>
+            <Chip active removable>At risk only</Chip>
+            <button className="iconbtn-bare" style={{fontSize:'var(--text-sm)'}}>Clear filters</button>
+          </div>
+        </Section>
+
+        <Directory/>
+
+        <StatesRail/>
+      </div>
+
+      <StudentFormDialog open={dialog} onClose={()=>setDialog(false)}/>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

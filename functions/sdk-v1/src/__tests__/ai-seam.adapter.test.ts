@@ -19,9 +19,23 @@ function fakeGatewayResult() {
   return {
     data: { score: 7, feedback: "well reasoned", correctness: 0.7 },
     text: '{"score":7}',
-    tokenUsage: { inputTokens: 120, outputTokens: 40, totalTokens: 160 },
-    cost: { inputCostUsd: 0.001, outputCostUsd: 0.002, totalCostUsd: 0.003, currency: "USD" },
+    tokenUsage: {
+      inputTokens: 120,
+      outputTokens: 40,
+      cachedInputTokens: 12,
+      totalTokens: 160,
+      source: "provider" as const,
+    },
+    cost: {
+      inputCostUsd: 0.001,
+      outputCostUsd: 0.002,
+      totalCostUsd: 0.003,
+      currency: "USD",
+      pricingVersion: "2026-07-18",
+    },
     model: "gemini-2.0-flash",
+    requestId: "gateway-request-1",
+    moderation: { input: ["prompt_injection"], output: [] },
   };
 }
 
@@ -40,8 +54,25 @@ describe("AI seam adapter (bootstrap res.data → services ai.json)", () => {
     expect(out.costUsd).toBe(0.003);
     expect(out.model).toBe("gemini-2.0-flash");
 
+    // Metadata parity for continuation causation / cached-token aggregation.
+    expect(out.requestId).toBe("gateway-request-1");
+    expect(out.tokenUsage).toEqual(raw.tokenUsage);
+    expect(out.tokenUsage?.cachedInputTokens).toBe(12);
+    expect(out.cost).toEqual(raw.cost);
+    expect(out.moderation).toEqual(raw.moderation);
+
     // The adapted object exposes exactly the services-seam keys (no stray `data`).
-    expect(Object.keys(out).sort()).toEqual(["costUsd", "json", "model", "text", "tokensUsed"]);
+    expect(Object.keys(out).sort()).toEqual([
+      "cost",
+      "costUsd",
+      "json",
+      "model",
+      "moderation",
+      "requestId",
+      "text",
+      "tokenUsage",
+      "tokensUsed",
+    ]);
     expect("data" in out).toBe(false);
   });
 
@@ -49,6 +80,29 @@ describe("AI seam adapter (bootstrap res.data → services ai.json)", () => {
     const out = adaptAiResult(fakeGatewayResult() as never);
     expect(out.json).not.toBeUndefined();
     expect((out.json as { score: number }).score).toBe(7);
+  });
+
+  it("passes toolCalls through when present; omits the key entirely when absent", () => {
+    const withCalls = adaptAiResult({
+      ...fakeGatewayResult(),
+      toolCalls: [
+        {
+          callId: "gemini:call-1",
+          name: "record_observation",
+          args: { dimensionId: "clarity" },
+        },
+      ],
+    } as never);
+    expect(withCalls.toolCalls).toEqual([
+      {
+        callId: "gemini:call-1",
+        name: "record_observation",
+        args: { dimensionId: "clarity" },
+      },
+    ]);
+
+    const without = adaptAiResult(fakeGatewayResult() as never);
+    expect("toolCalls" in without).toBe(false);
   });
 
   it("defaults usage/cost to 0 when the gateway omits them (never NaN/undefined)", () => {
@@ -86,5 +140,8 @@ describe("AI seam adapter (bootstrap res.data → services ai.json)", () => {
     expect(out.tokensUsed).toBe(160);
     expect(out.costUsd).toBe(0.003);
     expect(out.model).toBe("gemini-2.0-flash");
+    expect(out.requestId).toBe("gateway-request-1");
+    expect(out.tokenUsage?.cachedInputTokens).toBe(12);
+    expect(out.moderation).toEqual(raw.moderation);
   });
 });

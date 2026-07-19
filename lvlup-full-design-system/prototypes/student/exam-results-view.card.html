@@ -1,0 +1,733 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Physical Exam Results / AutoGrade" subtitle="Released sanitized ResultSummary · B2B-only" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physical Exam Results / AutoGrade</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* live desktop shell — positioned ancestor for Drawer/Modal */
+  .shell-frame { position: relative; height: 800px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  .tb-back { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-secondary);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface); }
+  .tb-back:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+  /* main results column */
+  .rmain { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+
+  /* ── VERDICT HERO ── */
+  .hero { padding: var(--space-8) var(--space-8) var(--space-6); text-align: center; }
+  .hero--high { background: linear-gradient(180deg, var(--status-success-subtle), var(--bg-surface) 70%); }
+  .hero__row { display: flex; align-items: center; justify-content: center; gap: var(--space-8);
+    flex-wrap: wrap; margin-bottom: var(--space-4); }
+  .hero__ringwrap { display: flex; align-items: center; gap: var(--space-4); }
+  .hero__ring { --ring-size: 132px; }
+  .hero__ring .ring__label { font-size: var(--text-3xl); font-family: var(--font-mono);
+    font-weight: var(--weight-semibold); color: var(--text-primary); }
+  .hero__verdict { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+    text-align: left; max-width: 420px; }
+  .hero__h2 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .hero__marks { font-family: var(--font-mono); font-size: var(--text-base); color: var(--text-secondary); }
+  .hero__marks .div { color: var(--border-strong); margin: 0 var(--space-2); }
+  .hero__sub { font-size: var(--text-sm); color: var(--text-muted); }
+  .hero__cta { display: flex; align-items: center; justify-content: center; gap: var(--space-3);
+    flex-wrap: wrap; margin-top: var(--space-2); }
+  .keylock-chip { margin-top: var(--space-4); display: flex; justify-content: center; }
+
+  /* dignified count-up — NOT a celebration (no burst on this surface) */
+  .fade-in { animation: fade-in var(--dur-slow) var(--ease-entrance) both; }
+  @keyframes fade-in {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } }
+
+  /* ── per-question review ── */
+  .qhead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; }
+  .qhead__left { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  .qhead__qno { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted); }
+  .qhead__marks { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-semibold);
+    color: var(--text-primary); }
+  .qbody { display: flex; flex-direction: column; gap: var(--space-4); }
+  .qcols { display: grid; grid-template-columns: 320px 1fr; gap: var(--space-5); align-items: start; }
+
+  /* scanned-answer crop */
+  .scan { display: flex; flex-direction: column; gap: var(--space-2); }
+  .scan__lbl { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
+    font-family: var(--font-mono); color: var(--text-muted); }
+  .scan__thumb { position: relative; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+    background: var(--bg-surface-sunken); overflow: hidden; cursor: zoom-in; padding: 0; display: block;
+    width: 100%; }
+  .scan__thumb:hover { border-color: var(--border-strong); }
+  .scan__thumb:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 2px; }
+  .scan__paper { aspect-ratio: 4 / 3; background:
+      repeating-linear-gradient(180deg, var(--warm-white) 0 26px, var(--bg-surface-sunken) 26px 27px);
+    display: flex; flex-direction: column; justify-content: center; gap: var(--space-2);
+    padding: var(--space-4); }
+  .scan__ink { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-900); }
+  .scan__ink--big { font-size: var(--text-sm); }
+  .scan__zoom { position: absolute; bottom: var(--space-2); right: var(--space-2);
+    display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm); background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    font-size: var(--text-2xs); color: var(--text-secondary); }
+
+  /* feedback panel */
+  .fb { border-radius: var(--radius-md); padding: var(--space-4) var(--space-5); border: 1px solid var(--border-subtle); }
+  .fb--ok { background: var(--status-success-subtle); border-color: var(--status-success); }
+  .fb--miss { background: var(--status-warning-subtle); border-color: var(--status-warning); }
+  .fb-head { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--weight-semibold);
+    font-size: var(--text-sm); margin-bottom: var(--space-2); }
+  .fb--ok .fb-head { color: var(--status-success); }
+  .fb--miss .fb-head { color: var(--status-warning); }
+  .fb-section { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
+    font-family: var(--font-mono); color: var(--text-muted); margin: var(--space-3) 0 var(--space-1); }
+  .fb-body { font-size: var(--text-sm); color: var(--text-primary); line-height: var(--leading-sm); }
+  .fb-confrow { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+  .fb-confnote { font-size: var(--text-xs); color: var(--text-secondary); }
+
+  .grow-chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .grow-lbl { font-size: var(--text-xs); color: var(--text-secondary); }
+
+  /* override badge row */
+  .override-row { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary);
+    font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+
+  /* footer actions */
+  .footer-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; justify-content: center;
+    padding-top: var(--space-2); }
+
+  /* lightbox image */
+  .lb { display: flex; flex-direction: column; gap: var(--space-3); }
+  .lb__paper { aspect-ratio: 3 / 4; max-height: 520px; background:
+      repeating-linear-gradient(180deg, var(--warm-white) 0 32px, var(--bg-surface-sunken) 32px 33px);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-6);
+    display: flex; flex-direction: column; gap: var(--space-4); }
+  .lb__ink { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-900); }
+  .lb__cap { font-size: var(--text-xs); color: var(--text-muted); text-align: center; }
+
+  /* secondary state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+  .skel-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-row { display: flex; gap: var(--space-3); align-items: center; }
+  .mini-hero { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-3) 0; }
+  .gated-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
+    padding: var(--space-5) var(--space-4); text-align: center; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Chip,
+    Card, Panel, Section, Accordion, Modal, Toast, Alert, EmptyState, Skeleton,
+    ContentRenderer, ConfidenceBadge, RubricBreakdown, GradePill, AnswerKeyLock, InsightCard,
+  } = LU;
+  const { useState, useEffect, useRef } = React;
+
+  /* ---- student sidebar nav ---- */
+  const NAV = [
+    { icon: "layout-dashboard", label: "Dashboard" },
+    { icon: "book-open", label: "My Spaces" },
+    { icon: "file-check", label: "Tests", active: true },
+    { icon: "trophy", label: "Leaderboard" },
+    { icon: "user", label: "Profile" },
+  ];
+
+  function NavLink({ icon, label, active }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+      </a>
+    );
+  }
+
+  /* ── server-released, sanitized ResultSummary (NO answer key, NO raw confidence number, NO AI cost) ── */
+  const SUMMARY = {
+    examTitle: "Mid-term · Mathematics",
+    subject: "Mathematics",
+    grade: "B",            // final, post manual-override (server-recomputed)
+    percentage: 72,
+    totalScore: 36,
+    maxScore: 50,
+    questionsGraded: 14,
+    totalQuestions: 14,
+    releasedDate: "12 Jun 2026",
+  };
+
+  /* weak topics for the "Where to grow next" nudge (from missingConcepts/weaknesses) */
+  const GROW_TOPICS = ["Congruence", "Trigonometric ratios"];
+
+  /* per-question, released-only projection (student's OWN scan + rubric feedback + score) */
+  const QUESTIONS = [
+    {
+      n: 1, marks: 5, max: 5, status: "full",
+      prompt: "Solve for $x$: $\\;3x + 7 = 22$.",
+      scan: ["3x + 7 = 22", "3x = 15", "x = 5  ✓"],
+      gradedBy: "high",  // Auto-graded
+      feedback: {
+        keyTakeaway: "Clean, correct working — you isolated x in two tidy steps. Full marks.",
+      },
+    },
+    {
+      n: 2, marks: 2, max: 6, status: "partial",
+      prompt: "A ladder leans against a wall reaching 4 m high, with its base 3 m from the wall. Find the angle the ladder makes with the ground.",
+      scan: ["tan θ = 4 / 3", "θ = 4 / 3 = 1.33", "θ ≈ 1.3°"],
+      gradedBy: "med",   // Auto-graded, teacher spot-checked
+      grow: "Trigonometric ratios",
+      feedback: {
+        issue: "The setup is right — you correctly picked tan θ = opposite / adjacent.",
+        why: "But tan θ = 1.33 is the *ratio*, not the angle. You need the inverse, arctan, to get the angle in degrees.",
+        fix: "Take θ = tan⁻¹(1.33) ≈ 53°. Practising trig ratios will make the last step automatic.",
+      },
+      rubric: [
+        { label: "Method", desc: "Right setup — chose tan correctly", score: 2, max: 3 },
+        { label: "Accuracy", desc: "Missed the arctan step — angle left as a ratio", score: 0, max: 3 },
+      ],
+    },
+    {
+      n: 3, marks: 4, max: 6, status: "almost", manualOverride: true,
+      prompt: "Prove that triangles $ABD$ and $CBD$ are congruent given $AB = CB$ and $BD$ bisects $\\angle ABC$.",
+      scan: ["AB = CB (given)", "∠ABD = ∠CBD (BD bisects)", "BD = BD (common)", "∴ △ABD ≅ △CBD (SAS)"],
+      gradedBy: "review", // Reviewed by your teacher
+      grow: "Congruence",
+      feedback: {
+        keyTakeaway: "A valid SAS proof — your teacher reviewed this one and recognised the full congruence argument, awarding extra credit for the clear common-side reasoning.",
+      },
+      rubric: [
+        { label: "States given facts", desc: "AB = CB and the bisected angle", score: 2, max: 2 },
+        { label: "Congruence reasoning", desc: "Identifies SAS with the common side", score: 2, max: 4 },
+      ],
+    },
+    {
+      n: 4, marks: 5, max: 5, status: "full",
+      prompt: "Find the mean of the data set: $4, 8, 6, 10, 12$.",
+      scan: ["sum = 4+8+6+10+12 = 40", "mean = 40 / 5", "mean = 8  ✓"],
+      gradedBy: "high",
+      feedback: {
+        keyTakeaway: "Correct and neatly shown — summed accurately and divided by the count. Nice work.",
+      },
+    },
+  ];
+
+  const STATUS_META = {
+    full:    { icon: "check-circle", label: "Full marks", variant: "success" },
+    almost:  { icon: "sparkles",     label: "Almost there", variant: "success" },
+    partial: { icon: "compass",      label: "Partial credit", variant: "warning" },
+    look:    { icon: "compass",      label: "Let's look again", variant: "warning" },
+  };
+
+  const GRADED_BY = {
+    high:   "Auto-graded",
+    med:    "Auto-graded, teacher spot-checked",
+    review: "Reviewed by your teacher",
+  };
+
+  /* ── dignified count-up ring (NOT a celebration — respects reduced motion) ── */
+  function CountUpRing({ value, size }) {
+    const reduce = typeof window !== "undefined" &&
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const [n, setN] = useState(reduce ? value : 0);
+    useEffect(() => {
+      if (reduce) return;
+      let raf, start;
+      const dur = 1000;
+      const step = (t) => {
+        if (!start) start = t;
+        const p = Math.min(1, (t - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setN(Math.round(eased * value));
+        if (p < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }, [value, reduce]);
+    return (
+      <div className="ring hero__ring" style={{ "--ring-pct": n, "--ring-size": (size || 132) + "px" }}
+           role="img" aria-label={"Score " + value + " percent on the Mathematics paper"}>
+        <span className="ring__label">{n}%</span>
+      </div>
+    );
+  }
+
+  /* ── scanned-answer crop with lightbox trigger ── */
+  function ScanCrop({ q, onZoom }) {
+    return (
+      <div className="scan">
+        <div className="scan__lbl">Your answer (from your sheet)</div>
+        <button className="scan__thumb" onClick={onZoom}
+          aria-label={"Zoom your scanned answer for question " + q.n}>
+          <div className="scan__paper">
+            {q.scan.map((line, i) => (
+              <div key={i} className={"scan__ink" + (i === 0 ? " scan__ink--big" : "")}>{line}</div>
+            ))}
+          </div>
+          <span className="scan__zoom"><Icon name="zoom-in" size={12} /> Tap to zoom</span>
+        </button>
+      </div>
+    );
+  }
+
+  function FeedbackPanel({ q }) {
+    const ok = q.status === "full" || q.status === "almost";
+    const sm = STATUS_META[q.status] || STATUS_META.look;
+    return (
+      <div className={"fb " + (ok ? "fb--ok" : "fb--miss")} role="status">
+        <div className="fb-head">
+          <Icon name={sm.icon} size={18} /> {sm.label}
+        </div>
+        {q.feedback.keyTakeaway && (
+          <div className="fb-body"><ContentRenderer math>{q.feedback.keyTakeaway}</ContentRenderer></div>
+        )}
+        {q.feedback.issue && (<>
+          <div className="fb-section">What happened</div>
+          <div className="fb-body"><ContentRenderer math>{q.feedback.issue}</ContentRenderer></div>
+          <div className="fb-section">Why it matters</div>
+          <div className="fb-body"><ContentRenderer math>{q.feedback.why}</ContentRenderer></div>
+          <div className="fb-section">How to fix it</div>
+          <div className="fb-body"><ContentRenderer math>{q.feedback.fix}</ContentRenderer></div>
+        </>)}
+        <div className="fb-confrow">
+          <ConfidenceBadge level={q.gradedBy} value={GRADED_BY[q.gradedBy]} />
+          {q.gradedBy === "review" && (
+            <span className="fb-confnote">Your teacher set the final score on this question.</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function QuestionBody({ q, onZoom }) {
+    return (
+      <div className="qbody">
+        <div style={{ marginBottom: "var(--space-1)" }}>
+          <ContentRenderer math>{q.prompt}</ContentRenderer>
+        </div>
+
+        <div className="qcols">
+          <ScanCrop q={q} onZoom={onZoom} />
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <FeedbackPanel q={q} />
+            {q.rubric && (
+              <div>
+                <div className="eyebrow" style={{ marginBottom: "var(--space-2)" }}>Rubric breakdown</div>
+                <RubricBreakdown criteria={q.rubric} />
+              </div>
+            )}
+            {q.manualOverride && (
+              <div className="override-row">
+                <Icon name="user-check" size={14} /> Final score set by your teacher
+              </div>
+            )}
+            {q.grow && (
+              <div className="grow-chips">
+                <span className="grow-lbl">Area to grow:</span>
+                <Chip>{q.grow}</Chip>
+              </div>
+            )}
+            <AnswerKeyLock title="Answer keys stay with your teacher —">
+              you're seeing your own answers and feedback.
+            </AnswerKeyLock>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================ PRIMARY: live results screen ============================ */
+  function ResultsScreen() {
+    const reduce = typeof window !== "undefined" &&
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const [lightbox, setLightbox] = useState(null); // question being zoomed
+    const [toast, setToast] = useState(null);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const reviewRef = useRef(null);
+
+    const scrollToReview = () => {
+      if (reviewRef.current) {
+        reviewRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        reviewRef.current.focus({ preventScroll: true });
+      }
+    };
+
+    const downloadPdf = () => {
+      setPdfLoading(true);
+      setTimeout(() => { setPdfLoading(false); setToast({ variant: "success", title: "Your PDF is ready", body: "Opening your exam report." }); }, 1100);
+    };
+
+    useEffect(() => {
+      if (!toast) return;
+      const t = setTimeout(() => setToast(null), 3200);
+      return () => clearTimeout(t);
+    }, [toast]);
+
+    const accItems = QUESTIONS.map((q) => {
+      const sm = STATUS_META[q.status] || STATUS_META.look;
+      return {
+        title: (
+          <div className="qhead">
+            <div className="qhead__left">
+              <span className="qhead__qno">Q{q.n}</span>
+              <Badge variant={sm.variant} icon={<Icon name={sm.icon} size={12} />}>{sm.label}</Badge>
+              {q.manualOverride && (
+                <Badge variant="brand" icon={<Icon name="user-check" size={12} />}>Teacher final</Badge>
+              )}
+            </div>
+            <span className="qhead__marks">{q.marks} / {q.max}</span>
+          </div>
+        ),
+        content: <QuestionBody q={q} onZoom={() => setLightbox(q)} />,
+      };
+    });
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">M</span>
+              <span className="sidebar__brand-name">Maple Grove School</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {NAV.map((n, i) => <NavLink key={i} {...n} />)}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials="Am" />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>Amara Okafor</b>
+                  <span>amara.o@maplegrove.edu</span>
+                </div>
+                <Icon name="chevron-up" size={16} />
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <button className="tb-back" onClick={(e) => e.preventDefault()}>
+              <Icon name="arrow-left" size={16} /> Back
+            </button>
+            <Breadcrumb items={[{ label: "Results", href: "#" }, { label: SUMMARY.examTitle }]} />
+            <div className="topbar__spacer" />
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="printer" size={16} />}
+              onClick={() => window.print && window.print()}>Print</Button>
+            <IconButton icon={<Icon name="bell" size={20} />} label="Updates" />
+            <Avatar initials="Am" />
+          </header>
+
+          {/* MAIN */}
+          <main className="appshell__main" id="main-content">
+            <div className="rmain">
+              <div aria-live="polite" className="sr-only">
+                Your Mathematics results are released. You scored 72 percent, grade B.
+              </div>
+
+              {/* VERDICT HERO */}
+              <Card className="fade-in">
+                <div className="hero hero--high" role="region" aria-label="Exam result summary">
+                  <div className="hero__row">
+                    <div className="hero__ringwrap">
+                      <CountUpRing value={SUMMARY.percentage} />
+                      <GradePill grade={SUMMARY.grade} />
+                    </div>
+                    <div className="hero__verdict">
+                      <h2 className="hero__h2">Solid work on your Mathematics paper.</h2>
+                      <div className="hero__marks">
+                        {SUMMARY.totalScore} / {SUMMARY.maxScore} marks
+                        <span className="div">·</span>
+                        {SUMMARY.questionsGraded} of {SUMMARY.totalQuestions} questions graded
+                      </div>
+                      <div className="hero__sub">
+                        Released {SUMMARY.releasedDate} · Graded by AutoGrade and reviewed by your teacher.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hero__cta">
+                    <Button variant="secondary" leadingIcon={<Icon name="list-checks" size={16} />}
+                      onClick={scrollToReview}>Review each question</Button>
+                    <Button variant="spark" trailingIcon={<Icon name="arrow-right" size={16} />}>
+                      Practice these topics
+                    </Button>
+                  </div>
+
+                  <div className="keylock-chip">
+                    <AnswerKeyLock title="Answer keys stay with your teacher —">
+                      you're seeing your own answers and feedback.
+                    </AnswerKeyLock>
+                  </div>
+                </div>
+              </Card>
+
+              {/* WHERE TO GROW NEXT */}
+              <InsightCard icon="sprout" title="A little practice on these will pay off">
+                <div style={{ marginBottom: "var(--space-3)" }}>
+                  These topics tripped you up a little today — a short session will help them click for the next paper.
+                </div>
+                <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
+                  {GROW_TOPICS.map((t, i) => <Chip key={i}>{t}</Chip>)}
+                </div>
+                <Button variant="spark" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>
+                  Practice these topics
+                </Button>
+              </InsightCard>
+
+              {/* PER-QUESTION REVIEW */}
+              <section ref={reviewRef} tabIndex={-1} aria-label="Per-question review" style={{ outline: "none" }}>
+                <Section title="Per-question review"
+                  actions={<span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)",
+                    fontFamily: "var(--font-mono)" }}>{QUESTIONS.length} questions · your answers + feedback, no answer key</span>}>
+                  <Accordion defaultOpen={1} items={accItems} />
+                </Section>
+              </section>
+
+              {/* FOOTER ACTIONS */}
+              <div className="footer-actions">
+                <Button variant="secondary" leadingIcon={<Icon name="printer" size={16} />}
+                  onClick={() => window.print && window.print()}>Print results</Button>
+                <Button variant="secondary" loading={pdfLoading}
+                  leadingIcon={!pdfLoading ? <Icon name="download" size={16} /> : undefined}
+                  onClick={downloadPdf}>{pdfLoading ? "Preparing PDF…" : "Download PDF"}</Button>
+                <Button variant="ghost" leadingIcon={<Icon name="arrow-left" size={16} />}>Back to results</Button>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        {/* SCANNED-ANSWER LIGHTBOX (default closed) */}
+        <Modal open={!!lightbox} onClose={() => setLightbox(null)}
+          title={lightbox ? "Your scanned answer — Q" + lightbox.n : ""}>
+          {lightbox && (
+            <div className="lb">
+              <div className="lb__paper" role="img"
+                aria-label={"Your scanned answer for question " + lightbox.n}>
+                {lightbox.scan.map((line, i) => <div key={i} className="lb__ink">{line}</div>)}
+              </div>
+              <div className="lb__cap">This is your own scanned sheet — the answer key is never shown.</div>
+            </div>
+          )}
+        </Modal>
+
+        {/* TOAST (aria-live region for PDF ready) */}
+        {toast && (
+          <div aria-live="polite" style={{ position: "absolute", bottom: "var(--space-5)",
+            right: "var(--space-5)", zIndex: 50 }}>
+            <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function NotifyButton() {
+    const [done, setDone] = useState(false);
+    return (
+      <div>
+        <Button variant="primary" disabled={done}
+          leadingIcon={<Icon name={done ? "check" : "bell"} size={16} />}
+          onClick={() => setDone(true)}>
+          {done ? "We'll let you know" : "Notify me when ready"}
+        </Button>
+        <div aria-live="polite" className="sr-only">{done ? "You'll be notified when results are released." : ""}</div>
+      </div>
+    );
+  }
+
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* LOADING / SKELETON */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (skeleton — no layout shift)</div>
+          <div className="skel-stack">
+            <div className="skel-row">
+              <Skeleton variant="circle" width="96px" height="96px" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="50%" height="14px" />
+                <Skeleton width="80%" height="26px" />
+                <Skeleton width="60%" height="13px" />
+              </div>
+            </div>
+            <Skeleton height="78px" />
+            <Skeleton height="78px" />
+          </div>
+        </div>
+
+        {/* GATED — results not yet released (PRIMARY domain state) */}
+        <div className="tile">
+          <div className="eyebrow">State: gated — results not yet released (no score present client-side)</div>
+          <div className="gated-wrap">
+            <AnswerKeyLock title="Results sealed until your teacher releases them.">
+              No score is sent to your device yet.
+            </AnswerKeyLock>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)",
+              fontWeight: "var(--weight-semibold)" }}>Your results aren't ready just yet</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)", maxWidth: "var(--reading-max)" }}>
+              Your teacher is still finishing grading the Mathematics paper. We'll let you know the moment it's released.
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", justifyContent: "center" }}>
+              <NotifyButton />
+              <Button variant="ghost" leadingIcon={<Icon name="arrow-left" size={16} />}>Back to results</Button>
+            </div>
+          </div>
+        </div>
+
+        {/* NO SUBMISSION FOUND */}
+        <div className="tile">
+          <div className="eyebrow">State: empty — no submission found (never implies a zero)</div>
+          <EmptyState icon="file-search"
+            title="We couldn't find your paper for this exam"
+            body="If you sat this exam, check with your teacher — your sheet may still be on its way."
+            action={<Button variant="ghost" leadingIcon={<Icon name="arrow-left" size={16} />}>Back to results</Button>} />
+        </div>
+
+        {/* PARTIAL — some questions still grading */}
+        <div className="tile">
+          <div className="eyebrow">State: partial — some questions still being graded</div>
+          <div className="mini-hero">
+            <div className="ring" style={{ "--ring-pct": 64, "--ring-size": "84px" }}>
+              <span className="ring__label" style={{ fontSize: "var(--text-lg)" }}>64%</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)",
+                fontWeight: "var(--weight-semibold)" }}>Solid effort so far.</div>
+              <div className="hero__marks" style={{ fontSize: "var(--text-sm)" }}>
+                32 / 50 marks · 11 of 14 questions graded
+              </div>
+            </div>
+          </div>
+          <Alert variant="info" title="A few questions are still being graded">
+            Your score may go up. Check back soon — ungraded questions show "Being graded", never a zero.
+          </Alert>
+        </div>
+
+        {/* MANUAL OVERRIDE detail */}
+        <div className="tile">
+          <div className="eyebrow">State: manual-override — teacher's final score shown (AI score hidden)</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+              <span className="qhead__qno">Q3</span>
+              <Badge variant="success" icon={<Icon name="sparkles" size={12} />}>Almost there</Badge>
+              <Badge variant="brand" icon={<Icon name="user-check" size={12} />}>Teacher final</Badge>
+            </div>
+            <span className="qhead__marks">4 / 6</span>
+          </div>
+          <div className="override-row">
+            <Icon name="user-check" size={14} /> Final score set by your teacher
+          </div>
+          <div style={{ marginTop: "var(--space-3)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+            The teacher's score is the final score. The original AI score is never dangled at the student.
+          </div>
+        </div>
+
+        {/* ERROR */}
+        <div className="tile">
+          <div className="eyebrow">State: error (distinct from empty — with retry, never a code)</div>
+          <EmptyState icon="cloud-off"
+            title="We hit a snag loading your results"
+            body="Something hiccuped on our end. Your grade is safe — give it another go."
+            action={<Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16} />}>Try again</Button>} />
+        </div>
+
+        {/* PERMISSION-GATED — consumer context */}
+        <div className="tile">
+          <div className="eyebrow">State: permission-gated — physical exams are B2B-only</div>
+          <EmptyState icon="school"
+            title="Exam results live in your school account"
+            body="Physical exams are a school feature. Sign in with your school account to see your paper."
+            action={<Button variant="secondary" leadingIcon={<Icon name="log-in" size={16} />}>Switch to school account</Button>} />
+        </div>
+
+        {/* DOMAIN GUARANTEES */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">Domain: server-released results · answer key never shown · final = teacher override</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)" }}>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+              <Icon name="lock" size={20} style={{ color: "var(--text-muted)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Answer key stays sealed</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  The released-only projection omits the answer key entirely. You see only your own scan + feedback.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+              <Icon name="shield-check" size={20} style={{ color: "var(--status-success)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Released by your teacher</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Before release the client holds no scores at all — the gate is enforced server-side.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+              <Icon name="user-check" size={20} style={{ color: "var(--brand-primary)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Teacher override is final</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Where a teacher set the score, that's the score shown — the original AI score is hidden.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <ResultsScreen />
+        <div>
+          <div className="eyebrow">Spec'd secondary states</div>
+          <StateTiles />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

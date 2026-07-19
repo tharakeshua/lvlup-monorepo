@@ -13,7 +13,7 @@ import { docFromFirestore, toFirestore } from "./firestore.js";
 import { decodePageCursor, encodePageCursor } from "./cursor.js";
 import { chunk } from "./batch-writer.js";
 import { ITEMS_COLLECTION_GROUP, itemDoc } from "./paths.js";
-import type { EntityRepo, ListOptions } from "./types.js";
+import type { ListOptions, ScopedItemRepo } from "./types.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -26,12 +26,28 @@ function parentIds(data: Record<string, unknown>): { spaceId: string; storyPoint
   return { spaceId, storyPointId };
 }
 
-export function makeItemRepo(firestore: Firestore, now: () => string): EntityRepo {
+export function makeItemRepo(firestore: Firestore, now: () => string): ScopedItemRepo {
   const cg = (): Query => firestore.collectionGroup(ITEMS_COLLECTION_GROUP);
 
   const byIdInTenant = (tenantId: string): Query => cg().where("tenantId", "==", tenantId);
 
   return {
+    async getScoped(tenantId, spaceId, storyPointId, itemId) {
+      const snap = await firestore.doc(itemDoc(tenantId, spaceId, storyPointId, itemId)).get();
+      if (!snap.exists) return null;
+      const data = docFromFirestore({ ...snap.data(), id: snap.id });
+      // Exact paths already identify the intended parent; retain this guard so
+      // malformed/copied documents never escape as a valid scoped item.
+      if (
+        data["tenantId"] !== tenantId ||
+        data["spaceId"] !== spaceId ||
+        data["storyPointId"] !== storyPointId
+      ) {
+        return null;
+      }
+      return data;
+    },
+
     async get(tenantId, id) {
       // A collection-group query CANNOT filter by `documentId() == <bare id>`
       // (the value must be a full doc path → "odd number of segments"). Items

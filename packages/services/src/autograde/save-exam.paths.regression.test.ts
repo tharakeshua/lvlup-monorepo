@@ -114,7 +114,20 @@ describe("AG-2 — v1 autograde accepts Storage paths, not URLs", () => {
       const examId = "exam_e1";
       await ctx.repos.exams.upsert(
         ctx.tenantId!,
-        makeExam({ id: examId, tenantId: ctx.tenantId!, status: "published", totalMarks: 10 }),
+        makeExam({
+          id: examId,
+          tenantId: ctx.tenantId!,
+          status: "published",
+          totalMarks: 10,
+          // Rubric-completion gate: upload is eligible only once rubrics are generated.
+          questionPaper: {
+            images: [],
+            extractedAt: "2026-01-01T00:00:00.000Z",
+            questionCount: 0,
+            examType: "standard",
+            rubricsGeneratedAt: "2026-01-01T00:00:00.000Z",
+          },
+        }),
         ctx.now()
       );
 
@@ -135,6 +148,10 @@ describe("AG-2 — v1 autograde accepts Storage paths, not URLs", () => {
       const persisted = await ctx.repos.submissions.get(ctx.tenantId!, res.submissionId);
       const sheets = persisted?.["answerSheets"] as { images: string[] } | undefined;
       expect(sheets?.images).toEqual(paths);
+      expect(persisted?.["llmCausation"]).toMatchObject({
+        initiatedByUserId: ctx.uid,
+        initiatorRole: "scanner",
+      });
     });
   });
 });

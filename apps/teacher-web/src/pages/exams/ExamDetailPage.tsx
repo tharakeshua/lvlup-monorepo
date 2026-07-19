@@ -10,7 +10,9 @@ import {
   useSaveExam,
   useExtractQuestions,
   useReleaseResults,
+  useExtractionProgress,
 } from "@levelup/query";
+import type { ExtractionStatus } from "@levelup/api-contract";
 import { asExamId, asClassId, asSpaceId } from "@levelup/domain";
 import { useAuthSession } from "../../sdk/session";
 import { toast } from "sonner";
@@ -75,9 +77,10 @@ import {
 function asArray<T>(d: unknown): T[] {
   if (Array.isArray(d)) return d as T[];
   if (d && typeof d === "object") {
-    const o = d as { items?: T[]; pages?: { items?: T[] }[] };
+    const o = d as { items?: T[]; questions?: T[]; pages?: { items?: T[]; questions?: T[] }[] };
     if (Array.isArray(o.items)) return o.items;
-    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? []);
+    if (Array.isArray(o.questions)) return o.questions;
+    if (Array.isArray(o.pages)) return o.pages.flatMap((p) => p.items ?? p.questions ?? []);
   }
   return [];
 }
@@ -86,6 +89,16 @@ interface SpaceRow {
   id: string;
   title: string;
   subject?: string;
+}
+
+type RubricCriterionView = NonNullable<UnifiedRubric["criteria"]>[number] & {
+  maxScore?: number;
+  maxPoints?: number;
+  points?: number;
+};
+
+function rubricCriterionMaxScore(criterion: RubricCriterionView): number {
+  return criterion.maxScore ?? criterion.maxPoints ?? criterion.points ?? 0;
 }
 
 function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
@@ -111,7 +124,7 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
 
   const totalPoints =
     (scoringMode === "criteria_based" || scoringMode === "hybrid") && criteria
-      ? criteria.reduce((sum, c) => sum + (c.maxPoints || 0), 0)
+      ? criteria.reduce((sum, c) => sum + rubricCriterionMaxScore(c), 0)
       : null;
 
   const showCriteriaTable =
@@ -192,7 +205,7 @@ function RubricSummary({ rubric }: { rubric?: UnifiedRubric }) {
                     )}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs font-semibold tabular-nums">
-                    {c.maxPoints}
+                    {rubricCriterionMaxScore(c)}
                     {c.weight != null && (
                       <span className="text-muted-foreground ml-1 text-[10px] font-normal">
                         ×{c.weight}
@@ -324,6 +337,26 @@ export default function ExamDetailPage() {
   const [linkingSpace, setLinkingSpace] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [reExtracting, setReExtracting] = useState<string | null>(null);
+  // Live extraction pipeline status (RTDB). onPayload only touches stable refs
+  // (setState + react-query refetch), so the one-time subscription closure is safe.
+  const [extractionStatus, setExtractionStatus] = useState<ExtractionStatus | null>(null);
+  useExtractionProgress(examId ?? "", (payload) => {
+    const s = payload as unknown as ExtractionStatus;
+    setExtractionStatus(s);
+    // Refetch the authoritative, role-filtered questions as the pipeline advances
+    // (⚷ rubric content never rides RTDB — always fetched via listQuestions).
+    if (s.phase === "questions_extracted" || s.phase === "generating_rubrics") {
+      void refetchQuestions();
+    }
+    if (s.phase === "complete" || s.phase === "failed") {
+      void refetchQuestions();
+      void refetch();
+    }
+  });
+  const isExtractionRunning =
+    extractionStatus?.phase === "extracting_questions" ||
+    extractionStatus?.phase === "questions_extracted" ||
+    extractionStatus?.phase === "generating_rubrics";
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, { text: string; maxMarks: number }>>(
     {}
@@ -391,13 +424,18 @@ export default function ExamDetailPage() {
     refetch();
   };
 
-  const handleExtractQuestions = async () => {
+  const handleExtractQuestions = async (mode?: "full" | "rubrics") => {
     if (!examId) return;
     setExtracting(true);
     try {
-      await extractQuestions.mutateAsync({ examId: asExamId(examId) });
+      await extractQuestions.mutateAsync({
+        examId: asExamId(examId),
+        ...(mode ? { mode } : {}),
+      });
       await refetchQuestions();
       refetch();
+    } catch (err) {
+      handleError(err, "Extraction failed");
     } finally {
       setExtracting(false);
     }
@@ -524,6 +562,14 @@ export default function ExamDetailPage() {
 
   const pendingReview = submissions.filter((s) => s.pipelineStatus === "ready_for_review");
 
+  // Rubric-completion GATE (ARCHITECTURE-PLAN §3.4): an exam is grading-eligible
+  // ONLY once Pass-2 rubric generation completes, recorded on the exam as
+  // `questionPaper.rubricsGeneratedAt` (typed optional on the domain schema; not
+  // yet on the shared-types Exam, so read via a narrow cast). The server enforces
+  // FAILED_PRECONDITION in uploadAnswerSheets — this is the matching UI gate.
+  const rubricsReady = !!(exam.questionPaper as { rubricsGeneratedAt?: unknown } | undefined)
+    ?.rubricsGeneratedAt;
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -572,14 +618,18 @@ export default function ExamDetailPage() {
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
-          {exam.status === "question_paper_uploaded" && (
+          {(exam.status === "question_paper_uploaded" ||
+            // A `draft` exam that already has a question paper is really "uploaded"
+            // (older exams created before the status auto-advanced) — offer extract
+            // so it isn't dead-ended.
+            (exam.status === "draft" && (exam.questionPaper?.images?.length ?? 0) > 0)) && (
             <Button
-              onClick={handleExtractQuestions}
-              disabled={extracting}
+              onClick={() => handleExtractQuestions()}
+              disabled={extracting || isExtractionRunning}
               size="sm"
               className="bg-brand text-fg-on-accent hover:bg-brand-hover"
             >
-              {extracting ? (
+              {extracting || isExtractionRunning ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting...
                 </>
@@ -590,9 +640,10 @@ export default function ExamDetailPage() {
               )}
             </Button>
           )}
-          {(exam.status === "draft" ||
-            exam.status === "question_paper_uploaded" ||
-            exam.status === "question_paper_extracted") && (
+          {/* Publish is only valid FROM `question_paper_extracted` (the lifecycle
+              machine rejects draft/uploaded → published). Questions must be
+              extracted first. */}
+          {exam.status === "question_paper_extracted" && (
             <Button
               onClick={handlePublish}
               size="sm"
@@ -756,6 +807,106 @@ export default function ExamDetailPage() {
               </Card>
             )}
 
+            {/* Live extraction pipeline panel (RTDB-driven) */}
+            {extractionStatus && extractionStatus.phase !== "complete" && (
+              <div className="border-subtle bg-surface-sunken rounded-lg border p-4">
+                {extractionStatus.phase === "failed" ? (
+                  <div className="space-y-3">
+                    <span className="text-error text-sm font-medium">
+                      {extractionStatus.failedPhase === "rubrics"
+                        ? "Rubric generation didn't finish for all questions."
+                        : "Question extraction failed."}
+                    </span>
+                    {extractionStatus.error && (
+                      <p className="text-muted-foreground text-xs">{extractionStatus.error}</p>
+                    )}
+                    <div>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          handleExtractQuestions(
+                            extractionStatus.failedPhase === "rubrics" ? "rubrics" : "full"
+                          )
+                        }
+                        disabled={extracting}
+                        className="bg-brand text-fg-on-accent hover:bg-brand-hover"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />{" "}
+                        {extractionStatus.failedPhase === "rubrics"
+                          ? "Retry rubric generation"
+                          : "Retry extraction"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="text-brand h-4 w-4 animate-spin" />
+                      <span className="text-sm font-medium">
+                        {extractionStatus.phase === "extracting_questions"
+                          ? "Reading the question paper…"
+                          : extractionStatus.phase === "questions_extracted"
+                            ? `Extracted ${extractionStatus.totalQuestions} question${
+                                extractionStatus.totalQuestions === 1 ? "" : "s"
+                              } — preparing rubrics…`
+                            : `Generating rubrics… ${extractionStatus.rubricsGenerated}/${extractionStatus.totalQuestions}`}
+                      </span>
+                    </div>
+                    {extractionStatus.totalQuestions > 0 && (
+                      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                        <div
+                          className="bg-brand h-full transition-all duration-500"
+                          style={{
+                            width: `${Math.round(
+                              (extractionStatus.rubricsGenerated /
+                                Math.max(1, extractionStatus.totalQuestions)) *
+                                100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Rubric-completion GATE banner (§3.4). Shown once questions exist but
+                rubric generation hasn't finished — answer-sheet upload + grading stay
+                blocked (server + SubmissionsPage both enforce the same field). While
+                extraction is live it's informational; otherwise it offers a resume CTA
+                that re-runs generation for the still-pending questions only. */}
+            {questions.length > 0 && !rubricsReady && (
+              <div className="border-warning/30 bg-warning-subtle flex items-start justify-between gap-3 rounded-lg border p-3">
+                <div className="flex items-start gap-2">
+                  <ClipboardCheck className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="text-warning text-sm font-medium">Rubric generation incomplete</p>
+                    <p className="text-fg-secondary text-xs">
+                      {isExtractionRunning
+                        ? "Rubrics are still being generated — finish extraction first. Answer-sheet upload and grading stay disabled until every question has a rubric."
+                        : "Some questions don't have a generated rubric yet. Answer-sheet upload and grading are disabled until rubric generation completes."}
+                    </p>
+                  </div>
+                </div>
+                {!isExtractionRunning && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleExtractQuestions("rubrics")}
+                    disabled={extracting}
+                    className="bg-brand text-fg-on-accent hover:bg-brand-hover shrink-0"
+                  >
+                    {extracting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    Generate missing rubrics
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Confirm & Publish button for extracted questions */}
             {exam.status === "question_paper_extracted" && questions.length > 0 && (
               <div className="border-subtle bg-info-subtle flex items-center justify-between rounded-lg border p-3">
@@ -816,6 +967,37 @@ export default function ExamDetailPage() {
                                 Readability Issue
                               </span>
                             )}
+                            {/* Per-question rubric badge (§2.7 / §3.4). `pending` →
+                                subtle "Rubric pending" chip that pulses (with spinner)
+                                only while the pipeline is actively generating rubrics;
+                                `generated` (or undefined for legacy docs → nothing) →
+                                a subtle ready check. Field is optional on the question. */}
+                            {(() => {
+                              const rubricStatus = q.rubricStatus;
+                              const isGenerating = extractionStatus?.phase === "generating_rubrics";
+                              if (rubricStatus === "pending") {
+                                return (
+                                  <span
+                                    className={`rounded-pill bg-warning-subtle text-warning inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium ${
+                                      isGenerating ? "animate-pulse" : ""
+                                    }`}
+                                  >
+                                    {isGenerating && (
+                                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                    )}
+                                    {isGenerating ? "Generating rubric…" : "Rubric pending"}
+                                  </span>
+                                );
+                              }
+                              if (rubricStatus === "generated") {
+                                return (
+                                  <span className="rounded-pill bg-success-subtle text-success inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium">
+                                    <Check className="h-2.5 w-2.5" /> Rubric ready
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                           {isEditing ? (
                             <div className="mt-2 space-y-2">

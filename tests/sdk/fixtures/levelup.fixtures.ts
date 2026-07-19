@@ -13,6 +13,8 @@ const SPACE = localSeedId("space", "dsa");
 const SPACE_PUB = localSeedId("space", "published");
 const SP = localSeedId("sp", "arrays");
 const ITEM = localSeedId("item", "arrays.q1");
+const CONVERSATION_SESSION = "c_fixture_conversation";
+const CONVERSATION_CLIENT_ID = "00000000-0000-4000-8000-000000000001";
 
 // --- content writes (NEVER optimistic; lifecycle is explicit verbs DX-5) ---
 registerFixture("v1.levelup.saveSpace", {
@@ -135,6 +137,68 @@ registerFixture("v1.levelup.sendChatMessage", {
   request: { spaceId: SPACE, storyPointId: SP, itemId: ITEM, text: "Why is index access O(1)?" },
   as: "student",
   seedState: "story-point-with-item",
+});
+
+// --- canonical conversation runtime (T-A contracts; T-D wires live handlers) ---
+// These are intentionally schema-valid and skipped until the conversation runtime
+// is registered in the emulator. Keeping curated fixtures here prevents a new
+// callable from silently bypassing the SDK fixture gate.
+registerFixture("v1.levelup.startConversation", {
+  request: {
+    clientRequestId: CONVERSATION_CLIENT_ID,
+    mode: "tutor",
+    context: { kind: "tutor", scope: "space", spaceId: SPACE },
+  },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation runtime registration is owned by T-D",
+});
+registerFixture("v1.levelup.sendConversationTurn", {
+  request: {
+    sessionId: CONVERSATION_SESSION,
+    clientMessageId: "00000000-0000-4000-8000-000000000002",
+    input: { text: "Can you help me reason through this?" },
+  },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation runtime registration is owned by T-D",
+});
+registerFixture("v1.levelup.finishConversation", {
+  request: {
+    sessionId: CONVERSATION_SESSION,
+    clientRequestId: "00000000-0000-4000-8000-000000000003",
+    reason: "learner_requested",
+  },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation finalization is owned by T-E",
+});
+registerFixture("v1.levelup.getConversation", {
+  request: { sessionId: CONVERSATION_SESSION },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation runtime registration is owned by T-D",
+});
+registerFixture("v1.levelup.listConversations", {
+  request: { mode: "tutor", limit: 20 },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation runtime registration is owned by T-D",
+});
+registerFixture("v1.levelup.abandonConversation", {
+  request: {
+    sessionId: CONVERSATION_SESSION,
+    clientRequestId: "00000000-0000-4000-8000-000000000004",
+  },
+  as: "student",
+  seedState: "enrolled-student",
+  skip: true,
+  reason: "conversation runtime registration is owned by T-D",
 });
 
 // --- store / purchase (NEVER optimistic) ---

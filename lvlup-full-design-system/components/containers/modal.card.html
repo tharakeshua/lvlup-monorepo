@@ -1,0 +1,46 @@
+<!-- @dsCard group="Containers" viewport="860x560" name="Modal / Dialog" subtitle="Centered dialog (open state)" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+  .ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:10px;letter-spacing:0.04em;text-transform:uppercase}
+  .ds-frame{position:relative;width:100%;height:440px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface-sunken);overflow:hidden}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { Modal, Button } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){
+    const footer = (
+      <React.Fragment>
+        <Button variant="secondary">Cancel</Button>
+        <Button variant="primary">Publish space</Button>
+      </React.Fragment>
+    );
+    return (
+      <div>
+        <div className="ds-cap">Modal / Dialog — open state</div>
+        <div className="ds-frame">
+          <Modal
+            open={true}
+            title="Publish this space?"
+            footer={footer}
+          >
+            <p style={{margin:'0 0 12px',color:'var(--text-secondary)',lineHeight:'1.6'}}>
+              Publishing makes <strong style={{color:'var(--text-primary)'}}>Data Structures &amp; Algorithms</strong> visible
+              to every enrolled learner. They&rsquo;ll be able to start the 12 story points immediately.
+            </p>
+            <p style={{margin:0,color:'var(--text-muted)',fontSize:'var(--text-sm)',lineHeight:'1.6'}}>
+              You can unpublish at any time from the space settings panel.
+            </p>
+          </Modal>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

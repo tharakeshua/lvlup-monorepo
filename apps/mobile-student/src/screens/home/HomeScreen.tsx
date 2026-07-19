@@ -214,7 +214,7 @@ export default function StudentHomeDashboard(): React.JSX.Element {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Open tutor"
-      onPress={() => router.push(routes.tutor())}
+      onPress={() => router.push(routes.tutorPicker())}
       className="bg-brand rounded-pill absolute bottom-6 right-5 items-center justify-center"
       style={{
         width: 56,

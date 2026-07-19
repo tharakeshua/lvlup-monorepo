@@ -1,0 +1,413 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Scan History" subtitle="Read-only pipeline ledger" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* layout only — slug-prefixed, no token redefs, no hex */
+.scan-history__scroll{ position:absolute; inset:0; overflow-y:auto; padding:var(--space-4); }
+.scan-history__head{ display:flex; align-items:baseline; gap:var(--space-3); margin-bottom:var(--space-3); }
+.scan-history__title{ font-family:var(--font-display); font-size:var(--text-xl); font-weight:var(--weight-semibold);
+  color:var(--text-primary); line-height:var(--leading-tight); flex:1; min-width:0; }
+.scan-history__count{ font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-secondary); flex:0 0 auto; }
+
+.scan-history__search{ position:relative; margin-bottom:var(--space-3); }
+.scan-history__search-ico{ position:absolute; left:var(--space-3); top:50%; transform:translateY(-50%);
+  color:var(--text-muted); pointer-events:none; display:inline-flex; }
+.scan-history__search .input{ padding-left:var(--space-8); }
+.scan-history__chips{ display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; margin-bottom:var(--space-4); }
+.scan-history__chip-btn{ background:none; border:none; padding:0; cursor:pointer; }
+.scan-history__chip-btn:focus-visible{ outline:none; box-shadow:var(--ring-focus); border-radius:var(--radius-pill); }
+@keyframes scan-history-spin{ to{ transform:rotate(360deg); } }
+.scan-history__spin{ animation:scan-history-spin 1s linear infinite; }
+
+.scan-history__group{ margin-bottom:var(--space-5); }
+.scan-history__group-head{ display:flex; align-items:center; gap:var(--space-2);
+  font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:var(--space-2); }
+.scan-history__group-rule{ flex:1; height:1px; background:var(--border-subtle); }
+
+.scan-history__list{ display:flex; flex-direction:column; gap:var(--space-3); }
+.scan-history__row{ width:100%; text-align:left; cursor:pointer;
+  border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
+  background:var(--bg-surface); padding:var(--space-3); display:block;
+  transition:border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+.scan-history__row:hover{ border-color:var(--border-strong); }
+.scan-history__row:focus-visible{ outline:none; box-shadow:var(--ring-focus); }
+.scan-history__rowtail{ display:flex; align-items:center; gap:var(--space-2); flex:0 0 auto; }
+.scan-history__chev{ color:var(--text-muted); flex:0 0 auto; }
+
+/* drawer detail */
+.scan-history__detail{ display:flex; flex-direction:column; gap:var(--space-5); width:min(320px,82vw); }
+.scan-history__detail-block{ display:flex; flex-direction:column; gap:var(--space-2); }
+.scan-history__detail-label{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.06em; }
+.scan-history__detail-exam{ font-family:var(--font-display); font-size:var(--text-base);
+  font-weight:var(--weight-semibold); color:var(--text-primary); }
+.scan-history__detail-mono{ font-family:var(--font-mono); font-size:var(--text-xs); color:var(--text-secondary); }
+.scan-history__thumbs{ display:flex; gap:var(--space-2); flex-wrap:wrap; }
+.scan-history__thumb{ width:64px; height:84px; border-radius:var(--radius-md);
+  background:var(--brand-subtle); border:1px solid var(--border-subtle);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-1);
+  color:var(--brand-primary); }
+.scan-history__thumb-lbl{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted); }
+.scan-history__detail-note{ display:flex; align-items:flex-start; gap:var(--space-2);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle);
+  font-size:var(--text-xs); color:var(--text-secondary); line-height:var(--leading-normal); }
+.scan-history__detail-note-ico{ color:var(--text-muted); flex:0 0 auto; margin-top:2px; }
+
+/* loading + empty */
+.scan-history__skelrow{ display:flex; align-items:center; gap:var(--space-3);
+  border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
+  background:var(--bg-surface); padding:var(--space-3); }
+.scan-history__skel-meta{ flex:1; display:flex; flex-direction:column; gap:var(--space-2); }
+
+/* phone frame */
+.ph{ width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+  border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+  background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+.ph__top{ height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+  padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+.ph__brand{ display:flex; align-items:center; gap:var(--space-2); }
+.ph__mark{ width:26px; height:26px; border-radius:var(--radius-sm); background:var(--brand-primary);
+  color:var(--text-on-accent); display:flex; align-items:center; justify-content:center; }
+.ph__title{ font-family:var(--font-display); font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  color:var(--text-primary); }
+.ph__spacer{ flex:1; }
+.ph__body{ flex:1; overflow:hidden; position:relative; }
+.ph__tabs{ flex:0 0 auto; }
+.scan-history__states{ display:flex; flex-wrap:wrap; gap:var(--space-4); justify-content:center;
+  padding:0 var(--space-4) var(--space-12); }
+.scan-history__statecap{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-align:center; margin-bottom:var(--space-2); text-transform:uppercase; letter-spacing:.06em; }
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+const LU = window.LvlupV0DesignSystem_5d0725;
+const { Button, IconButton, Icon, Input, Chip, Badge, SubmissionCard, Avatar,
+  Drawer, Timeline, DefinitionList, EmptyState, Skeleton, Tabbar } = LU;
+
+/* pipeline status — icon + label, never color alone. Scanner sees pipeline ONLY. */
+const STATUS_META = {
+  uploaded: { icon:'clock',        label:'Uploaded', variant:undefined,  spin:false },
+  mapping:  { icon:'loader-2',     label:'Mapping',  variant:'info',     spin:true  },
+  grading:  { icon:'loader-2',     label:'Grading',  variant:'spark',    spin:true  },
+  graded:   { icon:'check',        label:'Graded',   variant:'success',  spin:false },
+};
+const PIPELINE_ORDER = ['uploaded','mapping','grading','graded'];
+
+/* "20 Jun 2026 09:14" style mock submitted-at; day key = YYYY-MM-DD */
+const MOCK_HISTORY = [
+  { id:'s1', initials:'AK', student:'Aarav Kumar',   roll:'R-2041', exam:'Math UT3',          pages:3, day:'2026-06-20', time:'09:14', status:'grading'  },
+  { id:'s2', initials:'PS', student:'Priya Sharma',  roll:'R-2018', exam:'Math UT3',          pages:3, day:'2026-06-20', time:'09:11', status:'mapping'  },
+  { id:'s3', initials:'VI', student:'Vikram Iyer',   roll:'R-2033', exam:'Physics Unit Test', pages:5, day:'2026-06-20', time:'08:52', status:'uploaded' },
+  { id:'s4', initials:'MN', student:'Meera Nair',    roll:'R-2007', exam:'Math UT3',          pages:2, day:'2026-06-20', time:'08:40', status:'graded'   },
+  { id:'s5', initials:'RD', student:'Rohan Das',     roll:'R-2056', exam:'Physics Unit Test', pages:4, day:'2026-06-19', time:'16:22', status:'graded'   },
+  { id:'s6', initials:'AR', student:'Aanya Rao',     roll:'R-2029', exam:'Physics Unit Test', pages:4, day:'2026-06-19', time:'15:58', status:'graded'   },
+  { id:'s7', initials:'KS', student:'Kabir Sethi',   roll:'R-2061', exam:'Chemistry Quiz 2',  pages:2, day:'2026-06-19', time:'15:10', status:'grading'  },
+];
+
+const DAY_LABELS = { '2026-06-20':'Today · 20 Jun', '2026-06-19':'Yesterday · 19 Jun' };
+function dayLabel(day){ return DAY_LABELS[day] || day; }
+function fmtTime(r){ return r.time; }
+function rowMeta(r){
+  const p = r.pages || 0;
+  return r.exam + ' · ' + p + (p===1?' page':' pages') + ' · ' + fmtTime(r);
+}
+function statusOf(r){ return STATUS_META[r.status] || STATUS_META.uploaded; }
+
+function StatusBadge({ status }){
+  const s = STATUS_META[status] || STATUS_META.uploaded;
+  const ico = <Icon name={s.icon} size={12} />;
+  return (
+    <Badge variant={s.variant}
+      icon={s.spin ? <span className="scan-history__spin" style={{display:'inline-flex'}}>{ico}</span> : ico}>
+      {s.label}
+    </Badge>
+  );
+}
+
+function groupByDay(rows){
+  const map = {};
+  rows.forEach(r => { (map[r.day] = map[r.day] || []).push(r); });
+  return Object.keys(map).sort((a,b)=> a<b?1:-1).map(day => ({
+    day,
+    rows: map[day].slice().sort((a,b)=> a.time<b.time?1:-1),
+  }));
+}
+
+function HistoryRow({ row, onOpen }){
+  const s = statusOf(row);
+  const aria = row.student+', '+row.exam+', '+row.pages+(row.pages===1?' page':' pages')+', '+fmtTime(row)+', pipeline '+s.label;
+  return (
+    <div className="scan-history__row" role="button" tabIndex={0} aria-label={aria}
+      onClick={()=>onOpen(row.id)}
+      onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onOpen(row.id); } }}>
+      <SubmissionCard initials={row.initials} name={row.student} meta={rowMeta(row)}>
+        <span className="scan-history__rowtail">
+          <StatusBadge status={row.status} />
+          <Icon name="chevron-right" size={16} className="scan-history__chev" />
+        </span>
+      </SubmissionCard>
+    </div>
+  );
+}
+
+function HistoryDrawer({ row, onClose }){
+  if(!row) return null;
+  const s = statusOf(row);
+  const reachedIdx = PIPELINE_ORDER.indexOf(row.status);
+  const timelineItems = PIPELINE_ORDER.map((key, i) => {
+    const m = STATUS_META[key];
+    const done = i < reachedIdx;
+    const current = i === reachedIdx;
+    return {
+      time: done ? 'Done' : (current ? 'In progress' : 'Pending'),
+      label: m.label,
+      variant: (done || (current && key==='graded')) ? 'success' : (current ? undefined : 'muted'),
+    };
+  });
+  return (
+    <Drawer open={true} side="right" onClose={onClose} title="Submission detail">
+      <div className="scan-history__detail">
+        <div className="scan-history__detail-block">
+          <span className="scan-history__detail-label">Exam</span>
+          <span className="scan-history__detail-exam">{row.exam}</span>
+        </div>
+
+        <DefinitionList items={[
+          { term:'Student', value:(
+            <span style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+              <Avatar initials={row.initials} size="sm" /> {row.student}
+            </span>) },
+          { term:'Roll no.', value:<span className="scan-history__detail-mono">{row.roll}</span> },
+          { term:'Pages', value:row.pages },
+          { term:'Pipeline', value:<StatusBadge status={row.status} /> },
+        ]} />
+
+        <div className="scan-history__detail-block">
+          <span className="scan-history__detail-label">Pages</span>
+          <div className="scan-history__thumbs">
+            {Array.from({length:row.pages}).map((_,i)=>(
+              <div key={i} className="scan-history__thumb" aria-label={'Page '+(i+1)+' image'}>
+                <Icon name="file-image" size={20} />
+                <span className="scan-history__thumb-lbl">p{i+1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="scan-history__detail-block">
+          <span className="scan-history__detail-label">Submitted at</span>
+          <span className="scan-history__detail-mono">{dayLabel(row.day)} · {fmtTime(row)}</span>
+        </div>
+
+        <div className="scan-history__detail-block">
+          <span className="scan-history__detail-label">Pipeline progress</span>
+          <Timeline items={timelineItems} />
+        </div>
+
+        <div className="scan-history__detail-note">
+          <Icon name="lock" size={15} className="scan-history__detail-note-ico" />
+          <span>Scores and the answer key stay private to teachers — this view shows pipeline status only,
+            even once <strong>{s.label.toLowerCase()}</strong>.</span>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+function HistorySkeleton(){
+  return (
+    <div className="scan-history__list">
+      {[0,1,2,3].map(i=>(
+        <div key={i} className="scan-history__skelrow">
+          <Skeleton variant="circle" width="34px" height="34px" />
+          <div className="scan-history__skel-meta">
+            <Skeleton width="58%" height="0.8rem" />
+            <Skeleton width="80%" height="0.7rem" />
+          </div>
+          <Skeleton width="68px" height="1.1rem" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const FILTERS = ['All','Today','By exam'];
+const TODAY_DAY = '2026-06-20';
+
+function HistoryView({ nav, params, ctx }){
+  const safeCtx = ctx || {};
+  const data = (safeCtx.history && safeCtx.history.length) ? safeCtx.history : MOCK_HISTORY;
+  const loading = !!safeCtx.loading;
+
+  const [filter, setFilter] = useState('All');
+  const [query, setQuery] = useState('');
+  const [openId, setOpenId] = useState(null);
+  const openRow = data.find(r=>r.id===openId) || null;
+
+  const visible = useMemo(()=>{
+    let rows = data.slice();
+    if(filter==='Today') rows = rows.filter(r=>r.day===TODAY_DAY);
+    const q = query.trim().toLowerCase();
+    if(q) rows = rows.filter(r =>
+      r.student.toLowerCase().includes(q) || r.exam.toLowerCase().includes(q));
+    return rows;
+  }, [data, filter, query]);
+
+  const groups = useMemo(()=>{
+    if(filter==='By exam'){
+      const map = {};
+      visible.forEach(r => { (map[r.exam] = map[r.exam] || []).push(r); });
+      return Object.keys(map).sort().map(exam => ({
+        day:exam, label:exam,
+        rows: map[exam].slice().sort((a,b)=> (a.day+a.time)<(b.day+b.time)?1:-1),
+      }));
+    }
+    return groupByDay(visible).map(g => ({ ...g, label:dayLabel(g.day) }));
+  }, [visible, filter]);
+
+  const head = (
+    <>
+      <div className="scan-history__head">
+        <h1 className="scan-history__title">History</h1>
+        <span className="scan-history__count">{data.length} subs</span>
+      </div>
+      <div className="scan-history__search">
+        <span className="scan-history__search-ico"><Icon name="search" size={16} /></span>
+        <Input value={query} onChange={(e)=>setQuery(e.target.value)}
+          placeholder="Search student or exam…"
+          aria-label="Search submissions by student or exam" />
+      </div>
+      <div className="scan-history__chips" role="group" aria-label="Filter submissions">
+        {FILTERS.map(f=>(
+          <button key={f} type="button" className="scan-history__chip-btn"
+            aria-pressed={filter===f} onClick={()=>setFilter(f)}>
+            <Chip active={filter===f}>{f}</Chip>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  let body;
+  if(loading){
+    body = (
+      <>
+        <div className="scan-history__group">
+          <div className="scan-history__group-head">
+            <span>Today · 20 Jun</span><span className="scan-history__group-rule" />
+          </div>
+          <HistorySkeleton />
+        </div>
+      </>
+    );
+  } else if(visible.length===0){
+    const searching = query.trim().length>0 || filter!=='All';
+    body = searching ? (
+      <EmptyState icon="search-x" title="No matches"
+        body="No submissions match your search or filter. Try a different name, exam, or clear the filter."
+        action={<Button variant="secondary" size="sm"
+          leadingIcon={<Icon name="x" size={15}/>}
+          onClick={()=>{ setQuery(''); setFilter('All'); }}>Clear</Button>} />
+    ) : (
+      <EmptyState icon="inbox" title="Nothing submitted yet"
+        body="Submissions you upload will appear here with live pipeline status."
+        action={<Button variant="secondary" size="sm"
+          leadingIcon={<Icon name="camera" size={15}/>}
+          onClick={()=>nav.go('#/scan')}>Scan a sheet</Button>} />
+    );
+  } else {
+    body = groups.map(g=>(
+      <div key={g.day} className="scan-history__group">
+        <div className="scan-history__group-head">
+          <span>{g.label}</span><span className="scan-history__group-rule" />
+        </div>
+        <div className="scan-history__list">
+          {g.rows.map(r=> <HistoryRow key={r.id} row={r} onOpen={setOpenId} />)}
+        </div>
+      </div>
+    ));
+  }
+
+  return (
+    <>
+      <div className="scan-history__scroll">
+        {head}
+        {body}
+      </div>
+      <HistoryDrawer row={openRow} onClose={()=>setOpenId(null)} />
+    </>
+  );
+}
+
+/* ---------- standalone Demo (phone frame + mock nav/ctx) ---------- */
+function PhoneFrame({ children }){
+  return (
+    <div className="ph">
+      <div className="ph__top">
+        <div className="ph__brand">
+          <span className="ph__mark"><Icon name="scan-line" size={16} /></span>
+          <span className="ph__title">AutoGrade Scan</span>
+        </div>
+        <span className="ph__spacer" />
+        <IconButton icon="settings" label="Settings" size="sm" />
+      </div>
+      <div className="ph__body">{children}</div>
+      <div className="ph__tabs">
+        <Tabbar items={[
+          { icon:'camera', label:'Scan' },
+          { icon:'list', label:'Queue' },
+          { icon:'history', label:'History', active:true },
+        ]} />
+      </div>
+    </div>
+  );
+}
+
+function Demo(){
+  const ctx = {
+    scanner:{ name:'Ravi Menon', initials:'RM', school:'Sunrise Public School', code:'SUB001' },
+    history: MOCK_HISTORY,
+    online: true,
+    toast:(t)=>console.log('toast',t),
+  };
+  const nav = { go:(h)=>console.log('go',h), back:()=>console.log('back') };
+
+  return (
+    <div>
+      <PhoneFrame>
+        <HistoryView nav={nav} params={{}} ctx={ctx} />
+      </PhoneFrame>
+
+      <div className="scan-history__states">
+        <div>
+          <div className="scan-history__statecap">Loading</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body">
+              <HistoryView nav={nav} params={{}} ctx={{ ...ctx, loading:true }} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="scan-history__statecap">Empty — none submitted</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body">
+              <HistoryView nav={nav} params={{}} ctx={{ ...ctx, history:[] }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

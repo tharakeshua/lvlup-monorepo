@@ -1,0 +1,759 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Rubric Editor (Question / Sub-question)" subtitle="UnifiedRubric · scoring mode · model answer locked · points reconciler" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+#root,.screen{height:100vh}
+.screen{position:relative;overflow:hidden}
+
+/* topbar bits */
+.topbar__search-box{display:flex;align-items:center;gap:var(--space-2);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);color:var(--text-muted);max-width:420px;flex:1}
+.topbar__search-box input{border:none;background:transparent;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);width:100%}
+.topbar__icons{display:flex;align-items:center;gap:var(--space-2)}
+.tenantchip{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);background:var(--bg-inset);border:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary)}
+.tenantchip .mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* dimmed page underneath the drawer */
+.examdim{padding:var(--gutter-desktop)}
+.examdim__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);letter-spacing:-0.02em;margin:0 0 var(--space-2)}
+.examdim__sub{color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:var(--space-5)}
+.qrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-4) var(--space-5);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);margin-bottom:var(--space-3)}
+.qrow__id{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.qrow__txt{font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+.qrow--active{outline:2px solid var(--border-focus);outline-offset:1px}
+
+/* widen the core drawer for this editor (vars only) */
+.screen .drawer{width:clamp(420px,40vw,560px)}
+.drawer__body{padding:0}
+
+/* drawer internal sections */
+.rb-sec{padding:var(--space-5) var(--space-6);border-bottom:1px solid var(--border-subtle)}
+.rb-sec--tight{padding:var(--space-4) var(--space-6)}
+.rb-head{display:flex;flex-direction:column;gap:var(--space-2)}
+.rb-head__row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.rb-head__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);line-height:var(--leading-xl);letter-spacing:-0.02em;margin:0}
+.rb-head__kicker{font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)}
+.rb-idchip{font-family:var(--font-mono);font-size:var(--text-2xs);padding:2px var(--space-2);border-radius:var(--radius-pill);background:var(--bg-inset);border:1px solid var(--border-subtle);color:var(--text-secondary);white-space:nowrap}
+
+.rb-label{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0 0 var(--space-1)}
+.rb-subcap{font-size:var(--text-xs);color:var(--text-muted);margin:0 0 var(--space-3)}
+
+/* sticky reconciler strip */
+.rb-recon{position:sticky;top:0;z-index:5;background:var(--bg-surface-sunken);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.rb-recon__nums{display:flex;align-items:baseline;gap:var(--space-2)}
+.rb-recon__sum{font-family:var(--font-mono);font-size:var(--text-3xl);line-height:1;font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums;color:var(--text-primary);transition:color var(--dur-fast) var(--ease-standard)}
+.rb-recon__of{font-family:var(--font-mono);font-size:var(--text-base);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.rb-recon__lab{font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-1);display:flex;align-items:center;gap:var(--space-1)}
+.rb-recon--ok .rb-recon__sum{color:var(--status-success)}
+.rb-recon--warn .rb-recon__sum{color:var(--status-warning)}
+.rb-recon__delta{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:var(--space-1);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill)}
+.rb-recon__delta--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.rb-recon__delta--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+
+/* criterion / dimension card */
+.crit{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);overflow:hidden;margin-bottom:var(--space-3)}
+.crit__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+.crit__drag{color:var(--text-muted);display:inline-flex;cursor:grab}
+.crit__name{flex:1}
+.crit__warn-dot{width:8px;height:8px;border-radius:50%;background:var(--status-warning);flex:0 0 auto}
+.crit__body{padding:0 var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);border-top:1px solid var(--border-subtle);padding-top:var(--space-4)}
+.crit__grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.crit__levels{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.lvl-chip{font-family:var(--font-mono);font-size:var(--text-2xs);padding:2px var(--space-2);border-radius:var(--radius-pill);background:var(--bg-inset);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.lvl-chip b{color:var(--text-primary)}
+
+.mono-in{font-family:var(--font-mono)!important;font-variant-numeric:tabular-nums}
+
+.rb-fieldrow{display:flex;flex-direction:column;gap:var(--space-2);margin-bottom:var(--space-4)}
+.rb-fieldrow:last-child{margin-bottom:0}
+
+/* answer key lock block */
+.akl{border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--bg-inset);padding:var(--space-4)}
+.akl__head{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
+.akl__head .ic{color:var(--text-secondary);display:inline-flex}
+.akl__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.akl__note{font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-3)}
+.akl__switchrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
+.akl__model{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+
+/* preview disclosure */
+.prev{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.prev__trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--bg-surface);border:none;cursor:pointer;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.prev__body{padding:var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken);display:flex;flex-direction:column;gap:var(--space-3)}
+.prev__award{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding-top:var(--space-2);border-top:1px solid var(--border-subtle)}
+.prev__score{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+
+/* footer */
+.rb-foot{position:sticky;bottom:0;background:var(--bg-surface);border-top:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6);display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);z-index:6}
+.rb-foot__hint{font-size:var(--text-xs);color:var(--text-muted)}
+
+/* state segmented control overlay (prototype helper) */
+.statebar{position:absolute;left:var(--space-4);bottom:var(--space-4);z-index:50;display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.statebar__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding-left:var(--space-2)}
+.stateseg{display:inline-flex;background:var(--bg-inset);border-radius:var(--radius-pill);padding:2px}
+.stateseg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);border:none;background:transparent;color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer}
+.stateseg button[aria-pressed="true"]{background:var(--brand-primary);color:var(--text-on-accent)}
+
+.u-row{display:flex;align-items:center;gap:var(--space-2)}
+.u-mt3{margin-top:var(--space-3)}
+.u-flex1{flex:1}
+
+@media (prefers-reduced-motion: reduce){
+  .rb-recon__sum{transition:none}
+  .drawer,.drawer-scrim{transition:none!important}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Icon, Button, IconButton, Input, Textarea, Select, Switch, Field,
+    Card, Panel, Section, Tabs, Modal, Tooltip,
+    DefinitionList, Stat, Timeline, EmptyState, Skeleton, Avatar, Badge, Chip,
+    Alert, Toast, LoadingOverlay, NavItem, Breadcrumb,
+    ContentRenderer, RubricBreakdown, ConfidenceBadge, GradePill, AnswerKeyLock
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  const MAX_MARKS = 10;
+
+  /* ---------------- AppShell chrome ---------------- */
+  function Shell({ children }) {
+    return (
+      <div className="appshell">
+        <aside className="appshell__sidebar">
+          <div className="sidebar__brand">
+            <span className="sidebar__brand-mark">L</span>
+            <span className="sidebar__brand-name">Lyceum</span>
+          </div>
+          <nav className="sidebar__nav">
+            <div className="sidebar__section-label">Teach</div>
+            <NavItem icon="layout-dashboard">Dashboard</NavItem>
+            <NavItem icon="users">Classes</NavItem>
+            <NavItem icon="book-open">Spaces</NavItem>
+            <NavItem icon="file-check-2" active badge="3">Exams</NavItem>
+            <NavItem icon="bar-chart-3">Analytics</NavItem>
+            <div className="sidebar__section-label">Manage</div>
+            <NavItem icon="user-cog">Students</NavItem>
+            <NavItem icon="settings">Settings</NavItem>
+          </nav>
+        </aside>
+        <header className="appshell__topbar">
+          <span className="tenantchip">Subhang Academy <span className="mono">SUB001</span></span>
+          <div className="topbar__search-box">
+            <Icon name="search" size={16} />
+            <input placeholder="Search exams, questions, students…" aria-label="Search" />
+          </div>
+          <div className="topbar__spacer" />
+          <div className="topbar__icons">
+            <IconButton icon={<Icon name="bell" size={18} />} label="Notifications" />
+            <IconButton icon={<Icon name="life-buoy" size={18} />} label="Help" />
+            <Avatar initials="SA" />
+          </div>
+        </header>
+        <main className="appshell__main">{children}</main>
+      </div>
+    );
+  }
+
+  /* ---------------- dimmed parent (Exam Detail · Questions) ---------------- */
+  function ExamDimmed() {
+    return (
+      <div className="examdim">
+        <Breadcrumb items={[
+          { label: "Exams", href: "#" },
+          { label: "Calculus · Unit 4 Mock", href: "#" },
+          { label: "Questions" },
+        ]} />
+        <h1 className="examdim__title">Calculus · Unit 4 Mock</h1>
+        <div className="examdim__sub">Questions tab · 6 questions · total 60 marks · status <strong>draft</strong></div>
+        <div className="qrow">
+          <div><div className="qrow__txt">Q1 · Evaluate the limit of (sin x)/x as x→0</div></div>
+          <span className="qrow__id">qstn_a1f3</span>
+        </div>
+        <div className="qrow">
+          <div><div className="qrow__txt">Q2 · State and prove the Mean Value Theorem</div></div>
+          <span className="qrow__id">qstn_b7c2</span>
+        </div>
+        <div className="qrow qrow--active">
+          <div>
+            <div className="qrow__txt">Q3 · Derive the area under y = x² from 0 to 2 using a definite integral</div>
+            <div className="u-row u-mt3"><Badge variant="brand">Editing rubric</Badge></div>
+          </div>
+          <span className="qrow__id">qstn_c4e9</span>
+        </div>
+        <div className="qrow">
+          <div><div className="qrow__txt">Q4 · Differentiate f(x) = x·e^x and find its critical points</div></div>
+          <span className="qrow__id">qstn_d8a1</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- reconciler ---------------- */
+  function Reconciler({ sum }) {
+    const delta = +(sum - MAX_MARKS).toFixed(1);
+    const ok = Math.abs(delta) < 0.001;
+    return (
+      <div className={"rb-recon " + (ok ? "rb-recon--ok" : "rb-recon--warn")} role="status" aria-live="polite">
+        <div>
+          <div className="rb-recon__nums">
+            <span className="rb-recon__sum">{sum.toFixed(1)}</span>
+            <span className="rb-recon__of">/ {MAX_MARKS.toFixed(1)}</span>
+          </div>
+          <div className="rb-recon__lab">
+            <Icon name={ok ? "check-circle" : "alert-triangle"} size={13} />
+            {ok
+              ? "Points match question max (" + MAX_MARKS + ")"
+              : "Points don't match question max (" + MAX_MARKS + ") — off by " + (delta > 0 ? "+" : "") + delta.toFixed(1)}
+          </div>
+        </div>
+        <span className={"rb-recon__delta " + (ok ? "rb-recon__delta--ok" : "rb-recon__delta--warn")}>
+          <Icon name={ok ? "check" : (delta > 0 ? "arrow-up" : "arrow-down")} size={13} />
+          {ok ? "Σ matched" : (delta > 0 ? "+" : "") + delta.toFixed(1)}
+        </span>
+      </div>
+    );
+  }
+
+  /* ---------------- criterion card ---------------- */
+  function CriterionCard({ c, open, onToggle, onChange, onRemove }) {
+    const nameRef = useRef(null);
+    const missingName = !c.name || !c.name.trim();
+    return (
+      <div className="crit">
+        <div className="crit__head">
+          <span className="crit__drag" role="button" tabIndex={0} aria-label="Reorder criterion">
+            <Icon name="grip-vertical" size={16} />
+          </span>
+          <button
+            className="accordion__trigger u-flex1"
+            style={{ padding: 0, border: "none", background: "transparent", textAlign: "left", display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontFamily: "var(--font-ui)", fontWeight: "var(--weight-medium)", color: "var(--text-primary)" }}
+            aria-expanded={open}
+            onClick={onToggle}
+          >
+            {missingName && <span className="crit__warn-dot" title="Name required" />}
+            <span className="u-flex1">{missingName ? <em style={{ color: "var(--text-muted)" }}>Unnamed criterion</em> : c.name}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>{c.maxPoints.toFixed(1)} pts</span>
+            <Icon name={open ? "chevron-up" : "chevron-down"} size={18} />
+          </button>
+        </div>
+        {open && (
+          <div className="crit__body">
+            <Field label="Name" required error={missingName ? "Name this criterion." : undefined}>
+              <Input ref={nameRef} value={c.name} placeholder="e.g. Sets up the integral correctly"
+                error={missingName} onChange={(e) => onChange({ name: e.target.value })} />
+            </Field>
+            <div className="crit__grid">
+              <Field label="Max points">
+                <Input className="mono-in" type="number" step="0.5" min="0" value={c.maxPoints}
+                  onChange={(e) => onChange({ maxPoints: parseFloat(e.target.value) || 0 })} />
+              </Field>
+              <Field label="Weight" hint="Relative emphasis">
+                <Input className="mono-in" type="number" step="0.1" min="0" value={c.weight}
+                  onChange={(e) => onChange({ weight: parseFloat(e.target.value) || 0 })} />
+              </Field>
+            </div>
+            <Field label="Description" hint="Markdown + KaTeX — guidance the grader reads">
+              <Textarea rows={2} value={c.description}
+                placeholder="Describe what earns these points…"
+                onChange={(e) => onChange({ description: e.target.value })} />
+            </Field>
+            <div>
+              <div className="u-row" style={{ justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
+                <span className="rb-label" style={{ margin: 0 }}>Levels <span style={{ color: "var(--text-muted)", fontWeight: "var(--weight-regular)" }}>(optional)</span></span>
+                <Button variant="ghost" size="sm" leadingIcon={<Icon name="plus" size={14} />}>Add level</Button>
+              </div>
+              {c.levels && c.levels.length > 0 ? (
+                <div className="crit__levels">
+                  {c.levels.map((l, i) => (
+                    <span key={i} className="lvl-chip"><b>{l.score}</b> {l.label}</span>
+                  ))}
+                </div>
+              ) : (
+                <div className="rb-subcap" style={{ margin: 0 }}>No levels — full/zero award only.</div>
+              )}
+            </div>
+            <div className="u-row" style={{ justifyContent: "flex-end" }}>
+              <Button variant="danger" size="sm" leadingIcon={<Icon name="trash-2" size={14} />} onClick={onRemove}>Remove</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------- dimension card ---------------- */
+  function DimensionCard({ d, open, onToggle, onChange }) {
+    const prioMeta = {
+      HIGH: { icon: "chevrons-up", variant: "error", label: "HIGH" },
+      MED: { icon: "minus", variant: "warning", label: "MED" },
+      LOW: { icon: "chevrons-down", variant: "info", label: "LOW" },
+    }[d.priority];
+    return (
+      <div className="crit">
+        <div className="crit__head">
+          <button
+            className="u-flex1"
+            style={{ padding: 0, border: "none", background: "transparent", textAlign: "left", display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontFamily: "var(--font-ui)", fontWeight: "var(--weight-medium)", color: "var(--text-primary)" }}
+            aria-expanded={open} onClick={onToggle}
+          >
+            <span className="u-flex1">{d.name}</span>
+            {d.inherited && <Chip>inherited</Chip>}
+            <Badge variant={prioMeta.variant} icon={<Icon name={prioMeta.icon} size={12} />}>{prioMeta.label}</Badge>
+            <Icon name={open ? "chevron-up" : "chevron-down"} size={18} />
+          </button>
+        </div>
+        {open && (
+          <div className="crit__body">
+            <Field label="Name"><Input value={d.name} onChange={(e) => onChange({ name: e.target.value })} /></Field>
+            <div className="crit__grid">
+              <Field label="Priority">
+                <Select value={d.priority} onChange={(e) => onChange({ priority: e.target.value })}
+                  options={[{ value: "HIGH", label: "HIGH" }, { value: "MED", label: "MED" }, { value: "LOW", label: "LOW" }]} />
+              </Field>
+              <Field label="Weight">
+                <Input className="mono-in" type="number" step="0.1" min="0" value={d.weight}
+                  onChange={(e) => onChange({ weight: parseFloat(e.target.value) || 0 })} />
+              </Field>
+            </div>
+            <Field label="Scoring scale">
+              <Select value={d.scoringScale} onChange={(e) => onChange({ scoringScale: e.target.value })}
+                options={[{ value: "0-4", label: "0–4 (band)" }, { value: "0-5", label: "0–5" }, { value: "0-1", label: "0–1 (pass/fail)" }]} />
+            </Field>
+            <Field label="Prompt guidance (for the grader)">
+              <Textarea rows={2} value={d.promptGuidance}
+                placeholder="How should the AI judge this dimension…"
+                onChange={(e) => onChange({ promptGuidance: e.target.value })} />
+            </Field>
+            <div className="akl__switchrow" style={{ margin: 0 }}>
+              <span className="rb-label" style={{ margin: 0 }}>Enabled</span>
+              <Switch checked={d.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------- shared fields + answer key lock ---------------- */
+  function SharedFields({ ro }) {
+    const [showModel, setShowModel] = useState(true);
+    return (
+      <div>
+        <div className="rb-fieldrow">
+          <Field label="Passing %" hint="Threshold for a passing award on this question">
+            <Input className="mono-in" type="number" min="0" max="100" defaultValue="40" disabled={ro} style={{ maxWidth: 140 }} />
+          </Field>
+        </div>
+        <div className="rb-fieldrow">
+          <Field label="Evaluator guidance" hint="General instruction handed to the RELMS grader">
+            <Textarea rows={2} disabled={ro}
+              defaultValue="Reward correct setup of the Riemann sum and the limit transition even if arithmetic slips; penalise missing bounds." />
+          </Field>
+        </div>
+
+        <AnswerKeyLock title="Model answer · staff only">
+          Used by the AI grader. Never shown to students or parents.
+        </AnswerKeyLock>
+
+        <div className="akl u-mt3" aria-label="Staff-only model answer, not shown to students">
+          <div className="akl__head">
+            <span className="ic"><Icon name="lock" size={16} /></span>
+            <span className="akl__title">Model answer</span>
+            <Badge variant="warning" icon={<Icon name="eye-off" size={12} />}>Staff only</Badge>
+          </div>
+          <div className="akl__note">This reference answer is sent only to the grader. It is never included in any student or parent view.</div>
+          <div className="akl__switchrow">
+            <span className="rb-label" style={{ margin: 0 }}>Show model answer to grader</span>
+            <Switch checked={showModel} disabled={ro} onChange={(e) => setShowModel(e.target.checked)} />
+          </div>
+          {showModel && (
+            <div className="akl__model">
+              <ContentRenderer math html={'<p>A = &#8747;<sub>0</sub><sup>2</sup> x<sup>2</sup> dx = [x<sup>3</sup>/3]<sub>0</sub><sup>2</sup> = <code>8/3</code> ≈ 2.667 square units.</p><p>Full marks require: (1) integral set up with correct bounds, (2) antiderivative x³/3, (3) correct evaluation.</p>'} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- preview ---------------- */
+  function PreviewBlock() {
+    const [open, setOpen] = useState(false);
+    return (
+      <div className="prev">
+        <button className="prev__trigger" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span className="u-row"><Icon name="eye" size={16} /> RubricBreakdown preview · sample award</span>
+          <Icon name={open ? "chevron-up" : "chevron-down"} size={18} />
+        </button>
+        {open && (
+          <div className="prev__body">
+            <div className="rb-subcap" style={{ margin: 0 }}>Illustrative — how RELMS will shape <span style={{ fontFamily: "var(--font-mono)" }}>UnifiedEvaluationResult.rubricBreakdown</span> at a mid-confidence partial.</div>
+            <RubricBreakdown criteria={[
+              { label: "Sets up the integral", desc: "Correct integrand & limits", score: 3, max: 3 },
+              { label: "Correct bounds 0 → 2", desc: "Definite limits applied", score: 2, max: 2 },
+              { label: "Antiderivative x³/3", desc: "Power rule, +C handled", score: 2, max: 3 },
+              { label: "Final evaluation 8/3", desc: "Arithmetic & units", score: 1, max: 2 },
+            ]} />
+            <div className="prev__award">
+              <div className="u-row">
+                <span className="prev__score">8 / 10</span>
+                <GradePill grade="B" />
+              </div>
+              <div className="u-row">
+                <ConfidenceBadge level="med" value="0.82" />
+                <span className="rb-subcap" style={{ margin: 0 }}>→ spot-check (0.7–0.9)</span>
+              </div>
+            </div>
+            <div className="rb-subcap" style={{ margin: 0 }}>Routing thresholds inherited from <span style={{ fontFamily: "var(--font-mono)" }}>confidenceConfig</span>: needs_review &lt; 0.70 · auto-approve &gt; 0.90.</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------- read-only (allowRubricEdit false / published) ---------------- */
+  function ReadOnlyBody({ mode }) {
+    return (
+      <div>
+        <div className="rb-sec">
+          <Alert variant="info" title="Rubric editing is turned off for this exam">
+            Editing is disabled in Settings → Grading (<span style={{ fontFamily: "var(--font-mono)" }}>gradingConfig.allowRubricEdit = false</span>). Shown read-only.
+          </Alert>
+        </div>
+        <div className="rb-sec">
+          <div className="rb-label">Scoring mode</div>
+          <Chip active>{mode}</Chip>
+        </div>
+        <div className="rb-sec">
+          <div className="rb-label">Criteria</div>
+          <DefinitionList items={[
+            { term: "Sets up the integral", value: <span style={{ fontFamily: "var(--font-mono)" }}>4.0 pts</span> },
+            { term: "Correct bounds 0 → 2", value: <span style={{ fontFamily: "var(--font-mono)" }}>2.0 pts</span> },
+            { term: "Antiderivative x³/3", value: <span style={{ fontFamily: "var(--font-mono)" }}>2.0 pts</span> },
+            { term: "Final evaluation", value: <span style={{ fontFamily: "var(--font-mono)" }}>2.0 pts</span> },
+          ]} />
+        </div>
+        <div className="rb-sec">
+          <div className="rb-label">Passing %</div>
+          <DefinitionList items={[{ term: "Passing percentage", value: <span style={{ fontFamily: "var(--font-mono)" }}>40 %</span> }]} />
+        </div>
+        <div className="rb-sec">
+          <AnswerKeyLock title="Model answer · staff only">Used by the AI grader. Never shown to students or parents.</AnswerKeyLock>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- editable body ---------------- */
+  function EditableBody({ mode, state, crits, setCrits, dims, setDims, holistic, setHolistic, sum }) {
+    const [openCrit, setOpenCrit] = useState(0);
+    const [openDim, setOpenDim] = useState(0);
+
+    const updateCrit = (i, patch) => setCrits(crits.map((c, j) => j === i ? { ...c, ...patch } : c));
+    const removeCrit = (i) => setCrits(crits.filter((_, j) => j !== i));
+    const addCrit = () => { setCrits([...crits, { name: "", maxPoints: 0, weight: 1, description: "", levels: [] }]); setOpenCrit(crits.length); };
+    const updateDim = (i, patch) => setDims(dims.map((d, j) => j === i ? { ...d, ...patch } : d));
+
+    function CriteriaBlock() {
+      if (crits.length === 0) {
+        return (
+          <EmptyState icon="list-checks" title="No criteria yet"
+            body="Add a criterion to define how this question earns marks."
+            action={<Button variant="ghost" leadingIcon={<Icon name="plus" size={16} />} onClick={addCrit}>Add criterion</Button>} />
+        );
+      }
+      return (
+        <div>
+          {crits.map((c, i) => (
+            <CriterionCard key={i} c={c} open={openCrit === i}
+              onToggle={() => setOpenCrit(openCrit === i ? -1 : i)}
+              onChange={(patch) => updateCrit(i, patch)} onRemove={() => removeCrit(i)} />
+          ))}
+          <Button variant="ghost" leadingIcon={<Icon name="plus" size={16} />} onClick={addCrit}>Add criterion</Button>
+        </div>
+      );
+    }
+
+    function DimensionBlock() {
+      return (
+        <div>
+          {dims.map((d, i) => (
+            <DimensionCard key={i} d={d} open={openDim === i}
+              onToggle={() => setOpenDim(openDim === i ? -1 : i)} onChange={(patch) => updateDim(i, patch)} />
+          ))}
+          <Button variant="ghost" leadingIcon={<Icon name="plus" size={16} />}>Add dimension</Button>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <Reconciler sum={sum} />
+
+        <div className="rb-sec">
+          {mode === "Criteria" && (<>
+            <div className="rb-label">Criteria</div>
+            <div className="rb-subcap">Award points per named criterion</div>
+            {state === "empty" ? (
+              <EmptyState icon="list-checks" title="No criteria yet"
+                body="Add a criterion to define how this question earns marks."
+                action={<Button variant="ghost" leadingIcon={<Icon name="plus" size={16} />}>Add criterion</Button>} />
+            ) : <CriteriaBlock />}
+          </>)}
+
+          {mode === "Dimensions" && (<>
+            <div className="rb-label">Dimensions</div>
+            <div className="rb-subcap">Score against weighted evaluation dimensions</div>
+            <DimensionBlock />
+          </>)}
+
+          {mode === "Holistic" && (<>
+            <div className="rb-label">Holistic</div>
+            <div className="rb-subcap">One overall judgement against guidance</div>
+            <div className="rb-fieldrow">
+              <Field label="Holistic guidance">
+                <Textarea rows={4} value={holistic.guidance}
+                  placeholder="Describe the qualities of a full-mark answer…"
+                  onChange={(e) => setHolistic({ ...holistic, guidance: e.target.value })} />
+              </Field>
+            </div>
+            <Field label="Holistic max score">
+              <Input className="mono-in" type="number" step="0.5" min="0" value={holistic.max} style={{ maxWidth: 140 }}
+                onChange={(e) => setHolistic({ ...holistic, max: parseFloat(e.target.value) || 0 })} />
+            </Field>
+          </>)}
+
+          {mode === "Hybrid" && (<>
+            <div className="rb-label">Criteria block</div>
+            <div className="rb-subcap">Criteria plus dimensions — each contributes to one Σ</div>
+            <CriteriaBlock />
+            <div className="rb-label u-mt3">Dimension block</div>
+            <div className="rb-subcap">Weighted evaluation dimensions</div>
+            <DimensionBlock />
+          </>)}
+        </div>
+
+        <div className="rb-sec">
+          <SharedFields ro={false} />
+        </div>
+
+        <div className="rb-sec">
+          <PreviewBlock />
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- the drawer host ---------------- */
+  function RubricDrawer({ state }) {
+    const [mode, setMode] = useState("Criteria");
+    const [saving, setSaving] = useState(false);
+    const [confirmMismatch, setConfirmMismatch] = useState(false);
+    const [discardOpen, setDiscardOpen] = useState(false);
+
+    const [crits, setCrits] = useState([
+      { name: "Sets up the integral", maxPoints: 4, weight: 1, description: "Writes ∫₀² x² dx with correct integrand and bounds.", levels: [{ score: 4, label: "Excellent" }, { score: 2, label: "Partial" }] },
+      { name: "Correct bounds 0 → 2", maxPoints: 2, weight: 1, description: "Applies the definite limits.", levels: [] },
+      { name: "Antiderivative x³/3", maxPoints: 2, weight: 1, description: "Uses the power rule correctly.", levels: [] },
+    ]);
+    const [dims, setDims] = useState([
+      { name: "Mathematical correctness", priority: "HIGH", weight: 1.5, scoringScale: "0-4", promptGuidance: "Is the final value and method correct?", enabled: true, inherited: true },
+      { name: "Clarity of working", priority: "MED", weight: 1, scoringScale: "0-4", promptGuidance: "Are steps legible and ordered?", enabled: true, inherited: true },
+      { name: "Notation", priority: "LOW", weight: 0.5, scoringScale: "0-1", promptGuidance: "Correct mathematical notation.", enabled: false, inherited: false },
+    ]);
+    const [holistic, setHolistic] = useState({ guidance: "", max: 10 });
+
+    const critSum = crits.reduce((a, c) => a + (c.maxPoints || 0), 0);
+    const sum = mode === "Holistic" ? (holistic.max || 0)
+      : mode === "Dimensions" ? 8.0
+        : mode === "Hybrid" ? critSum
+          : critSum; // Criteria
+    const mismatch = Math.abs(sum - MAX_MARKS) >= 0.001;
+
+    function attemptSave() {
+      if (mismatch) { setConfirmMismatch(true); return; }
+      doSave();
+    }
+    function doSave() {
+      setConfirmMismatch(false);
+      setSaving(true);
+      setTimeout(() => setSaving(false), 1400);
+    }
+
+    // keyboard: Esc routes through discard guard (disabled while typing)
+    useEffect(() => {
+      function onKey(e) {
+        const t = e.target;
+        const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+        if (e.key === "Escape" && !typing) { e.preventDefault(); setDiscardOpen(true); }
+      }
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const ro = state === "readonly" || state === "locked";
+    const modeItems = ["Criteria", "Dimensions", "Holistic", "Hybrid"].map((m) => ({
+      label: m,
+      content: null,
+    }));
+
+    return (
+      <div data-drawer-open="true" style={{ position: "absolute", inset: 0, pointerEvents: "auto" }}>
+        <div className="drawer-scrim" />
+        <div className="drawer" role="dialog" aria-modal="true" aria-label="Rubric editor">
+          {/* header */}
+          <div className="drawer__head" style={{ flexDirection: "column", alignItems: "stretch", gap: "var(--space-2)" }}>
+            <div className="rb-head__row">
+              <span className="rb-head__kicker">Rubric editor · UnifiedRubric</span>
+              <IconButton icon={<Icon name="x" size={20} />} label="Close rubric editor" onClick={() => setDiscardOpen(true)} />
+            </div>
+            <div className="rb-head__row">
+              <h2 className="rb-head__title">Q3 · Derive the area under y = x²…</h2>
+              <span className="rb-idchip">qstn_c4e9</span>
+            </div>
+          </div>
+
+          <div className="drawer__body" style={{ display: "flex", flexDirection: "column" }}>
+            {/* conditional banners */}
+            {state === "locked" && (
+              <div className="rb-sec rb-sec--tight">
+                <Alert variant="warning" title="This exam is published — the rubric is locked">
+                  Unpublish to edit. Saves are rejected server-side (<span style={{ fontFamily: "var(--font-mono)" }}>POST_PUBLISH_LOCKED_FIELDS</span>).
+                </Alert>
+              </div>
+            )}
+            {state === "error" && (
+              <div className="rb-sec rb-sec--tight">
+                <Alert variant="error" title="Couldn't save the rubric">
+                  Your changes are still here — try again. <span style={{ fontFamily: "var(--font-mono)" }}>saveExam</span> rejected the patch (locked field / network).
+                </Alert>
+              </div>
+            )}
+            {state === "partial" && (
+              <div className="rb-sec rb-sec--tight">
+                <Alert variant="info" title="Couldn't load tenant defaults">
+                  Inherited dimensions and <span style={{ fontFamily: "var(--font-mono)" }}>confidenceConfig</span> thresholds shown as blank. Editing still works.
+                </Alert>
+              </div>
+            )}
+
+            {/* scoring mode segmented control */}
+            {!ro && (
+              <div className="rb-sec">
+                <div className="rb-label">Scoring mode</div>
+                <div className="rb-subcap">{{
+                  Criteria: "Award points per named criterion",
+                  Dimensions: "Score against weighted evaluation dimensions",
+                  Holistic: "One overall judgement against guidance",
+                  Hybrid: "Criteria plus dimensions",
+                }[mode]}</div>
+                <div className="tabs tabs--pill" role="tablist" aria-label="Scoring mode">
+                  <div className="tabs__list" role="tablist">
+                    {["Criteria", "Dimensions", "Holistic", "Hybrid"].map((m) => (
+                      <button key={m} className="tabs__trigger" role="tab" aria-selected={mode === m}
+                        title={mode !== m && (mode === "Criteria" || m === "Criteria") ? "Your criteria are kept" : undefined}
+                        onClick={() => setMode(m)}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* body by state */}
+            {state === "loading" ? (
+              <div className="rb-sec" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                <Skeleton width="40%" height="1rem" />
+                <Skeleton height="3.5rem" />
+                <Skeleton height="6rem" />
+                <Skeleton height="6rem" />
+                <div className="rb-subcap" style={{ margin: 0 }}>Resolving inheritance: tenant default → exam → question…</div>
+              </div>
+            ) : ro ? (
+              <ReadOnlyBody mode={mode} />
+            ) : (
+              <EditableBody mode={mode} state={state} crits={crits} setCrits={setCrits}
+                dims={dims} setDims={setDims} holistic={holistic} setHolistic={setHolistic} sum={sum} />
+            )}
+
+            {/* footer */}
+            <div className="rb-foot">
+              {ro ? (
+                <>
+                  <span className="rb-foot__hint">Read-only · server-authoritative</span>
+                  <Button variant="secondary" onClick={() => setDiscardOpen(true)}>Close</Button>
+                </>
+              ) : (
+                <>
+                  <span className="rb-foot__hint">{mismatch ? "Σ mismatch is advisory — grading tolerates it" : "Ready to save"}</span>
+                  <div className="u-row">
+                    <Button variant="secondary" onClick={() => setDiscardOpen(true)}>Cancel</Button>
+                    <Button variant="primary" leadingIcon={<Icon name="save" size={16} />} onClick={attemptSave}>Save rubric</Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {saving && <LoadingOverlay />}
+          </div>
+        </div>
+
+        {/* mismatch confirm */}
+        <Modal open={confirmMismatch} onClose={() => setConfirmMismatch(false)} title="Save with mismatch?"
+          footer={<><Button variant="secondary" onClick={() => setConfirmMismatch(false)}>Keep editing</Button>
+            <Button variant="primary" onClick={doSave}>Save anyway</Button></>}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            The criteria total doesn't match the question max of {MAX_MARKS}. Grading tolerates this — RELMS normalises — but it stays flagged.
+          </p>
+        </Modal>
+
+        {/* discard confirm */}
+        <Modal open={discardOpen} onClose={() => setDiscardOpen(false)} title="Discard rubric changes?"
+          footer={<><Button variant="secondary" onClick={() => setDiscardOpen(false)}>Keep editing</Button>
+            <Button variant="danger" onClick={() => setDiscardOpen(false)}>Discard</Button></>}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            Discard rubric changes? This can't be undone.
+          </p>
+        </Modal>
+      </div>
+    );
+  }
+
+  /* ---------------- app ---------------- */
+  function App() {
+    const [state, setState] = useState("populated");
+    const states = [
+      { k: "populated", l: "Populated" },
+      { k: "loading", l: "Loading" },
+      { k: "empty", l: "Empty" },
+      { k: "partial", l: "Partial" },
+      { k: "error", l: "Error" },
+      { k: "locked", l: "Locked" },
+      { k: "readonly", l: "Read-only" },
+    ];
+    useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
+    return (
+      <div className="screen">
+        <Shell><ExamDimmed /></Shell>
+        <RubricDrawer key={state} state={state} />
+        <div className="statebar" role="group" aria-label="Prototype state switcher">
+          <span className="statebar__lab">State</span>
+          <div className="stateseg">
+            {states.map((s) => (
+              <button key={s.k} aria-pressed={state === s.k} onClick={() => setState(s.k)}>{s.l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body></html>

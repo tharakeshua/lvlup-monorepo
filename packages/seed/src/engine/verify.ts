@@ -6,6 +6,7 @@
  */
 
 import type { SeedContext } from "./context.js";
+import { canonicalHash, type SeedManifestEntry } from "./manifest.js";
 import { Paths } from "./paths.js";
 import { IdResolver } from "./resolver.js";
 import type { SeedConfig, TenantConfig } from "../config/types.js";
@@ -15,6 +16,11 @@ export interface VerifyEntry {
   expected: number;
   actual: number;
   ok: boolean;
+  /** Present for canonical nested document verification. */
+  exactPath?: string;
+  expectedHash?: string;
+  actualHash?: string;
+  verificationKind?: string;
 }
 
 export interface VerifyReport {
@@ -78,7 +84,45 @@ function tenantCollections(tc: TenantConfig): { path: string; expected: number }
   ];
 }
 
-export async function verify(ctx: SeedContext, config: SeedConfig): Promise<VerifyReport> {
+/** Exact nested collection checks — counts alone cannot prove parent/path correctness. */
+function nestedCollections(tc: TenantConfig): { path: string; expected: number }[] {
+  const r = new IdResolver(tc.key);
+  const tenantId = r.tenantId;
+  const entries: { path: string; expected: number }[] = [];
+  for (const space of tc.spaces ?? []) {
+    const spaceId = r.spaceId(space.key);
+    const storyPoints = space.storyPoints ?? [];
+    entries.push({ path: Paths.storyPoints(tenantId, spaceId), expected: storyPoints.length });
+    for (const storyPoint of storyPoints) {
+      const storyPointId = r.storyPointId(space.key, storyPoint.key);
+      const items = storyPoint.items ?? [];
+      entries.push({ path: Paths.items(tenantId, spaceId, storyPointId), expected: items.length });
+      for (const item of items) {
+        if (item.kind !== "question") continue;
+        const itemId = r.itemId(space.key, storyPoint.key, item.key);
+        entries.push({
+          path: Paths.answerKeys(tenantId, spaceId, storyPointId, itemId),
+          expected: 1,
+        });
+      }
+    }
+  }
+  return entries;
+}
+
+const EXACT_KINDS = new Set([
+  "storyPoint",
+  "item",
+  "answerKey",
+  "agent",
+  "assessmentConfiguration",
+]);
+
+export async function verify(
+  ctx: SeedContext,
+  config: SeedConfig,
+  manifest: readonly SeedManifestEntry[] = ctx.manifest.entries()
+): Promise<VerifyReport> {
   const log = ctx.logger.child("verify");
   const entries: VerifyEntry[] = [];
 
@@ -87,6 +131,20 @@ export async function verify(ctx: SeedContext, config: SeedConfig): Promise<Veri
     // Surface expected counts for visibility even in dry-run.
     for (const [collection, expected] of expectedTenantCounts(config)) {
       entries.push({ collection, expected, actual: -1, ok: true });
+    }
+    for (const entry of manifest) {
+      for (const verificationKind of entry.verifyAs) {
+        if (!EXACT_KINDS.has(verificationKind)) continue;
+        entries.push({
+          collection: entry.exactPath,
+          exactPath: entry.exactPath,
+          expected: 1,
+          actual: -1,
+          ok: true,
+          expectedHash: entry.canonicalHash,
+          verificationKind,
+        });
+      }
     }
     return { ok: true, entries, failures: [] };
   }
@@ -97,7 +155,7 @@ export async function verify(ctx: SeedContext, config: SeedConfig): Promise<Veri
     collection: "tenants",
     expected: config.tenants.length,
     actual: tenantsActual,
-    ok: tenantsActual >= config.tenants.length,
+    ok: tenantsActual === config.tenants.length,
   });
 
   // per-tenant collections
@@ -105,9 +163,40 @@ export async function verify(ctx: SeedContext, config: SeedConfig): Promise<Veri
     for (const { path, expected } of tenantCollections(tc)) {
       if (expected === 0) continue;
       const actual = await ctx.countCollection(path);
-      const ok = actual >= expected;
+      const ok = actual === expected;
       entries.push({ collection: path, expected, actual, ok });
       if (!ok) log.error(`count mismatch ${path}: expected ${expected}, got ${actual}`);
+    }
+    for (const { path, expected } of nestedCollections(tc)) {
+      const actual = await ctx.countCollection(path);
+      const ok = actual === expected;
+      entries.push({ collection: path, expected, actual, ok });
+      if (!ok) log.error(`nested count mismatch ${path}: expected ${expected}, got ${actual}`);
+    }
+  }
+
+  // Every relevant document must exist exactly at the canonical path and hash to
+  // the authored payload.  This catches wrong parents, stale merged fields, and
+  // an independently-derived answer-key id that top-level count checks miss.
+  for (const entry of manifest) {
+    for (const verificationKind of entry.verifyAs) {
+      if (!EXACT_KINDS.has(verificationKind)) continue;
+      const actual = await ctx.read(entry.exactPath);
+      const actualHash = actual ? canonicalHash(actual) : undefined;
+      const ok = actualHash === entry.canonicalHash;
+      entries.push({
+        collection: entry.exactPath,
+        exactPath: entry.exactPath,
+        expected: 1,
+        actual: actual ? 1 : 0,
+        ok,
+        expectedHash: entry.canonicalHash,
+        actualHash,
+        verificationKind,
+      });
+      if (!ok) {
+        log.error(`canonical mismatch ${verificationKind} ${entry.exactPath}`);
+      }
     }
   }
 

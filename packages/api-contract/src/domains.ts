@@ -48,6 +48,7 @@ export const DOMAIN_NAMES = [
   "rubricPresets",
   "agents",
   "chat",
+  "conversations",
   "store",
   "reviews",
   "enrollment",

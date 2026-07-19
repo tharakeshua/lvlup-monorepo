@@ -69,13 +69,30 @@ export async function saveExamService(input: Req, ctx: AuthContext): Promise<Res
   }
 
   const now = ctx.now();
+  const questionPaper = buildQuestionPaper(existing, data);
+
+  // Auto-advance the lifecycle when a question paper first lands. Without an
+  // explicit status change, an exam that has (or just received) a question paper
+  // must sit in `question_paper_uploaded`, not `draft` — otherwise the detail
+  // page never surfaces the "Extract Questions" step and a later publish attempt
+  // fails the `draft → published` transition. Only advances FROM `draft` (never
+  // clobbers a later status), and only when a paper with images is present.
+  const paperHasImages =
+    !!questionPaper &&
+    Array.isArray((questionPaper as Record<string, unknown>)["images"]) &&
+    ((questionPaper as Record<string, unknown>)["images"] as unknown[]).length > 0;
+  const effectiveStatus =
+    !data.status && currentStatus === "draft" && paperHasImages
+      ? "question_paper_uploaded"
+      : (data.status ?? currentStatus);
+
   const payload: Record<string, unknown> = {
     ...(existing ?? {}),
     ...data,
     ...(input.id ? { id: input.id } : {}),
-    questionPaper: buildQuestionPaper(existing, data),
+    questionPaper,
     gradingConfig: data.gradingConfig ?? existing?.["gradingConfig"] ?? DEFAULT_GRADING_CONFIG,
-    status: data.status ?? currentStatus,
+    status: effectiveStatus,
     createdBy: existing?.["createdBy"] ?? ctx.uid,
   };
   delete payload["questionPaperImages"];
@@ -110,8 +127,12 @@ function buildQuestionPaper(
   }
   const prev = (existing?.["questionPaper"] as Record<string, unknown> | undefined) ?? {};
   return {
-    ...prev,
     images: data.questionPaperImages,
+    // `extractedAt` is a REQUIRED (nullable) key on the strict ExamQuestionPaper
+    // schema — null until extract-questions runs. Omitting it made getExam's
+    // strict response validation throw on the client, surfacing as "Exam not
+    // found" the moment a question paper was uploaded.
+    extractedAt: (prev["extractedAt"] as string | null | undefined) ?? null,
     questionCount: (prev["questionCount"] as number | undefined) ?? 0,
     examType: "standard",
   };

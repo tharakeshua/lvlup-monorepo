@@ -1,0 +1,77 @@
+<!-- @dsCard group="Data" viewport="860x480" name="DataTable" subtitle="Sortable · selected row · numeric · badges" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:8px}
+.ds-name{display:flex;align-items:center;gap:10px}
+.ds-num{font-family:var(--font-mono)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { DataTable, Badge, GradePill, Avatar } = window.LvlupV0DesignSystem_5d0725;
+
+  const STATUS = {
+    Graded:   { variant: 'success', label: 'Graded' },
+    Review:   { variant: 'warning', label: 'In review' },
+    Late:     { variant: 'error',   label: 'Late' },
+    Pending:  { variant: 'info',    label: 'Pending' },
+  };
+
+  const rows = [
+    { id: 1, name: 'Anaya Sharma',   initials: 'AS', status: 'Graded',  score: 94, grade: 'A' },
+    { id: 2, name: 'Marcus Bauer',   initials: 'MB', status: 'Review',  score: 81, grade: 'B', selected: true },
+    { id: 3, name: 'Leila Hassan',   initials: 'LH', status: 'Graded',  score: 76, grade: 'C' },
+    { id: 4, name: 'Diego Romero',   initials: 'DR', status: 'Late',    score: 58, grade: 'D' },
+    { id: 5, name: 'Priya Nair',     initials: 'PN', status: 'Pending', score: 67, grade: 'C' },
+  ];
+
+  const columns = [
+    {
+      label: 'Name',
+      key: 'name',
+      sortable: true,
+      render: (row) => (
+        <span className="ds-name">
+          <Avatar initials={row.initials} size="sm" />
+          {row.name}
+        </span>
+      ),
+    },
+    {
+      label: 'Status',
+      key: 'status',
+      render: (row) => {
+        const s = STATUS[row.status];
+        return <Badge variant={s.variant} dot>{s.label}</Badge>;
+      },
+    },
+    {
+      label: 'Score',
+      key: 'score',
+      numeric: true,
+      sortable: true,
+      render: (row) => <span className="ds-num">{row.score}</span>,
+    },
+    {
+      label: 'Grade',
+      key: 'grade',
+      render: (row) => <GradePill grade={row.grade} />,
+    },
+  ];
+
+  function Demo(){
+    return (
+      <div>
+        <div className="ds-cap">Submissions · sortable header (Name, Score) · selected row highlighted</div>
+        <DataTable columns={columns} rows={rows} />
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

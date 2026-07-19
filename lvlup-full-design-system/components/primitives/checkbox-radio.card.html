@@ -1,0 +1,33 @@
+<!-- @dsCard group="Forms" viewport="700x240" name="Checkbox & Radio" subtitle="Checked · unchecked · disabled" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-grid{display:flex;gap:64px;flex-wrap:wrap}
+.ds-col{display:flex;flex-direction:column;min-width:220px}
+.ds-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:12px;letter-spacing:var(--tracking-caption)}
+.ds-lbl{font-size:var(--text-sm);color:var(--text-secondary)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { Checkbox, Radio } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){ return (<div className="ds-grid">
+    <div className="ds-col">
+      <div className="ds-cap">Checkbox</div>
+      <label className="ds-row"><Checkbox defaultChecked /><span className="ds-lbl">Mastered topic</span></label>
+      <label className="ds-row"><Checkbox /><span className="ds-lbl">Unreviewed</span></label>
+      <label className="ds-row"><Checkbox defaultChecked disabled /><span className="ds-lbl">Locked (disabled)</span></label>
+    </div>
+    <div className="ds-col">
+      <div className="ds-cap">Radio</div>
+      <label className="ds-row"><Radio name="diff" defaultChecked /><span className="ds-lbl">Beginner</span></label>
+      <label className="ds-row"><Radio name="diff" /><span className="ds-lbl">Intermediate</span></label>
+      <label className="ds-row"><Radio name="diff2" disabled /><span className="ds-lbl">Advanced (disabled)</span></label>
+    </div>
+  </div>); }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

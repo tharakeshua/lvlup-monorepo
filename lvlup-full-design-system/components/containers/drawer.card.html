@@ -1,0 +1,45 @@
+<!-- @dsCard group="Containers" viewport="860x560" name="Drawer / Sheet" subtitle="Right slide-over (open state)" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+.ds-frame{position:relative;height:472px;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface-sunken)}
+.ds-stage{padding:20px}
+.ds-stage p{margin:0 0 12px;color:var(--text-secondary);font-size:14px;line-height:1.6;max-width:46ch}
+.ds-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { Drawer, Button, Field, Input } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){
+    return (<div>
+      <div className="ds-cap">Drawer — open state, right side</div>
+      <div className="ds-frame">
+        <div className="ds-stage">
+          <p>The drawer slides in from the trailing edge over a dimmed scrim. Use it for focused, secondary tasks — editing a record, filtering a list — without leaving the current page.</p>
+          <p>The panel below is rendered statically in its open state so the scrim, header, body form, and footer actions are all visible at once.</p>
+        </div>
+        <Drawer open={true} title="Edit story point">
+          <Field label="Title" required hint="Shown on the learner track.">
+            <Input defaultValue="Binary Search Trees" />
+          </Field>
+          <Field label="Estimated minutes" hint="Used for pacing.">
+            <Input type="number" defaultValue="25" />
+          </Field>
+          <Field label="Summary">
+            <Input defaultValue="Insert, search & delete in O(log n)." />
+          </Field>
+          <div className="ds-row">
+            <Button variant="primary">Save changes</Button>
+            <Button variant="ghost">Cancel</Button>
+          </div>
+        </Drawer>
+      </div>
+    </div>);
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

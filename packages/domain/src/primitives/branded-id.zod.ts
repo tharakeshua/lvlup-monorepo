@@ -39,6 +39,12 @@ export const zStaffId = zBrandedId("StaffId");
 export const zScannerId = zBrandedId("ScannerId");
 export const zExamQuestionId = zBrandedId("ExamQuestionId");
 
+export const zConversationSessionId = zBrandedId("ConversationSessionId");
+export const zConversationMessageId = zBrandedId("ConversationMessageId");
+export const zConversationTurnId = zBrandedId("ConversationTurnId");
+export const zConversationEvidenceId = zBrandedId("ConversationEvidenceId");
+export const zItemSubmissionId = zBrandedId("ItemSubmissionId");
+
 export const zTenantCode = zBrandedId("TenantCode");
 export const zMembershipId = zBrandedId("MembershipId");
 export const zSectionId = zBrandedId("SectionId");

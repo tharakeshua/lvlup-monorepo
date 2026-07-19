@@ -33,6 +33,7 @@ import {
   Screen,
   SectionHeader,
   Skeleton,
+  TeacherPageHeader,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
@@ -180,10 +181,11 @@ export default function ClassInsightsScreen() {
     <Screen>
       <View className="gap-5">
         {/* HEADER */}
-        <View className="gap-1">
-          <Text className="font-display text-text-primary text-2xl font-semibold">Insights</Text>
-          <Text className="font-ui text-text-muted text-sm">How your classes are performing.</Text>
-        </View>
+        <TeacherPageHeader
+          eyebrow="Learning intelligence"
+          title="Insights"
+          subtitle="See the story behind scores, progress, and support needs."
+        />
 
         {/* CLASS PICKER */}
         {classOptions.length > 0 ? (

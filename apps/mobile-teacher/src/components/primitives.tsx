@@ -23,14 +23,14 @@ export function Screen({
   const body = scroll ? (
     <ScrollView
       className={cx("flex-1", bg)}
-      contentContainerClassName={cx("px-5 py-4 gap-4", contentClassName)}
+      contentContainerClassName={cx("px-5 pb-8 pt-5 gap-5", contentClassName)}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
   ) : (
-    <View className={cx("flex-1 px-5 py-4", bg, contentClassName)}>{children}</View>
+    <View className={cx("flex-1 px-5 pb-8 pt-5", bg, contentClassName)}>{children}</View>
   );
 
   return (
@@ -42,13 +42,13 @@ export function Screen({
 
 // --- Card -------------------------------------------------------------------
 export function Card({ children, className, interactive, onPress, style }: CardProps) {
-  const base = "rounded-lg border border-border-subtle bg-surface p-4";
+  const base = "rounded-xl border border-border-subtle bg-surface p-4";
   if (onPress) {
     return (
       <Pressable
         onPress={onPress}
         style={style}
-        className={cx(base, "active:opacity-90", className)}
+        className={cx(base, "active:bg-surface-sunken shadow-sm active:opacity-95", className)}
       >
         {children}
       </Pressable>
@@ -87,9 +87,9 @@ const BTN_VARIANT: Record<string, { box: string; text: string; spinner: string }
 };
 
 const BTN_SIZE: Record<string, { box: string; text: string; icon: number }> = {
-  sm: { box: "px-3 py-2 gap-1.5", text: "text-sm", icon: 16 },
-  md: { box: "px-4 py-3 gap-2", text: "text-base", icon: 18 },
-  lg: { box: "px-5 py-4 gap-2", text: "text-lg", icon: 20 },
+  sm: { box: "min-h-11 px-3 py-2 gap-1.5", text: "text-sm", icon: 16 },
+  md: { box: "min-h-12 px-4 py-3 gap-2", text: "text-base", icon: 18 },
+  lg: { box: "min-h-14 px-5 py-4 gap-2", text: "text-lg", icon: 20 },
 };
 
 export function Button({
@@ -112,11 +112,12 @@ export function Button({
       onPress={onPress}
       disabled={isOff}
       className={cx(
-        "flex-row items-center justify-center rounded-md",
+        "flex-row items-center justify-center rounded-lg",
         v.box,
         s.box,
         block && "w-full",
         isOff && "opacity-50",
+        (variant === "primary" || variant === "spark") && "shadow-sm",
         className
       )}
     >
@@ -137,8 +138,8 @@ export function Button({
 
 // --- IconButton -------------------------------------------------------------
 const IB_SIZE: Record<string, { box: string; icon: number }> = {
-  sm: { box: "h-8 w-8", icon: 16 },
-  md: { box: "h-10 w-10", icon: 20 },
+  sm: { box: "h-11 w-11", icon: 16 },
+  md: { box: "h-11 w-11", icon: 20 },
   lg: { box: "h-12 w-12", icon: 24 },
 };
 

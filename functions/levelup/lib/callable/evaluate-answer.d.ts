@@ -1,4 +1,4 @@
-import type { UnifiedEvaluationResult } from '../types';
+import type { UnifiedEvaluationResult } from "../types";
 /**
  * AI-evaluate a single answer using Gemini.
  *
@@ -6,4 +6,8 @@ import type { UnifiedEvaluationResult } from '../types';
  * Resolves evaluator agent and rubric via inheritance chain.
  * Rate limited: 10 AI operations/min per user.
  */
-export declare const evaluateAnswer: import("firebase-functions/https").CallableFunction<any, Promise<UnifiedEvaluationResult>, unknown>;
+export declare const evaluateAnswer: import("firebase-functions/https").CallableFunction<
+  any,
+  Promise<UnifiedEvaluationResult>,
+  unknown
+>;

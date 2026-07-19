@@ -1,0 +1,39 @@
+{
+  "items": 3575,
+  "problems": 0,
+  "byProblem": {},
+  "bySpace": {
+    "Behavioral Interview Mastery": {
+      "problems": 0
+    },
+    "System Design": {
+      "problems": 0
+    },
+    "Low-Level Design Interview Prep (LLD)": {
+      "problems": 0
+    },
+    "Low-Level Design & OOP": {
+      "problems": 0
+    },
+    "Data Structures & Algorithms": {
+      "problems": 0
+    },
+    "Domain-Driven Design (Eric Evans)": {
+      "problems": 0
+    },
+    "Java Programming": {
+      "problems": 0
+    },
+    "System Design Interview Prep (HLD)": {
+      "problems": 0
+    },
+    "System Design Interview Prep V2 (HLD)": {
+      "problems": 0
+    },
+    "Designing Data-Intensive Applications": {
+      "problems": 0
+    }
+  },
+  "imagesInjectedInContent": 921,
+  "imagesInjectedInBlocks": 182
+}

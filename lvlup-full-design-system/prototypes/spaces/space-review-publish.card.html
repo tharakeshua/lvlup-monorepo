@@ -1,0 +1,517 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Review & Publish Flow ★" subtitle="Drawer · validate gate · store mirror" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html,body{margin:0}
+    body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+    .stage{position:relative;height:820px;overflow:hidden}
+    .appshell{height:820px}
+    .num{font-family:var(--font-mono)}
+
+    /* editor backdrop dim when drawer open */
+    .editor-dim{position:relative}
+    .editor-dim::after{content:"";position:absolute;inset:0;background:rgba(28,25,23,.28);pointer-events:none;z-index:5}
+
+    /* space editor header */
+    .sehead{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-5) var(--space-6);
+      border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
+    .sehead__title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);margin:0}
+    .sehead__spacer{flex:1}
+    .editor-skel{padding:var(--space-6);display:grid;gap:var(--space-4);max-width:880px}
+    .editor-skel__row{display:grid;gap:var(--space-3)}
+
+    /* lifecycle stepper */
+    .stepper{display:flex;align-items:center;gap:var(--space-2);margin:var(--space-4) 0 var(--space-5)}
+    .stepper__node{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);
+      border:1px solid var(--border-subtle);border-radius:var(--radius-pill);background:var(--bg-surface);
+      font-size:var(--text-sm);color:var(--text-secondary);font-weight:var(--weight-medium)}
+    .stepper__node[data-state="current"]{border-color:var(--brand-primary);background:var(--brand-subtle);color:var(--text-primary)}
+    .stepper__node[data-state="done"]{border-color:var(--status-success);background:var(--status-success-subtle);color:var(--text-primary)}
+    .stepper__node[data-state="unreachable"]{opacity:.45}
+    .stepper__line{flex:1;height:2px;background:var(--border-subtle);min-width:18px}
+    .stepper__line[data-on="true"]{background:var(--status-success)}
+
+    /* checklist rows */
+    .ck{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-1)}
+    .ck__row{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);
+      border-radius:var(--radius-md);background:var(--bg-surface)}
+    .ck__row[data-state="fail"]{background:var(--status-error-subtle)}
+    .ck__row[data-state="warn"]{background:var(--status-warning-subtle)}
+    .ck__ico{flex:none;margin-top:1px}
+    .ck__ico--pass{color:var(--status-success)}
+    .ck__ico--warn{color:var(--status-warning)}
+    .ck__ico--fail{color:var(--status-error)}
+    .ck__ico--idle{color:var(--text-muted)}
+    .ck__main{flex:1;min-width:0}
+    .ck__term{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+    .ck__detail{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;line-height:var(--leading-xs)}
+    .ck__detail--fail{color:var(--status-error)}
+
+    .grp{margin-top:var(--space-5)}
+    .grp__h{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);
+      text-transform:uppercase;letter-spacing:var(--tracking-caption);color:var(--text-muted);
+      font-weight:var(--weight-semibold);margin-bottom:var(--space-2)}
+    .subhead{font-size:var(--text-sm);color:var(--text-secondary);margin:0 0 var(--space-2)}
+    .draw-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);margin:0}
+
+    .sw-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+      padding:var(--space-3) 0;border-top:1px solid var(--border-subtle);margin-top:var(--space-3)}
+    .store-box{margin-top:var(--space-3);padding:var(--space-3);border:1px dashed var(--border-subtle);
+      border-radius:var(--radius-md);display:grid;gap:var(--space-2);background:var(--bg-surface-sunken)}
+    .store-line{display:flex;justify-content:space-between;font-size:var(--text-sm)}
+    .store-line span:first-child{color:var(--text-secondary)}
+
+    .draw-foot{display:flex;justify-content:flex-end;gap:var(--space-3);margin-top:var(--space-6);
+      padding-top:var(--space-4);border-top:1px solid var(--border-subtle)}
+    .draw-foot__spacer{flex:1}
+
+    .kpi-row{display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-2)}
+
+    /* state switcher (prototype only) */
+    .stateswitch{position:absolute;top:var(--space-3);left:50%;transform:translateX(-50%);z-index:60;
+      display:flex;gap:var(--space-1);background:var(--bg-surface);border:1px solid var(--border-subtle);
+      border-radius:var(--radius-pill);padding:var(--space-1);box-shadow:var(--shadow-e2)}
+    .stateswitch button{border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-xs);
+      font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-1) var(--space-3);
+      border-radius:var(--radius-pill);cursor:pointer}
+    .stateswitch button[data-on="true"]{background:var(--brand-primary);color:var(--text-on-accent)}
+
+    .toast-host{position:absolute;bottom:var(--space-5);right:var(--space-5);z-index:80;max-width:360px}
+
+    /* go-live spark pop */
+    @keyframes sparkpop{0%{transform:scale(.7);opacity:.4}55%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+    .pop{animation:sparkpop var(--dur-base) var(--ease-entrance);box-shadow:var(--glow-spark)}
+    @media (prefers-reduced-motion: reduce){.pop{animation:none}}
+
+    .confirm-body{display:grid;gap:var(--space-3);max-width:var(--reading-max)}
+    .confirm-body p{margin:0;font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm)}
+    .blast{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);
+      padding:var(--space-3);border-radius:var(--radius-md);background:var(--status-error-subtle);color:var(--text-primary)}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const {
+      Button, IconButton, Icon, Switch, Badge, Chip, Alert, Toast, Stat,
+      Drawer, Modal, Timeline, Skeleton, NavItem, Breadcrumb, AnswerKeyLock, Tooltip
+    } = window.LvlupV0DesignSystem_5d0725;
+
+    /* ----- mock space data ----- */
+    const SPACE = {
+      title: "Dynamic Programming I",
+      type: "Course",
+      storyPoints: 4,
+      students: 128,
+      classes: 3,
+      price: "₹1,499",
+      currency: "INR",
+      storeDesc: "An intro DP course covering memoization, tabulation and classic patterns.",
+      thumb: true
+    };
+
+    /* checklist builder per scenario. status: pass | warn | fail | idle */
+    function buildChecklist(scn){
+      const base = [
+        { id:"title", term:"Title set", detail:'“Dynamic Programming I”', status:"pass", required:true },
+        { id:"sp",    term:"At least one story point", detail:"4 story points", status:"pass", required:true },
+        { id:"items", term:"Every story point has at least one item", detail:"All 4 covered", status:"pass", required:true },
+        { id:"dur",   term:"Timed tests have a duration", detail:"1 timed test · 45 min", status:"pass", required:true },
+        { id:"rub",   term:"Rubric for assessment items (recommended)", detail:"Recommended, not required.", status:"warn", required:false },
+        { id:"cov",   term:"Cover image (recommended)", detail:"Recommended, not required.", status:"warn", required:false }
+      ];
+      if(scn==="blocked"){
+        return base.map(r=>{
+          if(r.id==="dur") return {...r,status:"fail",detail:'Timed test “Final Assessment” needs a duration greater than 0 minutes.'};
+          if(r.id==="items") return {...r,status:"fail",detail:'Story point “Tabulation drills” has no items.'};
+          return r;
+        });
+      }
+      return base;
+    }
+
+    const STORE_ROWS = [
+      { id:"price", term:"Price set", detail:"₹1,499.00", status:"pass", required:true },
+      { id:"sdesc", term:"Store description", detail:"Provided (118 chars)", status:"pass", required:true },
+      { id:"sthumb",term:"Store thumbnail", detail:"Uploaded", status:"pass", required:true }
+    ];
+
+    const ICO = {
+      pass:{name:"check-circle",cls:"pass",sr:"Passed"},
+      warn:{name:"alert-triangle",cls:"warn",sr:"Recommended"},
+      fail:{name:"x-circle",cls:"fail",sr:"Failed"},
+      idle:{name:"circle",cls:"idle",sr:"Pending"}
+    };
+
+    function ChecklistRow({row}){
+      const ic = ICO[row.status] || ICO.idle;
+      const state = row.status==="fail"?"fail":(row.status==="warn"?"warn":"ok");
+      return (
+        <li className="ck__row" data-state={state}>
+          <span className={"ck__ico ck__ico--"+ic.cls} aria-hidden="true"><Icon name={ic.name} size={18}/></span>
+          <div className="ck__main">
+            <div className="ck__term">{row.term} <span className="u-sr-only">{ic.sr}</span></div>
+            <div className={"ck__detail"+(row.status==="fail"?" ck__detail--fail":"")}>{row.detail}</div>
+          </div>
+          {row.status==="fail" && (
+            <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}
+              aria-label={"Fix "+row.term}>Fix</Button>
+          )}
+        </li>
+      );
+    }
+
+    function StatusBadge({status, pop}){
+      if(status==="published") return (
+        <Badge variant="success" className={pop?"pop":""} icon={<Icon name="check" size={13}/>}>Published</Badge>);
+      if(status==="archived") return (
+        <Badge variant="info" icon={<Icon name="archive" size={13}/>}>Archived</Badge>);
+      return <Badge dot icon={<Icon name="circle-dashed" size={13}/>}>Draft</Badge>;
+    }
+
+    function Stepper({status}){
+      // legal transitions: draft->published, published->{archived,draft}, archived->draft
+      const node = (key,label,iconName)=>{
+        let st="unreachable";
+        if(status===key) st="current";
+        else if(status==="published" && key==="draft") st="done";
+        else if(status==="archived" && (key==="draft"||key==="published")) st="done";
+        else if(status==="draft" && key==="published") st="unreachable";
+        // mark reachable next states subtly via current/done only
+        return (
+          <span className="stepper__node" data-state={st}>
+            <Icon name={iconName} size={14}/> {label}
+          </span>
+        );
+      };
+      return (
+        <div className="stepper" role="group" aria-label="Lifecycle status">
+          {node("draft","Draft","circle-dashed")}
+          <span className="stepper__line" data-on={status!=="draft"}></span>
+          {node("published","Published","check-circle")}
+          <span className="stepper__line" data-on={status==="archived"}></span>
+          {node("archived","Archived","archive")}
+        </div>
+      );
+    }
+
+    function Screen(){
+      // prototype state scenarios
+      const [scn,setScn] = useState("ready"); // loading|ready|blocked|published|archived|serverreject
+      const [storeOn,setStoreOn] = useState(false);
+      const [confirm,setConfirm] = useState(null); // publish|unpublish|archive|null
+      const [busy,setBusy] = useState(false);
+      const [toast,setToast] = useState(null);
+      const [pop,setPop] = useState(false);
+      const [serverReject,setServerReject] = useState(false);
+
+      // derive lifecycle status from scenario
+      const status = (scn==="published") ? "published"
+        : (scn==="archived") ? "archived" : "draft";
+
+      const loading = scn==="loading";
+      const checklist = buildChecklist(scn==="blocked"?"blocked":"ready");
+      const failCount = checklist.filter(r=>r.required && r.status==="fail").length;
+      const passCount = checklist.filter(r=>r.required && r.status==="pass").length;
+      const totalReq  = checklist.filter(r=>r.required).length;
+      const canPublish = !loading && failCount===0 && status==="draft";
+
+      useEffect(()=>{ setServerReject(scn==="serverreject"); },[scn]);
+      useEffect(()=>{ if(scn!=="serverreject") setStoreOn(false); },[scn]);
+
+      function runPublish(){
+        setBusy(true);
+        setTimeout(()=>{
+          setBusy(false);
+          if(serverReject){
+            // server rejects despite green pre-flight; keep dialog open with verbatim message
+            setToast(null);
+            return; // alert is rendered inside dialog
+          }
+          setConfirm(null);
+          setScn("published");
+          setPop(true); setTimeout(()=>setPop(false), 700);
+          setToast({variant:"success", title:"Published — 128 students notified.",
+            body:"Now live across 3 assigned classes."});
+        }, 900);
+      }
+      function runUnpublish(){
+        setBusy(true);
+        setTimeout(()=>{ setBusy(false); setConfirm(null); setScn("ready");
+          setToast({variant:"info", title:"Returned to draft.", body:"Students lost access. Store listing removed."}); }, 800);
+      }
+      function runArchive(){
+        setBusy(true);
+        setTimeout(()=>{ setBusy(false); setConfirm(null); setScn("archived");
+          setToast({variant:"info", title:"Space archived.", body:"6 in-progress sessions were auto-submitted."}); }, 800);
+      }
+
+      const timelineItems = [
+        { time:"2d ago", label:"Restored to draft · by A. Rao", variant:"muted" },
+        { time:"5d ago", label:"Archived · by A. Rao", variant:"muted" },
+        { time:"12d ago", label:"Published v3 · 124 students notified", variant:"success" },
+        { time:"14d ago", label:"Edited 8 items · by M. Iyer", variant:"muted" }
+      ];
+
+      /* ---- footer actions vary by status ---- */
+      let footer;
+      if(status==="draft"){
+        footer = (
+          <div className="draw-foot">
+            <Button variant="secondary">Cancel</Button>
+            <div className="draw-foot__spacer"></div>
+            <Button variant="primary" disabled={!canPublish}
+              onClick={()=>setConfirm("publish")}
+              leadingIcon={<Icon name="rocket" size={16}/>}>Publish space</Button>
+          </div>
+        );
+      } else if(status==="published"){
+        footer = (
+          <div className="draw-foot">
+            <Button variant="secondary" onClick={()=>setConfirm("unpublish")}>Unpublish</Button>
+            <div className="draw-foot__spacer"></div>
+            <Button variant="danger" onClick={()=>setConfirm("archive")}
+              leadingIcon={<Icon name="archive" size={16}/>}>Archive…</Button>
+          </div>
+        );
+      } else {
+        footer = (
+          <div className="draw-foot">
+            <div className="draw-foot__spacer"></div>
+            <Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16}/>}
+              onClick={()=>setScn("ready")}>Restore to draft</Button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="stage">
+          {/* prototype state switcher */}
+          <div className="stateswitch" role="tablist" aria-label="Prototype states">
+            {[["loading","Loading"],["ready","Ready"],["blocked","Blocked"],
+              ["serverreject","Server reject"],["published","Published"],["archived","Archived"]].map(([k,l])=>(
+              <button key={k} data-on={scn===k} onClick={()=>{setScn(k);setConfirm(null);setToast(null);}}>{l}</button>
+            ))}
+          </div>
+
+          <div className="appshell editor-dim">
+            {/* sidebar */}
+            <aside className="appshell__sidebar">
+              <div className="sidebar__brand">
+                <Icon name="graduation-cap" size={22}/> <span>Lyceum</span>
+              </div>
+              <nav className="sidebar__nav" aria-label="Primary">
+                <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+                <NavItem icon="book-open" href="#" active>Spaces</NavItem>
+                <NavItem icon="file-check-2" href="#">Exams</NavItem>
+                <NavItem icon="users" href="#">Students</NavItem>
+                <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+              </nav>
+            </aside>
+
+            {/* topbar */}
+            <header className="appshell__topbar">
+              <Breadcrumb items={[
+                {label:"Spaces", href:"#"},
+                {label:"Dynamic Programming I", href:"#"},
+                {label:"Edit"}
+              ]}/>
+              <div style={{flex:1}}></div>
+              <IconButton icon={<Icon name="search" size={18}/>} label="Search"/>
+              <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+            </header>
+
+            {/* main = space editor page behind the drawer */}
+            <main className="appshell__main">
+              <div className="sehead">
+                <h1 className="sehead__title">{SPACE.title}</h1>
+                <StatusBadge status={status} pop={pop}/>
+                <div className="sehead__spacer"></div>
+                {status==="draft" && <Button variant="primary" leadingIcon={<Icon name="rocket" size={16}/>}>Publish…</Button>}
+                {status==="published" && <Button variant="secondary" trailingIcon={<Icon name="chevron-down" size={16}/>}>Manage…</Button>}
+                {status==="archived" && <Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16}/>}>Restore to draft</Button>}
+              </div>
+              <div className="editor-skel" aria-hidden="true">
+                <div className="editor-skel__row"><Skeleton width="40%" height="1.1rem"/><Skeleton width="92%"/><Skeleton width="84%"/></div>
+                <div className="editor-skel__row"><Skeleton width="30%" height="1.1rem"/><Skeleton width="88%"/><Skeleton width="76%"/></div>
+                <div className="editor-skel__row"><Skeleton width="34%" height="1.1rem"/><Skeleton width="80%"/></div>
+              </div>
+            </main>
+
+            {/* ===== Review & Publish DRAWER ===== */}
+            <Drawer open={true} onClose={()=>{}} title="">
+              <div role="dialog" aria-label="Review and Publish">
+                <h2 className="draw-title">Review &amp; Publish</h2>
+                <p className="subhead">Check what’s ready, then make this space available to students.</p>
+
+                <Stepper status={status}/>
+
+                {/* autosave indicator */}
+                <div style={{marginBottom:"var(--space-4)"}}>
+                  <Chip><Icon name="check" size={13}/>&nbsp;Saved 2 min ago</Chip>
+                </div>
+
+                {/* top error alert when blocked */}
+                {scn==="blocked" && (
+                  <div style={{marginBottom:"var(--space-4)"}}>
+                    <Alert variant="error" title={"Resolve "+failCount+" requirement(s) before publishing."}>
+                      Publishing is disabled until the failing checks below pass.
+                    </Alert>
+                  </div>
+                )}
+
+                {/* checklist */}
+                <div className="grp">
+                  <div className="grp__h"><Icon name="list-checks" size={14}/> Pre-publish checklist
+                    {!loading && <span className="num" style={{marginLeft:"auto",color:"var(--text-secondary)"}}>{passCount} / {totalReq} required</span>}</div>
+                  <ul className="ck" aria-live="polite">
+                    {loading
+                      ? [0,1,2,3].map(i=>(
+                          <li key={i} className="ck__row">
+                            <Skeleton variant="circle" width="18px" height="18px"/>
+                            <div className="ck__main"><Skeleton width="60%"/><div style={{height:6}}/><Skeleton width="40%"/></div>
+                          </li>))
+                      : checklist.map(r=> <ChecklistRow key={r.id} row={r}/>)
+                    }
+                  </ul>
+                </div>
+
+                {/* answer key isolation note */}
+                {!loading && (
+                  <div style={{marginTop:"var(--space-3)"}}>
+                    <AnswerKeyLock title="Answer keys stay server-side.">
+                      The timed test’s answer key is stored in a server-only subcollection and is never published to students.
+                    </AnswerKeyLock>
+                  </div>
+                )}
+
+                {/* side effects */}
+                {!loading && status!=="archived" && (
+                  <div className="grp">
+                    <div className="grp__h"><Icon name="megaphone" size={14}/> Side effects</div>
+                    <Alert variant="info" title="Publishing notifies students in assigned classes.">
+                      Best-effort delivery — counts below are estimates, not a guarantee.
+                    </Alert>
+                    <div className="kpi-row">
+                      <Stat label="Students" value={<span className="num">128</span>}/>
+                      <Stat label="Assigned classes" value={<span className="num">3</span>}/>
+                    </div>
+
+                    {/* store toggle (only meaningful for public_store) */}
+                    <div className="sw-row">
+                      <div>
+                        <div className="ck__term">Also list on the B2C store</div>
+                        <div className="ck__detail">Mirrors a public listing once the space is published.</div>
+                      </div>
+                      <Switch checked={storeOn} onChange={()=>setStoreOn(v=>!v)}/>
+                    </div>
+                    {storeOn && (
+                      <div className="store-box">
+                        {STORE_ROWS.map(r=>(
+                          <div className="store-line" key={r.id}>
+                            <span>{r.term}</span>
+                            <span className="num" style={{color:"var(--status-success)"}}>{r.detail}</span>
+                          </div>
+                        ))}
+                        <div className="store-line">
+                          <span>Listed price</span><span className="num" style={{fontWeight:"var(--weight-semibold)"}}>₹1,499.00 INR</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* archived notice */}
+                {status==="archived" && (
+                  <div className="grp">
+                    <Alert variant="warning" title="This space is archived.">
+                      It is hidden from students and any store listing was removed. Restore to draft to edit again.
+                    </Alert>
+                  </div>
+                )}
+
+                {/* recent lifecycle timeline */}
+                <div className="grp">
+                  <div className="grp__h"><Icon name="history" size={14}/> Recent lifecycle</div>
+                  {loading
+                    ? <div style={{display:"grid",gap:12,paddingLeft:14}}>
+                        <Skeleton width="70%"/><Skeleton width="55%"/><Skeleton width="62%"/></div>
+                    : <Timeline items={timelineItems}/>}
+                </div>
+
+                {footer}
+              </div>
+            </Drawer>
+          </div>
+
+          {/* ===== ConfirmDialogs (Modal) layered above drawer ===== */}
+          <Modal open={confirm==="publish"} onClose={()=>setConfirm(null)} title="Publish this space?"
+            footer={
+              <div style={{display:"flex",gap:"var(--space-3)",justifyContent:"flex-end",width:"100%"}}>
+                <Button variant="secondary" onClick={()=>setConfirm(null)}>Not yet</Button>
+                <Button variant="spark" loading={busy} onClick={runPublish}
+                  leadingIcon={<Icon name="rocket" size={16}/>}>Publish</Button>
+              </div>
+            }>
+            <div className="confirm-body" aria-describedby="pub-desc">
+              {serverReject && (
+                <Alert variant="error" title="Couldn’t publish — the server rejected it.">
+                  Story point “Tabulation drills” lost its items since you opened this panel. Re-run the checklist and try again.
+                </Alert>
+              )}
+              <p id="pub-desc">Students in <span className="num">3</span> classes will be notified and can start immediately.</p>
+              {storeOn && <p>This space will also be listed on the B2C store at <span className="num">₹1,499.00</span>.</p>}
+            </div>
+          </Modal>
+
+          <Modal open={confirm==="unpublish"} onClose={()=>setConfirm(null)} title="Unpublish and return to draft?"
+            footer={
+              <div style={{display:"flex",gap:"var(--space-3)",justifyContent:"flex-end",width:"100%"}}>
+                <Button variant="secondary" onClick={()=>setConfirm(null)}>Keep published</Button>
+                <Button variant="primary" loading={busy} onClick={runUnpublish}>Unpublish</Button>
+              </div>
+            }>
+            <div className="confirm-body">
+              <p>Students will lose access. Any B2C store listing will be removed.</p>
+            </div>
+          </Modal>
+
+          <Modal open={confirm==="archive"} onClose={()=>setConfirm(null)} title="Archive this space?"
+            footer={
+              <div style={{display:"flex",gap:"var(--space-3)",justifyContent:"flex-end",width:"100%"}}>
+                <Button variant="secondary" onClick={()=>setConfirm(null)}>Cancel</Button>
+                <Button variant="danger" loading={busy} onClick={runArchive}
+                  leadingIcon={<Icon name="archive" size={16}/>}>Archive</Button>
+              </div>
+            }>
+            <div className="confirm-body">
+              <div className="blast"><Icon name="alert-triangle" size={18}/>
+                <span><span className="num">6</span> in-progress test session(s) will be auto-submitted.</span></div>
+              <p>Students lose access and the store listing (if any) is removed. You can restore to draft later.</p>
+            </div>
+          </Modal>
+
+          {/* ===== Toast ===== */}
+          {toast && (
+            <div className="toast-host">
+              <Toast variant={toast.variant} title={toast.title} body={toast.body}/>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+    if(window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

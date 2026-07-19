@@ -74,8 +74,15 @@ module.exports = {
       },
       fontFamily: {
         display: ["Fraunces", "Georgia", "serif"],
+        "display-regular": ["Fraunces-Regular", "Georgia", "serif"],
         ui: ["Schibsted Grotesk", "System", "sans-serif"],
+        "ui-medium": ["SchibstedGrotesk-Medium", "System", "sans-serif"],
+        "ui-bold": ["SchibstedGrotesk-Bold", "System", "sans-serif"],
         mono: ["Spline Sans Mono", "monospace"],
+        "mono-medium": ["SplineSansMono-Medium", "monospace"],
+      },
+      letterSpacing: {
+        caps: "1.5px",
       },
       fontSize: {
         "2xs": ["11px", "16px"],

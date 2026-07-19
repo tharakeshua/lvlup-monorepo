@@ -1,4 +1,10 @@
 @import '@levelup/tailwind-config/variables.css';
+/* Lyceum design system — fonts load via <link> in index.html (not fonts.css).
+   Order matters: bridge.css must come after variables.css so the shadcn
+   variables resolve to Lyceum values. */
+@import '@levelup/lyceum-preset/tokens.css';
+@import '@levelup/lyceum-preset/bridge.css';
+@import '@levelup/lyceum-preset/base.css';
 
 @tailwind base;
 @tailwind components;

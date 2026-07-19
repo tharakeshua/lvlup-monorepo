@@ -84,6 +84,11 @@ export const ACCESS_RULES: Readonly<Record<Action, AccessRule>> = {
   "preset.global.write": { roles: "super-admin-only", tenantScoped: false },
   "user.impersonate.start": { roles: "super-admin-only", tenantScoped: false },
   "user.impersonate.end": { roles: "any-authed", tenantScoped: false },
+  // API key management. BYOK: any signed-in user manages their OWN keys (self).
+  // Tenant provider keys: tenant admins. Platform fallback keys: super-admin only.
+  "userKey.manage": { roles: "any-authed", tenantScoped: true, ownershipCheck: "self" },
+  "tenantKey.manage": { roles: ["tenantAdmin"], tenantScoped: true },
+  "platformKey.manage": { roles: "super-admin-only", tenantScoped: false },
 
   // ---------------- levelup ----------------
   "space.read": { roles: "any-authed", tenantScoped: true },

@@ -1,0 +1,840 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Manual Override & Timeline" subtitle="Non-destructive override · originalScore + reason audit trail" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+#root,.screen{height:100vh}
+.screen{position:relative;overflow:hidden}
+
+/* topbar bits */
+.topbar__search-box{display:flex;align-items:center;gap:var(--space-2);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);color:var(--text-muted);max-width:420px;flex:1}
+.topbar__search-box input{border:none;background:transparent;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);width:100%}
+.topbar__spacer{flex:1}
+.topbar__icons{display:flex;align-items:center;gap:var(--space-2)}
+.tenantchip{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);background:var(--bg-inset);border:1px solid var(--border-subtle);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary)}
+.tenantchip .mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* page scaffold */
+.gr{display:flex;flex-direction:column;gap:var(--space-5);max-width:1200px}
+.gr__top{display:flex;flex-direction:column;gap:var(--space-3)}
+.gr__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0}
+.gr__sub{color:var(--text-secondary);font-size:var(--text-sm);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.mono{font-family:var(--font-mono)}
+
+/* ResultSummary header */
+.rsum{position:relative;display:flex;align-items:center;gap:var(--space-6);padding:var(--space-5) var(--space-6);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.rsum__hero{display:flex;flex-direction:column;gap:var(--space-1);min-width:160px}
+.rsum__nums{display:flex;align-items:baseline;gap:var(--space-2)}
+.rsum__score{font-family:var(--font-mono);font-size:var(--text-4xl);line-height:1;font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;color:var(--text-primary);transition:color var(--dur-base) var(--ease-standard)}
+.rsum__of{font-family:var(--font-mono);font-size:var(--text-xl);color:var(--text-muted);font-variant-numeric:tabular-nums}
+.rsum__cap{font-size:var(--text-xs);color:var(--text-muted)}
+.rsum__pulse .rsum__score{animation:scorepulse var(--dur-slow) var(--ease-standard)}
+@keyframes scorepulse{0%{color:var(--brand-primary)}100%{color:var(--text-primary)}}
+.rsum__div{width:1px;align-self:stretch;background:var(--border-subtle)}
+.rsum__pct{display:flex;flex-direction:column;gap:var(--space-1)}
+.rsum__pctnum{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.rsum__meta{display:flex;flex-direction:column;gap:var(--space-2);margin-left:auto;align-items:flex-end}
+.rsum__metaline{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary)}
+
+/* two-column body: question detail + override popover */
+.gr__body{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:var(--space-5);align-items:start}
+@media (max-width:1180px){.gr__body{grid-template-columns:1fr}}
+
+.qpanel{display:flex;flex-direction:column;gap:var(--space-5)}
+.qcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.qcard__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
+.qcard__id{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-1)}
+.qcard__order{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);letter-spacing:-0.01em;margin:0}
+.qcard__badges{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+.qcard__body{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5)}
+.reading{max-width:720px}
+
+/* current score row */
+.scorebar{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;padding:var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+.scorebar__lab{font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)}
+.scorebar__val{display:flex;align-items:baseline;gap:var(--space-2)}
+.scorebar__cur{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.scorebar__orig{font-family:var(--font-mono);font-size:var(--text-lg);color:var(--text-muted);text-decoration:line-through;text-decoration-thickness:1.5px}
+.scorebar__of{font-family:var(--font-mono);font-size:var(--text-base);color:var(--text-muted)}
+.scorebar__spacer{flex:1}
+
+/* section label */
+.seclab{font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 var(--space-3)}
+
+/* answer-key locked region */
+.akl{border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--bg-inset);padding:var(--space-4)}
+.akl__head{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
+.akl__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.akl__note{font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-3)}
+.akl__model{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+
+/* timeline section */
+.tl-wrap{display:flex;flex-direction:column;gap:var(--space-1)}
+.tl-entry{display:flex;gap:var(--space-3);padding:var(--space-3) 0;position:relative}
+.tl-entry:not(:last-child)::before{content:"";position:absolute;left:13px;top:30px;bottom:-12px;width:2px;background:var(--border-subtle)}
+.tl-dot{flex:0 0 auto;width:28px;height:28px;border-radius:var(--radius-pill);display:grid;place-items:center;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);z-index:1}
+.tl-dot--override{background:var(--brand-subtle);border-color:var(--brand-muted);color:var(--brand-primary)}
+.tl-dot--ai{background:var(--bg-inset)}
+.tl-dot--bulk{background:var(--status-success-subtle);border-color:var(--status-success);color:var(--status-success)}
+.tl-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.tl-headline{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.tl-change{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:var(--space-1)}
+.tl-meta{font-size:var(--text-xs);color:var(--text-muted);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.tl-actor{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--text-secondary);font-weight:var(--weight-medium)}
+.tl-reason{font-size:var(--text-sm);color:var(--text-secondary);border-left:2px solid var(--border-subtle);padding-left:var(--space-3);margin-top:var(--space-1);font-style:italic}
+.tl-new{outline:2px solid var(--border-focus);outline-offset:3px;border-radius:var(--radius-sm)}
+
+/* ===== Override popover (anchored, lg) ===== */
+.ovp{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);position:sticky;top:0;overflow:hidden}
+.ovp__head{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2)}
+.ovp__kicker{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)}
+.ovp__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);letter-spacing:-0.01em;margin:var(--space-1) 0 0}
+.ovp__body{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.ovp__enter{animation:ovpin var(--dur-fast) var(--ease-entrance)}
+@keyframes ovpin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.ovp__orig{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+.ovp__orig-lab{font-size:var(--text-xs);color:var(--text-secondary)}
+.ovp__orig-val{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-medium);color:var(--text-primary);font-variant-numeric:tabular-nums}
+
+.ovp__scorebox{display:flex;flex-direction:column;gap:var(--space-3)}
+.ovp__sliderrow{display:flex;align-items:center;gap:var(--space-3)}
+.ovp__sliderrow .slider{flex:1}
+.ovp__numwrap{display:flex;align-items:baseline;gap:var(--space-1)}
+.ovp__num{width:64px;text-align:center;font-family:var(--font-mono)!important;font-variant-numeric:tabular-nums;font-size:var(--text-base)}
+.ovp__nummax{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted)}
+
+/* original vs new deflist */
+.ovp__compare{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface)}
+.ovp__cmpcell{display:flex;flex-direction:column;gap:2px;text-align:center}
+.ovp__cmplab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)}
+.ovp__cmpval{font-family:var(--font-mono);font-size:var(--text-xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums}
+.ovp__cmpval--lower{color:var(--status-error)}
+.ovp__cmpval--raise{color:var(--status-success)}
+.ovp__cmparrow{color:var(--text-muted);display:inline-flex}
+
+.ovp__foot{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-2);padding-top:var(--space-1)}
+.ovp__hint{font-size:var(--text-2xs);color:var(--text-muted);margin-right:auto}
+
+/* bulk-approve header chip */
+.gr__actions{display:flex;align-items:center;gap:var(--space-2)}
+
+/* toast host */
+.toast-host{position:absolute;right:var(--space-5);bottom:var(--space-12);z-index:60;display:flex;flex-direction:column;gap:var(--space-2);max-width:360px;animation:toastin var(--dur-base) var(--ease-entrance)}
+@keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* drawer width for md sheet emulation reuse */
+.u-row{display:flex;align-items:center;gap:var(--space-2)}
+.u-mt2{margin-top:var(--space-2)}
+.u-flex1{flex:1}
+
+/* state segmented control (prototype helper) */
+.statebar{position:absolute;left:var(--space-4);bottom:var(--space-4);z-index:50;display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.statebar__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding-left:var(--space-2)}
+.stateseg{display:inline-flex;background:var(--bg-inset);border-radius:var(--radius-pill);padding:2px}
+.stateseg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);border:none;background:transparent;color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer}
+.stateseg button[aria-pressed="true"]{background:var(--brand-primary);color:var(--text-on-accent)}
+
+@media (prefers-reduced-motion: reduce){
+  .rsum__score,.ovp__enter,.toast-host{transition:none!important;animation:none!important}
+  .rsum__pulse .rsum__score{animation:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Icon, Button, IconButton, Input, Textarea, Slider, Switch, Field,
+    Card, Panel, Section, Modal, Tooltip,
+    DefinitionList, Avatar, Badge, Chip, EmptyState, Skeleton,
+    Alert, Toast, LoadingOverlay, NavItem, Breadcrumb,
+    ContentRenderer, QuestionCard, RubricBreakdown, ConfidenceBadge, GradePill,
+    ManualOverrideControl, AnswerKeyLock
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  const MAX_MARKS = 10;            // question maxMarks
+  const ORIGINAL_AI = 6;           // originalScore from AI
+  const AI_CONFIDENCE = 0.62;      // <0.7 → needs_review (low)
+  const MAX_SCORE = 60;            // submission maxScore
+  const TOTAL_Q = 6;
+
+  // confidence → routing meta (thresholds 0.7 / 0.9)
+  function confMeta(v) {
+    if (v < 0.7) return { level: "low", route: "needs_review", label: "Needs review", icon: "alert-circle" };
+    if (v <= 0.9) return { level: "med", route: "spot_check", label: "Spot-check", icon: "search-check" };
+    return { level: "high", route: "auto_approved", label: "Auto-approved", icon: "check-circle" };
+  }
+  const clamp = (n) => Math.max(0, Math.min(MAX_MARKS, n));
+
+  /* ---------------- AppShell chrome ---------------- */
+  function Shell({ children, headerActions, breadcrumb }) {
+    return (
+      <div className="appshell">
+        <aside className="appshell__sidebar">
+          <div className="sidebar__brand">
+            <span className="sidebar__brand-mark">L</span>
+            <span className="sidebar__brand-name">Lyceum</span>
+          </div>
+          <nav className="sidebar__nav">
+            <div className="sidebar__section-label">Teach</div>
+            <NavItem icon="layout-dashboard">Dashboard</NavItem>
+            <NavItem icon="users">Classes</NavItem>
+            <NavItem icon="book-open">Spaces</NavItem>
+            <NavItem icon="file-check-2" active badge="3">Exams</NavItem>
+            <NavItem icon="bar-chart-3">Analytics</NavItem>
+            <div className="sidebar__section-label">Manage</div>
+            <NavItem icon="user-cog">Students</NavItem>
+            <NavItem icon="settings">Settings</NavItem>
+          </nav>
+        </aside>
+        <header className="appshell__topbar">
+          <span className="tenantchip">Subhang Academy <span className="mono">SUB001</span></span>
+          <div className="topbar__search-box">
+            <Icon name="search" size={16} />
+            <input placeholder="Search exams, submissions, students…" aria-label="Search" />
+          </div>
+          <div className="topbar__spacer" />
+          <div className="topbar__icons">
+            <IconButton icon={<Icon name="bell" size={18} />} label="Notifications" />
+            <IconButton icon={<Icon name="life-buoy" size={18} />} label="Help" />
+            <Avatar initials="PR" />
+          </div>
+        </header>
+        <main className="appshell__main">{children}</main>
+      </div>
+    );
+  }
+
+  /* ---------------- ResultSummary header ---------------- */
+  function ResultSummary({ total, graded, pulse, recomputing }) {
+    const pct = Math.round((total / MAX_SCORE) * 100);
+    const grade = pct >= 90 ? "A" : pct >= 80 ? "B" : pct >= 65 ? "C" : pct >= 50 ? "D" : "F";
+    return (
+      <div className={"rsum" + (pulse ? " rsum__pulse" : "")} role="region" aria-label="Submission result summary">
+        <div className="rsum__hero">
+          <div className="rsum__nums">
+            <span className="rsum__score">{total}</span>
+            <span className="rsum__of">/ {MAX_SCORE}</span>
+          </div>
+          <div className="rsum__cap">Total score · server-recomputed</div>
+        </div>
+        <div className="rsum__div" />
+        <div className="rsum__pct">
+          <span className="rsum__pctnum">{pct}%</span>
+          <span className="rsum__cap">Percentage</span>
+        </div>
+        <div className="rsum__div" />
+        <div className="u-row">
+          <GradePill grade={grade} />
+          <span className="rsum__cap">Grade</span>
+        </div>
+        <div className="rsum__meta">
+          <div className="rsum__metaline">
+            <Icon name="list-checks" size={13} />
+            <span className="mono">{graded}/{TOTAL_Q}</span> graded
+          </div>
+          <div className="rsum__metaline">
+            <Icon name="refresh-cw" size={13} />
+            Summary recomputes on override
+          </div>
+        </div>
+        {recomputing && <LoadingOverlay />}
+      </div>
+    );
+  }
+
+  /* ---------------- OverrideTimeline ---------------- */
+  function OverrideTimeline({ entries }) {
+    return (
+      <ol className="tl-wrap" aria-label="Override audit timeline" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {entries.map((e, i) => (
+          <li key={i} className={"tl-entry" + (e.isNew ? " tl-new" : "")}>
+            <span className={"tl-dot tl-dot--" + e.kind} aria-hidden="true">
+              <Icon name={e.kind === "ai" ? "cpu" : e.kind === "bulk" ? "check-check" : "edit-3"} size={14} />
+            </span>
+            <div className="tl-body">
+              <div className="tl-headline">
+                {e.kind === "ai" ? (
+                  <>
+                    <span className="tl-change">AI graded {e.score}/{MAX_MARKS}</span>
+                    <ConfidenceBadge level={e.confLevel} value={e.confValue} />
+                  </>
+                ) : e.kind === "bulk" ? (
+                  <>
+                    <span className="tl-change"><Icon name="check" size={13} /> Bulk approved</span>
+                    <Badge variant="success" icon={<Icon name="check" size={11} />}>Accepted</Badge>
+                  </>
+                ) : (
+                  <>
+                    <span className="tl-change">{e.from} <Icon name="arrow-right" size={13} /> {e.to}</span>
+                    {e.lower
+                      ? <Badge variant="error" icon={<Icon name="arrow-down" size={11} />}>Lowered</Badge>
+                      : <Badge variant="brand" icon={<Icon name="arrow-up" size={11} />}>Raised</Badge>}
+                  </>
+                )}
+              </div>
+              <div className="tl-meta">
+                {e.actor && (
+                  <span className="tl-actor"><Avatar initials={e.initials} size="sm" /> {e.actor}</span>
+                )}
+                {e.kind === "ai" && <span className="tl-actor"><Icon name="cpu" size={12} /> RELMS evaluator</span>}
+                <span aria-hidden="true">·</span>
+                <span>{e.time}</span>
+                {e.kind === "ai" && <span aria-hidden="true">·</span>}
+                {e.kind === "ai" && <span>routed → {e.route}</span>}
+              </div>
+              {e.reason && <div className="tl-reason">“{e.reason}”</div>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
+  /* ---------------- staff-only model answer / rubric region ---------------- */
+  function StaffOnlyEvidence() {
+    const [showModel, setShowModel] = useState(true);
+    return (
+      <div>
+        <AnswerKeyLock title="Staff only — not shown to students">
+          Rubric, model answer and evaluator guidance are sent only to the grader. Never included in any student or parent view.
+        </AnswerKeyLock>
+        <div className="u-mt2" />
+        <p className="seclab">Rubric breakdown · RELMS</p>
+        <RubricBreakdown criteria={[
+          { label: "Sets up the integral", desc: "Correct integrand & limits", score: 2, max: 3 },
+          { label: "Correct bounds 0 → 2", desc: "Definite limits applied", score: 2, max: 2 },
+          { label: "Antiderivative x³/3", desc: "Power rule handled", score: 1, max: 3 },
+          { label: "Final evaluation 8/3", desc: "Arithmetic & units", score: 1, max: 2 },
+        ]} />
+        <div className="akl u-mt2" aria-label="Staff-only model answer, not shown to students">
+          <div className="akl__head">
+            <span style={{ color: "var(--text-secondary)", display: "inline-flex" }}><Icon name="lock" size={16} /></span>
+            <span className="akl__title">Model answer</span>
+            <Badge variant="warning" icon={<Icon name="eye-off" size={12} />}>Staff only</Badge>
+          </div>
+          <div className="akl__note">Reference answer used by the AI grader. Never included in any student or parent view.</div>
+          <div className="u-row" style={{ justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Show model answer</span>
+            <Switch checked={showModel} onChange={(e) => setShowModel(e.target.checked)} />
+          </div>
+          {showModel && (
+            <div className="akl__model">
+              <ContentRenderer math html={'<p>A = &#8747;<sub>0</sub><sup>2</sup> x<sup>2</sup> dx = [x<sup>3</sup>/3]<sub>0</sub><sup>2</sup> = <code>8/3</code> &#8776; 2.667 sq units.</p><p>Full marks: (1) integral set up with correct bounds, (2) antiderivative x&#179;/3, (3) correct evaluation.</p>'} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- Override control (Popover, lg) ---------------- */
+  function OverridePopover({ open, onClose, original, requireReason, degraded, onSave, busy }) {
+    const [score, setScore] = useState(original != null ? original : 0);
+    const [reason, setReason] = useState("");
+    const [touched, setTouched] = useState(false);
+    const sliderRef = useRef(null);
+
+    useEffect(() => {
+      if (open) {
+        setScore(original != null ? original : 0);
+        setReason(""); setTouched(false);
+        const t = setTimeout(() => sliderRef.current && sliderRef.current.focus(), 40);
+        return () => clearTimeout(t);
+      }
+    }, [open, original]);
+
+    if (!open) {
+      return (
+        <ManualOverrideControl label="Override score">
+          <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>closed</span>
+        </ManualOverrideControl>
+      );
+    }
+
+    const base = original != null ? original : 0;
+    const lower = score < base;
+    const raise = score > base;
+    const reasonMissing = requireReason && reason.trim().length === 0;
+    const noChange = original != null && score === base && !degraded;
+
+    function submit() {
+      setTouched(true);
+      if (reasonMissing) return;
+      onSave({ score, reason: reason.trim(), lower });
+    }
+    function onSlide(v) { setScore(clamp(parseInt(v, 10) || 0)); }
+
+    return (
+      <div className="ovp ovp__enter" role="dialog" aria-modal="true" aria-label={"Override · Q3"}>
+        <div className="ovp__head">
+          <div>
+            <div className="ovp__kicker">Manual override</div>
+            <h3 className="ovp__title">Override · Q3</h3>
+          </div>
+          <IconButton icon={<Icon name="x" size={18} />} label="Close override" onClick={onClose} />
+        </div>
+        <div className="ovp__body">
+          {degraded ? (
+            <Alert variant="warning" title="AI couldn’t grade this">
+              Set the score manually. <span className="mono">gradingStatus: manual_review_needed</span> — captured in <span className="mono">gradingDeadLetter</span>.
+            </Alert>
+          ) : (
+            <div className="ovp__orig">
+              <span className="ovp__orig-lab">Original (AI)</span>
+              <div className="u-row">
+                <ConfidenceBadge level={confMeta(AI_CONFIDENCE).level} value={AI_CONFIDENCE.toFixed(2)} />
+                <span className="ovp__orig-val">{original}/{MAX_MARKS}</span>
+              </div>
+            </div>
+          )}
+
+          <Field label="New score" hint={"0–" + MAX_MARKS}>
+            <div className="ovp__scorebox">
+              <div className="ovp__sliderrow">
+                <Slider
+                  ref={sliderRef}
+                  min={0} max={MAX_MARKS} step={1} value={score}
+                  onChange={(e) => onSlide(e.target.value)}
+                  aria-label="New score"
+                  aria-valuemin={0} aria-valuemax={MAX_MARKS} aria-valuenow={score}
+                  aria-valuetext={score + " of " + MAX_MARKS}
+                />
+                <div className="ovp__numwrap">
+                  <Input
+                    className="ovp__num" type="number" min={0} max={MAX_MARKS} step={1}
+                    value={score}
+                    onChange={(e) => setScore(clamp(parseInt(e.target.value, 10) || 0))}
+                    aria-label="New score numeric"
+                  />
+                  <span className="ovp__nummax">/ {MAX_MARKS}</span>
+                </div>
+              </div>
+            </div>
+          </Field>
+
+          {/* original vs new comparison */}
+          <div className="ovp__compare" aria-label="Original versus new score">
+            <div className="ovp__cmpcell">
+              <span className="ovp__cmplab">Original</span>
+              <span className="ovp__cmpval" style={{ textDecoration: original != null && score !== base ? "line-through" : "none", color: "var(--text-muted)" }}>
+                {original != null ? original : "—"}
+              </span>
+            </div>
+            <span className="ovp__cmparrow"><Icon name="arrow-right" size={18} /></span>
+            <div className="ovp__cmpcell">
+              <span className="ovp__cmplab">New</span>
+              <span className={"ovp__cmpval " + (lower ? "ovp__cmpval--lower" : raise ? "ovp__cmpval--raise" : "")}>{score}</span>
+            </div>
+          </div>
+
+          <Field
+            label={requireReason ? "Reason *" : "Reason"}
+            error={touched && reasonMissing ? "A reason is required to override this score." : undefined}
+          >
+            <Textarea
+              rows={3} value={reason}
+              placeholder="Why are you changing this score? (visible in the audit timeline)"
+              error={touched && reasonMissing}
+              aria-required={requireReason || undefined}
+              onChange={(e) => { setReason(e.target.value); if (touched) setTouched(true); }}
+            />
+          </Field>
+
+          {lower && (
+            <Alert variant="warning" title="This lowers the student’s result">
+              Confirmed on save and recorded in the audit timeline.
+            </Alert>
+          )}
+
+          <div className="ovp__foot">
+            <span className="ovp__hint">{noChange ? "No change — adjust to enable" : "Recompute is server-authoritative"}</span>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button
+              variant={lower ? "danger" : "primary"}
+              loading={busy}
+              disabled={busy || noChange || reasonMissing}
+              leadingIcon={!busy && <Icon name={lower ? "arrow-down" : "save"} size={16} />}
+              onClick={submit}
+            >
+              {lower ? "Lower score" : "Save override"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- main populated screen ---------------- */
+  function PopulatedScreen({ state }) {
+    const degraded = state === "degraded";
+    const partial = state === "partial";
+    const disabled = state === "disabled"; // allowManualOverride === false
+    const requireReason = true;            // gradingConfig.requireOverrideReason
+
+    const [open, setOpen] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [recomputing, setRecomputing] = useState(false);
+    const [pulse, setPulse] = useState(false);
+
+    // current authoritative score for Q3 + submission summary
+    const [curScore, setCurScore] = useState(degraded ? null : ORIGINAL_AI);
+    const [overridden, setOverridden] = useState(false);
+    const [total, setTotal] = useState(41);
+    const [graded, setGraded] = useState(partial ? 4 : 6);
+
+    const [toast, setToast] = useState(null);
+    const [confirmLower, setConfirmLower] = useState(null); // {score, reason}
+    const [bulkConfirm, setBulkConfirm] = useState(false);
+
+    const [entries, setEntries] = useState([
+      {
+        kind: "ai", score: ORIGINAL_AI, confLevel: confMeta(AI_CONFIDENCE).level,
+        confValue: AI_CONFIDENCE.toFixed(2), route: confMeta(AI_CONFIDENCE).route, time: "8m ago",
+      },
+    ]);
+
+    function applyOverride({ score, reason, lower }) {
+      setBusy(true);
+      // optimistic: apply score + summary + provisional timeline entry
+      setTimeout(() => {
+        const delta = score - (curScore == null ? 0 : curScore);
+        setCurScore(score);
+        setOverridden(true);
+        setBusy(false);
+        setOpen(false);
+        setRecomputing(true);
+        setEntries((prev) => [
+          {
+            kind: "override", from: curScore == null ? "—" : curScore, to: score, lower,
+            actor: "Ms. Rao", initials: "PR", time: "just now", reason, isNew: true,
+          },
+          ...prev.map((e) => ({ ...e, isNew: false })),
+        ]);
+        // server recompute of Submission.summary
+        setTimeout(() => {
+          setTotal((t) => t + delta);
+          setGraded((g) => (degraded || curScore == null ? g + 1 : g));
+          setRecomputing(false);
+          setPulse(true);
+          setTimeout(() => setPulse(false), 360);
+          setToast({ variant: "success", title: "Score overridden · summary updated." });
+          setTimeout(() => setToast(null), 3200);
+          setEntries((prev) => prev.map((e, i) => i === 0 ? { ...e, time: "just now", isNew: false } : e));
+        }, 900);
+      }, 650);
+    }
+
+    function onSave(payload) {
+      if (payload.lower) { setConfirmLower(payload); return; }
+      applyOverride(payload);
+    }
+
+    function doBulkApprove() {
+      setBulkConfirm(false);
+      setToast({ variant: "success", title: "3 questions approved." });
+      setTimeout(() => setToast(null), 3200);
+    }
+
+    const confidence = confMeta(AI_CONFIDENCE);
+
+    return (
+      <div className="gr">
+        <div className="gr__top">
+          <Breadcrumb items={[
+            { label: "Exams", href: "#" },
+            { label: "Calculus · Unit 4 Mock", href: "#" },
+            { label: "Submissions", href: "#" },
+            { label: "Aanya Sharma" },
+          ]} />
+          <div className="u-row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
+            <div>
+              <h1 className="gr__title">Aanya Sharma · Grading review</h1>
+              <div className="gr__sub">
+                <span className="mono">sub_9fa21c</span>
+                <span aria-hidden="true">·</span>
+                <span>Calculus · Unit 4 Mock</span>
+                <span aria-hidden="true">·</span>
+                <Badge variant="info" icon={<Icon name="git-commit" size={11} />}>pipelineStatus: grading_complete</Badge>
+              </div>
+            </div>
+            <div className="gr__actions">
+              <Button variant="ghost" leadingIcon={<Icon name="chevron-left" size={16} />}>Prev</Button>
+              <Button variant="ghost" trailingIcon={<Icon name="chevron-right" size={16} />}>Next</Button>
+              <Button
+                variant="secondary"
+                leadingIcon={<Icon name="check-check" size={16} />}
+                onClick={() => setBulkConfirm(true)}
+                disabled={disabled}
+              >Bulk approve high-confidence</Button>
+            </div>
+          </div>
+        </div>
+
+        <ResultSummary total={total} graded={graded} pulse={pulse} recomputing={recomputing} />
+
+        {disabled && (
+          <Alert variant="info" title="Manual override is disabled for this exam">
+            <span className="mono">gradingConfig.allowManualOverride = false</span>. The audit timeline below remains visible to admins.
+          </Alert>
+        )}
+        {degraded && (
+          <Alert variant="warning" title="AI couldn’t grade this — set the score manually">
+            Service-degraded question routed to <span className="mono">manual_review_needed</span>; there is no AI score to override.
+          </Alert>
+        )}
+
+        <div className="gr__body">
+          {/* question detail column */}
+          <div className="qpanel">
+            <div className="qcard">
+              <div className="qcard__head">
+                <div>
+                  <p className="qcard__order">Q3 · Definite integral</p>
+                  <div className="qcard__id">qstn_c4e9 · QuestionSubmission qsub_77b1</div>
+                </div>
+                <div className="qcard__badges">
+                  {!degraded && <ConfidenceBadge level={confidence.level} value={AI_CONFIDENCE.toFixed(2)} />}
+                  {overridden ? (
+                    <Badge variant="brand" icon={<Icon name="edit-3" size={11} />}>Overridden · Manual</Badge>
+                  ) : degraded ? (
+                    <Badge variant="warning" icon={<Icon name="alert-triangle" size={11} />}>manual_review_needed</Badge>
+                  ) : (
+                    <Badge variant="error" icon={<Icon name="alert-circle" size={11} />}>needs_review</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="qcard__body">
+                <div className="reading">
+                  <QuestionCard type="Long answer" points={MAX_MARKS}
+                    prompt="Derive the area under y = x² from 0 to 2 using a definite integral." />
+                  <div className="u-mt2" />
+                  <p className="seclab">Student answer · transcribed</p>
+                  <ContentRenderer math html={'<p>Area = &#8747; x&#178; dx. Antiderivative is x&#179;/3. Evaluating: 2&#179;/3 = 8/3. I forgot to subtract the value at 0 but it is 0 anyway, so 8/3 &#8776; 2.67.</p>'} />
+                </div>
+
+                {/* current score row */}
+                <div className="scorebar">
+                  <div>
+                    <div className="scorebar__lab">Current score</div>
+                    <div className="scorebar__val">
+                      {overridden && <span className="scorebar__orig">{ORIGINAL_AI}</span>}
+                      <span className="scorebar__cur">{curScore == null ? "—" : curScore}</span>
+                      <span className="scorebar__of">/ {MAX_MARKS}</span>
+                    </div>
+                  </div>
+                  <div className="scorebar__spacer" />
+                  {!disabled && !partial && (
+                    <ManualOverrideControl label={overridden ? "Re-override score" : "Override score"}>
+                      <Button
+                        variant={open ? "ghost" : "secondary"}
+                        size="sm"
+                        leadingIcon={<Icon name="edit-3" size={14} />}
+                        onClick={() => setOpen((o) => !o)}
+                        style={{ marginLeft: "auto" }}
+                      >{open ? "Hide control" : (overridden ? "Re-override score" : "Override score")}</Button>
+                    </ManualOverrideControl>
+                  )}
+                  {partial && (
+                    <Tooltip>
+                      <Button variant="secondary" size="sm" disabled leadingIcon={<Icon name="clock" size={14} />}>
+                        Available once grading completes
+                      </Button>
+                    </Tooltip>
+                  )}
+                </div>
+
+                {partial && (
+                  <Alert variant="info" title="Grading still in progress">
+                    Some questions are <span className="mono">pending</span> / <span className="mono">processing</span> (<span className="mono">grading_partial</span>). Ungraded questions can’t be overridden yet; graded ones remain overridable.
+                  </Alert>
+                )}
+
+                <StaffOnlyEvidence />
+              </div>
+            </div>
+
+            {/* OverrideTimeline */}
+            <Section title={<span className="u-row"><Icon name="history" size={16} /> Override timeline · audit trail</span>}>
+              <OverrideTimeline entries={entries} />
+              <p style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", marginTop: "var(--space-3)" }}>
+                Server-authoritative · <span className="mono">overriddenBy</span> / <span className="mono">overriddenAt</span> stamped on write · <span className="mono">originalScore</span> always preserved.
+              </p>
+            </Section>
+          </div>
+
+          {/* override popover column */}
+          <div>
+            {disabled ? (
+              <Card>
+                <div style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  <div className="ovp__kicker">Override control</div>
+                  <EmptyState icon="lock" title="Override unavailable"
+                    body="Manual override is turned off in this exam’s grading config." />
+                </div>
+              </Card>
+            ) : (
+              <OverridePopover
+                open={open}
+                onClose={() => setOpen(false)}
+                original={degraded ? null : ORIGINAL_AI}
+                requireReason={requireReason}
+                degraded={degraded}
+                busy={busy}
+                onSave={onSave}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* confirm: lowering score */}
+        <Modal
+          open={!!confirmLower}
+          onClose={() => setConfirmLower(null)}
+          title="Lower this score?"
+          footer={<>
+            <Button variant="ghost" onClick={() => setConfirmLower(null)}>Cancel</Button>
+            <Button variant="danger" leadingIcon={<Icon name="arrow-down" size={16} />}
+              onClick={() => { const p = confirmLower; setConfirmLower(null); applyOverride(p); }}>Lower score</Button>
+          </>}
+        >
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            This reduces the student’s result and is recorded in the audit timeline.
+          </p>
+        </Modal>
+
+        {/* confirm: bulk approve */}
+        <Modal
+          open={bulkConfirm}
+          onClose={() => setBulkConfirm(false)}
+          title="Approve 3 questions?"
+          footer={<>
+            <Button variant="ghost" onClick={() => setBulkConfirm(false)}>Cancel</Button>
+            <Button variant="primary" leadingIcon={<Icon name="check-check" size={16} />} onClick={doBulkApprove}>Approve</Button>
+          </>}
+        >
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            AI scores are accepted as final and logged as “Bulk approved”. Original AI scores are preserved.
+          </p>
+        </Modal>
+
+        {toast && (
+          <div className="toast-host" role="status" aria-live="polite">
+            <Toast variant={toast.variant} title={toast.title} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------- loading ---------------- */
+  function LoadingScreen() {
+    return (
+      <div className="gr">
+        <div className="gr__top">
+          <Skeleton width="42%" height="0.9rem" />
+          <Skeleton width="30%" height="1.6rem" />
+        </div>
+        <div className="rsum">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", minWidth: 160 }}>
+            <Skeleton width="120px" height="2.4rem" /><Skeleton width="80px" height="0.7rem" />
+          </div>
+          <div className="rsum__div" />
+          <Skeleton width="70px" height="1.6rem" />
+          <div className="rsum__div" />
+          <Skeleton variant="circle" width="40px" height="40px" />
+        </div>
+        <div className="gr__body">
+          <div className="qpanel">
+            <div className="qcard"><div className="qcard__body" style={{ gap: "var(--space-4)" }}>
+              <Skeleton width="50%" height="1.2rem" />
+              <Skeleton height="4rem" /><Skeleton height="6rem" />
+              <Skeleton height="3rem" />
+            </div></div>
+            <Section title="Override timeline">
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <Skeleton height="2rem" /><Skeleton height="2rem" />
+              </div>
+            </Section>
+          </div>
+          <div className="ovp">
+            <div className="ovp__body" style={{ gap: "var(--space-4)" }}>
+              <Skeleton width="40%" height="0.9rem" />
+              <Skeleton height="2.4rem" /><Skeleton height="5rem" /><Skeleton height="2.4rem" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- error ---------------- */
+  function ErrorScreen({ onRetry }) {
+    return (
+      <div className="gr">
+        <div className="gr__top">
+          <Breadcrumb items={[
+            { label: "Exams", href: "#" }, { label: "Calculus · Unit 4 Mock", href: "#" },
+            { label: "Submissions", href: "#" }, { label: "Aanya Sharma" },
+          ]} />
+          <h1 className="gr__title">Aanya Sharma · Grading review</h1>
+        </div>
+        <Alert variant="error" title="Couldn’t load grading details">
+          The submission and its question grades didn’t load. <a href="#" onClick={(e) => { e.preventDefault(); onRetry(); }} style={{ color: "var(--brand-primary)", fontWeight: "var(--weight-medium)" }}>Retry</a>.
+        </Alert>
+        <Card>
+          <div style={{ padding: "var(--space-8)" }}>
+            <EmptyState icon="wifi-off" title="No grading data"
+              body="questionSubmissions.listLive and submissions.getLive failed for this submission."
+              action={<Button variant="primary" leadingIcon={<Icon name="rotate-cw" size={16} />} onClick={onRetry}>Retry</Button>} />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  /* ---------------- app + state switcher ---------------- */
+  function App() {
+    const [state, setState] = useState("populated");
+    const [reloadKey, setReloadKey] = useState(0);
+    const states = [
+      { k: "populated", l: "Populated" },
+      { k: "loading", l: "Loading" },
+      { k: "partial", l: "Partial" },
+      { k: "degraded", l: "Degraded" },
+      { k: "disabled", l: "Disabled" },
+      { k: "error", l: "Error" },
+    ];
+
+    useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
+
+    let body;
+    if (state === "loading") body = <LoadingScreen />;
+    else if (state === "error") body = <ErrorScreen onRetry={() => setState("populated")} />;
+    else body = <PopulatedScreen key={state + ":" + reloadKey} state={state} />;
+
+    return (
+      <div className="screen">
+        <Shell>{body}</Shell>
+        <div className="statebar" role="group" aria-label="Prototype state switcher">
+          <span className="statebar__lab">State</span>
+          <div className="stateseg">
+            {states.map((s) => (
+              <button key={s.k} aria-pressed={state === s.k}
+                onClick={() => { setState(s.k); setReloadKey((k) => k + 1); }}>{s.l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body></html>

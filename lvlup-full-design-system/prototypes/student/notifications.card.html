@@ -1,0 +1,612 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Notifications" subtitle="New spaces, results, achievements, gentle nudges" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* live shell frame — positioned ancestor for bell popover / toast */
+  .shell-frame { position: relative; height: 780px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  /* topbar */
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-kbd:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+  .bell-wrap { position: relative; }
+  .tb-bell { position: relative; }
+  .tb-bell-badge { position: absolute; top: -4px; right: -4px; }
+  .bell-pop { position: absolute; top: calc(100% + var(--space-2)); right: 0; width: 360px; z-index: 60; }
+
+  /* notification center reading column */
+  .nc-main { overflow-y: auto; }
+  .nc-col { max-width: 720px; margin: 0 auto; }
+  .nc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4);
+    margin-bottom: var(--space-4); }
+  .nc-title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .nc-summary { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); }
+  .nc-summary b { color: var(--text-primary); font-weight: var(--weight-semibold); }
+  .nc-filter { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-subtle); margin-bottom: var(--space-2); }
+  .nc-chip { cursor: pointer; }
+
+  .nc-group-label { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin: var(--space-4) 0 var(--space-2); }
+
+  /* notification row (shared anatomy with bell dropdown) */
+  .nrow { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-3);
+    border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; align-items: flex-start;
+    transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard); }
+  .nrow:hover { background: var(--bg-surface-sunken); border-color: var(--border-subtle); }
+  .nrow:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .nrow--unread { background: var(--brand-subtle); }
+  .nrow--unread:hover { background: var(--brand-muted); }
+  .nrow__lead { position: relative; flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--radius-md);
+    display: grid; place-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    color: var(--text-secondary); }
+  .nrow__dot { position: absolute; top: -3px; left: -3px; width: 12px; height: 12px;
+    border-radius: var(--radius-pill); border: 2px solid var(--bg-surface); }
+  .nrow__dot--unread { background: var(--spark); }
+  .nrow__dot--read { background: transparent; border-color: var(--border-strong); }
+  .nrow__body { flex: 1; min-width: 0; }
+  .nrow__title { font-size: var(--text-sm); color: var(--text-primary); }
+  .nrow__title--unread { font-weight: var(--weight-semibold); }
+  .nrow__title--read { font-weight: var(--weight-medium); }
+  .nrow__sub { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 2px; }
+  .nrow__foot { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+  .nrow__time { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+  .nrow__actions { flex: 0 0 auto; opacity: 0; transition: opacity var(--dur-fast) var(--ease-standard); position: relative; }
+  .nrow:hover .nrow__actions, .nrow:focus-within .nrow__actions { opacity: 1; }
+  .row-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; width: 200px; padding: var(--space-2); }
+  .menu-item { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--text-secondary); cursor: pointer; }
+  .menu-item:hover { background: var(--bg-surface-sunken); color: var(--text-primary); }
+
+  /* celebration burst host (achievement only, reduced-motion safe) */
+  .nrow--celebrate { background: var(--spark-subtle); border-color: var(--spark); }
+  .burst { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  .burst__spark { position: absolute; top: 18px; left: 22px; width: 8px; height: 8px; border-radius: var(--radius-pill);
+    background: var(--spark); animation: spark-pop var(--dur-slow) var(--ease-entrance) both; }
+  @keyframes spark-pop { 0% { transform: scale(0); opacity: 0; } 40% { opacity: 1; } 100% { transform: scale(2.4) translate(-10px,-12px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .burst__spark { animation: none; opacity: 0; } }
+
+  .new-pill { display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill); cursor: pointer;
+    background: var(--status-info-subtle); border: 1px solid var(--status-info); color: var(--text-primary);
+    font-size: var(--text-sm); margin-bottom: var(--space-3); }
+
+  .toast-host { position: absolute; bottom: var(--space-5); left: 50%; transform: translateX(-50%); z-index: 80; }
+  .toast-actions { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+
+  /* secondary state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+  .skel-row { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) 0; }
+  .skel-lines { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); }
+  .row-gap { display: flex; align-items: center; gap: var(--space-2); }
+  .bell-row { display: flex; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+    cursor: pointer; align-items: flex-start; }
+  .bell-row:hover { background: var(--bg-surface-sunken); }
+  .bell-dot { width: 8px; height: 8px; border-radius: var(--radius-pill); margin-top: 6px; flex: 0 0 auto; }
+  .bell-dot--unread { background: var(--spark); }
+  .bell-dot--read { background: var(--border-strong); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Tabbar, Kbd,
+    Panel, Popover, Skeleton, EmptyState, Alert, Toast, Chip,
+    AtRiskBadge, Achievement, StreakFlame
+  } = LU;
+  const { useState } = React;
+
+  /* ---- sidebar nav ---- */
+  const B2B_NAV = [
+    { icon: "layout-dashboard", label: "Dashboard", key: "dashboard" },
+    { icon: "book-open", label: "My Spaces", key: "spaces" },
+    { icon: "file-check", label: "Tests", key: "tests" },
+    { icon: "trophy", label: "Leaderboard", key: "leaderboard" },
+    { icon: "bell", label: "Notifications", key: "notifications" },
+    { icon: "user", label: "Profile", key: "profile" },
+  ];
+
+  function NavLink({ icon, label, active, badge }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+        {badge && <span className="nav-item__badge"><Badge variant="spark">{badge}</Badge></span>}
+      </a>
+    );
+  }
+
+  /* ---- icon + tone per notification type ---- */
+  function typeIcon(type) {
+    switch (type) {
+      case "exam_results_released": return "graduation-cap";
+      case "submission_graded": return "clipboard-check";
+      case "new_space_assigned":
+      case "space_published": return "unlock";
+      case "new_exam_assigned": return "file-clock";
+      case "deadline_reminder": return "calendar-clock";
+      case "student_at_risk": return "life-buoy";
+      case "streak": return "flame";
+      case "achievement": return "award";
+      default: return "bell";
+    }
+  }
+
+  /* ---- seed feed (warm copy from spec §7) ---- */
+  const SEED = [
+    { id: "n1", group: "Today", type: "exam_results_released", read: false,
+      title: "Your “Algebra II Mid-Term” results are ready",
+      body: "Nice work getting through it — let's see how you did.", time: "2h ago", abs: "Jun 20, 2026 · 9:14 AM" },
+    { id: "n2", group: "Today", type: "achievement", read: false,
+      title: "Achievement unlocked: Fast Learner!",
+      body: "You earned this — well done.", time: "3h ago", abs: "Jun 20, 2026 · 8:02 AM", celebrate: true },
+    { id: "n3", group: "Today", type: "streak", read: false,
+      title: "Keep your 6-day streak going 🔥",
+      body: "Five minutes is all it takes to keep it alive.", time: "5h ago", abs: "Jun 20, 2026 · 6:30 AM" },
+    { id: "n4", group: "Yesterday", type: "new_space_assigned", read: true,
+      title: "New space unlocked: “Dynamic Programming”",
+      body: "Ready when you are — no rush.", time: "1d ago", abs: "Jun 19, 2026 · 4:48 PM" },
+    { id: "n5", group: "Yesterday", type: "student_at_risk", read: true,
+      title: "Let's give “Binary Trees” another look",
+      body: "A short review session can turn this around — start with one question.", time: "1d ago", abs: "Jun 19, 2026 · 2:10 PM" },
+    { id: "n6", group: "Earlier", type: "deadline_reminder", read: true,
+      title: "“System Design Mock 3” is coming up soon",
+      body: "A little prep now makes it easier — you've got this.", time: "Jun 18", abs: "Jun 18, 2026 · 11:00 AM" },
+    { id: "n7", group: "Earlier", type: "submission_graded", read: true,
+      title: "Your “Sorting Practice Set” has been graded",
+      body: "Open it to view your feedback and where to focus next.", time: "Jun 17", abs: "Jun 17, 2026 · 3:25 PM" },
+  ];
+  const GROUP_ORDER = ["Today", "Yesterday", "Earlier"];
+
+  /* ============================ NOTIFICATION ROW ============================ */
+  function NotificationRow({ n, onOpen, onMarkRead }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const unread = !n.read;
+    return (
+      <div
+        className={"nrow" + (unread ? " nrow--unread" : "") + (n.celebrate && unread ? " nrow--celebrate" : "")}
+        role="listitem" tabIndex={0}
+        onClick={() => onOpen(n)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(n); } }}
+        aria-label={(unread ? "Unread — " : "") + n.title + ". " + n.body + ". " + n.time}
+      >
+        <div className="nrow__lead" aria-hidden="true">
+          {n.type === "streak"
+            ? <Icon name="flame" size={20} style={{ color: "var(--streak)" }} />
+            : n.type === "achievement"
+              ? <Icon name="award" size={20} style={{ color: "var(--spark)" }} />
+              : <Icon name={typeIcon(n.type)} size={20} />}
+          <span className={"nrow__dot " + (unread ? "nrow__dot--unread" : "nrow__dot--read")} />
+        </div>
+
+        <div className="nrow__body">
+          <div className={"nrow__title " + (unread ? "nrow__title--unread" : "nrow__title--read")}>
+            {unread && <span className="sr-only">Unread — </span>}
+            {n.title}
+          </div>
+          <div className="nrow__sub">{n.body}</div>
+          <div className="nrow__foot">
+            <span className="nrow__time" title={n.abs} aria-label={n.abs}>{n.time}</span>
+            {n.type === "student_at_risk" && <AtRiskBadge level="watch">Let's review</AtRiskBadge>}
+            {n.type === "streak" && <StreakFlame days={6} />}
+            {n.type === "achievement" && <Badge variant="spark" icon={<Icon name="sparkles" size={12} />}>New badge</Badge>}
+          </div>
+        </div>
+
+        <div className="nrow__actions">
+          <IconButton icon={<Icon name="more-horizontal" size={18} />} label={"More actions for " + n.title}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }} />
+          {menuOpen && (
+            <div className="popover row-menu" onClick={(e) => e.stopPropagation()}>
+              {unread && (
+                <div className="menu-item" role="menuitem"
+                  onClick={() => { onMarkRead(n.id); setMenuOpen(false); }}>
+                  <Icon name="check" size={16} /> Mark as read
+                </div>
+              )}
+              <div className="menu-item" role="menuitem" onClick={() => { onOpen(n); setMenuOpen(false); }}>
+                <Icon name="external-link" size={16} /> Open
+              </div>
+            </div>
+          )}
+        </div>
+
+        {n.celebrate && unread && (
+          <div className="burst" aria-hidden="true">
+            <span className="burst__spark" style={{ top: 10, left: 14 }} />
+            <span className="burst__spark" style={{ top: 30, left: 34, animationDelay: "60ms" }} />
+            <span className="burst__spark" style={{ top: 6, left: 36, animationDelay: "120ms" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================ PRIMARY: NOTIFICATION CENTER ============================ */
+  function NotificationCenter() {
+    const [items, setItems] = useState(SEED);
+    const [filter, setFilter] = useState("all"); // all | unread
+    const [bellOpen, setBellOpen] = useState(false);
+    const [toast, setToast] = useState(null);     // { snapshot }
+    const [newPill, setNewPill] = useState(true);  // simulated live arrival
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    const unreadCount = items.filter((n) => !n.read).length;
+
+    const markRead = (id) =>
+      setItems((xs) => xs.map((n) => n.id === id ? { ...n, read: true } : n));
+
+    const openRow = (n) => { if (!n.read) markRead(n.id); /* would navigate to actionUrl */ };
+
+    const markAll = () => {
+      const snapshot = items.map((n) => ({ id: n.id, read: n.read }));
+      setItems((xs) => xs.map((n) => ({ ...n, read: true })));
+      setToast({ snapshot });
+    };
+    const undoAll = () => {
+      if (!toast) return;
+      const m = Object.fromEntries(toast.snapshot.map((s) => [s.id, s.read]));
+      setItems((xs) => xs.map((n) => ({ ...n, read: m[n.id] })));
+      setToast(null);
+    };
+
+    const showNew = () => {
+      setNewPill(false);
+      setItems((xs) => [
+        { id: "live1", group: "Today", type: "space_published", read: false,
+          title: "New space unlocked: “Greedy Algorithms”",
+          body: "Ready when you are — no rush.", time: "Just now", abs: "Jun 20, 2026 · 11:32 AM" },
+        ...xs,
+      ]);
+    };
+
+    const visible = filter === "unread" ? items.filter((n) => !n.read) : items;
+    const grouped = GROUP_ORDER
+      .map((g) => ({ g, rows: visible.filter((n) => n.group === g) }))
+      .filter((x) => x.rows.length > 0);
+
+    const bellRecent = items.slice(0, 5);
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">C</span>
+              <span className="sidebar__brand-name">Crestwood Academy</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {B2B_NAV.map((n) => (
+                <NavLink key={n.key} icon={n.icon} label={n.label}
+                  active={n.key === "notifications"}
+                  badge={n.key === "notifications" && unreadCount > 0 ? String(unreadCount) : null} />
+              ))}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials="RK" />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>Rohan Kapoor</b>
+                  <span>rohan.k@crestwood.edu</span>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <Breadcrumb items={[{ label: "Home", href: "#" }, { label: "Notifications" }]} />
+            <div className="topbar__spacer" />
+            <div className="tb-kbd" role="button" aria-label="Search, command menu">
+              <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+            </div>
+            <IconButton icon={<Icon name="sun" size={20} />} label="Toggle theme" />
+            <div className="bell-wrap">
+              <div className="tb-bell">
+                <IconButton icon={<Icon name="bell" size={20} />}
+                  label={unreadCount + " unread notifications"}
+                  onClick={() => setBellOpen((o) => !o)} />
+                {unreadCount > 0 && (
+                  <span className="tb-bell-badge">
+                    <Badge variant="spark">{unreadCount > 9 ? "9+" : unreadCount}</Badge>
+                  </span>
+                )}
+              </div>
+              {bellOpen && (
+                <div className="bell-pop">
+                  <Panel title="Notifications" actions={
+                    <Button variant="ghost" size="sm" onClick={markAll} disabled={unreadCount === 0}>
+                      Mark all read
+                    </Button>
+                  }>
+                    <div>
+                      {bellRecent.map((n) => (
+                        <div key={n.id} className="bell-row" onClick={() => { openRow(n); }}>
+                          <span className={"bell-dot " + (n.read ? "bell-dot--read" : "bell-dot--unread")}
+                            aria-hidden="true" />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: "var(--text-sm)",
+                              fontWeight: n.read ? "var(--weight-medium)" : "var(--weight-semibold)" }}>
+                              {n.read ? "" : <span className="sr-only">Unread — </span>}{n.title}
+                            </div>
+                            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)",
+                              fontFamily: "var(--font-mono)", marginTop: 2 }}>{n.time}</div>
+                          </div>
+                        </div>
+                      ))}
+                      <div style={{ paddingTop: "var(--space-2)", marginTop: "var(--space-2)",
+                        borderTop: "1px solid var(--border-subtle)" }}>
+                        <Button variant="ghost" size="sm" block
+                          trailingIcon={<Icon name="arrow-right" size={14} />}>View all</Button>
+                      </div>
+                    </div>
+                  </Panel>
+                </div>
+              )}
+            </div>
+            <Avatar initials="RK" />
+          </header>
+
+          {/* MAIN — the center */}
+          <main className="appshell__main nc-main" id="main-content">
+            <div className="nc-col">
+              {/* Header */}
+              <div className="nc-head">
+                <div>
+                  <h1 className="nc-title">Notifications</h1>
+                  <div className="nc-summary" role="status">
+                    {unreadCount > 0
+                      ? <>You're almost caught up · <b>{unreadCount} new</b></>
+                      : <>You're all caught up — nothing new right now.</>}
+                  </div>
+                </div>
+                <Button variant="secondary" leadingIcon={<Icon name="check-check" size={16} />}
+                  onClick={markAll} disabled={unreadCount === 0}
+                  aria-label="Mark all notifications as read">
+                  Mark all read
+                </Button>
+              </div>
+
+              {/* Filter row */}
+              <div className="nc-filter" role="tablist" aria-label="Filter notifications">
+                <span className="nc-chip" role="tab" aria-selected={filter === "all"}
+                  onClick={() => setFilter("all")}>
+                  <Chip active={filter === "all"}>All</Chip>
+                </span>
+                <span className="nc-chip" role="tab" aria-selected={filter === "unread"}
+                  onClick={() => setFilter("unread")}>
+                  <Chip active={filter === "unread"}>Unread · {unreadCount}</Chip>
+                </span>
+              </div>
+
+              {/* aria-live region for live deltas */}
+              <div aria-live="polite" aria-atomic="true" className="sr-only">
+                {newPill ? "1 new notification" : ""}
+              </div>
+
+              {/* New-arrival pill (non-jarring, no auto-reorder) */}
+              {newPill && filter === "all" && (
+                <div className="new-pill" role="status" onClick={showNew}>
+                  <Icon name="arrow-up" size={14} /> 1 new notification — show
+                </div>
+              )}
+
+              {/* Timeline */}
+              {grouped.length === 0 ? (
+                <div style={{ padding: "var(--space-8) 0" }}>
+                  <EmptyState icon="check-circle"
+                    title="You're all caught up"
+                    body="No unread notifications. Nice and tidy."
+                    action={<Button variant="ghost" size="sm" onClick={() => setFilter("all")}>View all</Button>} />
+                </div>
+              ) : (
+                <div role="list" aria-label="Notifications">
+                  {grouped.map(({ g, rows }) => (
+                    <div key={g}>
+                      <div className="nc-group-label">{g}</div>
+                      {rows.map((n) => (
+                        <NotificationRow key={n.id} n={n} onOpen={openRow} onMarkRead={markRead} />
+                      ))}
+                    </div>
+                  ))}
+
+                  {/* Pagination footer (partial → nextCursor present) */}
+                  {filter === "all" && (
+                    <div style={{ textAlign: "center", padding: "var(--space-4) 0 var(--space-8)" }}>
+                      <Button variant="ghost" loading={loadingMore}
+                        leadingIcon={loadingMore ? null : <Icon name="rotate-ccw" size={14} />}
+                        onClick={() => { setLoadingMore(true); setTimeout(() => setLoadingMore(false), 900); }}>
+                        Load earlier notifications
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+
+        {/* Toast — mark-all-read confirmation + Undo */}
+        {toast && (
+          <div className="toast-host">
+            <Toast variant="success" title="Marked all as read"
+              body={
+                <div className="toast-actions">
+                  <span>Your inbox is clear.</span>
+                  <Button variant="ghost" size="sm" onClick={undoAll}>Undo</Button>
+                </div>
+              } />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* Loading skeleton */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (header static · 4–6 skeleton rows)</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)",
+            fontWeight: "var(--weight-semibold)" }}>Notifications</div>
+          <div className="u-caption" style={{ marginBottom: "var(--space-3)" }}>Loading your updates…</div>
+          {[0, 1, 2, 3].map((i) => (
+            <div className="skel-row" key={i}>
+              <Skeleton variant="circle" width="40px" height="40px" />
+              <div className="skel-lines">
+                <Skeleton width="78%" />
+                <Skeleton width="55%" />
+                <Skeleton width="64px" height="10px" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty — no notifications ever */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (no notifications ever)</div>
+          <EmptyState icon="inbox"
+            title="Nothing here yet"
+            body="When your teacher publishes a space, releases results, or you unlock an achievement, it'll show up here. Keep learning!"
+            action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="arrow-left" size={14} />}>Back to dashboard</Button>} />
+        </div>
+
+        {/* Empty — no unread */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (Unread filter · nothing unread)</div>
+          <EmptyState icon="check-circle"
+            title="You're all caught up"
+            body="No unread notifications. Nice and tidy."
+            action={<Button variant="ghost" size="sm">View all</Button>} />
+        </div>
+
+        {/* Error */}
+        <div className="tile">
+          <div className="eyebrow">State: error (list fetch failed · icon + label, never color alone)</div>
+          <Alert variant="error" title="We couldn't load your notifications">
+            <div>This is on us, not you. Give it another try in a moment.</div>
+            <div style={{ marginTop: "var(--space-3)" }}>
+              <Button variant="primary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14} />}>Try again</Button>
+            </div>
+          </Alert>
+        </div>
+
+        {/* Partial + live arrival pill */}
+        <div className="tile">
+          <div className="eyebrow">State: partial (nextCursor) · live "new" pill</div>
+          <div className="new-pill" role="status" style={{ cursor: "default" }}>
+            <Icon name="arrow-up" size={14} /> 1 new notification — show
+          </div>
+          <div style={{ textAlign: "center", marginTop: "var(--space-4)" }}>
+            <Button variant="ghost" leadingIcon={<Icon name="rotate-ccw" size={14} />}>
+              Load earlier notifications
+            </Button>
+          </div>
+        </div>
+
+        {/* B2C consumer variant */}
+        <div className="tile">
+          <div className="eyebrow">State: B2C consumer (platform_public · quieter feed · no at-risk/deadline)</div>
+          <div className="row-gap" style={{ marginBottom: "var(--space-2)" }}>
+            <Achievement icon="medal" name="Streak Star" />
+          </div>
+          <div className="u-caption">
+            Active context resolves to <span style={{ fontFamily: "var(--font-mono)" }}>platform_public</span>.
+            Surface is mostly space_published, submission_graded, achievement &amp; streak nudges. No class-deadline
+            or at-risk rows. The page renders identically — the feed is simply quieter.
+          </div>
+        </div>
+
+        {/* Celebration boundary note */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">Domain: the ONE celebratory moment is reserved for achievement-unlock rows</div>
+          <div className="nrow nrow--unread nrow--celebrate" style={{ cursor: "default" }}>
+            <div className="nrow__lead" aria-hidden="true">
+              <Icon name="award" size={20} style={{ color: "var(--spark)" }} />
+              <span className="nrow__dot nrow__dot--unread" />
+            </div>
+            <div className="nrow__body">
+              <div className="nrow__title nrow__title--unread">Achievement unlocked: Fast Learner!</div>
+              <div className="nrow__sub">You earned this — well done.</div>
+              <div className="nrow__foot">
+                <span className="nrow__time">2h ago</span>
+                <Badge variant="spark" icon={<Icon name="sparkles" size={12} />}>New badge</Badge>
+              </div>
+            </div>
+            <div className="burst" aria-hidden="true">
+              <span className="burst__spark" style={{ top: 10, left: 14 }} />
+              <span className="burst__spark" style={{ top: 30, left: 34, animationDelay: "60ms" }} />
+              <span className="burst__spark" style={{ top: 6, left: 36, animationDelay: "120ms" }} />
+            </div>
+          </div>
+          <div className="u-caption" style={{ marginTop: "var(--space-3)" }}>
+            Spring pop + marigold spark burst on first reveal — achievement rows only. At-risk, deadline, results
+            and space rows stay subtle and informative. Honors <span style={{ fontFamily: "var(--font-mono)" }}>prefers-reduced-motion</span>
+            (bursts and slide-ins degrade to instant). Notifications carry no protected content and only link to
+            server-released results — never bypassing AnswerKeyLock.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <div>
+          <div className="eyebrow">Primary · lg ≥1024 · B2B student · success state (interactive)</div>
+          <NotificationCenter />
+        </div>
+        <StateTiles />
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

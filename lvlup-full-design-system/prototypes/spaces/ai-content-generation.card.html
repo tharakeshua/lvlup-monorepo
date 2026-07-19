@@ -1,0 +1,712 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="AI Content Generation" subtitle="Drawer · configure → review draft cards" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- parent Space editor shell (dimmed beneath the drawer) ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc a{color:var(--text-muted);text-decoration:none;cursor:pointer;}
+.sx-bc a:hover{color:var(--brand-primary);}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+.sx-scroll{flex:1;overflow-y:auto;}
+.sx-col{max-width:1100px;margin:0 auto;padding:var(--space-5) var(--space-6) var(--space-12);display:flex;flex-direction:column;gap:var(--space-4);}
+.ghosthd{display:flex;align-items:center;gap:var(--space-3);}
+.ghosthd h1{margin:0;font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ghosthd .sub{font-size:var(--text-sm);color:var(--text-muted);}
+.ghosthd .sp{flex:1;}
+.tree{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.tree-sp{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3);font-weight:var(--weight-semibold);font-size:var(--text-sm);background:var(--bg-surface-sunken);}
+.tree-sp i{width:16px;height:16px;color:var(--text-muted);}
+.tree-sp .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-regular);}
+.tree-sp.tgt{background:var(--brand-subtle);}
+.tree-sp.tgt i,.tree-sp.tgt{color:var(--brand-primary);}
+.tree-row{padding:var(--space-3) var(--space-4) var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);}
+.tree-row:last-child{border-bottom:none;}
+.tree-row .tic{width:26px;height:26px;border-radius:var(--radius-sm);background:var(--bg-surface-sunken);color:var(--text-secondary);display:grid;place-items:center;flex:none;}
+.tree-row .tic i{width:14px;height:14px;}
+.tree-row .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tree-row .typ{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+/* ---- scrim + drawer ---- */
+.scrim{position:fixed;inset:0;background:rgba(20,18,15,.46);z-index:40;animation:fin var(--dur-base) var(--ease-standard);}
+@keyframes fin{from{opacity:0;}to{opacity:1;}}
+.drw{position:fixed;top:0;right:0;height:100vh;width:min(680px,96vw);background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:50;display:flex;flex-direction:column;animation:slidein var(--dur-base) var(--ease-entrance);}
+@media(prefers-reduced-motion:reduce){.drw,.scrim{animation:fin var(--dur-fast) var(--ease-standard);}}
+@keyframes slidein{from{transform:translateX(28px);opacity:.3;}to{transform:translateX(0);opacity:1;}}
+.drw-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5) var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:5;flex-direction:column;align-items:stretch;}
+.drw-head .row{display:flex;align-items:center;gap:var(--space-3);}
+.drw-head .hcrumb{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:2px;display:flex;align-items:center;gap:5px;}
+.drw-head .hcrumb i{width:12px;height:12px;}
+.drw-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.drw-head .hsp{flex:1;}
+.icbtn{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;flex:none;}
+.icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.icbtn i{width:17px;height:17px;}
+/* step indicator */
+.steps{display:flex;align-items:center;gap:var(--space-2);}
+.step{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-muted);}
+.step .dot{width:20px;height:20px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.step.on{color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.step.on .dot{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--text-on-accent);}
+.step.done .dot{background:var(--status-success);border-color:var(--status-success);color:var(--text-on-accent);}
+.step .dot i{width:12px;height:12px;}
+.steps .sln{width:24px;height:1px;background:var(--border-subtle);}
+.drw-body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5);}
+.drw-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;bottom:0;}
+.drw-foot .hint{font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;}
+.drw-foot .sp{flex:1;}
+/* section label */
+.seclbl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:0 0 var(--space-1);}
+.seclbl .ln{flex:1;height:1px;background:var(--border-subtle);}
+/* fields */
+.fld{display:flex;flex-direction:column;gap:6px;}
+.fld label{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);display:flex;align-items:center;gap:5px;}
+.fld .help{font-size:var(--text-2xs);color:var(--text-muted);}
+.fld .ferr{font-size:var(--text-2xs);color:var(--status-error);display:flex;align-items:center;gap:4px;}
+.fld .ferr i{width:12px;height:12px;}
+.txa{width:100%;font-family:var(--font-ui);font-size:var(--text-sm);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);resize:vertical;min-height:74px;line-height:var(--leading-sm);}
+.txa:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.txa.err{border-color:var(--status-error);}
+.sel{width:100%;font-family:var(--font-ui);font-size:var(--text-sm);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);cursor:pointer;}
+.sel:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);}
+/* tabs (source) */
+.srctabs{display:flex;gap:4px;padding:4px;background:var(--bg-surface-sunken);border-radius:var(--radius-md);border:1px solid var(--border-subtle);}
+.srctab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:none;border:none;cursor:pointer;}
+.srctab i{width:14px;height:14px;}
+.srctab.on{background:var(--bg-surface);color:var(--brand-primary);font-weight:var(--weight-semibold);box-shadow:var(--shadow-e1);}
+/* count slider */
+.slrow{display:flex;align-items:center;gap:var(--space-3);}
+.slrow input[type=range]{flex:1;accent-color:var(--brand-primary);}
+.slval{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);min-width:34px;text-align:right;}
+/* type-mix chips */
+.chiplist{display:flex;flex-wrap:wrap;gap:6px;}
+.tchip{display:inline-flex;align-items:center;gap:6px;padding:4px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;}
+.tchip:hover{border-color:var(--border-strong);}
+.tchip.on{background:var(--brand-subtle);border-color:var(--brand-primary);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.tchip .stp{display:inline-flex;align-items:center;gap:3px;margin-left:2px;}
+.tchip .stp button{width:16px;height:16px;border-radius:var(--radius-sm);border:1px solid var(--brand-primary);background:var(--bg-surface);color:var(--brand-primary);display:grid;place-items:center;cursor:pointer;font-size:11px;line-height:1;}
+.tchip .stp .n{font-family:var(--font-mono);font-size:var(--text-2xs);min-width:12px;text-align:center;}
+.tchip .stp i{width:10px;height:10px;}
+/* blooms sliders */
+.blooms{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3) var(--space-5);}
+.bloom{display:flex;flex-direction:column;gap:4px;}
+.bloom .bt{display:flex;align-items:center;font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.bloom .bt .pv{margin-left:auto;font-family:var(--font-mono);color:var(--text-muted);}
+.bloom input[type=range]{accent-color:var(--brand-primary);width:100%;}
+/* cost insight */
+.insight{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-info);background:var(--status-info-subtle);}
+.insight i.lead{width:18px;height:18px;color:var(--status-info);flex:none;margin-top:1px;}
+.insight .it{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary);}
+.insight .ib{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;line-height:var(--leading-xs);}
+.insight .mono{font-family:var(--font-mono);color:var(--text-primary);font-weight:var(--weight-medium);}
+/* banners / alerts */
+.banner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);}
+.banner i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.banner .bt{font-weight:var(--weight-semibold);font-size:var(--text-xs);}
+.banner .bb{color:var(--text-secondary);font-size:var(--text-2xs);margin-top:2px;line-height:var(--leading-xs);}
+.banner.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.banner.warn i.lead{color:var(--status-warning);}
+.banner.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.banner.err i.lead{color:var(--status-error);}
+/* review header */
+.revhd{display:flex;flex-direction:column;gap:var(--space-2);}
+.revhd .pbar-row{display:flex;align-items:center;gap:var(--space-3);}
+.revhd .pcount{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);white-space:nowrap;}
+.pbar{flex:1;height:7px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);overflow:hidden;}
+.pbar .fill{height:100%;border-radius:var(--radius-pill);background:var(--status-success);transition:width var(--dur-base) var(--ease-standard);}
+.disc{font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;}
+.disc i{width:13px;height:13px;color:var(--spark);}
+/* draft cards */
+.dlist{display:flex;flex-direction:column;gap:var(--space-3);}
+.dcard{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);animation:rise var(--dur-fast) var(--ease-entrance);}
+@media(prefers-reduced-motion:reduce){.dcard{animation:fin var(--dur-fast) var(--ease-standard);}}
+@keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.dcard.accepted{border-color:var(--status-success);background:var(--status-success-subtle);}
+.dcard.warn{border-color:var(--status-warning);}
+.dcard-hd{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dcard-hd .sp{flex:1;}
+.dcard-hd .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);}
+.tag.mono{font-family:var(--font-mono);}
+.tag i{width:11px;height:11px;}
+/* status badge — icon + text, never color alone */
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);}
+.sbadge i{width:12px;height:12px;}
+.sbadge.draft{background:var(--spark-subtle);color:var(--spark);border-color:var(--spark);}
+.sbadge.needs{background:var(--status-warning-subtle);color:var(--status-warning);border-color:var(--status-warning);}
+.sbadge.acc{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);}
+.dprompt{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm);}
+.dprompt .mono{font-family:var(--font-mono);background:var(--bg-inset);padding:1px 5px;border-radius:var(--radius-sm);font-size:var(--text-xs);}
+.dopts{display:flex;flex-direction:column;gap:6px;}
+.dopt{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);font-size:var(--text-xs);color:var(--text-secondary);}
+.dopt .mk{width:18px;height:18px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;color:var(--text-muted);flex:none;}
+/* answer-key lock */
+.keylock{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);border:1px dashed var(--border-strong);background:var(--bg-inset);font-size:var(--text-2xs);color:var(--text-secondary);}
+.keylock i{width:14px;height:14px;color:var(--text-muted);flex:none;}
+.keylock b{color:var(--text-primary);font-weight:var(--weight-semibold);}
+/* rubric preview */
+.rubric{border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;}
+.rubric .rr{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);font-size:var(--text-2xs);}
+.rubric .rr:last-child{border-bottom:none;}
+.rubric .rr .rl{flex:1;color:var(--text-secondary);font-weight:var(--weight-medium);}
+.rubric .rr .rm{font-family:var(--font-mono);color:var(--text-muted);}
+/* draft actions */
+.dacts{display:flex;align-items:center;gap:6px;padding-top:var(--space-1);border-top:1px solid var(--border-subtle);margin-top:2px;}
+.dacts .sp{flex:1;}
+.dbtn{display:inline-flex;align-items:center;gap:5px;padding:var(--space-1) var(--space-3);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;}
+.dbtn:hover{border-color:var(--border-strong);color:var(--text-primary);}
+.dbtn i{width:13px;height:13px;}
+.dbtn.danger:hover{color:var(--status-error);border-color:var(--status-error);background:var(--status-error-subtle);}
+.dbtn.acc{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.dbtn.acc:hover{background:var(--brand-primary-hover);color:var(--text-on-accent);}
+.dbtn.done{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);cursor:default;}
+/* skeleton card */
+.skcard{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.sk{border-radius:var(--radius-sm);background:linear-gradient(90deg,var(--bg-surface-sunken),var(--bg-inset),var(--bg-surface-sunken));background-size:200% 100%;animation:shim 1.2s linear infinite;}
+@keyframes shim{to{background-position:-200% 0;}}
+.skrow{display:flex;gap:6px;}
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-5);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:var(--bg-surface-sunken);}
+.empty .ic{width:46px;height:46px;border-radius:var(--radius-pill);background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-muted);display:grid;place-items:center;}
+.empty .ic i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-muted);max-width:320px;}
+/* filedrop */
+.fdrop{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-6) var(--space-4);border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface-sunken);text-align:center;cursor:pointer;}
+.fdrop:hover{border-color:var(--brand-primary);background:var(--brand-subtle);}
+.fdrop i{width:26px;height:26px;color:var(--text-muted);}
+.fdrop .ft{font-size:var(--text-sm);font-weight:var(--weight-medium);}
+.fdrop .fh{font-size:var(--text-2xs);color:var(--text-muted);}
+.uq{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-xs);}
+.uq i{width:16px;height:16px;color:var(--status-success);flex:none;}
+.uq .sp{flex:1;}
+.uq .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+/* confirm dialog */
+.dialog-scrim{position:fixed;inset:0;background:rgba(20,18,15,.5);z-index:60;display:grid;place-items:center;animation:fin var(--dur-fast) var(--ease-standard);}
+.dialog{width:min(420px,92vw);background:var(--bg-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);border:1px solid var(--border-subtle);overflow:hidden;}
+.dialog-body{padding:var(--space-5);display:flex;gap:var(--space-3);}
+.dialog-body .ic{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--status-error-subtle);color:var(--status-error);display:grid;place-items:center;flex:none;}
+.dialog-body .ct{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.dialog-body .cb{font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;line-height:var(--leading-sm);}
+.dialog-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-3) var(--space-5) var(--space-4);}
+/* toast */
+.toast{position:fixed;bottom:var(--space-5);right:var(--space-5);z-index:70;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);max-width:340px;animation:rise var(--dur-base) var(--ease-entrance);}
+.toast .lead{flex:none;}
+.toast.ok .lead{color:var(--status-success);}
+.toast.bad .lead{color:var(--status-error);}
+.toast .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.toast .tb{font-size:var(--text-2xs);color:var(--text-secondary);margin-top:2px;}
+.spin{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* demo state switcher (card chrome) */
+.demo{position:fixed;left:var(--space-4);bottom:var(--space-4);z-index:80;display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:560px;padding:var(--space-2) var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);}
+.demo .dl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;}
+.demo button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:3px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;}
+.demo button:hover{border-color:var(--border-strong);color:var(--text-primary);}
+.demo button.on{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { Icon, Button } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* 15 question types */
+const QUESTION_TYPES = [
+  ["mcq","Multiple choice"],["mcaq","Multi-select"],["true-false","True / False"],
+  ["numerical","Numerical"],["text","Short text"],["paragraph","Paragraph"],
+  ["code","Code"],["fill-blanks","Fill blanks"],["fill-blanks-dd","Fill blanks (dd)"],
+  ["matching","Matching"],["jumbled","Jumbled"],["audio","Audio"],
+  ["image_evaluation","Image eval"],["group-options","Group options"],
+  ["chat_agent_question","Chat agent"],
+];
+const MATERIAL_TYPES = [
+  ["text_material","Text"],["video","Video"],["pdf","PDF"],["image","Image"],
+  ["link","Link"],["embed","Embed"],["audio_material","Audio"],
+];
+const DIFFICULTY = [["easy","Easy"],["medium","Medium"],["hard","Hard"],["per_bloom","Per Bloom's level"]];
+const RUBRICS = [
+  ["inherit","Inherit from Space (default)"],["rb_code","Code quality v2 · 4 criteria"],
+  ["rb_essay","Analytical essay · 5 criteria"],["rb_short","Short-answer correctness"],
+];
+const BLOOMS = [["remember","Remember"],["understand","Understand"],["apply","Apply"],["analyze","Analyze"],["evaluate","Evaluate"],["create","Create"]];
+
+/* seed drafts for review phase */
+const SEED_DRAFTS = [
+  { id:"d1", type:"mcq", typeLbl:"Multiple choice", bloom:"Apply", diff:"medium", status:"draft",
+    prompt:<>Which time complexity describes binary search on a sorted array of <span className="mono">n</span> elements?</>,
+    opts:[["A","O(n)"],["B","O(log n)"],["C","O(n log n)"],["D","O(1)"]], autoEval:true },
+  { id:"d2", type:"code", typeLbl:"Code", bloom:"Apply", diff:"hard", status:"needs", aiEval:true,
+    prompt:<>Implement <span className="mono">isBalanced(s)</span> returning whether the brackets in string <span className="mono">s</span> are balanced. Use a stack; O(n) time.</>,
+    rubric:[["Correctness","9 / 10"],["Time complexity","stack, O(n)"],["Edge cases","empty + nested"],["Readability","naming + comments"]] },
+  { id:"d3", type:"numerical", typeLbl:"Numerical", bloom:"Understand", diff:"easy", status:"draft",
+    prompt:<>A hash table holds <span className="mono">48</span> keys across <span className="mono">64</span> buckets. What is its load factor? (2 d.p.)</>,
+    autoEval:true, timed:true },
+];
+
+/* ---------- dimmed parent: Space editor Content tree ---------- */
+function Nav({icon,label,count,active}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function ParentShell(){
+  return <div className="sx" aria-hidden="true">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Lyceum</div><div className="sc">SUB001 · Academy</div></div></div>
+      <div className="sx-navgrp">
+        <div className="sx-navlbl">Authoring</div>
+        <Nav icon="layout-dashboard" label="Overview"/>
+        <Nav icon="folder-tree" label="Content" active/>
+        <Nav icon="sliders-horizontal" label="Settings"/>
+        <Nav icon="bar-chart-3" label="Analytics"/>
+      </div>
+      <div className="sx-navgrp">
+        <div className="sx-navlbl">Space</div>
+        <Nav icon="git-branch" label="Story points" count="6"/>
+        <Nav icon="file-text" label="Items" count="42"/>
+        <Nav icon="scale" label="Rubrics" count="3"/>
+      </div>
+      <div className="foot">
+        <div className="sx-uc"><div className="av">RA</div>
+          <div><div className="nm">Riya A.</div><div className="rl">Teacher</div></div></div>
+      </div>
+    </aside>
+    <div className="sx-main">
+      <div className="sx-top">
+        <nav className="sx-bc"><a>Spaces</a>{I("chevron-right",14)}<a>Data Structures</a>{I("chevron-right",14)}<b>Content</b></nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search items…</span></div>
+        <button className="sx-icbtn">{I("bell",18)}</button>
+      </div>
+      <div className="sx-scroll"><div className="sx-col">
+        <div className="ghosthd">
+          <h1>Content</h1><div className="sp"></div>
+          <span className="sub">6 story points · 42 items</span>
+        </div>
+        <div className="tree">
+          <div className="tree-sp">{I("git-branch",16)}<span>Story Point 4 · Hashing &amp; Hash Tables</span><span className="ct">8 items</span></div>
+          <div className="tree-row"><span className="tic">{I("circle-dot",14)}</span><span className="tt">Open vs. closed addressing</span><span className="typ">mcq</span></div>
+          <div className="tree-row"><span className="tic">{I("code",14)}</span><span className="tt">Implement a hash set</span><span className="typ">code</span></div>
+          <div className="tree-sp tgt">{I("sparkles",16)}<span>Story Point 5 · Trees &amp; Traversals</span><span className="ct">+ generating…</span></div>
+          <div className="tree-row"><span className="tic">{I("file-text",14)}</span><span className="tt">Tree terminology primer</span><span className="typ">material</span></div>
+        </div>
+      </div></div>
+    </div>
+  </div>;
+}
+
+/* ---------- configure phase ---------- */
+function Configure({state, src, setSrc, topic, setTopic, count, setCount, diff, setDiff,
+                    qmix, toggleQ, stepQ, mats, toggleMat, blooms, setBloom, rubric, setRubric, srcEmpty}){
+  return <>
+    {state==="quota" && <div className="banner err" role="alert">
+      <span className="lead">{I("ban",18)}</span>
+      <div><div className="bt">Monthly AI budget reached — generation is paused</div>
+        <div className="bb">Ask an admin to raise the cap before drafting more items.</div></div></div>}
+    {state==="soft" && <div className="banner warn" role="status">
+      <span className="lead">{I("alert-triangle",18)}</span>
+      <div><div className="bt">You've used 80% of this month's AI budget</div>
+        <div className="bb"><span className="mono">$8.10</span> of <span className="mono">$10.00</span> used. Generation still allowed.</div></div></div>}
+    {state==="blocked" && <div className="banner err" role="alert">
+      <span className="lead">{I("shield-alert",18)}</span>
+      <div><div className="bt">This topic was blocked by the safety filter</div>
+        <div className="bb">Edit it and try again — blocked input never reaches the model.</div></div></div>}
+
+    {/* SOURCE */}
+    <div>
+      <div className="seclbl">Source<span className="ln"></span></div>
+      <div className="srctabs" role="tablist" aria-label="Generation source">
+        {[["topic","From topic","type"],["pdf","From PDF","file-up"],["followup","Follow-up from items","copy-plus"]].map(([v,l,ic])=>
+          <button key={v} role="tab" aria-selected={src===v} className={"srctab"+(src===v?" on":"")} onClick={()=>setSrc(v)}>{I(ic,14)}{l}</button>)}
+      </div>
+      <div style={{marginTop:"var(--space-3)"}}>
+        {srcEmpty ?
+          <div className="empty">
+            <div className="ic">{I("wand-sparkles",22)}</div>
+            <div className="et">Add a source to begin</div>
+            <div className="eb">Describe a topic, drop a PDF, or pick items to follow up on.</div>
+          </div>
+        : src==="topic" ?
+          <div className="fld">
+            <label htmlFor="topic">Topic or learning objective</label>
+            <textarea id="topic" className={"txa"+(state==="blocked"?" err":"")} value={topic} onChange={e=>setTopic(e.target.value)}
+              placeholder="e.g. Binary search trees: insertion, in-order traversal, and worst-case height"/>
+            {state==="blocked"
+              ? <div className="ferr" role="alert">{I("alert-circle",12)}Flagged by moderation — rephrase the objective.</div>
+              : <div className="help">Used to ground generation. The safety filter screens this before the model runs.</div>}
+          </div>
+        : src==="pdf" ?
+          <div className="fld">
+            <label>Source PDF</label>
+            <div className="fdrop">{I("file-up",26)}<div className="ft">Drop a PDF or click to upload</div>
+              <div className="fh">Max 20 MB · extracted text grounds the drafts</div></div>
+            <div className="uq">{I("check-circle-2",16)}<span className="sp">trees-chapter-7.pdf</span>
+              <span className="mono">1.8 MB · done</span></div>
+          </div>
+        :
+          <div className="fld">
+            <label>Seed items to follow up on</label>
+            <div className="chiplist">
+              <span className="tchip on">{I("check",12)}Open vs. closed addressing</span>
+              <span className="tchip on">{I("check",12)}Implement a hash set</span>
+              <span className="tchip">{I("plus",12)}Add seed item…</span>
+            </div>
+            <div className="help">New drafts mirror the difficulty and concepts of the seeds (adaptive follow-up).</div>
+          </div>}
+      </div>
+    </div>
+
+    {/* MIX & SHAPE */}
+    <div>
+      <div className="seclbl">Mix &amp; shape<span className="ln"></span></div>
+      <div className="fgrid">
+        <div className="fld">
+          <label htmlFor="cnt">Total count</label>
+          <div className="slrow">
+            <input id="cnt" type="range" min="1" max="20" value={count} onChange={e=>setCount(+e.target.value)} aria-valuetext={count+" items"}/>
+            <span className="slval">{count}</span>
+          </div>
+        </div>
+        <div className="fld">
+          <label htmlFor="dff">Difficulty</label>
+          <select id="dff" className="sel" value={diff} onChange={e=>setDiff(e.target.value)}>
+            {DIFFICULTY.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="fld" style={{marginTop:"var(--space-3)"}}>
+        <label>Question-type mix</label>
+        <div className="chiplist">
+          {QUESTION_TYPES.map(([v,l])=>{
+            const on = qmix[v]!=null;
+            return <span key={v} className={"tchip"+(on?" on":"")} onClick={()=>!on&&toggleQ(v)}>
+              {on?I("check",12):I("plus",12)}{l}
+              {on && <span className="stp" onClick={e=>e.stopPropagation()}>
+                <button aria-label={"decrease "+l} onClick={()=>stepQ(v,-1)}>{I("minus",10)}</button>
+                <span className="n">{qmix[v]}</span>
+                <button aria-label={"increase "+l} onClick={()=>stepQ(v,1)}>{I("plus",10)}</button>
+              </span>}
+            </span>;
+          })}
+        </div>
+        <div className="help">Per-type counts (mono) sum toward the total. Unset types are auto-balanced.</div>
+      </div>
+
+      <div className="fld" style={{marginTop:"var(--space-3)"}}>
+        <label>Material types</label>
+        <div className="chiplist">
+          {MATERIAL_TYPES.map(([v,l])=>{
+            const on = mats.includes(v);
+            return <span key={v} className={"tchip"+(on?" on":"")} onClick={()=>toggleMat(v)}>
+              {on?I("check",12):I("plus",12)}{l}</span>;
+          })}
+        </div>
+      </div>
+
+      <div className="fld" style={{marginTop:"var(--space-3)"}}>
+        <label>Bloom's distribution</label>
+        <div className="blooms">
+          {BLOOMS.map(([v,l])=>
+            <div className="bloom" key={v}>
+              <div className="bt">{l}<span className="pv">{blooms[v]}%</span></div>
+              <input type="range" min="0" max="100" value={blooms[v]} onChange={e=>setBloom(v,+e.target.value)}
+                aria-label={l} aria-valuetext={blooms[v]+" percent"}/>
+            </div>)}
+        </div>
+      </div>
+
+      <div className="fld" style={{marginTop:"var(--space-3)"}}>
+        <label>Rubric for graded items <span className="help" style={{fontWeight:"var(--weight-regular)"}}>(AI-graded types only)</span></label>
+        <select className="sel" value={rubric} onChange={e=>setRubric(e.target.value)}>
+          {RUBRICS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+        </select>
+      </div>
+    </div>
+
+    {/* COST PREVIEW */}
+    <div>
+      <div className="seclbl">Cost preview<span className="ln"></span></div>
+      <div className="insight" aria-live="polite">
+        <span className="lead">{I("circle-dollar-sign",18)}</span>
+        <div><div className="it">Estimated <span className="mono">~{(count*1.3).toFixed(1)}k</span> tokens · <span className="mono">~${(count*0.0016).toFixed(2)}</span></div>
+          <div className="ib">Counts against this month's AI budget. Uses prompt <span className="mono">generation.v1</span>.</div></div>
+      </div>
+    </div>
+  </>;
+}
+
+/* ---------- review phase ---------- */
+function DraftCard({d, onAccept, onDiscard}){
+  const accepted = d.status==="accepted";
+  return <div className={"dcard"+(accepted?" accepted":d.status==="needs"?" warn":"")}>
+    <div className="dcard-hd">
+      <span className="tag mono">{d.type}</span>
+      <span className="tag">{I("layers",11)}{d.bloom}</span>
+      <span className="tag">{I("gauge",11)}{d.diff}</span>
+      <span className="sp"></span>
+      {accepted
+        ? <span className="sbadge acc">{I("check-circle-2",12)}Accepted</span>
+        : d.status==="needs"
+          ? <span className="sbadge needs">{I("alert-triangle",12)}Needs edits</span>
+          : <span className="sbadge draft">{I("sparkles",12)}Draft</span>}
+    </div>
+    <div className="dprompt">{d.prompt}</div>
+    {d.opts && <div className="dopts">
+      {d.opts.map(([k,v])=><div className="dopt" key={k}><span className="mk">{k}</span>{v}</div>)}
+    </div>}
+    {d.aiEval && d.rubric && <>
+      <div className="seclbl" style={{margin:0}}>Suggested rubric<span className="ln"></span></div>
+      <div className="rubric">
+        {d.rubric.map(([l,m])=><div className="rr" key={l}><span className="rl">{l}</span><span className="rm">{m}</span></div>)}
+      </div>
+    </>}
+    {d.autoEval && <div className="keylock" role="note" aria-label="Answer key is protected on save">
+      {I("lock",14)}<span><b>Answer key hidden.</b> {d.timed
+        ? "Correct answers are stored in protected server storage on save — never sent to students."
+        : "The correct answer is stripped into server-only storage when you accept this draft."}</span></div>}
+    <div className="dacts">
+      <button className="dbtn">{I("pencil",13)}Edit</button>
+      <button className="dbtn">{I("refresh-cw",13)}Regenerate</button>
+      <button className="dbtn danger" onClick={()=>onDiscard(d.id)}>{I("x",13)}Discard</button>
+      <span className="sp"></span>
+      {accepted
+        ? <span className="dbtn done">{I("check",13)}Accepted</span>
+        : <button className="dbtn acc" onClick={()=>onAccept(d.id)}>{I("check",13)}Accept</button>}
+    </div>
+  </div>;
+}
+
+function SkeletonCard(){
+  return <div className="skcard" aria-hidden="true">
+    <div className="skrow"><div className="sk" style={{width:46,height:18}}></div><div className="sk" style={{width:60,height:18}}></div><div className="sk" style={{width:54,height:18}}></div></div>
+    <div className="sk" style={{width:"90%",height:14}}></div>
+    <div className="sk" style={{width:"72%",height:14}}></div>
+    <div className="sk" style={{width:"100%",height:34}}></div>
+    <div className="sk" style={{width:"100%",height:34}}></div>
+  </div>;
+}
+
+function Review({state, drafts, setDrafts, streaming, setToast}){
+  const total = drafts.length + (streaming?2:0);
+  const accepted = drafts.filter(d=>d.status==="accepted").length;
+  const valid = drafts.filter(d=>d.status!=="accepted").length;
+  const pct = total? Math.round((accepted/Math.max(total,1))*100):0;
+
+  const onAccept = id=>{
+    if(state==="savefail"){ setToast({k:"bad",t:"Couldn't save this item — try again",b:"Draft kept in place; no data lost."}); return; }
+    setDrafts(ds=>ds.map(d=>d.id===id?{...d,status:"accepted"}:d));
+    setToast({k:"ok",t:"1 item added to Story Point 5",b:"Trees & Traversals"});
+  };
+  const onDiscard = id=>setDrafts(ds=>ds.filter(d=>d.id!==id));
+
+  if(state==="zero") return <>
+    <div className="empty">
+      <div className="ic">{I("search-x",22)}</div>
+      <div className="et">No items generated</div>
+      <div className="eb">Try a more specific topic or fewer constraints.</div>
+      <div style={{marginTop:"var(--space-2)"}}><Button variant="secondary" size="sm" leadingIcon="refresh-cw">Regenerate</Button></div>
+    </div>
+  </>;
+
+  return <>
+    <div className="revhd">
+      <div className="disc">{I("sparkles",13)}AI drafts — review and edit each item before adding it.</div>
+      <div className="pbar-row">
+        <div className="pbar" role="progressbar" aria-valuenow={accepted} aria-valuemin="0" aria-valuemax={total} aria-valuetext={accepted+" of "+total+" accepted"}>
+          <div className="fill" style={{width:pct+"%"}}></div>
+        </div>
+        <span className="pcount">accepted {accepted} / {total}</span>
+        <Button variant="ghost" size="sm" leadingIcon="rotate-cw">Regenerate all</Button>
+      </div>
+    </div>
+
+    {state==="savefail" && <div className="banner err" role="alert">
+      <span className="lead">{I("alert-circle",18)}</span>
+      <div><div className="bt">Couldn't save the last item</div>
+        <div className="bb">The draft was returned to its un-accepted state — try Accept again.</div></div></div>}
+
+    <div className="dlist" aria-live="polite">
+      {drafts.map(d=><DraftCard key={d.id} d={d} onAccept={onAccept} onDiscard={onDiscard}/>)}
+      {streaming && <>
+        <SkeletonCard/>
+        <div className="disc" style={{justifyContent:"center"}}>{I("loader-2",13)}<span>Generating item 4 of 5…</span></div>
+      </>}
+    </div>
+  </>;
+}
+
+/* ---------- screen ---------- */
+function Screen(){
+  const [state,setState]=useState("default"); // default | streaming | empty | zero | soft | quota | blocked | savefail | success
+  const [phase,setPhase]=useState("configure"); // configure | review
+  const [open,setOpen]=useState(true);
+  const [confirm,setConfirm]=useState(null);
+  const [toast,setToast]=useState(null);
+
+  // config state
+  const [src,setSrc]=useState("topic");
+  const [topic,setTopic]=useState("Binary search trees: insertion, in-order traversal, and worst-case height of an unbalanced tree.");
+  const [count,setCount]=useState(7);
+  const [diff,setDiff]=useState("medium");
+  const [qmix,setQmix]=useState({mcq:3, code:2, numerical:1});
+  const [mats,setMats]=useState(["text_material"]);
+  const [blooms,setBlooms]=useState({remember:10,understand:25,apply:40,analyze:15,evaluate:5,create:5});
+  const [rubric,setRubric]=useState("rb_code");
+
+  // review state
+  const [drafts,setDrafts]=useState(SEED_DRAFTS);
+
+  const srcEmpty = state==="empty";
+  const streaming = state==="streaming";
+  const nItems = count;
+  const validCount = drafts.filter(d=>d.status!=="accepted").length;
+
+  const toggleQ=v=>setQmix(m=>({...m,[v]:1}));
+  const stepQ=(v,d)=>setQmix(m=>{ const n=Math.max(0,(m[v]||0)+d); if(n===0){const c={...m};delete c[v];return c;} return {...m,[v]:n};});
+  const toggleMat=v=>setMats(s=>s.includes(v)?s.filter(x=>x!==v):[...s,v]);
+  const setBloom=(v,n)=>setBlooms(b=>({...b,[v]:n}));
+
+  const goReview=()=>{ setPhase("review"); };
+  const closeAttempt=()=>{ if(phase==="review" && drafts.some(d=>d.status!=="accepted")) setConfirm("close"); else setOpen(false); };
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){const t=setTimeout(()=>setToast(null),3200);return()=>clearTimeout(t);} },[toast]);
+  // sync phase to demo state
+  useEffect(()=>{
+    if(["streaming","zero","savefail","success"].includes(state)) setPhase("review");
+    else setPhase("configure");
+    if(["streaming","zero","savefail","success","default","empty","soft","quota","blocked"].includes(state)) setOpen(true);
+  },[state]);
+
+  const genDisabled = state==="quota" || srcEmpty;
+
+  return <>
+    <ParentShell/>
+    {open && <>
+      <div className="scrim" onClick={closeAttempt}></div>
+      <aside className="drw" role="dialog" aria-modal="true" aria-label="Generate content">
+        <div className="drw-head">
+          <div className="row">
+            <button className="icbtn" aria-label={phase==="review"?"Back to configure":"Close"}
+              onClick={()=>phase==="review"?setPhase("configure"):closeAttempt()}>{I("arrow-left",17)}</button>
+            <div>
+              <div className="hcrumb">{I("git-branch",12)}Data Structures · Story Point 5 · Trees &amp; Traversals</div>
+              <h2>{phase==="review"?`Review ${drafts.length} drafts`:"Generate content"}</h2>
+            </div>
+            <div className="hsp"></div>
+            <button className="icbtn" aria-label="Close" onClick={closeAttempt}>{I("x",17)}</button>
+          </div>
+          <div className="steps" aria-label="Progress">
+            <span className={"step "+(phase==="review"?"done":"on")}>
+              <span className="dot">{phase==="review"?I("check",12):"1"}</span>Configure</span>
+            <span className="sln"></span>
+            <span className={"step "+(phase==="review"?"on":"")}>
+              <span className="dot">2</span>Review</span>
+          </div>
+        </div>
+
+        <div className="drw-body">
+          {phase==="configure"
+            ? <Configure {...{state,src,setSrc,topic,setTopic,count,setCount,diff,setDiff,qmix,toggleQ,stepQ,mats,toggleMat,blooms,setBloom,rubric,setRubric,srcEmpty}}/>
+            : <Review {...{state,drafts,setDrafts,streaming,setToast}}/>}
+        </div>
+
+        <div className="drw-foot">
+          {phase==="configure" ? <>
+            <span className="hint">{I("info",13)}Drafts only — nothing publishes automatically.</span>
+            <span className="sp"></span>
+            <Button variant="ghost" onClick={closeAttempt}>Cancel</Button>
+            <Button variant="spark" leadingIcon="sparkles" disabled={genDisabled}
+              onClick={()=>{ if(!genDisabled) setState("streaming"); }}>
+              {state==="streaming"?"Generating…":`Generate ${nItems} items`}</Button>
+          </> : <>
+            <Button variant="danger" leadingIcon="trash-2" onClick={()=>setConfirm("discardall")}>Discard all</Button>
+            <span className="sp"></span>
+            <Button variant="primary" leadingIcon="check-check" disabled={validCount===0}
+              onClick={()=>{ setDrafts(ds=>ds.map(d=>({...d,status:"accepted"}))); setToast({k:"ok",t:`${validCount} items added to Story Point 5`,b:"Trees & Traversals"}); }}>
+              Accept all valid ({validCount})</Button>
+          </>}
+        </div>
+      </aside>
+    </>}
+
+    {/* confirm dialog */}
+    {confirm && <div className="dialog-scrim" onClick={()=>setConfirm(null)}>
+      <div className="dialog" role="alertdialog" aria-modal="true" onClick={e=>e.stopPropagation()}>
+        <div className="dialog-body">
+          <div className="ic">{I("alert-triangle",19)}</div>
+          <div>
+            <div className="ct">{confirm==="close"?"Close with un-accepted drafts?":"Discard all drafts?"}</div>
+            <div className="cb">You have {validCount} un-accepted drafts. Discard them?</div>
+          </div>
+        </div>
+        <div className="dialog-foot">
+          <Button variant="ghost" autoFocus onClick={()=>setConfirm(null)}>Keep reviewing</Button>
+          <Button variant="danger" onClick={()=>{ setConfirm(null); if(confirm==="discardall"){setDrafts([]);} setOpen(false); }}>Discard them</Button>
+        </div>
+      </div>
+    </div>}
+
+    {/* toast */}
+    {toast && <div className={"toast "+(toast.k==="ok"?"ok":"bad")} role="status">
+      <span className="lead">{I(toast.k==="ok"?"check-circle-2":"alert-circle",18)}</span>
+      <div><div className="tt">{toast.t}</div><div className="tb">{toast.b}</div></div>
+    </div>}
+
+    {/* demo state switcher (card chrome — not part of the screen) */}
+    <div className="demo" role="group" aria-label="Preview states">
+      <span className="dl">state</span>
+      {[["default","Configure"],["empty","Empty source"],["soft","Budget 80%"],["quota","Budget blocked"],
+        ["blocked","Safety block"],["streaming","Streaming"],["savefail","Save failed"],["zero","Zero results"]].map(([v,l])=>
+        <button key={v} className={state===v?"on":""} onClick={()=>{ if(v!=="zero"&&v!=="streaming"&&v!=="savefail") setDrafts(SEED_DRAFTS); setState(v); }}>{l}</button>)}
+    </div>
+  </>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

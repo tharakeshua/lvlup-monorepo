@@ -70,6 +70,7 @@ import {
   listPlatformActivityService,
   getCostSummaryService,
   getAssignmentMatrixService,
+  getSpaceAnalyticsService,
   // report
   generateReportService,
   // analytics-canonical twins (disambiguated names — see header)
@@ -192,6 +193,7 @@ export const getAssignmentMatrix = call(
   "v1.analytics.getAssignmentMatrix",
   getAssignmentMatrixService
 );
+export const getSpaceAnalytics = call("v1.analytics.getSpaceAnalytics", getSpaceAnalyticsService);
 
 // report (PDF/CSV generation)
 export const generateReport = call("v1.analytics.generateReport", generateReportService);

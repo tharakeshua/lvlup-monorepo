@@ -30,10 +30,15 @@ export * from "./save-space-review.js";
 export * from "./purchase-space.js";
 export * from "./assign-content.js";
 export * from "./generate-content.js";
+export * from "./start-conversation.js";
+export * from "./send-conversation-turn.js";
+export * from "./finish-conversation.js";
+export * from "./abandon-conversation.js";
 
 // ── reads ─────────────────────────────────────────────────────────────────
 export * from "./list-spaces.js";
 export * from "./get-space.js";
+export * from "./get-evaluation-config.js";
 export * from "./list-story-points.js";
 export * from "./get-story-point.js";
 export * from "./list-items.js";
@@ -52,9 +57,12 @@ export * from "./get-story-point-progress.js";
 export * from "./list-space-progress-for-user.js";
 export * from "./get-test-session.js";
 export * from "./list-test-sessions.js";
+export * from "./get-conversation.js";
+export * from "./list-conversations.js";
 
 // ── shared view/response fragments ────────────────────────────────────────
 export * from "./_shared.js";
+export * from "./_conversation-shared.js";
 
 import type { CallableDef } from "../../callable-def.js";
 
@@ -76,8 +84,13 @@ import { saveSpaceReviewDef } from "./save-space-review.js";
 import { purchaseSpaceDef } from "./purchase-space.js";
 import { assignContentDef } from "./assign-content.js";
 import { generateContentDef } from "./generate-content.js";
+import { startConversationDef } from "./start-conversation.js";
+import { sendConversationTurnDef } from "./send-conversation-turn.js";
+import { finishConversationDef } from "./finish-conversation.js";
+import { abandonConversationDef } from "./abandon-conversation.js";
 import { listSpacesDef } from "./list-spaces.js";
 import { getSpaceDef } from "./get-space.js";
+import { getEvaluationConfigDef } from "./get-evaluation-config.js";
 import { listStoryPointsDef } from "./list-story-points.js";
 import { getStoryPointDef } from "./get-story-point.js";
 import { listItemsDef } from "./list-items.js";
@@ -96,6 +109,8 @@ import { getStoryPointProgressDef } from "./get-story-point-progress.js";
 import { listSpaceProgressForUserDef } from "./list-space-progress-for-user.js";
 import { getTestSessionDef } from "./get-test-session.js";
 import { listTestSessionsDef } from "./list-test-sessions.js";
+import { getConversationDef } from "./get-conversation.js";
+import { listConversationsDef } from "./list-conversations.js";
 
 /**
  * The named record of levelup CONTENT + TESTSESSION CallableDefs (this agent's
@@ -125,8 +140,13 @@ export const LEVELUP_CONTENT_CALLABLES = {
   "v1.levelup.purchaseSpace": purchaseSpaceDef,
   "v1.levelup.assignContent": assignContentDef,
   "v1.levelup.generateContent": generateContentDef,
+  "v1.levelup.startConversation": startConversationDef,
+  "v1.levelup.sendConversationTurn": sendConversationTurnDef,
+  "v1.levelup.finishConversation": finishConversationDef,
+  "v1.levelup.abandonConversation": abandonConversationDef,
   "v1.levelup.listSpaces": listSpacesDef,
   "v1.levelup.getSpace": getSpaceDef,
+  "v1.levelup.getEvaluationConfig": getEvaluationConfigDef,
   "v1.levelup.listStoryPoints": listStoryPointsDef,
   "v1.levelup.getStoryPoint": getStoryPointDef,
   "v1.levelup.listItems": listItemsDef,
@@ -145,6 +165,8 @@ export const LEVELUP_CONTENT_CALLABLES = {
   "v1.levelup.listSpaceProgressForUser": listSpaceProgressForUserDef,
   "v1.levelup.getTestSession": getTestSessionDef,
   "v1.levelup.listTestSessions": listTestSessionsDef,
+  "v1.levelup.getConversation": getConversationDef,
+  "v1.levelup.listConversations": listConversationsDef,
 } as const satisfies Record<string, CallableDef>;
 
 /** The fully-qualified `v1.levelup.*` content/testsession names this agent defines. */

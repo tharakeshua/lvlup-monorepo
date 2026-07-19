@@ -177,4 +177,55 @@ describe("createAiGateway", () => {
     expect(err.code).toBe("INTERNAL_ERROR");
     expect(provider.call.mock.calls.length).toBe(callsBefore); // short-circuited
   });
+
+  it("logs a sanitized provider cause while preserving the stable gateway error", async () => {
+    const repos = makeRepos();
+    const providerError = Object.assign(
+      new Error("response_schema.items missing; key=AIza123456789012345678901234567890"),
+      { status: 400, statusText: "Bad Request" }
+    );
+    const provider = {
+      name: "gemini" as const,
+      call: vi.fn(async () => {
+        throw providerError;
+      }),
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const gw = createAiGateway({
+      repos,
+      secretResolver,
+      providerFactory: () => provider,
+      maxRetries: 1,
+    });
+
+    const error = await gw
+      .generate(
+        {
+          operation: "questions.extract",
+          promptKey: "answerGrading",
+          variables: { question: "q", maxMarks: 5, rubric: "r", answer: "a" },
+        },
+        ctx
+      )
+      .catch((cause) => cause);
+
+    expect(error).toMatchObject({
+      code: "INTERNAL_ERROR",
+      message: "AI provider call failed",
+      cause: providerError,
+    });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[ai-gateway] provider call failed",
+      expect.objectContaining({
+        operation: "questions.extract",
+        error: expect.objectContaining({
+          status: 400,
+          statusText: "Bad Request",
+          message: expect.stringContaining("response_schema.items missing"),
+        }),
+      })
+    );
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("AIza123");
+    errorSpy.mockRestore();
+  });
 });

@@ -5,12 +5,16 @@ import { Plus, Search, ClipboardList } from "lucide-react";
 import { Button, Input, StatusBadge } from "@levelup/shared-ui";
 import type { Exam, ExamStatus } from "@levelup/shared-types";
 
-const STATUS_TABS: { label: string; value: ExamStatus | "all" }[] = [
+type ExamListStatus = Exclude<ExamStatus, "completed">;
+
+const STATUS_TABS: { label: string; value: ExamListStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Draft", value: "draft" },
+  { label: "Uploaded", value: "question_paper_uploaded" },
+  { label: "Extracted", value: "question_paper_extracted" },
   { label: "Published", value: "published" },
   { label: "Grading", value: "grading" },
-  { label: "Completed", value: "completed" },
+  { label: "Released", value: "results_released" },
   { label: "Archived", value: "archived" },
 ];
 
@@ -26,12 +30,12 @@ function asArray<T>(d: unknown): T[] {
 }
 
 export default function ExamListPage() {
-  const [activeTab, setActiveTab] = useState<ExamStatus | "all">("all");
+  const [activeTab, setActiveTab] = useState<ExamListStatus | "all">("all");
   const [search, setSearch] = useState("");
 
   // Query hooks are claims-scoped server-side — no tenantId arg.
-  const statusFilter = activeTab === "all" ? undefined : activeTab;
-  const { data, isLoading } = useExams({ status: statusFilter });
+  const examFilter = activeTab === "all" ? undefined : { status: activeTab };
+  const { data, isLoading, isError } = useExams(examFilter);
   const exams = useMemo(() => asArray<Exam>(data), [data]);
 
   const filtered = exams.filter((e: Exam) => e.title.toLowerCase().includes(search.toLowerCase()));
@@ -91,6 +95,10 @@ export default function ExamListPage() {
               className="border-subtle bg-surface-sunken h-20 animate-pulse rounded-lg border"
             />
           ))}
+        </div>
+      ) : isError ? (
+        <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-4 py-3 text-sm">
+          Failed to load exams. Please refresh and try again.
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">

@@ -34,8 +34,15 @@ describe("services unit (in-memory fakes)", () => {
         spaceId,
         storyPointId,
         data: {
-          payload: { kind: "question", question: { type: "short_answer", prompt: "q" } },
-          answerKey: { correctAnswer: "secret", acceptableAnswers: ["secret"] },
+          type: "question",
+          payload: {
+            type: "question",
+            questionData: {
+              questionType: "text",
+              modelAnswer: "secret",
+              acceptableAnswers: ["secret"],
+            },
+          },
         },
       },
       ctx

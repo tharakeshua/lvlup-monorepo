@@ -1,0 +1,437 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Teacher Dashboard" subtitle="Operational triage · KPI strip · attention feed · my-classes grid" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* screen-local layout only — Lyceum vars only, NO raw hex, NO :root redefinition */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+.dash{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2)}
+.pagehead__sub .u-mono{color:var(--text-muted)}
+
+/* kpi strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.kpi{position:relative}
+.kpi .stat{height:100%}
+.kpi__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.kpi__cap--warn{color:var(--status-warning)}
+.kpi__cap .u-mono{font-family:var(--font-mono)}
+
+/* two column region */
+.cols{display:grid;grid-template-columns:3fr 2fr;gap:var(--space-6);align-items:start}
+.rightcol{display:flex;flex-direction:column;gap:var(--space-6)}
+
+/* card chrome */
+.dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.dcard__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.dcard__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.dcard__foot{padding:var(--space-3) var(--space-5) var(--space-4);border-top:1px solid var(--border-subtle)}
+.dcard__stamp{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted)}
+.dcard__stamp .u-mono{font-family:var(--font-mono)}
+
+/* attention rows */
+.attn-list{display:flex;flex-direction:column}
+.attn-row{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-4) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.attn-row:first-child{border-top:none}
+.attn-row:hover{background:var(--bg-surface-sunken)}
+.attn-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.attn-row__ico{flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.attn-row__ico--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.attn-row__ico--info{background:var(--status-info-subtle);color:var(--status-info)}
+.attn-row__ico--err{background:var(--status-error-subtle);color:var(--status-error)}
+.attn-row__main{flex:1 1 auto;min-width:0}
+.attn-row__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.attn-row__meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.attn-row__meta .u-mono{font-family:var(--font-mono)}
+.attn-row__chev{flex:0 0 auto;color:var(--text-muted)}
+
+/* notifications rows */
+.notif-list{display:flex;flex-direction:column}
+.notif-row{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-3) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.notif-row:first-child{border-top:none}
+.notif-row:hover{background:var(--bg-surface-sunken)}
+.notif-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.notif-row__dot{flex:0 0 auto;width:8px;height:8px;border-radius:var(--radius-pill);margin-top:6px;background:var(--brand-primary)}
+.notif-row__dot--read{background:var(--border-strong)}
+.notif-row__main{flex:1 1 auto;min-width:0}
+.notif-row__title{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.notif-row__title--read{color:var(--text-secondary)}
+.notif-row__time{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+
+/* ai usage */
+.ai-stats{display:flex;gap:var(--space-6);padding:0 var(--space-5) var(--space-4)}
+.ai-budget{padding:0 var(--space-5) var(--space-5)}
+.ai-budget__row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.ai-budget__lab{font-size:var(--text-xs);color:var(--text-secondary)}
+.ai-budget__val{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+
+/* my classes grid */
+.classgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.classtile{display:flex;flex-direction:column;gap:var(--space-3);text-align:left;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+.classtile:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong)}
+.classtile:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.classtile__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2)}
+.classtile__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:var(--leading-base);letter-spacing:-.01em;color:var(--text-primary)}
+.classtile__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px}
+.classtile__metrics{display:flex;align-items:center;gap:var(--space-4);margin-top:auto}
+.classtile__metric{display:flex;flex-direction:column;gap:2px}
+.classtile__mlabel{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.classtile__mval{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+
+/* states rail */
+.staterail{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+.statemini{flex:1 1 280px;min-width:260px;display:flex;flex-direction:column;gap:var(--space-2)}
+.statemini__body{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);min-height:120px;display:flex;flex-direction:column;gap:var(--space-3)}
+.sk-row{display:flex;align-items:center;gap:var(--space-3)}
+
+.u-mono{font-family:var(--font-mono)}
+.u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+@media (prefers-reduced-motion: reduce){.attn-row,.notif-row,.classtile{transition:none}}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Badge, Chip, Skeleton, Alert, EmptyState,
+  Stat, AtRiskBadge, InsightCard, ProgressBar, GradePill, NavItem } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+/* ---------- App shell (canonical) ---------- */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---------- sample data (server-authoritative, read-only) ---------- */
+const ATTENTION = [
+  { id:'a1', kind:'at-risk', ico:'alert-triangle', tone:'err',
+    name:'Aarav Mehta', badge:true,
+    meta:'DSA · Grade 11-A · Low recent scores · Zero streak · Inactive 9 days',
+    href:'/students/stu_8842/report' },
+  { id:'a2', kind:'at-risk', ico:'alert-triangle', tone:'warn',
+    name:'Priya Nair', badge:'watch',
+    meta:'System Design · Grade 11-B · Declining completion · 2 missed exams',
+    href:'/students/stu_9013/report' },
+  { id:'a3', kind:'review', ico:'inbox', tone:'info',
+    name:'Midterm — Data Structures', badge:false,
+    meta:'14 submissions awaiting review', href:'/exams/ex_4471/submissions' },
+  { id:'a4', kind:'release', ico:'send', tone:'info',
+    name:'Unit Test — Graph Algorithms', badge:false,
+    meta:'Results ready to release', href:'/exams/ex_4288' },
+  { id:'a5', kind:'lowclass', ico:'trending-down', tone:'warn',
+    name:'LLD · Grade 12-C', badge:false,
+    meta:'Avg 58% — below 65%', href:'/classes/cls_lld_12c' },
+];
+
+const NOTIFS = [
+  { id:'n1', title:'Aarav Mehta was flagged at-risk by the nightly review.', time:'2h ago', unread:true },
+  { id:'n2', title:'Grading completed for "Midterm — Data Structures".', time:'5h ago', unread:true },
+  { id:'n3', title:'Sarah Kim released results for "Quiz 3 — Recursion".', time:'Yesterday', unread:false },
+  { id:'n4', title:'New space "Dynamic Programming" published to Grade 11-A.', time:'Yesterday', unread:false },
+  { id:'n5', title:'Monthly analytics digest is ready.', time:'2 days ago', unread:false },
+];
+
+const CLASSES = [
+  { id:'cls_dsa_11a', name:'DSA · Grade 11-A', code:'DSA-11A', students:42, avg:78, atRisk:1 },
+  { id:'cls_sd_11b',  name:'System Design · 11-B', code:'SD-11B', students:38, avg:71, atRisk:1 },
+  { id:'cls_lld_12c', name:'LLD · Grade 12-C', code:'LLD-12C', students:35, avg:58, atRisk:3 },
+  { id:'cls_beh_11a', name:'Behavioral · 11-A', code:'BEH-11A', students:44, avg:84, atRisk:0 },
+  { id:'cls_dsa_12b', name:'DSA · Grade 12-B', code:'DSA-12B', students:40, avg:80, atRisk:0 },
+  { id:'cls_sd_12a',  name:'System Design · 12-A', code:'SD-12A', students:37, avg:73, atRisk:1 },
+  { id:'cls_lld_11c', name:'LLD · Grade 11-C', code:'LLD-11C', students:33, avg:69, atRisk:2 },
+  { id:'cls_beh_12b', name:'Behavioral · 12-B', code:'BEH-12B', students:29, avg:82, atRisk:0 },
+];
+
+function go(href){ /* navigation deep-link (no-op in prototype) */ }
+
+/* ---------- regions ---------- */
+function AttentionCard(){
+  return (
+    <section className="dcard" aria-labelledby="attn-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="attn-title">Attention needed</h2>
+          <div className="dcard__sub"><span className="u-mono">5</span> items across your classes</div>
+        </div>
+        <span className="dcard__stamp"><Icon name="server" size={12}/> Last updated <span className="u-mono">14 min ago</span></span>
+      </div>
+      <ul className="attn-list" role="list" style={{margin:0,padding:0,listStyle:'none'}}>
+        {ATTENTION.map(r=>(
+          <li key={r.id} role="listitem">
+            <button className="attn-row" onClick={()=>go(r.href)} aria-label={r.name + ' — ' + r.meta}>
+              <span className={'attn-row__ico attn-row__ico--'+r.tone}><Icon name={r.ico} size={16}/></span>
+              <span className="attn-row__main">
+                <span className="attn-row__name">
+                  {r.name}
+                  {r.badge===true && <AtRiskBadge>At risk</AtRiskBadge>}
+                  {r.badge==='watch' && <AtRiskBadge level="watch">Watch</AtRiskBadge>}
+                  {r.kind==='lowclass' && <GradePill grade="D" score="58%"/>}
+                </span>
+                <span className="attn-row__meta">{r.meta}</span>
+              </span>
+              <span className="attn-row__chev"><Icon name="chevron-right" size={18}/></span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="dcard__foot">
+        <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('/analytics/at-risk')}>See all attention items</Button>
+      </div>
+    </section>
+  );
+}
+
+function NotificationsCard(){
+  const [items,setItems]=useState(NOTIFS);
+  const markRead=(id)=>setItems(prev=>prev.map(n=>n.id===id?{...n,unread:false}:n));
+  return (
+    <section className="dcard" aria-labelledby="notif-title">
+      <div className="dcard__head">
+        <h2 className="dcard__title" id="notif-title">Recent</h2>
+        <Badge variant="brand">{items.filter(n=>n.unread).length} new</Badge>
+      </div>
+      <ul className="notif-list" role="list" style={{margin:0,padding:0,listStyle:'none'}}>
+        {items.map(n=>(
+          <li key={n.id} role="listitem">
+            <button className="notif-row" onClick={()=>markRead(n.id)} aria-label={(n.unread?'Unread. ':'')+n.title+' '+n.time}>
+              <span className={'notif-row__dot'+(n.unread?'':' notif-row__dot--read')} aria-label={n.unread?'Unread':undefined}></span>
+              <span className="notif-row__main">
+                <span className={'notif-row__title'+(n.unread?'':' notif-row__title--read')}>{n.title}</span>
+                <span className="notif-row__time">{n.time}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="dcard__foot">
+        <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('/notifications')}>View all</Button>
+      </div>
+    </section>
+  );
+}
+
+function AiUsageCard(){
+  const spentMonth=412.80, budget=600;
+  const pct=Math.round((spentMonth/budget)*100);
+  return (
+    <section className="dcard" aria-labelledby="ai-title">
+      <div className="dcard__head">
+        <div>
+          <h2 className="dcard__title" id="ai-title">AI usage</h2>
+          <div className="dcard__sub">Tenant admin only</div>
+        </div>
+        <Badge variant="info" icon={<Icon name="cpu" size={12}/>}>Admin</Badge>
+      </div>
+      <div className="ai-stats">
+        <Stat label="Spent today" value="$18.64"/>
+        <Stat label="This month" value="$412.80"/>
+      </div>
+      <div className="ai-budget">
+        <div className="ai-budget__row">
+          <span className="ai-budget__lab">Budget headroom</span>
+          <span className="ai-budget__val">${spentMonth.toFixed(2)} of ${budget.toFixed(2)}</span>
+        </div>
+        <ProgressBar value={pct} variant={pct>=80?'warning':undefined}/>
+        <div className="dcard__stamp" style={{marginTop:'var(--space-2)'}}><Icon name="server" size={12}/> <span className="u-mono">{pct}%</span> of this month's budget</div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- states rail ---------- */
+function StatesRail(){
+  return (
+    <section aria-labelledby="states-title">
+      <h2 className="dcard__title" id="states-title" style={{marginBottom:'var(--space-2)'}}>States</h2>
+      <div className="dcard__sub" style={{marginBottom:'var(--space-5)'}}>Every spec'd readiness, empty, error and role-gated variant in one place.</div>
+      <div className="staterail">
+        <div className="statemini">
+          <span className="u-caption">Loading (skeleton)</span>
+          <div className="statemini__body">
+            <Skeleton variant="text" width="55%" height={14}/>
+            <div className="sk-row"><Skeleton variant="circle" width={28} height={28}/><Skeleton variant="text" width="70%" height={12}/></div>
+            <div className="sk-row"><Skeleton variant="circle" width={28} height={28}/><Skeleton variant="text" width="60%" height={12}/></div>
+            <div className="sk-row"><Skeleton variant="circle" width={28} height={28}/><Skeleton variant="text" width="65%" height={12}/></div>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Empty — attention (good)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="check-circle-2" title="You're all caught up"
+              body="No at-risk students, pending reviews, or flagged classes right now."/>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Empty — no classes (teacher)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="book-open" title="No classes assigned yet"
+              body="Your administrator hasn't assigned you to any classes. Reach out to them to get started."/>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Error — per card</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="error" title="Couldn't load attention feed">
+              Something went wrong fetching this data.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Role-gated — quota banner (admin ≥80%)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <Alert variant="warning" title="AI budget alert">
+              AI usage is at <span className="u-mono">69%</span> of this month's budget.
+            </Alert>
+          </div>
+        </div>
+
+        <div className="statemini">
+          <span className="u-caption">Role-gated — teacher (no AI card)</span>
+          <div className="statemini__body" style={{justifyContent:'center'}}>
+            <EmptyState icon="eye-off" title="AI usage hidden"
+              body="A plain teacher's bundle never requests cost data — the card is omitted entirely, not disabled."/>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- page ---------- */
+function App(){
+  return (
+    <Shell active="dashboard">
+      <div className="dash">
+
+        <div className="pagehead">
+          <div>
+            <h1>Dashboard</h1>
+            <div className="pagehead__sub">Good morning, Tara. · <span className="u-mono">Saturday, June 20</span></div>
+          </div>
+          <Button variant="ghost" trailingIcon={<Icon name="arrow-right" size={16}/>} onClick={()=>go('/analytics/classes')}>View analytics</Button>
+        </div>
+
+        <div className="kpis" role="group" aria-label="Key metrics">
+          <div className="kpi" aria-label="Active classes: 8">
+            <Stat label="Active classes" value="8"/>
+            <div className="kpi__cap"><Icon name="users" size={12}/> across this tenant</div>
+          </div>
+          <div className="kpi" aria-label="Students taught: 298, 6 at risk">
+            <Stat label="Students taught" value="298"/>
+            <div className="kpi__cap kpi__cap--warn"><Icon name="alert-triangle" size={12}/> <span className="u-mono">6</span> at risk</div>
+          </div>
+          <div className="kpi" aria-label="Average class performance: 74 percent">
+            <Stat label="Avg class performance" value="74%" delta="2.1%" trend="up"/>
+            <div className="kpi__cap"><Icon name="server" size={12}/> last updated <span className="u-mono">14 min ago</span></div>
+          </div>
+          <div className="kpi" aria-label="Submissions awaiting review: 23">
+            <Stat label="Submissions awaiting review" value="23"/>
+            <div className="kpi__cap"><Icon name="file-text" size={12}/> across <span className="u-mono">4</span> exams</div>
+          </div>
+        </div>
+
+        <Alert variant="warning" title="AI usage at 69% of budget">
+          AI usage is at <span className="u-mono">69%</span> of this month's budget. <span style={{color:'var(--text-muted)'}}>Visible to tenant admins only.</span>
+        </Alert>
+
+        <div className="cols">
+          <AttentionCard/>
+          <div className="rightcol">
+            <NotificationsCard/>
+            <AiUsageCard/>
+          </div>
+        </div>
+
+        <section aria-labelledby="classes-title">
+          <div className="dcard__head" style={{padding:'0 0 var(--space-4)'}}>
+            <div>
+              <h2 className="dcard__title" id="classes-title" style={{fontSize:'var(--text-xl)'}}>My classes</h2>
+              <div className="dcard__sub"><span className="u-mono">8</span> classes in this tenant</div>
+            </div>
+            <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('/classes')}>All classes</Button>
+          </div>
+          <div className="classgrid" role="list">
+            {CLASSES.map(c=>(
+              <button key={c.id} className="classtile" role="listitem" onClick={()=>go('/classes/'+c.id)}
+                aria-label={c.name + ', ' + c.students + ' students, average ' + c.avg + ' percent' + (c.atRisk? ', ' + c.atRisk + ' at risk':'')}>
+                <div className="classtile__top">
+                  <div>
+                    <div className="classtile__name">{c.name}</div>
+                    <div className="classtile__code">{c.code}</div>
+                  </div>
+                  {c.atRisk>0 && <Chip><Icon name="alert-triangle" size={12}/> {c.atRisk} at risk</Chip>}
+                </div>
+                <div className="classtile__metrics">
+                  <div className="classtile__metric">
+                    <span className="classtile__mlabel">Students</span>
+                    <span className="classtile__mval">{c.students}</span>
+                  </div>
+                  <div className="classtile__metric">
+                    <span className="classtile__mlabel">Avg</span>
+                    <span className="classtile__mval">{c.avg}%</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <StatesRail/>
+
+      </div>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

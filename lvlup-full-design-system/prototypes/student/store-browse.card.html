@@ -1,0 +1,520 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Store (Browse)" subtitle="B2C marketplace · SpaceCard catalog · search/filter" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store (Browse)</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  .frame { height: 860px; overflow: hidden; }
+  .scroll { overflow-y: auto; height: 100%; }
+
+  .page { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-12); }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+  .page-head h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0 0 var(--space-1); }
+  .page-sub { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
+  .head-title-row { display: flex; align-items: center; gap: var(--space-3); }
+
+  /* filter / search / sort bar */
+  .toolbar { display: flex; flex-direction: column; gap: var(--space-3); }
+  .toolbar__row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .toolbar__search { position: relative; flex: 1; min-width: 240px; max-width: 420px; }
+  .toolbar__search .input { padding-left: var(--space-10); }
+  .toolbar__search-icon { position: absolute; left: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: inline-flex; }
+  .toolbar__sel { display: flex; align-items: center; gap: var(--space-2); }
+  .toolbar__sel label { font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-medium); }
+  .toolbar__filter-mobile { margin-left: auto; }
+  .toolbar__chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .chip-btn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+  .chip-btn .chip { display: inline-flex; align-items: center; gap: var(--space-1); cursor: pointer; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+
+  /* store SpaceCard */
+  .sc { cursor: pointer; display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: box-shadow var(--dur-fast) var(--ease-standard); }
+  .sc:hover { box-shadow: var(--shadow-e2); }
+  .sc:hover .sc__title { color: var(--brand-primary); }
+  .sc__thumb { height: 132px; background: var(--bg-surface-sunken); display: grid; place-items: center; color: var(--text-muted); position: relative; }
+  .sc__thumb--spark { background: var(--brand-subtle); color: var(--brand-primary); }
+  .sc__thumb-badges { position: absolute; left: var(--space-3); top: var(--space-3); display: flex; gap: var(--space-2); }
+  .sc__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
+  .sc__tags { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .sc__title { font-family: var(--font-display); font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); margin: 0; transition: color var(--dur-fast) var(--ease-standard); }
+  .sc__desc { color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--leading-base); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sc__labels { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .sc__meta { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); flex-wrap: wrap; }
+  .sc__meta .u-num { font-family: var(--font-mono); color: var(--text-secondary); }
+  .sc__meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-strong); display: inline-block; }
+  .sc__rating { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); margin-top: auto; }
+  .sc__stars { display: inline-flex; align-items: center; gap: 1px; color: var(--spark); }
+  .sc__stars .star-empty { color: var(--border-strong); }
+  .sc__rating-num { font-family: var(--font-mono); color: var(--text-secondary); }
+  .sc__rating-new { font-size: var(--text-xs); color: var(--text-muted); font-style: italic; margin-top: auto; }
+  .sc__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-subtle); }
+  .sc__price { display: flex; align-items: baseline; gap: var(--space-2); }
+  .sc__price-amt { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--text-primary); }
+  .sc__price-amt--owned { font-family: var(--font-ui); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-muted); }
+  .sc__action { display: flex; }
+
+  .load-more { display: flex; justify-content: center; padding-top: var(--space-2); }
+
+  /* secondary state blocks */
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: var(--space-4) 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .eyebrow::before { content: ""; height: 1px; width: var(--space-6); background: var(--border-subtle); }
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+  .state-box { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--bg-surface); }
+  .state-box--full { grid-column: 1 / -1; }
+  .state-cap { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 var(--space-3); }
+
+  .skelcard { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); }
+  .skelcard__thumb { height: 110px; background: var(--bg-inset); }
+  .skelcard__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skelcard__foot { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-subtle); }
+
+  /* toast — floating confirm */
+  .toast-dock { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 20; }
+  .toast-dock .toast { align-items: center; }
+  .toast-undo { background: none; border: 0; padding: 0; margin-left: var(--space-4); cursor: pointer; font: inherit; font-weight: var(--weight-semibold); color: var(--brand-primary); text-decoration: underline; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sc, .sc__title { transition: none; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Icon, IconButton, Input, Select, Button, Badge, Chip,
+          EmptyState, Skeleton, Drawer, Alert, Toast, Radio } = LU;
+  const { useState, useMemo } = React;
+
+  /* ---- difficulty meta (icon + label — never color alone) ---- */
+  const DIFF_META = {
+    Beginner:     { icon: "sprout" },
+    Intermediate: { icon: "trending-up" },
+    Advanced:     { icon: "mountain" },
+  };
+
+  /* price always rendered as text, currency explicit */
+  function priceText(price, currency){
+    if (price === 0) return "Free";
+    const sym = currency === "INR" ? "₹" : (currency === "USD" ? "$" : currency + " ");
+    return sym + price.toLocaleString();
+  }
+
+  /* ---- catalog seed (platform_public mirror — StoreSpace projections) ---- */
+  const SPACES = [
+    { id:"calc",  title:"Calculus Foundations", subject:"Mathematics", diff:"Intermediate", price:499, currency:"INR",
+      labels:["Limits","Derivatives","Self-paced"], students:1204, lessons:12, rating:4.6, reviews:213, owned:false,
+      desc:"Limits, derivatives, and the building blocks of change — paced for steady, confident mastery." },
+    { id:"dsa", title:"Data Structures & Algorithms", subject:"Computer Science", diff:"Advanced", price:899, currency:"INR",
+      labels:["Interview prep","Graphs","Timed drills"], students:3942, lessons:18, rating:4.9, reviews:1087, owned:true,
+      desc:"Arrays to graphs, with timed drills that sharpen your problem-solving instincts." },
+    { id:"intro-py", title:"Intro to Python", subject:"Computer Science", diff:"Beginner", price:0, currency:"INR",
+      labels:["No setup","Hands-on"], students:8810, lessons:10, rating:4.8, reviews:2456, owned:false,
+      desc:"Write your first real programs — variables, loops, and functions, one small win at a time." },
+    { id:"cell", title:"Cell Biology Essentials", subject:"Biology", diff:"Beginner", price:349, currency:"INR",
+      labels:["Diagrams","Quizzes","+2"], students:642, lessons:9, rating:4.5, reviews:88, owned:false,
+      desc:"Membranes, organelles, and energy — read, practice, and check what actually stuck." },
+    { id:"orgchem", title:"Organic Chemistry Lab Prep", subject:"Chemistry", diff:"Advanced", price:599, currency:"INR",
+      labels:["Mechanisms","Exam-ready"], students:417, lessons:7, rating:4.7, reviews:64, owned:false,
+      desc:"Get exam-ready: mechanisms, naming, and the reactions that always show up." },
+    { id:"world", title:"World History: 1900–Now", subject:"History", diff:"Intermediate", price:0, currency:"INR",
+      labels:["Stories","Timelines"], students:23, lessons:14, rating:null, reviews:0, owned:false,
+      desc:"A century of upheaval and progress, told through people and turning points." },
+  ];
+  const SUBJECTS = ["All", ...Array.from(new Set(SPACES.map(s => s.subject)))];
+  const SORT_OPTS = [
+    { value:"newest",   label:"Newest" },
+    { value:"popular",  label:"Most popular" },
+    { value:"price-asc",label:"Price: low to high" },
+    { value:"price-desc",label:"Price: high to low" },
+  ];
+
+  /* ===================== Rating row (stars + numeral) ===================== */
+  function RatingRow({ rating, reviews }){
+    if (rating == null || reviews === 0) {
+      return <div className="sc__rating-new"><Icon name="sparkles" size={12} style={{verticalAlign:"-1px", marginRight:"4px", color:"var(--spark-hover)"}}/>New — no ratings yet</div>;
+    }
+    const full = Math.round(rating);
+    const aria = "Rated " + rating + " out of 5 from " + reviews + " learners";
+    return (
+      <div className="sc__rating">
+        <span className="sc__stars" aria-hidden="true">
+          {[1,2,3,4,5].map(n => (
+            <Icon key={n} name="star" size={13} className={n <= full ? "" : "star-empty"} />
+          ))}
+        </span>
+        <span className="sc__rating-num" aria-label={aria}>{rating} ({reviews.toLocaleString()})</span>
+      </div>
+    );
+  }
+
+  /* ===================== Store SpaceCard ===================== */
+  function StoreCard({ s, cartIds, onAdd, onRemove }){
+    const dm = DIFF_META[s.diff];
+    const inCart = cartIds.includes(s.id);
+    const free = s.price === 0;
+    const ratingAria = (s.rating == null || s.reviews === 0)
+      ? "no ratings yet" : ("rated " + s.rating + " from " + s.reviews + " learners");
+    const ariaName = s.title + ", " + priceText(s.price, s.currency) + ", " + ratingAria;
+
+    function actionButton(){
+      if (s.owned) {
+        return <Button variant="secondary" size="sm"
+                 leadingIcon={<Icon name="play" size={15}/>}
+                 onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); }}>Continue learning</Button>;
+      }
+      if (inCart) {
+        return <Button variant="ghost" size="sm"
+                 leadingIcon={<Icon name="check" size={15}/>}
+                 onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); onRemove(s); }}>In cart — remove</Button>;
+      }
+      return <Button variant="spark" size="sm"
+               leadingIcon={<Icon name={free ? "unlock" : "shopping-cart"} size={15}/>}
+               onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); onAdd(s); }}>
+               {free ? "Enroll free" : "Add to cart"}</Button>;
+    }
+
+    return (
+      <a className="sc card card--interactive" href={"#/store/" + s.id} aria-label={ariaName}>
+        <div className={"sc__thumb" + (s.owned ? " sc__thumb--spark" : "")}>
+          <Icon name="book-open" size={34}/>
+          <div className="sc__thumb-badges">
+            {s.owned && <Badge variant="success"><Icon name="check-circle" size={12}/> Owned</Badge>}
+            {free && !s.owned && <Badge variant="spark"><Icon name="gift" size={12}/> Free</Badge>}
+          </div>
+        </div>
+        <div className="sc__body">
+          <div className="sc__tags">
+            <Badge variant="brand">{s.subject}</Badge>
+            <Chip><Icon name={dm.icon} size={12}/> {s.diff}</Chip>
+          </div>
+          <h3 className="sc__title">{s.title}</h3>
+          <p className="sc__desc">{s.desc}</p>
+          <div className="sc__labels">
+            {s.labels.map((l,i)=> <Chip key={i}>{l}</Chip>)}
+          </div>
+          <div className="sc__meta">
+            <span><span className="u-num">{s.students.toLocaleString()}</span> learners</span>
+            <span className="dot"></span>
+            <span><span className="u-num">{s.lessons}</span> lessons</span>
+          </div>
+          <RatingRow rating={s.rating} reviews={s.reviews}/>
+        </div>
+        <div className="sc__foot">
+          <div className="sc__price">
+            {s.owned
+              ? <span className="sc__price-amt--owned">Owned</span>
+              : <span className="sc__price-amt">{priceText(s.price, s.currency)}</span>}
+          </div>
+          <div className="sc__action">{actionButton()}</div>
+        </div>
+      </a>
+    );
+  }
+
+  /* ===================== Sidebar (ConsumerLayout) ===================== */
+  function Sidebar(){
+    const nav = [
+      { icon:"graduation-cap", label:"My Learning" },
+      { icon:"store", label:"Store", active:true },
+      { icon:"shopping-cart", label:"Cart", badge:"2" },
+      { icon:"user", label:"Profile" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <nav className="sidebar__nav">
+          <span className="sidebar__section-label">Learn</span>
+          {nav.map((n,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={n.active ? "page" : undefined}>
+              <Icon name={n.icon} size={18}/><span>{n.label}</span>
+              {n.badge && <span className="nav-item__badge"><Badge variant="brand">{n.badge}</Badge></span>}
+            </a>
+          ))}
+        </nav>
+        <div style={{marginTop:"auto", padding:"var(--space-3)"}}>
+          <a className="nav-item" href="#"><Icon name="settings" size={18}/><span>Settings</span></a>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ cartCount }){
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search">
+          <Input placeholder="Search spaces…  ⌘K" aria-label="Search" />
+        </div>
+        <div className="topbar__spacer"></div>
+        <span style={{position:"relative", display:"inline-flex"}}>
+          <IconButton icon={<Icon name="shopping-cart" size={18}/>} label={"Cart, " + cartCount + " items"} />
+          {cartCount > 0 &&
+            <span style={{position:"absolute", top:"-2px", right:"-2px"}}><Badge variant="spark" dot></Badge></span>}
+        </span>
+        <span className="avatar avatar--sm" aria-label="Aanya Rao">AR</span>
+      </header>
+    );
+  }
+
+  /* ===================== Screen ===================== */
+  function Screen(){
+    const [search, setSearch] = useState("");
+    const [subject, setSubject] = useState("All");
+    const [sort, setSort] = useState("popular");
+    const [freeOnly, setFreeOnly] = useState(false);
+    const [diff, setDiff] = useState(null);
+    const [filterOpen, setFilterOpen] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    // local cart (consumer-store / localStorage) — drives per-card action + shell badge
+    const [cart, setCart] = useState(["cell"]);
+
+    function addToCart(s){
+      setCart(prev => prev.includes(s.id) ? prev : [...prev, s.id]);
+      setToast({ title: "Added to cart", body: s.title });
+    }
+    function removeFromCart(s){
+      setCart(prev => prev.filter(id => id !== s.id));
+      setToast({ title: "Removed from cart", body: s.title });
+    }
+
+    const filtered = useMemo(()=>{
+      let list = SPACES.filter(s => {
+        if (subject !== "All" && s.subject !== subject) return false;
+        if (freeOnly && s.price !== 0) return false;
+        if (diff && s.diff !== diff) return false;
+        if (search && !s.title.toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+      });
+      if (sort === "price-asc") list = [...list].sort((a,b)=> a.price - b.price);
+      else if (sort === "price-desc") list = [...list].sort((a,b)=> b.price - a.price);
+      else if (sort === "popular") list = [...list].sort((a,b)=> b.students - a.students);
+      // "newest" keeps seed order
+      return list;
+    }, [subject, freeOnly, diff, search, sort]);
+
+    function clearFilters(){
+      setSearch(""); setSubject("All"); setFreeOnly(false); setDiff(null);
+    }
+    const anyFilter = search || subject !== "All" || freeOnly || diff;
+
+    // chip definitions
+    const chipRow = (
+      <div className="toolbar__chips" role="group" aria-label="Quick filters">
+        <button className="chip-btn" onClick={()=>{ setSubject("All"); setFreeOnly(false); setDiff(null); }}
+                aria-pressed={subject === "All" && !freeOnly && !diff}>
+          <Chip active={subject === "All" && !freeOnly && !diff}>
+            {(subject === "All" && !freeOnly && !diff) && <Icon name="check" size={12}/>} All
+          </Chip>
+        </button>
+        <button className="chip-btn" onClick={()=>setFreeOnly(v=>!v)} aria-pressed={freeOnly}>
+          <Chip active={freeOnly}>{freeOnly && <Icon name="check" size={12}/>} Free</Chip>
+        </button>
+        {SUBJECTS.filter(x=>x!=="All").map(subj => (
+          <button key={subj} className="chip-btn" onClick={()=>setSubject(subject===subj?"All":subj)}
+                  aria-pressed={subject===subj}>
+            <Chip active={subject===subj}>{subject===subj && <Icon name="check" size={12}/>} {subj}</Chip>
+          </button>
+        ))}
+        {Object.keys(DIFF_META).map(d => (
+          <button key={d} className="chip-btn" onClick={()=>setDiff(diff===d?null:d)} aria-pressed={diff===d}>
+            <Chip active={diff===d}>{diff===d && <Icon name="check" size={12}/>} {d}</Chip>
+          </button>
+        ))}
+      </div>
+    );
+
+    return (
+      <div className="appshell frame">
+        <Sidebar/>
+        <Topbar cartCount={cart.length + 1} />
+        <main className="appshell__main" role="main" aria-label="Store">
+          <div className="page">
+
+            {/* Page header */}
+            <div className="page-head">
+              <div>
+                <div className="head-title-row">
+                  <h1>Explore the library</h1>
+                  <Badge variant="brand">48 spaces</Badge>
+                </div>
+                <p className="page-sub">Pick up something new — learn at your own pace.</p>
+              </div>
+            </div>
+
+            {/* Filter / search / sort bar */}
+            <div className="toolbar" role="region" aria-label="Filter, search and sort">
+              <div className="toolbar__row">
+                <div className="toolbar__search">
+                  <span className="toolbar__search-icon"><Icon name="search" size={16}/></span>
+                  <Input className="input" placeholder="Search spaces…" aria-label="Search spaces"
+                         value={search} onChange={(e)=>setSearch(e.target.value)} />
+                </div>
+                <div className="toolbar__sel">
+                  <label htmlFor="subjsel">Subject</label>
+                  <Select id="subjsel" value={subject} onChange={(e)=>setSubject(e.target.value)}
+                          options={SUBJECTS.map(x=>({value:x,label:x}))} />
+                </div>
+                <div className="toolbar__sel">
+                  <label htmlFor="sortsel">Sort</label>
+                  <Select id="sortsel" value={sort} onChange={(e)=>setSort(e.target.value)} options={SORT_OPTS} />
+                </div>
+                {/* mobile fallback — collapses subject/sort/chips into a Sheet */}
+                <span className="toolbar__filter-mobile">
+                  <IconButton icon={<Icon name="sliders-horizontal" size={18}/>} label="Filters"
+                              onClick={()=>setFilterOpen(true)} />
+                </span>
+              </div>
+              {chipRow}
+            </div>
+
+            {/* Primary populated / success state */}
+            <div className="grid">
+              {filtered.map(s => (
+                <StoreCard key={s.id} s={s}
+                  cartIds={cart}
+                  onAdd={addToCart} onRemove={removeFromCart} />
+              ))}
+            </div>
+
+            {/* Partial — load more (cursor paged) */}
+            <div className="load-more">
+              <Button variant="secondary" leadingIcon={<Icon name="plus" size={16}/>}>Load more spaces</Button>
+            </div>
+
+            {/* ---------- Secondary spec'd states ---------- */}
+            <div className="eyebrow">Spec states (reference)</div>
+            <div className="states">
+
+              {/* Loading skeleton */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: loading skeleton</p>
+                <div className="grid">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="skelcard">
+                      <div className="skelcard__thumb"></div>
+                      <div className="skelcard__body">
+                        <Skeleton width="45%" height="14px"/>
+                        <Skeleton width="80%" height="18px"/>
+                        <Skeleton width="95%" height="13px"/>
+                        <Skeleton width="60%" height="13px"/>
+                        <Skeleton width="50%" height="12px"/>
+                      </div>
+                      <div className="skelcard__foot">
+                        <Skeleton width="70px" height="20px"/>
+                        <Skeleton width="110px" height="32px"/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Partial — next page failed */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: partial · next page failed (loaded cards kept)</p>
+                <Alert variant="warning" title="Couldn't load more spaces">
+                  Your loaded spaces are safe above. <button className="toast-undo" style={{color:"var(--brand-primary)"}}>Try loading more again</button>
+                </Alert>
+              </div>
+
+              {/* Empty — fresh catalog */}
+              <div className="state-box">
+                <p className="state-cap">State: empty · fresh catalog</p>
+                <EmptyState icon="sparkles" title="Nothing here just yet"
+                  body="New spaces land regularly — check back soon." />
+              </div>
+
+              {/* Empty — filtered to nothing */}
+              <div className="state-box">
+                <p className="state-cap">State: empty · filtered to nothing</p>
+                <EmptyState icon="search-x" title="No spaces match that"
+                  body="Try a different subject, or clear your filters."
+                  action={<Button variant="secondary" leadingIcon={<Icon name="x" size={16}/>}>Clear filters</Button>} />
+              </div>
+
+              {/* Error — distinct from empty */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: error · load failure</p>
+                <EmptyState icon="cloud-off" title="We couldn't load the library"
+                  body="That's on us — give it another go."
+                  action={<Button variant="secondary" leadingIcon={<Icon name="refresh-cw" size={16}/>}>Try again</Button>} />
+              </div>
+
+              {/* Per-card action states reference */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: per-card actions · owned · in cart · available · free</p>
+                <div className="grid">
+                  <StoreCard s={SPACES.find(x=>x.id==="dsa")} cartIds={[]} onAdd={()=>{}} onRemove={()=>{}}/>
+                  <StoreCard s={SPACES.find(x=>x.id==="calc")} cartIds={["calc"]} onAdd={()=>{}} onRemove={()=>{}}/>
+                  <StoreCard s={SPACES.find(x=>x.id==="world")} cartIds={[]} onAdd={()=>{}} onRemove={()=>{}}/>
+                </div>
+              </div>
+
+              {/* Permission-gated note */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: permission-gated · B2B student deep-link</p>
+                <Alert variant="info" title="Store is for consumer learners">
+                  A B2B school student who deep-links to <span style={{fontFamily:"var(--font-mono)"}}>/store</span> is redirected by the route guard to their class home — they have no <span style={{fontFamily:"var(--font-mono)"}}>platform_public</span> shopping context. No B2B variant of this screen exists.
+                </Alert>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Mobile filter Sheet (Drawer) — default closed */}
+          <Drawer open={filterOpen} onClose={()=>setFilterOpen(false)} title="Filter & sort">
+            <div style={{display:"flex", flexDirection:"column", gap:"var(--space-5)"}}>
+              <div>
+                <p className="state-cap" style={{marginBottom:"var(--space-2)"}}>Sort</p>
+                <div style={{display:"flex", flexDirection:"column", gap:"var(--space-2)"}}>
+                  {SORT_OPTS.map(o => (
+                    <label key={o.value} style={{display:"flex", alignItems:"center", gap:"var(--space-2)", fontSize:"var(--text-sm)", cursor:"pointer"}}>
+                      <Radio name="msort" checked={sort===o.value} onChange={()=>setSort(o.value)} />
+                      <span>{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="state-cap" style={{marginBottom:"var(--space-2)"}}>Filters</p>
+                {chipRow}
+              </div>
+              <Button variant="secondary" block leadingIcon={<Icon name="x" size={16}/>}
+                      onClick={clearFilters} disabled={!anyFilter}>Clear filters</Button>
+            </div>
+          </Drawer>
+
+          {/* Toast — add/remove confirm with Undo (light, not celebratory) */}
+          {toast &&
+            <div className="toast-dock" role="status">
+              <Toast variant="success" title={toast.title} body={
+                <span>{toast.body}
+                  <button className="toast-undo"
+                    onClick={()=>{ const id = SPACES.find(x=>x.title===toast.body)?.id;
+                      setCart(prev=>prev.filter(c=>c!==id)); setToast(null); }}>Undo</button>
+                </span>
+              } />
+            </div>}
+        </main>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

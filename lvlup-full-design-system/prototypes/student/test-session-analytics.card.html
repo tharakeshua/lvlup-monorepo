@@ -1,0 +1,713 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Test Session Analytics" subtitle="Cross-attempt deep dive · what to study next" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Session Analytics</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body, #root, .appshell { height: 100%; }
+
+  .ana { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1040px; }
+
+  /* mono numerics everywhere */
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* header band */
+  .hdr { display: flex; flex-direction: column; gap: var(--space-3); }
+  .hdr__row { display: flex; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; }
+  .hdr__icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .hdr__title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0; letter-spacing: var(--tracking-display); }
+  .hdr__sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: var(--space-1); }
+  .hdr__chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+  /* KPI strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .kpi { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); transition: box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard); }
+  .kpi:hover { box-shadow: var(--shadow-e2); transform: translateY(-2px); }
+  .kpi--best { border-color: var(--brand-muted); }
+  .kpi__top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); }
+  .kpi__icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .kpi__icon--spark { background: var(--spark-subtle); color: var(--spark); }
+  .kpi__icon--mastered { background: var(--mastery-mastered); color: var(--text-on-accent); }
+  .kpi__label { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .kpi__value { font-size: var(--text-3xl); line-height: 1.05; font-weight: var(--weight-semibold); }
+  .kpi__sub { font-size: var(--text-xs); color: var(--text-muted); display: flex; align-items: center; gap: var(--space-1); }
+  .delta { display: inline-flex; align-items: center; gap: 2px; font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+  .delta--up { color: var(--status-success); }
+  .delta--down { color: var(--status-error); }
+  .delta--flat { color: var(--text-muted); }
+
+  /* charts */
+  .chart { display: flex; flex-direction: column; gap: var(--space-3); }
+  .chart__caption { font-size: var(--text-xs); color: var(--text-muted); }
+  .bars { display: flex; align-items: flex-end; gap: var(--space-3); height: 168px; padding-top: var(--space-4); position: relative; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); height: 100%; justify-content: flex-end; min-width: 34px; position: relative; }
+  .bar-col__track { width: 100%; flex: 1; display: flex; align-items: flex-end; justify-content: center; }
+  .bar { width: 60%; max-width: 38px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--brand-primary); position: relative; transition: height var(--dur-slow) var(--ease-standard); }
+  .bar--best { background: var(--mastery-mastered); }
+  .bar--pace { background: var(--brand-muted); }
+  .bar__val { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: var(--text-2xs); color: var(--text-secondary); white-space: nowrap; }
+  .bar-col__x { font-size: var(--text-2xs); color: var(--text-muted); }
+  .passline { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--spark); pointer-events: none; }
+  .passline__lbl { position: absolute; right: 0; top: -16px; font-size: var(--text-2xs); color: var(--spark-hover); background: var(--bg-surface); padding: 0 4px; display: inline-flex; align-items: center; gap: 3px; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); align-items: stretch; }
+
+  /* difficulty progression */
+  .diff-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
+  .diff-row__label { font-size: var(--text-sm); font-weight: var(--weight-medium); display: flex; align-items: center; gap: var(--space-2); }
+  .diff-bars { display: flex; flex-direction: column; gap: var(--space-1); }
+  .diff-bars__line { display: flex; align-items: center; gap: var(--space-2); }
+  .diff-bars__tag { width: 56px; font-size: var(--text-2xs); color: var(--text-muted); flex: 0 0 auto; }
+
+  /* topic mastery */
+  .topic-row { display: grid; grid-template-columns: 180px 1fr 132px; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; }
+  .topic-row + .topic-row { border-top: 1px solid var(--border-subtle); }
+  .topic-row__name { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .topic-row__pct { font-size: var(--text-sm); color: var(--text-secondary); min-width: 40px; }
+  .topic-bar-wrap { display: flex; align-items: center; gap: var(--space-3); }
+  .topic-bar-wrap .progress { flex: 1; }
+
+  /* attempt comparison */
+  .cmp { display: flex; flex-direction: column; gap: var(--space-5); }
+  .cmp__selects { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+  .cmp__field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 220px; }
+  .cmp__field-label { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-secondary); }
+  .cmp__arrow { color: var(--text-muted); padding-bottom: var(--space-2); display: inline-flex; }
+  .cmp__deltas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .cmp-card { background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+  .cmp-card__label { font-size: var(--text-xs); color: var(--text-muted); }
+  .cmp-card__nums { font-size: var(--text-lg); display: flex; align-items: baseline; gap: var(--space-2); }
+  .cmp-card__arrow { color: var(--text-muted); }
+
+  /* next focus */
+  .focus-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .focus-item { display: flex; flex-direction: column; gap: var(--space-3); }
+  .focus-item .insight { flex: 1; }
+  .focus-item__cta { display: flex; gap: var(--space-2); }
+
+  .footer-cta { display: flex; justify-content: flex-start; padding-top: var(--space-2); }
+
+  /* state preview blocks */
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-4); }
+
+  .divider { height: 1px; background: var(--border-subtle); border: none; margin: 0; }
+  .partial-note { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary); background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kpi, .bar { transition: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Select, Card, Section, Panel, Badge, Chip,
+    ProgressBar, ProgressRing, Avatar, EmptyState, Skeleton, Alert, Tooltip,
+    InsightCard, AnswerKeyLock, StoryPointNode, NavItem, Breadcrumb, CommandPalette
+  } = LU;
+
+  const { useState, useEffect } = React;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- Real, sanitized cross-attempt data (server-computed analytics) ---- */
+  const PASSING = 70;
+  const ATTEMPTS = [
+    { n: 1, pct: 58, answered: 18, total: 20, secPerQ: 71 },
+    { n: 2, pct: 66, answered: 19, total: 20, secPerQ: 63 },
+    { n: 3, pct: 71, answered: 20, total: 20, secPerQ: 54 },
+    { n: 4, pct: 84, answered: 20, total: 20, secPerQ: 49 },
+  ];
+  const best = ATTEMPTS.reduce((a, b) => (b.pct > a.pct ? b : a));
+  const latest = ATTEMPTS[ATTEMPTS.length - 1];
+
+  /* delta helper: returns {dir, label, aria} */
+  function deltaOf(curr, prev, unit, invertGood) {
+    const d = curr - prev;
+    if (d === 0) return { dir: "flat", label: "about the same", aria: "no change" };
+    const up = d > 0;
+    const sign = up ? "+" : "−";
+    const mag = Math.abs(d);
+    return {
+      dir: up ? "up" : "down",
+      label: sign + mag + unit,
+      aria: (up ? "up " : "down ") + mag + " " + unit,
+    };
+  }
+
+  function DeltaTag({ d }) {
+    const icon = d.dir === "up" ? "arrow-up" : d.dir === "down" ? "arrow-down" : "minus";
+    return (
+      <span className={"delta delta--" + d.dir} aria-label={d.aria}>
+        <Icon name={icon} size={12} aria-hidden="true" />
+        <span className="mono">{d.label}</span>
+      </span>
+    );
+  }
+
+  /* ================= Shell ================= */
+  function Sidebar() {
+    const nav = [
+      { icon: "layout-dashboard", label: "Dashboard" },
+      { icon: "book-open", label: "My Spaces" },
+      { icon: "trending-up", label: "Progress", active: true },
+      { icon: "file-check", label: "Exams" },
+      { icon: "award", label: "Achievements" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map((n) => (
+            <NavItem key={n.label} icon={n.icon} active={n.active} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div className="sidebar__section-label">School</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="users" href="#">Class · Grade 10-B</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            <Avatar initials="AK" size="sm" />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>Aisha Khan</div>
+              <div className="u-caption" style={{ color: "var(--text-muted)" }}>SUB001 · Student</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenPalette }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <Input placeholder="Search spaces, exams…  ⌘K" onFocus={onOpenPalette} aria-label="Search" />
+        </div>
+        <div className="topbar__spacer" />
+        <Tooltip><IconButton icon={<Icon name="command" size={18} />} label="Command palette (⌘K)" onClick={onOpenPalette} /></Tooltip>
+        <IconButton icon={<Icon name="bell" size={18} />} label="Notifications" />
+        <Avatar initials="AK" size="sm" />
+      </header>
+    );
+  }
+
+  /* ================= KPI cards ================= */
+  function KpiCard({ icon, iconMod, label, value, sub, ariaText, delta }) {
+    return (
+      <div className={"kpi" + (iconMod === "mastered" ? " kpi--best" : "")} role="group" aria-label={ariaText}>
+        <div className="kpi__top">
+          <span className={"kpi__icon" + (iconMod ? " kpi__icon--" + iconMod : "")}>
+            <Icon name={icon} size={16} />
+          </span>
+          <span className="kpi__label">{label}</span>
+        </div>
+        <div className="kpi__value mono" aria-hidden="true">{value}</div>
+        <div className="kpi__sub">
+          {delta && <DeltaTag d={delta} />}
+          <span>{sub}</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= Bar chart ================= */
+  function ScoreProgression() {
+    const max = 100;
+    return (
+      <Panel title="Score progression">
+        <div className="chart">
+          <figure
+            className="bars"
+            role="img"
+            aria-label={"Score progression across attempts: " + ATTEMPTS.map(a => "attempt " + a.n + " " + a.pct + " percent").join(", ") + ". Passing line at " + PASSING + " percent."}
+            style={{ margin: 0 }}
+          >
+            <div className="passline" style={{ bottom: "calc(" + (PASSING / max * 100) + "% + " + "0px)" }}>
+              <span className="passline__lbl"><Icon name="flag" size={11} aria-hidden="true" /> Passing {PASSING}%</span>
+            </div>
+            {ATTEMPTS.map((a) => {
+              const isBest = a.pct === best.pct;
+              const hgt = (a.pct / max) * 100;
+              return (
+                <div className="bar-col" key={a.n}>
+                  <div className="bar-col__track">
+                    <div
+                      className={"bar" + (isBest ? " bar--best" : "")}
+                      style={{ height: hgt + "%" }}
+                      title={"Attempt " + a.n + " · " + a.pct + "% · " + a.secPerQ + "s/Q · 2 days ago"}
+                    >
+                      <span className="bar__val mono">{a.pct}%{isBest ? " ★" : ""}</span>
+                    </div>
+                  </div>
+                  <div className="bar-col__x mono">#{a.n}</div>
+                </div>
+              );
+            })}
+          </figure>
+          <div className="chart__caption">Your scores across attempts. Passing: {PASSING}%. Best bar shown in mastered green.</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <Badge variant="success" icon={<Icon name="sparkles" size={12} />}>You're at your best right now — keep it up.</Badge>
+          </div>
+        </div>
+      </Panel>
+    );
+  }
+
+  function PaceTrend() {
+    const maxSec = Math.max(...ATTEMPTS.map(a => a.secPerQ));
+    return (
+      <Panel title="Pace trend">
+        <div className="chart">
+          <figure
+            className="bars"
+            role="img"
+            aria-label={"Average time per question by attempt: " + ATTEMPTS.map(a => "attempt " + a.n + " " + a.secPerQ + " seconds").join(", ") + "."}
+            style={{ margin: 0 }}
+          >
+            {ATTEMPTS.map((a) => {
+              const hgt = (a.secPerQ / maxSec) * 100;
+              return (
+                <div className="bar-col" key={a.n}>
+                  <div className="bar-col__track">
+                    <div className="bar bar--pace" style={{ height: hgt + "%" }} title={"Attempt " + a.n + " · " + a.secPerQ + "s per question"}>
+                      <span className="bar__val mono">{a.secPerQ}s</span>
+                    </div>
+                  </div>
+                  <div className="bar-col__x mono">#{a.n}</div>
+                </div>
+              );
+            })}
+          </figure>
+          <div className="chart__caption">Time per question, attempt by attempt. Faster isn't always better — accuracy first.</div>
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ================= Difficulty progression ================= */
+  const DIFF = [
+    { key: "Easy", icon: "circle", first: 70, latest: 95 },
+    { key: "Medium", icon: "circle-dot", first: 52, latest: 78 },
+    { key: "Hard", icon: "circle-slash", first: 33, latest: 61 },
+  ];
+  function DifficultyDeltas() {
+    return (
+      <Panel title="Difficulty mastery">
+        <div className="chart">
+          <div
+            role="img"
+            aria-label={"Accuracy by difficulty, first attempt to latest: " + DIFF.map(d => d.key + " from " + d.first + " to " + d.latest + " percent").join(", ") + "."}
+          >
+            {DIFF.map((d) => {
+              const delta = deltaOf(d.latest, d.first, "%");
+              return (
+                <div className="diff-row" key={d.key}>
+                  <div className="diff-row__label"><Icon name={d.icon} size={14} aria-hidden="true" /> {d.key}</div>
+                  <div className="diff-bars">
+                    <div className="diff-bars__line">
+                      <span className="diff-bars__tag">Attempt 1</span>
+                      <ProgressBar value={d.first} />
+                      <span className="mono" style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)", width: 34 }}>{d.first}%</span>
+                    </div>
+                    <div className="diff-bars__line">
+                      <span className="diff-bars__tag">Latest</span>
+                      <ProgressBar value={d.latest} variant="success" />
+                      <span className="mono" style={{ fontSize: "var(--text-2xs)", color: "var(--text-secondary)", width: 34 }}>{d.latest}%</span>
+                    </div>
+                  </div>
+                  <DeltaTag d={{ ...delta, label: delta.label + " since #1" }} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="chart__caption">How you're doing by difficulty — and how much you've grown since your first attempt.</div>
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ================= Topic mastery ================= */
+  const TOPICS = [
+    { name: "Arrays", acc: 92, first: 80, strong: true },
+    { name: "Two Pointers", acc: 81, first: 64 },
+    { name: "Recursion", acc: 74, first: 60 },
+    { name: "Dynamic Programming", acc: 40, first: 31, weak: true },
+    { name: "Graphs", acc: 56, first: 56, steady: true },
+  ];
+  function TopicMastery() {
+    return (
+      <Panel title="Topic mastery">
+        <div>
+          {TOPICS.map((t) => {
+            const delta = t.steady
+              ? { dir: "flat", label: "steady", aria: "steady, no change since attempt 1" }
+              : (() => { const d = deltaOf(t.acc, t.first, "%"); return { ...d, label: d.label + " since #1" }; })();
+            return (
+              <div className="topic-row" key={t.name}>
+                <div className="topic-row__name">{t.name}</div>
+                <div className="topic-bar-wrap">
+                  <ProgressBar value={t.acc} variant={t.strong ? "success" : undefined} />
+                  <span className="topic-row__pct mono">{t.acc}%</span>
+                </div>
+                <DeltaTag d={delta} />
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ================= Attempt comparison ================= */
+  function AttemptComparison() {
+    const [aIdx, setAIdx] = useState(0);
+    const [bIdx, setBIdx] = useState(ATTEMPTS.length - 1);
+    const A = ATTEMPTS[aIdx], B = ATTEMPTS[bIdx];
+    const opts = ATTEMPTS.map((a, i) => ({ value: String(i), label: "Attempt #" + a.n + " · " + a.pct + "%" }));
+
+    const dScore = deltaOf(B.pct, A.pct, "%");
+    const dAns = deltaOf(B.answered, A.answered, "");
+    const dPace = deltaOf(B.secPerQ, A.secPerQ, "s");
+
+    return (
+      <Panel title="Compare two attempts">
+        <div className="cmp">
+          <div className="cmp__selects">
+            <div className="cmp__field">
+              <label className="cmp__field-label" htmlFor="cmp-a">Attempt A</label>
+              <Select id="cmp-a" options={opts} value={String(aIdx)} onChange={(e) => setAIdx(Number(e.target.value))} />
+            </div>
+            <span className="cmp__arrow"><Icon name="arrow-right" size={20} aria-hidden="true" /></span>
+            <div className="cmp__field">
+              <label className="cmp__field-label" htmlFor="cmp-b">Attempt B</label>
+              <Select id="cmp-b" options={opts} value={String(bIdx)} onChange={(e) => setBIdx(Number(e.target.value))} />
+            </div>
+          </div>
+
+          <div className="cmp__deltas" aria-live="polite">
+            <div className="cmp-card">
+              <span className="cmp-card__label">Score</span>
+              <div className="cmp-card__nums">
+                <span className="mono">{A.pct}%</span>
+                <Icon name="arrow-right" size={14} className="cmp-card__arrow" aria-hidden="true" />
+                <span className="mono">{B.pct}%</span>
+              </div>
+              <DeltaTag d={dScore} />
+            </div>
+            <div className="cmp-card">
+              <span className="cmp-card__label">Questions answered</span>
+              <div className="cmp-card__nums">
+                <span className="mono">{A.answered}/{A.total}</span>
+                <Icon name="arrow-right" size={14} className="cmp-card__arrow" aria-hidden="true" />
+                <span className="mono">{B.answered}/{B.total}</span>
+              </div>
+              <DeltaTag d={dAns} />
+            </div>
+            <div className="cmp-card">
+              <span className="cmp-card__label">Avg time / question</span>
+              <div className="cmp-card__nums">
+                <span className="mono">{A.secPerQ}s</span>
+                <Icon name="arrow-right" size={14} className="cmp-card__arrow" aria-hidden="true" />
+                <span className="mono">{B.secPerQ}s</span>
+              </div>
+              <DeltaTag d={dPace} />
+            </div>
+          </div>
+          <div className="chart__caption" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <Icon name="info" size={13} aria-hidden="true" />
+            Let's look at what changed here — every shift is a chance to focus your next attempt.
+          </div>
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ================= Next focus (server recommendations) ================= */
+  function NextFocus({ partial }) {
+    return (
+      <Section title="Your next focus" actions={<Badge variant="brand" icon={<Icon name="sparkles" size={12} />}>From your analytics</Badge>}>
+        {partial && (
+          <div className="partial-note" style={{ marginBottom: "var(--space-4)" }}>
+            <Icon name="loader" size={15} aria-hidden="true" />
+            <span>Your insights are taking a moment to catch up — everything else above is up to date.</span>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="rotate-cw" size={14} />} style={{ marginLeft: "auto" }}>Retry</Button>
+          </div>
+        )}
+        <div className="focus-list">
+          <div className="focus-item">
+            <InsightCard icon="target" title="Spend time on Dynamic Programming">
+              You're at 40% here across your attempts. A few targeted practice problems will move this fast.
+            </InsightCard>
+            <div className="focus-item__cta">
+              <Button variant="spark" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>Practice this</Button>
+              <Button variant="ghost" size="sm">Review story point</Button>
+            </div>
+          </div>
+          <div className="focus-item">
+            <InsightCard icon="rotate-ccw" title="Give Graphs another look">
+              Graphs held steady at 56% — it hasn't moved across attempts. A short refresher could unlock the next jump.
+            </InsightCard>
+            <div className="focus-item__cta">
+              <Button variant="secondary" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>Practice this</Button>
+              <Button variant="ghost" size="sm">Review story point</Button>
+            </div>
+          </div>
+          <div className="focus-item">
+            <InsightCard icon="thumbs-up" title="Arrays are a strength — you're at 92%">
+              Lean on this confidence. Your accuracy here climbed +12% since attempt 1 — keep using it to anchor harder topics.
+            </InsightCard>
+            <div className="focus-item__cta">
+              <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>Review story point</Button>
+            </div>
+          </div>
+          <div className="focus-item">
+            <InsightCard icon="trending-up" title="Your pacing is settling in">
+              You've trimmed from 71s to 49s per question while accuracy rose — that's confidence, not rushing. Hold this rhythm.
+            </InsightCard>
+            <div className="focus-item__cta">
+              <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>See attempt details</Button>
+            </div>
+          </div>
+        </div>
+      </Section>
+    );
+  }
+
+  /* ================= State preview blocks ================= */
+  function LoadingState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your progress">
+        <div className="eyebrow-state"><Icon name="loader" size={13} /> State: loading skeleton — no layout shift on resolve</div>
+        <div className="skel-card" style={{ marginBottom: "var(--space-4)" }}>
+          <Skeleton width="42%" height="1.6rem" />
+          <Skeleton width="28%" height="0.7rem" />
+        </div>
+        <div className="skel-kpi">
+          {[0, 1, 2, 3].map((i) => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="55%" height="0.7rem" />
+              <Skeleton width="40%" height="1.8rem" />
+              <Skeleton width="70%" height="0.6rem" />
+            </div>
+          ))}
+        </div>
+        <div className="state-grid">
+          {[0, 1, 2].map((i) => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="40%" height="1rem" />
+              <Skeleton width="100%" height="6rem" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function EmptyStateBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="bar-chart-2" size={13} /> State: empty (zero completed attempts) — most common first visit</div>
+        <EmptyState
+          icon="bar-chart-2"
+          title="No attempts yet — your progress starts here"
+          body="Take this test once and we'll show you exactly where you're improving and what to focus on next."
+          action={<Button variant="spark" leadingIcon={<Icon name="play" size={16} />}>Take the test</Button>}
+        />
+      </div>
+    );
+  }
+
+  function SingleAttemptState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="milestone" size={13} /> State: single attempt (N=1) — progression / pace / comparison hidden</div>
+        <div className="partial-note" style={{ marginBottom: "var(--space-4)" }}>
+          <Icon name="sprout" size={15} aria-hidden="true" />
+          <span>One attempt down. Take it again and we'll start charting your trend.</span>
+        </div>
+        <div className="kpi-strip">
+          <KpiCard icon="award" iconMod="mastered" label="Best Score" value="58%" sub="your first run" ariaText="Best score 58 percent" />
+          <KpiCard icon="gauge" label="Latest Score" value="58%" sub="attempt 1" ariaText="Latest score 58 percent" />
+          <KpiCard icon="repeat" label="Attempts" value="1" sub="completed" ariaText="1 attempt completed" />
+          <KpiCard icon="timer" iconMod="spark" label="Avg Time / Q" value="71s" sub="per question" ariaText="Average time per question 71 seconds" />
+        </div>
+      </div>
+    );
+  }
+
+  function ErrorState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13} /> State: error (testSessions.list failed) — banner, never an empty state</div>
+        <Alert variant="error" title="We couldn't load your progress just now">
+          Your attempts are safe — let's try again.{" "}
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14} />} style={{ marginTop: "var(--space-3)" }}>Retry</Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  function LockedState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="lock" size={13} /> State: latest attempt not yet released — answer key never shown</div>
+        <AnswerKeyLock title="Explanations are locked for attempt #4.">
+          Your score and breakdowns are here, but per-question explanations unlock once results are released by your teacher. The answer key is server-only.
+        </AnswerKeyLock>
+      </div>
+    );
+  }
+
+  /* ================= Success (primary) ================= */
+  function SuccessView() {
+    const dLatest = deltaOf(latest.pct, ATTEMPTS[ATTEMPTS.length - 2].pct, "%");
+    const dPace = deltaOf(latest.secPerQ, ATTEMPTS[0].secPerQ, "s");
+    return (
+      <div className="ana">
+        {/* Header band */}
+        <div className="hdr">
+          <Breadcrumb items={[
+            { label: "Spaces", href: "#" },
+            { label: "Data Structures & Algorithms", href: "#" },
+            { label: "Dynamic Programming", href: "#" },
+            { label: "Progress" },
+          ]} />
+          <div className="hdr__row">
+            <span className="hdr__icon"><Icon name="trending-up" size={22} /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 className="hdr__title">Dynamic Programming — Your Progress</h1>
+              <p className="hdr__sub mono" style={{ fontFamily: "var(--font-ui)" }}>
+                <span className="mono">4</span> attempts · last attempt 2 days ago
+              </p>
+            </div>
+            <div className="hdr__chips">
+              <StoryPointNode state="mastered" index={5} label="DP" />
+              <Chip active><Icon name="arrow-up-right" size={12} /> In progress → Mastered</Chip>
+              <Badge variant="success" icon={<Icon name="sparkles" size={12} />}>Nice climb.</Badge>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI strip */}
+        <section aria-label="Your key stats" className="kpi-strip">
+          <KpiCard icon="award" iconMod="mastered" label="Best Score" value="84%" sub="attempt 4" ariaText="Best score 84 percent, attempt 4" />
+          <KpiCard icon="gauge" label="Latest Score" value="84%" delta={dLatest} sub="vs attempt 3" ariaText="Latest score 84 percent, up 13 percentage points versus attempt 3" />
+          <KpiCard icon="repeat" label="Attempts" value="4" sub="all completed" ariaText="4 attempts completed" />
+          <KpiCard icon="timer" iconMod="spark" label="Avg Time / Q" value="49s" delta={dPace} sub="vs first attempt" ariaText="Average time per question 49 seconds, down 22 seconds versus first attempt" />
+        </section>
+
+        {/* Score progression */}
+        <ScoreProgression />
+
+        {/* Two-up: pace + difficulty */}
+        <div className="row-2">
+          <PaceTrend />
+          <DifficultyDeltas />
+        </div>
+
+        {/* Topic mastery */}
+        <TopicMastery />
+
+        {/* Attempt comparison */}
+        <AttemptComparison />
+
+        {/* Next focus */}
+        <NextFocus />
+
+        {/* Footer CTA */}
+        <div className="footer-cta">
+          <Button variant="secondary" size="lg" leadingIcon={<Icon name="rotate-cw" size={18} />}>Take this test again</Button>
+        </div>
+
+        <hr className="divider" />
+
+        {/* Secondary: other spec'd states surfaced for review */}
+        <Section title="Other states (for review)">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+            <LoadingState />
+            <div className="state-grid">
+              <EmptyStateBlock />
+              <ErrorState />
+            </div>
+            <SingleAttemptState />
+            <div className="state-grid">
+              <LockedState />
+              <div className="state-band">
+                <div className="eyebrow-state"><Icon name="loader" size={13} /> State: recommendations-only failure — charts still render</div>
+                <NextFocus partial />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <div style={{ height: "var(--space-6)" }} />
+      </div>
+    );
+  }
+
+  function Screen() {
+    const [palette, setPalette] = useState(false);
+    useEffect(() => {
+      const onKey = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette(true); }
+        if (e.key === "Escape") setPalette(false);
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    return (
+      <div className="appshell" style={{ position: "relative" }}>
+        <Sidebar />
+        <Topbar onOpenPalette={() => setPalette(true)} />
+        <main className="appshell__main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <SuccessView />
+        </main>
+
+        {palette && (
+          <div className="modal-scrim" onClick={() => setPalette(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: "absolute", top: "14%", left: "50%", transform: "translateX(-50%)", width: "min(560px, 90%)" }}>
+              <CommandPalette
+                placeholder="Search or jump to…"
+                selected={0}
+                items={[
+                  { icon: "play", label: "Take this test again", kbd: "↵" },
+                  { icon: "target", label: "Practice: Dynamic Programming", kbd: "P" },
+                  { icon: "book-open", label: "Review story point", kbd: "R" },
+                  { icon: "trending-up", label: "Back to Progress", kbd: "B" },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen />);
+</script>
+</body>
+</html>

@@ -82,6 +82,7 @@ export const PER_ENTITY_REPO_NAMES = [
   "rubricPresetRepo",
   "agentRepo",
   "chatRepo",
+  "conversationRepo",
   "storeRepo",
   "versionRepo",
   // testsession
@@ -144,6 +145,9 @@ export const ALLOWED_VERB_PREFIXES = [
   // and C4 (`deviceRepo.register/unregister`).
   "sign",
   "send",
+  "start",
+  "finish",
+  "abandon",
   "restore",
   "register",
   "unregister",

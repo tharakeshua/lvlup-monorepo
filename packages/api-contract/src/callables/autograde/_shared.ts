@@ -163,7 +163,10 @@ export const ExamQuestionViewSchema = zObject({
   subQuestions: z.array(SubQuestionSchema).optional(),
   extractionConfidence: z.number().optional(),
   readabilityIssue: z.boolean().optional(),
-  createdAt: zTimestamp,
+  // Live extraction pipeline: "pending" while Pass-2 rubric generation is in
+  // flight for this question, "generated" once its rubric lands.
+  rubricStatus: z.enum(["pending", "generated"]).optional(),
+  createdAt: zTimestamp.optional(),
   updatedAt: zTimestamp,
 });
 export type ExamQuestionView = z.infer<typeof ExamQuestionViewSchema>;
@@ -179,6 +182,7 @@ export const ExtractedQuestionSchema = zObject({
   subQuestions: z.array(SubQuestionSchema).optional(),
   extractionConfidence: z.number().optional(),
   readabilityIssue: z.boolean().optional(),
+  rubricStatus: z.enum(["pending", "generated"]).optional(),
   // ⚷ server-only rubric guidance — present in the AI extraction response and
   // persisted to the question doc; stripped from student/scanner projections.
   modelAnswer: z.string().optional(),

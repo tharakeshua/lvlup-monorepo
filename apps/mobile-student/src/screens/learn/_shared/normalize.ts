@@ -164,11 +164,19 @@ export type SpaceCardModel = {
   subject?: string;
   type?: string;
   difficulty?: string;
+  thumbnailUrl?: string;
   storyPointCount: number;
   percentage: number;
   rating: number | null;
   totalReviews: number | null;
 };
+
+/** Cover image probe — canonical `thumbnailUrl`, tolerating legacy aliases. */
+export function thumbnailOf(s: Record<string, unknown> | undefined): string | undefined {
+  if (!s) return undefined;
+  const candidate = s.thumbnailUrl ?? s.coverImageUrl ?? s.imageUrl ?? s.coverUrl;
+  return typeof candidate === "string" && candidate.trim() ? candidate : undefined;
+}
 
 /**
  * Read the rating aggregate defensively. The deployed lvlup-ff6fa backend returns
@@ -197,6 +205,7 @@ export function toSpaceCard(s: SpaceView, progress?: SpaceProgressView): SpaceCa
     subject: s.subject,
     type: s.type,
     difficulty: (s.labels && s.labels[0]) || undefined,
+    thumbnailUrl: thumbnailOf(s as Record<string, unknown>),
     storyPointCount: s.stats?.storyPointCount ?? 0,
     percentage: pct(progress?.percentage),
     rating,

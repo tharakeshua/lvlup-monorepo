@@ -1,0 +1,824 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="AI Agent Configuration" subtitle="Per-space tutor agents · safety posture" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* ---- LAYOUT-ONLY (no color/font/raw-hex; all values are tokens or geometry) ---- */
+html,body{margin:0;height:100%;}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{height:100vh;}
+*{box-sizing:border-box;}
+.u-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* app shell tweaks (layout only) */
+.shell-grid{height:100vh;}
+.appshell__topbar .tb-spacer{flex:1;}
+.tb-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.brand-sub{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.appshell__main{padding:0;display:flex;flex-direction:column;min-height:0;}
+
+/* editor sub-header (tab strip) */
+.sub{position:sticky;top:0;z-index:6;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--gutter-desktop) 0;}
+.sub-row{display:flex;align-items:center;gap:var(--space-3);}
+.sub-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;}
+.sub-save{margin-left:auto;display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);}
+.tabstrip{display:flex;gap:var(--space-1);margin-top:var(--space-3);overflow-x:auto;}
+.tabstrip button{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;}
+.tabstrip button:hover{color:var(--text-primary);}
+.tabstrip button[aria-selected="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+
+/* page header */
+.pg-head{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-5) var(--gutter-desktop) var(--space-4);border-bottom:1px solid var(--border-subtle);}
+.pg-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);}
+.pg-head .pg-sub{font-size:var(--text-sm);color:var(--text-secondary);max-width:560px;margin-top:2px;}
+.pg-head .pg-acts{margin-left:auto;display:flex;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end;}
+
+/* 3-zone grid */
+.scroll{flex:1;display:flex;flex-direction:column;min-height:0;}
+.grid3{flex:1;display:grid;grid-template-columns:260px minmax(0,1fr) 380px;min-height:0;}
+
+/* list rail */
+.rail{border-right:1px solid var(--border-subtle);overflow-y:auto;padding:var(--space-4) var(--space-3);display:flex;flex-direction:column;gap:var(--space-4);background:var(--bg-surface);}
+.rail-grp{display:flex;flex-direction:column;gap:var(--space-2);}
+.rail-gl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:0 var(--space-2);}
+.rail-gl .n{margin-left:auto;font-family:var(--font-mono);}
+.rail-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-2);}
+.rail-card{position:relative;display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);cursor:pointer;}
+.rail-card.sel{border-color:var(--brand-primary);box-shadow:var(--shadow-e2);}
+.rail-card.sel::before{content:"";position:absolute;left:0;top:var(--space-3);bottom:var(--space-3);width:3px;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.rc-row{display:flex;align-items:center;gap:var(--space-2);}
+.rc-ico{width:28px;height:28px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-secondary);display:grid;place-items:center;flex:none;}
+.rc-nm{font-size:var(--text-sm);font-weight:var(--weight-semibold);line-height:1.15;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rc-star{margin-left:auto;flex:none;}
+.rc-meta{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.rc-badges{display:flex;gap:var(--space-2);flex-wrap:wrap;}
+.rail-add{margin-top:auto;}
+.skrow{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);}
+
+/* editor zone */
+.edit{overflow-y:auto;padding:var(--space-5) var(--gutter-desktop) var(--space-20);background:var(--bg-canvas);}
+.edit-col{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5);}
+.ed-head{display:flex;align-items:center;gap:var(--space-3);}
+.ed-big{width:42px;height:42px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;flex:none;}
+.ed-tx{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.ed-l1{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ed-l1 h3{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.ed-meta{font-size:var(--text-xs);color:var(--text-muted);}
+.ed-ctrls{margin-left:auto;display:flex;align-items:center;gap:var(--space-4);flex:none;}
+.swwrap{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);font-weight:var(--weight-medium);}
+
+/* section internals (layout only — Section component supplies the heading slot) */
+.sec-head{display:flex;align-items:flex-start;gap:var(--space-3);}
+.sec-ico{width:32px;height:32px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);display:grid;place-items:center;flex:none;}
+.sec-htx{display:flex;flex-direction:column;gap:2px;}
+.sec-htx h4{margin:0;font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.sec-dsc{font-size:var(--text-xs);color:var(--text-muted);}
+.sec-body{display:flex;flex-direction:column;gap:var(--space-5);margin-top:var(--space-4);}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);}
+.lbl-help{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);cursor:help;}
+.cnt{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);align-self:flex-end;}
+.inrow{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);}
+.hint{font-size:var(--text-xs);color:var(--text-muted);}
+
+/* temperature */
+.temp-row{display:flex;align-items:center;gap:var(--space-4);}
+.temp-row .slider{flex:1;}
+.temp-echo{width:84px;flex:none;text-align:center;}
+.temp-hint{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-secondary);}
+.temp-scale{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-1);}
+
+/* chip multiselect */
+.chiprow{display:flex;flex-wrap:wrap;gap:var(--space-2);}
+.chip-btn{background:none;border:none;padding:0;cursor:pointer;font:inherit;}
+.chip-btn[disabled]{cursor:not-allowed;opacity:.6;}
+
+/* objective rows */
+.obj-head,.obj-row{display:grid;grid-template-columns:1fr 88px 1.4fr 36px;gap:var(--space-2);align-items:start;}
+.obj-head{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding-bottom:var(--space-1);}
+.addrow-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand-primary);background:none;border:none;cursor:pointer;padding:var(--space-1) 0;}
+.fielderr{font-size:var(--text-xs);color:var(--status-error);display:inline-flex;align-items:center;gap:5px;margin-top:var(--space-1);}
+
+/* safety posture (composed: Alert + DefinitionList + Badge) */
+.safety-head{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);}
+.safety-head .st{font-weight:var(--weight-semibold);}
+.safety-head .lk{margin-left:auto;}
+.safety .deflist dt{display:flex;align-items:center;gap:6px;}
+.safety-cost{margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--status-success);display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);}
+
+/* footer */
+.ed-actions{display:flex;align-items:center;gap:var(--space-3);}
+.ed-actions .spc{flex:1;}
+
+/* preview rail */
+.preview{border-left:1px solid var(--border-subtle);background:var(--bg-surface-sunken);display:flex;flex-direction:column;min-height:0;}
+.pv-head{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);}
+.pv-l1{display:flex;align-items:center;gap:var(--space-2);}
+.pv-l1 h4{margin:0;font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-primary);}
+.pv-l1 .pill{margin-left:auto;}
+.pv-sub{font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px;}
+.pv-body{flex:1;overflow-y:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.pv-who{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.pv-refusal{background:var(--status-warning-subtle);border:1px solid var(--status-warning);color:var(--text-primary);align-self:flex-start;border-bottom-left-radius:var(--radius-sm);}
+.pv-math{font-family:var(--font-mono);background:var(--bg-surface-sunken);border-radius:var(--radius-sm);padding:1px 5px;font-size:var(--text-xs);}
+.typing{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e1);}
+.typing .dot{width:6px;height:6px;border-radius:var(--radius-pill);background:var(--text-muted);animation:bnc 1.2s infinite;}
+.typing .dot:nth-child(2){animation-delay:.15s;}
+.typing .dot:nth-child(3){animation-delay:.3s;}
+@keyframes bnc{0%,60%,100%{transform:translateY(0);opacity:.5;}30%{transform:translateY(-4px);opacity:1;}}
+.pv-foot{padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface);display:flex;flex-direction:column;gap:var(--space-2);}
+.pv-compose{display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-1) var(--space-1) var(--space-1) var(--space-3);}
+.pv-compose:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.pv-compose input{flex:1;border:none;outline:none;background:transparent;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);padding:var(--space-2) 0;}
+.pv-livenote{font-size:var(--text-2xs);color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+
+/* toast / dialog positioning (the components themselves come from LvlUpV0) */
+.toast-host{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:60;max-width:340px;}
+.dlg-row{display:flex;gap:var(--space-3);align-items:flex-start;}
+.dlg-ico{width:40px;height:40px;border-radius:var(--radius-md);display:grid;place-items:center;flex:none;}
+.dlg-ico.warn{background:var(--spark-subtle);color:var(--spark-hover);}
+.dlg-ico.danger{background:var(--status-error-subtle);color:var(--status-error);}
+.empty-host{flex:1;display:grid;place-items:center;}
+
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const {
+  Button, IconButton, Card, Section, Switch, Field, Input, Textarea, Select, Slider,
+  Badge, Chip, Alert, Toast, EmptyState, Skeleton, Modal, DefinitionList,
+  NavItem, Breadcrumb, TutorChatBubble, AnswerKeyLock, Icon
+} = window.LvlupV0DesignSystem_5d0725;
+
+/* ---------- data ---------- */
+const MODELS=[
+  {value:"gemini-2.5-flash",label:"Gemini Flash · gemini-2.5-flash"},
+  {value:"gemini-2.5-pro",label:"Gemini Pro · gemini-2.5-pro"},
+  {value:"claude-sonnet",label:"Claude Sonnet"},
+  {value:"claude-opus",label:"Claude Opus"},
+  {value:"gpt-4o",label:"GPT-4o"},
+  {value:"gpt-4",label:"GPT-4 — not enabled for this tenant"},
+];
+const SUBJECTS=["mathematics","physics","chemistry","biology","english","history","computer_science"];
+const LANGS=["English","Hindi","Spanish","French","Tamil"];
+const COST={
+  "gemini-2.5-flash":{n:"~420",per:"$0.0001"},"gemini-2.5-pro":{n:"~610",per:"$0.0017"},
+  "claude-sonnet":{n:"~580",per:"$0.0021"},"claude-opus":{n:"~640",per:"$0.0103"},
+  "gpt-4o":{n:"~560",per:"$0.0028"},"gpt-4":{n:"~590",per:"$0.0095"}
+};
+const AGENTS=[
+  {id:"agt_tutor_socratic",type:"tutor",name:"AI Tutor",identity:"Patient Socratic math mentor",
+   model:"gemini-2.5-flash",temp:0.7,active:true,
+   prompt:"You are a Socratic mathematics tutor. Never give the direct answer. Ask one guiding question at a time, build on what the student already knows, and confirm understanding before moving on.",
+   subjects:["mathematics","physics"],langs:["English","Hindi"],defaultLang:"English",maxTurns:"25"},
+  {id:"agt_tutor_mentor",type:"tutor",name:"Mentor",identity:"Encouraging exam-prep coach",
+   model:"claude-sonnet",temp:0.6,active:false,
+   prompt:"",subjects:["mathematics"],langs:["English"],defaultLang:"English",maxTurns:"15"},
+  {id:"agt_eval_rubric",type:"evaluator",name:"Rubric Grader",identity:"Fair, rubric-aligned grader",
+   model:"claude-opus",temp:0.2,active:true,
+   prompt:"Grade strictly against the supplied rubric. Cite the criterion for every point awarded or withheld.",
+   subjects:["mathematics"],rules:"Award partial credit for correct method with an arithmetic slip. Penalise unsupported claims. Never reveal the model answer to the student.",
+   strictness:"moderate",feedback:"detailed",
+   objectives:[{name:"Correct method",pts:"4",desc:"Sets up the right approach / formula."},
+     {name:"Accuracy",pts:"3",desc:"Final answer is numerically correct."},
+     {name:"Justification",pts:"3",desc:"Each step is explained."}]},
+  {id:"agt_eval_strict",type:"evaluator",name:"Strict Grader",identity:"Zero-tolerance final-exam grader",
+   model:"gpt-4o",temp:0.1,active:true,
+   prompt:"",subjects:[],rules:"",strictness:"strict",feedback:"brief",objectives:[]},
+];
+const clone=a=>JSON.parse(JSON.stringify(a));
+
+/* ---------- shell ---------- */
+function Shell({children}){
+  return <div className="appshell shell-grid">
+    <aside className="appshell__sidebar">
+      <div className="sidebar__brand">
+        <div className="sidebar__brand-mark">L</div>
+        <div>
+          <div className="sidebar__brand-name">Auto-LevelUp</div>
+          <div className="brand-sub">Northwood · Teacher</div>
+        </div>
+      </div>
+      <nav className="sidebar__nav" aria-label="Primary">
+        <div className="sidebar__section-label">Teach</div>
+        <NavItem icon="layout-dashboard">Dashboard</NavItem>
+        <NavItem icon="school" badge={<Badge>6</Badge>}>Classes</NavItem>
+        <NavItem icon="layers" active badge={<Badge variant="brand">9</Badge>}>Spaces</NavItem>
+        <NavItem icon="file-check" badge={<Badge>4</Badge>}>Exams</NavItem>
+        <NavItem icon="graduation-cap">Students</NavItem>
+        <div className="sidebar__section-label">Insights</div>
+        <NavItem icon="bar-chart-3">Analytics</NavItem>
+        <NavItem icon="sparkles">AI tutor</NavItem>
+      </nav>
+    </aside>
+    <header className="appshell__topbar">
+      <Breadcrumb items={[{label:"Spaces"},{label:"Linear Algebra — Sem 1"},{label:"Edit"}]}/>
+      <div className="tb-spacer"></div>
+      <div className="tb-search"><Icon name="search" size={15}/><span>Search…</span></div>
+      <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications, 2 unread"/>
+    </header>
+    <main className="appshell__main">{children}</main>
+  </div>;
+}
+
+function SubHeader({tab,onTab}){
+  const tabs=[
+    {id:"overview",label:"Overview",icon:"layout-template"},
+    {id:"story",label:"Story Points",icon:"git-branch"},
+    {id:"items",label:"Items",icon:"list-checks"},
+    {id:"rubric",label:"Rubric",icon:"scale"},
+    {id:"agents",label:"Agents",icon:"bot"},
+    {id:"settings",label:"Settings",icon:"settings"},
+  ];
+  return <div className="sub">
+    <div className="sub-row">
+      <h1 className="sub-title">Linear Algebra — Semester 1</h1>
+      <Badge icon={<Icon name="circle-dashed" size={12}/>}>Draft</Badge>
+      <span className="sub-save" aria-live="polite"><Icon name="check" size={13}/>Saved 2:14 PM</span>
+    </div>
+    <div className="tabstrip" role="tablist" aria-label="Space editor sections">
+      {tabs.map(t=>
+        <button key={t.id} role="tab" aria-selected={tab===t.id} onClick={()=>onTab(t.id)}>
+          <Icon name={t.icon} size={15}/>{t.label}</button>)}
+    </div>
+  </div>;
+}
+
+/* ---------- section wrapper (uses LvlUpV0 Section; layout-only header) ---------- */
+function ConfigSection({icon,title,desc,tag,children}){
+  return <Card>
+    <Section>
+      <div className="sec-head">
+        <div className="sec-ico"><Icon name={icon} size={17}/></div>
+        <div className="sec-htx"><h4>{title}</h4><div className="sec-dsc">{desc}</div></div>
+        {tag}
+      </div>
+      <div className="sec-body">{children}</div>
+    </Section>
+  </Card>;
+}
+
+/* ---------- role badge helper (icon + label, never color alone) ---------- */
+function RoleBadge({type}){
+  return type==="tutor"
+    ? <Badge variant="brand" icon={<Icon name="graduation-cap" size={12}/>}>Tutor</Badge>
+    : <Badge variant="info" icon={<Icon name="scale" size={12}/>}>Evaluator</Badge>;
+}
+
+/* ---------- list rail ---------- */
+function RailCard({a,sel,isDefault,onSelect,onToggleDefault}){
+  return <li role="option" aria-selected={sel}>
+    <Card interactive className={"rail-card"+(sel?" sel":"")}>
+      <div tabIndex={0} onClick={onSelect}
+        onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onSelect();}}}>
+        <div className="rc-row">
+          <div className="rc-ico"><Icon name={a.type==="tutor"?"graduation-cap":"scale"} size={15}/></div>
+          <span className="rc-nm" title={a.name}>{a.name}</span>
+          <span className="rc-star">
+            <IconButton size="sm" icon={<Icon name="star" size={16}/>}
+              aria-pressed={isDefault}
+              label={isDefault?("Default "+a.type+" (current)"):("Set as default "+a.type)}
+              style={isDefault?{color:"var(--spark)"}:undefined}
+              onClick={e=>{e.stopPropagation();onToggleDefault();}}/>
+          </span>
+        </div>
+        <div className="rc-meta">{a.model}</div>
+        <div className="rc-badges">
+          <RoleBadge type={a.type}/>
+          {isDefault && <Badge variant="spark" icon={<Icon name="star" size={12}/>}>Default</Badge>}
+          {!a.active && <Badge icon={<Icon name="pause" size={12}/>}>Inactive</Badge>}
+        </div>
+      </div>
+    </Card>
+  </li>;
+}
+
+function SkelRailCard(){
+  return <Card className="skrow">
+    <div style={{display:"flex",gap:"var(--space-2)",alignItems:"center"}}>
+      <Skeleton variant="circle" width="28px" height="28px"/>
+      <Skeleton width="110px" height="14px"/>
+    </div>
+    <Skeleton width="90px" height="11px"/>
+    <Skeleton width="64px" height="18px"/>
+  </Card>;
+}
+
+/* ---------- chip multiselect (LvlUpV0 Chip inside a real button) ---------- */
+function ChipToggle({label,on,disabled,onToggle}){
+  return <button type="button" className="chip-btn" aria-pressed={on} disabled={disabled}
+    onClick={()=>!disabled&&onToggle()}>
+    <Chip active={on}>{on&&<Icon name="check" size={13}/>}{label}</Chip>
+  </button>;
+}
+
+/* ---------- safety posture (CORE-EXTENSION: composed inline) ---------- */
+function SafetyPosture({model}){
+  const cost=COST[model]||COST["gemini-2.5-flash"];
+  return <Alert variant="success" className="safety">
+    <div className="safety-head">
+      <Icon name="shield-check" size={18}/>
+      <span className="st">Safety posture</span>
+      <span className="lk"><Badge variant="success" icon={<Icon name="lock" size={12}/>}>Always on</Badge></span>
+    </div>
+    <DefinitionList items={[
+      {term:<span><Icon name="shield" size={14}/> Prompt-injection</span>,
+       value:"Student input is always treated as content, never instructions — injection attempts are stripped before the model sees them."},
+      {term:<span><Icon name="ban" size={14}/> Blocked topics</span>,
+       value:"Off-topic and unsafe requests are blocked: “This topic is outside the scope of academic tutoring.”"},
+      {term:<span><Icon name="gauge" size={14}/> Rate limits</span>,
+       value:"10 messages / minute and 50 / hour per student."},
+    ]}/>
+    <div className="safety-cost">
+      <Icon name="coins" size={15}/>
+      Estimated cost: <span className="u-mono">{cost.n}</span> tokens per message on {model}
+      &nbsp;(<span className="u-mono">{cost.per}</span>/msg). AI usage is metered — choose the model deliberately.
+    </div>
+  </Alert>;
+}
+
+/* ---------- preview rail ---------- */
+function PreviewRail({agent,available,sending,onSend,composeVal,setComposeVal,transcript}){
+  const cost=COST[agent&&agent.model]||COST["gemini-2.5-flash"];
+  if(!agent) return <aside className="preview">
+    <div className="pv-head"><div className="pv-l1"><Icon name="message-square" size={16}/><h4>Live tutor preview</h4></div></div>
+    <div className="pv-body"><div className="empty-host">
+      <EmptyState icon="message-square-dashed" title="Add a tutor to preview a chat"
+        body="Evaluators grade silently — select or create a tutor to try its voice live."/>
+    </div></div>
+  </aside>;
+
+  return <aside className="preview" aria-label="Live tutor preview">
+    <div className="pv-head">
+      <div className="pv-l1">
+        <Icon name="message-square" size={16}/><h4>Live tutor preview</h4>
+        <span className="pill"><Badge icon={<Icon name="zap" size={11}/>}>live state</Badge></span>
+      </div>
+      <div className="pv-sub">Runs the real <span className="u-mono">sendChatMessage</span> path — author session, never shown to students.</div>
+    </div>
+    <div className="pv-body" aria-live="polite">
+      {!available && <Alert variant="warning" title="Live preview unavailable">
+        No AI provider key for this tenant. You can still edit and save.</Alert>}
+      {available && transcript.map((m,i)=>{
+        if(m.refusal) return <TutorChatBubble key={i} from="tutor" className="pv-refusal">
+          <div className="pv-who"><Icon name="shield-alert" size={12}/><span className="sr">Tutor:</span>Tutor · safety</div>
+          {m.text}</TutorChatBubble>;
+        return <TutorChatBubble key={i} from={m.from==="user"?"user":"tutor"}>
+          <div className="pv-who">
+            <Icon name={m.from==="tutor"?"graduation-cap":"user"} size={12}/>
+            <span className="sr">{m.from==="tutor"?"Tutor:":"You:"}</span>{m.from==="tutor"?"Tutor":"You"}</div>
+          {m.html ? <span dangerouslySetInnerHTML={{__html:m.text}}/> : m.text}
+        </TutorChatBubble>;
+      })}
+      {available && sending && <div className="typing" role="status" aria-label="Tutor is responding">
+        <span className="dot"></span><span className="dot"></span><span className="dot"></span></div>}
+    </div>
+    <div className="pv-foot">
+      <div className="pv-compose">
+        <input placeholder={available?"Ask the tutor a question…":"Preview unavailable"} disabled={!available}
+          value={composeVal} aria-label="Preview message"
+          onChange={e=>setComposeVal(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"){onSend();}}}/>
+        <IconButton solid size="sm" icon={<Icon name="arrow-up" size={16}/>} label="Send preview message"
+          disabled={!available||!composeVal.trim()} onClick={onSend}/>
+      </div>
+      <div className="pv-livenote"><Icon name="info" size={12}/>
+        Uses live form state — no save needed. Cost ~{cost.n} tok/msg on {agent.model}.</div>
+    </div>
+  </aside>;
+}
+
+/* ---------- editor ---------- */
+function Editor({a,isDefault,onChange,onToggleDefault,onSave,onDelete,saving,readOnly}){
+  const ro=readOnly;
+  const tempNum=parseFloat(a.temp);
+  const tempBad=isNaN(tempNum)||tempNum<0||tempNum>1;
+  const dupName=AGENTS.some(x=>x.id!==a.id&&x.type===a.type&&x.name.trim().toLowerCase()===a.name.trim().toLowerCase());
+  const badObj=(a.objectives||[]).some(o=>!o.name.trim()||!(parseFloat(o.pts)>0));
+  const errs=[];
+  if(tempBad) errs.push("Temperature must be between 0 and 1.");
+  if(dupName) errs.push("Two "+a.type+"s share the same name — names must be unique.");
+  if(a.type==="evaluator"&&badObj) errs.push("Objective points must be greater than 0.");
+  const canSave=errs.length===0;
+  const tempHint=tempNum<=0.3?"Deterministic":tempNum>=0.7?"Creative":"Balanced";
+  const tempIcon=tempNum<=0.3?"lock":tempNum>=0.7?"shuffle":"sliders-horizontal";
+  const personaFallback=a.type==="tutor"&&!a.prompt.trim()&&!a.identity.trim();
+  const evalFallback=a.type==="evaluator"&&!(a.rules||"").trim()&&!a.strictness;
+
+  const setSub=s=>{const has=a.subjects.includes(s);
+    onChange({...a,subjects:has?a.subjects.filter(x=>x!==s):[...a.subjects,s]});};
+  const setLang=l=>{const has=(a.langs||[]).includes(l);
+    onChange({...a,langs:has?a.langs.filter(x=>x!==l):[...(a.langs||[]),l]});};
+  const setObj=(i,k,v)=>{const o=clone(a.objectives);o[i][k]=v;onChange({...a,objectives:o});};
+  const addObj=()=>onChange({...a,objectives:[...(a.objectives||[]),{name:"",pts:"",desc:""}]});
+  const rmObj=i=>onChange({...a,objectives:a.objectives.filter((_,x)=>x!==i)});
+
+  return <div className="edit-col">
+    {errs.length>0 && <Alert variant="error" title={"Fix "+errs.length+" "+(errs.length===1?"issue":"issues")+" before saving"} tabIndex={-1}>
+      <ul style={{margin:"4px 0 0",paddingLeft:"var(--space-4)"}}>{errs.map((e,i)=><li key={i}>{e}</li>)}</ul>
+    </Alert>}
+
+    {/* header */}
+    <Card>
+      <div className="ed-head" style={{padding:"var(--space-1)"}}>
+        <div className="ed-big"><Icon name={a.type==="tutor"?"graduation-cap":"scale"} size={22}/></div>
+        <div className="ed-tx">
+          <div className="ed-l1">
+            <h3>{a.name||"Untitled agent"}</h3>
+            <RoleBadge type={a.type}/>
+            {isDefault && <Badge variant="spark" icon={<Icon name="star" size={12}/>}>Default</Badge>}
+            {!a.active && <Badge icon={<Icon name="pause" size={12}/>}>Inactive</Badge>}
+          </div>
+          <div className="ed-meta">{a.model} · temperature {a.temp}</div>
+        </div>
+        <div className="ed-ctrls">
+          <label className="swwrap"><span>Active</span>
+            <Switch checked={a.active} aria-label="Agent active" disabled={ro}
+              onChange={e=>!ro&&onChange({...a,active:e.target.checked})}/></label>
+          <IconButton icon={<Icon name="star" size={18}/>}
+            aria-pressed={isDefault} disabled={ro}
+            label={isDefault?("Default "+a.type+" (current)"):("Set as default "+a.type)}
+            style={isDefault?{color:"var(--spark)",background:"var(--spark-subtle)"}:undefined}
+            onClick={onToggleDefault}/>
+        </div>
+      </div>
+    </Card>
+
+    {/* fallback notices */}
+    {personaFallback && <Alert variant="info" title="This tutor will fall back to the default persona">
+      No system prompt or identity is set, so <span className="u-mono">buildTutorSystemPrompt</span> uses <span className="u-mono">DEFAULT_TUTOR_PERSONA</span>. Valid, but generic.</Alert>}
+    {evalFallback && <Alert variant="info" title="Grading will use default fairness rules">
+      No grading rules or strictness set for this evaluator.</Alert>}
+
+    {/* Identity */}
+    <ConfigSection icon="id-card" title="Identity" desc="The agent's name and one-line persona summary.">
+      <div className="f2">
+        <Field label="Name" required htmlFor="f-name" error={dupName?("Name must be unique among "+a.type+"s."):""}>
+          <Input id="f-name" value={a.name} disabled={ro} error={dupName} aria-invalid={dupName}
+            onChange={e=>onChange({...a,name:e.target.value})}/>
+        </Field>
+        <Field label="Identity" hint="A short persona summary." htmlFor="f-ident">
+          <Input id="f-ident" value={a.identity} disabled={ro} placeholder="e.g. Patient Socratic mentor"
+            onChange={e=>onChange({...a,identity:e.target.value})}/>
+        </Field>
+      </div>
+    </ConfigSection>
+
+    {/* Model & sampling */}
+    <ConfigSection icon="cpu" title="Model & sampling" desc="Passed verbatim to the LLM call. These are live cost & behaviour levers.">
+      <Field label="Model" htmlFor="f-model"
+        hint="Overrides the tenant default. Greyed models aren't enabled for this tenant.">
+        <Select id="f-model" value={a.model} disabled={ro} options={MODELS.map(m=>({value:m.value,label:m.label}))}
+          onChange={e=>onChange({...a,model:e.target.value})}/>
+      </Field>
+      <Field label="Temperature" htmlFor="f-temp" error={tempBad?"Temperature must be between 0 and 1.":""}
+        hint="Lower = more consistent (best for grading). Higher = more varied phrasing.">
+        <div className="temp-row">
+          <Slider id="f-temp" min="0" max="1" step="0.05" value={isNaN(tempNum)?0:tempNum} disabled={ro}
+            aria-valuemin={0} aria-valuemax={1} aria-valuenow={isNaN(tempNum)?0:tempNum}
+            onChange={e=>onChange({...a,temp:parseFloat(e.target.value)})}/>
+          <div className="temp-echo">
+            <Input className="u-mono" type="number" min="0" max="1" step="0.05" value={a.temp} disabled={ro}
+              error={tempBad} aria-label="Temperature value" style={{textAlign:"center"}}
+              onChange={e=>onChange({...a,temp:e.target.value})}/>
+          </div>
+        </div>
+        <div className="inrow">
+          <span className="temp-hint"><Icon name={tempIcon} size={14}/>{tempHint}</span>
+        </div>
+        <div className="temp-scale"><span>0.00</span><span>0.50</span><span>1.00</span></div>
+      </Field>
+    </ConfigSection>
+
+    {/* Persona */}
+    <ConfigSection icon="scroll-text" title="Persona"
+      desc="This becomes the agent's instructions. Executed as LLM text — write it deliberately.">
+      <Field label="System prompt" htmlFor="f-prompt">
+        <Textarea id="f-prompt" maxLength={4000} value={a.prompt} disabled={ro} style={{minHeight:"128px"}}
+          placeholder={a.type==="tutor"?"Describe how this tutor should guide students…":"Describe how this evaluator should grade…"}
+          onChange={e=>onChange({...a,prompt:e.target.value})}/>
+        <div className="inrow">
+          <span className="hint">Plain language. The platform wraps student input as content, never instructions.</span>
+          <span className="cnt">{a.prompt.length}/4000</span>
+        </div>
+      </Field>
+    </ConfigSection>
+
+    {/* Per-subject guidance */}
+    <ConfigSection icon="book-marked" title="Per-subject guidance"
+      desc="Adds subject-specific coaching (e.g. LaTeX for maths, SI units for physics) when an item is tagged with that subject.">
+      <div className="chiprow" role="group" aria-label="Per-subject guidance">
+        {SUBJECTS.map(s=><ChipToggle key={s} label={s} on={a.subjects.includes(s)} disabled={ro} onToggle={()=>setSub(s)}/>)}
+      </div>
+    </ConfigSection>
+
+    {/* role-specific */}
+    {a.type==="tutor"
+      ? <ConfigSection icon="graduation-cap" title="Tutor rules" desc="Conversation limits and language behaviour.">
+          <Field label="Supported languages" hint="Languages the tutor may respond in.">
+            <div className="chiprow" role="group" aria-label="Supported languages">
+              {LANGS.map(l=><ChipToggle key={l} label={l} on={(a.langs||[]).includes(l)} disabled={ro} onToggle={()=>setLang(l)}/>)}
+            </div>
+          </Field>
+          <div className="f2">
+            <Field label="Default language" htmlFor="f-dlang">
+              <Select id="f-dlang" value={a.defaultLang} disabled={ro}
+                options={LANGS.map(l=>({value:l,label:l}))}
+                onChange={e=>onChange({...a,defaultLang:e.target.value})}/>
+            </Field>
+            <Field label="Max conversation turns" htmlFor="f-turns"
+              hint="Caps how long a single tutoring chat can run before the student starts a new one.">
+              <Input id="f-turns" className="u-mono" type="number" min="1" value={a.maxTurns} disabled={ro}
+                onChange={e=>onChange({...a,maxTurns:e.target.value})}/>
+            </Field>
+          </div>
+        </ConfigSection>
+      : <ConfigSection icon="scale" title="Evaluator rules" desc="How this agent grades. Used for grading, never shown to students.">
+          <AnswerKeyLock title="Answer key isolated.">
+            Grading rules and model-answer references are evaluator-only — server-side context, stripped before any student-facing path.
+          </AnswerKeyLock>
+          <Field label="Grading rules" htmlFor="f-rules" hint="Used for grading, never shown to students.">
+            <Textarea id="f-rules" value={a.rules||""} disabled={ro}
+              placeholder="e.g. Award partial credit for correct method with an arithmetic slip…"
+              onChange={e=>onChange({...a,rules:e.target.value})}/>
+          </Field>
+          <div className="f2">
+            <Field label="Strictness" htmlFor="f-strict">
+              <Select id="f-strict" value={a.strictness||""} disabled={ro}
+                options={[{value:"",label:"Default (moderate)"},{value:"lenient",label:"Lenient"},
+                  {value:"moderate",label:"Moderate"},{value:"strict",label:"Strict"}]}
+                onChange={e=>onChange({...a,strictness:e.target.value})}/>
+            </Field>
+            <Field label="Feedback style" htmlFor="f-fb">
+              <Select id="f-fb" value={a.feedback||""} disabled={ro}
+                options={[{value:"",label:"Default"},{value:"brief",label:"Brief"},
+                  {value:"detailed",label:"Detailed"},{value:"encouraging",label:"Encouraging"}]}
+                onChange={e=>onChange({...a,feedback:e.target.value})}/>
+            </Field>
+          </div>
+          <Field label="Evaluation objectives">
+            {(a.objectives||[]).length>0 && <div className="obj-head">
+              <span>Name</span><span>Points</span><span>Description</span><span></span></div>}
+            {(a.objectives||[]).map((o,i)=>{
+              const nameBad=!o.name.trim();const ptsBad=!(parseFloat(o.pts)>0);
+              return <div className="obj-row" key={i}>
+                <Input value={o.name} disabled={ro} error={nameBad} placeholder="Objective name"
+                  aria-label={"Objective "+(i+1)+" name"} onChange={e=>setObj(i,"name",e.target.value)}/>
+                <Input className="u-mono" type="number" min="1" value={o.pts} disabled={ro} error={ptsBad}
+                  placeholder="0" aria-label={"Objective "+(i+1)+" points"} onChange={e=>setObj(i,"pts",e.target.value)}/>
+                <Input value={o.desc} disabled={ro} placeholder="What earns these points"
+                  aria-label={"Objective "+(i+1)+" description"} onChange={e=>setObj(i,"desc",e.target.value)}/>
+                <IconButton size="sm" icon={<Icon name="trash-2" size={15}/>} label={"Remove objective "+(i+1)}
+                  disabled={ro} onClick={()=>rmObj(i)}/>
+              </div>;})}
+            {badObj && <span className="fielderr" role="alert"><Icon name="alert-circle" size={13}/>Each objective needs a name and points greater than 0.</span>}
+            {!ro && <button className="addrow-btn" type="button" onClick={addObj}><Icon name="plus" size={15}/>Add objective</button>}
+          </Field>
+        </ConfigSection>}
+
+    {/* Safety posture */}
+    <SafetyPosture model={a.model}/>
+
+    {/* footer */}
+    {!ro
+      ? <div className="ed-actions">
+          <Button variant="danger" leadingIcon={<Icon name="trash-2" size={16}/>} onClick={onDelete}>Delete</Button>
+          <div className="spc"></div>
+          <Button variant="primary" loading={saving} disabled={!canSave||saving}
+            leadingIcon={!saving&&<Icon name="check" size={16}/>} onClick={onSave}>
+            {saving?"Saving…":"Save agent"}</Button>
+        </div>
+      : <Alert variant="info" title="View-only">
+          Your role can view agents but not edit, save, delete, or run the preview composer.</Alert>}
+  </div>;
+}
+
+/* ---------- screen ---------- */
+function Screen(){
+  const [tab,setTab]=useState("agents");
+  const [loading,setLoading]=useState(false);
+  const [empty,setEmpty]=useState(false);
+  const [readOnly,setReadOnly]=useState(false);
+  const [prevAvailable,setPrevAvailable]=useState(true);
+
+  const [agents,setAgents]=useState(()=>clone(AGENTS));
+  const [selId,setSelId]=useState("agt_tutor_socratic");
+  const [defaults,setDefaults]=useState({tutor:"agt_tutor_socratic",evaluator:"agt_eval_rubric"});
+
+  const [saving,setSaving]=useState(false);
+  const [toast,setToast]=useState(null);
+  const [dlg,setDlg]=useState(null);
+
+  const [compose,setCompose]=useState("");
+  const [sending,setSending]=useState(false);
+  const [transcript,setTranscript]=useState([
+    {from:"tutor",text:"Let's start with what you already know. For the system <span class='pv-math'>2x + y = 5</span>, what does a single equation tell you about the line?",html:true},
+    {from:"user",text:"That x and y are connected somehow?"},
+    {from:"tutor",text:"Exactly — it's every point on a line. Now if we add <span class='pv-math'>x − y = 1</span>, what do you think the two lines meeting would represent?",html:true},
+    {refusal:true,text:"This topic is outside the scope of academic tutoring."},
+  ]);
+
+  const sel=agents.find(a=>a.id===selId);
+  const tutors=agents.filter(a=>a.type==="tutor");
+  const evals=agents.filter(a=>a.type==="evaluator");
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+  const updateSel=na=>setAgents(agents.map(a=>a.id===na.id?na:a));
+
+  const addAgent=type=>{
+    const id="agt_new_"+Date.now();
+    const na=type==="tutor"
+      ? {id,type,name:"AI Tutor",identity:"",model:"gemini-2.5-flash",temp:0.7,active:true,prompt:"",subjects:[],langs:["English"],defaultLang:"English",maxTurns:"20"}
+      : {id,type,name:"AI Evaluator",identity:"",model:"claude-opus",temp:0.2,active:true,prompt:"",subjects:[],rules:"",strictness:"moderate",feedback:"detailed",objectives:[]};
+    setAgents([...agents,na]); setSelId(id); setEmpty(false);
+    setTimeout(()=>{const el=document.getElementById("f-name");el&&el.focus();},60);
+  };
+
+  const toggleDefault=a=>{
+    const cur=defaults[a.type];
+    if(cur===a.id){ setDefaults({...defaults,[a.type]:null}); return; }
+    if(cur){ const prev=agents.find(x=>x.id===cur); setDlg({kind:"default",agent:a,prev}); return; }
+    setDefaults({...defaults,[a.type]:a.id});
+  };
+  const confirmDefault=()=>{ const a=dlg.agent; setDefaults({...defaults,[a.type]:a.id}); setDlg(null); };
+
+  const onSave=()=>{
+    setSaving(true);
+    setTimeout(()=>{
+      setSaving(false);
+      setToast({variant:"success",t:"Agent saved",b:"Changes are live for new tutoring sessions in this space."});
+      setTimeout(()=>setToast(null),2800);
+    },900);
+  };
+
+  const onDelete=a=>{
+    if(defaults[a.type]===a.id){ setDlg({kind:"delete-blocked",agent:a}); return; }
+    setDlg({kind:"delete",agent:a});
+  };
+  const confirmDelete=()=>{ const a=dlg.agent;
+    const rest=agents.filter(x=>x.id!==a.id);
+    setAgents(rest); setSelId(rest[0]?rest[0].id:null); setDlg(null);
+    setToast({variant:"success",t:"Agent deleted",b:"'"+a.name+"' was removed from this space."});
+    setTimeout(()=>setToast(null),2600);
+  };
+
+  const sendPreview=()=>{
+    if(!compose.trim()||!prevAvailable) return;
+    const txt=compose.trim();
+    setTranscript(t=>[...t,{from:"user",text:txt}]);
+    setCompose(""); setSending(true);
+    setTimeout(()=>{
+      setSending(false);
+      setTranscript(t=>[...t,{from:"tutor",text:"Good question. Rather than solve it for you — what's the first operation you'd try to isolate one variable?",html:false}]);
+    },1100);
+  };
+
+  const previewAgent=sel&&sel.type==="tutor"?sel:tutors[0];
+
+  return <Shell>
+    <SubHeader tab={tab} onTab={setTab}/>
+    <div className="scroll">
+      <div className="pg-head">
+        <div>
+          <h2>Agents</h2>
+          <div className="pg-sub">Configure the AI tutor and evaluator that help and grade students in this space.</div>
+        </div>
+        <div className="pg-acts">
+          <Button variant="ghost" size="sm" leadingIcon={<Icon name="loader" size={15}/>}
+            onClick={()=>setLoading(l=>!l)} title="Toggle loading state">{loading?"Loaded":"Loading…"}</Button>
+          <Button variant="ghost" size="sm" leadingIcon={<Icon name={readOnly?"eye":"pencil"} size={15}/>}
+            onClick={()=>setReadOnly(r=>!r)} title="Toggle viewer role">{readOnly?"View-only":"Editing"}</Button>
+          <Button variant="ghost" size="sm" leadingIcon={<Icon name="plug" size={15}/>}
+            onClick={()=>setPrevAvailable(p=>!p)} title="Toggle preview availability">{prevAvailable?"Key OK":"No key"}</Button>
+          <Button variant="ghost" size="sm" leadingIcon={<Icon name="inbox" size={15}/>}
+            onClick={()=>setEmpty(e=>!e)} title="Toggle empty state">{empty?"Has agents":"Empty"}</Button>
+          <Button variant="secondary" disabled={readOnly} leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>addAgent("tutor")}>Add tutor</Button>
+          <Button variant="secondary" disabled={readOnly} leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>addAgent("evaluator")}>Add evaluator</Button>
+        </div>
+      </div>
+
+      {empty
+        ? <div className="empty-host">
+            <EmptyState icon="bot" title="No agents configured yet"
+              body="Add an evaluator or tutor to enable AI tutoring and AI grading in this space."
+              action={<div style={{display:"flex",gap:"var(--space-2)",marginTop:"var(--space-2)"}}>
+                <Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>addAgent("tutor")}>Add tutor</Button>
+                <Button variant="secondary" leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>addAgent("evaluator")}>Add evaluator</Button>
+              </div>}/>
+          </div>
+
+        : <div className="grid3">
+          {/* list rail */}
+          <div className="rail">
+            {loading
+              ? <>
+                  <div className="rail-grp"><div className="rail-gl"><Icon name="graduation-cap" size={13}/>Tutors</div>
+                    <SkelRailCard/><SkelRailCard/></div>
+                  <div className="rail-grp"><div className="rail-gl"><Icon name="scale" size={13}/>Evaluators</div>
+                    <SkelRailCard/></div>
+                </>
+              : <>
+                <div className="rail-grp">
+                  <div className="rail-gl"><Icon name="graduation-cap" size={13}/>Tutors<span className="n">{tutors.length}</span></div>
+                  <ul className="rail-list" role="listbox" aria-label="Tutor agents">
+                    {tutors.map(a=><RailCard key={a.id} a={a} sel={a.id===selId}
+                      isDefault={defaults.tutor===a.id} onSelect={()=>setSelId(a.id)}
+                      onToggleDefault={()=>toggleDefault(a)}/>)}
+                  </ul>
+                </div>
+                <div className="rail-grp">
+                  <div className="rail-gl"><Icon name="scale" size={13}/>Evaluators<span className="n">{evals.length}</span></div>
+                  <ul className="rail-list" role="listbox" aria-label="Evaluator agents">
+                    {evals.map(a=><RailCard key={a.id} a={a} sel={a.id===selId}
+                      isDefault={defaults.evaluator===a.id} onSelect={()=>setSelId(a.id)}
+                      onToggleDefault={()=>toggleDefault(a)}/>)}
+                  </ul>
+                </div>
+                <div className="rail-add">
+                  <Button variant="ghost" block disabled={readOnly} leadingIcon={<Icon name="plus" size={15}/>}
+                    onClick={()=>addAgent("tutor")}>Add agent…</Button>
+                </div>
+              </>}
+          </div>
+
+          {/* editor */}
+          <div className="edit">
+            {loading
+              ? <div className="edit-col">
+                  <Skeleton height="74px"/><Skeleton height="120px"/><Skeleton height="160px"/><Skeleton height="140px"/>
+                </div>
+              : sel
+                ? <Editor a={sel} isDefault={defaults[sel.type]===sel.id}
+                    onChange={updateSel} onToggleDefault={()=>toggleDefault(sel)}
+                    onSave={onSave} onDelete={()=>onDelete(sel)}
+                    saving={saving} readOnly={readOnly}/>
+                : <div className="empty-host">
+                    <EmptyState icon="mouse-pointer-click" title="Select an agent"
+                      body="Choose an agent from the list, or add a new tutor or evaluator."/>
+                  </div>}
+          </div>
+
+          {/* preview rail */}
+          {loading
+            ? <aside className="preview"><div className="pv-head"><div className="pv-l1">
+                <Icon name="message-square" size={16}/><h4>Live tutor preview</h4></div></div>
+                <div className="pv-body">
+                  <Skeleton height="60px" style={{alignSelf:"flex-start",width:"80%"}}/>
+                  <Skeleton height="40px" style={{alignSelf:"flex-end",width:"60%"}}/>
+                  <Skeleton height="60px" style={{alignSelf:"flex-start",width:"80%"}}/>
+                </div></aside>
+            : <PreviewRail agent={previewAgent} available={prevAvailable&&!readOnly}
+                sending={sending} onSend={sendPreview}
+                composeVal={compose} setComposeVal={setCompose} transcript={transcript}/>}
+        </div>}
+    </div>
+
+    {/* dialogs (LvlUpV0 Modal) */}
+    {dlg && dlg.kind==="default" && <Modal open onClose={()=>setDlg(null)}
+      title={"Make '"+dlg.agent.name+"' the default "+dlg.agent.type+"?"}
+      footer={<><Button variant="ghost" onClick={()=>setDlg(null)}>Cancel</Button>
+        <Button variant="primary" leadingIcon={<Icon name="star" size={16}/>} onClick={confirmDefault}>Make default</Button></>}>
+      <div className="dlg-row">
+        <div className="dlg-ico warn"><Icon name="star" size={20}/></div>
+        <p>Students' new chats will use it instead of '{dlg.prev?dlg.prev.name:"the current default"}'. Existing sessions are unaffected.</p>
+      </div>
+    </Modal>}
+    {dlg && dlg.kind==="delete" && <Modal open onClose={()=>setDlg(null)}
+      title={"Delete '"+dlg.agent.name+"'?"}
+      footer={<><Button variant="ghost" onClick={()=>setDlg(null)}>Cancel</Button>
+        <Button variant="danger" leadingIcon={<Icon name="trash-2" size={16}/>} onClick={confirmDelete}>Delete agent</Button></>}>
+      <div className="dlg-row">
+        <div className="dlg-ico danger"><Icon name="trash-2" size={20}/></div>
+        <p>This can't be undone. Any story point pointing at this agent falls back to the space default.</p>
+      </div>
+    </Modal>}
+    {dlg && dlg.kind==="delete-blocked" && <Modal open onClose={()=>setDlg(null)}
+      title="This agent is the space default"
+      footer={<Button variant="primary" onClick={()=>setDlg(null)}>Got it</Button>}>
+      <div className="dlg-row">
+        <div className="dlg-ico warn"><Icon name="shield-alert" size={20}/></div>
+        <p>'{dlg.agent.name}' is the current default {dlg.agent.type}. Choose another default before deleting it.</p>
+      </div>
+    </Modal>}
+
+    {/* toast (LvlUpV0 Toast) */}
+    {toast && <div className="toast-host"><Toast variant={toast.variant} title={toast.t} body={toast.b}/></div>}
+  </Shell>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

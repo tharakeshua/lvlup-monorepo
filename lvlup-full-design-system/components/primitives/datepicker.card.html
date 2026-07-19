@@ -1,0 +1,90 @@
+<!-- @dsCard group="Forms" viewport="700x420" name="DatePicker" subtitle="Input + month calendar grid" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin-bottom:20px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:6px}
+.dp-field{position:relative;width:240px}
+.dp-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;display:flex}
+.dp-pop{width:260px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);padding:var(--space-3)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)}
+.dp-title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-sm)}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-wk{text-align:center;padding:4px 0}
+.dp-cell{display:flex;align-items:center;justify-content:center;height:32px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer;border:1px solid transparent}
+.dp-cell:hover{background:var(--bg-surface-sunken)}
+.dp-cell--muted{color:var(--text-muted)}
+.dp-cell--today{border-color:var(--border-strong)}
+.dp-cell--sel{background:var(--brand-subtle);border-color:var(--brand-primary);color:var(--brand-primary);font-weight:var(--weight-semibold)}
+.dp-cell--spark{background:var(--spark-subtle);border-color:var(--spark);color:var(--spark-hover);font-weight:var(--weight-semibold)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { Input } = window.LvlupV0DesignSystem_5d0725;
+  const WK = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+  // Aug 2026 starts on Saturday → 5 leading muted days from July
+  const LEAD = [27,28,29,30,31];
+  const DAYS = Array.from({length:31},(_,i)=>i+1);
+  const TODAY = 12, SEL = 19;
+
+  function Cell({n,mods}){
+    const cls = ["dp-cell"].concat((mods||[]).map(m=>"dp-cell--"+m)).join(" ");
+    return <div className={cls}>{n}</div>;
+  }
+
+  function Calendar({sparkSel}){
+    return (
+      <div className="dp-pop">
+        <div className="dp-head">
+          <div className="dp-title">August 2026</div>
+          <div style={{display:"flex",gap:"4px"}}>
+            <i data-lucide="chevron-left"  style={{width:16,height:16,color:"var(--text-muted)"}}></i>
+            <i data-lucide="chevron-right" style={{width:16,height:16,color:"var(--text-muted)"}}></i>
+          </div>
+        </div>
+        <div className="dp-grid">
+          {WK.map(w=><div key={w} className="dp-wk u-caption">{w}</div>)}
+          {LEAD.map(n=><Cell key={"l"+n} n={n} mods={["muted"]} />)}
+          {DAYS.map(n=>{
+            const mods=[];
+            if(n===TODAY) mods.push("today");
+            if(n===SEL) mods.push(sparkSel?"spark":"sel");
+            return <Cell key={n} n={n} mods={mods} />;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function Demo(){
+    React.useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+    return (<div>
+      <div className="ds-cap">Date input</div>
+      <div className="ds-row">
+        <div className="dp-field">
+          <Input defaultValue="Aug 19, 2026" readOnly />
+          <span className="dp-icon"><i data-lucide="calendar" style={{width:16,height:16}}></i></span>
+        </div>
+        <div className="dp-field">
+          <Input placeholder="Select a date…" readOnly />
+          <span className="dp-icon"><i data-lucide="calendar" style={{width:16,height:16}}></i></span>
+        </div>
+      </div>
+
+      <div className="ds-cap">Open calendar — selected (brand)</div>
+      <div className="ds-row">
+        <Calendar />
+      </div>
+
+      <div className="ds-cap">Open calendar — selected (spark / deadline)</div>
+      <div className="ds-row">
+        <Calendar sparkSel />
+      </div>
+    </div>);
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

@@ -1,0 +1,731 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Version History" subtitle="Append-only timeline · restore-forward" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.sx-uc:hover{background:var(--bg-surface-sunken);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc a{color:var(--text-muted);text-decoration:none;cursor:pointer;}
+.sx-bc a:hover{color:var(--brand-primary);}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+/* ---- editor header (sticky) ---- */
+.eh{position:sticky;top:0;z-index:15;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0;}
+.eh-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;}
+.eh-back{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);background:none;border:none;cursor:pointer;}
+.eh-back:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.eh-back i{width:18px;height:18px;}
+.eh-title{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);line-height:1.1;margin:0;color:var(--text-primary);}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);flex:none;}
+.pill i{width:12px;height:12px;}
+.pill.published{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);}
+.eh-spacer{flex:1;min-width:var(--space-4);}
+.roletag{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted);}
+.roletag i{width:14px;height:14px;}
+/* tab bar */
+.eh-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-3);overflow-x:auto;}
+.tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:color var(--dur-fast) var(--ease-standard);}
+.tab i{width:15px;height:15px;}
+.tab:hover{color:var(--text-primary);}
+.tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.tab .badge{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);border-radius:var(--radius-pill);padding:0 6px;}
+/* body */
+.sx-scroll{flex:1;overflow-y:auto;position:relative;}
+.sx-col{max-width:760px;margin:0 auto;padding:var(--space-6) var(--space-6) var(--space-16);display:flex;flex-direction:column;gap:var(--space-5);}
+/* filter bar */
+.fbar{display:flex;flex-direction:column;gap:var(--space-3);}
+.fbar h2{margin:0;font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.fbar .sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:2px;}
+.frow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;}
+.frow .fsel{display:flex;align-items:center;gap:var(--space-2);}
+.frow .flbl{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.frow .cnt{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px var(--space-3);}
+.scopechip{display:inline-flex;align-items:center;gap:6px;padding:4px var(--space-2) 4px var(--space-3);border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.scopechip i{width:13px;height:13px;}
+.scopechip button{background:none;border:none;color:var(--brand-primary);cursor:pointer;display:inline-grid;place-items:center;padding:1px;border-radius:var(--radius-pill);}
+.scopechip button:hover{background:var(--brand-muted);}
+.scopechip button i{width:13px;height:13px;}
+/* select (native, styled by core .select via component) */
+/* inline alert / banner */
+.banner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);font-size:var(--text-sm);}
+.banner i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.banner .bt{font-weight:var(--weight-semibold);}
+.banner .bb{color:var(--text-secondary);font-size:var(--text-xs);margin-top:2px;}
+.banner.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.banner.warn i.lead{color:var(--status-warning);}
+.banner.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.banner.err i.lead{color:var(--status-error);}
+.banner.info i.lead{color:var(--status-info);}
+.banner .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;background:none;border:none;font-size:var(--text-sm);font-family:var(--font-ui);align-self:center;}
+.banner .lnk:hover{text-decoration:underline;}
+/* ---- timeline ---- */
+.tl{list-style:none;margin:0;padding:0;position:relative;}
+.tl::before{content:"";position:absolute;left:15px;top:14px;bottom:18px;width:2px;background:var(--border-subtle);}
+.tlrow{position:relative;padding:0 0 var(--space-4) var(--space-10);}
+.tlrow .dot{position:absolute;left:6px;top:6px;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--bg-surface);border:2px solid var(--border-strong);display:grid;place-items:center;z-index:1;}
+.tlrow .dot i{width:11px;height:11px;color:var(--text-secondary);}
+.tlrow.now .dot{background:var(--brand-primary);border-color:var(--brand-primary);}
+.tlrow.now .dot i{color:var(--text-on-accent);}
+.tlrow.now.pulse .dot{animation:nodepulse 1.4s var(--ease-standard) 1;}
+@keyframes nodepulse{0%{box-shadow:0 0 0 0 var(--brand-muted);}70%{box-shadow:0 0 0 9px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+.nowcard{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);border:1px solid var(--brand-primary);background:var(--brand-subtle);}
+.nowcard .nl{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--brand-primary);}
+.nowcard .nt{font-size:var(--text-xs);color:var(--text-secondary);}
+.entry{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);background:var(--bg-surface);box-shadow:var(--shadow-e1);cursor:pointer;font-family:var(--font-ui);transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.entry:hover{box-shadow:var(--shadow-e2);}
+.entry:focus-visible{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.entry.sel{border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.entry .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-secondary);display:grid;place-items:center;font-size:var(--text-2xs);font-weight:var(--weight-semibold);flex:none;}
+.entry .ec{flex:1;min-width:0;}
+.entry .vrow{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.entry .ver{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);}
+.entry .summ{font-size:var(--text-sm);color:var(--text-primary);margin-top:var(--space-2);line-height:var(--leading-sm);}
+.entry .meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-2);}
+.entry .meta .dotsep{color:var(--text-muted);}
+.entry .acts{display:flex;align-items:center;gap:var(--space-1);flex:none;opacity:0;transition:opacity var(--dur-fast) var(--ease-standard);}
+.entry:hover .acts,.entry:focus-within .acts{opacity:1;}
+/* changetype/entity badges (icon+text+color, never color alone) */
+.cbadge{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);}
+.cbadge i{width:11px;height:11px;}
+.cbadge.created{background:var(--status-info-subtle);color:var(--status-info);border-color:var(--status-info);}
+.cbadge.updated{background:var(--bg-surface-sunken);color:var(--text-secondary);border-color:var(--border-strong);}
+.cbadge.published{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);}
+.cbadge.archived{background:var(--status-warning-subtle);color:var(--status-warning);border-color:var(--status-warning);}
+.ebadge{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);background:var(--brand-subtle);color:var(--brand-primary);}
+.ebadge i{width:11px;height:11px;}
+/* load older */
+.loadwrap{display:flex;justify-content:center;padding:var(--space-2) 0 var(--space-4);}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* skeleton */
+.sk{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);position:relative;overflow:hidden;}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--bg-surface),transparent);animation:shim 1.3s infinite;}
+@keyframes shim{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+/* row entrance stagger */
+.tlrow.in{animation:rowin var(--dur-base) var(--ease-entrance) backwards;}
+.tlrow.inf{animation:rowin var(--dur-fast) var(--ease-entrance) backwards;}
+@keyframes rowin{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+/* overlays */
+.scrim{position:fixed;inset:0;background:rgba(20,18,15,.46);z-index:40;animation:fin var(--dur-base) var(--ease-standard);}
+@keyframes fin{from{opacity:0;}to{opacity:1;}}
+/* right drawer (lg snapshot) */
+.sheet{position:fixed;top:0;right:0;height:100vh;width:min(440px,94vw);background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:50;display:flex;flex-direction:column;animation:slidein var(--dur-base) var(--ease-entrance);}
+@keyframes slidein{from{transform:translateX(24px);opacity:.4;}to{transform:translateX(0);opacity:1;}}
+.sheet-head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.sheet-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.sheet-head .sub{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;}
+.sheet-body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);position:relative;}
+.sheet-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+.snapbody{border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-4);background:var(--bg-surface-sunken);}
+.snapbody h3{margin:0 0 var(--space-2);font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.snapbody p{margin:0 0 var(--space-2);font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);}
+.sectlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+.keylock{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface-sunken);font-size:var(--text-xs);color:var(--text-muted);}
+.keylock i{width:15px;height:15px;color:var(--text-muted);flex:none;margin-top:1px;}
+.keylock b{color:var(--text-secondary);font-weight:var(--weight-semibold);display:block;}
+/* loading overlay in drawer body */
+.ov{position:absolute;inset:0;background:var(--bg-surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);z-index:2;}
+.ov .ot{font-size:var(--text-xs);color:var(--text-muted);}
+/* confirm dialog */
+.dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:55;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);display:flex;flex-direction:column;width:min(460px,94vw);animation:dpop var(--dur-base) var(--ease-entrance);}
+@keyframes dpop{from{transform:translate(-50%,-46%);opacity:0;}to{transform:translate(-50%,-50%);opacity:1;}}
+.confirm-body{padding:var(--space-5);display:flex;gap:var(--space-3);}
+.confirm-body .cic{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;flex:none;}
+.confirm-body .cic i{width:19px;height:19px;}
+.confirm-body .ct{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.confirm-body .cb{font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;line-height:var(--leading-sm);}
+.dialog-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+/* overflow popover */
+.pop{position:fixed;z-index:58;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-1);min-width:184px;display:flex;flex-direction:column;animation:dpop var(--dur-fast) var(--ease-entrance);}
+.pop button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;}
+.pop button i{width:15px;height:15px;color:var(--text-secondary);}
+.pop button:hover{background:var(--bg-surface-sunken);}
+.pop .sep{height:1px;background:var(--border-subtle);margin:var(--space-1) 0;}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:60;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);max-width:380px;animation:tin var(--dur-base) var(--ease-entrance);}
+.toast i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.toast.ok{border-color:var(--status-success);}
+.toast.ok i.lead{color:var(--status-success);}
+.toast.bad{border-color:var(--status-error);}
+.toast.bad i.lead{color:var(--status-error);}
+.toast.info i.lead{color:var(--text-secondary);}
+.toast .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.toast .tb{font-size:var(--text-xs);color:var(--text-muted);}
+.toast .act{margin-left:auto;color:var(--brand-primary);font-weight:var(--weight-medium);font-size:var(--text-xs);background:none;border:none;cursor:pointer;align-self:center;}
+@keyframes tin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* empty */
+.emptywrap{padding:var(--space-12) var(--space-6);display:flex;justify-content:center;}
+/* demo switcher */
+.demo{position:fixed;left:var(--space-4);bottom:var(--space-4);z-index:70;display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:5px;flex-wrap:wrap;max-width:66vw;}
+.demo .dl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding:0 var(--space-2);}
+.demo button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:none;background:none;color:var(--text-secondary);border-radius:var(--radius-pill);padding:5px var(--space-3);cursor:pointer;}
+.demo button.on{background:var(--brand-primary);color:var(--text-on-accent);}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const {
+  Icon, Button, IconButton, Select, Skeleton, EmptyState,
+  Kbd, DefinitionList, ContentRenderer, AnswerKeyLock
+} = window.LvlupV0DesignSystem_5d0725;
+
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ---------- app chrome ---------- */
+function Nav({icon,label,active,count}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Sidebar(){
+  return <aside className="sx-side">
+    <div className="sx-brand"><div className="mk">L</div>
+      <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+    <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+      <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+        <Nav icon="layout-dashboard" label="Dashboard"/>
+        <Nav icon="school" label="Classes" count="6"/>
+        <Nav icon="layers" label="Spaces" count="9" active/>
+        <Nav icon="file-check" label="Exams" count="4"/>
+        <Nav icon="graduation-cap" label="Students"/></div>
+      <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+        <Nav icon="bar-chart-3" label="Analytics"/>
+        <Nav icon="sparkles" label="AI tutor"/></div>
+    </nav>
+    <div className="foot">
+      <div className="sx-uc"><div className="av">RM</div>
+        <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div>
+    </div>
+  </aside>;
+}
+function Topbar({onCrumb}){
+  return <header className="sx-top">
+    <nav className="sx-bc" aria-label="Breadcrumb">
+      <a onClick={onCrumb}>Spaces</a>{I("chevron-right",14)}
+      <a onClick={onCrumb}>Algebra I — Linear Equations</a>{I("chevron-right",14)}
+      <b aria-current="page">Edit</b>
+    </nav>
+    <div className="sp"></div>
+    <div className="sx-search">{I("search",15)}<span>Search spaces…</span><Kbd>⌘K</Kbd></div>
+    <button className="sx-icbtn" aria-label="Notifications, 2 unread">{I("bell",18)}</button>
+  </header>;
+}
+
+/* ---------- editor tabs ---------- */
+const TABS = [
+  {id:"overview", label:"Overview", icon:"layout-dashboard"},
+  {id:"content",  label:"Story Points", icon:"list-tree", badge:"4"},
+  {id:"items",    label:"Items",    icon:"file-text", badge:"28"},
+  {id:"rubric",   label:"Rubric",   icon:"table-properties"},
+  {id:"settings", label:"Settings", icon:"settings"},
+  {id:"history",  label:"History",  icon:"history"},
+];
+function TabBar(){
+  return <div className="eh-tabs" role="tablist" aria-label="Space editor sections">
+    {TABS.map(t=>
+      <button key={t.id} role="tab" id={"tab-"+t.id} aria-selected={t.id==="history"}
+        className={"tab"+(t.id==="history"?" on":"")}>
+        {I(t.icon,15)}{t.label}{t.badge && <span className="badge">{t.badge}</span>}
+      </button>)}
+  </div>;
+}
+
+/* ---------- change-type config (icon + text + color, never color alone) ---------- */
+const CT = {
+  created:   {label:"Created",   icon:"plus-circle"},
+  updated:   {label:"Updated",   icon:"pencil"},
+  published: {label:"Published", icon:"check-circle-2"},
+  archived:  {label:"Archived",  icon:"archive"},
+};
+const ET = {
+  space:      {label:"Space",       icon:"layers"},
+  storyPoint: {label:"Story point", icon:"flag"},
+  item:       {label:"Item",        icon:"file-text"},
+};
+const SCOPE_OPTS = [
+  {value:"all",label:"All"},{value:"space",label:"Space"},
+  {value:"storyPoint",label:"Story point"},{value:"item",label:"Item"},
+];
+const TYPE_OPTS = [
+  {value:"all",label:"All"},{value:"created",label:"Created"},{value:"updated",label:"Updated"},
+  {value:"published",label:"Published"},{value:"archived",label:"Archived"},
+];
+
+/* ---------- seed version data (newest first) ---------- */
+const FIRST_PAGE = [
+  {id:"ver_9f2a", version:12, changeType:"published", entityType:"space",      entityId:"spc_alg1",
+   summary:"Published space to classes 11-A and 11-C.", author:"Maya Reddy", initials:"MR", rel:"2h ago", abs:"Jun 20, 2026 · 09:14"},
+  {id:"ver_8c71", version:11, changeType:"updated", entityType:"item",        entityId:"itm_0427",
+   summary:"Edited 3 items in the “Arrays & Slicing” story point.", author:"Sam Kapoor", initials:"SK", rel:"yesterday", abs:"Jun 19, 2026 · 16:48"},
+  {id:"ver_77b0", version:10, changeType:"archived", entityType:"space",      entityId:"spc_alg1",
+   summary:"Archived space ahead of the term-2 rebuild.", author:"Maya Reddy", initials:"MR", rel:"Jun 14", abs:"Jun 14, 2026 · 11:02"},
+  {id:"ver_6d33", version:9,  changeType:"updated", entityType:"storyPoint",  entityId:"sp_0003",
+   summary:"Reordered story points; moved “Solving for x” to position 3.", author:"Sam Kapoor", initials:"SK", rel:"Jun 12", abs:"Jun 12, 2026 · 08:37"},
+  {id:"ver_5a18", version:8,  changeType:"created", entityType:"item",        entityId:"itm_0419",
+   summary:"Created 6 graded items for the “Word Problems” set.", author:"Priya N.", initials:"PN", rel:"Jun 10", abs:"Jun 10, 2026 · 14:20"},
+];
+const OLDER_PAGE = [
+  {id:"ver_4f90", version:7,  changeType:"published", entityType:"space",     entityId:"spc_alg1",
+   summary:"Published space to class 11-A.", author:"Maya Reddy", initials:"MR", rel:"Jun 8", abs:"Jun 8, 2026 · 10:05"},
+  {id:"ver_3e22", version:6,  changeType:"updated", entityType:"storyPoint", entityId:"sp_0001",
+   summary:"Rewrote the “Linear Equations” intro material with KaTeX.", author:"Sam Kapoor", initials:"SK", rel:"Jun 6", abs:"Jun 6, 2026 · 13:41"},
+  {id:"ver_2b07", version:5,  changeType:"created", entityType:"storyPoint", entityId:"sp_0002",
+   summary:"Created the “Inequalities” story point.", author:"Priya N.", initials:"PN", rel:"Jun 3", abs:"Jun 3, 2026 · 09:52"},
+];
+
+/* ---------- timeline entry row ---------- */
+function Entry({v, idx, anim, selected, onOpen, onMenu}){
+  const ct = CT[v.changeType], et = ET[v.entityType];
+  const label = `Version ${v.version}, ${ct.label}, ${et.label}, by ${v.author}, ${v.abs}. ${v.summary}`;
+  const dotIcon = v.changeType==="published"?"check":v.changeType==="archived"?"archive":v.changeType==="created"?"plus":"pencil";
+  return <li className={"tlrow"+(anim?(" "+anim):"")} style={anim==="in"?{animationDelay:(idx*24)+"ms"}:undefined}>
+    <span className="dot" aria-hidden="true">{I(dotIcon,11)}</span>
+    <div className={"entry"+(selected?" sel":"")} role="button" tabIndex={0}
+      aria-label={label} aria-haspopup="dialog"
+      onClick={()=>onOpen(v)}
+      onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onOpen(v); } }}>
+      <span className="av" aria-hidden="true">{v.initials}</span>
+      <div className="ec">
+        <div className="vrow">
+          <span className="ver">v{v.version}</span>
+          <span className={"cbadge "+v.changeType}>{I(ct.icon,11)}{ct.label}</span>
+          <span className="ebadge">{I(et.icon,11)}{et.label}</span>
+        </div>
+        <div className="summ">{v.summary}</div>
+        <div className="meta">
+          <span>{v.author}</span><span className="dotsep">·</span>
+          <span title={v.abs}>{v.rel}</span><span className="dotsep">·</span>
+          <span style={{fontFamily:"var(--font-mono)"}}>{v.id}</span>
+        </div>
+      </div>
+      <div className="acts">
+        <Button variant="ghost" size="sm" leadingIcon={I("eye",14)}
+          onClick={(e)=>{e.stopPropagation();onOpen(v);}}>View</Button>
+        <IconButton icon="more-horizontal" label={"More actions for v"+v.version} size="sm"
+          onClick={(e)=>{e.stopPropagation();onMenu(v,e);}}/>
+      </div>
+    </div>
+  </li>;
+}
+
+/* ---------- loading skeleton rows ---------- */
+function SkeletonRows(){
+  return <ol className="tl" aria-hidden="true">
+    {[0,1,2,3,4].map(i=>
+      <li key={i} className="tlrow">
+        <span className="dot"></span>
+        <div className="entry" style={{cursor:"default",boxShadow:"none"}}>
+          <div className="sk" style={{width:30,height:30,borderRadius:"var(--radius-pill)"}}></div>
+          <div className="ec">
+            <div className="sk" style={{width:170,height:14,marginBottom:8}}></div>
+            <div className="sk" style={{width:"86%",height:13,marginBottom:8}}></div>
+            <div className="sk" style={{width:220,height:11}}></div>
+          </div>
+        </div>
+      </li>)}
+  </ol>;
+}
+
+/* ---------- snapshot drawer ---------- */
+function SnapshotDrawer({v, snapState, canMutate, onClose, onRestore, onBranch, onRetry, restoring}){
+  const ct = CT[v.changeType], et = ET[v.entityType];
+  const meta = [
+    {term:"Version", value:<span style={{fontFamily:"var(--font-mono)"}}>v{v.version}</span>},
+    {term:"Change type", value:<span className={"cbadge "+v.changeType}>{I(ct.icon,11)}{ct.label}</span>},
+    {term:"Entity", value:<span className="ebadge">{I(et.icon,11)}{et.label} · <span style={{fontFamily:"var(--font-mono)"}}>{v.entityId}</span></span>},
+    {term:"Changed by", value:v.author},
+    {term:"Changed at", value:v.abs},
+    {term:"Summary", value:v.summary},
+  ];
+  return <>
+    <div className="scrim" onClick={onClose}></div>
+    <aside className="sheet" role="dialog" aria-modal="true" aria-labelledby="snap-title">
+      <div className="sheet-head">
+        <div style={{flex:1}}>
+          <h2 id="snap-title">v{v.version} snapshot · {v.author}</h2>
+          <div className="sub">Point-in-time view · getVersionSnapshot · {v.id}</div>
+        </div>
+        <button className="sx-icbtn" aria-label="Close snapshot" onClick={onClose} autoFocus>{I("x",18)}</button>
+      </div>
+      <div className="sheet-body">
+        {/* metadata renders instantly (already in list payload) */}
+        <DefinitionList items={meta}/>
+
+        {snapState==="error"
+          ? <div className="banner err" role="alert" tabIndex={-1}>
+              <span className="lead">{I("alert-circle",18)}</span>
+              <div style={{flex:1}}>
+                <div className="bt">Couldn't load this snapshot</div>
+                <div className="bb">The metadata above is from the version list; the body failed to load.</div>
+              </div>
+              <button className="lnk" onClick={onRetry}>Retry</button>
+            </div>
+          : <>
+              <div className="sectlbl">Snapshot body</div>
+              <div className="snapbody" style={{position:"relative"}}>
+                {snapState==="loading"
+                  ? <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                      <div className="sk" style={{width:"60%",height:16}}></div>
+                      <div className="sk" style={{width:"100%",height:12}}></div>
+                      <div className="sk" style={{width:"94%",height:12}}></div>
+                      <div className="sk" style={{width:"40%",height:12}}></div>
+                    </div>
+                  : <ContentRenderer math>
+                      <h3>Story Point 2 — Solving Linear Equations</h3>
+                      <p>A linear equation in one variable can be written as <span style={{fontFamily:"var(--font-mono)"}}>ax + b = 0</span>, where a ≠ 0. Isolate the variable using inverse operations on both sides.</p>
+                      <p>Worked example: solve <span style={{fontFamily:"var(--font-mono)"}}>3x − 7 = 11</span> → 3x = 18 → x = 6.</p>
+                    </ContentRenderer>}
+              </div>
+              {/* answer-key boundary — never printed on a snapshot/preview path */}
+              <AnswerKeyLock title="Answer keys are restored securely and not shown here.">
+                On restore, keys are re-stripped into the server-only answerKeys subcollection via saveItem and never reach the client.
+              </AnswerKeyLock>
+            </>}
+
+        {/* restore note */}
+        {canMutate && <div className="banner info" role="note">
+          <span className="lead">{I("info",18)}</span>
+          <div><div className="bt" style={{fontSize:"var(--text-xs)"}}>Restore creates a new version</div>
+            <div className="bb">Your current content stays in history. Restore re-applies this snapshot as a new forward version.</div></div>
+        </div>}
+      </div>
+      <div className="sheet-foot">
+        <Button variant="ghost" onClick={onClose}>Close</Button>
+        {canMutate ? <>
+          <Button variant="secondary" leadingIcon={I("git-branch")}
+            disabled={snapState!=="ready"} onClick={()=>onBranch(v)}>Branch to new draft</Button>
+          <Button variant="primary" leadingIcon={restoring?undefined:I("rotate-ccw")}
+            loading={restoring} disabled={snapState!=="ready"||restoring} onClick={()=>onRestore(v)}>
+            Restore this version</Button>
+        </> : <span className="roletag">{I("lock",14)}View only · restore not available for your role</span>}
+      </div>
+    </aside>
+  </>;
+}
+
+/* ---------- main screen ---------- */
+function Screen(){
+  // demo variants: default | loading | empty | filteredEmpty | partialError | viewer
+  const [variant,setVariant]=useState("default");
+
+  const [scope,setScope]=useState("all");
+  const [ctype,setCtype]=useState("all");
+  const [scopeChip,setScopeChip]=useState(null); // deep-linked entity filter chip
+  const [rows,setRows]=useState(FIRST_PAGE);
+  const [hasMore,setHasMore]=useState(true);
+  const [loadingMore,setLoadingMore]=useState(false);
+  const [loadMoreError,setLoadMoreError]=useState(false);
+  const [appendedFrom,setAppendedFrom]=useState(0);
+
+  const [open,setOpen]=useState(null);          // open snapshot version
+  const [snapState,setSnapState]=useState("loading"); // loading | ready | error
+  const [restoring,setRestoring]=useState(false);
+  const [confirm,setConfirm]=useState(null);    // {mode, v}
+  const [menu,setMenu]=useState(null);          // {v, x, y}
+  const [toast,setToast]=useState(null);
+  const [stale,setStale]=useState(false);
+  const [live,setLive]=useState("");            // aria-live announce
+
+  const isViewer = variant==="viewer";
+  const canMutate = !isViewer;
+  const isLoading = variant==="loading";
+  const isEmpty = variant==="empty";
+  const isFilteredEmpty = variant==="filteredEmpty";
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+  // sync demo variants to listy state
+  useEffect(()=>{
+    setOpen(null); setConfirm(null); setMenu(null);
+    setLoadMoreError(variant==="partialError");
+    if(variant==="partialError"){ setRows(FIRST_PAGE); setHasMore(true); }
+    else if(variant==="default"||variant==="viewer"){ setRows(FIRST_PAGE); setHasMore(true); }
+    setScopeChip(variant==="filteredEmpty"?{label:"Story point · sp_0003"}:null);
+    setStale(false);
+  },[variant]);
+
+  useEffect(()=>{
+    const h=(e)=>{ if(e.key==="Escape"){ setMenu(null); setConfirm(null); setOpen(null); } };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  });
+
+  const flowVisible = !isLoading && !isEmpty && !isFilteredEmpty;
+  const count = rows.length + (hasMore?"+":"");
+
+  const openSnapshot=(v)=>{
+    setMenu(null); setOpen(v); setSnapState("loading");
+    setTimeout(()=>setSnapState("ready"),700);
+  };
+  const retrySnap=()=>{ setSnapState("loading"); setTimeout(()=>setSnapState("ready"),700); };
+
+  const loadOlder=()=>{
+    setLoadMoreError(false); setLoadingMore(true);
+    setTimeout(()=>{
+      setLoadingMore(false);
+      setAppendedFrom(rows.length);
+      setRows(r=>[...r,...OLDER_PAGE]);
+      setHasMore(false);
+      setLive(OLDER_PAGE.length+" older versions loaded.");
+    },800);
+  };
+  const retryOlder=()=>{ setLoadMoreError(false); loadOlder(); };
+
+  const onFilter=(setter)=>(val)=>{ // reset cursor + refetch page 1 (mock)
+    setter(val); setHasMore(true); setAppendedFrom(0); setRows(FIRST_PAGE);
+  };
+  const clearFilters=()=>{ setScope("all"); setCtype("all"); setScopeChip(null); setVariant("default"); };
+
+  const askRestore=(v)=>{ setConfirm({mode:"restore",v}); };
+  const askBranch=(v)=>{ setConfirm({mode:"branch",v}); };
+
+  const doRestore=()=>{
+    const v=confirm.v; setConfirm(null); setRestoring(true);
+    setTimeout(()=>{
+      setRestoring(false); setOpen(null);
+      const newV=(rows[0].version)+1;
+      const node={id:"ver_new1", version:newV, changeType:"updated", entityType:v.entityType, entityId:v.entityId,
+        summary:`Restored snapshot from v${v.version}.`, author:"Rohan Mehta", initials:"RM", rel:"just now", abs:"Jun 20, 2026 · now", _pulse:true};
+      setRows(r=>[node,...r]);
+      setToast({k:"ok",t:`Restored to v${v.version} as v${newV}.`,b:"A new forward version was written. History is unchanged."});
+      setLive(`Restored to version ${v.version} as version ${newV}.`);
+      setTimeout(()=>setToast(null),3600);
+    },900);
+  };
+  const doBranch=()=>{
+    const v=confirm.v; setConfirm(null); setOpen(null);
+    setToast({k:"branch",t:`Branched v${v.version} into a new draft.`,b:"The current space is unchanged.",act:"Open draft"});
+    setTimeout(()=>setToast(null),3600);
+  };
+  const copyId=(v)=>{ setMenu(null);
+    setToast({k:"info",t:"Version id copied.",b:v.id});
+    setTimeout(()=>setToast(null),2200); };
+
+  return <div className="sx">
+    <Sidebar/>
+    <div className="sx-main">
+      <Topbar onCrumb={()=>{}}/>
+
+      {/* editor header */}
+      <div className="eh">
+        <div className="eh-row">
+          <button className="eh-back" aria-label="Back to space">{I("arrow-left",18)}</button>
+          <h1 className="eh-title">Algebra I — Linear Equations</h1>
+          <span className="pill published">{I("globe",12)}Published</span>
+          <div className="eh-spacer"></div>
+          <span className="roletag">{I(isViewer?"eye":"shield-check",14)}
+            {isViewer?"Read-only viewer":"Teacher · can restore"}</span>
+        </div>
+        <TabBar/>
+      </div>
+
+      {/* scroll body — reading measure */}
+      <div className="sx-scroll">
+        <div className="sx-col">
+
+          {/* filter bar */}
+          <div className="fbar">
+            <div>
+              <h2>Version history</h2>
+              <div className="sub">Every publish, archive, and edit, newest first.</div>
+            </div>
+            <div className="frow">
+              <div className="fsel">
+                <span className="flbl" id="scope-lbl">Scope</span>
+                <div aria-labelledby="scope-lbl" style={{minWidth:150}}>
+                  <Select options={SCOPE_OPTS} value={scope} disabled={isLoading}
+                    onChange={e=>onFilter(setScope)(e.target.value)}/>
+                </div>
+              </div>
+              <div className="fsel">
+                <span className="flbl" id="ctype-lbl">Change type</span>
+                <div aria-labelledby="ctype-lbl" style={{minWidth:150}}>
+                  <Select options={TYPE_OPTS} value={ctype} disabled={isLoading}
+                    onChange={e=>onFilter(setCtype)(e.target.value)}/>
+                </div>
+              </div>
+              {scopeChip && <span className="scopechip">{I("flag",13)}{scopeChip.label}
+                <button aria-label="Clear entity filter" onClick={clearFilters}>{I("x",13)}</button></span>}
+              {!isLoading && !isEmpty && !isFilteredEmpty &&
+                <span className="cnt" aria-live="polite">{count} changes</span>}
+            </div>
+          </div>
+
+          {/* stale-list notice */}
+          {stale && flowVisible && <div className="banner info" role="status">
+            <span className="lead">{I("refresh-cw",18)}</span>
+            <div style={{flex:1}}>
+              <div className="bt">New changes since you opened this</div>
+              <div className="bb">A save happened in another tab. Refresh to see the latest versions.</div>
+            </div>
+            <button className="lnk" onClick={()=>setStale(false)}>Refresh</button>
+          </div>}
+
+          {/* states */}
+          {isLoading && <SkeletonRows/>}
+
+          {isEmpty && <div className="emptywrap">
+            <EmptyState icon="history" title="No version history yet"
+              body="Changes are tracked automatically when you publish, archive, or edit content."/>
+          </div>}
+
+          {isFilteredEmpty && <div className="emptywrap">
+            <EmptyState icon="filter-x" title="No changes match this filter"
+              body="Try a broader scope or change type."
+              action={<Button variant="ghost" leadingIcon={I("x")} onClick={clearFilters}>Clear filters</Button>}/>
+          </div>}
+
+          {flowVisible && <>
+            <ol className="tl" aria-label="Version history, newest first">
+              {/* current / now node */}
+              <li className={"tlrow now"+(rows[0]&&rows[0]._pulse?" pulse":"")}>
+                <span className="dot" aria-hidden="true">{I("dot",11)}</span>
+                <div className="nowcard">
+                  <span className="nl">Current</span>
+                  <span className="nt">Live published head · v{rows[0].version}</span>
+                </div>
+              </li>
+              {rows.map((v,i)=>
+                <Entry key={v.id} v={v} idx={i}
+                  anim={ v._pulse ? "in" : (i>=appendedFrom && appendedFrom>0 ? "inf" : "in") }
+                  selected={open && open.id===v.id}
+                  onOpen={openSnapshot}
+                  onMenu={(vv,e)=>setMenu({v:vv,x:e.clientX,y:e.clientY})}/>)}
+            </ol>
+
+            {/* partial-load error (keep loaded rows) */}
+            {loadMoreError && <div className="banner err" role="alert">
+              <span className="lead">{I("alert-circle",18)}</span>
+              <div style={{flex:1}}>
+                <div className="bt">Couldn't load older versions</div>
+                <div className="bb">Already-loaded entries are kept. Try again.</div>
+              </div>
+              <button className="lnk" onClick={retryOlder}>Retry</button>
+            </div>}
+
+            {/* cursor pagination — Load older (not numbered pages) */}
+            {hasMore && !loadMoreError && <div className="loadwrap">
+              <Button variant="ghost" loading={loadingMore} disabled={loadingMore}
+                leadingIcon={loadingMore?undefined:I("chevron-down")}
+                onClick={loadOlder}>
+                {loadingMore?"Loading…":"Load older versions"}</Button>
+            </div>}
+            {!hasMore && <div className="loadwrap"><span className="roletag">{I("check",14)}Beginning of history · v5</span></div>}
+          </>}
+
+        </div>
+      </div>
+    </div>
+
+    {/* aria-live region for appended pages / restore */}
+    <div className="sr" role="status" aria-live="polite">{live}</div>
+
+    {/* snapshot drawer */}
+    {open && <SnapshotDrawer v={open} snapState={snapState} canMutate={canMutate}
+      restoring={restoring}
+      onClose={()=>setOpen(null)} onRetry={retrySnap}
+      onRestore={askRestore} onBranch={askBranch}/>}
+
+    {/* overflow popover */}
+    {menu && <>
+      <div style={{position:"fixed",inset:0,zIndex:57}} onClick={()=>setMenu(null)}></div>
+      <div className="pop" role="menu" aria-label={"Actions for v"+menu.v.version}
+        style={{top:Math.min(menu.y, window.innerHeight-220), left:Math.min(menu.x, window.innerWidth-200)}}>
+        <button role="menuitem" onClick={()=>openSnapshot(menu.v)}>{I("eye")}View snapshot</button>
+        {canMutate && <>
+          <button role="menuitem" onClick={()=>{const v=menu.v;setMenu(null);askRestore(v);}}>{I("rotate-ccw")}Restore this version</button>
+          <button role="menuitem" onClick={()=>{const v=menu.v;setMenu(null);askBranch(v);}}>{I("git-branch")}Branch to new draft</button>
+          <div className="sep"></div>
+        </>}
+        <button role="menuitem" onClick={()=>copyId(menu.v)}>{I("copy")}Copy version id</button>
+      </div>
+    </>}
+
+    {/* confirm dialog (restore / branch) */}
+    {confirm && <>
+      <div className="scrim"></div>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-b">
+        <div className="confirm-body">
+          <div className="cic">{I(confirm.mode==="restore"?"rotate-ccw":"git-branch",19)}</div>
+          <div>
+            {confirm.mode==="restore"
+              ? <><div className="ct" id="cf-t">Restore v{confirm.v.version}?</div>
+                  <div className="cb" id="cf-b">This re-applies the snapshot as a new version. Your current content stays safe in history.</div></>
+              : <><div className="ct" id="cf-t">Create a new draft from v{confirm.v.version}?</div>
+                  <div className="cb" id="cf-b">A new draft space is cloned from this snapshot. The current space is left unchanged.</div></>}
+          </div>
+        </div>
+        <div className="dialog-foot">
+          <Button variant="ghost" autoFocus onClick={()=>setConfirm(null)}>Cancel</Button>
+          {confirm.mode==="restore"
+            ? <Button variant="primary" leadingIcon={I("rotate-ccw")} onClick={doRestore}>Restore version</Button>
+            : <Button variant="secondary" leadingIcon={I("git-branch")} onClick={doBranch}>Create draft</Button>}
+        </div>
+      </div>
+    </>}
+
+    {/* toast */}
+    {toast && <div className={"toast "+(toast.k==="ok"?"ok":toast.k==="bad"?"bad":"info")} role="status">
+      <span className="lead">{I(toast.k==="ok"?"check-circle-2":toast.k==="branch"?"git-branch":toast.k==="info"?"clipboard-check":"alert-circle",18)}</span>
+      <div><div className="tt">{toast.t}</div><div className="tb">{toast.b}</div></div>
+      {toast.act && <button className="act" onClick={()=>setToast(null)}>{toast.act}</button>}
+    </div>}
+
+    {/* demo state switcher */}
+    <div className="demo" role="group" aria-label="Preview states">
+      <span className="dl">state</span>
+      {[["default","Default"],["loading","Loading"],["empty","Empty"],
+        ["filteredEmpty","Filtered empty"],["partialError","Load error"],["viewer","Read-only viewer"]].map(([v,l])=>
+        <button key={v} className={variant===v?"on":""} onClick={()=>setVariant(v)}>{l}</button>)}
+      <span className="dl">·</span>
+      <button onClick={()=>setStale(true)}>Stale</button>
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

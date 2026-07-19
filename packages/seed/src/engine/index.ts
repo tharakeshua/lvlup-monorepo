@@ -2,6 +2,7 @@
 export * from "./ids.js";
 export * from "./clock.js";
 export * from "./logger.js";
+export * from "./manifest.js";
 export * from "./paths.js";
 export * from "./admin.js";
 export * from "./batch-writer.js";

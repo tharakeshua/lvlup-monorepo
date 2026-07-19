@@ -25,6 +25,7 @@ import {
   Screen,
   SearchField,
   Skeleton,
+  TeacherPageHeader,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
@@ -206,18 +207,17 @@ export default function ClassesOverviewScreen() {
   }, [classes, q]);
 
   const Header = (
-    <View className="gap-2">
-      <Text className="font-display text-text-primary text-3xl font-medium">Classes</Text>
-      <Text className="font-ui text-text-secondary text-base">
-        Every class you manage, with headline health.
-      </Text>
-      <View className="flex-row items-center gap-2 pt-1">
-        <Layers size={14} color={C.muted} />
-        <Text className="text-text-muted font-mono text-xs">
-          {classes.length} {classes.length === 1 ? "class" : "classes"}
-        </Text>
-      </View>
-    </View>
+    <TeacherPageHeader
+      eyebrow="Teaching roster"
+      title="Classes"
+      subtitle="Every group you teach, with the signals that matter."
+      action={
+        <View className="bg-surface border-border-subtle rounded-pill flex-row items-center gap-1.5 border px-3 py-2">
+          <Layers size={14} color={C.brand} />
+          <Text className="text-text-secondary font-mono text-xs">{classes.length}</Text>
+        </View>
+      }
+    />
   );
 
   let body: React.ReactNode;

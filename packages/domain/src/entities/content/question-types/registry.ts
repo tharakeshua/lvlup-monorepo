@@ -14,6 +14,11 @@
  */
 import { z } from "zod";
 import { zObject } from "../../../authoring/strict.js";
+import {
+  AgentAssessmentAnswerKeyDataSchema,
+  AgentAssessmentLearnerAnswerSchema,
+  AgentAssessmentQuestionPromptSchema,
+} from "../../levelup/conversation-assessment.js";
 
 export type GradingMode = "auto" | "ai";
 
@@ -40,6 +45,7 @@ export const McqOptionSchema = zObject({
   id: z.string(),
   text: z.string(),
   imageUrl: z.string().optional(),
+  explanation: z.string().optional(),
   // ⚷ stripped into AnswerKey server-side for non-authoring reads.
   isCorrect: z.boolean().optional(),
 });
@@ -78,23 +84,28 @@ const McaqPrompt = zObject({
 const TrueFalsePrompt = zObject({
   questionType: z.literal("true-false"),
   correctAnswer: z.boolean().optional(),
+  explanation: z.string().optional(),
 });
 const NumericalPrompt = zObject({
   questionType: z.literal("numerical"),
   correctAnswer: z.number().optional(),
   tolerance: z.number().optional(),
   unit: z.string().optional(),
+  decimalPlaces: z.number().int().nonnegative().optional(),
 });
 const TextPrompt = zObject({
   questionType: z.literal("text"),
   maxLength: z.number().int().optional(),
   modelAnswer: z.string().optional(),
+  acceptableAnswers: z.array(z.string()).optional(),
+  caseSensitive: z.boolean().optional(),
 });
 const ParagraphPrompt = zObject({
   questionType: z.literal("paragraph"),
   minWords: z.number().int().optional(),
   maxWords: z.number().int().optional(),
   modelAnswer: z.string().optional(),
+  evaluationGuidance: z.string().optional(),
 });
 const CodePrompt = zObject({
   questionType: z.literal("code"),
@@ -128,24 +139,26 @@ const AudioPrompt = zObject({
   questionType: z.literal("audio"),
   promptAudioUrl: z.string().optional(),
   maxDurationSeconds: z.number().int().optional(),
+  language: z.string().optional(),
   modelAnswer: z.string().optional(),
+  evaluationGuidance: z.string().optional(),
 });
 const ImageEvaluationPrompt = zObject({
   questionType: z.literal("image_evaluation"),
   referenceImageUrls: z.array(z.string()).optional(),
+  instructions: z.string().optional(),
+  maxImages: z.number().int().positive().optional(),
   modelAnswer: z.string().optional(),
+  evaluationGuidance: z.string().optional(),
 });
 const GroupOptionsPrompt = zObject({
   questionType: z.literal("group-options"),
   groups: z.array(z.string()),
   items: z.array(GroupOptionItemSchema),
 });
-const ChatAgentQuestionPrompt = zObject({
-  questionType: z.literal("chat_agent_question"),
-  agentInstructions: z.string().optional(),
-  maxTurns: z.number().int().optional(),
-  modelAnswer: z.string().optional(),
-});
+// Lossless public assessment authoring. Private objectives/guidance live in
+// AnswerKey, and a learner can only submit a server-owned session reference.
+const ChatAgentQuestionPrompt = AgentAssessmentQuestionPromptSchema;
 
 // ---------------------------------------------------------------------------
 // ANSWER schemas — the typed correct-answer (AnswerKeyData) per type.
@@ -211,10 +224,7 @@ const GroupOptionsAnswer = zObject({
   questionType: z.literal("group-options"),
   assignments: z.array(zObject({ itemId: z.string(), group: z.string() })),
 });
-const ChatAgentQuestionAnswer = zObject({
-  questionType: z.literal("chat_agent_question"),
-  modelAnswer: z.string().optional(),
-});
+const ChatAgentQuestionAnswer = AgentAssessmentAnswerKeyDataSchema;
 
 // ---------------------------------------------------------------------------
 // LEARNER-ANSWER schemas — the typed learner submission per type.
@@ -262,10 +272,7 @@ const GroupOptionsLearner = zObject({
   questionType: z.literal("group-options"),
   assignments: z.array(zObject({ itemId: z.string(), group: z.string() })),
 });
-const ChatAgentQuestionLearner = zObject({
-  questionType: z.literal("chat_agent_question"),
-  transcript: z.array(zObject({ role: z.string(), content: z.string() })).optional(),
-});
+const ChatAgentQuestionLearner = AgentAssessmentLearnerAnswerSchema;
 
 // ---------------------------------------------------------------------------
 // THE registry — one entry per question type. THIS is the SSOT.
@@ -399,7 +406,18 @@ export const QUESTION_TYPE_REGISTRY = {
     learnerAnswer: ChatAgentQuestionLearner,
     evaluation: "ai",
     label: "Chat-agent question",
-    sample: () => ({ questionType: "chat_agent_question" }),
+    sample: () => ({
+      questionType: "chat_agent_question",
+      scenario: "Discuss the trade-offs in this approach.",
+      publicLearningObjectives: [{ id: "objective_1", label: "Explain the trade-off" }],
+      interviewerAgentId: "agent_interviewer",
+      completionPolicy: {
+        minLearnerTurns: 1,
+        maxLearnerTurns: 4,
+        allowEarlyFinish: true,
+        hardLimitAction: "auto_finalize",
+      },
+    }),
   },
 } as const satisfies Record<string, QuestionTypeSpec>;
 

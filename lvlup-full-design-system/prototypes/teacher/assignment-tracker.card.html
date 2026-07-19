@@ -1,0 +1,460 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Assignment Tracker" subtitle="Read-only completion matrix · content × class/student progress" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .at-main{display:flex;flex-direction:column;gap:var(--space-8);max-width:var(--content-max);margin:0 auto;width:100%}
+  .at-title{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;color:var(--text-primary)}
+  .at-sub{font-family:var(--font-ui);font-size:var(--text-md);color:var(--text-secondary);margin:var(--space-1) 0 0}
+  .at-headrow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+  .at-meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+
+  .at-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4)}
+
+  .at-filterbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+    padding:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+  .at-fb-select{min-width:160px}
+  .at-fb-spacer{flex:1 1 auto}
+  .at-fb-search{min-width:240px;flex:1 1 240px;max-width:340px}
+  .at-count{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
+  .at-clear{font-size:var(--text-xs)}
+
+  .at-seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--radius-pill);padding:2px;background:var(--bg-surface-sunken);gap:2px;align-items:center}
+  .at-seg__btn{border:0;background:transparent;cursor:pointer;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);
+    color:var(--text-secondary);padding:var(--space-1) var(--space-4);border-radius:var(--radius-pill);min-height:30px}
+  .at-seg__btn--active{background:var(--brand-primary);color:var(--text-on-accent);box-shadow:var(--shadow-e1)}
+  .at-seg__lbl{font-size:var(--text-xs);color:var(--text-muted);margin:0 var(--space-1)}
+
+  .at-legend{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);
+    padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+  .at-leg{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-secondary)}
+  .at-leg__ic{display:inline-flex}
+  .at-leg__sep{width:1px;height:16px;background:var(--border-subtle)}
+
+  .at-matrixwrap{position:relative;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);overflow:hidden}
+  .at-scroll{overflow-x:auto;overflow-y:visible}
+  .at-grid{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:var(--text-sm)}
+  .at-grid th,.at-grid td{padding:0;text-align:center;vertical-align:middle}
+  .at-grpcell{position:sticky;left:0;z-index:3;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);border-right:1px solid var(--border-strong);
+    text-align:left;padding:var(--space-3) var(--space-4);min-width:200px;font-weight:var(--weight-semibold);font-size:var(--text-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+  .at-grouphd{background:var(--bg-surface-sunken);border-bottom:1px solid var(--border-subtle);padding:var(--space-2) var(--space-3);
+    font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
+  .at-grouphd--spaces{border-left:2px solid var(--mastery-in-progress)}
+  .at-grouphd--exams{border-left:2px solid var(--status-info)}
+  .at-colhd{position:sticky;top:0;background:var(--bg-surface);border-bottom:1px solid var(--border-strong);padding:var(--space-2) var(--space-3);
+    min-width:104px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);white-space:nowrap}
+  .at-colhd__sub{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px}
+  .at-rowhd{position:sticky;left:0;z-index:2;background:var(--bg-surface);border-right:1px solid var(--border-strong);border-bottom:1px solid var(--border-subtle);
+    text-align:left;padding:var(--space-2) var(--space-4);min-width:200px}
+  .at-grid tbody tr:hover .at-rowhd{background:var(--bg-surface-sunken)}
+  .at-name{display:flex;align-items:center;gap:var(--space-2)}
+  .at-name__txt{display:flex;flex-direction:column;line-height:1.2}
+  .at-name__nm{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+  .at-name__roll{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+  .at-cell{border-bottom:1px solid var(--border-subtle);border-left:1px solid var(--border-subtle);padding:var(--space-2);min-width:104px}
+  .at-cellbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:48px;
+    border:1px solid transparent;border-radius:var(--radius-md);background:transparent;cursor:pointer;padding:var(--space-1) var(--space-2);color:var(--text-secondary)}
+  .at-cellbtn:hover{border-color:var(--border-strong);background:var(--bg-surface-sunken)}
+  .at-cellbtn:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+  .at-cell__ic{display:inline-flex}
+  .at-cell__lbl{font-size:var(--text-2xs);font-weight:var(--weight-medium);letter-spacing:.01em}
+  .at-cell__score{font-family:var(--font-mono);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary)}
+  .ic-ns{color:var(--mastery-not-started)} .ic-ip{color:var(--mastery-in-progress)} .ic-ma{color:var(--mastery-mastered)}
+  .ic-sub{color:var(--status-info)} .ic-grd{color:var(--status-success)} .ic-over{color:var(--status-error)} .ic-pend{color:var(--text-muted)}
+  .at-rollcell{border-bottom:1px solid var(--border-subtle);border-left:2px solid var(--border-strong);padding:var(--space-2) var(--space-3);min-width:140px;background:var(--bg-surface)}
+  .at-roll{display:flex;flex-direction:column;gap:var(--space-1);align-items:flex-start}
+  .at-roll__frac{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary)}
+  .at-foot td{background:var(--bg-surface-sunken);border-top:1px solid var(--border-strong);padding:var(--space-2) var(--space-3);
+    font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);white-space:nowrap}
+  .at-foot .at-rowhd{background:var(--bg-surface-sunken);font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary)}
+
+  .at-pop{position:absolute;z-index:40;width:280px;background:var(--bg-surface);border:1px solid var(--border-subtle);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);padding:var(--space-4)}
+  .at-pop__hd{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);margin-bottom:var(--space-1)}
+  .at-pop__sub{font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-3)}
+  .at-pop__acts{display:flex;gap:var(--space-2);margin-top:var(--space-3)}
+
+  .at-states{display:flex;flex-wrap:wrap;gap:var(--space-4)}
+  .at-state{flex:1 1 240px;min-width:240px;display:flex;flex-direction:column;gap:var(--space-2);
+    border:1px dashed var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-4);background:var(--bg-surface)}
+  .at-skelrow{display:flex;align-items:center;gap:var(--space-3)}
+  .u-mono{font-family:var(--font-mono)}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Avatar, Badge, ProgressBar,
+  Section, Stat, DefinitionList, EmptyState, Alert, Skeleton, Pagination,
+  Toast, NavItem, AtRiskBadge, GradePill, Tooltip } = window.LvlupV0DesignSystem_5d0725;
+const { useState, useRef } = React;
+
+/* ---------- Shell ---------- */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---------- Cell state vocabulary ---------- */
+const CELL = {
+  'not-started':   {icon:'circle',          cls:'ic-ns',   label:'Not started'},
+  'in-progress':   {icon:'circle-dashed',   cls:'ic-ip',   label:'In progress'},
+  'mastered':      {icon:'check-circle-2',  cls:'ic-ma',   label:'Mastered'},
+  'not-submitted': {icon:'circle',          cls:'ic-ns',   label:'Not submitted'},
+  'submitted':     {icon:'send',            cls:'ic-sub',  label:'Submitted'},
+  'grading':       {icon:'loader',          cls:'ic-sub',  label:'Grading'},
+  'graded':        {icon:'square-check',    cls:'ic-grd',  label:'Graded'},
+  'overdue':       {icon:'alert-triangle',  cls:'ic-over', label:'Overdue'},
+  'pending':       {icon:'more-horizontal', cls:'ic-pend', label:'Loading'},
+};
+
+/* ---------- Columns (assigned content) ---------- */
+const COLS = [
+  {id:'sp-alg',  group:'spaces', title:'Algebra II',    sub:'Space',     type:'space'},
+  {id:'sp-cell', group:'spaces', title:'Cell Biology',  sub:'Space',     type:'space'},
+  {id:'sp-fra',  group:'spaces', title:'Fractions',     sub:'Space',     type:'space'},
+  {id:'ex-mid',  group:'exams',  title:'Midterm',       sub:'Due May 3', type:'exam'},
+  {id:'ex-u3',   group:'exams',  title:'Unit 3 Quiz',   sub:'Due May 9', type:'exam'},
+];
+
+function c(state, extra){ return Object.assign({state, assigned:'Apr 12', due:'May 3', last:'2 days ago'}, extra||{}); }
+const ROWS = [
+  {id:'s1', name:'Aanya Rao',   roll:'R-204', initials:'AR', done:6, total:7, atRisk:false,
+    cells:{'sp-alg':c('mastered'),'sp-cell':c('in-progress',{pct:62}),'sp-fra':c('mastered'),
+      'ex-mid':c('graded',{grade:'B',score:84,last:'May 2'}),'ex-u3':c('submitted',{last:'May 8'})}},
+  {id:'s2', name:'Dev Kumar',   roll:'R-211', initials:'DK', done:2, total:7, atRisk:true, reasons:'Low activity · 2 overdue items',
+    cells:{'sp-alg':c('not-started'),'sp-cell':c('not-started'),'sp-fra':c('in-progress',{pct:18}),
+      'ex-mid':c('overdue',{last:'—'}),'ex-u3':c('grading',{pct:41,last:'May 8'})}},
+  {id:'s3', name:'Mira Shah',   roll:'R-198', initials:'MS', done:7, total:7, atRisk:false,
+    cells:{'sp-alg':c('mastered'),'sp-cell':c('mastered'),'sp-fra':c('mastered'),
+      'ex-mid':c('graded',{grade:'A',score:91,last:'May 2'}),'ex-u3':c('graded',{grade:'A',score:88,last:'May 8'})}},
+  {id:'s4', name:'Rohan Patel', roll:'R-220', initials:'RP', done:4, total:7, atRisk:false,
+    cells:{'sp-alg':c('in-progress',{pct:74}),'sp-cell':c('mastered'),'sp-fra':c('not-started'),
+      'ex-mid':c('submitted',{last:'May 1'}),'ex-u3':c('pending')}},
+  {id:'s5', name:'Sara Iyer',   roll:'R-187', initials:'SI', done:3, total:7, atRisk:true, reasons:'Stalled on Algebra II · 1 overdue exam',
+    cells:{'sp-alg':c('in-progress',{pct:31}),'sp-cell':c('in-progress',{pct:55}),'sp-fra':c('mastered'),
+      'ex-mid':c('overdue',{last:'—'}),'ex-u3':c('not-submitted',{last:'—'})}},
+  {id:'s6', name:'Vihaan Nair', roll:'R-176', initials:'VN', done:5, total:7, atRisk:false,
+    cells:{'sp-alg':c('mastered'),'sp-cell':c('in-progress',{pct:48}),'sp-fra':c('mastered'),
+      'ex-mid':c('graded',{grade:'C',score:72,last:'May 2'}),'ex-u3':c('submitted',{last:'May 8'})}},
+];
+
+const FOOT = {
+  'sp-alg':'3 of 6 · 0 overdue', 'sp-cell':'2 of 6 · 0 overdue', 'sp-fra':'4 of 6 · 0 overdue',
+  'ex-mid':'3 of 6 · 2 overdue', 'ex-u3':'2 of 6 · 0 overdue',
+};
+
+function CellGlyph({state, score, grade, pct}){
+  const meta = CELL[state] || CELL.pending;
+  return (
+    <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+      <span className={"at-cell__ic "+meta.cls}><Icon name={meta.icon} size={18}/></span>
+      <span className={"at-cell__lbl "+meta.cls}>{meta.label}</span>
+      {score!=null && <span className="at-cell__score"><GradePill grade={grade} score={score}/></span>}
+      {score==null && pct!=null && <span className="at-cell__score">{pct}%</span>}
+    </span>
+  );
+}
+
+function App(){
+  const [axis, setAxis] = useState('students');
+  const [statusF, setStatusF] = useState('any');
+  const [classF, setClassF] = useState('all');
+  const [contentF, setContentF] = useState('all');
+  const [query, setQuery] = useState('');
+  const [pop, setPop] = useState(null);
+  const [toast, setToast] = useState(false);
+  const wrapRef = useRef(null);
+
+  const rows = ROWS.filter(r => !query || r.name.toLowerCase().includes(query.toLowerCase()));
+  const shown = rows.length, total = ROWS.length;
+  const cleared = statusF==='any' && classF==='all' && contentF==='all' && !query;
+
+  function openCell(e, row, col){
+    const wrap = wrapRef.current.getBoundingClientRect();
+    const btn = e.currentTarget.getBoundingClientRect();
+    let x = btn.left - wrap.left + btn.width/2 - 140;
+    let y = btn.bottom - wrap.top + 6;
+    x = Math.max(8, Math.min(x, wrap.width - 288));
+    setPop({row, col, x, y});
+  }
+
+  const popData = pop ? pop.row.cells[pop.col.id] : null;
+  const popMeta = popData ? (CELL[popData.state]||CELL.pending) : null;
+
+  return (
+    <Shell active="assignments">
+      <div className="at-main" onClick={()=>pop&&setPop(null)}>
+
+        {/* HEADER */}
+        <div className="at-headrow">
+          <div>
+            <h1 className="at-title">Assignment Tracker</h1>
+            <p className="at-sub">Who has — and hasn't — done what, across your classes.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'var(--space-2)'}}>
+            <Button variant="ghost" leadingIcon={<Icon name="download" size={16}/>} onClick={()=>setToast(true)}>Export CSV</Button>
+            <span className="at-meta"><Icon name="server" size={12}/> Server data · Last updated 6 min ago</span>
+          </div>
+        </div>
+
+        {/* AGGREGATE STRIP */}
+        <div className="at-stats">
+          <Stat label="Assigned" value="35" delta="5 content items" trend="up"/>
+          <Stat label="Completed" value="61%" delta="vs 54% last week" trend="up"/>
+          <Stat label="Overdue" value="4" delta="2 students" trend="down"/>
+        </div>
+
+        {/* FILTER BAR */}
+        <div className="at-filterbar" role="search" aria-label="Filter assignments">
+          <Select className="at-fb-select" aria-label="Class" value={classF} onChange={e=>setClassF(e.target.value)}
+            options={[{value:'all',label:'All my classes'},{value:'g8a',label:'Grade 8 · Section A'},{value:'g8b',label:'Grade 8 · Section B'},{value:'g9a',label:'Grade 9 · Section A'}]}/>
+          <Select className="at-fb-select" aria-label="Content" value={contentF} onChange={e=>setContentF(e.target.value)}
+            options={[{value:'all',label:'All content'},{value:'sp-alg',label:'Spaces · Algebra II'},{value:'sp-cell',label:'Spaces · Cell Biology'},{value:'ex-mid',label:'Exams · Midterm'},{value:'ex-u3',label:'Exams · Unit 3 Quiz'}]}/>
+          <Select className="at-fb-select" aria-label="Status" value={statusF} onChange={e=>setStatusF(e.target.value)}
+            options={[{value:'any',label:'Any status'},{value:'not-started',label:'Not started'},{value:'in-progress',label:'In progress'},{value:'mastered',label:'Mastered'},{value:'not-submitted',label:'Not submitted'},{value:'submitted',label:'Submitted'},{value:'grading',label:'Grading'},{value:'graded',label:'Graded'},{value:'overdue',label:'Overdue'}]}/>
+          <span className="at-seg" role="group" aria-label="Axis">
+            <span className="at-seg__lbl">Axis</span>
+            <button className={"at-seg__btn"+(axis==='students'?' at-seg__btn--active':'')} aria-pressed={axis==='students'} onClick={()=>setAxis('students')}>Students</button>
+            <button className={"at-seg__btn"+(axis==='classes'?' at-seg__btn--active':'')} aria-pressed={axis==='classes'} onClick={()=>setAxis('classes')}>Classes</button>
+          </span>
+          <span className="at-fb-spacer"></span>
+          <Input className="at-fb-search" placeholder="Search students or content" aria-label="Search students or content" value={query} onChange={e=>setQuery(e.target.value)}/>
+          <span className="at-count">Showing {shown} of {total}</span>
+          <Button className="at-clear" variant="ghost" size="sm" disabled={cleared}
+            onClick={()=>{setStatusF('any');setClassF('all');setContentF('all');setQuery('');}}>Clear</Button>
+        </div>
+
+        {/* LEGEND */}
+        <div className="at-legend" aria-label="State legend">
+          <span className="at-leg"><span className="at-leg__ic ic-ns"><Icon name="circle" size={14}/></span>Not started</span>
+          <span className="at-leg"><span className="at-leg__ic ic-ip"><Icon name="circle-dashed" size={14}/></span>In progress</span>
+          <span className="at-leg"><span className="at-leg__ic ic-ma"><Icon name="check-circle-2" size={14}/></span>Mastered</span>
+          <span className="at-leg__sep"></span>
+          <span className="at-leg"><span className="at-leg__ic ic-sub"><Icon name="send" size={14}/></span>Submitted</span>
+          <span className="at-leg"><span className="at-leg__ic ic-sub"><Icon name="loader" size={14}/></span>Grading</span>
+          <span className="at-leg"><span className="at-leg__ic ic-grd"><Icon name="square-check" size={14}/></span>Graded</span>
+          <span className="at-leg__sep"></span>
+          <span className="at-leg"><span className="at-leg__ic ic-over"><Icon name="alert-triangle" size={14}/></span>Overdue · past the due date with no completed submission</span>
+          <span className="at-fb-spacer"></span>
+          <Tooltip><span className="at-leg" style={{cursor:'help'}}><Icon name="info" size={13}/> Scores appear once results are released</span></Tooltip>
+        </div>
+
+        {/* MATRIX */}
+        <div className="at-matrixwrap" ref={wrapRef}>
+          <div className="at-scroll">
+            <table className="at-grid" role="grid" aria-label="Assignment completion matrix">
+              <thead>
+                <tr role="row">
+                  <th className="at-grpcell" rowSpan={2} scope="col">{axis==='students'?'Student':'Class'}</th>
+                  <th className="at-grouphd at-grouphd--spaces" colSpan={3} scope="colgroup"><Icon name="orbit" size={12} style={{verticalAlign:'-2px',marginRight:4}}/>Spaces</th>
+                  <th className="at-grouphd at-grouphd--exams" colSpan={2} scope="colgroup"><Icon name="file-text" size={12} style={{verticalAlign:'-2px',marginRight:4}}/>Exams</th>
+                  <th className="at-grouphd" rowSpan={2} scope="col">Row rollup</th>
+                </tr>
+                <tr role="row">
+                  {COLS.map(col=>(
+                    <th key={col.id} className="at-colhd" role="columnheader" scope="col">
+                      {col.title}<div className="at-colhd__sub">{col.sub}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row=>(
+                  <tr key={row.id} role="row">
+                    <th className="at-rowhd" role="rowheader" scope="row">
+                      <span className="at-name">
+                        <Avatar initials={row.initials} size="sm"/>
+                        <span className="at-name__txt">
+                          <span className="at-name__nm">{row.name}</span>
+                          <span className="at-name__roll">{row.roll}</span>
+                        </span>
+                      </span>
+                    </th>
+                    {COLS.map(col=>{
+                      const cell = row.cells[col.id];
+                      const m = CELL[cell.state]||CELL.pending;
+                      const aria = row.name+' — '+col.title+': '+m.label
+                        + (cell.score!=null?', scored '+cell.score:'')
+                        + (col.type==='exam'?', due '+cell.due:'');
+                      return (
+                        <td key={col.id} className="at-cell" role="gridcell">
+                          <button className="at-cellbtn" aria-label={aria}
+                            onClick={(e)=>{e.stopPropagation();openCell(e,row,col);}}>
+                            <CellGlyph state={cell.state} score={cell.score} grade={cell.grade} pct={cell.pct}/>
+                          </button>
+                        </td>
+                      );
+                    })}
+                    <td className="at-rollcell" role="gridcell">
+                      <span className="at-roll">
+                        <span className="at-roll__frac">{row.done}/{row.total}</span>
+                        <ProgressBar value={Math.round(row.done/row.total*100)} variant={row.done===row.total?'success':undefined}/>
+                        {row.atRisk && <AtRiskBadge level="watch" aria-label={'At risk — flagged by nightly review: '+row.reasons}>At risk</AtRiskBadge>}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="at-foot" role="row">
+                  <th className="at-rowhd" role="rowheader" scope="row">Column rollup</th>
+                  {COLS.map(col=>(<td key={col.id} role="gridcell">{FOOT[col.id]}</td>))}
+                  <td className="at-rollcell" role="gridcell"><span className="u-mono" style={{fontSize:'var(--text-2xs)',color:'var(--text-muted)'}}>14/30 · 4 overdue</span></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* CELL POPOVER (controlled, positioned) */}
+          {pop && popData && (
+            <div className="at-pop" style={{left:pop.x, top:pop.y}} role="dialog" aria-label="Cell detail" onClick={e=>e.stopPropagation()}>
+              <div className="at-pop__hd">{pop.row.name} · {pop.col.title}</div>
+              <div className="at-pop__sub">{pop.col.group==='spaces'?'Learning space':'Exam'}</div>
+              <DefinitionList items={[
+                {term:'State', value:<span style={{display:'inline-flex',alignItems:'center',gap:6}}><span className={popMeta.cls}><Icon name={popMeta.icon} size={14}/></span>{popMeta.label}</span>},
+                {term:'Score', value: popData.score!=null
+                  ? <GradePill grade={popData.grade} score={popData.score}/>
+                  : <span className="u-mono" style={{color:'var(--text-muted)'}}>{popData.state==='grading'?'not yet graded':'not released'}</span>},
+                {term:'Assigned', value:<span className="u-mono">{popData.assigned}</span>},
+                {term:'Due', value:<span className="u-mono">{popData.due}</span>},
+                {term:'Last activity', value:<span className="u-mono">{popData.last}</span>},
+              ]}/>
+              <div className="at-pop__acts">
+                <Button size="sm" variant="secondary" leadingIcon={<Icon name="user" size={14}/>}>Open student</Button>
+                {pop.col.type==='exam' && <Button size="sm" variant="ghost" leadingIcon={<Icon name="clipboard-check" size={14}/>}>Open grading</Button>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* PAGINATION */}
+        <div style={{display:'flex',justifyContent:'flex-end'}}>
+          <Pagination pages={5} current={1}/>
+        </div>
+
+        {/* STATES RAIL */}
+        <Section title="States">
+          <div className="at-states">
+            <div className="at-state">
+              <span className="u-caption">Loading (skeleton matrix)</span>
+              {[0,1,2].map(i=>(
+                <div className="at-skelrow" key={i}>
+                  <Skeleton variant="circle" width="28px" height="28px"/>
+                  <Skeleton width="90px"/>
+                  <Skeleton variant="circle" width="20px" height="20px"/>
+                  <Skeleton variant="circle" width="20px" height="20px"/>
+                  <Skeleton variant="circle" width="20px" height="20px"/>
+                </div>
+              ))}
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Partial — exam status failed</span>
+              <Alert variant="warning" title="Exam status couldn't be loaded">
+                Completion for spaces is still shown. <a href="#" style={{color:'var(--brand-primary)'}}>Retry</a>
+              </Alert>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Empty — nothing assigned</span>
+              <EmptyState icon="clipboard-list" title="Nothing assigned yet"
+                body="Assign a space or exam to a class to start tracking completion."
+                action={<Button size="sm" variant="secondary">Go to Classes</Button>}/>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Empty — no classes managed</span>
+              <EmptyState icon="users" title="No classes to track"
+                body="You don't manage any classes yet. Once a class is assigned to you, its assignments appear here."/>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Empty — filtered to nothing</span>
+              <EmptyState icon="filter-x" title="No assignments match these filters."
+                action={<Button size="sm" variant="ghost">Clear filters</Button>}/>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Error — whole screen</span>
+              <Alert variant="error" title="Couldn't load the assignment tracker.">
+                <div style={{marginTop:'var(--space-2)'}}><Button size="sm" variant="secondary" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Retry</Button></div>
+              </Alert>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Pending cell ≠ not-started</span>
+              <div style={{display:'flex',gap:'var(--space-3)',alignItems:'center'}}>
+                <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                  <span className="ic-pend"><Icon name="more-horizontal" size={18}/></span>
+                  <span className="at-cell__lbl ic-pend">Loading</span>
+                </span>
+                <span className="u-caption" style={{flex:1}}>Unresolved cells show a neutral glyph — never a false "Not started".</span>
+              </div>
+            </div>
+
+            <div className="at-state">
+              <span className="u-caption">Score gating · permission-gated</span>
+              <div style={{display:'flex',flexDirection:'column',gap:'var(--space-2)'}}>
+                <span style={{fontSize:'var(--text-xs)',color:'var(--text-secondary)'}}>Results not released — status without score:</span>
+                <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'var(--text-xs)'}}>
+                  <span className="ic-grd"><Icon name="square-check" size={14}/></span>Graded · <span className="u-mono" style={{color:'var(--text-muted)'}}>not released</span>
+                </span>
+                <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>Teacher without grading permission: cell popover shows "Open student" only.</span>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+      </div>
+
+      {/* EXPORT TOAST */}
+      {toast && (
+        <div style={{position:'absolute',right:'var(--space-6)',bottom:'var(--space-6)',zIndex:60}} onClick={()=>setToast(false)}>
+          <Toast variant="success" title="Exported 6 rows" body="Filtered matrix saved as CSV."/>
+        </div>
+      )}
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

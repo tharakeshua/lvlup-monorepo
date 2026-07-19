@@ -23,10 +23,12 @@ import { ItemMetadataSchema, ItemAnalyticsSchema } from "./item-metadata.js";
 import { UnifiedRubricSchema } from "./rubric.js";
 
 export const ItemAttachmentSchema = zObject({
+  id: z.string().optional(),
   type: zItemAttachmentType,
-  url: z.string(),
+  url: z.string().min(1),
   name: z.string().optional(),
-  sizeBytes: z.number().int().optional(),
+  mimeType: z.string().optional(),
+  sizeBytes: z.number().int().nonnegative().optional(),
 });
 export type ItemAttachment = z.infer<typeof ItemAttachmentSchema>;
 

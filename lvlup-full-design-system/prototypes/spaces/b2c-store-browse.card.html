@@ -1,0 +1,473 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="B2C Store Browse" subtitle="Shopfront · published spaces grid" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html,body{margin:0}
+    body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+    /* ---- shell layout (consumer: minimal sidebar, no tenant switcher) ---- */
+    .store-main{display:flex;flex-direction:column;min-height:0}
+    .store-scroll{overflow:auto;padding:var(--space-6) var(--space-8) var(--space-12)}
+    .store-wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+
+    /* topbar bits */
+    .tb-search{flex:1;display:flex;align-items:center;gap:var(--space-2);max-width:420px;
+      background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);
+      border-radius:var(--radius-pill);padding:var(--space-2) var(--space-3);color:var(--text-muted)}
+    .tb-search .input{border:none;background:transparent;flex:1;padding:0;font-size:var(--text-sm)}
+    .tb-kbd{display:flex;gap:var(--space-1)}
+    .tb-cart{position:relative;display:flex;align-items:center;gap:var(--space-2)}
+    .tb-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+      border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);
+      color:var(--text-secondary);cursor:pointer;position:relative}
+    .tb-cart-badge{position:absolute;top:-6px;right:-6px}
+
+    /* hero */
+    .store-hero{display:flex;flex-direction:column;gap:var(--space-2)}
+    .store-hero h1{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);
+      letter-spacing:var(--tracking-display);font-weight:var(--weight-semibold);margin:0;color:var(--text-primary)}
+    .store-hero p{margin:0;color:var(--text-secondary);font-size:var(--text-base);max-width:var(--reading-max)}
+
+    /* controls bar (sticky) */
+    .controls{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:var(--space-3);
+      flex-wrap:wrap;background:var(--bg-canvas);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+    .ctrl-search{flex:1;min-width:240px;display:flex;align-items:center;gap:var(--space-2);
+      background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+      padding:0 var(--space-3);color:var(--text-muted)}
+    .ctrl-search .input{border:none;background:transparent;flex:1;padding:var(--space-2) 0}
+    .ctrl-select{min-width:140px}
+    .view-toggle{display:inline-flex;border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden}
+    .view-toggle button{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+      border:none;background:var(--bg-surface);color:var(--text-muted);cursor:pointer}
+    .view-toggle button[aria-pressed="true"]{background:var(--brand-subtle);color:var(--brand-primary)}
+
+    /* section heading */
+    .sec-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
+    .sec-head h2{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl);
+      font-weight:var(--weight-semibold);margin:0}
+    .sec-meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+    .filter-chips{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-4)}
+
+    /* grid */
+    .results{position:relative}
+    .grid{display:grid;gap:var(--space-5);grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid--list{grid-template-columns:1fr}
+
+    /* store card */
+    .scard{display:flex;flex-direction:column;overflow:hidden;background:var(--bg-surface);
+      border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);
+      transition:box-shadow var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard)}
+    .scard:hover{box-shadow:var(--shadow-e2)}
+    .scard:hover .scard-title{color:var(--brand-primary)}
+    .scard-thumb{position:relative;aspect-ratio:16/9;background:var(--bg-surface-sunken);
+      display:flex;align-items:center;justify-content:center;color:var(--text-muted);overflow:hidden}
+    .scard-thumb-img{position:absolute;inset:0;width:100%;height:100%;
+      background:linear-gradient(135deg,var(--brand-subtle),var(--spark-subtle));
+      transition:transform var(--dur-fast) var(--ease-standard)}
+    .scard:hover .scard-thumb-img{transform:scale(1.02)}
+    .scard-thumb-glyph{position:relative;z-index:1;color:var(--brand-primary);opacity:.55}
+    .scard-flag{position:absolute;top:var(--space-2);left:var(--space-2);z-index:2}
+    .scard-corner{position:absolute;top:var(--space-2);right:var(--space-2);z-index:2}
+    .scard-body{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4)}
+    .scard-title{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);
+      font-weight:var(--weight-semibold);margin:0;transition:color var(--dur-fast) var(--ease-standard)}
+    .scard-tags{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap}
+    .scard-desc{color:var(--text-secondary);font-size:var(--text-sm);line-height:var(--leading-sm);
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0;min-height:2.6em}
+    .scard-meta{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;
+      font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+    .scard-meta .dot{width:3px;height:3px;border-radius:var(--radius-pill);background:var(--border-strong)}
+    .scard-rating{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--text-secondary)}
+    .scard-rating .stars{color:var(--spark);display:inline-flex}
+    .scard-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+      padding:var(--space-3) var(--space-4) var(--space-4);border-top:1px solid var(--border-subtle);margin-top:auto}
+    .scard-price{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--spark)}
+    .scard-price--free{color:var(--status-success);display:inline-flex;align-items:center;gap:var(--space-1)}
+
+    /* list variant */
+    .scard--list{flex-direction:row}
+    .scard--list .scard-thumb{width:220px;aspect-ratio:auto;flex:none}
+    .scard--list .scard-body{flex:1}
+    .scard--list .scard-foot{flex-direction:column;align-items:flex-end;justify-content:center;
+      border-top:none;border-left:1px solid var(--border-subtle);width:180px;flex:none}
+
+    /* skeleton card */
+    .skcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);
+      overflow:hidden;display:flex;flex-direction:column}
+    .skcard-thumb{aspect-ratio:16/9}
+    .skcard-body{padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
+
+    .loadmore{display:flex;justify-content:center;padding-top:var(--space-6)}
+    .toast-host{position:fixed;right:var(--space-6);bottom:var(--space-6);z-index:50;
+      display:flex;flex-direction:column;gap:var(--space-2)}
+    .variant-rail{display:flex;flex-direction:column;gap:var(--space-3)}
+    .variant-label{font-family:var(--font-mono);font-size:var(--text-2xs);text-transform:uppercase;
+      letter-spacing:var(--tracking-caption);color:var(--text-muted)}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const {
+      Button, IconButton, Icon, Input, Select, Chip, Badge, Avatar, Kbd,
+      EmptyState, Skeleton, LoadingOverlay, Alert, Toast, Stat
+    } = window.LvlupV0DesignSystem_5d0725;
+
+    /* ---------- mock data (StoreSpaceSummary projection) ---------- */
+    const SPACES = [
+      { id:"spc_algfnd", title:"Algebra Foundations", subject:"Mathematics",
+        labels:["Beginner","Self-paced","Exam prep"], featured:true,
+        desc:"Master variables, equations and graphs with bite-sized lessons and instant practice feedback.",
+        price:0, currency:"USD", learners:4820, lessons:24, rating:4.8, reviews:312 },
+      { id:"spc_dsa", title:"Data Structures & Algorithms", subject:"Computer Science",
+        labels:["Intermediate","Interview"], featured:true,
+        desc:"Arrays to graphs — build the problem-solving instincts that pass technical interviews.",
+        price:49, currency:"USD", learners:9140, lessons:48, rating:4.9, reviews:1287 },
+      { id:"spc_sysd", title:"System Design Essentials", subject:"Computer Science",
+        labels:["Advanced","Interview","Case studies"], featured:true,
+        desc:"Design scalable systems with real trade-offs: caching, sharding, queues and consensus.",
+        price:79, currency:"USD", learners:3270, lessons:36, rating:4.7, reviews:198 },
+
+      { id:"spc_cell", title:"Cell Biology Deep Dive", subject:"Biology",
+        labels:["Beginner","Visual"], featured:false,
+        desc:"Tour the cell — organelles, membranes and metabolism — with animated walkthroughs.",
+        price:29, currency:"USD", learners:1560, lessons:18, rating:4.6, reviews:84 },
+      { id:"spc_writ", title:"Persuasive Writing", subject:"English",
+        labels:["All levels","Workshop"], featured:false,
+        desc:"Argue with clarity. Structure essays, sharpen rhetoric and edit ruthlessly.",
+        price:0, currency:"USD", learners:2040, lessons:14, rating:4.5, reviews:127 },
+      { id:"spc_behav", title:"Behavioral Interview Prep", subject:"Career",
+        labels:["Interview","STAR method"], featured:false,
+        desc:"Turn your experience into stories that land — frameworks, drills and mock prompts.",
+        price:39, currency:"USD", learners:5310, lessons:22, rating:4.8, reviews:441 },
+    ];
+
+    const SUBJECTS = [
+      { value:"all", label:"Subject: All" },
+      { value:"Mathematics", label:"Mathematics" },
+      { value:"Computer Science", label:"Computer Science" },
+      { value:"Biology", label:"Biology" },
+      { value:"English", label:"English" },
+      { value:"Career", label:"Career" },
+    ];
+    const PRICES = [
+      { value:"all", label:"Price: Any" },
+      { value:"free", label:"Free" },
+      { value:"paid", label:"Paid" },
+    ];
+    const SORTS = [
+      { value:"popular", label:"Sort: Most popular" },
+      { value:"newest", label:"Newest" },
+      { value:"top", label:"Top rated" },
+      { value:"asc", label:"Price: low to high" },
+      { value:"desc", label:"Price: high to low" },
+    ];
+
+    function Stars(){ // visual-only; real label provided via aria
+      return (
+        <span className="stars" aria-hidden="true">
+          {[0,1,2,3,4].map(i => <Icon key={i} name="star" size={13} />)}
+        </span>
+      );
+    }
+
+    function priceNode(s){
+      if(s.price === 0) return (
+        <span className="scard-price scard-price--free">
+          <Icon name="gift" size={15} /> Free
+        </span>
+      );
+      return <span className="scard-price">{s.currency} {s.price}.00</span>;
+    }
+
+    /* ---------- one store card ---------- */
+    function StoreCard({ s, list, state, inCart, owned, onToggleCart }){
+      const ratingLabel = `Rated ${s.rating} out of 5, ${s.reviews} reviews`;
+      const overflow = Math.max(0, s.labels.length - 2);
+
+      let cta;
+      if(owned){
+        cta = <Button variant="secondary" size="sm" leadingIcon={<Icon name="play" size={15}/>}
+                 aria-label={`Continue learning ${s.title}`}>Continue Learning</Button>;
+      } else if(inCart){
+        cta = <Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={15}/>}
+                 onClick={()=>onToggleCart(s)} aria-label={`Remove ${s.title} from cart`}>Remove from Cart</Button>;
+      } else if(s.price === 0){
+        cta = <Button variant="spark" size="sm" leadingIcon={<Icon name="sparkles" size={15}/>}
+                 onClick={()=>onToggleCart(s)} aria-label={`Enroll free in ${s.title}`}>Enroll Free</Button>;
+      } else {
+        cta = <Button variant="primary" size="sm" leadingIcon={<Icon name="shopping-cart" size={15}/>}
+                 onClick={()=>onToggleCart(s)} aria-label={`Add ${s.title} to cart`}>Add to Cart</Button>;
+      }
+
+      return (
+        <article className={"scard" + (list ? " scard--list" : "")}>
+          <div className="scard-thumb">
+            <div className="scard-thumb-img" aria-hidden="true" />
+            <Icon name="book-open" size={34} className="scard-thumb-glyph" />
+            {s.featured && <span className="scard-flag"><Badge variant="spark" icon={<Icon name="star" size={11}/>}>Featured</Badge></span>}
+            {owned && <span className="scard-corner"><Badge variant="success" icon={<Icon name="check" size={11}/>}>Owned</Badge></span>}
+            {!owned && inCart && <span className="scard-corner"><Badge variant="brand" icon={<Icon name="shopping-cart" size={11}/>}>In cart</Badge></span>}
+          </div>
+
+          <div className="scard-body">
+            <h3 className="scard-title">{s.title}</h3>
+            <div className="scard-tags">
+              <Chip active>{s.subject}</Chip>
+              {s.labels.slice(0,2).map(l => <Chip key={l}>{l}</Chip>)}
+              {overflow > 0 && <Chip>+{overflow}</Chip>}
+            </div>
+            <p className="scard-desc">{s.desc}</p>
+            <div className="scard-meta">
+              <span className="scard-rating" aria-label={ratingLabel}>
+                <Stars /> {s.rating.toFixed(1)} ({s.reviews})
+              </span>
+              <span className="dot" aria-hidden="true" />
+              <span><Icon name="users" size={12} /> {s.learners.toLocaleString()} learners</span>
+              <span className="dot" aria-hidden="true" />
+              <span><Icon name="list-checks" size={12} /> {s.lessons} lessons</span>
+            </div>
+          </div>
+
+          <div className="scard-foot">
+            {state === "tenant"
+              ? <span className="scard-meta"><Icon name="school" size={13}/> Available through your school</span>
+              : priceNode(s)}
+            {state === "tenant"
+              ? <Button variant="ghost" size="sm" disabled>View</Button>
+              : cta}
+          </div>
+        </article>
+      );
+    }
+
+    function SkeletonCard(){
+      return (
+        <div className="skcard" aria-hidden="true">
+          <Skeleton className="skcard-thumb" height={150} />
+          <div className="skcard-body">
+            <Skeleton variant="text" width="70%" />
+            <Skeleton variant="text" width="40%" />
+            <Skeleton variant="text" width="100%" />
+            <Skeleton variant="text" width="90%" />
+            <Skeleton height={32} />
+          </div>
+        </div>
+      );
+    }
+
+    function Screen(){
+      const [view, setView]   = useState("grid");      // grid | list
+      const [subject, setSub] = useState("all");
+      const [price, setPrice] = useState("all");
+      const [sort, setSort]   = useState("popular");
+      const [query, setQuery] = useState("");
+      const [state, setState] = useState("success");   // success | loading | empty | noresults | error | tenant
+      const [cart, setCart]   = useState(["spc_dsa"]); // client-only cart
+      const owned             = ["spc_writ"];          // enrolledSpaceIds
+      const [toast, setToast] = useState(null);
+
+      const toggleCart = (s) => {
+        setCart(c => {
+          const has = c.includes(s.id);
+          setToast(has ? { v:"info", t:"Removed from cart", b:s.title }
+                       : { v:"success", t:`Added — ${s.title}`, b:`${s.currency} ${s.price === 0 ? "Free" : s.price + ".00"}` });
+          return has ? c.filter(x => x !== s.id) : [...c, s.id];
+        });
+      };
+
+      const featured = SPACES.filter(s => s.featured);
+      const browse   = SPACES;
+
+      const activeFilters = [];
+      if(subject !== "all") activeFilters.push({ k:"subject", label:subject, reset:()=>setSub("all") });
+      if(price !== "all")   activeFilters.push({ k:"price", label:price === "free" ? "Free" : "Paid", reset:()=>setPrice("all") });
+      if(query)             activeFilters.push({ k:"q", label:`"${query}"`, reset:()=>setQuery("") });
+
+      const clearFilters = () => { setSub("all"); setPrice("all"); setQuery(""); setState("success"); };
+
+      const renderGrid = (items, list) => (
+        <div className={"grid" + (list ? " grid--list" : "")}>
+          {items.map(s => (
+            <StoreCard key={s.id} s={s} list={list} state={state}
+              inCart={cart.includes(s.id)} owned={owned.includes(s.id)}
+              onToggleCart={toggleCart} />
+          ))}
+        </div>
+      );
+
+      const list = view === "list";
+
+      return (
+        <div className="appshell">
+          {/* ---- minimal consumer sidebar ---- */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <div className="sidebar__brand-mark">L</div>
+              <div className="sidebar__brand-name">LevelUp</div>
+            </div>
+            <nav className="sidebar__nav" aria-label="Primary">
+              <div className="sidebar__section-label">Learn</div>
+              <a className="nav-item" href="#" aria-current="page"><Icon name="store" size={18} /><span>Store</span></a>
+              <a className="nav-item" href="#"><Icon name="library" size={18} /><span>My Spaces</span></a>
+              <a className="nav-item" href="#"><Icon name="user" size={18} /><span>Account</span></a>
+            </nav>
+          </aside>
+
+          {/* ---- topbar with cart badge + ⌘K search ---- */}
+          <header className="appshell__topbar">
+            <div className="tb-search">
+              <Icon name="search" size={16} />
+              <input className="input" placeholder="Search spaces…" aria-label="Quick search"
+                value={query} onChange={e=>setQuery(e.target.value)} />
+              <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+            </div>
+            <div className="topbar__spacer" style={{flex:1}} />
+            <div className="tb-cart">
+              <button className="tb-icon" aria-label={`Cart, ${cart.length} items`}>
+                <Icon name="shopping-cart" size={18} />
+                {cart.length > 0 && <span className="tb-cart-badge"><Badge variant="spark" dot>{cart.length}</Badge></span>}
+              </button>
+            </div>
+            <Avatar initials="JL" size="sm" />
+          </header>
+
+          {/* ---- main ---- */}
+          <main className="appshell__main store-main">
+            <div className="store-scroll">
+              <div className="store-wrap">
+
+                <div className="store-hero">
+                  <h1>Learn something that sticks</h1>
+                  <p>Browse spaces built by educators and creators — buy once, keep forever.</p>
+                </div>
+
+                {/* controls bar (sticky) */}
+                <div className="controls" role="search">
+                  <div className="ctrl-search">
+                    <Icon name="search" size={16} />
+                    <input className="input" placeholder="Search spaces…" aria-label="Search spaces"
+                      value={query} onChange={e=>setQuery(e.target.value)} />
+                  </div>
+                  <Select className="ctrl-select" aria-label="Subject" options={SUBJECTS}
+                    value={subject} onChange={e=>setSub(e.target.value)} disabled={state==="loading"} />
+                  <Select className="ctrl-select" aria-label="Price" options={PRICES}
+                    value={price} onChange={e=>setPrice(e.target.value)} disabled={state==="loading"} />
+                  <Select className="ctrl-select" aria-label="Sort" options={SORTS}
+                    value={sort} onChange={e=>setSort(e.target.value)} disabled={state==="loading"} />
+                  <div className="view-toggle" role="radiogroup" aria-label="View">
+                    <button aria-label="Grid view" aria-pressed={!list} onClick={()=>setView("grid")}>
+                      <Icon name="layout-grid" size={16} /></button>
+                    <button aria-label="List view" aria-pressed={list} onClick={()=>setView("list")}>
+                      <Icon name="list" size={16} /></button>
+                  </div>
+                </div>
+
+                {/* state switcher (prototype affordance) */}
+                <div className="filter-chips" aria-hidden="true">
+                  <span className="variant-label">State</span>
+                  {["success","loading","empty","noresults","error","tenant"].map(v => (
+                    <Chip key={v} active={state===v} className="card--interactive"
+                      onClick={()=>setState(v)} style={{cursor:"pointer"}}>{v}</Chip>
+                  ))}
+                </div>
+
+                {/* FEATURED — page 1 only, success state */}
+                {state === "success" && (
+                  <section aria-label="Featured spaces">
+                    <div className="sec-head"><h2>Featured</h2></div>
+                    {renderGrid(featured, false)}
+                  </section>
+                )}
+
+                {/* ALL SPACES / results */}
+                <section role="region" aria-label="Store spaces">
+                  <div className="sec-head">
+                    <h2>All spaces</h2>
+                    <div className="sec-meta">
+                      <Badge variant="brand" aria-live="polite">
+                        {state==="empty" ? "0 spaces" : state==="noresults" ? "0 spaces" : browse.length + " spaces"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {activeFilters.length > 0 && (
+                    <div className="filter-chips">
+                      {activeFilters.map(f => (
+                        <Chip key={f.k} active removable onClick={f.reset}
+                          style={{cursor:"pointer"}}>{f.label}</Chip>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="results">
+                    {state === "loading" && (
+                      <div className={"grid" + (list ? " grid--list" : "")}>
+                        {[0,1,2,3,4,5].map(i => <SkeletonCard key={i} />)}
+                      </div>
+                    )}
+
+                    {state === "success" && (
+                      <React.Fragment>
+                        {renderGrid(browse, list)}
+                        <div className="loadmore">
+                          <Button variant="secondary" leadingIcon={<Icon name="chevron-down" size={16}/>}>
+                            Load more spaces</Button>
+                        </div>
+                      </React.Fragment>
+                    )}
+
+                    {state === "tenant" && renderGrid(browse, list)}
+
+                    {state === "empty" && (
+                      <EmptyState icon="sparkles" title="The store is just getting started"
+                        body="New spaces are added regularly — check back soon." />
+                    )}
+
+                    {state === "noresults" && (
+                      <EmptyState icon="search-x" title="No spaces match that yet"
+                        body="Try a different subject or a broader search."
+                        action={<Button variant="secondary" onClick={clearFilters}
+                          leadingIcon={<Icon name="rotate-ccw" size={15}/>}>Clear filters</Button>} />
+                    )}
+
+                    {state === "error" && (
+                      <Alert variant="error" title="We couldn't load the store right now.">
+                        <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)",alignItems:"flex-start"}}>
+                          <span>Something went wrong fetching published spaces. Your connection looks fine — try again.</span>
+                          <Button variant="secondary" size="sm" onClick={()=>setState("loading")}
+                            leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button>
+                        </div>
+                      </Alert>
+                    )}
+                  </div>
+                </section>
+
+              </div>
+            </div>
+          </main>
+
+          {/* toast host */}
+          {toast && (
+            <div className="toast-host">
+              <Toast variant={toast.v} title={toast.t} body={toast.b} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+    if(window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Assessment Configuration" subtitle="Timing · order mode · attempts policy" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local LAYOUT-ONLY rules — Lyceum vars only, NO raw hex, NO :root redefinition */
+html,body{margin:0}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:820px;overflow:hidden;position:relative;display:flex}
+
+/* ---- topbar bits ---- */
+.tb-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:var(--bg-surface)}
+.tb-tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tb-search{flex:1;max-width:420px;position:relative;display:flex;align-items:center}
+.tb-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tb-search .input{padding-left:var(--space-8)}
+.tb-kbd{position:absolute;right:var(--space-2);display:flex;gap:2px}
+.tb-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--text-secondary)}
+
+/* ---- main column scroll region ---- */
+.sx-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.sx-crumb{padding:var(--space-3) var(--space-6) 0}
+
+/* ---- sticky editor sub-header ---- */
+.eh{position:sticky;top:0;z-index:20;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0}
+.eh-top{display:flex;align-items:center;gap:var(--space-3)}
+.eh-title{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0}
+.eh-typechip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);background:var(--brand-subtle);color:var(--brand-primary);border:1px solid var(--brand-muted)}
+.eh-spacer{flex:1}
+.eh-meta{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.eh-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-3)}
+.tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:color var(--dur-fast) var(--ease-standard)}
+.tab:hover{color:var(--text-primary)}
+.tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold)}
+
+/* status badge with icon (never color-alone) */
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle)}
+.status-badge.published{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success)}
+.status-badge.draft{background:var(--bg-surface-sunken);color:var(--text-secondary)}
+
+/* save state pill in header */
+.savepill{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui)}
+.savepill.saved{color:var(--status-success)}
+.savepill.saving{color:var(--text-secondary)}
+.savepill.dirty{color:var(--spark)}
+.savepill.failed{color:var(--status-error)}
+.dirty-dot{width:6px;height:6px;border-radius:var(--radius-pill);background:var(--spark);display:inline-block;box-shadow:var(--glow-spark)}
+
+/* ---- scroll body + reading column ---- */
+.sx-scroll{flex:1;overflow-y:auto;position:relative}
+.sx-col{max-width:720px;margin:0 auto;padding:var(--space-6) var(--space-6) 140px;display:flex;flex-direction:column;gap:var(--space-6)}
+
+/* ---- section card ---- */
+.scard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.scard__head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.scard__icon{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);flex:none}
+.scard__h{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0}
+.scard__d{font-size:var(--text-xs);line-height:var(--leading-xs);color:var(--text-muted);margin-top:2px}
+.scard__body{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* ---- field ---- */
+.fld{display:flex;flex-direction:column;gap:var(--space-2)}
+.fld__lab{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.fld__opt{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-xs)}
+.fld__help{font-size:var(--text-xs);color:var(--text-muted);line-height:var(--leading-xs)}
+.fld__err{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--status-error);font-weight:var(--weight-medium)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.row-2{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:var(--space-4);align-items:start}
+
+/* numeric input w/ unit suffix */
+.num-suffix{display:flex;align-items:center;gap:var(--space-2)}
+.num-suffix .input{max-width:120px;font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.num-suffix__u{font-size:var(--text-sm);color:var(--text-secondary);white-space:nowrap}
+
+/* ---- order mode radio group (segmented look via radios) ---- */
+.ordergrp{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.orderopt{display:flex;flex-direction:column;gap:6px;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer;background:var(--bg-surface);transition:border-color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard)}
+.orderopt:hover{border-color:var(--border-strong)}
+.orderopt.on{border-color:var(--brand-primary);background:var(--brand-subtle);box-shadow:var(--ring-focus)}
+.orderopt__top{display:flex;align-items:center;gap:var(--space-2)}
+.orderopt__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.orderopt__desc{font-size:var(--text-2xs);line-height:var(--leading-2xs);color:var(--text-muted)}
+
+/* ---- adaptive sub-panel reveal ---- */
+.subpanel{margin-top:var(--space-2);padding:var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:var(--space-4)}
+.subpanel__hd{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary)}
+.reveal{overflow:hidden;animation:revealIn var(--dur-base) var(--ease-entrance)}
+@keyframes revealIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---- switch rows ---- */
+.swrow{display:flex;align-items:flex-start;gap:var(--space-4);justify-content:space-between}
+.swrow.is-disabled{opacity:.55}
+.swrow__txt{flex:1;min-width:0}
+
+/* ---- slider + readout ---- */
+.thresh{display:flex;align-items:center;gap:var(--space-4)}
+.thresh__slider{flex:1}
+.thresh__readout{display:flex;flex-direction:column;align-items:center;min-width:78px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.thresh__num{font-family:var(--font-mono);font-size:var(--text-2xl);line-height:1;font-variant-numeric:tabular-nums;font-weight:var(--weight-semibold)}
+.thresh__band{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
+.band-a{color:var(--grade-a)} .band-b{color:var(--grade-b)} .band-c{color:var(--grade-c)} .band-d{color:var(--grade-d)} .band-f{color:var(--grade-f)}
+
+/* ---- availability accordion ---- */
+.acc{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);overflow:hidden}
+.acc__hd{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-4) var(--space-5);background:none;border:none;cursor:pointer;text-align:left}
+.acc__icon{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);flex:none}
+.acc__title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.acc__sub{font-size:var(--text-xs);color:var(--text-muted)}
+.acc__chev{margin-left:auto;color:var(--text-muted);transition:transform var(--dur-fast) var(--ease-standard)}
+.acc__chev.open{transform:rotate(180deg)}
+.acc__body{padding:0 var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.datefield{display:flex;align-items:center;gap:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);padding:var(--space-2) var(--space-3)}
+.datefield.err{border-color:var(--status-error)}
+.datefield input{flex:1;border:none;outline:none;background:transparent;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.datefield svg{color:var(--text-muted)}
+
+/* ---- sections → questions deflist ---- */
+.qmap{display:flex;flex-direction:column}
+.qmap__row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px solid var(--border-subtle)}
+.qmap__row:last-child{border-bottom:none}
+.qmap__name{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-primary)}
+.qmap__name .id{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.qmap__spacer{flex:1}
+.qmap__total{display:flex;align-items:center;gap:var(--space-2);padding-top:var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.qmap__total .n{font-family:var(--font-mono)}
+.count-pending{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted)}
+
+/* ---- keylock note ---- */
+.policy-note{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3)}
+.policy-note svg{color:var(--text-muted);flex:none}
+
+/* ---- sticky savebar ---- */
+.savebar{position:absolute;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-6);background:var(--bg-surface);border-top:1px solid var(--border-subtle);box-shadow:var(--shadow-e2)}
+.savebar__hint{font-size:var(--text-xs);color:var(--text-muted);flex:1;display:flex;align-items:center;gap:var(--space-2)}
+.savebar__actions{display:flex;align-items:center;gap:var(--space-3)}
+
+/* ---- skeleton helper ---- */
+.sk-line{height:14px;border-radius:var(--radius-sm);background:var(--bg-surface-sunken)}
+
+/* ---- prototype state switcher (chrome) ---- */
+.proto-bar{position:absolute;top:var(--space-3);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.proto-bar__lab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding-left:var(--space-2)}
+.segmented{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.segmented button{font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6;border:none;background:none;cursor:pointer}
+.segmented button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+/* ---- toast ---- */
+.toast-stack{position:absolute;right:var(--space-6);bottom:96px;z-index:120}
+.toast-card{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-4);min-width:300px;animation:toastIn var(--dur-base) var(--ease-entrance)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast-card__icon{display:grid;place-items:center;color:var(--status-success)}
+.toast-card__icon.err{color:var(--status-error)}
+.toast-card__txt{flex:1;font-size:var(--text-sm);color:var(--text-primary)}
+
+/* ---- confirm dialog scrim ---- */
+.scrim{position:absolute;inset:0;z-index:200;background:rgba(20,18,16,0.46);display:grid;place-items:center;animation:scrimIn var(--dur-fast) var(--ease-standard)}
+@keyframes scrimIn{from{opacity:0}to{opacity:1}}
+.dialog{width:480px;max-width:calc(100% - 48px);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);overflow:hidden;animation:dialogIn var(--dur-base) var(--ease-entrance)}
+@keyframes dialogIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.dialog__hd{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.dialog__iconwrap{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);background:var(--status-warning-subtle);color:var(--status-warning);flex:none}
+.dialog__title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0}
+.dialog__body{padding:0 var(--space-5) var(--space-4);font-size:var(--text-sm);line-height:var(--leading-sm);color:var(--text-secondary)}
+.dialog__ft{display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+
+.u-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .reveal,.toast-card,.scrim,.dialog{animation:none}
+  .acc__chev{transition:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Input, Textarea, Select, Switch, Slider, Field,
+    Badge, Chip, Avatar, Skeleton, EmptyState, Alert, Breadcrumb, Kbd, DefinitionList, AnswerKeyLock
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---- closed enums ---- */
+  const ORDER_MODES = [
+    { value:"sequential", label:"Sequential", icon:"list-ordered", desc:"Students answer questions in authored order." },
+    { value:"shuffle",    label:"Shuffle",    icon:"shuffle",      desc:"Question order is randomized per attempt." },
+    { value:"adaptive",   label:"Adaptive",   icon:"trending-up",  desc:"Serves by difficulty, adjusting as they answer." },
+  ];
+  const START_DIFF = [
+    { value:"easy",   label:"Easy" },
+    { value:"medium", label:"Medium" },
+    { value:"hard",   label:"Hard" },
+  ];
+  const ADJUST = [
+    { value:"gradual",    label:"Gradual" },
+    { value:"aggressive", label:"Aggressive" },
+  ];
+
+  /* trigger-maintained section counts (StoryPoint.stats — never client-recomputed) */
+  const SECTION_COUNTS = [
+    { id:"sec_intro", name:"Introduction", count:4 },
+    { id:"sec_core",  name:"Core concepts", count:10 },
+    { id:"sec_bonus", name:"Bonus",         count:2 },
+    { id:"sec_none",  name:"Unsectioned",   count:1 },
+  ];
+
+  function bandFor(p){
+    if(p>=90) return {cls:"band-a", label:"Grade A band"};
+    if(p>=80) return {cls:"band-b", label:"Grade B band"};
+    if(p>=70) return {cls:"band-c", label:"Grade C band"};
+    if(p>=60) return {cls:"band-d", label:"Grade D band"};
+    return {cls:"band-f", label:"Grade F band"};
+  }
+
+  /* ================= sidebar / topbar chrome ================= */
+  function SidebarNav(){
+    const items = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"graduation-cap",   label:"Spaces", active:true },
+      { icon:"users",            label:"Students" },
+      { icon:"file-check-2",     label:"Exams" },
+      { icon:"bar-chart-3",      label:"Analytics" },
+      { icon:"settings",         label:"Settings" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <div className="sidebar__brand-mark">L</div>
+          <div className="sidebar__brand-name">LevelUp</div>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Teach</div>
+          {items.map((it,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+              <Icon name={it.icon} size={18} /><span>{it.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="tb-tenant">
+          <Avatar initials="SA" size="sm" />
+          <div>Subhang Academy</div>
+          <span className="tb-tenant__code">SUB001</span>
+          <Icon name="chevron-down" size={14} />
+        </div>
+        <div className="tb-search">
+          <Icon name="search" size={16} />
+          <input className="input" placeholder="Search students, exams, spaces…" readOnly />
+          <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+        </div>
+        <div className="topbar__spacer" style={{flex:1}} />
+        <button className="tb-icon" aria-label="Notifications"><Icon name="bell" size={18} /></button>
+        <Avatar initials="TS" size="sm" />
+      </header>
+    );
+  }
+
+  function SectionCard({ icon, title, desc, children }){
+    return (
+      <section className="scard">
+        <div className="scard__head">
+          <div className="scard__icon"><Icon name={icon} size={18} /></div>
+          <div>
+            <h2 className="scard__h">{title}</h2>
+            <div className="scard__d">{desc}</div>
+          </div>
+        </div>
+        <div className="scard__body">{children}</div>
+      </section>
+    );
+  }
+
+  function LoadingCol(){
+    const Block = ({rows}) => (
+      <section className="scard">
+        <div className="scard__head">
+          <div className="scard__icon"><Skeleton variant="circle" width="18px" height="18px" /></div>
+          <div style={{flex:1}}>
+            <Skeleton variant="text" width="30%" />
+            <div style={{height:6}} />
+            <Skeleton variant="text" width="56%" />
+          </div>
+        </div>
+        <div className="scard__body">
+          {Array.from({length:rows}).map((_,i)=>(
+            <div className="fld" key={i}>
+              <Skeleton variant="text" width="24%" />
+              <div className="sk-line" style={{height:38}} />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+    return (<><Block rows={2} /><Block rows={3} /><Block rows={2} /></>);
+  }
+
+  /* ======================================================================= */
+  function App(){
+    // prototype state: default | loading | empty | error | partial
+    const [proto,setProto]=useState("default");
+    const loadFailed = proto==="error";
+    const saveWillFail = proto==="error";
+    const noQuestions = proto==="empty";
+    const statsStale = proto==="partial";
+
+    // ---- form state ----
+    const [timeLimit,setTimeLimit]=useState("60");
+    const [timeTouched,setTimeTouched]=useState(false);
+    const [instructions,setInstructions]=useState("Answer all questions. You may use scratch paper. Calculators are not permitted. Show full working for any free-response items — partial credit is awarded for correct method.");
+
+    const [order,setOrder]=useState("adaptive");
+    const [shuffleOptions,setShuffleOptions]=useState(true);
+    const [startDiff,setStartDiff]=useState("easy");
+    const [adjust,setAdjust]=useState("gradual");
+    const [minBefore,setMinBefore]=useState("3");
+    const [maxSame,setMaxSame]=useState("2");
+
+    const [maxAttempts,setMaxAttempts]=useState("2");
+    const [lockAfterPass,setLockAfterPass]=useState(true);
+    const [cooldown,setCooldown]=useState("30");
+
+    const [threshold,setThreshold]=useState(70);
+    const [showResults,setShowResults]=useState(false);
+
+    const [availOpen,setAvailOpen]=useState(false);
+    const [opensAt,setOpensAt]=useState("2026-06-24 09:00");
+    const [closesAt,setClosesAt]=useState("2026-06-24 11:00");
+    const [grace,setGrace]=useState("0");
+
+    // ---- save lifecycle ----
+    const [dirty,setDirty]=useState(false);
+    const [saveStatus,setSaveStatus]=useState("saved"); // saved | dirty | saving | failed
+    const [savedAt,setSavedAt]=useState("16:40");
+    const [toast,setToast]=useState(null); // {ok:bool}
+    const [confirm,setConfirm]=useState(false);
+    const timeRef=useRef(null);
+
+    // story point is part of a PUBLISHED, live space → publish-impact confirm on consequential edits
+    const spaceLive = true;
+
+    function markDirty(){ if(saveStatus!=="saving"){ setDirty(true); setSaveStatus("dirty"); } }
+    const D = (setter)=>(v)=>{ setter(v); markDirty(); };
+
+    // ---- validation ----
+    const timeNum = parseInt(timeLimit||"0",10);
+    const timedTestNeedsTime = (timeNum<=0);
+    const timeError = timeTouched && timedTestNeedsTime;
+    // date window inversion
+    const windowInverted = availOpen && opensAt && closesAt && (closesAt < opensAt);
+    // max attempts = 1 AND lock-after-passing → redundant (non-blocking info)
+    const attemptsNum = parseInt(maxAttempts||"0",10);
+    const lockRedundant = attemptsNum===1 && lockAfterPass;
+
+    const adaptive = order==="adaptive";
+    const band = bandFor(threshold);
+
+    const blocked = timedTestNeedsTime || windowInverted;
+    const canSave = dirty && !blocked && saveStatus!=="saving";
+
+    function attemptSave(){
+      setTimeTouched(true);
+      if(timedTestNeedsTime){ timeRef.current && timeRef.current.focus && timeRef.current.focus(); return; }
+      if(windowInverted) return;
+      // consequential edit to a live space → confirm first
+      if(spaceLive){ setConfirm(true); return; }
+      doSave();
+    }
+    function doSave(){
+      setConfirm(false);
+      setSaveStatus("saving");
+      setTimeout(()=>{
+        if(saveWillFail){ setSaveStatus("failed"); setToast({ok:false}); return; }
+        setSaveStatus("saved"); setDirty(false); setSavedAt("16:52"); setToast({ok:true});
+      },950);
+    }
+
+    useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(null),4200); return ()=>clearTimeout(t); },[toast]);
+    useEffect(()=>{ setSaveStatus(dirty?"dirty":"saved"); setToast(null); setConfirm(false); },[proto]); // eslint-disable-line
+
+    const totalQ = SECTION_COUNTS.reduce((a,s)=>a+s.count,0);
+
+    return (
+      <div className="shell appshell">
+        {/* prototype state switcher */}
+        <div className="proto-bar" role="group" aria-label="Preview state">
+          <span className="proto-bar__lab">State</span>
+          <div className="segmented">
+            {[["default","Default"],["loading","Loading"],["empty","No questions"],["partial","Stale stats"],["error","Save failed"]].map(([v,l])=>(
+              <button key={v} aria-pressed={proto===v} onClick={()=>setProto(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <SidebarNav/>
+
+        <div className="sx-main">
+          <Topbar/>
+          <div className="sx-crumb">
+            <Breadcrumb items={[
+              {label:"Spaces", href:"#"},
+              {label:"Trigonometry — Term 2", href:"#"},
+              {label:"Unit-circle mastery check", href:"#"},
+              {label:"Assessment"},
+            ]} />
+          </div>
+
+          {/* sticky editor sub-header (shared chrome — Save lives here, atomic saveStoryPoint) */}
+          <div className="eh">
+            <div className="eh-top">
+              <h1 className="eh-title">Unit-circle mastery check</h1>
+              <span className="eh-typechip"><Icon name="timer" size={12} /> Timed Test</span>
+              <span className="status-badge published"><Icon name="globe" size={12} /> Published</span>
+              <span className="eh-spacer" />
+              {saveStatus==="saving" && <span className="savepill saving"><Icon name="loader" size={13} /> Saving…</span>}
+              {saveStatus==="saved" && !dirty && <span className="savepill saved"><Icon name="check-circle-2" size={13} /> Saved {savedAt}</span>}
+              {saveStatus==="dirty" && <span className="savepill dirty"><span className="dirty-dot" /> Unsaved changes</span>}
+              {saveStatus==="failed" && <span className="savepill failed"><Icon name="alert-triangle" size={13} /> Save failed — retry</span>}
+              <Button variant="ghost" size="sm" disabled={!dirty || saveStatus==="saving"}
+                onClick={()=>{ setDirty(false); setSaveStatus("saved"); }}>Discard</Button>
+              <Button variant="primary" size="sm" loading={saveStatus==="saving"} disabled={!canSave}
+                leadingIcon={saveStatus==="saving"?undefined:<Icon name="save" size={15} />}
+                onClick={attemptSave}>Save</Button>
+            </div>
+            <div className="eh-tabs" role="tablist" aria-label="Story point editor sections">
+              <button className="tab" role="tab" aria-selected="false"><Icon name="list-tree" size={15} /> Content</button>
+              <button className="tab on" role="tab" aria-selected="true"><Icon name="timer" size={15} /> Assessment</button>
+              <button className="tab" role="tab" aria-selected="false"><Icon name="eye" size={15} /> Preview</button>
+              <button className="tab" role="tab" aria-selected="false"><Icon name="history" size={15} /> Versions</button>
+            </div>
+          </div>
+
+          {/* scroll body */}
+          <div className="sx-scroll">
+            <div className="sx-col">
+
+              {loadFailed && (
+                <Alert variant="error" title="We couldn’t load this test’s settings.">
+                  The request failed. Your previous values are intact on the server — retry to reload.
+                  {" "}<a href="#" onClick={(e)=>{e.preventDefault();setProto("default");}}>Retry</a>
+                </Alert>
+              )}
+
+              {/* server-time banner — static, screen-reader-first (not a transient toast) */}
+              <Alert variant="info" title="Time is enforced on the server.">
+                The countdown students see comes from a deadline set the moment they start — <code>serverDeadline = startedAt + durationMinutes</code>, with a 30s submit grace. There’s no client clock to pause or rewind.
+              </Alert>
+
+              {noQuestions && (
+                <Alert variant="warning" title="This test can’t run yet.">
+                  <code>startTestSession</code> requires at least one question. Add questions in the Content tab before students can start.
+                </Alert>
+              )}
+
+              {proto==="loading" ? <LoadingCol/> : (
+              <>
+                {/* ============ TIMING ============ */}
+                <SectionCard icon="timer" title="Timing" desc="How long each student gets, and what they see before starting.">
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="ac-time">Time limit (minutes) <span className="fld__req" style={{color:"var(--status-error)"}} aria-hidden="true">*</span></label>
+                    <div className="num-suffix">
+                      <Input id="ac-time" ref={timeRef} type="number" min="1" value={timeLimit}
+                        inputMode="numeric" error={timeError}
+                        aria-invalid={timeError||undefined}
+                        aria-describedby={timeError?"ac-time-err":"ac-time-help"}
+                        onChange={(e)=>{ setTimeLimit(e.target.value); markDirty(); }}
+                        onBlur={()=>setTimeTouched(true)} />
+                      <span className="num-suffix__u">minutes</span>
+                    </div>
+                    {timeError
+                      ? <div className="fld__err" id="ac-time-err" aria-live="polite"><Icon name="alert-circle" size={13} /> Timed tests need a time limit above 0.</div>
+                      : <div className="fld__help" id="ac-time-help">Each student gets this much time from the moment they start. Enforced on the server.</div>}
+                  </div>
+
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="ac-instr">Instructions shown before the test <span className="fld__opt">(optional)</span></label>
+                    <Textarea id="ac-instr" rows={4} value={instructions}
+                      placeholder="What students should know before they begin…"
+                      onChange={(e)=>{ setInstructions(e.target.value); markDirty(); }} />
+                    <div className="fld__help"><Icon name="sigma" size={12} style={{verticalAlign:"-2px"}} /> Supports Markdown and math (rendered with the canonical content renderer).</div>
+                  </div>
+                </SectionCard>
+
+                {/* ============ QUESTION ORDER ============ */}
+                <SectionCard icon="list-ordered" title="Question order" desc="How questions are sequenced, and whether choices are shuffled.">
+                  <div className="fld">
+                    <span className="fld__lab" id="ac-order-lab">Order mode</span>
+                    <div className="ordergrp" role="radiogroup" aria-labelledby="ac-order-lab">
+                      {ORDER_MODES.map(m=>{
+                        const on = order===m.value;
+                        return (
+                          <button key={m.value} type="button" role="radio" aria-checked={on}
+                            className={"orderopt"+(on?" on":"")}
+                            onClick={()=>{ setOrder(m.value); markDirty(); }}>
+                            <div className="orderopt__top">
+                              <Icon name={on?"check-circle-2":"circle"} size={16} />
+                              <span className="orderopt__title">{m.label}</span>
+                            </div>
+                            <div className="orderopt__desc">{m.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* adaptive sub-panel — revealed only when adaptive */}
+                  {adaptive && (
+                    <div className="subpanel reveal" aria-label="Adaptive ordering settings">
+                      <div className="subpanel__hd"><Icon name="trending-up" size={14} /> Adaptive ordering</div>
+                      <div className="grid-2">
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-start">Starting difficulty</label>
+                          <Select id="ac-start" value={startDiff} options={START_DIFF}
+                            onChange={(e)=>{ setStartDiff(e.target.value); markDirty(); }} />
+                        </div>
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-adjust">Difficulty adjustment</label>
+                          <Select id="ac-adjust" value={adjust} options={ADJUST}
+                            onChange={(e)=>{ setAdjust(e.target.value); markDirty(); }} />
+                        </div>
+                      </div>
+                      <div className="grid-2">
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-minq">Minimum questions before adjusting</label>
+                          <div className="num-suffix">
+                            <Input id="ac-minq" type="number" min="1" value={minBefore} inputMode="numeric"
+                              onChange={(e)=>{ setMinBefore(e.target.value); markDirty(); }} />
+                            <span className="num-suffix__u">questions</span>
+                          </div>
+                        </div>
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-maxsame">Max consecutive same-difficulty</label>
+                          <div className="num-suffix">
+                            <Input id="ac-maxsame" type="number" min="1" value={maxSame} inputMode="numeric"
+                              onChange={(e)=>{ setMaxSame(e.target.value); markDirty(); }} />
+                            <span className="num-suffix__u">in a row</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* shuffle answer options — always available */}
+                  <div className="swrow">
+                    <div className="swrow__txt">
+                      <div className="fld__lab" id="ac-shuf-lab">Shuffle answer options</div>
+                      <div className="fld__help">Randomizes choice order within each question. Independent of question order.</div>
+                    </div>
+                    <Switch checked={shuffleOptions} aria-labelledby="ac-shuf-lab"
+                      onChange={(v)=>{ setShuffleOptions(typeof v==="boolean"?v:!shuffleOptions); markDirty(); }} />
+                  </div>
+
+                  {adaptive && (
+                    <div className="policy-note">
+                      <Icon name="info" size={14} />
+                      <span>Adaptive ordering controls the question sequence, so manual question shuffle is off while Adaptive is on. “Shuffle answer options” still applies.</span>
+                    </div>
+                  )}
+                </SectionCard>
+
+                {/* ============ ATTEMPTS & RETRIES ============ */}
+                <SectionCard icon="repeat-2" title="Attempts &amp; retries" desc="How many times a student can take this test, and the rules between tries.">
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="ac-att">Maximum attempts</label>
+                    <div className="num-suffix">
+                      <Input id="ac-att" type="number" min="0" value={maxAttempts} inputMode="numeric"
+                        aria-describedby="ac-att-help"
+                        onChange={(e)=>{ setMaxAttempts(e.target.value); markDirty(); }} />
+                      <span className="num-suffix__u">attempts</span>
+                    </div>
+                    <div className="fld__help" id="ac-att-help"><span style={{fontFamily:"var(--font-mono)"}}>0</span> = unlimited.</div>
+                  </div>
+
+                  <div className="swrow">
+                    <div className="swrow__txt">
+                      <div className="fld__lab" id="ac-lock-lab">Lock after passing</div>
+                      <div className="fld__help">Once a student passes, no further attempts are allowed.</div>
+                    </div>
+                    <Switch checked={lockAfterPass} aria-labelledby="ac-lock-lab"
+                      onChange={(v)=>{ setLockAfterPass(typeof v==="boolean"?v:!lockAfterPass); markDirty(); }} />
+                  </div>
+
+                  {lockRedundant && (
+                    <Alert variant="info" title="Lock-after-passing has no extra effect here.">
+                      With a single attempt, students already can’t retry — locking after a pass changes nothing.
+                    </Alert>
+                  )}
+
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="ac-cool">Retry cooldown (minutes)</label>
+                    <div className="num-suffix">
+                      <Input id="ac-cool" type="number" min="0" value={cooldown} inputMode="numeric"
+                        onChange={(e)=>{ setCooldown(e.target.value); markDirty(); }} />
+                      <span className="num-suffix__u">minutes</span>
+                    </div>
+                    <div className="fld__help">Wait time before a student can retry after finishing.</div>
+                  </div>
+                </SectionCard>
+
+                {/* ============ SCORING & RESULTS ============ */}
+                <SectionCard icon="target" title="Scoring &amp; results" desc="The pass mark and when students see their score.">
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="ac-thresh">Passing threshold</label>
+                    <div className="thresh">
+                      <div className="thresh__slider">
+                        <Slider id="ac-thresh" min={0} max={100} step={1} value={threshold}
+                          aria-label="Passing threshold percent"
+                          aria-valuenow={threshold} aria-valuemin={0} aria-valuemax={100}
+                          aria-describedby="ac-thresh-readout"
+                          onChange={(e)=>{
+                            const v = typeof e==="number" ? e : parseInt(e.target.value,10);
+                            setThreshold(v); markDirty();
+                          }} />
+                      </div>
+                      <div className="thresh__readout" id="ac-thresh-readout" aria-live="polite">
+                        <span className={"thresh__num "+band.cls}>{threshold}%</span>
+                        <span className={"thresh__band "+band.cls}>{band.label}</span>
+                      </div>
+                    </div>
+                    <div className="fld__help">Percent of available points needed to pass. The colored band is a secondary cue — the percentage is always shown.</div>
+                  </div>
+
+                  <div className="swrow">
+                    <div className="swrow__txt">
+                      <div className="fld__lab" id="ac-show-lab">Show results immediately on submit</div>
+                      <div className="fld__help">Off keeps scores hidden until you release them.</div>
+                    </div>
+                    <Switch checked={showResults} aria-labelledby="ac-show-lab"
+                      onChange={(v)=>{ setShowResults(typeof v==="boolean"?v:!showResults); markDirty(); }} />
+                  </div>
+
+                  {/* answer-key boundary — policy only, never the keys themselves */}
+                  <AnswerKeyLock title="Answer keys stay server-side">
+                    This panel sets policy only. Correct answers live in the protected answer-key store and are never shown here or on any student or preview path.
+                  </AnswerKeyLock>
+                </SectionCard>
+
+                {/* ============ AVAILABILITY WINDOW (collapsed accordion) ============ */}
+                <div className="acc">
+                  <button className="acc__hd" aria-expanded={availOpen} onClick={()=>setAvailOpen(o=>!o)}>
+                    <div className="acc__icon"><Icon name="calendar-clock" size={18} /></div>
+                    <div>
+                      <div className="acc__title">Availability window <span className="fld__opt">(optional)</span></div>
+                      <div className="acc__sub">{availOpen ? "Maps to the enforced AssessmentSchedule." : "Set when this test opens and closes — off by default."}</div>
+                    </div>
+                    <span className={"acc__chev"+(availOpen?" open":"")}><Icon name="chevron-down" size={18} /></span>
+                  </button>
+                  {availOpen && (
+                    <div className="acc__body reveal">
+                      <div className="grid-2">
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-open">Opens</label>
+                          <div className={"datefield"+(windowInverted?" err":"")}>
+                            <Icon name="calendar" size={15} />
+                            <input id="ac-open" value={opensAt}
+                              aria-invalid={windowInverted||undefined}
+                              aria-describedby={windowInverted?"ac-window-err":undefined}
+                              onChange={(e)=>{ setOpensAt(e.target.value); markDirty(); }} />
+                          </div>
+                        </div>
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="ac-close">Closes</label>
+                          <div className={"datefield"+(windowInverted?" err":"")}>
+                            <Icon name="calendar" size={15} />
+                            <input id="ac-close" value={closesAt}
+                              aria-invalid={windowInverted||undefined}
+                              aria-describedby={windowInverted?"ac-window-err":undefined}
+                              onChange={(e)=>{ setClosesAt(e.target.value); markDirty(); }} />
+                          </div>
+                        </div>
+                      </div>
+                      {windowInverted && (
+                        <div className="fld__err" id="ac-window-err" aria-live="polite"><Icon name="alert-circle" size={13} /> The close time must be after the open time.</div>
+                      )}
+                      <div className="fld" style={{maxWidth:280}}>
+                        <label className="fld__lab" htmlFor="ac-grace">Late submission grace (minutes)</label>
+                        <div className="num-suffix">
+                          <Input id="ac-grace" type="number" min="0" value={grace} inputMode="numeric"
+                            onChange={(e)=>{ setGrace(e.target.value); markDirty(); }} />
+                          <span className="num-suffix__u">minutes</span>
+                        </div>
+                        <div className="fld__help">Enforced in <code>startTestSession</code> — attempts are rejected before Opens and after Closes.</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ============ SECTIONS → QUESTIONS ============ */}
+                <SectionCard icon="layout-list" title="Sections → questions" desc="Question inventory by section. Counts come from server triggers — not recomputed here.">
+                  {noQuestions ? (
+                    <EmptyState icon="file-question"
+                      title="No questions yet"
+                      body="Add questions before this test can run."
+                      action={<Button variant="primary" size="sm" leadingIcon={<Icon name="plus" size={14} />} onClick={()=>setProto("default")}>Go to Content tab</Button>} />
+                  ) : (
+                    <div className="qmap">
+                      {SECTION_COUNTS.map(s=>(
+                        <div className="qmap__row" key={s.id}>
+                          <div className="qmap__name">
+                            <Icon name="folder" size={15} /> {s.name} <span className="id">{s.id}</span>
+                          </div>
+                          <span className="qmap__spacer" />
+                          {statsStale
+                            ? <span className="count-pending" title="Counting…">—</span>
+                            : <Badge variant="brand">{s.count} Q</Badge>}
+                        </div>
+                      ))}
+                      <div className="qmap__total">
+                        <Icon name="sigma" size={15} /> Total questions
+                        <span className="qmap__spacer" />
+                        {statsStale
+                          ? <span className="count-pending">counting…</span>
+                          : <span className="n">{totalQ}</span>}
+                      </div>
+                    </div>
+                  )}
+                  {statsStale && (
+                    <div className="policy-note" style={{marginTop:"var(--space-3)"}}>
+                      <Icon name="loader" size={14} />
+                      <span>Counts are refreshing from server triggers. We show <span style={{fontFamily:"var(--font-mono)"}}>—</span> rather than a guessed number — <code>stats</code> are trigger-authoritative.</span>
+                    </div>
+                  )}
+                </SectionCard>
+              </>
+              )}
+            </div>
+
+            {/* sticky bottom hint bar (Save itself lives in the editor header) */}
+            <div className="savebar">
+              <div className="savebar__hint">
+                <Icon name="server" size={14} /> Saved as one atomic update to <span style={{fontFamily:"var(--font-mono)"}}>assessmentConfig</span>. Changes apply to new attempts only — in-progress sessions keep their frozen deadline.
+              </div>
+              {saveStatus==="dirty" && <span className="savepill dirty"><span className="dirty-dot" /> Unsaved changes</span>}
+              <div className="savebar__actions">
+                <Button variant="ghost" disabled={!dirty || saveStatus==="saving"}
+                  onClick={()=>{ setDirty(false); setSaveStatus("saved"); }}>Discard</Button>
+                <Button variant="primary" loading={saveStatus==="saving"} disabled={!canSave}
+                  leadingIcon={saveStatus==="saving"?undefined:<Icon name="save" size={16} />}
+                  onClick={attemptSave}>
+                  {saveStatus==="saving" ? "Saving…" : "Save assessment settings"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* publish-impact confirm dialog */}
+        {confirm && (
+          <div className="scrim" role="presentation" onClick={()=>setConfirm(false)}>
+            <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-body" onClick={(e)=>e.stopPropagation()}>
+              <div className="dialog__hd">
+                <div className="dialog__iconwrap"><Icon name="alert-triangle" size={18} /></div>
+                <h2 className="dialog__title" id="cf-title">This space is live</h2>
+              </div>
+              <div className="dialog__body" id="cf-body">
+                Changing the time limit, attempts, schedule, or passing threshold applies to <strong>new attempts only</strong>. In-progress sessions keep the deadline set the moment they started — the server freezes it at <code>startTestSession</code>.
+              </div>
+              <div className="dialog__ft">
+                <Button variant="ghost" onClick={()=>setConfirm(false)}>Keep editing</Button>
+                <Button variant="primary" leadingIcon={<Icon name="check" size={15} />} onClick={doSave}>Save changes</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* toast */}
+        {toast && (
+          <div className="toast-stack">
+            <div className="toast-card" role="status">
+              <span className={"toast-card__icon"+(toast.ok?"":" err")}>
+                <Icon name={toast.ok?"check-circle-2":"alert-triangle"} size={18} />
+              </span>
+              <span className="toast-card__txt">
+                {toast.ok ? "Assessment settings saved." : "Couldn’t save assessment settings. Your changes are still here — try again."}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

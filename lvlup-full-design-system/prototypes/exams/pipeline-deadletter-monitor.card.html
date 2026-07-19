@@ -1,0 +1,1053 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Pipeline & Dead-Letter Monitor" subtitle="Pipeline health · DLQ retry/manual-grade/dismiss" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+.appshell__main{padding:0!important;display:flex;flex-direction:column;min-height:0}
+
+/* sidebar foot */
+.sb-foot{margin-top:auto;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.1}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* topbar bits */
+.tenant{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);padding:1px var(--space-1);border-radius:var(--radius-sm)}
+.tbsearch{flex:1;max-width:420px;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted)}
+.tbsearch input{flex:1;border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tb-icons{display:flex;align-items:center;gap:var(--space-1)}
+.notif{position:relative;display:inline-flex}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:1.5px solid var(--bg-surface)}
+
+/* top bar: breadcrumb + state segmented */
+.crumbbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) var(--gutter-desktop);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);flex-wrap:wrap}
+.segrow{display:flex;align-items:center;gap:var(--space-2)}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:2px}
+.seg button{border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+
+/* exam header */
+.examhead{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--gutter-desktop);display:flex;flex-direction:column;gap:var(--space-3)}
+.examhead__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.examhead__title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);line-height:var(--leading-xl);letter-spacing:-.01em;margin:0}
+.examhead__sub{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.examhead__actions{display:flex;gap:var(--space-2);align-items:center}
+.pstatus{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);border:1px solid var(--border-subtle)}
+.pstatus svg,.pstatus i{width:14px;height:14px}
+.pstatus--grading{background:var(--status-info-subtle);color:var(--status-info);border-color:transparent}
+
+/* exam tab strip (Questions/Submissions/Pipeline/Settings) */
+.examtabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);padding:0 var(--gutter-desktop)}
+.examtab{font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-3) var(--space-3);border:0;background:transparent;border-bottom:2px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-2)}
+.examtab[aria-current="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+.examtab__count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);padding:0 var(--space-1);border-radius:var(--radius-pill)}
+
+/* scroll region */
+.opsbody{flex:1;overflow-y:auto;min-height:0;padding:var(--space-5) var(--gutter-desktop);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* section title row */
+.sectitle{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.sectitle__h{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);line-height:var(--leading-lg);margin:0}
+.sectitle__actions{display:flex;align-items:center;gap:var(--space-2)}
+.staleness{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:4px}
+
+/* health panel */
+.health{display:flex;flex-direction:column;gap:var(--space-4)}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-3)}
+.kpi{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-3) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard)}
+.kpi:hover{border-color:var(--border-strong)}
+.kpi[aria-pressed="true"]{border-color:var(--brand-primary);box-shadow:var(--ring-focus)}
+.kpi__hdr{display:inline-flex;align-items:center;gap:var(--space-2)}
+.kpi__icon{width:22px;height:22px;border-radius:var(--radius-sm);display:inline-grid;place-items:center;flex:0 0 auto}
+.kpi__icon svg,.kpi__icon i{width:14px;height:14px}
+.kpi__label{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}
+.kpi__val{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);line-height:1;letter-spacing:-.01em}
+.kpi--uploaded .kpi__icon{background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.kpi--scouting .kpi__icon,.kpi--grading .kpi__icon{background:var(--status-info-subtle);color:var(--status-info)}
+.kpi--complete .kpi__icon{background:var(--status-success-subtle);color:var(--status-success)}
+.kpi--partial .kpi__icon{background:var(--status-warning-subtle);color:var(--status-warning)}
+.kpi--failed .kpi__icon{background:var(--status-error-subtle);color:var(--status-error)}
+.kpi--needs .kpi__icon{background:var(--status-error-subtle);color:var(--confidence-low)}
+
+.progress-wrap{display:flex;flex-direction:column;gap:var(--space-1)}
+.progress-cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);display:flex;justify-content:space-between}
+
+/* stale watchdog chip */
+.swchip{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:2px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);color:var(--text-secondary);background:var(--bg-surface)}
+.swchip svg,.swchip i{width:12px;height:12px}
+.swchip--warn{color:var(--status-warning);background:var(--status-warning-subtle);border-color:transparent}
+.swchip--crit{color:var(--status-error);background:var(--status-error-subtle);border-color:transparent}
+@keyframes swpulse{0%,100%{opacity:1}50%{opacity:.5}}
+.swchip--warn .swchip__dot,.swchip--crit .swchip__dot{width:6px;height:6px;border-radius:var(--radius-pill);background:currentColor;animation:swpulse 1.6s var(--ease-standard) infinite}
+
+/* DLQ section */
+.dlq{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;display:flex;flex-direction:column}
+.dlq__tabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);padding:0 var(--space-4)}
+.dlqtab{font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-3) var(--space-3);border:0;background:transparent;border-bottom:2px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-2);position:relative}
+.dlqtab[aria-selected="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+.dlqtab__count{font-family:var(--font-mono);font-size:var(--text-2xs)}
+@keyframes dotpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+.dlqtab__newdot{width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);animation:dotpulse 1.4s var(--ease-standard) infinite}
+
+/* toolbar */
+.dlq__toolbar{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);flex-wrap:wrap}
+.tb-filter{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.tb-lbl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.tb-search{flex:1;min-width:160px;max-width:280px;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted)}
+.tb-search input{flex:1;border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tb-count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto}
+.minisel{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-ui);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-1) var(--space-2);cursor:pointer}
+.minisel svg,.minisel i{width:13px;height:13px}
+.chk{cursor:pointer;border:0;background:transparent;padding:0;display:inline-flex}
+
+/* bulk bar */
+.bulkbar{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);background:var(--brand-subtle);border-bottom:1px solid var(--border-focus);animation:bulkin var(--dur-fast) var(--ease-entrance)}
+@keyframes bulkin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.bulkbar__lbl{font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand-primary)}
+.bulkbar__lbl b{font-family:var(--font-mono)}
+.bulkbar__spacer{flex:1}
+
+/* DLQ table */
+.dlqtable{width:100%;border-collapse:collapse;font-family:var(--font-ui)}
+.dlqtable thead th{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:1}
+.dlqtable thead th.num{text-align:right}
+.dlqtable thead th .sorth{display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:none;border:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;padding:0}
+.dlqtable thead th .sorth svg{width:12px;height:12px;opacity:.6}
+.drow{border-bottom:1px solid var(--border-subtle);transition:background var(--dur-fast) var(--ease-standard)}
+.drow:hover{background:var(--bg-surface-sunken)}
+.drow--focus{box-shadow:inset 3px 0 0 var(--brand-primary)}
+.drow--new{animation:rowin var(--dur-base) var(--ease-entrance)}
+@keyframes rowin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.drow--resolved{opacity:.62}
+.drow td{padding:var(--space-3) var(--space-4);font-size:var(--text-sm);vertical-align:top}
+.drow td.num{text-align:right;font-family:var(--font-mono)}
+.cell-id{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:var(--space-2)}
+.cell-id .stud{font-family:var(--font-ui);font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-regular)}
+.cell-id.resolved-strike{text-decoration:line-through;color:var(--text-muted)}
+.cell-err{color:var(--text-secondary);line-height:var(--leading-sm)}
+.cell-err__cause{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9px;font-weight:var(--weight-medium);text-transform:uppercase;letter-spacing:.04em;padding:1px var(--space-1);border-radius:var(--radius-sm);margin-right:var(--space-2);vertical-align:1px}
+.cause--service{color:var(--status-info);background:var(--status-info-subtle)}
+.cause--lowconf{color:var(--confidence-low);background:var(--status-error-subtle)}
+.cell-last{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+.cell-last .abs{display:block;color:var(--text-muted);font-size:var(--text-2xs);margin-top:1px}
+.step-chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:2px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);color:var(--text-secondary);background:var(--bg-surface)}
+.step-chip svg,.step-chip i{width:11px;height:11px}
+.rowacts{display:flex;align-items:center;gap:var(--space-1);justify-content:flex-end}
+.disclose{cursor:pointer;border:0;background:transparent;padding:4px;border-radius:var(--radius-sm);color:var(--text-muted);display:inline-flex;transition:transform var(--dur-fast) var(--ease-standard)}
+.disclose svg{width:16px;height:16px}
+.disclose[aria-expanded="true"]{transform:rotate(90deg);color:var(--brand-primary)}
+
+/* status badge (pipeline) */
+.psb{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:2px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.psb svg,.psb i{width:12px;height:12px}
+.psb--success{color:var(--status-success);background:var(--status-success-subtle);border-color:transparent}
+.psb--warning{color:var(--status-warning);background:var(--status-warning-subtle);border-color:transparent}
+.psb--error{color:var(--status-error);background:var(--status-error-subtle);border-color:transparent}
+.psb--info{color:var(--status-info);background:var(--status-info-subtle);border-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+.psb--info .spin{animation:spin 1s linear infinite;display:inline-flex}
+
+/* expanded row */
+.expand{background:var(--bg-surface-sunken)}
+.expand__inner{padding:var(--space-4) var(--space-4) var(--space-4) 56px;display:flex;flex-direction:column;gap:var(--space-3)}
+.expand__row{display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:center}
+.stacklabel{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.stackblock{background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3);font-family:var(--font-mono);font-size:var(--text-xs);line-height:1.5;color:var(--text-secondary);max-height:148px;overflow:auto;white-space:pre}
+.stackblock .errln{color:var(--status-error)}
+.expand__actions{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.expand__hint{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.progress-mini{display:flex;flex-direction:column;gap:4px;min-width:200px;max-width:280px}
+.progress-mini__cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);display:flex;justify-content:space-between}
+
+/* footer / pagination */
+.dlq__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);flex-wrap:wrap}
+
+/* drawer body bits */
+.dh{display:flex;align-items:center;gap:var(--space-2);margin:var(--space-4) 0 var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.dh:first-child{margin-top:0}
+.qsrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm)}
+.qsrow__q{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+
+/* resolved chip */
+.reschip{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:2px var(--space-2);border-radius:var(--radius-pill);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle)}
+.reschip svg{width:12px;height:12px}
+
+/* mobile stacked (sm preview) */
+.subcards{display:flex;flex-direction:column;gap:var(--space-3)}
+.subcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.subcard__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2)}
+
+.kbd{font-family:var(--font-mono)}
+.hidden-acc{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Avatar, NavItem, Breadcrumb, Kbd, Field, Textarea, Input,
+    Card, Modal, Alert, Toast, Skeleton, EmptyState, ProgressBar, Pagination,
+    ConfidenceBadge, SubmissionCard, AnswerKeyLock, DefinitionList, Timeline,
+    Chip, Badge, Icon, Drawer
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ----- per-tenant thresholds (EvaluationSettings.confidenceConfig / usageQuota) ----- */
+  const T_REVIEW = 0.70;        // confidenceThreshold
+  const STALE_MIN = 10;         // stale watchdog surface threshold (watchdog runs @15min server-side)
+  const QUOTA_PCT = 71;         // usageQuota.dailyCallLimit usage (warn @80)
+
+  const EXAM = { id:"ex_phys_mt", title:"Physics Mid-Term", status:"grading" };
+
+  /* ----- pipeline health counts (SubmissionPipelineStatus — NO ocr_* states) ----- */
+  const HEALTH = [
+    { key:"uploaded",  cls:"uploaded",  icon:"upload",         label:"Uploaded",     value:12, status:null },
+    { key:"scouting",  cls:"scouting",  icon:"scan-search",    label:"Scouting",     value:3,  status:"info" },
+    { key:"grading",   cls:"grading",   icon:"loader",         label:"Grading",      value:5,  status:"info" },
+    { key:"complete",  cls:"complete",  icon:"check-circle",   label:"Complete",     value:40, status:"success" },
+    { key:"partial",   cls:"partial",   icon:"alert-triangle", label:"Partial",      value:2,  status:"warning" },
+    { key:"failed",    cls:"failed",    icon:"x-circle",       label:"Failed",       value:4,  status:"error" },
+    { key:"needs",     cls:"needs",     icon:"flag",           label:"Needs review", value:6,  status:"error" },
+  ];
+  const GRADED = 40, TOTAL = 52;
+
+  /* ----- PipelineStatusBadge map (enum → icon + label + semantic tone) ----- */
+  const PSB = {
+    grading_complete:{ tone:"success", icon:"check-circle",   label:"Complete" },
+    grading_partial: { tone:"warning", icon:"alert-triangle", label:"Partial" },
+    grading_failed:  { tone:"error",   icon:"x-circle",       label:"Grading failed" },
+    scouting_failed: { tone:"error",   icon:"x-circle",       label:"Scouting failed" },
+    finalization_failed:{ tone:"error",icon:"x-circle",       label:"Finalize failed" },
+    manual_review_needed:{ tone:"error",icon:"flag",          label:"Needs review" },
+    scouting:        { tone:"info",    icon:"scan-search",    label:"Scouting", spin:true },
+    grading:         { tone:"info",    icon:"loader",         label:"Grading",  spin:true },
+    retrying:        { tone:"info",    icon:"rotate-ccw",     label:"Retrying…", spin:true },
+  };
+  function PipelineStatusBadge({status}){
+    const m = PSB[status] || PSB.grading_complete;
+    return (
+      <span className={"psb psb--"+m.tone} role="status" aria-label={m.label}>
+        {m.spin ? <span className="spin"><Icon name={m.icon} size={12}/></span> : <Icon name={m.icon} size={12}/>}
+        {m.label}
+      </span>
+    );
+  }
+
+  /* ----- DLQ seed: GradingDeadLetterEntry[] ----- */
+  const SEED = [
+    { id:"dlq_a1f2", sub:"a1f2", student:"Aarav Mehta", roll:"R-042", step:"grading",
+      cause:"service", error:"Gemini quota exceeded — will retry when quota resets.",
+      attempts:3, lastRel:"2m ago", lastAbs:"14:22:08", conf:null,
+      pstatus:"grading_failed", resolved:null, qid:"q7", isNew:false,
+      stack:`UnifiedEvaluationError: RESOURCE_EXHAUSTED (429)
+  at GeminiClient.gradeQuestion (relms/grade.ts:184)
+  at PipelineStep.run [as grading] (pipeline/run.ts:96)
+  at gradeQuestion.callable (callable/gradeQuestion.ts:51)
+  → quota window resets 15:00 IST` },
+
+    { id:"dlq_9c0e", sub:"9c0e", student:"Diya Sharma", roll:"R-018", step:"scouting",
+      cause:"lowconf", error:"Page-mapping confidence too low — needs human review.",
+      attempts:1, lastRel:"5m ago", lastAbs:"14:19:41", conf:0.41,
+      pstatus:"scouting_failed", resolved:null, qid:"q3", isNew:false,
+      stack:`ScoutingLowConfidence: pageMapping.confidence=0.41 < threshold 0.70
+  at Scout.mapPages (relms/scout.ts:122)
+  at PipelineStep.run [as scouting] (pipeline/run.ts:71)
+  mapping.imageUrls=[p2.jpg, p3.jpg] · ambiguous question boundary` },
+
+    { id:"dlq_4b71", sub:"4b71", student:"Kabir Rao", roll:"R-027", step:"grading",
+      cause:"service", error:"Grading service timed out after 30s.",
+      attempts:2, lastRel:"8m ago", lastAbs:"14:16:55", conf:null,
+      pstatus:"grading_partial", resolved:null, qid:"q9", isNew:false, progress:{done:4,total:7},
+      stack:`DeadlineExceeded: grading step exceeded 30000ms
+  at withTimeout (util/timeout.ts:24)
+  at PipelineStep.run [as grading] (pipeline/run.ts:96)
+  4 / 7 questionSubmissions graded before timeout` },
+
+    { id:"dlq_e3d8", sub:"e3d8", student:"Meera Iyer", roll:"R-009", step:"grading",
+      cause:"service", error:"Circuit breaker open — RELMS temporarily unavailable.",
+      attempts:5, lastRel:"12m ago", lastAbs:"14:12:30", conf:null,
+      pstatus:"grading_failed", resolved:null, qid:"q5", isNew:false,
+      stack:`CircuitOpenError: relms-grading breaker OPEN (failures=8/10)
+  at Breaker.exec (resilience/breaker.ts:60)
+  at PipelineStep.run [as grading] (pipeline/run.ts:96)
+  half-open retry scheduled in ~120s` },
+
+    { id:"dlq_77ac", sub:"77ac", student:"Rohan Gupta", roll:"R-033", step:"grading",
+      cause:"lowconf", error:"AI confidence below threshold — routed to needs-review.",
+      attempts:1, lastRel:"18m ago", lastAbs:"14:06:12", conf:0.62,
+      pstatus:"manual_review_needed", resolved:null, qid:"q2", isNew:false,
+      stack:`NeedsReviewRouting: confidence=0.62 < confidenceThreshold 0.70
+  at Router.route (relms/route.ts:40)
+  questionSubmissionId=qs_77ac_q2 → manual_review_needed` },
+
+    { id:"dlq_5510", sub:"5510", student:"Sara Khan", roll:"R-051", step:"scouting",
+      cause:"service", error:"Sheet image fetch failed (storage 503).",
+      attempts:4, lastRel:"21m ago", lastAbs:"14:03:48", conf:null,
+      pstatus:"scouting_failed", resolved:"retry_success", resolvedBy:"S. Verma", resolvedAt:"just now", qid:null, isNew:false,
+      stack:`StorageUnavailable: 503 on mapping.imageUrls[0]
+  at fetchSheet (storage/fetch.ts:18)` },
+  ];
+
+  const STEPS = [
+    { value:"all", label:"All steps" },
+    { value:"scouting", label:"scouting" },
+    { value:"grading", label:"grading" },
+  ];
+
+  function CauseTag({cause}){
+    if(cause==="lowconf") return <span className="cell-err__cause cause--lowconf"><Icon name="gauge" size={10}/>low-conf</span>;
+    return <span className="cell-err__cause cause--service"><Icon name="server" size={10}/>service</span>;
+  }
+
+  /* ============================ APP ============================ */
+  function App(){
+    const STATES = ["populated","loading","empty","error","partial"];
+    const SLABELS = { populated:"Populated", loading:"Loading", empty:"Empty", error:"Error", partial:"Partial" };
+    const [view, setView] = useState("populated");
+
+    const [rows, setRows] = useState(()=>SEED.map(r=>({...r})));
+    const [tab, setTab] = useState("dlq");          // dlq | stale | inflight
+    const [stepFilter, setStepFilter] = useState("all");
+    const [unresolvedOnly, setUnresolvedOnly] = useState(true);
+    const [showResolved, setShowResolved] = useState(false);
+    const [search, setSearch] = useState("");
+    const [sel, setSel] = useState({});             // id -> true
+    const [expanded, setExpanded] = useState("dlq_a1f2");
+    const [drawerId, setDrawerId] = useState(null);
+    const [confirm, setConfirm] = useState(null);   // {kind:'dismiss'|'retryAll', id?, n?}
+    const [dismissNote, setDismissNote] = useState("");
+    const [dismissErr, setDismissErr] = useState("");
+    const [toast, setToast] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [staleSec, setStaleSec] = useState(872); // 14m32s in scouting
+    const requireDismissReason = true;              // tenant policy
+
+    const canGrade = true;                          // role: has gradeQuestion permission
+
+    /* lucide refresh */
+    useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+    /* stale ticker (client-side, informational — server watchdog owns escalation) */
+    useEffect(()=>{
+      if(view!=="populated" && view!=="partial") return;
+      const t=setInterval(()=>setStaleSec(s=>s+1),1000); return ()=>clearInterval(t);
+    },[view]);
+
+    const fmtDur = (s)=>{ const m=Math.floor(s/60); const r=s%60; return m+"m"+String(r).padStart(2,"0")+"s"; };
+    const staleTone = staleSec>=900 ? "crit" : (staleSec/60>=STALE_MIN ? "warn" : "");
+
+    const fireToast = (t)=>setToast(t);
+    useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(null),4200); return ()=>clearTimeout(t); },[toast]);
+
+    /* derived list */
+    const visible = rows.filter(r=>{
+      if(tab==="stale") return false; // handled separately via stale demo
+      if(stepFilter!=="all" && r.step!==stepFilter) return false;
+      if(unresolvedOnly && !showResolved && r.resolved) return false;
+      if(search){ const q=search.toLowerCase(); if(!(r.sub.includes(q)||(r.student||"").toLowerCase().includes(q)||(r.error||"").toLowerCase().includes(q))) return false; }
+      return true;
+    });
+    const unresolvedCount = rows.filter(r=>!r.resolved).length;
+    const selIds = Object.keys(sel).filter(k=>sel[k] && rows.find(r=>r.id===k && !r.resolved));
+    const allSelected = visible.length>0 && visible.filter(r=>!r.resolved).every(r=>sel[r.id]);
+
+    const toggleSel = (id)=>setSel(s=>({...s,[id]:!s[id]}));
+    const toggleAll = ()=>{
+      if(allSelected){ setSel({}); }
+      else { const n={}; visible.filter(r=>!r.resolved).forEach(r=>n[r.id]=true); setSel(n); }
+    };
+
+    /* actions */
+    const doRetry = (id)=>{
+      setRows(prev=>prev.map(r=> r.id===id ? {...r, pstatus:"retrying"} : r));
+      const r = rows.find(x=>x.id===id);
+      setTimeout(()=>{
+        setRows(prev=>prev.map(x=> x.id===id ? {...x, resolved:"retry_success", resolvedBy:"S. Verma", resolvedAt:"just now", pstatus:"grading_complete"} : x));
+        fireToast({variant:"success", title:"Question re-graded — entry resolved", body:"SUB·"+(r?r.sub:id)+" · resolutionMethod: retry_success"});
+      },900);
+      fireToast({variant:"info", title:"Retry queued", body:"Re-running grading for SUB·"+(r?r.sub:id)});
+    };
+    const doManual = (id)=>{
+      const r = rows.find(x=>x.id===id);
+      fireToast({variant:"info", title:"Sent to manual grading", body:"Opening GradingReview for SUB·"+(r?r.sub:id)+" at "+(r&&r.qid?r.qid.toUpperCase():"question")+" — override saved there finalizes resolutionMethod: manual_grade"});
+    };
+    const askDismiss = (id)=>{ setDismissNote(""); setDismissErr(""); setConfirm({kind:"dismiss", id}); };
+    const doDismiss = ()=>{
+      if(requireDismissReason && !dismissNote.trim()){ setDismissErr("A note is required by tenant policy to dismiss an entry."); return; }
+      const id=confirm.id; const r=rows.find(x=>x.id===id);
+      setRows(prev=>prev.map(x=> x.id===id ? {...x, resolved:"dismissed", resolvedBy:"S. Verma", resolvedAt:"just now", note:dismissNote.trim()} : x));
+      setConfirm(null);
+      fireToast({variant:"info", title:"Entry dismissed", body:"SUB·"+(r?r.sub:id)+" keeps its current status.", undo:id});
+    };
+    const undoDismiss = (id)=>{
+      setRows(prev=>prev.map(x=> x.id===id ? {...x, resolved:null, resolvedBy:undefined, resolvedAt:undefined, note:undefined} : x));
+      setToast(null);
+    };
+
+    const askRetryAll = ()=>{
+      const n = (selIds.length || unresolvedCount);
+      setConfirm({kind:"retryAll", n});
+    };
+    const doRetryAll = ()=>{
+      const targets = selIds.length ? selIds : rows.filter(r=>!r.resolved).map(r=>r.id);
+      setConfirm(null); setBusy(true);
+      setTimeout(()=>{
+        setRows(prev=>prev.map(x=> targets.includes(x.id) ? {...x, resolved:"retry_success", resolvedBy:"S. Verma", resolvedAt:"just now", pstatus:"grading_complete"} : x));
+        setBusy(false); setSel({});
+        fireToast({variant:"success", title:"Bulk retry complete", body:targets.length+" entries re-graded · quota consumed"});
+      },1400);
+    };
+
+    const copyStack = ()=>fireToast({variant:"success", title:"Stack trace copied", body:"Raw errorStack on clipboard"});
+
+    /* quota guard for retry-all */
+    const quotaWouldExceed = false; // usageQuota.dailyCallLimit headroom OK in demo
+
+    const drawerRow = rows.find(r=>r.id===drawerId);
+
+    return (
+      <div className="scene">
+        <div className="appshell">
+          <Sidebar/>
+          <Topbar/>
+          <main className="appshell__main">
+            {/* breadcrumb + state segmented */}
+            <div className="crumbbar">
+              <Breadcrumb items={[
+                {label:"Exams",href:"#"},
+                {label:EXAM.title,href:"#"},
+                {label:"Pipeline"},
+              ]}/>
+              <div className="segrow">
+                <span className="seg-label">State</span>
+                <div className="seg" role="group" aria-label="Preview state">
+                  {STATES.map(s=>(
+                    <button key={s} aria-pressed={view===s} onClick={()=>setView(s)}>{SLABELS[s]}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* exam header */}
+            <div className="examhead">
+              <div className="examhead__top">
+                <div>
+                  <h1 className="examhead__title">{EXAM.title}</h1>
+                  <div className="examhead__sub">examId {EXAM.id} · tenant SUB001 · {TOTAL} submissions</div>
+                </div>
+                <div className="examhead__actions">
+                  <span className="pstatus pstatus--grading"><Icon name="loader" size={14}/>ExamStatus · grading</span>
+                </div>
+              </div>
+              <div className="examtabs" role="tablist" aria-label="Exam sections">
+                <button className="examtab"><Icon name="list" size={15}/>Questions</button>
+                <button className="examtab"><Icon name="inbox" size={15}/>Submissions <span className="examtab__count">52</span></button>
+                <button className="examtab" aria-current="true"><Icon name="activity" size={15}/>Pipeline <span className="examtab__count">{unresolvedCount}</span></button>
+                <button className="examtab"><Icon name="settings" size={15}/>Settings</button>
+              </div>
+            </div>
+
+            <div className="opsbody">
+              {/* section title + global actions */}
+              <div className="sectitle">
+                <div>
+                  <h2 className="sectitle__h">Pipeline &amp; Dead-Letter Monitor</h2>
+                  {view==="error" && <span className="staleness"><Icon name="wifi-off" size={12}/>Stale — last updated 14:24:11</span>}
+                </div>
+                <div className="sectitle__actions">
+                  <Button variant="ghost" size="sm" leadingIcon={<Icon name="rotate-cw" size={15}/>}
+                    onClick={()=>fireToast({variant:"info",title:"Refreshing live reads",body:"submissions.listLive · gradingDeadLetter"})}>Refresh</Button>
+                  <Button variant="secondary" size="sm" trailingIcon={<Icon name="chevron-down" size={15}/>}
+                    disabled={!canGrade || unresolvedCount===0}
+                    onClick={askRetryAll}>Retry all</Button>
+                </div>
+              </div>
+
+              {/* HEALTH PANEL */}
+              <section className="health" aria-label="Pipeline health">
+                <div className="kpis" role="group" aria-live="polite">
+                  {view==="loading"
+                    ? HEALTH.map((_,i)=><KpiSkeleton key={i}/>)
+                    : HEALTH.map(k=>(
+                        <button key={k.key} className={"kpi kpi--"+k.cls} aria-pressed={false}
+                          aria-label={k.label+": "+k.value+" submissions"}>
+                          <span className="kpi__hdr">
+                            <span className="kpi__icon">{k.icon==="loader"
+                              ? <span className="spin" style={{display:"inline-flex"}}><Icon name="loader" size={14}/></span>
+                              : <Icon name={k.icon} size={14}/>}</span>
+                            <span className="kpi__label">{k.label}</span>
+                          </span>
+                          <span className="kpi__val">{k.value}</span>
+                        </button>
+                      ))}
+                </div>
+
+                {view==="loading" ? (
+                  <Skeleton height={10} width="48%"/>
+                ) : (
+                  <div className="progress-wrap">
+                    <div className="progress-cap">
+                      <span>examAnalytics · gradedSubmissions / totalSubmissions</span>
+                      <span>{GRADED} / {TOTAL} submissions graded ({Math.round(GRADED/TOTAL*100)}%)</span>
+                    </div>
+                    <ProgressBar value={Math.round(GRADED/TOTAL*100)} variant="success"/>
+                  </div>
+                )}
+
+                {/* stale watchdog inline alert */}
+                {(view==="populated"||view==="partial") && (
+                  <Alert variant="warning" title="2 submissions stuck >10 min in scouting">
+                    <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)",flexWrap:"wrap",marginTop:2}}>
+                      <span>The watchdog will retry automatically; you can also retry now.</span>
+                      <span className={"swchip"+(staleTone?" swchip--"+staleTone:"")}>
+                        {staleTone && <span className="swchip__dot"/>}
+                        <Icon name="timer" size={12}/>{fmtDur(staleSec)} in scouting
+                        <span style={{opacity:.7}}>· server-authoritative</span>
+                      </span>
+                      <span style={{display:"inline-flex",gap:"var(--space-2)",marginLeft:"auto"}}>
+                        <Button variant="ghost" size="sm" onClick={()=>setTab("stale")}>View</Button>
+                        {canGrade && <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14}/>} onClick={askRetryAll}>Retry now</Button>}
+                      </span>
+                    </div>
+                  </Alert>
+                )}
+              </section>
+
+              {/* DLQ */}
+              <section className="dlq" aria-label="Dead-letter queue">
+                {/* tabs */}
+                <div className="dlq__tabs" role="tablist" aria-label="Queue views">
+                  <button className="dlqtab" role="tab" aria-selected={tab==="dlq"} onClick={()=>setTab("dlq")}>
+                    Dead-letter <span className="dlqtab__count">({unresolvedCount})</span>
+                    <span className="dlqtab__newdot" aria-hidden="true" title="New unresolved entry"/>
+                  </button>
+                  <button className="dlqtab" role="tab" aria-selected={tab==="stale"} onClick={()=>setTab("stale")}>
+                    Stuck / Stale <span className="dlqtab__count">(2)</span>
+                  </button>
+                  <button className="dlqtab" role="tab" aria-selected={tab==="inflight"} onClick={()=>setTab("inflight")}>
+                    In-flight <span className="dlqtab__count">(8)</span>
+                  </button>
+                </div>
+
+                {/* error state for DLQ region only — health stays usable above */}
+                {view==="error" ? (
+                  <div style={{padding:"var(--space-5)"}}>
+                    <Alert variant="error" title="Couldn't load the dead-letter queue">
+                      The live read to gradingDeadLetter failed. The pipeline health above is still current.
+                      <div style={{marginTop:"var(--space-3)"}}>
+                        <Button variant="primary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={15}/>}
+                          onClick={()=>setView("populated")}>Retry</Button>
+                      </div>
+                    </Alert>
+                  </div>
+                ) : view==="empty" ? (
+                  <div style={{padding:"var(--space-12) var(--space-5)"}}>
+                    <EmptyState icon={<Icon name="check-check" size={28}/>}
+                      title="Queue is clear"
+                      body="No failed grading entries for this exam. Submissions are flowing through scouting and grading normally."
+                      action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="inbox" size={15}/>}>View submissions</Button>}/>
+                  </div>
+                ) : tab==="stale" ? (
+                  <StaleView fmtDur={fmtDur} staleSec={staleSec} staleTone={staleTone} canGrade={canGrade}
+                    onRetry={()=>fireToast({variant:"info",title:"Retry queued",body:"Watchdog also tracking server-side"})}/>
+                ) : tab==="inflight" ? (
+                  <InflightView/>
+                ) : (
+                  <React.Fragment>
+                    {/* toolbar */}
+                    <div className="dlq__toolbar">
+                      <div className="tb-filter">
+                        <span className="tb-lbl">Filter</span>
+                        <button className="minisel" onClick={()=>{
+                          const order=["all","scouting","grading"]; const i=order.indexOf(stepFilter);
+                          setStepFilter(order[(i+1)%order.length]);
+                        }} aria-label="Filter by pipeline step">
+                          <Icon name="git-branch" size={13}/>{STEPS.find(s=>s.value===stepFilter).label}<Icon name="chevron-down" size={13}/>
+                        </button>
+                        <button className="chk" onClick={()=>setShowResolved(v=>!v)} aria-pressed={showResolved}>
+                          <Chip active={showResolved}>{showResolved?"Showing resolved":"Unresolved only"}</Chip>
+                        </button>
+                      </div>
+                      <div className="tb-search">
+                        <Icon name="search" size={14}/>
+                        <input placeholder="Search SUB·id, student, error…" value={search}
+                          onChange={(e)=>setSearch(e.target.value)} aria-label="Search dead-letter entries"/>
+                      </div>
+                      <span className="tb-count" aria-live="polite">{view==="loading"?"—":visible.length} rows</span>
+                    </div>
+
+                    {/* bulk bar */}
+                    {selIds.length>0 && (
+                      <div className="bulkbar" role="region" aria-label="Bulk actions">
+                        <span className="bulkbar__lbl"><b>{selIds.length}</b> selected</span>
+                        <span aria-live="polite" className="hidden-acc">{selIds.length} entries selected</span>
+                        <div className="bulkbar__spacer"/>
+                        <Button variant="primary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14}/>}
+                          onClick={askRetryAll}>Retry selected</Button>
+                        <Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={14}/>}
+                          onClick={()=>{ const id=selIds[0]; askDismiss(id); }}>Dismiss selected</Button>
+                        <IconButton label="Clear selection" size="sm" icon={<Icon name="x-circle" size={16}/>} onClick={()=>setSel({})}/>
+                      </div>
+                    )}
+
+                    {/* table */}
+                    <div style={{overflowX:"auto",position:"relative"}}>
+                      {busy && <LoadingOverlayBar/>}
+                      <table className="dlqtable" role="grid" aria-label="Dead-letter entries">
+                        <thead>
+                          <tr>
+                            <th style={{width:34}}>
+                              <button className="chk" onClick={toggleAll} aria-label="Select all rows">
+                                <CheckBox checked={allSelected}/>
+                              </button>
+                            </th>
+                            <th><button className="sorth">Submission <Icon name="chevrons-up-down" size={12}/></button></th>
+                            <th style={{width:118}}>Step</th>
+                            <th>Error</th>
+                            <th className="num" style={{width:88}}><button className="sorth">Att <Icon name="chevrons-up-down" size={12}/></button></th>
+                            <th style={{width:128}}><button className="sorth">Last attempt <Icon name="arrow-down" size={12}/></button></th>
+                            <th style={{width:150}}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {view==="loading"
+                            ? [0,1,2,3,4,5,6,7].map(i=><RowSkeleton key={i}/>)
+                            : visible.length===0
+                              ? <tr><td colSpan={7} style={{padding:"var(--space-8)",textAlign:"center",color:"var(--text-muted)"}}>No entries match this filter.</td></tr>
+                              : visible.map(r=>(
+                                  <DlqRow key={r.id} r={r}
+                                    selected={!!sel[r.id]}
+                                    onSelect={()=>toggleSel(r.id)}
+                                    expanded={expanded===r.id}
+                                    onExpand={()=>setExpanded(e=>e===r.id?null:r.id)}
+                                    onRetry={()=>doRetry(r.id)}
+                                    onManual={()=>doManual(r.id)}
+                                    onDismiss={()=>askDismiss(r.id)}
+                                    onDrawer={()=>setDrawerId(r.id)}
+                                    onCopy={copyStack}
+                                    canGrade={canGrade}/>
+                                ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* footer */}
+                    <div className="dlq__foot">
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>
+                        Resolving stamps resolvedAt/By + resolutionMethod — entries are never deleted (audit preserved).
+                      </span>
+                      <Pagination pages={3} current={1}/>
+                    </div>
+                  </React.Fragment>
+                )}
+              </section>
+
+              {/* answer-key guard reminder */}
+              {(view==="populated"||view==="partial") && (
+                <AnswerKeyLock title="Staff only — not shown to students">
+                  Drilling into a question's grading content (rubric, modelAnswer) is review-context only.
+                  Student &amp; parent payloads are sanitized — model answers, raw AI confidence, and AI cost are never exposed.
+                </AnswerKeyLock>
+              )}
+            </div>
+          </main>
+        </div>
+
+        {/* submission-context drawer */}
+        <Drawer open={!!drawerId} onClose={()=>setDrawerId(null)} title="Submission context">
+          {drawerRow && (
+            <div>
+              <SubmissionCard initials={(drawerRow.student||"·").split(" ").map(w=>w[0]).join("").slice(0,2)}
+                name={drawerRow.student} meta={"SUB·"+drawerRow.sub+" · "+drawerRow.roll+" · "+EXAM.title}/>
+              <div className="dh"><Icon name="git-branch" size={12}/>pipeline</div>
+              <div style={{display:"flex",gap:"var(--space-2)",flexWrap:"wrap",alignItems:"center"}}>
+                <PipelineStatusBadge status={drawerRow.pstatus}/>
+                <span className="step-chip"><Icon name={drawerRow.step==="scouting"?"scan-search":"loader"} size={11}/>{drawerRow.step}</span>
+                {drawerRow.conf!=null && <ConfidenceBadge level="low" value={drawerRow.conf.toFixed(2)}/>}
+              </div>
+              <div className="dh"><Icon name="list-checks" size={12}/>questionSubmissions · gradingStatus</div>
+              {[
+                {q:"Q2",st:"graded",conf:"0.94"},
+                {q:"Q5",st:"graded",conf:"0.88"},
+                {q:drawerRow.qid?drawerRow.qid.toUpperCase():"Q7",st:"failed",conf:"—"},
+                {q:"Q9",st:"grading",conf:"…"},
+              ].map((x,i)=>(
+                <div className="qsrow" key={i}>
+                  <span className="qsrow__q">{x.q}</span>
+                  <span style={{display:"inline-flex",gap:"var(--space-2)",alignItems:"center"}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>{x.conf}</span>
+                    <PipelineStatusBadge status={x.st==="graded"?"grading_complete":x.st==="failed"?"grading_failed":"grading"}/>
+                  </span>
+                </div>
+              ))}
+              {drawerRow.resolved && (
+                <React.Fragment>
+                  <div className="dh"><Icon name="history" size={12}/>resolution lineage</div>
+                  <Timeline items={[
+                    {time:"attempts", label:drawerRow.attempts+" automatic attempt(s) · last "+drawerRow.lastAbs, variant:"muted"},
+                    {time:drawerRow.resolvedAt, label:RES_LABEL[drawerRow.resolved]+" · "+drawerRow.resolvedBy, variant:"success"},
+                  ]}/>
+                </React.Fragment>
+              )}
+              <div className="dh"><Icon name="shield" size={12}/>guard</div>
+              <AnswerKeyLock title="Staff only — not shown to students">
+                Rubric &amp; model answer for this submission stay server-side; never sent to student/parent surfaces.
+              </AnswerKeyLock>
+            </div>
+          )}
+        </Drawer>
+
+        {/* confirm: dismiss */}
+        <Modal open={confirm && confirm.kind==="dismiss"} onClose={()=>setConfirm(null)} title="Dismiss this entry?"
+          footer={<React.Fragment>
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            <Button variant="danger" onClick={doDismiss}>Dismiss entry</Button>
+          </React.Fragment>}>
+          <p style={{margin:"0 0 var(--space-3)",fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>
+            It won't be retried and the submission keeps its current status. The entry is kept for audit
+            (resolutionMethod: <span style={{fontFamily:"var(--font-mono)"}}>dismissed</span>).
+          </p>
+          <Field label="Note" required={requireDismissReason} hint="Required by tenant policy" error={dismissErr||undefined}>
+            <Textarea rows={2} value={dismissNote} onChange={(e)=>{setDismissNote(e.target.value); if(dismissErr) setDismissErr("");}}
+              placeholder="Why is this being dismissed? (e.g. 'Duplicate sheet, regraded under SUB·a1f2')"
+              error={dismissErr?true:undefined}/>
+          </Field>
+        </Modal>
+
+        {/* confirm: retry all / selected */}
+        <Modal open={confirm && confirm.kind==="retryAll"} onClose={()=>setConfirm(null)} title="Re-run grading?"
+          footer={<React.Fragment>
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            <Button variant="primary" disabled={quotaWouldExceed} onClick={doRetryAll}>Retry {confirm?confirm.n:0} entries</Button>
+          </React.Fragment>}>
+          <p style={{margin:"0 0 var(--space-3)",fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>
+            Re-run grading for <b style={{fontFamily:"var(--font-mono)"}}>{confirm?confirm.n:0}</b> failed entries?
+            This consumes Gemini quota via <span style={{fontFamily:"var(--font-mono)"}}>gradeQuestion(mode:retry)</span>.
+            Status stays server-authoritative — the client only requests retries.
+          </p>
+          {quotaWouldExceed ? (
+            <Alert variant="warning" title="Quota guard">This would exceed usageQuota.dailyCallLimit. Retry is blocked until the quota window resets.</Alert>
+          ) : (
+            <div style={{display:"flex",alignItems:"center",gap:"var(--space-2)",fontFamily:"var(--font-mono)",fontSize:"var(--text-xs)",color:"var(--text-secondary)"}}>
+              <Icon name="gauge" size={13}/>Gemini usage now {QUOTA_PCT}% of daily budget · est. +{confirm?confirm.n:0} calls → {QUOTA_PCT+ (confirm?confirm.n:0)}%
+            </div>
+          )}
+        </Modal>
+
+        {/* toast */}
+        {toast && (
+          <div style={{position:"fixed",right:"var(--space-5)",bottom:"var(--space-5)",zIndex:60,display:"flex",alignItems:"flex-start",gap:"var(--space-2)"}} aria-live="polite">
+            <Toast variant={toast.variant} title={toast.title} body={toast.body}/>
+            {toast.undo && (
+              <div style={{alignSelf:"center"}}>
+                <Button variant="ghost" size="sm" onClick={()=>undoDismiss(toast.undo)}>Undo</Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const RES_LABEL = { retry_success:"Resolved by retry", manual_grade:"Sent to manual grading", dismissed:"Dismissed" };
+  const RES_ICON  = { retry_success:"rotate-ccw", manual_grade:"edit-3", dismissed:"x" };
+
+  /* ---------------- DLQ row ---------------- */
+  function DlqRow({r, selected, onSelect, expanded, onExpand, onRetry, onManual, onDismiss, onDrawer, onCopy, canGrade}){
+    const resolved = !!r.resolved;
+    return (
+      <React.Fragment>
+        <tr className={"drow"+(expanded?" drow--focus":"")+(resolved?" drow--resolved":"")+(r.isNew?" drow--new":"")}>
+          <td>
+            <button className="chk" onClick={onSelect} aria-label={"Select SUB·"+r.sub} disabled={resolved}>
+              <CheckBox checked={selected}/>
+            </button>
+          </td>
+          <td>
+            <span className={"cell-id"+(resolved?" resolved-strike":"")}>
+              <button className="disclose" aria-expanded={expanded} aria-label="Toggle stack trace" onClick={onExpand}>
+                <Icon name="chevron-right" size={16}/>
+              </button>
+              SUB·{r.sub}
+            </span>
+            <div className="stud" title={r.student+" · "+r.roll}>{r.student} · {r.roll}</div>
+          </td>
+          <td>
+            <span className="step-chip">
+              <Icon name={r.step==="scouting"?"scan-search":"loader"} size={11}/>{r.step}
+            </span>
+          </td>
+          <td>
+            <div className="cell-err">
+              <CauseTag cause={r.cause}/>
+              {r.error}
+              {resolved && (
+                <div style={{marginTop:6}}>
+                  <span className="reschip"><Icon name={RES_ICON[r.resolved]} size={12}/>{RES_LABEL[r.resolved]} · {r.resolvedBy}</span>
+                </div>
+              )}
+            </div>
+          </td>
+          <td className="num">{r.attempts}</td>
+          <td>
+            <span className="cell-last">{r.lastRel}<span className="abs">{r.lastAbs}</span></span>
+          </td>
+          <td>
+            <div className="rowacts">
+              {resolved ? (
+                <span style={{display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>
+                  <Icon name="check" size={12}/>{r.resolvedAt}
+                </span>
+              ) : canGrade ? (
+                <React.Fragment>
+                  {r.pstatus==="retrying"
+                    ? <PipelineStatusBadge status="retrying"/>
+                    : <Button variant="primary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14}/>} onClick={onRetry}>Retry</Button>}
+                  <IconButton label="Manual grade" size="sm" icon={<Icon name="edit-3" size={16}/>} onClick={onManual}/>
+                  <IconButton label="Dismiss" size="sm" icon={<Icon name="x" size={16}/>} onClick={onDismiss}/>
+                  <IconButton label="Open submission context" size="sm" icon={<Icon name="panel-right-open" size={16}/>} onClick={onDrawer}/>
+                </React.Fragment>
+              ) : (
+                <span title="Requires grading permission" style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)",display:"inline-flex",alignItems:"center",gap:4}}>
+                  <Icon name="lock" size={12}/>view-only
+                </span>
+              )}
+            </div>
+          </td>
+        </tr>
+        {expanded && (
+          <tr className="expand">
+            <td colSpan={7}>
+              <div className="expand__inner">
+                <div className="expand__row">
+                  <PipelineStatusBadge status={r.pstatus}/>
+                  {r.cause==="lowconf" && r.conf!=null && (
+                    <span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)"}}>
+                      <ConfidenceBadge level="low" value={r.conf.toFixed(2)}/>
+                      <span style={{fontFamily:"var(--font-ui)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>below confidenceThreshold 0.70 → manual review</span>
+                    </span>
+                  )}
+                  {r.progress && (
+                    <div className="progress-mini">
+                      <div className="progress-mini__cap"><span>gradingProgress</span><span>{r.progress.done} / {r.progress.total} questions graded</span></div>
+                      <ProgressBar value={Math.round(r.progress.done/r.progress.total*100)} variant="success"/>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="stacklabel">
+                    <span>errorStack · pipelineStep: {r.step}</span>
+                    <IconButton label="Copy stack trace" size="sm" icon={<Icon name="copy" size={14}/>} onClick={onCopy}/>
+                  </div>
+                  <pre className="stackblock">{r.stack.split("\n").map((ln,i)=>(
+                    <div key={i} className={i===0?"errln":undefined}>{ln}</div>
+                  ))}</pre>
+                </div>
+
+                <div className="expand__actions">
+                  {canGrade ? (
+                    <React.Fragment>
+                      <Button variant="primary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14}/>} onClick={onRetry}>Retry</Button>
+                      <Button variant="secondary" size="sm" leadingIcon={<Icon name="edit-3" size={14}/>} onClick={onManual}>Manual grade</Button>
+                      <Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={14}/>} onClick={onDismiss}>Dismiss</Button>
+                    </React.Fragment>
+                  ) : (
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>Actions require grading permission</span>
+                  )}
+                  <span className="expand__hint"><span className="kbd">Enter</span> expand · resolution preserves audit</span>
+                </div>
+              </div>
+            </td>
+          </tr>
+        )}
+      </React.Fragment>
+    );
+  }
+
+  /* ---------------- Stale view ---------------- */
+  function StaleView({fmtDur, staleSec, staleTone, canGrade, onRetry}){
+    const stuck = [
+      { sub:"9c0e", student:"Diya Sharma", roll:"R-018", stage:"scouting", el:staleSec, pstatus:"scouting" },
+      { sub:"b220", student:"Vivaan Nair", roll:"R-061", stage:"grading", el:744, pstatus:"grading" },
+    ];
+    return (
+      <div style={{padding:"var(--space-4)",display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+        <Alert variant="info" title="Stale watchdog is server-authoritative">
+          These rows exceeded the {STALE_MIN}-min surface threshold. The 15-min watchdog owns automatic retry/escalation — the monitor reflects state, it doesn't drive transitions.
+        </Alert>
+        <table className="dlqtable" role="grid" aria-label="Stuck submissions">
+          <thead><tr>
+            <th>Submission</th><th style={{width:118}}>Stage</th><th style={{width:160}}>Elapsed in stage</th><th>Status</th><th style={{width:120}}></th>
+          </tr></thead>
+          <tbody>
+            {stuck.map(s=>{
+              const tone = s.el>=900?"crit":(s.el/60>=STALE_MIN?"warn":"");
+              return (
+                <tr className="drow" key={s.sub}>
+                  <td><span className="cell-id">SUB·{s.sub}</span><div className="stud">{s.student} · {s.roll}</div></td>
+                  <td><span className="step-chip"><Icon name={s.stage==="scouting"?"scan-search":"loader"} size={11}/>{s.stage}</span></td>
+                  <td>
+                    <span className={"swchip"+(tone?" swchip--"+tone:"")}>
+                      {tone && <span className="swchip__dot"/>}<Icon name="timer" size={12}/>{fmtDur(s.el)}
+                    </span>
+                  </td>
+                  <td><PipelineStatusBadge status={s.pstatus}/></td>
+                  <td><div className="rowacts">{canGrade && <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={14}/>} onClick={onRetry}>Retry now</Button>}</div></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  /* ---------------- In-flight view ---------------- */
+  function InflightView(){
+    const live = [
+      { sub:"3f81", student:"Anaya Reddy", roll:"R-014", pstatus:"grading", done:5, total:7 },
+      { sub:"c0d2", student:"Ishaan Bose", roll:"R-039", pstatus:"scouting", done:0, total:6 },
+      { sub:"71aa", student:"Tara Menon", roll:"R-022", pstatus:"grading", done:3, total:8 },
+    ];
+    return (
+      <div style={{padding:"var(--space-4)",display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+        <table className="dlqtable" role="grid" aria-label="In-flight submissions">
+          <thead><tr>
+            <th>Submission</th><th style={{width:140}}>Status</th><th>gradingProgress</th>
+          </tr></thead>
+          <tbody>
+            {live.map(s=>(
+              <tr className="drow" key={s.sub}>
+                <td><span className="cell-id">SUB·{s.sub}</span><div className="stud">{s.student} · {s.roll}</div></td>
+                <td><PipelineStatusBadge status={s.pstatus}/></td>
+                <td>
+                  <div className="progress-mini" style={{maxWidth:340}}>
+                    <div className="progress-mini__cap"><span>questionSubmissions graded</span><span>{s.done} / {s.total}</span></div>
+                    <ProgressBar value={Math.round(s.done/s.total*100)} variant={s.pstatus==="grading"?"success":undefined}/>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  /* ---------------- small bits ---------------- */
+  function CheckBox({checked}){
+    return (
+      <span style={{
+        width:17,height:17,borderRadius:"var(--radius-sm)",display:"inline-grid",placeItems:"center",
+        border:"1px solid "+(checked?"var(--brand-primary)":"var(--border-strong)"),
+        background:checked?"var(--brand-primary)":"var(--bg-surface)",
+        color:"var(--text-on-accent)",transition:"all var(--dur-fast) var(--ease-standard)"}}>
+        {checked && <Icon name="check" size={12}/>}
+      </span>
+    );
+  }
+  function LoadingOverlayBar(){
+    return (
+      <div style={{position:"absolute",inset:0,background:"color-mix(in srgb, var(--bg-surface) 64%, transparent)",zIndex:5,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:"var(--space-8)"}} aria-live="polite">
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"var(--space-3)",minWidth:280}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)",fontFamily:"var(--font-ui)",fontSize:"var(--text-sm)",fontWeight:"var(--weight-medium)"}}>
+            <span className="spin" style={{display:"inline-flex"}}><Icon name="loader" size={16}/></span>Re-running grading…
+          </div>
+          <div style={{width:"100%"}}><ProgressBar value={62} variant="success"/></div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Sidebar ---------- */
+  function Sidebar(){
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">Lyceum</span>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <span className="sidebar__section-label">Teach</span>
+          <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+          <NavItem icon="users" href="#">Students</NavItem>
+          <NavItem icon="book-open" href="#">Spaces</NavItem>
+          <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+          <NavItem icon="file-check-2" href="#" active>Exams</NavItem>
+          <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+          <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+          <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+          <NavItem icon="activity" href="#" badge="16">AI usage</NavItem>
+          <NavItem icon="settings" href="#">Settings</NavItem>
+        </nav>
+        <div className="sb-foot">
+          <Avatar size="sm" initials="SV"/>
+          <div className="sb-foot__meta">
+            <span className="sb-foot__name">S. Verma</span>
+            <span className="sb-foot__role">role: grader</span>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  /* ---------- Topbar ---------- */
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="tenant" role="button" tabIndex={0}>
+          <Icon name="building-2" size={15}/> Subhang Academy
+          <span className="tenant__code">SUB001</span>
+          <Icon name="chevrons-up-down" size={13}/>
+        </div>
+        <div className="tbsearch">
+          <Icon name="search" size={15}/>
+          <input placeholder="Open pipeline monitor, dead-letter queue…" aria-label="Search"/>
+          <Kbd>⌘K</Kbd>
+        </div>
+        <div className="topbar__spacer"/>
+        <div className="tb-icons">
+          <span className="notif"><IconButton label="Notifications" icon={<Icon name="bell" size={18}/>}/><span className="notif__dot"/></span>
+          <IconButton label="Help" icon={<Icon name="circle-help" size={18}/>}/>
+          <Avatar size="sm" initials="SV"/>
+        </div>
+      </header>
+    );
+  }
+
+  /* ---------- skeletons ---------- */
+  function KpiSkeleton(){
+    return (
+      <div className="kpi">
+        <span className="kpi__hdr"><Skeleton variant="circle" width={22} height={22}/><Skeleton width="56%" height={10}/></span>
+        <Skeleton width="42%" height={26}/>
+      </div>
+    );
+  }
+  function RowSkeleton(){
+    return (
+      <tr className="drow">
+        <td><Skeleton width={17} height={17}/></td>
+        <td><Skeleton width="70%" height={13}/><div style={{height:6}}/><Skeleton width="50%" height={10}/></td>
+        <td><Skeleton width={70} height={18}/></td>
+        <td><Skeleton width="90%" height={13}/><div style={{height:6}}/><Skeleton width="60%" height={11}/></td>
+        <td className="num"><Skeleton width={22} height={13}/></td>
+        <td><Skeleton width="80%" height={13}/></td>
+        <td><Skeleton width="90%" height={28}/></td>
+      </tr>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

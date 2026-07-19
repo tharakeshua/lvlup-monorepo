@@ -1,5 +1,13 @@
-import type { UnifiedEvaluationResult } from '@levelup/shared-types';
-import { CheckCircle2, XCircle, AlertCircle, Minus } from 'lucide-react';
+import type { UnifiedEvaluationResult } from "@levelup/shared-types";
+import {
+  CheckCircle2,
+  CircleDot,
+  AlertCircle,
+  Minus,
+  Sparkles,
+  Sprout,
+  BookOpen,
+} from "lucide-react";
 
 interface FeedbackPanelProps {
   evaluation: UnifiedEvaluationResult;
@@ -12,60 +20,83 @@ export default function FeedbackPanel({ evaluation, explanation }: FeedbackPanel
   const isPartial = evaluation.correctness > 0 && evaluation.correctness < 1;
   const isIncorrect = evaluation.correctness === 0;
 
+  const frame = isCorrect
+    ? "border-success/30 bg-success/10"
+    : isPartial
+      ? "border-warning/30 bg-warning/10"
+      : isIncorrect
+        ? "border-error/30 bg-error/10"
+        : "border-subtle bg-surface-sunken/60";
+
+  const barColor = isCorrect ? "bg-success" : isPartial ? "bg-warning" : "bg-error";
+
   return (
     <div
+      role="status"
       aria-live="polite"
-      className={`mt-4 rounded-lg border p-4 ${
-        isCorrect
-          ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-800'
-          : isPartial
-            ? 'border-yellow-200 bg-yellow-500/10 dark:border-yellow-800'
-            : isIncorrect
-              ? 'border-destructive/30 bg-destructive/10'
-              : 'border-border bg-muted/50'
-      }`}
+      className={`animate-ly-rise mt-4 rounded-lg border p-4 sm:p-5 ${frame}`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        {isCorrect && <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
-        {isPartial && <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />}
-        {isIncorrect && <XCircle className="h-5 w-5 text-destructive" />}
-        {!evaluation.correctness && <Minus className="h-5 w-5 text-muted-foreground" />}
-        <span className="font-semibold">
-          {isCorrect ? 'Correct!' : isPartial ? 'Partially Correct' : isIncorrect ? 'Incorrect' : 'Evaluated'}
+      <div className="mb-2 flex items-center gap-2">
+        {isCorrect && <CheckCircle2 className="text-success h-5 w-5 shrink-0" aria-hidden />}
+        {isPartial && <CircleDot className="text-warning h-5 w-5 shrink-0" aria-hidden />}
+        {isIncorrect && <AlertCircle className="text-error h-5 w-5 shrink-0" aria-hidden />}
+        {!evaluation.correctness && !isIncorrect && (
+          <Minus className="text-fg-muted h-5 w-5 shrink-0" aria-hidden />
+        )}
+        <span
+          className={`font-display text-base ${
+            isCorrect
+              ? "text-success"
+              : isPartial
+                ? "text-warning"
+                : isIncorrect
+                  ? "text-error"
+                  : "text-fg"
+          }`}
+        >
+          {isCorrect
+            ? "Got it!"
+            : isPartial
+              ? "You're close — let's look at this part again"
+              : isIncorrect
+                ? "Not quite yet — let's work through it"
+                : "Evaluated"}
         </span>
         {evaluation.score != null && evaluation.maxScore != null && (
-          <span className="ml-auto text-sm font-medium">
-            {evaluation.score}/{evaluation.maxScore} points
+          <span className="text-fg ml-auto shrink-0 font-mono text-sm font-medium tabular-nums">
+            {evaluation.score}/{evaluation.maxScore} pts
           </span>
         )}
       </div>
 
       {evaluation.percentage != null && (
-        <div className="mb-2">
-          <div className="h-2 w-full rounded-full bg-muted">
+        <div className="mb-3">
+          <div className="bg-surface rounded-pill h-1.5 w-full overflow-hidden">
             <div
-              className={`h-2 rounded-full ${
-                isCorrect ? 'bg-emerald-500' : isPartial ? 'bg-yellow-500' : 'bg-destructive'
-              }`}
+              className={`rounded-pill duration-slow ease-standard h-full transition-all ${barColor}`}
               style={{ width: `${Math.min(evaluation.percentage, 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{evaluation.percentage}%</p>
+          <p className="text-fg-muted mt-1 font-mono text-xs tabular-nums">
+            {evaluation.percentage}%
+          </p>
         </div>
       )}
 
       {explanation && (
-        <p className="text-sm text-muted-foreground mb-2">{explanation}</p>
+        <p className="text-fg-secondary mb-2 text-sm leading-relaxed">{explanation}</p>
       )}
 
       {evaluation.summary?.overallComment && (
-        <p className="text-sm">{evaluation.summary.overallComment}</p>
+        <p className="text-fg text-sm leading-relaxed">{evaluation.summary.overallComment}</p>
       )}
 
       {evaluation.strengths && evaluation.strengths.length > 0 && (
-        <div className="mt-2">
-          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Strengths:</p>
-          <ul className="list-disc pl-4 text-xs text-emerald-700 dark:text-emerald-400">
+        <div className="mt-3">
+          <p className="text-success flex items-center gap-1.5 text-xs font-semibold">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden /> What you did well
+          </p>
+          <ul className="text-fg-secondary mt-1 list-disc pl-5 text-xs leading-relaxed">
             {evaluation.strengths.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
@@ -74,9 +105,11 @@ export default function FeedbackPanel({ evaluation, explanation }: FeedbackPanel
       )}
 
       {evaluation.weaknesses && evaluation.weaknesses.length > 0 && (
-        <div className="mt-2">
-          <p className="text-xs font-medium text-destructive">Areas for improvement:</p>
-          <ul className="list-disc pl-4 text-xs text-destructive">
+        <div className="mt-3">
+          <p className="text-warning flex items-center gap-1.5 text-xs font-semibold">
+            <Sprout className="h-3.5 w-3.5" aria-hidden /> Where to grow
+          </p>
+          <ul className="text-fg-secondary mt-1 list-disc pl-5 text-xs leading-relaxed">
             {evaluation.weaknesses.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
@@ -85,9 +118,11 @@ export default function FeedbackPanel({ evaluation, explanation }: FeedbackPanel
       )}
 
       {evaluation.missingConcepts && evaluation.missingConcepts.length > 0 && (
-        <div className="mt-2">
-          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Missing concepts:</p>
-          <ul className="list-disc pl-4 text-xs text-amber-700 dark:text-amber-400">
+        <div className="mt-3">
+          <p className="text-fg-secondary flex items-center gap-1.5 text-xs font-semibold">
+            <BookOpen className="h-3.5 w-3.5" aria-hidden /> Worth revisiting
+          </p>
+          <ul className="text-fg-secondary mt-1 list-disc pl-5 text-xs leading-relaxed">
             {evaluation.missingConcepts.map((c, i) => (
               <li key={i}>{c}</li>
             ))}

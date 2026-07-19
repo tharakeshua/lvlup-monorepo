@@ -1,0 +1,162 @@
+<!-- @dsCard group="Parent" viewport="1440x940" name="Parent Login" subtitle="Two-step school code → credentials" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-only global reset — composer ignores this (outside markers) */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+/* ==SPA-STYLE:parent-login== */
+.v-parent-login{width:100%;max-width:440px}
+.v-parent-login .auth-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);box-shadow:var(--shadow-e2);padding:var(--space-8)}
+
+.v-parent-login .lockup{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);margin-bottom:var(--space-6)}
+.v-parent-login .lockup__crest{width:52px;height:52px;border-radius:var(--radius-lg);display:grid;place-items:center;background:var(--brand-subtle);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.v-parent-login .lockup__school{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.02em;margin:0;color:var(--text-primary)}
+.v-parent-login .lockup__portal{font-size:var(--text-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono)}
+
+.v-parent-login .stepper{display:flex;align-items:center;justify-content:center;gap:var(--space-2);margin-bottom:var(--space-6)}
+.v-parent-login .stepper__node{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-parent-login .stepper__dot{width:18px;height:18px;border-radius:var(--radius-pill);display:grid;place-items:center;border:1px solid var(--border-strong);font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-muted);background:var(--bg-surface)}
+.v-parent-login .stepper__node--active .stepper__dot{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--text-on-accent)}
+.v-parent-login .stepper__node--active{color:var(--text-primary);font-weight:var(--weight-medium)}
+.v-parent-login .stepper__node--done .stepper__dot{background:var(--status-success-subtle);border-color:var(--status-success);color:var(--status-success)}
+.v-parent-login .stepper__bar{width:28px;height:1px;background:var(--border-strong)}
+
+.v-parent-login .auth-form{display:flex;flex-direction:column;gap:var(--space-4)}
+
+.v-parent-login .ctx-chip{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+.v-parent-login .ctx-chip__ico{flex:0 0 auto;width:28px;height:28px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--status-success-subtle);color:var(--status-success)}
+.v-parent-login .ctx-chip__main{flex:1 1 auto;min-width:0}
+.v-parent-login .ctx-chip__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-login .ctx-chip__code{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+.v-parent-login .auth-foot{display:flex;align-items:center;justify-content:center;margin-top:var(--space-2)}
+
+.v-parent-login .reassure{display:flex;align-items:center;justify-content:center;gap:var(--space-2);margin-top:var(--space-6);font-size:var(--text-2xs);color:var(--text-muted);text-align:center}
+.v-parent-login .reassure .u-mono{font-family:var(--font-mono)}
+/* ==/SPA-STYLE== */
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Card, Field, Input, Button, Icon, Badge } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function go(hash){ if(hash) window.location.hash = hash; }
+
+/* ==SPA-VIEW:parent-login== */
+function ParentLoginView(){
+  const [step,setStep]=useState('code');      // 'code' | 'creds'
+  const [code,setCode]=useState('BHA-204');
+  const [codeErr,setCodeErr]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [email,setEmail]=useState('anita.sharma@beaconhill.edu');
+  const [password,setPassword]=useState('');
+
+  const onContinue=()=>{
+    if(!code.trim() || code.trim().toUpperCase()!=='BHA-204'){
+      setCodeErr("We couldn't find that school code. Check your welcome email.");
+      return;
+    }
+    setCodeErr('');
+    setBusy(true);
+    setTimeout(()=>{ setBusy(false); setStep('creds'); }, 450);
+  };
+  const onSignIn=()=>{
+    setBusy(true);
+    setTimeout(()=>{ setBusy(false); go('#/'); }, 600);
+  };
+
+  return (
+    <div className="v-parent-login">
+      <Card>
+        <div className="auth-card">
+
+          <div className="lockup">
+            <span className="lockup__crest"><Icon name="graduation-cap" size={26}/></span>
+            <h1 className="lockup__school">Beacon Hill Academy</h1>
+            <span className="lockup__portal">Parent Portal</span>
+          </div>
+
+          <div className="stepper" role="group" aria-label={'Step '+(step==='code'?'1 of 2: school code':'2 of 2: sign in')}>
+            <span className={'stepper__node '+(step==='code'?'stepper__node--active':'stepper__node--done')}>
+              <span className="stepper__dot">{step==='code'?'1':<Icon name="check" size={11}/>}</span>
+              School
+            </span>
+            <span className="stepper__bar" aria-hidden="true"></span>
+            <span className={'stepper__node '+(step==='creds'?'stepper__node--active':'')}>
+              <span className="stepper__dot">2</span>
+              Sign in
+            </span>
+          </div>
+
+          {step==='code' ? (
+            <form className="auth-form" onSubmit={(e)=>{e.preventDefault();onContinue();}}>
+              <Field label="School code" required
+                hint="Found in your welcome email from the school."
+                error={codeErr || undefined}>
+                <Input
+                  value={code}
+                  onChange={(e)=>{setCode(e.target.value); if(codeErr) setCodeErr('');}}
+                  placeholder="BHA-204"
+                  autoComplete="off"
+                  error={!!codeErr}
+                  aria-invalid={!!codeErr}/>
+              </Field>
+              <Button variant="primary" block loading={busy} type="submit"
+                trailingIcon={<Icon name="arrow-right" size={16}/>}
+                onClick={onContinue}>Continue</Button>
+            </form>
+          ) : (
+            <form className="auth-form" onSubmit={(e)=>{e.preventDefault();onSignIn();}}>
+              <div className="ctx-chip">
+                <span className="ctx-chip__ico"><Icon name="check" size={16}/></span>
+                <span className="ctx-chip__main">
+                  <div className="ctx-chip__name">Beacon Hill Academy</div>
+                  <div className="ctx-chip__code">{code.trim().toUpperCase()}</div>
+                </span>
+                <Button variant="ghost" size="sm" onClick={()=>setStep('code')}>Change</Button>
+              </div>
+              <Field label="Email" required>
+                <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)}
+                  placeholder="you@example.com" autoComplete="email"/>
+              </Field>
+              <Field label="Password" required>
+                <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)}
+                  placeholder="••••••••" autoComplete="current-password"/>
+              </Field>
+              <Button variant="primary" block loading={busy} type="submit"
+                leadingIcon={<Icon name="log-in" size={16}/>}
+                onClick={onSignIn}>Sign in</Button>
+              <div className="auth-foot">
+                <Button variant="ghost" size="sm" onClick={()=>go('#/login')}>Forgot password?</Button>
+              </div>
+            </form>
+          )}
+
+          <div className="reassure">
+            <Icon name="shield-check" size={13}/>
+            Released grades only · answer keys never shown
+          </div>
+
+        </div>
+      </Card>
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+
+function App(){
+  return (
+    <div className="bare-wrap" style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:'var(--space-8)'}}>
+      <ParentLoginView/>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

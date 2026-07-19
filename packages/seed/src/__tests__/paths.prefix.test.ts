@@ -39,8 +39,8 @@ describe("seed Paths — default empty prefix (byte-identical baseline)", () => 
     expect(Paths.item("t1", "s1", "sp1", "i1")).toBe(
       "tenants/t1/spaces/s1/storyPoints/sp1/items/i1"
     );
-    expect(Paths.answerKey("t1", "s1", "sp1", "i1", "k1")).toBe(
-      "tenants/t1/spaces/s1/storyPoints/sp1/items/i1/answerKeys/k1"
+    expect(Paths.answerKey("t1", "s1", "sp1", "i1")).toBe(
+      "tenants/t1/spaces/s1/storyPoints/sp1/items/i1/answerKeys/i1"
     );
     expect(Paths.spaceProgress("t1", "u1", "s1")).toBe("tenants/t1/spaceProgress/u1_s1");
     expect(Paths.testSubmission("t1", "sess1", "i1")).toBe(
@@ -78,8 +78,8 @@ describe("seed Paths — LVLUP_COLLECTION_PREFIX=v2_", () => {
       "v2_tenants/t1/costSummaries/daily_2026-06-23"
     );
     // No subcollection segment is prefixed: exactly one `v2_` in the whole path.
-    const deep = Paths.answerKey("t1", "s1", "sp1", "i1", "k1");
-    expect(deep).toBe("v2_tenants/t1/spaces/s1/storyPoints/sp1/items/i1/answerKeys/k1");
+    const deep = Paths.answerKey("t1", "s1", "sp1", "i1");
+    expect(deep).toBe("v2_tenants/t1/spaces/s1/storyPoints/sp1/items/i1/answerKeys/i1");
     expect(deep.match(/v2_/g)?.length).toBe(1);
   });
 });

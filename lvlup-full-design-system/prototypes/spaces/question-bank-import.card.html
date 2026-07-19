@@ -1,0 +1,645 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Question Bank Import" subtitle="Modal · select & import into story point" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- dimmed parent app shell ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.sx-uc:hover{background:var(--bg-surface-sunken);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+.sx-sub{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0;}
+.sx-subrow{display:flex;align-items:center;gap:var(--space-3);}
+.sx-titlewrap{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.sx-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);line-height:1.1;}
+.sx-titlemeta{display:flex;align-items:center;gap:var(--space-2);}
+.sx-stat{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.sx-stat i{width:12px;height:12px;}
+.sx-typelabel{font-size:var(--text-xs);color:var(--text-muted);}
+.sx-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-4);}
+.sx-tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;background:none;border-top:none;border-left:none;border-right:none;}
+.sx-tab i{width:15px;height:15px;}
+.sx-tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-scroll{flex:1;overflow-y:auto;}
+.sx-col{max-width:1200px;margin:0 auto;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4);}
+.csh{display:flex;align-items:center;gap:var(--space-3);}
+.csh h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.csh .cnt{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);}
+.csh .act{margin-left:auto;display:flex;gap:var(--space-2);}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-semibold);border-radius:var(--radius-md);border:1px solid transparent;cursor:pointer;padding:var(--space-2) var(--space-3);white-space:nowrap;}
+.btn i{width:15px;height:15px;}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover:not(:disabled){background:var(--brand-primary-hover);}
+.btn--spark{background:var(--spark);color:var(--text-on-accent);}
+.btn--spark:hover:not(:disabled){background:var(--spark-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-subtle);}
+.btn--secondary:hover:not(:disabled){background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--ghost{background:none;color:var(--text-secondary);}
+.btn--ghost:hover:not(:disabled){background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--sm{padding:5px var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.ghostnode{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-3);}
+.ghostnode .gi{color:var(--text-muted);display:inline-flex;}
+.ghostnode .gi i{width:16px;height:16px;}
+.ghostnode .gt{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.ghostnode .gm{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto;}
+
+/* ---- state switcher (demo affordance) ---- */
+.statebar{position:fixed;top:var(--space-3);right:var(--space-3);z-index:95;display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:560px;justify-content:flex-end;padding:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);}
+.statebar .lb{font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);padding:0 6px;font-weight:var(--weight-semibold);}
+.statebar button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:4px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;}
+.statebar button.on{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+
+/* ---- modal overlay ---- */
+.scrim{position:fixed;inset:0;background:rgba(20,18,16,.50);z-index:60;animation:fade var(--dur-fast) var(--ease-standard);}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.pmodal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:1040px;max-width:95vw;max-height:84vh;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);z-index:70;display:flex;flex-direction:column;overflow:hidden;animation:pop var(--dur-base) var(--ease-entrance);}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-46%) scale(.985)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+/* header */
+.pm-head{padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:relative;}
+.pm-head .x{position:absolute;top:var(--space-4);right:var(--space-4);}
+.pm-titlerow{display:flex;align-items:center;gap:var(--space-3);}
+.pm-titleic{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);flex:none;}
+.pm-titleic i{width:20px;height:20px;}
+.pm-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;line-height:1.1;}
+.pm-sub{font-size:var(--text-sm);color:var(--text-secondary);margin:3px 0 0;max-width:64ch;line-height:var(--leading-sm);}
+/* filter bar */
+.pm-filters{margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.searchbox{flex:1;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.searchbox:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus);background:var(--bg-surface);}
+.searchbox i{width:16px;height:16px;color:var(--text-muted);flex:none;}
+.searchbox input{flex:1;border:none;background:none;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);}
+.searchbox input::placeholder{color:var(--text-muted);}
+.searchbox input:disabled{cursor:not-allowed;}
+.searchbox .clr{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-pill);border:none;background:none;color:var(--text-muted);cursor:pointer;flex:none;}
+.searchbox .clr:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.filterrow{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.fselect{position:relative;display:inline-flex;align-items:center;gap:6px;padding:6px var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-secondary);font-size:var(--text-xs);font-weight:var(--weight-medium);cursor:pointer;}
+.fselect:hover{border-color:var(--border-strong);color:var(--text-primary);}
+.fselect.act{background:var(--brand-subtle);border-color:var(--brand-muted);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.fselect i{width:13px;height:13px;}
+.fselect .lbl{color:var(--text-muted);}
+.fselect.act .lbl{color:var(--brand-primary);}
+.fselect:disabled{opacity:.6;cursor:not-allowed;}
+.fclear{margin-left:auto;font-size:var(--text-xs);color:var(--text-muted);background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 6px;border-radius:var(--radius-sm);}
+.fclear:hover{color:var(--text-primary);background:var(--bg-surface-sunken);}
+.fclear i{width:12px;height:12px;}
+
+/* body split */
+.pm-body{flex:1;display:grid;grid-template-columns:1fr 380px;min-height:0;}
+.pm-body.solo{grid-template-columns:1fr;}
+.results{overflow-y:auto;padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);min-height:280px;}
+.results.dim{opacity:.55;pointer-events:none;}
+.reshd{display:flex;align-items:center;gap:var(--space-2);padding-bottom:2px;}
+.reshd .selall{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-secondary);cursor:pointer;background:none;border:none;font-family:var(--font-ui);font-weight:var(--weight-medium);padding:2px 4px;border-radius:var(--radius-sm);}
+.reshd .selall:hover{color:var(--text-primary);background:var(--bg-surface-sunken);}
+.reshd .cnt{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+
+/* row */
+.qrow{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);cursor:pointer;transition:border-color var(--dur-instant) var(--ease-standard),background var(--dur-instant) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard);}
+.qrow:hover{box-shadow:var(--shadow-e1);border-color:var(--border-strong);}
+.qrow.sel{border-color:var(--brand-primary);background:var(--brand-subtle);}
+.qrow.focused{box-shadow:var(--ring-focus);}
+.qrow.capped{opacity:.55;cursor:not-allowed;}
+.qbox{flex:none;width:20px;height:20px;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);background:var(--bg-surface);display:grid;place-items:center;margin-top:1px;color:var(--text-on-accent);}
+.qrow.sel .qbox{background:var(--brand-primary);border-color:var(--brand-primary);}
+.qbox i{width:13px;height:13px;opacity:0;}
+.qrow.sel .qbox i{opacity:1;}
+.qmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.qtitle{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);line-height:var(--leading-sm);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.qmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.02em;}
+.tag i{width:11px;height:11px;}
+.tag.type{border:1px solid var(--border-strong);color:var(--text-secondary);background:var(--bg-surface);}
+.tag.diff-easy{background:var(--status-success-subtle);color:var(--status-success);}
+.tag.diff-medium{background:var(--status-warning-subtle);color:var(--status-warning);}
+.tag.diff-hard{background:var(--status-error-subtle);color:var(--status-error);}
+.qmeta .subj{font-size:var(--text-2xs);color:var(--text-muted);}
+.qmeta .dot{color:var(--text-muted);font-size:var(--text-2xs);}
+.qmeta .used{font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:3px;}
+.qmeta .used b{font-family:var(--font-mono);color:var(--text-secondary);font-weight:var(--weight-medium);}
+.qprev{flex:none;align-self:center;}
+.icbtn{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--radius-md);color:var(--text-muted);background:none;border:1px solid transparent;cursor:pointer;}
+.icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.icbtn.on{color:var(--brand-primary);background:var(--brand-subtle);}
+.icbtn i{width:16px;height:16px;}
+
+/* preview pane */
+.preview{border-left:1px solid var(--border-subtle);background:var(--bg-surface-sunken);overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);}
+.pv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-3);color:var(--text-muted);}
+.pv-empty .pc{width:46px;height:46px;border-radius:var(--radius-pill);background:var(--bg-surface);border:1px solid var(--border-subtle);display:grid;place-items:center;}
+.pv-empty .pc i{width:20px;height:20px;}
+.pv-empty .pt{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.pv-empty .pb{font-size:var(--text-xs);max-width:240px;}
+.pv-hd{display:flex;align-items:center;gap:6px;font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.1em;font-weight:var(--weight-semibold);color:var(--text-muted);}
+.pv-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.pv-q{font-size:var(--text-sm);font-weight:var(--weight-semibold);line-height:var(--leading-base);color:var(--text-primary);}
+.pv-formula{font-family:var(--font-mono);font-size:var(--text-sm);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);color:var(--text-secondary);}
+.pv-opts{display:flex;flex-direction:column;gap:var(--space-2);}
+.pv-opt{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);background:var(--bg-surface);}
+.pv-opt .mk{flex:none;width:22px;height:22px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.pv-meta{display:flex;flex-wrap:wrap;gap:6px;}
+.keylock{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-md);border:1px dashed var(--border-strong);background:var(--bg-surface);}
+.keylock .kl-ic{flex:none;display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-secondary);}
+.keylock .kl-ic i{width:16px;height:16px;}
+.keylock .kl-t{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);}
+.keylock .kl-b{font-size:var(--text-2xs);color:var(--text-muted);line-height:var(--leading-sm);margin-top:1px;}
+
+/* skeleton */
+.skrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);height:68px;}
+.skbox{width:20px;height:20px;border-radius:var(--radius-sm);flex:none;}
+.skline{height:11px;border-radius:var(--radius-pill);}
+.shimmer{background:linear-gradient(90deg,var(--bg-surface-sunken),var(--bg-inset),var(--bg-surface-sunken));background-size:200% 100%;animation:sh 1.3s linear infinite;}
+@keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* empty + alert */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-3);padding:var(--space-12) var(--space-4);min-height:280px;}
+.empty .ec{width:52px;height:52px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-muted);display:grid;place-items:center;}
+.empty .ec i{width:24px;height:24px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-muted);max-width:360px;line-height:var(--leading-sm);}
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-error);background:var(--status-error-subtle);}
+.alert .al-ic{flex:none;color:var(--status-error);display:inline-flex;margin-top:1px;}
+.alert .al-ic i{width:18px;height:18px;}
+.alert .al-t{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);}
+.alert .al-b{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;line-height:var(--leading-sm);}
+.errwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-4);min-height:280px;padding:var(--space-8);}
+.errwrap .alert{max-width:420px;}
+
+/* footer */
+.pm-foot{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-5) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface);}
+.pm-footinner{display:flex;align-items:center;gap:var(--space-3);}
+.pm-count{font-size:var(--text-sm);color:var(--text-secondary);display:inline-flex;align-items:center;gap:var(--space-2);}
+.pm-count b{font-family:var(--font-mono);color:var(--text-primary);font-weight:var(--weight-semibold);}
+.pm-count .cap{font-size:var(--text-2xs);color:var(--text-muted);}
+.pm-foot .sp{flex:1;}
+.pm-target{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);}
+.pm-target i{width:13px;height:13px;}
+.pm-target b{color:var(--text-secondary);font-weight:var(--weight-medium);}
+.spin{width:14px;height:14px;border-radius:var(--radius-pill);border:2px solid var(--text-on-accent);border-top-color:transparent;animation:rot .7s linear infinite;display:inline-block;}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);box-shadow:var(--shadow-e3);font-size:var(--text-sm);max-width:520px;animation:toastup var(--dur-base) var(--ease-entrance);border:1px solid var(--border-subtle);}
+.toast.ok{border-color:var(--status-success);}
+.toast.warn{border-color:var(--status-warning);}
+.toast .tic{flex:none;display:inline-flex;margin-top:1px;}
+.toast.ok .tic{color:var(--status-success);}
+.toast.warn .tic{color:var(--status-warning);}
+.toast .ta{font-weight:var(--weight-semibold);}
+.toast .tb{color:var(--text-secondary);font-size:var(--text-xs);margin-top:1px;}
+@keyframes toastup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.srlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+@media (prefers-reduced-motion: reduce){.pmodal,.toast,.scrim{animation:none;}.qrow,.tile{transition:none;}.shimmer,.spin{animation:none;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { Icon } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+const CAP = 50;
+
+/* ===== mock bank data (QuestionBankItem shape) ===== */
+const BANK = [
+  {id:"qb_8842", title:"Solve the quadratic x² − 5x + 6 = 0 by factoring.", type:"MCQ", typeIcon:"circle-dot", diff:"easy", subject:"Algebra", topics:["Quadratics","Factoring"], used:12,
+   prev:{stem:"Which pair of values satisfies x² − 5x + 6 = 0?", formula:"x² − 5x + 6 = 0", opts:["x = 1, 6","x = 2, 3","x = −2, −3","x = 0, 5"]}},
+  {id:"qb_9120", title:"Compute the discriminant of 2x² + 3x − 5 and classify its roots.", type:"Numerical", typeIcon:"hash", diff:"medium", subject:"Algebra", topics:["Quadratics","Discriminant"], used:7,
+   prev:{stem:"Enter the value of the discriminant Δ = b² − 4ac.", formula:"Δ = b² − 4ac,  a=2, b=3, c=−5", opts:null}},
+  {id:"qb_7755", title:"Match each conic section to its standard-form equation.", type:"Matching", typeIcon:"arrow-left-right", diff:"hard", subject:"Geometry", topics:["Conics"], used:3,
+   prev:{stem:"Pair each curve with its equation.", formula:null, opts:["Ellipse → x²/a² + y²/b² = 1","Parabola → y = ax² + bx + c","Hyperbola → x²/a² − y²/b² = 1"]}},
+  {id:"qb_6301", title:"Explain why the graph of y = (x − 2)² + 3 opens upward.", type:"Paragraph", typeIcon:"pilcrow", diff:"medium", subject:"Algebra", topics:["Parabolas","Graphing"], used:5,
+   prev:{stem:"Describe the effect of the leading coefficient on the parabola's direction.", formula:"y = (x − 2)² + 3", opts:null}},
+  {id:"qb_5519", title:"The vertex of a parabola always lies on its axis of symmetry.", type:"True / False", typeIcon:"toggle-left", diff:"easy", subject:"Algebra", topics:["Parabolas"], used:18,
+   prev:{stem:"True or False — the vertex lies on the axis of symmetry.", formula:null, opts:["True","False"]}},
+  {id:"qb_4477", title:"Implement quadratic_roots(a, b, c) returning real roots or None.", type:"Code", typeIcon:"braces", diff:"hard", subject:"Computer Science", topics:["Algorithms"], used:9,
+   prev:{stem:"Return the real roots of ax² + bx + c, or None when Δ < 0.", formula:"def quadratic_roots(a, b, c): …", opts:null}},
+  {id:"qb_3308", title:"Arrange the steps to complete the square for x² + 6x + 5.", type:"Ordering", typeIcon:"arrow-down-up", diff:"medium", subject:"Algebra", topics:["Completing the Square"], used:4,
+   prev:{stem:"Order the steps from first to last.", formula:"x² + 6x + 5 = 0", opts:["Move constant: x² + 6x = −5","Add (b/2)²: x² + 6x + 9 = 4","Factor: (x + 3)² = 4","Solve: x = −1 or x = −5"]}},
+  {id:"qb_2294", title:"Select all expressions equivalent to (x + 4)(x − 4).", type:"MCAQ", typeIcon:"list-checks", diff:"easy", subject:"Algebra", topics:["Difference of Squares"], used:11,
+   prev:{stem:"Choose every equivalent expression.", formula:"(x + 4)(x − 4)", opts:["x² − 16","x² + 16","x² − 8x + 16","16 − x² (negated)"]}},
+];
+
+/* difficulty chip — color + capitalized text, never color alone */
+function DiffTag({d}){
+  const lbl = d.charAt(0).toUpperCase()+d.slice(1);
+  const ic = d==="easy"?"signal-low":d==="medium"?"signal-medium":"signal";
+  return <span className={"tag diff-"+d}>{I(ic,11)}{lbl}</span>;
+}
+
+/* ===== dimmed parent shell ===== */
+function Nav({icon,label,route,active,count}){
+  return <a className={"sx-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell(){
+  return <div className="sx" aria-hidden="true">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+      <nav style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active="/spaces"/>
+          <Nav icon="school" label="Classes" route="/classes" active="/spaces" count="6"/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active="/spaces" count="9"/>
+          <Nav icon="library" label="Question Bank" route="/bank" active="/spaces" count="248"/>
+          <Nav icon="file-check" label="Exams" route="/exams" active="/spaces" count="4"/>
+          <Nav icon="graduation-cap" label="Students" route="/students" active="/spaces"/></div>
+        <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active="/spaces"/></div>
+      </nav>
+      <div className="foot">
+        <div className="sx-uc"><div className="av">RM</div>
+          <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div>
+      </div>
+    </aside>
+    <div className="sx-main">
+      <header className="sx-top">
+        <nav className="sx-bc" aria-label="Breadcrumb">
+          <span>Spaces</span>{I("chevron-right",14)}<span>Algebra I — Foundations</span>{I("chevron-right",14)}<b>Quadratics</b>
+        </nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="sx-icbtn" tabIndex={-1}>{I("bell",18)}</button>
+      </header>
+      <div className="sx-sub">
+        <div className="sx-subrow">
+          <div className="sx-titlewrap">
+            <h1 className="sx-title">Algebra I — Foundations</h1>
+            <div className="sx-titlemeta">
+              <span className="sx-stat">{I("circle-dashed",12)}Draft</span>
+              <span className="sx-typelabel">· Quadratics · timed_test</span>
+            </div>
+          </div>
+        </div>
+        <div className="sx-tabs">
+          <button className="sx-tab">{I("settings",15)}Settings</button>
+          <button className="sx-tab on">{I("book-open",15)}Content</button>
+          <button className="sx-tab">{I("clipboard-check",15)}Rubric</button>
+          <button className="sx-tab">{I("bot",15)}Agents</button>
+          <button className="sx-tab">{I("history",15)}History</button>
+        </div>
+      </div>
+      <div className="sx-scroll">
+        <div className="sx-col">
+          <div className="csh">
+            <h2>Content</h2><span className="cnt">· Quadratics · 5 items</span>
+            <div className="act">
+              <button className="btn btn--secondary btn--sm">{I("library",15)}Import from bank</button>
+              <button className="btn btn--primary btn--sm">{I("plus",15)}Add item</button>
+            </div>
+          </div>
+          <div className="ghostnode"><span className="gi">{I("circle-dot",16)}</span><span className="gt">Solve x² − 4 = 0</span><span className="gm">mcq · 5 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("file-text",16)}</span><span className="gt">Factoring recap</span><span className="gm">material · text</span></div>
+          <div className="ghostnode"><span className="gi">{I("hash",16)}</span><span className="gt">Identify the vertex</span><span className="gm">numerical · 5 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("braces",16)}</span><span className="gt">Implement quadratic_roots()</span><span className="gm">code · 12 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("pilcrow",16)}</span><span className="gt">Explain the discriminant</span><span className="gm">paragraph · 10 pts</span></div>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ===== preview pane ===== */
+function PreviewPane({item}){
+  if(!item) return <aside className="preview">
+    <div className="pv-empty">
+      <div className="pc">{I("eye",20)}</div>
+      <div className="pt">No question focused</div>
+      <div className="pb">Hover a row or press Preview to render it here. Answer keys stay server-side.</div>
+    </div>
+  </aside>;
+  const p = item.prev;
+  return <aside className="preview" aria-label={"Preview of "+item.title}>
+    <div className="pv-hd">{I("eye",13)}Preview · {item.id}</div>
+    <div className="pv-card">
+      <div className="pv-q">{p.stem}</div>
+      {p.formula && <div className="pv-formula">{p.formula}</div>}
+      {p.opts && <div className="pv-opts">
+        {p.opts.map((o,i)=><div className="pv-opt" key={i}>
+          <span className="mk">{String.fromCharCode(65+i)}</span><span>{o}</span></div>)}
+      </div>}
+      <div className="pv-meta">
+        <span className="tag type">{I(item.typeIcon,11)}{item.type}</span>
+        <DiffTag d={item.diff}/>
+        <span className="tag type" style={{borderStyle:"dashed"}}>{I("tag",11)}{item.subject}</span>
+      </div>
+    </div>
+    <div className="keylock" role="note" aria-label="Answer key is server-held">
+      <div className="kl-ic">{I("lock",16)}</div>
+      <div>
+        <div className="kl-t">Answer key is server-held</div>
+        <div className="kl-b">The correct answer is never sent to the client. <code>importFromBank</code> copies it server-side into the new item.</div>
+      </div>
+    </div>
+  </aside>;
+}
+
+/* ===== result row ===== */
+function QRow({item, selected, capped, focused, onToggle, onFocus, previewing}){
+  const blocked = capped && !selected;
+  return <div
+    className={"qrow"+(selected?" sel":"")+(focused?" focused":"")+(blocked?" capped":"")}
+    role="checkbox" aria-checked={selected} tabIndex={0}
+    aria-label={item.title+" — "+item.type+", "+item.diff+", "+item.subject}
+    onClick={()=>!blocked&&onToggle(item.id)}
+    onMouseEnter={()=>onFocus(item.id)}
+    onKeyDown={e=>{ if((e.key===" "||e.key==="Enter")&&!blocked){e.preventDefault();onToggle(item.id);} }}>
+    <span className="qbox">{I("check",13)}</span>
+    <div className="qmain">
+      <div className="qtitle">{item.title}</div>
+      <div className="qmeta">
+        <span className="tag type">{I(item.typeIcon,11)}{item.type}</span>
+        <DiffTag d={item.diff}/>
+        <span className="dot">·</span>
+        <span className="subj">{item.subject}</span>
+        <span className="dot">·</span>
+        <span className="used">{I("repeat",11)}Used <b>{item.used}×</b></span>
+      </div>
+    </div>
+    <div className="qprev">
+      <button className={"icbtn"+(previewing?" on":"")} aria-label={"Preview "+item.title}
+        onClick={e=>{e.stopPropagation();onFocus(item.id);}}>{I("eye",16)}</button>
+    </div>
+  </div>;
+}
+
+function SkeletonRow(){
+  return <div className="skrow" aria-hidden="true">
+    <div className="skbox shimmer"></div>
+    <div style={{flex:1,display:"flex",flexDirection:"column",gap:"8px"}}>
+      <div className="skline shimmer" style={{width:"72%"}}></div>
+      <div className="skline shimmer" style={{width:"40%",height:"9px"}}></div>
+    </div>
+  </div>;
+}
+
+/* ===== the import dialog ===== */
+function ImportDialog({mode, onClose, onImported, onError}){
+  const [q,setQ]=useState("");
+  const [typeF,setTypeF]=useState(null);
+  const [diffF,setDiffF]=useState(null);
+  const [sel,setSel]=useState(new Set(["qb_8842","qb_9120","qb_5519"]));
+  const [focus,setFocus]=useState("qb_8842");
+  const [importing,setImporting]=useState(false);
+  const [importErr,setImportErr]=useState(null);
+  const searchRef=useRef(null);
+
+  useEffect(()=>{ const t=setTimeout(()=>{ if(searchRef.current&&mode==="default") searchRef.current.focus(); },50); return ()=>clearTimeout(t); },[mode]);
+  useEffect(()=>{
+    const h=e=>{ if(e.key==="Escape"&&!importing) onClose(); };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  },[importing]);
+
+  const isLoading = mode==="loading";
+  const isEmptyBank = mode==="empty-bank";
+  const isLoadErr = mode==="load-error";
+  const noResults = mode==="no-results";
+  const showList = mode==="default";
+
+  const filtered = BANK; // mock: filters demonstrated via active chips, list stays for default
+  const focusItem = BANK.find(b=>b.id===focus);
+
+  const toggle=id=>{
+    setSel(prev=>{
+      const n=new Set(prev);
+      if(n.has(id)) n.delete(id);
+      else { if(n.size>=CAP) return prev; n.add(id); }
+      return n;
+    });
+  };
+  const allVisible = filtered.every(b=>sel.has(b.id));
+  const toggleAll=()=>{
+    setSel(prev=>{
+      if(allVisible) return new Set();
+      const n=new Set(prev);
+      for(const b of filtered){ if(n.size>=CAP) break; n.add(b.id); }
+      return n;
+    });
+  };
+  const capped = sel.size>=CAP;
+  const n = sel.size;
+
+  const doImport=()=>{
+    if(n===0) return;
+    setImportErr(null);
+    setImporting(true);
+    setTimeout(()=>{
+      setImporting(false);
+      if(mode==="import-error"){ setImportErr("You can import up to 50 questions at once. Deselect a few and try again."); return; }
+      if(mode==="partial"){ onImported(2, n); return; }
+      onImported(n, n);
+    }, mode==="loading"?900:1100);
+  };
+
+  const footDisabled = isLoading||isEmptyBank||isLoadErr||importing;
+
+  return <>
+    <div className="scrim" onClick={()=>!importing&&onClose()}></div>
+    <div className="pmodal" role="dialog" aria-modal="true" aria-labelledby="qbi-title" aria-describedby="qbi-sub">
+      {/* header */}
+      <div className="pm-head">
+        <button className="sx-icbtn x" aria-label="Close — Esc" onClick={()=>!importing&&onClose()} disabled={importing}>{I("x",18)}</button>
+        <div className="pm-titlerow">
+          <span className="pm-titleic">{I("library",20)}</span>
+          <div>
+            <h2 className="pm-title" id="qbi-title">Import from Question Bank</h2>
+            <p className="pm-sub" id="qbi-sub">Pull vetted questions into this story point. Copies are independent — editing them won't change the originals.</p>
+          </div>
+        </div>
+        {/* filter bar */}
+        <div className="pm-filters">
+          <div className="searchbox">
+            {I("search",16)}
+            <input ref={searchRef} value={q} onChange={e=>setQ(e.target.value)} disabled={isLoadErr||isEmptyBank}
+              placeholder="Search content, subject, or topic…" aria-label="Search the question bank"/>
+            {q && <button className="clr" aria-label="Clear search" onClick={()=>setQ("")}>{I("x",13)}</button>}
+          </div>
+          <div className="filterrow">
+            <button className={"fselect"+(typeF?" act":"")} disabled={isLoadErr||isEmptyBank}
+              onClick={()=>setTypeF(typeF?null:"MCQ")} aria-pressed={!!typeF}>
+              <span className="lbl">Type</span>{typeF||"All"}{I("chevron-down",13)}</button>
+            <button className={"fselect"+(diffF?" act":"")} disabled={isLoadErr||isEmptyBank}
+              onClick={()=>setDiffF(diffF?null:"Medium")} aria-pressed={!!diffF}>
+              <span className="lbl">Difficulty</span>{diffF||"All"}{I("chevron-down",13)}</button>
+            <button className="fselect" disabled={isLoadErr||isEmptyBank}>
+              <span className="lbl">Bloom's</span>All{I("chevron-down",13)}</button>
+            <button className="fselect" disabled={isLoadErr||isEmptyBank}>
+              <span className="lbl">Subject</span>All{I("chevron-down",13)}</button>
+            {(typeF||diffF||q) && <button className="fclear" onClick={()=>{setTypeF(null);setDiffF(null);setQ("");}}>{I("x",12)}Clear filters</button>}
+          </div>
+        </div>
+      </div>
+
+      {/* body */}
+      <div className={"pm-body"+((isLoading||isEmptyBank||isLoadErr||noResults)?" solo":"")}>
+        {isLoadErr
+          ? <div className="errwrap">
+              <div className="alert" role="alert">
+                <span className="al-ic">{I("alert-circle",18)}</span>
+                <div>
+                  <div className="al-t">We couldn't load the question bank.</div>
+                  <div className="al-b">Check your connection and try again.</div>
+                </div>
+              </div>
+              <button className="btn btn--secondary">{I("rotate-cw",15)}Retry</button>
+            </div>
+          : isEmptyBank
+          ? <div className="empty">
+              <div className="ec">{I("library",24)}</div>
+              <div className="et">Your question bank is empty</div>
+              <div className="eb">Author questions on the Question Bank page, then import them here.</div>
+              <button className="btn btn--secondary">{I("external-link",15)}Open Question Bank</button>
+            </div>
+          : noResults
+          ? <div className="empty">
+              <div className="ec">{I("search-x",24)}</div>
+              <div className="et">No matches</div>
+              <div className="eb">Try clearing a filter or broadening your search.</div>
+              <button className="btn btn--secondary" onClick={()=>{setTypeF(null);setDiffF(null);setQ("");}}>{I("x",15)}Clear filters</button>
+            </div>
+          : isLoading
+          ? <div className="results" aria-busy="true">
+              <SkeletonRow/><SkeletonRow/><SkeletonRow/><SkeletonRow/>
+            </div>
+          : <>
+            <div className={"results"+(importing?" dim":"")} role="group" aria-label="Question bank results">
+              <div className="reshd">
+                <button className="selall" onClick={toggleAll} disabled={importing}>
+                  {I(allVisible?"check-square":"square",14)}{allVisible?"Deselect all":"Select all visible"}</button>
+                <span className="cnt">{filtered.length} of 248 shown</span>
+              </div>
+              {filtered.map(item=>
+                <QRow key={item.id} item={item}
+                  selected={sel.has(item.id)} capped={capped} focused={focus===item.id}
+                  previewing={focus===item.id}
+                  onToggle={importing?()=>{}:toggle} onFocus={setFocus}/>)}
+              <button className="btn btn--secondary btn--sm" style={{alignSelf:"center",marginTop:"var(--space-2)"}} disabled={importing}>
+                {I("chevron-down",14)}Load more</button>
+            </div>
+            <PreviewPane item={focusItem}/>
+          </>}
+      </div>
+
+      {/* footer */}
+      <div className="pm-foot">
+        {importErr && <div className="alert" role="alert" style={{marginBottom:"2px"}}>
+          <span className="al-ic">{I("alert-circle",18)}</span>
+          <div><div className="al-t">Import failed</div><div className="al-b">{importErr}</div></div>
+        </div>}
+        <div className="pm-footinner">
+          <span className="pm-count" aria-live="polite">
+            <b>{n}</b> {n===1?"question":"questions"} selected
+            {capped && <span className="cap">· cap {CAP} reached</span>}
+          </span>
+          <span className="sp"></span>
+          <span className="pm-target">{I("git-branch",13)}Add to: <b>Quadratics</b> · end of list</span>
+          <button className="btn btn--secondary" onClick={onClose} disabled={importing}>Cancel</button>
+          <button className={"btn "+(n>0?"btn--spark":"btn--primary")} onClick={doImport} disabled={footDisabled||n===0}>
+            {importing
+              ? <><span className="spin"></span>Importing…</>
+              : <>{I("download",15)}Import{n>0?` (${n})`:""}</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+/* ===== screen ===== */
+function Screen(){
+  const [mode,setMode]=useState("default"); // default|loading|empty-bank|no-results|load-error|import-error|partial
+  const [open,setOpen]=useState(true);
+  const [toast,setToast]=useState(null);
+  const [live,setLive]=useState("");
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){const t=setTimeout(()=>setToast(null),4200);return ()=>clearTimeout(t);} },[toast]);
+
+  const setModeReopen=m=>{ setMode(m); setOpen(true); setToast(null); };
+
+  const onImported=(count,attempted)=>{
+    setOpen(false);
+    if(count<attempted){
+      const skipped=attempted-count;
+      setToast({tone:"warn",icon:"alert-triangle",title:`Imported ${count} of ${attempted}.`,body:`${skipped} question${skipped===1?"":"s"} couldn't be copied and ${skipped===1?"was":"were"} skipped.`});
+      setLive(`Imported ${count} of ${attempted}. ${skipped} skipped.`);
+    } else {
+      setToast({tone:"ok",icon:"check-circle-2",title:`Imported ${count} questions into this story point.`,body:"The story point's item list has been refreshed."});
+      setLive(`Imported ${count} questions into this story point.`);
+    }
+  };
+
+  const STATES=[
+    ["default","Default"],["loading","Loading"],["empty-bank","Empty bank"],
+    ["no-results","No results"],["load-error","Load error"],
+    ["import-error","Import error"],["partial","Partial import"],
+  ];
+
+  return <>
+    <Shell/>
+
+    {/* demo state switcher */}
+    <div className="statebar" role="group" aria-label="Preview state">
+      <span className="lb">State</span>
+      {STATES.map(([k,l])=>
+        <button key={k} className={(open&&mode===k)?"on":""} onClick={()=>setModeReopen(k)}>{l}</button>)}
+      <button className={!open?"on":""} onClick={()=>setOpen(false)}>Closed</button>
+    </div>
+
+    <div className="srlive" aria-live="polite">{live}</div>
+
+    {open && <ImportDialog mode={mode} onClose={()=>setOpen(false)} onImported={onImported}/>}
+
+    {toast && <div className={"toast "+(toast.tone||"")} role="status">
+      <span className="tic">{I(toast.icon,18)}</span>
+      <div><div className="ta">{toast.title}</div><div className="tb">{toast.body}</div></div>
+    </div>}
+  </>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

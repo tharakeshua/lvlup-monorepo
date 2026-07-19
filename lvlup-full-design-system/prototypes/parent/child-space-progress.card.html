@@ -1,0 +1,243 @@
+<!-- @dsCard group="Parent" viewport="1440x940" name="Space Progress" subtitle="LevelUp progress grouped by child" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-only global resets (composer ignores these — kept OUTSIDE the SPA markers) */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+/* ==SPA-STYLE:child-space-progress== */
+.v-child-space-progress{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.v-child-space-progress .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-child-space-progress .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-child-space-progress .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-space-progress .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* released-only note */
+.v-child-space-progress .releasednote{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* child section */
+.v-child-space-progress .childsec{display:flex;flex-direction:column;gap:var(--space-5)}
+.v-child-space-progress .childsec__head{display:flex;align-items:center;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.v-child-space-progress .childsec__head--risk{border-bottom-color:var(--status-warning)}
+.v-child-space-progress .childsec__id{flex:1 1 auto;min-width:0}
+.v-child-space-progress .childsec__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.01em;color:var(--text-primary)}
+.v-child-space-progress .childsec__meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-space-progress .childsec__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-space-progress .childsec__dot{width:3px;height:3px;border-radius:50%;background:var(--border-strong);display:inline-block}
+.v-child-space-progress .childsec__actions{display:flex;align-items:center;gap:var(--space-2)}
+
+/* space grid */
+.v-child-space-progress .spgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-5)}
+
+/* space card */
+.v-child-space-progress .spcard{display:flex;flex-direction:column;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);text-decoration:none;color:inherit;cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard)}
+.v-child-space-progress .spcard:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong);transform:translateY(-2px)}
+.v-child-space-progress .spcard:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-child-space-progress .spcard__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.v-child-space-progress .spcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-child-space-progress .spcard__sub{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+.v-child-space-progress .spcard__progrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.v-child-space-progress .spcard__proglab{font-size:var(--text-xs);color:var(--text-secondary)}
+.v-child-space-progress .spcard__progval{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-child-space-progress .spcard__facts{display:flex;align-items:center;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;margin-top:auto}
+.v-child-space-progress .spcard__fact{display:inline-flex;align-items:center;gap:var(--space-1)}
+.v-child-space-progress .spcard__fact .u-mono{font-family:var(--font-mono);color:var(--text-secondary)}
+.v-child-space-progress .spcard__track{padding-top:var(--space-1)}
+
+/* empty/state block */
+.v-child-space-progress .statebox{border:1px dashed var(--border-strong);border-radius:var(--radius-lg);padding:var(--space-5);background:var(--bg-surface)}
+.v-child-space-progress .eyebrow{font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:var(--space-4) 0 var(--space-2);display:flex;align-items:center;gap:var(--space-2)}
+.v-child-space-progress .eyebrow::before{content:"";height:1px;width:var(--space-6);background:var(--border-subtle)}
+
+.v-child-space-progress .u-mono{font-family:var(--font-mono)}
+
+@media (max-width:1100px){
+  .v-child-space-progress .spgrid{grid-template-columns:1fr}
+}
+/* ==/SPA-STYLE== */
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Badge, Chip, ProgressBar, StoryPointTrack,
+  AtRiskBadge, EmptyState, NavItem } = window.LvlupV0DesignSystem_5d0725;
+
+function go(h){ if(h) window.location.hash = h; }
+
+/* ---------- sample data (server-derived, released-only, read-only) ---------- */
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', atRisk:false, avg:78,
+    spaces:[
+      { id:'dsa',  title:'Data Structures & Algorithms', subject:'Computer Science', pct:78, pts:420, mastered:6, total:8 },
+      { id:'math', title:'Mathematics',                  subject:'Algebra & Geometry', pct:64, pts:300, mastered:4, total:7 },
+      { id:'phys', title:'Physics',                      subject:'Mechanics',         pct:30, pts:150, mastered:2, total:6 },
+    ] },
+  { id:'diya', name:'Diya Sharma', initials:'DS', grade:'Grade 7', atRisk:true, avg:44,
+    spaces:[
+      { id:'dmath', title:'Mathematics', subject:'Fractions & Ratios', pct:44, pts:180, mastered:3, total:7 },
+      { id:'dsci',  title:'Science',     subject:'Life Science',       pct:20, pts:90,  mastered:1, total:6 },
+      { id:'deng',  title:'English',     subject:'Reading & Writing',  pct:50, pts:200, mastered:4, total:8 },
+    ] },
+];
+
+/* ---------- status derivation (icon + label + color, never color alone) ---------- */
+function statusMeta(pct, mastered, total){
+  if(pct >= 100 || mastered >= total) return { variant:'success', icon:'check-circle', label:'Mastered' };
+  if(pct > 0)                         return { variant:'info',    icon:'circle-dot',   label:'In progress' };
+  return { variant:'neutral', icon:'circle', label:'Not started' };
+}
+
+/* ---------- build a mini StoryPointTrack from mastered/total ---------- */
+function trackNodes(pct, mastered, total){
+  const nodes = [];
+  for(let i=0;i<total;i++){
+    if(i < mastered) nodes.push({ state:'mastered', label:'SP '+(i+1) });
+    else if(i === mastered && pct > 0 && mastered < total) nodes.push({ state:'in-progress', label:'SP '+(i+1) });
+    else nodes.push({ state:'not-started', label:'SP '+(i+1) });
+  }
+  return nodes;
+}
+
+/* ---------- SpaceCard (helper, outside markers) ---------- */
+function SpaceCard({ childId, s }){
+  const st = statusMeta(s.pct, s.mastered, s.total);
+  const aria = s.title+' for this child, '+st.label+', '+s.pct+' percent complete, '+s.mastered+' of '+s.total+' story points mastered. Open progress detail.';
+  return (
+    <a className="spcard" href={'#/children/'+childId+'/progress'} role="listitem" aria-label={aria}
+       onClick={(e)=>{ e.preventDefault(); go('#/children/'+childId+'/progress'); }}>
+      <div className="spcard__top">
+        <div style={{minWidth:0}}>
+          <h3 className="spcard__title">{s.title}</h3>
+          <div className="spcard__sub">{s.subject}</div>
+        </div>
+        <Badge variant={st.variant}><Icon name={st.icon} size={12}/> {st.label}</Badge>
+      </div>
+
+      <div>
+        <div className="spcard__progrow">
+          <span className="spcard__proglab">Completion</span>
+          <span className="spcard__progval">{s.pct}%</span>
+        </div>
+        <ProgressBar value={s.pct} variant={st.variant==='success' ? 'success' : 'spark'}/>
+      </div>
+
+      <div className="spcard__facts">
+        <span className="spcard__fact"><Icon name="star" size={12}/> <span className="u-mono">{s.pts}</span> pts</span>
+        <span className="spcard__fact"><Icon name="git-commit-horizontal" size={12}/> <span className="u-mono">{s.mastered}/{s.total}</span> mastered</span>
+      </div>
+
+      <div className="spcard__track" role="img" aria-label={s.mastered+' of '+s.total+' story points mastered'}>
+        <StoryPointTrack nodes={trackNodes(s.pct, s.mastered, s.total)}/>
+      </div>
+    </a>
+  );
+}
+
+/* ==SPA-VIEW:child-space-progress== */
+function SpaceProgressView(){
+  const totalSpaces = CHILDREN.reduce((a,c)=>a+c.spaces.length,0);
+  return (
+    <div className="v-child-space-progress">
+
+      <div className="pagehead">
+        <div>
+          <h1>Space Progress</h1>
+          <div className="pagehead__sub">
+            <Icon name="orbit" size={14}/> LevelUp progress grouped by child ·{' '}
+            <span className="u-mono">{CHILDREN.length}</span> children ·{' '}
+            <span className="u-mono">{totalSpaces}</span> spaces ·{' '}
+            <span className="u-mono">BHA-204</span>
+          </div>
+        </div>
+        <Button variant="secondary" leadingIcon={<Icon name="git-compare" size={16}/>} onClick={()=>go('#/compare')}>Compare children</Button>
+      </div>
+
+      <div className="releasednote">
+        <Icon name="lock" size={13}/> Released progress only — answer keys are never shown.
+      </div>
+
+      {CHILDREN.map(c=>(
+        <section key={c.id} className="childsec" aria-labelledby={'child-'+c.id}>
+          <div className={'childsec__head'+(c.atRisk?' childsec__head--risk':'')}>
+            <Avatar initials={c.initials} size="lg"/>
+            <div className="childsec__id">
+              <div className="childsec__name" id={'child-'+c.id}>{c.name}</div>
+              <div className="childsec__meta">
+                <span>{c.grade}</span>
+                <span className="childsec__dot"></span>
+                <span><span className="u-mono">{c.spaces.length}</span> spaces</span>
+                <span className="childsec__dot"></span>
+                <span><span className="u-mono">{c.avg}%</span> avg completion</span>
+              </div>
+            </div>
+            <div className="childsec__actions">
+              {c.atRisk && <AtRiskBadge level="watch">Watch</AtRiskBadge>}
+              <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children/'+c.id+'/progress')}>View progress</Button>
+            </div>
+          </div>
+
+          <div className="spgrid" role="list" aria-label={c.name+' learning spaces'}>
+            {c.spaces.map(s=> <SpaceCard key={s.id} childId={c.id} s={s}/>)}
+          </div>
+        </section>
+      ))}
+
+      {/* ---------- reference state (no spaces assigned) ---------- */}
+      <div className="eyebrow">Spec state (reference)</div>
+      <div className="statebox">
+        <EmptyState icon="orbit" title="No spaces assigned yet"
+          body="When the school assigns a learning space to this child, its progress will appear here — released figures only."
+          action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="git-compare" size={15}/>} onClick={()=>go('#/compare')}>Compare children</Button>}/>
+      </div>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+
+/* ==PARENT-SHELL (verbatim)== */
+function ParentShell(props){
+  const a = props.active;
+  return (
+    <div className="appshell" style={{height:'100vh'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">B</div><div className="sidebar__brand-name">Beacon Hill</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="#/" active={a==='dashboard'}>Dashboard</NavItem>
+          <NavItem icon="alert-triangle" href="#/alerts" active={a==='alerts'} badge={<Badge variant="error">1</Badge>}>Alerts</NavItem>
+          <NavItem icon="megaphone" href="#/announcements" active={a==='announcements'}>Announcements</NavItem>
+          <div className="sidebar__section-label">My Children</div>
+          <NavItem icon="users" href="#/children" active={a==='children'}>Children</NavItem>
+          <NavItem icon="trending-up" href="#/children/aarav/progress" active={a==='progress'}>Progress</NavItem>
+          <NavItem icon="clipboard-check" href="#/children/aarav/results" active={a==='results'}>Exam Results</NavItem>
+          <NavItem icon="orbit" href="#/progress" active={a==='spaces'}>Space Progress</NavItem>
+          <NavItem icon="git-compare" href="#/compare" active={a==='compare'}>Compare</NavItem>
+          <div className="sidebar__section-label">Account</div>
+          <NavItem icon="bell" href="#/notifications" active={a==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="#/settings" active={a==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="BH" size="sm"/>Beacon Hill Academy<Icon name="chevron-down" size={14}/></button>
+        <button className="chip" aria-haspopup="menu"><Avatar initials="AS" size="sm"/>Aarav Sharma<Icon name="chevron-down" size={14}/></button>
+        <div style={{flex:1}}></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="AS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+function App(){ return (<ParentShell active="spaces"><SpaceProgressView/></ParentShell>); }
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

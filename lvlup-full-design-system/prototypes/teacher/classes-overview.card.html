@@ -1,0 +1,323 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Classes Overview" subtitle="Class index · headline health · create/edit · launch pad" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .page{display:flex;flex-direction:column;gap:var(--space-8);max-width:var(--content-max);width:100%;margin:0 auto}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-6)}
+  .page-head h1{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);margin:0;color:var(--text-primary);letter-spacing:var(--tracking-display)}
+  .page-sub{margin-top:var(--space-2);color:var(--text-secondary);font-size:var(--text-base);line-height:var(--leading-base)}
+  .page-sub .u-mono{color:var(--text-muted)}
+  .toolbar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+  .toolbar__search{flex:1 1 320px;min-width:240px}
+  .toolbar__count{margin-left:auto;color:var(--text-muted);font-size:var(--text-sm);display:flex;align-items:center;gap:var(--space-2)}
+  .chips-row{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-3)}
+  .table-card{padding:0;overflow:hidden}
+  .table-card .table{margin:0}
+  .table-card .table th{position:sticky;top:0;background:var(--bg-surface);z-index:1}
+  .row-link{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--text-primary)}
+  .row-link strong{font-weight:var(--weight-medium);font-size:var(--text-sm)}
+  .row-link span{font-size:var(--text-2xs);color:var(--text-muted)}
+  .perf-cell{display:flex;align-items:center;gap:var(--space-3);min-width:150px}
+  .perf-cell .progress{flex:1}
+  .table-foot{display:flex;align-items:center;justify-content:space-between;padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle)}
+  .table-foot .u-caption{color:var(--text-muted)}
+  .sort-h{display:inline-flex;align-items:center;gap:var(--space-1);background:none;border:none;font:inherit;color:inherit;cursor:pointer;padding:0;font-weight:var(--weight-semibold)}
+  .sort-h .lucide,.sort-h span{color:var(--brand-primary)}
+  .states-grid{display:flex;flex-wrap:wrap;gap:var(--space-6)}
+  .state-mini{flex:1 1 280px;min-width:260px;display:flex;flex-direction:column;gap:var(--space-3)}
+  .state-mini .card,.state-mini .empty,.state-mini .alert{margin:0}
+  .skl-rows{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-4)}
+  .skl-row{display:flex;align-items:center;gap:var(--space-4)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4) var(--space-5)}
+  .form-grid .col-span{grid-column:1 / -1}
+  .teacher-faces{display:flex;align-items:center;gap:var(--space-2)}
+  .teacher-faces .names{font-size:var(--text-xs);color:var(--text-secondary)}
+  .num,.u-mono{font-family:var(--font-mono)}
+  .muted-dash{color:var(--text-muted);font-family:var(--font-mono)}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Textarea, Field,
+  Card, Section, Tabs, Modal,
+  DataTable, EmptyState, Stat, Skeleton, Pagination, Avatar, AvatarGroup, Badge, Chip, ProgressBar,
+  Alert, NavItem, AtRiskBadge } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+// grade.* band by performance score
+function bandFor(score){
+  if(score>=85) return 'success';
+  if(score>=70) return null;       // default ink fill
+  return 'success';                 // (kept neutral; warning handled by text)
+}
+
+const CLASSES = [
+  {id:'c1', name:'Grade 10 — Section A', grade:'10', section:'A', students:32, spaces:4, exams:3, perf:78, atRisk:3, session:'2025–26',
+    teachers:[{i:'AR',n:'A. Rao'},{i:'MK',n:'M. Khan'}]},
+  {id:'c2', name:'Grade 9 — Section B', grade:'9', section:'B', students:28, spaces:3, exams:2, perf:64, atRisk:5, session:'2025–26',
+    teachers:[{i:'AR',n:'A. Rao'}]},
+  {id:'c3', name:'Grade 11 — Section A', grade:'11', section:'A', students:30, spaces:5, exams:4, perf:88, atRisk:1, session:'2025–26',
+    teachers:[{i:'PV',n:'P. Verma'},{i:'SN',n:'S. Nair'}]},
+  {id:'c4', name:'Grade 8 — Section C', grade:'8', section:'C', students:26, spaces:2, exams:1, perf:null, atRisk:null, session:'2025–26',
+    teachers:[{i:'MK',n:'M. Khan'}], pending:true},
+  {id:'c5', name:'Grade 12 — Section A', grade:'12', section:'A', students:24, spaces:6, exams:5, perf:81, atRisk:2, session:'2025–26',
+    teachers:[{i:'SN',n:'S. Nair'}]},
+  {id:'c6', name:'Grade 7 — Section B', grade:'7', section:'B', students:31, spaces:3, exams:2, perf:72, atRisk:0, session:'2025–26',
+    teachers:[{i:'PV',n:'P. Verma'}]},
+];
+
+function AtRiskCell(c){
+  if(c.atRisk===null){
+    return (<span className="muted-dash" title="No analytics yet — updates after the next nightly run.">—</span>);
+  }
+  if(c.atRisk===0){
+    return (<span style={{display:'inline-flex',alignItems:'center',gap:6,color:'var(--text-muted)',fontSize:'var(--text-sm)'}}>
+      <Icon name="check" size={13}/><span className="u-mono">0</span></span>);
+  }
+  return (<AtRiskBadge level="watch"><span className="u-mono" style={{marginLeft:4}}>{c.atRisk}</span>
+    <span className="u-sr-only"> {c.atRisk} students at risk</span></AtRiskBadge>);
+}
+
+function PerfCell(c){
+  if(c.perf===null){
+    return (<span className="muted-dash" title="No analytics yet — updates after the next nightly run.">—</span>);
+  }
+  return (<div className="perf-cell">
+    <ProgressBar value={c.perf} variant={bandFor(c.perf)}/>
+    <span className="u-mono" style={{fontSize:'var(--text-sm)',minWidth:38,textAlign:'right'}}>{c.perf}%</span>
+  </div>);
+}
+
+function SortHeader(props){
+  return (<button className="sort-h" type="button" aria-label={"Sort by "+props.label}>
+    {props.label}{props.active && <Icon name="chevron-up" size={14}/>}</button>);
+}
+
+function ClassFormModal(props){
+  return (
+    <Modal open={props.open} onClose={props.onClose} title="Create class"
+      footer={<div style={{display:'flex',gap:'var(--space-3)',justifyContent:'flex-end'}}>
+        <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
+        <Button variant="primary" onClick={props.onClose}>Create class</Button>
+      </div>}>
+      <p style={{margin:'0 0 var(--space-5)',color:'var(--text-secondary)',fontSize:'var(--text-sm)'}}>
+        Add a class for this tenant. You can enrol students after it's created.</p>
+      <div className="form-grid">
+        <div className="col-span">
+          <Field label="Class name" required><Input placeholder="e.g. Grade 10 — Section A" defaultValue=""/></Field>
+        </div>
+        <Field label="Grade" required><Input placeholder="10" defaultValue=""/></Field>
+        <Field label="Section (optional)"><Input placeholder="A" defaultValue=""/></Field>
+        <Field label="Academic session">
+          <Select options={[{value:'2025-26',label:'2025–26'},{value:'2024-25',label:'2024–25'}]}/>
+        </Field>
+        <Field label="Assigned teachers" hint="Admin only — reassign via teacher picker.">
+          <Select options={[{value:'all',label:'A. Rao, M. Khan…'}]}/>
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+function App(){
+  const [open, setOpen] = useState(false);
+  const cols = [
+    {label:<SortHeader label="Class" active/>, key:'name', sortable:true, render:(c)=>(
+      <a className="row-link" href={"/classes/"+c.id} aria-label={"Open "+c.name}>
+        <strong>{c.name}</strong>
+        <span>{c.pending?'Newly created':'Open class →'}</span>
+      </a>)},
+    {label:<SortHeader label="Grade / Section"/>, key:'gs', sortable:true, render:(c)=>(
+      <span style={{fontSize:'var(--text-sm)'}}>{c.grade} · {c.section || '—'}</span>)},
+    {label:<SortHeader label="Students"/>, key:'students', numeric:true, sortable:true, render:(c)=>(<span className="u-mono">{c.students}</span>)},
+    {label:<SortHeader label="Spaces"/>, key:'spaces', numeric:true, sortable:true, render:(c)=>(<span className="u-mono">{c.spaces}</span>)},
+    {label:<SortHeader label="Exams"/>, key:'exams', numeric:true, sortable:true, render:(c)=>(<span className="u-mono">{c.exams}</span>)},
+    {label:<SortHeader label="Avg performance"/>, key:'perf', sortable:true, render:PerfCell},
+    {label:<SortHeader label="At-risk"/>, key:'atRisk', sortable:true, render:AtRiskCell},
+    {label:<SortHeader label="Assigned teachers"/>, key:'teachers', render:(c)=>(
+      <div className="teacher-faces" title={c.teachers.map(t=>t.n).join(', ')}>
+        <AvatarGroup>{c.teachers.map((t,i)=>(<Avatar key={i} initials={t.i} size="sm"/>))}</AvatarGroup>
+        <span className="names">{c.teachers.map(t=>t.n).join(', ')}</span>
+      </div>)},
+    {label:<SortHeader label="Session"/>, key:'session', sortable:true, render:(c)=>(<Badge>{c.session}</Badge>)},
+    {label:<span className="u-sr-only">Actions</span>, key:'actions', render:(c)=>(
+      <IconButton size="sm" icon={<Icon name="more-horizontal" size={18}/>} label={"Actions for "+c.name}/>)},
+  ];
+
+  return (
+    <Shell active="classes">
+      <div className="page">
+
+        <div className="page-head">
+          <div>
+            <h1>Classes</h1>
+            <div className="page-sub">All classes in this tenant. <span className="u-mono">6 classes</span> ·{' '}
+              <span style={{color:'var(--text-muted)'}}>Stats last updated 2h ago · server</span></div>
+          </div>
+          <Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>} onClick={()=>setOpen(true)}>New class</Button>
+        </div>
+
+        <div>
+          <div className="toolbar">
+            <div className="toolbar__search">
+              <Input placeholder="Search by name, grade, or section" aria-label="Search classes"/>
+            </div>
+            <Select aria-label="Session filter" options={[{value:'all',label:'All sessions'},{value:'2025-26',label:'2025–26'}]}/>
+            <Select aria-label="Status filter" options={[{value:'all',label:'All statuses'},{value:'active',label:'Active'},{value:'archived',label:'Archived'}]}/>
+            <Select aria-label="Teacher filter" options={[{value:'all',label:'All teachers'},{value:'rao',label:'A. Rao'},{value:'khan',label:'M. Khan'}]}/>
+            <div className="toolbar__count"><Icon name="layers" size={14}/><span className="u-mono">6</span> shown</div>
+          </div>
+          <div className="chips-row">
+            <span className="u-caption" style={{color:'var(--text-muted)'}}>Active filters:</span>
+            <Chip active removable>Session: 2025–26</Chip>
+            <Chip active removable>Status: Active</Chip>
+          </div>
+        </div>
+
+        <Card className="table-card">
+          <DataTable columns={cols} rows={CLASSES}/>
+          <div className="table-foot">
+            <span className="u-caption">Showing <span className="u-mono">1–6</span> of <span className="u-mono">6</span></span>
+            <Pagination pages={3} current={1}/>
+          </div>
+        </Card>
+
+        <Section title="States">
+          <div className="states-grid">
+
+            <div className="state-mini">
+              <span className="u-caption">Loading — skeleton rows</span>
+              <Card className="table-card">
+                <div className="skl-rows">
+                  {[0,1,2,3].map(i=>(
+                    <div className="skl-row" key={i}>
+                      <Skeleton width="34%" height="0.9rem"/>
+                      <Skeleton width="14%"/>
+                      <Skeleton width="26%" height="0.6rem"/>
+                      <Skeleton variant="circle" width="22px" height="22px"/>
+                    </div>))}
+                </div>
+              </Card>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Partial — analytics not yet resolved</span>
+              <Card style={{padding:'var(--space-4)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'var(--space-4)'}}>
+                  <strong style={{fontSize:'var(--text-sm)',fontWeight:'var(--weight-medium)'}}>Grade 8 — Section C</strong>
+                  <Badge>2025–26</Badge>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'var(--space-4)',marginTop:'var(--space-3)'}}>
+                  <div style={{flex:1}}><div className="u-caption" style={{marginBottom:4}}>Avg performance</div><Skeleton width="100%" height="0.6rem"/></div>
+                  <div><div className="u-caption" style={{marginBottom:4}}>At-risk</div>
+                    <span className="muted-dash" title="No analytics yet — updates after the next nightly run.">—</span></div>
+                </div>
+                <div className="u-caption" style={{color:'var(--text-muted)',marginTop:'var(--space-3)'}}>No analytics yet — updates after the next nightly run.</div>
+              </Card>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty — teacher, no managed classes</span>
+              <Card style={{padding:'var(--space-2)'}}>
+                <EmptyState icon="book-open" title="No classes assigned to you yet"
+                  body="Once an administrator assigns you to a class, it'll appear here. You can also create a class if your role allows it."
+                  action={<Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>}>New class</Button>}/>
+              </Card>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty — admin, no classes</span>
+              <Card style={{padding:'var(--space-2)'}}>
+                <EmptyState icon="book-open" title="No classes yet"
+                  body="Create your first class to start enrolling students and assigning spaces and exams."
+                  action={<Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>}>New class</Button>}/>
+              </Card>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty — filtered to nothing</span>
+              <Card style={{padding:'var(--space-2)'}}>
+                <EmptyState icon="search-x" title="No classes match your filters"
+                  body="Try a different search term or clear the session/status filters."
+                  action={<Button variant="secondary">Clear filters</Button>}/>
+              </Card>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Error — load failure</span>
+              <Alert variant="error" title="Couldn't load classes">
+                Something went wrong loading your classes. Check your connection and try again.
+                <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+              </Alert>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Permission — teacher view (no teacher column)</span>
+              <Card style={{padding:'var(--space-4)'}}>
+                <div className="u-caption" style={{marginBottom:'var(--space-3)',color:'var(--text-muted)'}}>Row menu (managed-class scope)</div>
+                <div style={{display:'flex',flexDirection:'column',gap:'var(--space-2)'}}>
+                  <Button variant="ghost" size="sm" leadingIcon={<Icon name="arrow-up-right" size={14}/>}>Open</Button>
+                  <Button variant="ghost" size="sm" leadingIcon={<Icon name="pencil" size={14}/>}>Edit</Button>
+                  <Button variant="ghost" size="sm" leadingIcon={<Icon name="archive" size={14}/>}>Archive</Button>
+                </div>
+                <div className="u-caption" style={{marginTop:'var(--space-3)',color:'var(--text-muted)'}}>Admin adds: Reassign teachers</div>
+              </Card>
+            </div>
+
+          </div>
+        </Section>
+
+      </div>
+
+      <ClassFormModal open={open} onClose={()=>setOpen(false)}/>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

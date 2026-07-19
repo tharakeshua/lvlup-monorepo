@@ -19,6 +19,7 @@ import type { ProgressItemUpdate } from "../repo-admin/types.js";
 import { tsOrNull, tsRequired } from "../shared/projections.js";
 import { xrepos } from "../shared/extended-repos.js";
 import { autoEvaluateDeterministic, storyPointTypeToSessionType } from "./grading.js";
+import { scoreOne } from "./practice.js";
 import { applyProgress } from "./progress-updater.js";
 import { projectTestSessionLive } from "./levelup-projection.js";
 
@@ -313,12 +314,40 @@ export async function submitTestSessionService(
     const type = (sub["itemType"] as string) ?? "short_answer";
     const maxScore = (sub["maxScore"] as number | undefined) ?? 1;
     const key = await ctx.repos.answerKeys.get(tenantId, itemId);
-    const { evaluation, aiPending: pending } = autoEvaluateDeterministic(
+    let { evaluation, aiPending: pending } = autoEvaluateDeterministic(
       type,
       key,
       sub["answer"],
       maxScore
     );
+    // AI-pending items are graded FOR REAL through the Evaluation Core (the
+    // same path practice uses — AI-EVALUATION-CORE-PLAN.md Phase 2). On gateway
+    // failure the zeroed placeholder stays and `aiPending` keeps the "graded"
+    // notification held back (graceful degradation, never a fake score).
+    if (pending) {
+      try {
+        const item = await ctx.repos.items.get(tenantId, itemId);
+        if (item) {
+          evaluation = await scoreOne(
+            ctx,
+            tenantId,
+            item,
+            itemId,
+            sub["answer"],
+            undefined,
+            session["spaceId"] as string,
+            "batch",
+            {
+              storyPointId: session["storyPointId"] as string,
+              testSessionId: input.sessionId,
+            }
+          );
+          pending = false;
+        }
+      } catch {
+        /* placeholder + aiPending retained */
+      }
+    }
     if (pending) aiPending++;
     totalScore += evaluation.score;
     totalMax += evaluation.maxScore;

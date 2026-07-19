@@ -17,7 +17,9 @@ import {
   useUploadImage,
   asApiError,
 } from "@levelup/query";
-import type { UnifiedItem } from "@levelup/shared-types";
+import type { GeneratedItem } from "@levelup/api-contract";
+import type { UnifiedItem as CanonicalItem } from "@levelup/domain";
+import { BLOOMS_LEVELS, type BloomsLevel } from "@levelup/shared-types";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +48,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import ItemPreview from "./ItemPreview";
+import { toItemEditorModel } from "./item-editor-contract";
 
 const QUESTION_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "mcq", label: "Multiple Choice" },
@@ -70,18 +73,9 @@ const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Easy" },
   { value: "medium", label: "Medium" },
   { value: "hard", label: "Hard" },
-  { value: "expert", label: "Expert" },
 ];
 
-interface GeneratedDraft {
-  itemType: "question" | "material";
-  questionType?: string;
-  title: string;
-  payload: unknown;
-  bloomsLevel?: string;
-  topics?: string[];
-  suggestedRubric?: unknown;
-}
+type GeneratedDraft = GeneratedItem;
 
 interface Props {
   open: boolean;
@@ -234,11 +228,14 @@ export default function GenerateContentPanel({
     }
   }
 
-  async function acceptDraft(idx: number) {
+  async function acceptDraft(idx: number): Promise<boolean> {
     const draft = drafts[idx];
-    if (!draft) return;
+    if (!draft) return false;
     setAcceptingDraft(idx);
     try {
+      const bloomsLevel = BLOOMS_LEVELS.includes(draft.bloomsLevel as BloomsLevel)
+        ? (draft.bloomsLevel as BloomsLevel)
+        : undefined;
       await saveItem.mutateAsync({
         spaceId,
         storyPointId,
@@ -247,13 +244,17 @@ export default function GenerateContentPanel({
           payload: draft.payload,
           title: draft.title,
           ...(draft.topics?.length ? { topics: draft.topics } : {}),
-          ...(difficulty ? { difficulty } : {}),
+          ...(difficulty ? { difficulty: difficulty as "easy" | "medium" | "hard" } : {}),
+          ...(draft.suggestedRubric ? { rubric: draft.suggestedRubric } : {}),
+          ...(bloomsLevel ? { meta: { bloomsLevel } } : {}),
         },
       });
       setAcceptedDrafts((prev) => new Set(prev).add(idx));
       onAccepted();
+      return true;
     } catch (err) {
       handleError(err, "Failed to save item");
+      return false;
     } finally {
       setAcceptingDraft(null);
     }
@@ -266,10 +267,11 @@ export default function GenerateContentPanel({
     let accepted = 0;
     try {
       for (const idx of pending) {
-        await acceptDraft(idx);
-        accepted++;
+        if (await acceptDraft(idx)) accepted++;
       }
-      sonnerToast.success(`Accepted ${accepted} item${accepted === 1 ? "" : "s"}`);
+      if (accepted > 0) {
+        sonnerToast.success(`Accepted ${accepted} item${accepted === 1 ? "" : "s"}`);
+      }
     } finally {
       setAcceptingAll(false);
     }
@@ -313,7 +315,7 @@ export default function GenerateContentPanel({
               {/* Question type multi-select */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Question types</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {QUESTION_TYPE_OPTIONS.map(({ value, label }) => (
                     <label
                       key={value}
@@ -471,16 +473,21 @@ export default function GenerateContentPanel({
                   const isAccepting = acceptingDraft === idx;
 
                   // Build a UnifiedItem-shaped object for ItemPreview rendering.
-                  const previewItem = {
+                  const previewItem = toItemEditorModel({
                     id: `draft_${idx}`,
                     type: draft.itemType,
                     payload: draft.payload,
                     title: draft.title,
-                    spaceId: "",
-                    storyPointId: "",
-                    tenantId: "",
+                    spaceId,
+                    storyPointId,
+                    tenantId: "preview",
                     orderIndex: idx,
-                  } as unknown as UnifiedItem;
+                    createdAt: "1970-01-01T00:00:00.000Z",
+                    updatedAt: "1970-01-01T00:00:00.000Z",
+                    createdBy: "preview",
+                    updatedBy: "preview",
+                    archivedAt: null,
+                  } as CanonicalItem);
 
                   return (
                     <div

@@ -1,0 +1,101 @@
+<!-- @dsCard group="Components" name="Containers & Navigation" subtitle="Cards, panels, tabs, accordion & app shell" viewport="1240x1360" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyceum — Containers & Navigation</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="ds-card">
+  <div class="ds-card__head">
+    <div class="u-eyebrow">Components · §5.2 / §5.5</div>
+    <h1 class="ds-card__title">Containers & Navigation</h1>
+    <p class="ds-card__subtitle">Surfaces that hold content and the chrome that moves between it.</p>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Cards & panels</div>
+    <div class="ds-grid" style="grid-template-columns:repeat(3,1fr); align-items:start">
+      <div class="card">
+        <div class="card__head"><span class="card__title">Mechanics Unit 4</span><span class="badge badge--brand">Active</span></div>
+        <p class="card__body">Newtonian dynamics, friction, and circular motion. 18 questions across 3 difficulty bands.</p>
+        <button class="btn btn--secondary btn--sm">Open</button>
+      </div>
+      <div class="card card--interactive">
+        <div class="card__head"><span class="card__title">Interactive</span><span class="badge badge--spark">Hover</span></div>
+        <p class="card__body">Lifts on hover with elevation e2 — used for clickable cards in grids.</p>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><span class="panel__title">Grading queue</span><button class="icon-btn icon-btn--sm"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></div>
+        <div class="panel__body" style="color:var(--text-secondary); font-size:var(--text-sm)">42 submissions awaiting review.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Tabs</div>
+    <div class="ds-row" style="gap:var(--space-10); align-items:flex-start">
+      <div class="tabs">
+        <div class="tabs__list">
+          <button class="tabs__trigger" aria-selected="true">Overview</button>
+          <button class="tabs__trigger">Submissions</button>
+          <button class="tabs__trigger">Analytics</button>
+        </div>
+        <div class="tabs__panel" style="font-size:var(--text-sm); color:var(--text-secondary)">Underline tabs — default.</div>
+      </div>
+      <div class="tabs tabs--pill">
+        <div class="tabs__list">
+          <button class="tabs__trigger" aria-selected="true">Day</button>
+          <button class="tabs__trigger">Week</button>
+          <button class="tabs__trigger">Month</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">Accordion</div>
+    <div class="accordion" style="max-width:560px">
+      <div class="accordion__item" data-open="true">
+        <button class="accordion__trigger">How is confidence scored?<span class="accordion__chevron"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="accordion__panel"><div class="accordion__panel-inner"><div>The model returns a 0–1 score per item. Below 0.7 routes to human review; above 0.9 auto-accepts.</div></div></div>
+      </div>
+      <div class="accordion__item">
+        <button class="accordion__trigger">Can I override a grade?<span class="accordion__chevron"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="accordion__panel"><div class="accordion__panel-inner"><div>Yes — any auto-grade can be manually overridden, with an audit trail.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-card__section">
+    <div class="ds-card__section-label">App shell</div>
+    <div style="height:340px; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); overflow:hidden; position:relative">
+      <div class="appshell">
+        <aside class="appshell__sidebar">
+          <div class="sidebar__brand"><span class="sidebar__brand-mark">L</span><span class="sidebar__brand-name">Lyceum</span></div>
+          <nav class="sidebar__nav">
+            <span class="sidebar__section-label">Teach</span>
+            <a class="nav-item" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</a>
+            <a class="nav-item"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Assignments<span class="nav-item__badge badge badge--brand">3</span></a>
+            <a class="nav-item"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>Roster</a>
+            <span class="sidebar__section-label">Insights</span>
+            <a class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analytics</a>
+          </nav>
+        </aside>
+        <header class="appshell__topbar">
+          <div class="breadcrumb"><a>Assignments</a><span class="breadcrumb__sep">/</span><span class="breadcrumb__current">Unit 4 Quiz</span></div>
+          <span class="topbar__spacer"></span>
+          <input class="input topbar__search" placeholder="Search submissions…" style="max-width:280px">
+          <span class="avatar avatar--sm">AR</span>
+        </header>
+        <main class="appshell__main">
+          <div class="stat"><span class="stat__label">Awaiting review</span><span class="stat__value">42</span></div>
+        </main>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -38,6 +38,8 @@ import {
   Skeleton,
   EmptyState,
   Divider,
+  Icon,
+  colors,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { useSession } from "../../sdk/session";
@@ -289,6 +291,36 @@ export default function ProfileScreen() {
             />
           </View>
         </View>
+
+        {/* MY PROGRESS — the Progress lane moved off the main tab bar */}
+        <Card className="gap-1">
+          <Text className="font-display text-text-primary mb-1 text-lg font-semibold">
+            My progress
+          </Text>
+          <ListRow
+            title="Progress & analytics"
+            leading={<Icon name="bar-chart-3" size={18} color={colors.brand} />}
+            onPress={() => router.push(routes.progress())}
+          />
+          <Divider />
+          <ListRow
+            title="Achievements"
+            leading={<Icon name="award" size={18} color={colors.brand} />}
+            onPress={() => router.push(routes.achievements())}
+          />
+          <Divider />
+          <ListRow
+            title="Leaderboard"
+            leading={<Icon name="trophy" size={18} color={colors.brand} />}
+            onPress={() => router.push(routes.leaderboard())}
+          />
+          <Divider />
+          <ListRow
+            title="Goals"
+            leading={<Icon name="target" size={18} color={colors.brand} />}
+            onPress={() => router.push(routes.goals())}
+          />
+        </Card>
 
         {/* YOUR SCHOOL */}
         <Card className="gap-1">

@@ -1,0 +1,107 @@
+<!-- @dsCard group="Type" viewport="920x720" name="Typography" subtitle="Scale + three families" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:var(--space-8)}
+  .ds-stack{display:flex;flex-direction:column;gap:var(--space-10);max-width:840px}
+  .ds-group{display:flex;flex-direction:column;gap:var(--space-3)}
+  .ds-cap{font-family:var(--font-mono);font-size:var(--text-2xs);line-height:var(--leading-2xs);letter-spacing:var(--tracking-caption);color:var(--text-muted);text-transform:uppercase}
+  .ds-row{display:flex;align-items:baseline;gap:var(--space-5);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+  .ds-row:last-child{border-bottom:0}
+  .ds-px{font-family:var(--font-mono);font-size:var(--text-2xs);line-height:var(--leading-2xs);color:var(--text-muted);min-width:88px;flex:0 0 auto}
+  .ds-sample{color:var(--text-primary);min-width:0}
+  .fam{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl)}
+  .fam--ui{font-family:var(--font-ui)}
+  .fam--mono{font-family:var(--font-mono)}
+  .fam__note{font-family:var(--font-mono);font-size:var(--text-2xs);line-height:var(--leading-2xs);color:var(--text-secondary)}
+  .tok{color:var(--brand-primary)}
+  .scale-line{font-family:var(--font-display);color:var(--text-primary)}
+  .s-2xs{font-size:var(--text-2xs);line-height:var(--leading-2xs)}
+  .s-xs{font-size:var(--text-xs);line-height:var(--leading-xs)}
+  .s-sm{font-size:var(--text-sm);line-height:var(--leading-sm)}
+  .s-base{font-size:var(--text-base);line-height:var(--leading-base)}
+  .s-lg{font-size:var(--text-lg);line-height:var(--leading-lg)}
+  .s-xl{font-size:var(--text-xl);line-height:var(--leading-xl)}
+  .s-2xl{font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:var(--tracking-display)}
+  .s-3xl{font-size:var(--text-3xl);line-height:var(--leading-3xl);letter-spacing:var(--tracking-display)}
+  .s-4xl{font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:var(--tracking-display)}
+  .s-5xl{font-size:var(--text-5xl);line-height:var(--leading-5xl);letter-spacing:var(--tracking-display)}
+</style>
+</head><body>
+<div class="ds-stack">
+
+  <section class="ds-group">
+    <div class="ds-cap">Three families</div>
+
+    <div class="ds-row">
+      <span class="ds-px">--font-display</span>
+      <span class="ds-sample">
+        <div class="fam">Fraunces — scholarly display serif</div>
+        <div class="fam__note">Display headings · the Lyceum voice</div>
+      </span>
+    </div>
+
+    <div class="ds-row">
+      <span class="ds-px">--font-ui</span>
+      <span class="ds-sample">
+        <div class="fam fam--ui">Schibsted Grotesk — interface sans</div>
+        <div class="fam__note">Body copy, labels &amp; controls</div>
+      </span>
+    </div>
+
+    <div class="ds-row">
+      <span class="ds-px">--font-mono</span>
+      <span class="ds-sample">
+        <div class="fam fam--mono">Spline Sans Mono — code &amp; data</div>
+        <div class="fam__note">Captions, tokens &amp; tabular figures</div>
+      </span>
+    </div>
+  </section>
+
+  <section class="ds-group">
+    <div class="ds-cap">Type scale · 2xs &rarr; 5xl</div>
+
+    <div class="ds-row">
+      <span class="ds-px">11px <span class="tok">2xs</span></span>
+      <span class="ds-sample"><span class="scale-line s-2xs">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">12px <span class="tok">xs</span></span>
+      <span class="ds-sample"><span class="scale-line s-xs">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">13px <span class="tok">sm</span></span>
+      <span class="ds-sample"><span class="scale-line s-sm">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">16px <span class="tok">base</span></span>
+      <span class="ds-sample"><span class="scale-line s-base">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">20px <span class="tok">lg</span></span>
+      <span class="ds-sample"><span class="scale-line s-lg">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">25px <span class="tok">xl</span></span>
+      <span class="ds-sample"><span class="scale-line s-xl">The marigold spark of learning</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">31px <span class="tok">2xl</span></span>
+      <span class="ds-sample"><span class="scale-line s-2xl">Marigold spark</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">39px <span class="tok">3xl</span></span>
+      <span class="ds-sample"><span class="scale-line s-3xl">Marigold spark</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">49px <span class="tok">4xl</span></span>
+      <span class="ds-sample"><span class="scale-line s-4xl">Lyceum</span></span>
+    </div>
+    <div class="ds-row">
+      <span class="ds-px">61px <span class="tok">5xl</span></span>
+      <span class="ds-sample"><span class="scale-line s-5xl">Lyceum</span></span>
+    </div>
+  </section>
+
+</div>
+</body></html>

@@ -44,30 +44,79 @@ const answerKey = z.object({
   modelAnswer: z.string().optional(),
 });
 
-const item = z.discriminatedUnion("kind", [
-  z.object({
-    key,
-    kind: z.literal("question"),
-    questionType: z.string(),
-    order: z.number().optional(),
-    prompt: z.string(),
-    options: z.array(z.object({ id: z.string(), text: z.string() })).optional(),
-    points: z.number().optional(),
-    answer: answerKey,
-    rubricPresetKey: key.optional(),
-    rubric: rubric.optional(),
+const chatObjective = z.object({ key, label: z.string().min(1) });
+const chatPrivateObjective = z.object({
+  key,
+  rubricDimensionKey: key,
+  description: z.string().min(1),
+  evidenceRequirement: z.string().min(1).optional(),
+});
+const chatCompletionPolicy = z
+  .object({
+    minLearnerTurns: z.number().int().min(1).max(12),
+    maxLearnerTurns: z.number().int().min(1).max(12),
+    allowEarlyFinish: z.boolean(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.minLearnerTurns > value.maxLearnerTurns) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["minLearnerTurns"],
+        message: "must not exceed maxLearnerTurns",
+      });
+    }
+  });
+
+const standardQuestionItem = z.object({
+  key,
+  kind: z.literal("question"),
+  questionType: z.string().refine((value) => value !== "chat_agent_question", {
+    message: "chat_agent_question requires the assessment shape",
   }),
-  z.object({
-    key,
-    kind: z.literal("material"),
-    materialType: z.string(),
-    order: z.number().optional(),
-    title: z.string(),
-    body: z.string().optional(),
-    url: z.string().optional(),
-    durationSeconds: z.number().optional(),
+  order: z.number().optional(),
+  prompt: z.string(),
+  options: z.array(z.object({ id: z.string(), text: z.string() })).optional(),
+  points: z.number().optional(),
+  answer: answerKey,
+  rubricPresetKey: key.optional(),
+  rubric: rubric.optional(),
+});
+
+const chatAgentQuestionItem = z.object({
+  key,
+  kind: z.literal("question"),
+  questionType: z.literal("chat_agent_question"),
+  order: z.number().optional(),
+  prompt: z.string().min(1),
+  scenario: z.string().min(1),
+  publicLearningObjectives: z.array(chatObjective).min(1),
+  conversationStarters: z.array(z.string().min(1)).optional(),
+  interviewerAgentKey: key,
+  evaluatorAgentKey: key.optional(),
+  completionPolicy: chatCompletionPolicy,
+  answer: z.object({
+    modelAnswer: z.string().optional(),
+    evaluationGuidance: z.string().optional(),
+    privateEvaluationObjectives: z.array(chatPrivateObjective).min(1),
   }),
-]);
+  rubricPresetKey: key.optional(),
+  rubric: rubric.optional(),
+});
+
+const materialItem = z.object({
+  key,
+  kind: z.literal("material"),
+  materialType: z.string(),
+  order: z.number().optional(),
+  title: z.string(),
+  body: z.string().optional(),
+  url: z.string().optional(),
+  durationSeconds: z.number().optional(),
+});
+
+// `kind` alone cannot discriminate two distinct question forms, so retain a
+// small union here and make `questionType` the assessment discriminator.
+const item = z.union([standardQuestionItem, chatAgentQuestionItem, materialItem]);
 
 const storyPoint = z.object({
   key,
@@ -135,7 +184,22 @@ const tenant = z
         z.object({ key, firstName: z.string(), lastName: z.string(), ...account }).passthrough()
       )
       .optional(),
-    agents: z.array(z.object({ key, name: z.string() }).passthrough()).optional(),
+    agents: z
+      .array(
+        z
+          .object({
+            key,
+            name: z.string(),
+            spaceKey: key,
+            type: z.enum(["tutor", "interviewer", "evaluator"]).optional(),
+            modelPolicyId: z
+              .enum(["conversation.fast", "conversation.quality", "evaluation.quality"])
+              .optional(),
+            version: z.number().int().positive().optional(),
+          })
+          .passthrough()
+      )
+      .optional(),
     rubricPresets: z.array(z.object({ key, name: z.string(), rubric }).passthrough()).optional(),
     questionBank: z.array(z.object({ key, prompt: z.string() }).passthrough()).optional(),
     spaces: z.array(space).optional(),

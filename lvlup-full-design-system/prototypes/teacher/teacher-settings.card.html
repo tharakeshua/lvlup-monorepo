@@ -1,0 +1,507 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Teacher Settings" subtitle="Profile/display · theme · notification prefs · admin Evaluation" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* screen-local layout only — Lyceum vars only, NO raw hex, NO :root redefinition */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+.settings{max-width:var(--reading-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2)}
+.pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+
+/* tab rail + content (lg: 200px rail / 1fr content) */
+.layout{display:grid;grid-template-columns:200px 1fr;gap:var(--space-8);align-items:start}
+@media (max-width:1023px){.layout{grid-template-columns:1fr}}
+
+.rail{display:flex;flex-direction:column;gap:var(--space-1);position:sticky;top:var(--space-2)}
+@media (max-width:1023px){.rail{flex-direction:row;overflow-x:auto;position:static;padding-bottom:var(--space-2);border-bottom:1px solid var(--border-subtle)}}
+.railtab{display:flex;align-items:center;gap:var(--space-2);border:none;background:transparent;color:var(--text-secondary);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);cursor:pointer;text-align:left;white-space:nowrap;transition:background-color var(--dur-fast) var(--ease-standard)}
+.railtab:hover{color:var(--text-primary);background:var(--bg-surface-sunken)}
+.railtab:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.railtab--on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold)}
+
+/* cards */
+.scard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-6)}
+.scard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);line-height:var(--leading-xl);margin:0}
+.scard__intro{font-size:var(--text-sm);color:var(--text-secondary);margin:var(--space-1) 0 var(--space-5)}
+.scard__foot{display:flex;justify-content:flex-end;gap:var(--space-3);margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--border-subtle)}
+
+/* form rows */
+.frow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.frow:first-of-type{border-top:none}
+.frow__main{min-width:0;flex:1 1 auto}
+.frow__label{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.frow__desc{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.frow__ctrl{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-3)}
+.frow__ctrl--readonly{color:var(--text-secondary);font-size:var(--text-sm)}
+
+/* profile identity row */
+.idrow{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-4)}
+
+/* grouped sub-sections (evaluation) */
+.subgroup{background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-4);margin-top:var(--space-4)}
+.subgroup__label{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:0 0 var(--space-2)}
+.numgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+@media (max-width:767px){.numgrid{grid-template-columns:1fr}}
+
+/* mono numeric readout for sliders */
+.readout{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);min-width:44px;text-align:right}
+.sliderwrap{display:flex;align-items:center;gap:var(--space-3)}
+.sliderwrap .slider{flex:1}
+
+/* tenant-wide banner spacing */
+.evalbanner{margin-bottom:var(--space-5)}
+
+/* states rail */
+.states__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:767px){.states__grid{grid-template-columns:1fr}}
+.mini{border:1px dashed var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);background:var(--bg-surface)}
+.u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);display:block}
+.sk-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Switch, Slider, Badge, Avatar, Section, DefinitionList, EmptyState, Skeleton, Alert, Toast, Modal } = window.LvlupV0DesignSystem_5d0725;
+const { useState, useEffect } = React;
+
+/* ---- shared app shell (active nav = settings) ---- */
+const NavItem = window.LvlupV0DesignSystem_5d0725.NavItem;
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main" role="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---- notification types (admin-only ai_budget_alert) ---- */
+const NOTIF_ROWS = [
+  {key:'student_at_risk',      label:'At-risk alerts',     desc:'When a student in your classes is flagged at risk.',    admin:false},
+  {key:'grading_complete',     label:'Grading complete',   desc:'When AI grading finishes for an exam you manage.',      admin:false},
+  {key:'exam_results_released',label:'Results released',   desc:'When exam results are released to students.',           admin:false},
+  {key:'system_announcement',  label:'Announcements',      desc:'Tenant announcements from your administrator.',         admin:false},
+  {key:'ai_budget_alert',      label:'AI budget alerts',   desc:'When this tenant nears its monthly AI budget.',         admin:true},
+];
+
+const STRICTNESS = [
+  {value:'lenient', label:'Lenient'},
+  {value:'moderate', label:'Moderate'},
+  {value:'strict', label:'Strict'},
+];
+
+/* ---- Profile tab ---- */
+function ProfileTab({onSave}){
+  const [name,setName] = useState('Taylor Singh');
+  const [dirty,setDirty] = useState(false);
+  const empty = name.trim()==='';
+  return (
+    <form className="scard" onSubmit={e=>{e.preventDefault(); if(!empty){onSave('Profile saved'); setDirty(false);}}} aria-labelledby="profile-title">
+      <h2 className="scard__title" id="profile-title">Profile &amp; display</h2>
+      <p className="scard__intro">Your identity in this tenant. Email, role, and tenant are managed for you.</p>
+
+      <div className="idrow">
+        <Avatar initials="TS" size="lg"/>
+        <div className="frow__main">
+          <label className="frow__label" htmlFor="dn">Display name</label>
+          <div className="frow__desc">How your name appears to colleagues and in reports.</div>
+          <div style={{marginTop:'var(--space-2)'}}>
+            <Input id="dn" value={name} error={empty?'Enter a display name.':undefined}
+              aria-invalid={empty} aria-describedby={empty?'dn-err':undefined}
+              onChange={e=>{setName(e.target.value); setDirty(true);}}/>
+            {empty && <div id="dn-err" className="field__error" role="alert">Enter a display name.</div>}
+          </div>
+        </div>
+      </div>
+
+      <DefinitionList items={[
+        {term:'Email', value:<span>taylor.singh@subhang.academy <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>· Managed by your administrator.</span></span>},
+        {term:'Role', value:<Badge variant="brand">Tenant admin</Badge>},
+        {term:'Tenant', value:<span>Subhang Academy <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>· Switch tenants from the top bar.</span></span>},
+      ]}/>
+
+      <div className="scard__foot">
+        <Button type="submit" variant="primary" disabled={!dirty || empty} leadingIcon={<Icon name="check" size={16}/>}>Save profile</Button>
+      </div>
+    </form>
+  );
+}
+
+/* ---- Appearance tab (instant, no save) ---- */
+function AppearanceTab(){
+  const [theme,setTheme] = useState('system');
+  const opts = [{value:'light',label:'Light',icon:'sun'},{value:'system',label:'System',icon:'monitor'},{value:'dark',label:'Dark',icon:'moon'}];
+  return (
+    <div className="scard" aria-labelledby="appearance-title">
+      <h2 className="scard__title" id="appearance-title">Appearance</h2>
+      <p className="scard__intro">Theme applies instantly across the portal — no save needed.</p>
+      <div className="frow">
+        <div className="frow__main">
+          <div className="frow__label">Theme</div>
+          <div className="frow__desc">Applies instantly across the portal.</div>
+        </div>
+        <div className="frow__ctrl" role="radiogroup" aria-label="Theme">
+          {opts.map(o=>(
+            <button key={o.value} type="button" role="radio" aria-checked={theme===o.value}
+              className={'railtab '+(theme===o.value?'railtab--on':'')} onClick={()=>setTheme(o.value)}>
+              <Icon name={o.icon} size={16}/> {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Notifications tab ---- */
+function NotificationsTab({isAdmin, onSave}){
+  const [enabled,setEnabled] = useState({student_at_risk:true,grading_complete:true,exam_results_released:true,system_announcement:true,ai_budget_alert:true});
+  const [mute,setMute] = useState('');
+  const [dirty,setDirty] = useState(false);
+  const rows = NOTIF_ROWS.filter(r=>!r.admin || isAdmin);
+  return (
+    <form className="scard" onSubmit={e=>{e.preventDefault(); onSave('Notification preferences saved'); setDirty(false);}} aria-labelledby="notif-title">
+      <h2 className="scard__title" id="notif-title">Notifications</h2>
+      <p className="scard__intro">Choose which alerts you receive in this tenant.</p>
+      {rows.map(r=>(
+        <div className="frow" key={r.key}>
+          <div className="frow__main">
+            <label className="frow__label" htmlFor={'sw-'+r.key} id={'lbl-'+r.key}>{r.label}</label>
+            <div className="frow__desc" id={'desc-'+r.key}>{r.desc}</div>
+          </div>
+          <div className="frow__ctrl">
+            <Switch checked={enabled[r.key]} aria-labelledby={'lbl-'+r.key} aria-describedby={'desc-'+r.key}
+              onChange={()=>{setEnabled({...enabled,[r.key]:!enabled[r.key]}); setDirty(true);}}/>
+          </div>
+        </div>
+      ))}
+      <div className="frow">
+        <div className="frow__main">
+          <label className="frow__label" htmlFor="mute">Mute until</label>
+          <div className="frow__desc">Pause all notifications until this date.</div>
+        </div>
+        <div className="frow__ctrl">
+          <Input id="mute" type="date" value={mute} onChange={e=>{setMute(e.target.value); setDirty(true);}} aria-label="Mute notifications until date"/>
+        </div>
+      </div>
+      <div className="scard__foot">
+        <Button type="submit" variant="primary" disabled={!dirty} leadingIcon={<Icon name="check" size={16}/>}>Save notifications</Button>
+      </div>
+    </form>
+  );
+}
+
+/* ---- Evaluation tab (tenantAdmin only) ---- */
+function EvaluationTab({onSave}){
+  const [created,setCreated] = useState(true); // toggle to false to preview first-run EmptyState
+  const [autoGrade,setAutoGrade] = useState(true);
+  const [requireReason,setRequireReason] = useState(true);
+  const [autoRelease,setAutoRelease] = useState(false);
+  const [strictness,setStrictness] = useState('moderate');
+  const [needsReview,setNeedsReview] = useState(0.70);
+  const [autoApprove,setAutoApprove] = useState(0.90);
+  const [reviewPartial,setReviewPartial] = useState(true);
+  const [budget,setBudget] = useState(0);
+  const [dailyLimit,setDailyLimit] = useState(0);
+  const [warnPct,setWarnPct] = useState(80);
+  const [dirty,setDirty] = useState(false);
+  const [confirm,setConfirm] = useState(null); // {kind, apply}
+
+  const orderBad = needsReview > autoApprove;
+
+  if(!created){
+    return (
+      <div className="scard" aria-labelledby="eval-title">
+        <h2 className="scard__title" id="eval-title">Evaluation settings</h2>
+        <EmptyState icon="sliders-horizontal" title="No evaluation defaults yet"
+          body="Set how this tenant auto-grades, releases results, and routes low-confidence grades for review."
+          action={<Button variant="primary" onClick={()=>setCreated(true)}>Create defaults</Button>}/>
+      </div>
+    );
+  }
+
+  const submit = (e)=>{ e.preventDefault(); if(orderBad) return; onSave('Evaluation settings saved'); setDirty(false); };
+
+  return (
+    <form className="scard" onSubmit={submit} aria-labelledby="eval-title">
+      <h2 className="scard__title" id="eval-title">Evaluation settings</h2>
+      <div className="evalbanner">
+        <Alert variant="info" title="Tenant-wide">
+          These defaults apply to all teachers and future exams in Subhang Academy.
+        </Alert>
+      </div>
+
+      {/* Grading policy */}
+      <div className="subgroup">
+        <p className="subgroup__label">Grading policy</p>
+        <div className="frow">
+          <div className="frow__main"><label className="frow__label" id="lbl-ag">Auto-grade submissions</label><div className="frow__desc" id="desc-ag">Grade submissions automatically with AI when they arrive.</div></div>
+          <div className="frow__ctrl"><Switch checked={autoGrade} aria-labelledby="lbl-ag" aria-describedby="desc-ag"
+            onChange={()=>{ if(autoGrade){ setConfirm({kind:'autograde-off', apply:()=>{setAutoGrade(false); setDirty(true);}}); } else { setAutoGrade(true); setDirty(true); } }}/></div>
+        </div>
+        <div className="frow">
+          <div className="frow__main"><label className="frow__label" id="lbl-ror">Require override reason</label><div className="frow__desc" id="desc-ror">Make teachers enter a reason when overriding an AI grade.</div></div>
+          <div className="frow__ctrl"><Switch checked={requireReason} aria-labelledby="lbl-ror" aria-describedby="desc-ror" onChange={()=>{setRequireReason(!requireReason); setDirty(true);}}/></div>
+        </div>
+        <div className="frow">
+          <div className="frow__main"><label className="frow__label" id="lbl-arr">Auto-release results</label><div className="frow__desc" id="desc-arr">Release results to students automatically once grading completes.</div></div>
+          <div className="frow__ctrl"><Switch checked={autoRelease} aria-labelledby="lbl-arr" aria-describedby="desc-arr"
+            onChange={()=>{ if(!autoRelease){ setConfirm({kind:'autorelease-on', apply:()=>{setAutoRelease(true); setDirty(true);}}); } else { setAutoRelease(false); setDirty(true); } }}/></div>
+        </div>
+        <div className="frow">
+          <div className="frow__main"><label className="frow__label" htmlFor="strict">Default AI strictness</label><div className="frow__desc">The default grading strictness for new exams.</div></div>
+          <div className="frow__ctrl"><Select id="strict" value={strictness} options={STRICTNESS} onChange={e=>{setStrictness(e.target.value); setDirty(true);}} aria-label="Default AI strictness"/></div>
+        </div>
+      </div>
+
+      {/* Confidence routing */}
+      <div className="subgroup">
+        <p className="subgroup__label">Confidence routing</p>
+        <div className="frow">
+          <div className="frow__main">
+            <label className="frow__label" htmlFor="nr">Needs-review threshold</label>
+            <div className="frow__desc">Grades below this confidence are flagged for human review.</div>
+          </div>
+          <div className="frow__ctrl" style={{minWidth:200}}>
+            <div className="sliderwrap" style={{width:'100%'}}>
+              <Slider id="nr" min={0} max={1} step={0.01} value={needsReview}
+                aria-valuetext={needsReview.toFixed(2)} aria-label="Needs-review threshold"
+                onChange={e=>{setNeedsReview(parseFloat(e.target.value)); setDirty(true);}}/>
+              <span className="readout" aria-hidden="true">{needsReview.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="frow">
+          <div className="frow__main">
+            <label className="frow__label" htmlFor="aa">Auto-approve threshold</label>
+            <div className="frow__desc">Grades above this confidence are auto-approved.</div>
+          </div>
+          <div className="frow__ctrl" style={{minWidth:200}}>
+            <div className="sliderwrap" style={{width:'100%'}}>
+              <Slider id="aa" min={0} max={1} step={0.01} value={autoApprove}
+                aria-valuetext={autoApprove.toFixed(2)} aria-label="Auto-approve threshold"
+                onChange={e=>{setAutoApprove(parseFloat(e.target.value)); setDirty(true);}}/>
+              <span className="readout" aria-hidden="true">{autoApprove.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        {orderBad && <div className="field__error" role="alert">The needs-review threshold can't be higher than the auto-approve threshold.</div>}
+        <div className="frow">
+          <div className="frow__main"><label className="frow__label" id="lbl-rpc">Review partial-credit grades</label><div className="frow__desc" id="desc-rpc">Always send partial-credit grades for human review.</div></div>
+          <div className="frow__ctrl"><Switch checked={reviewPartial} aria-labelledby="lbl-rpc" aria-describedby="desc-rpc" onChange={()=>{setReviewPartial(!reviewPartial); setDirty(true);}}/></div>
+        </div>
+      </div>
+
+      {/* AI usage quota */}
+      <div className="subgroup">
+        <p className="subgroup__label">AI usage quota</p>
+        <div className="numgrid">
+          <div>
+            <label className="frow__label" htmlFor="budget">Monthly budget (USD)</label>
+            <div className="frow__desc"><span className="u-mono">0</span> = unlimited</div>
+            <Input id="budget" type="number" min={0} value={budget} onChange={e=>{setBudget(Math.max(0,+e.target.value)); setDirty(true);}} aria-label="Monthly budget in USD" style={{marginTop:'var(--space-1)',fontFamily:'var(--font-mono)'}}/>
+          </div>
+          <div>
+            <label className="frow__label" htmlFor="dlimit">Daily call limit</label>
+            <div className="frow__desc"><span className="u-mono">0</span> = unlimited</div>
+            <Input id="dlimit" type="number" min={0} value={dailyLimit} onChange={e=>{setDailyLimit(Math.max(0,+e.target.value)); setDirty(true);}} aria-label="Daily call limit" style={{marginTop:'var(--space-1)',fontFamily:'var(--font-mono)'}}/>
+          </div>
+          <div>
+            <label className="frow__label" htmlFor="warn">Warning threshold (%)</label>
+            <div className="frow__desc">Warn when usage reaches this share of the budget.</div>
+            <Input id="warn" type="number" min={0} max={100} value={warnPct} onChange={e=>{setWarnPct(Math.max(0,Math.min(100,+e.target.value))); setDirty(true);}} aria-label="Warning threshold percent" style={{marginTop:'var(--space-1)',fontFamily:'var(--font-mono)'}}/>
+          </div>
+        </div>
+      </div>
+
+      <div className="scard__foot">
+        <span style={{flex:1,fontSize:'var(--text-xs)',color:'var(--text-muted)',alignSelf:'center'}}>
+          Last updated <span className="u-mono" style={{fontFamily:'var(--font-mono)'}}>2026-06-18 14:02</span> · server-authoritative
+        </span>
+        <Button type="submit" variant="primary" disabled={!dirty || orderBad} leadingIcon={<Icon name="check" size={16}/>}>Save evaluation settings</Button>
+      </div>
+
+      {/* high-impact confirm dialogs */}
+      <Modal open={!!confirm} onClose={()=>setConfirm(null)}
+        title={confirm && confirm.kind==='autorelease-on' ? 'Release results automatically?' : 'Turn off auto-grading?'}
+        footer={confirm && (
+          <>
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            <Button variant="primary" onClick={()=>{confirm.apply(); setConfirm(null);}}>
+              {confirm.kind==='autorelease-on' ? 'Turn on auto-release' : 'Turn off auto-grading'}
+            </Button>
+          </>
+        )}>
+        {confirm && confirm.kind==='autorelease-on'
+          ? <p>Students will see their results as soon as grading completes — across all teachers and future exams. You can turn this off later.</p>
+          : <p>New submissions won't be graded by AI automatically; teachers will grade them manually. This applies tenant-wide.</p>}
+      </Modal>
+    </form>
+  );
+}
+
+function App(){
+  const isAdmin = true; // tenantAdmin — sees Evaluation tab + AI budget row
+  const tabs = ['profile','appearance','notifications'].concat(isAdmin?['evaluation']:[]);
+  const labels = {profile:'Profile', appearance:'Appearance', notifications:'Notifications', evaluation:'Evaluation settings'};
+  const icons = {profile:'user', appearance:'palette', notifications:'bell', evaluation:'sliders-horizontal'};
+  const [tab,setTab] = useState('profile');
+  const [toast,setToast] = useState(null);
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){ const id=setTimeout(()=>setToast(null),2600); return ()=>clearTimeout(id);} },[toast]);
+  const onSave = (title)=> setToast({variant:'success', title});
+
+  return (
+    <Shell active="settings">
+      <div className="settings">
+
+        <div className="pagehead">
+          <h1>Settings</h1>
+          <p className="pagehead__sub">Your preferences for <span className="u-mono">Subhang Academy</span>.</p>
+        </div>
+
+        <div className="layout">
+          <div className="rail" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
+            {tabs.map(t=>(
+              <button key={t} role="tab" id={'tab-'+t} aria-selected={tab===t} aria-controls={'panel-'+t}
+                className={'railtab '+(tab===t?'railtab--on':'')} onClick={()=>setTab(t)}>
+                <Icon name={icons[t]} size={16}/> {labels[t]}
+              </button>
+            ))}
+          </div>
+
+          <div role="tabpanel" id={'panel-'+tab} aria-labelledby={'tab-'+tab}>
+            {tab==='profile' && <ProfileTab onSave={onSave}/>}
+            {tab==='appearance' && <AppearanceTab/>}
+            {tab==='notifications' && <NotificationsTab isAdmin={isAdmin} onSave={onSave}/>}
+            {tab==='evaluation' && isAdmin && <EvaluationTab onSave={onSave}/>}
+          </div>
+        </div>
+
+        {/* ---- STATES RAIL ---- */}
+        <Section title="States">
+          <div className="states__grid">
+
+            <div className="mini">
+              <span className="u-caption">Loading · per-section skeleton</span>
+              <div role="status" aria-label="Loading settings">
+                {[0,1,2].map(i=>(
+                  <div key={i} className="sk-row">
+                    <div style={{flex:1}}>
+                      <Skeleton variant="text" width="40%" height={12}/>
+                      <div style={{height:6}}/>
+                      <Skeleton variant="text" width="70%" height={10}/>
+                    </div>
+                    <Skeleton variant="circle" width={36} height={20}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Empty · first-run evaluation (admin)</span>
+              <EmptyState icon="sliders-horizontal" title="No evaluation defaults yet"
+                body="Set how this tenant auto-grades, releases results, and routes low-confidence grades for review."
+                action={<Button variant="primary" size="sm">Create defaults</Button>}/>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Error · section read failed</span>
+              <Alert variant="error" title="Couldn't load notifications">
+                Something went wrong fetching this.
+                <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Retry</Button></div>
+              </Alert>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Save error · validation</span>
+              <Alert variant="error" title="Couldn't save your changes">
+                The needs-review threshold can't be higher than the auto-approve threshold.
+              </Alert>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Permission · teacher reached eval save</span>
+              <Alert variant="warning" title="Permission required">
+                You don't have permission to change evaluation settings.
+              </Alert>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Role · plain teacher (no Evaluation tab)</span>
+              <Alert variant="info" title="Teacher view">
+                A plain teacher sees Profile, Appearance, and Notifications only — the Evaluation tab and AI-budget alert row are omitted entirely.
+              </Alert>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Success · save confirmed</span>
+              <Toast variant="success" title="Evaluation settings saved"/>
+            </div>
+
+            <div className="mini">
+              <span className="u-caption">Tenant isolation · read-only identity</span>
+              <DefinitionList items={[
+                {term:'Tenant', value:<span>Subhang Academy <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>· derived from claims, never editable</span></span>},
+                {term:'Role', value:<Badge variant="brand">Tenant admin</Badge>},
+              ]}/>
+            </div>
+
+          </div>
+        </Section>
+
+      </div>
+
+      {/* toast layer */}
+      {toast && (
+        <div style={{position:'absolute',right:'var(--space-6)',bottom:'var(--space-6)',zIndex:50}}>
+          <Toast variant={toast.variant} title={toast.title}/>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

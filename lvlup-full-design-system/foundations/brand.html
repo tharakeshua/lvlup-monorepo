@@ -1,0 +1,209 @@
+<!-- @dsCard group="Brand" viewport="1000x640" name="Brand — Modern Scholarly" subtitle="Identity · mark · palette summary" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{
+    margin:0;
+    background:var(--bg-canvas);
+    color:var(--text-primary);
+    font-family:var(--font-ui);
+    padding:var(--space-12);
+    line-height:var(--leading-base);
+  }
+  .ds-sheet{
+    max-width:var(--content-max);
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:var(--space-12);
+  }
+  .ds-cap{
+    font-family:var(--font-mono);
+    font-size:var(--text-2xs);
+    letter-spacing:var(--tracking-caption);
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin:0 0 var(--space-3);
+  }
+  .ds-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:var(--space-6);
+    align-items:center;
+  }
+  /* identity lockup */
+  .ds-lockup{
+    display:flex;
+    align-items:center;
+    gap:var(--space-5);
+  }
+  .ds-mark{
+    width:var(--space-16);
+    height:var(--space-16);
+    border-radius:var(--radius-lg);
+    background:var(--brand-primary);
+    color:var(--text-on-accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-display);
+    font-weight:var(--weight-bold);
+    font-size:var(--text-3xl);
+    line-height:1;
+    box-shadow:var(--shadow-e2);
+  }
+  .ds-wordmark{
+    font-family:var(--font-display);
+    font-weight:var(--weight-semibold);
+    font-size:var(--text-4xl);
+    line-height:var(--leading-4xl);
+    letter-spacing:var(--tracking-display);
+    color:var(--text-primary);
+  }
+  .ds-positioning{
+    font-family:var(--font-display);
+    font-weight:var(--weight-regular);
+    font-style:italic;
+    font-size:var(--text-xl);
+    line-height:var(--leading-xl);
+    color:var(--text-secondary);
+    max-width:var(--reading-max);
+    margin:0;
+  }
+  .ds-rule{
+    border:0;
+    border-top:1px solid var(--border-subtle);
+    margin:0;
+  }
+  /* swatches */
+  .ds-swatches{
+    display:flex;
+    flex-wrap:wrap;
+    gap:var(--space-5);
+  }
+  .ds-swatch{
+    display:flex;
+    flex-direction:column;
+    gap:var(--space-2);
+    min-width:var(--space-24);
+  }
+  .ds-chip{
+    height:var(--space-16);
+    border-radius:var(--radius-md);
+    border:1px solid var(--border-subtle);
+    box-shadow:var(--shadow-e1);
+  }
+  .ds-chip--primary{ background:var(--brand-primary); }
+  .ds-chip--spark{ background:var(--spark); }
+  .ds-chip--paper{ background:var(--bg-canvas); }
+  .ds-name{
+    font-family:var(--font-ui);
+    font-weight:var(--weight-semibold);
+    font-size:var(--text-sm);
+    color:var(--text-primary);
+  }
+  .ds-hex{
+    font-family:var(--font-mono);
+    font-size:var(--text-2xs);
+    letter-spacing:var(--tracking-caption);
+    color:var(--text-muted);
+  }
+  /* typefaces */
+  .ds-typefaces{
+    display:flex;
+    flex-wrap:wrap;
+    gap:var(--space-8);
+  }
+  .ds-type{
+    display:flex;
+    flex-direction:column;
+    gap:var(--space-1);
+    min-width:var(--reading-max);
+  }
+  .ds-type__spec{
+    font-family:var(--font-mono);
+    font-size:var(--text-2xs);
+    letter-spacing:var(--tracking-caption);
+    text-transform:uppercase;
+    color:var(--text-muted);
+  }
+  .ds-type__sample--display{
+    font-family:var(--font-display);
+    font-weight:var(--weight-semibold);
+    font-size:var(--text-2xl);
+    line-height:var(--leading-2xl);
+    letter-spacing:var(--tracking-display);
+    color:var(--text-primary);
+  }
+  .ds-type__sample--ui{
+    font-family:var(--font-ui);
+    font-weight:var(--weight-medium);
+    font-size:var(--text-lg);
+    line-height:var(--leading-lg);
+    color:var(--text-primary);
+  }
+  .ds-type__sample--mono{
+    font-family:var(--font-mono);
+    font-weight:var(--weight-regular);
+    font-size:var(--text-base);
+    line-height:var(--leading-base);
+    color:var(--text-secondary);
+  }
+</style>
+</head><body>
+<main class="ds-sheet">
+
+  <section>
+    <p class="ds-cap">Identity · lockup</p>
+    <div class="ds-lockup">
+      <div class="ds-mark" aria-hidden="true">L</div>
+      <span class="ds-wordmark">Lyceum</span>
+    </div>
+    <p class="ds-positioning">Modern Scholarly — a warm, editorial learning system for serious study.</p>
+  </section>
+
+  <hr class="ds-rule">
+
+  <section>
+    <p class="ds-cap">Committed palette</p>
+    <div class="ds-swatches">
+      <div class="ds-swatch">
+        <div class="ds-chip ds-chip--primary"></div>
+        <span class="ds-name">Ink-indigo</span>
+        <span class="ds-hex">#423A82 · primary</span>
+      </div>
+      <div class="ds-swatch">
+        <div class="ds-chip ds-chip--spark"></div>
+        <span class="ds-name">Marigold</span>
+        <span class="ds-hex">#E8972B · spark</span>
+      </div>
+      <div class="ds-swatch">
+        <div class="ds-chip ds-chip--paper"></div>
+        <span class="ds-name">Warm paper</span>
+        <span class="ds-hex">#FBF8F3 · canvas</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-rule">
+
+  <section>
+    <p class="ds-cap">Typefaces</p>
+    <div class="ds-typefaces">
+      <div class="ds-type">
+        <span class="ds-type__spec">Display · Fraunces</span>
+        <span class="ds-type__sample--display">Question everything.</span>
+      </div>
+      <div class="ds-type">
+        <span class="ds-type__spec">UI · Schibsted Grotesk</span>
+        <span class="ds-type__sample--ui">Crisp UI copy for everyday study.</span>
+      </div>
+      <div class="ds-type">
+        <span class="ds-type__spec">Mono · Spline Sans Mono</span>
+        <span class="ds-type__sample--mono">const mastery = practice;</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+</body></html>

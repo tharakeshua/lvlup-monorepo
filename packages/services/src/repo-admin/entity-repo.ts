@@ -13,6 +13,7 @@ import {
   type CollectionReference,
   type Firestore,
   type Query,
+  type QueryDocumentSnapshot,
 } from "firebase-admin/firestore";
 import { docFromFirestore, toFirestore } from "./firestore.js";
 import { decodePageCursor, encodePageCursor } from "./cursor.js";
@@ -22,8 +23,29 @@ import type { EntityRepo, ListOptions, RepoPage } from "./types.js";
 
 const DEFAULT_LIMIT = 20;
 
+/**
+ * Filterable fields that store an ARRAY on the doc but are queried with a single
+ * scalar member (e.g. roster reads: `where classIds = classId`). Firestore `==`
+ * never matches a scalar against an array element, so these must use
+ * `array-contains`. Keep in sync with the entity schemas whose list filters
+ * target membership arrays (Student.classIds, Parent.studentIds, etc.).
+ */
+const ARRAY_MEMBERSHIP_FIELDS = new Set([
+  "classIds",
+  "studentIds",
+  "teacherIds",
+  "parentIds",
+  "linkedStudentIds",
+]);
+
 function nextId(coll: CollectionReference): string {
   return coll.doc().id;
+}
+
+function applyCursor(q: Query, orderBy: string, snap: QueryDocumentSnapshot): Query {
+  return orderBy === "__name__"
+    ? q.startAfter(snap.id)
+    : q.startAfter(snap.get(orderBy) as unknown, snap.id);
 }
 
 /** A flat tenant-scoped Firestore collection accessor. */
@@ -81,7 +103,11 @@ export function makeEntityRepo(
       let q: Query = collFor(tenantId);
       if (opts.where) {
         for (const [field, value] of Object.entries(opts.where)) {
-          q = q.where(field, "==", value);
+          // Array membership fields (classIds, etc.) must use array-contains when
+          // filtered by a single scalar member; `==` would never match an element.
+          const op =
+            ARRAY_MEMBERSHIP_FIELDS.has(field) && !Array.isArray(value) ? "array-contains" : "==";
+          q = q.where(field, op, value);
         }
       }
       q =
@@ -94,14 +120,33 @@ export function makeEntityRepo(
         const cur = decodePageCursor(opts.cursor);
         q = orderBy === "__name__" ? q.startAfter(cur.id) : q.startAfter(cur.v, cur.id);
       }
-      // over-fetch by 1 to detect a next page
-      const snap = await q.limit(limit + 1).get();
-      let docs = snap.docs.map((d) => docFromFirestore({ ...d.data(), id: d.id }));
-      if (opts.filter) docs = docs.filter(opts.filter);
+      // Over-fetch matching docs, not raw docs. Some collections intentionally
+      // carry mixed child/entity rows and then apply an in-memory discriminator
+      // filter. Applying that filter after a single Firestore `limit` can return
+      // short pages and hide later matching docs.
+      const matched: Array<{ data: Record<string, unknown>; snap: QueryDocumentSnapshot }> = [];
+      const batchLimit = limit + 1;
+      let pageQuery = q;
+      let exhausted = false;
+      while (matched.length <= limit && !exhausted) {
+        const snap = await pageQuery.limit(batchLimit).get();
+        if (snap.docs.length === 0) {
+          exhausted = true;
+          break;
+        }
+        for (const d of snap.docs) {
+          const data = docFromFirestore({ ...d.data(), id: d.id });
+          if (!opts.filter || opts.filter(data)) matched.push({ data, snap: d });
+        }
+        exhausted = snap.docs.length < batchLimit;
+        if (!exhausted) {
+          pageQuery = applyCursor(q, orderBy, snap.docs[snap.docs.length - 1]!);
+        }
+      }
 
-      const hasMore = snap.docs.length > limit;
-      const page = docs.slice(0, limit);
-      const last = page.length > 0 ? snap.docs[page.length - 1] : undefined;
+      const hasMore = matched.length > limit;
+      const page = matched.slice(0, limit).map((d) => d.data);
+      const last = page.length > 0 ? matched[page.length - 1]?.snap : undefined;
       const nextCursor: RepoPage["nextCursor"] =
         hasMore && last
           ? encodePageCursor({

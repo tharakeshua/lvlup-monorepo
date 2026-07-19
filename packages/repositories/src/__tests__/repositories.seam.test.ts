@@ -55,7 +55,7 @@ d("createRepositories(fakeApiClient)", () => {
   });
 
   it("a view repo shapes space+storyPoints+items in ONE shaped call (spaceDetailView)", async () => {
-    api.stub("levelup", "getSpace", () => makeSpace());
+    api.stub("levelup", "getSpace", () => ({ space: makeSpace() }));
     api.stub("levelup", "listStoryPoints", () => makePage([makeStoryPoint()]));
     api.stub("levelup", "listItems", () => makePage([makeItem()]));
     const r = R.createRepositories!(api);

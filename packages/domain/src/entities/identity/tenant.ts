@@ -25,6 +25,12 @@ export const TenantFeaturesSchema = zObject({
   levelup: z.boolean().optional(),
   analytics: z.boolean().optional(),
   store: z.boolean().optional(),
+  // Conversational AI is explicit-on: omitted means disabled. The root switch
+  // and the mode-specific switch must both be true before a session can start.
+  conversations: z.boolean().optional(),
+  conversationTutor: z.boolean().optional(),
+  conversationQuestionHelp: z.boolean().optional(),
+  conversationAssessment: z.boolean().optional(),
 });
 export type TenantFeatures = z.infer<typeof TenantFeaturesSchema>;
 

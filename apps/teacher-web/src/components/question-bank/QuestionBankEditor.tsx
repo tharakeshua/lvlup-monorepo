@@ -37,7 +37,6 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "audio", label: "Audio" },
   { value: "image_evaluation", label: "Image Evaluation" },
   { value: "group-options", label: "Group Options" },
-  { value: "chat_agent_question", label: "Chat Agent" },
 ];
 
 const BLOOMS_LEVELS: BloomsLevel[] = [
@@ -247,16 +246,7 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
     return raw.length > 0 ? raw : [];
   });
 
-  // ── Chat Agent ────────────────────────────────────────────────────────────────
-  const [chatAgentId, setChatAgentId] = useState(String(qd.agentId ?? ""));
-  const [chatObjectives, setChatObjectives] = useState(
-    ((qd.objectives as string[]) ?? []).join("\n")
-  );
-  const [chatStarters, setChatStarters] = useState(
-    ((qd.conversationStarters as string[]) ?? []).join("\n")
-  );
-  const [chatMaxTurns, setChatMaxTurns] = useState((qd.maxTurns as number) ?? 10);
-  const [chatGuidance, setChatGuidance] = useState(String(qd.evaluationGuidance ?? ""));
+  const isChatAgentAssessment = questionType === "chat_agent_question";
 
   // ── helpers ───────────────────────────────────────────────────────────────────
   const addTopic = () => {
@@ -336,13 +326,9 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
       case "group-options":
         return { groups: goGroups, items: goItems };
       case "chat_agent_question":
-        return {
-          ...(chatAgentId ? { agentId: chatAgentId } : {}),
-          objectives: chatObjectives.split("\n").filter(Boolean),
-          conversationStarters: chatStarters.split("\n").filter(Boolean),
-          maxTurns: chatMaxTurns,
-          ...(chatGuidance ? { evaluationGuidance: chatGuidance } : {}),
-        };
+        // This editor deliberately never authors a partial chat assessment.
+        // Existing rows are read-only here; full authoring is in Space Item Editor.
+        return item?.questionData ?? {};
       default:
         return item?.questionData ?? {};
     }
@@ -350,6 +336,9 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
 
   // ── validate ──────────────────────────────────────────────────────────────────
   const validate = (): string | null => {
+    if (isChatAgentAssessment) {
+      return "Chat-agent assessments are authored in the Space Item Editor, not Question Bank.";
+    }
     if (!content.trim()) return "Question content is required";
     if (!difficulty) return "Difficulty is required";
     if (!subject.trim()) return "Subject is required";
@@ -1263,54 +1252,14 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
             </div>
           )}
 
-          {questionType === "chat_agent_question" && (
-            <div className="border-subtle space-y-3 rounded-lg border p-4">
-              <div>
-                <Label>Agent ID (optional)</Label>
-                <Input
-                  value={chatAgentId}
-                  onChange={(e) => setChatAgentId(e.target.value)}
-                  className="mt-1 font-mono"
-                  placeholder="leave blank to use the space's default agent"
-                />
-              </div>
-              <div>
-                <Label>Objectives (one per line)</Label>
-                <Textarea
-                  value={chatObjectives}
-                  onChange={(e) => setChatObjectives(e.target.value)}
-                  rows={3}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Conversation Starters (one per line)</Label>
-                <Textarea
-                  value={chatStarters}
-                  onChange={(e) => setChatStarters(e.target.value)}
-                  rows={2}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Max Turns</Label>
-                <Input
-                  type="number"
-                  value={chatMaxTurns}
-                  onChange={(e) => setChatMaxTurns(Number(e.target.value))}
-                  min={1}
-                  className="mt-1 w-32"
-                />
-              </div>
-              <div>
-                <Label>Evaluation Guidance</Label>
-                <Textarea
-                  value={chatGuidance}
-                  onChange={(e) => setChatGuidance(e.target.value)}
-                  rows={2}
-                  className="mt-1"
-                />
-              </div>
+          {isChatAgentAssessment && (
+            <div className="space-y-1 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-semibold">Read-only chat-agent assessment</p>
+              <p>
+                Chat assessments require a public prompt plus a private answer key, interviewer,
+                rubric, and completion policy. Open the Space Item Editor to edit this item; this
+                Question Bank form will never save a partial schema.
+              </p>
             </div>
           )}
 
@@ -1453,9 +1402,15 @@ export default function QuestionBankEditor({ open, onOpenChange, tenantId, item,
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || isChatAgentAssessment}>
             <Save className="h-4 w-4" />
-            {saving ? "Saving..." : isEditing ? "Update" : "Create"}
+            {isChatAgentAssessment
+              ? "Edit in Space Item Editor"
+              : saving
+                ? "Saving..."
+                : isEditing
+                  ? "Update"
+                  : "Create"}
           </Button>
         </SheetFooter>
       </SheetContent>

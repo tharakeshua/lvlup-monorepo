@@ -7,7 +7,9 @@ import { SeedContext } from "./context.js";
 import { SeedPipeline } from "./pipeline.js";
 import { verify, type VerifyReport } from "./verify.js";
 import { validateSeedConfig } from "../config/schema.js";
+import { assertFkConsistency } from "../config/fk.js";
 import type { SeedConfig, SeedRunOptions } from "../config/types.js";
+import type { SeedManifestEntry } from "./manifest.js";
 
 /** A pre-resolved `{ path, data, kind }` doc the pipeline does not synthesize (analytics projections). */
 export interface DerivedDoc {
@@ -29,6 +31,8 @@ export interface SeedResult {
   counts: Record<string, number>;
   batch: { totalOps: number; sets: number; updates: number; commits: number };
   verify: VerifyReport;
+  /** Full deterministic document plan; dry-run callers can review this before any write. */
+  manifest: SeedManifestEntry[];
 }
 
 function makeContext(opts: SeedRunOptions): SeedContext {
@@ -49,6 +53,7 @@ export async function seed(
   opts: SeedRunOptions & SeedExtraOptions = {} as SeedRunOptions & SeedExtraOptions
 ): Promise<SeedResult> {
   validateSeedConfig(config);
+  assertFkConsistency(config);
   const ctx = makeContext(opts);
   const log = ctx.logger;
 
@@ -81,12 +86,19 @@ export async function seed(
       commits: ctx.batch.stats.commits,
     },
     verify: report,
+    manifest: ctx.manifest.entries(),
   };
 }
 
 /** Verify-only: re-read an already-seeded tree and assert counts (no writes). */
 export async function verifySeed(config: SeedConfig, opts: SeedRunOptions): Promise<VerifyReport> {
   validateSeedConfig(config);
+  assertFkConsistency(config);
+  // Build the same deterministic plan without writing so verify-only retains
+  // exact nested path/hash checks rather than degrading to collection counts.
+  const planCtx = makeContext({ ...opts, dryRun: true });
+  const planner = new SeedPipeline(planCtx);
+  await planner.run(config);
   const ctx = makeContext({ ...opts, dryRun: false });
-  return verify(ctx, config);
+  return verify(ctx, config, planCtx.manifest.entries());
 }

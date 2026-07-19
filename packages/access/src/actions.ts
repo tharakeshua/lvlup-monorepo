@@ -46,6 +46,10 @@ export type Action =
   | "preset.global.write"
   | "user.impersonate.start"
   | "user.impersonate.end"
+  // per-user BYOK (own keys); tenant-owned keys; platform fallback keys
+  | "userKey.manage"
+  | "tenantKey.manage"
+  | "platformKey.manage"
   // ---- levelup ----
   | "space.read"
   | "space.write"
@@ -117,6 +121,9 @@ export const ACTIONS = [
   "preset.global.write",
   "user.impersonate.start",
   "user.impersonate.end",
+  "userKey.manage",
+  "tenantKey.manage",
+  "platformKey.manage",
   "space.read",
   "space.write",
   "space.publish",

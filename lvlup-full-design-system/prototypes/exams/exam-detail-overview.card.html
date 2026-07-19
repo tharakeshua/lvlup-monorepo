@@ -1,0 +1,867 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Exam Detail — Overview" subtitle="Lifecycle header · KPI strip · Questions/Submissions/Settings tabs" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+
+/* ----- AppShell sidebar nav ----- */
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-foot{padding:var(--space-3);border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.2}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* ----- Topbar ----- */
+.tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;background:var(--bg-surface)}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tbsearch{display:flex;align-items:center;gap:var(--space-2);flex:1;max-width:420px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted);background:var(--bg-surface-sunken);cursor:text}
+.tbsearch input{border:0;background:transparent;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tbsearch .kbd{margin-left:auto}
+.tb-icons{display:flex;align-items:center;gap:var(--space-2)}
+.notif{position:relative}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:2px solid var(--bg-surface)}
+
+/* ----- page body ----- */
+.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* state segmented control */
+.segrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px}
+.seg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* ----- header section ----- */
+.exhead{position:relative;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.exhead__in{padding:var(--space-6)}
+.exhead__top{display:flex;align-items:flex-start;gap:var(--space-4)}
+.exhead__titlewrap{flex:1;min-width:0}
+.ex-title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0}
+.ex-meta{margin:var(--space-2) 0 0;font-size:var(--text-sm);color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.ex-meta .mono{font-family:var(--font-mono)}
+.ex-meta__sep{color:var(--border-strong)}
+.ex-chips{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3);align-items:center}
+.linkspace{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);text-decoration:none;cursor:pointer}
+.exhead__rt{display:flex;align-items:flex-start;gap:var(--space-2)}
+
+/* status badge (icon + label, never color-only) */
+.statusbadge{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid transparent;white-space:nowrap}
+.statusbadge svg{width:14px;height:14px}
+.sb--neutral{background:var(--bg-inset);color:var(--text-secondary);border-color:var(--border-strong)}
+.sb--info{background:var(--status-info-subtle);color:var(--status-info)}
+.sb--brand{background:var(--brand-subtle);color:var(--brand-primary)}
+.sb--warning{background:var(--status-warning-subtle);color:var(--status-warning)}
+.sb--success{background:var(--status-success-subtle);color:var(--status-success)}
+
+.exhead hr.div{border:0;border-top:1px solid var(--border-subtle);margin:var(--space-5) 0}
+
+/* lifecycle stepper (horizontal lg) */
+.lifecycle{list-style:none;margin:0;padding:0;display:flex;align-items:flex-start;gap:0;overflow-x:auto}
+.lc-step{flex:1 1 0;min-width:96px;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);position:relative;text-align:center}
+.lc-step::before,.lc-step::after{content:"";position:absolute;top:13px;height:2px;background:var(--border-subtle);z-index:0}
+.lc-step::before{left:0;width:50%}
+.lc-step::after{right:0;width:50%}
+.lc-step:first-child::before,.lc-step:last-child::after{display:none}
+.lc-step--done::before,.lc-step--done::after,.lc-step--current::before{background:var(--brand-primary)}
+.lc-dot{position:relative;z-index:1;width:28px;height:28px;border-radius:var(--radius-pill);display:grid;place-items:center;background:var(--bg-surface);border:2px solid var(--border-strong);color:var(--text-muted);transition:background var(--dur-base) var(--ease-entrance),border-color var(--dur-base) var(--ease-entrance)}
+.lc-dot svg{width:14px;height:14px}
+.lc-step--done .lc-dot{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--text-on-accent)}
+.lc-step--current .lc-dot{background:var(--bg-surface);border-color:var(--brand-primary);color:var(--brand-primary);box-shadow:var(--ring-focus)}
+.lc-step--fork .lc-dot{border-color:var(--status-warning);color:var(--status-warning)}
+.lc-step--fork::before{background:var(--status-warning)}
+.lc-lbl{font-size:var(--text-2xs);line-height:1.3;color:var(--text-muted);max-width:84px}
+.lc-step--current .lc-lbl{color:var(--brand-primary);font-weight:var(--weight-semibold)}
+.lc-step--done .lc-lbl{color:var(--text-secondary)}
+
+/* action row */
+.actionrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.actionrow__sp{flex:1}
+.action-overlay{position:absolute;inset:calc(var(--space-3) * -1) calc(var(--space-3) * -1);border-radius:var(--radius-md);background:color-mix(in srgb, var(--bg-surface) 70%, transparent);display:grid;place-items:center;z-index:5}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.kpi{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-2)}
+.kpi__top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.kpi__label{font-size:var(--text-xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.kpi__icon{color:var(--text-muted);display:grid;place-items:center}
+.kpi__val{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);line-height:1;letter-spacing:-0.01em}
+.kpi__val .denom{color:var(--text-muted);font-size:var(--text-lg)}
+.kpi__sub{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* tabs */
+.extabs__list{display:inline-flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);width:100%}
+.extab{position:relative;display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--dur-fast) var(--ease-standard)}
+.extab:hover{color:var(--text-primary)}
+.extab[aria-selected="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+.extab__count{font-family:var(--font-mono);font-size:var(--text-2xs);min-width:18px;height:18px;padding:0 5px;border-radius:var(--radius-pill);background:var(--bg-inset);color:var(--text-secondary);display:inline-grid;place-items:center}
+.extab[aria-selected="true"] .extab__count{background:var(--brand-subtle);color:var(--brand-primary)}
+.extab:disabled{color:var(--text-muted);cursor:not-allowed;opacity:.55}
+.tabpanel{padding-top:var(--space-5);animation:fadein var(--dur-fast) var(--ease-standard)}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* questions list */
+.qlist{display:flex;flex-direction:column;gap:var(--space-3)}
+.qrow{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.qrow__num{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);width:28px;flex:0 0 auto}
+.qrow__body{flex:1;min-width:0}
+.qrow__prompt{font-size:var(--text-sm);color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qrow__meta{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+
+/* submissions table tweaks */
+.tbl-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.tbl-wrap .table{margin:0}
+.cellmono{font-family:var(--font-mono);font-size:var(--text-xs)}
+.row-flex{display:flex;align-items:center;gap:var(--space-2)}
+
+/* settings */
+.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.locklbl{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* popover menu */
+.menu{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:220px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);display:flex;flex-direction:column}
+.menu button{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:0;border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer}
+.menu button:hover{background:var(--bg-surface-sunken)}
+.menu button.danger{color:var(--status-error)}
+.menu hr{border:0;border-top:1px solid var(--border-subtle);margin:var(--space-1) 0}
+
+/* tooltip on disabled action */
+.tipwrap{position:relative;display:inline-flex}
+.tipwrap__bub{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:40;background:var(--text-primary);color:var(--text-on-accent);font-size:var(--text-2xs);line-height:1.4;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);width:max-content;max-width:240px;box-shadow:var(--shadow-e2);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-standard)}
+.tipwrap:hover .tipwrap__bub,.tipwrap:focus-within .tipwrap__bub{opacity:1}
+
+.checklist{display:flex;flex-direction:column;gap:var(--space-2);margin:var(--space-3) 0 0}
+.cl-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+.cl-item__ic{display:grid;place-items:center}
+.cl-item__ic.warn{color:var(--status-warning)}
+.cl-item__ic.ok{color:var(--status-success)}
+.cl-item__txt{flex:1;font-size:var(--text-sm)}
+.cl-item__sub{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .tabpanel{animation:none}
+  .lc-dot{transition:none}
+  .seg button{transition:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Card, Panel, Section, Badge, Chip, Stat,
+    Modal, Alert, EmptyState, Skeleton, DataTable, DefinitionList,
+    NavItem, Breadcrumb, Avatar, Field, Input, Select, Switch,
+    ConfidenceBadge, GradePill, AnswerKeyLock, ProgressBar, Kbd
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---- lucide icon refresh ---- */
+  function useLucide(dep){
+    useEffect(function(){ if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); });
+  }
+
+  /* ============================================================= */
+  /* Mock Exam doc (server-authoritative status simulated here)    */
+  /* ============================================================= */
+  const EXAM = {
+    examId: "exm_8KQ2dR4mN",
+    title: "Linear Algebra — Unit III Midterm",
+    subject: "Mathematics",
+    examDate: "12 Jun 2026",
+    duration: 90,
+    totalMarks: 80,
+    passingMarks: 32,
+    status: "grading",               // server-authoritative
+    linkedSpaceName: "Vectors & Matrices",
+    stats: {
+      totalSubmissions: 48,
+      gradedSubmissions: 41,
+      avgScore: 58.4,
+      passRate: 0.77,
+      gradingProgress: 0.85,
+      needsReview: 3,
+      failed: 1
+    }
+  };
+
+  /* lifecycle ordering + status→meta map (vestigial ocr_* hidden) */
+  const LIFECYCLE = [
+    { key:"draft",                     label:"Draft",            icon:"file-pen" },
+    { key:"question_paper_uploaded",   label:"QP uploaded",      icon:"upload" },
+    { key:"question_paper_extracted",  label:"Extracted",        icon:"scan-text" },
+    { key:"published",                 label:"Published",        icon:"send" },
+    { key:"grading",                   label:"Grading",          icon:"sparkles" },
+    { key:"completed",                 label:"Completed",        icon:"clipboard-check" },
+    { key:"results_released",          label:"Released",         icon:"megaphone" },
+  ];
+  const STATUS_BADGE = {
+    draft:                    { tone:"neutral", icon:"file-pen",        label:"Draft" },
+    question_paper_uploaded:  { tone:"info",    icon:"upload",          label:"QP uploaded" },
+    question_paper_extracted: { tone:"info",    icon:"scan-text",       label:"Questions extracted" },
+    published:                { tone:"brand",   icon:"send",            label:"Published" },
+    grading:                  { tone:"brand",   icon:"sparkles",        label:"Grading…" },
+    completed:                { tone:"success", icon:"clipboard-check", label:"Completed" },
+    results_released:         { tone:"success", icon:"megaphone",       label:"Results released" },
+    archived:                 { tone:"neutral", icon:"archive",         label:"Archived" },
+  };
+  /* primary action verb per status (spec §7) */
+  const PRIMARY_ACTION = {
+    draft:                    { verb:"Upload question paper", icon:"upload",          confirm:false },
+    question_paper_uploaded:  { verb:"Extract questions",     icon:"scan-text",       confirm:false },
+    question_paper_extracted: { verb:"Publish exam",          icon:"send",            confirm:"publish" },
+    published:                { verb:"Start grading",         icon:"sparkles",        confirm:false },
+    grading:                  { verb:"View grading progress", icon:"activity",        confirm:false },
+    completed:                { verb:"Release results",       icon:"megaphone",       confirm:"release" },
+    results_released:         { verb:"View analytics",        icon:"bar-chart-3",     confirm:false },
+    archived:                 { verb:"Unarchive",             icon:"archive-restore", confirm:false },
+  };
+
+  function statusIndex(s){ var i = LIFECYCLE.findIndex(function(x){return x.key===s;}); return i<0 ? LIFECYCLE.length-1 : i; }
+
+  /* ============================================================= */
+  /* Small presentational pieces                                   */
+  /* ============================================================= */
+  function StatusBadge(props){
+    var m = STATUS_BADGE[props.status] || STATUS_BADGE.draft;
+    return (
+      <span className={"statusbadge sb--"+m.tone}>
+        <i data-lucide={m.icon}></i>{m.label}
+      </span>
+    );
+  }
+
+  function Lifecycle(props){
+    var cur = statusIndex(props.status);
+    return (
+      <ol className="lifecycle" aria-label="Exam lifecycle">
+        {LIFECYCLE.map(function(step, i){
+          var state = i < cur ? "done" : (i === cur ? "current" : "todo");
+          var fork = props.partial && step.key === "grading" && state === "current";
+          var cls = "lc-step lc-step--"+state + (fork ? " lc-step--fork" : "");
+          return (
+            <li key={step.key} className={cls} aria-current={state==="current" ? "step" : undefined}>
+              <span className="lc-dot">
+                <i data-lucide={state==="done" ? "check" : step.icon}></i>
+              </span>
+              <span className="lc-lbl">{step.label}</span>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
+
+  function KpiCard(props){
+    return (
+      <div className="kpi">
+        <div className="kpi__top">
+          <span className="kpi__label">{props.label}</span>
+          <span className="kpi__icon"><i data-lucide={props.icon}></i></span>
+        </div>
+        <div className="kpi__val">{props.value}{props.denom!=null && <span className="denom">{" / "+props.denom}</span>}</div>
+        {props.sub && <div className="kpi__sub">{props.sub}</div>}
+      </div>
+    );
+  }
+
+  function DisabledTip(props){
+    /* disabled button with explanatory tooltip linked via aria-describedby */
+    var id = props.id;
+    return (
+      <span className="tipwrap">
+        <Button variant="primary" disabled aria-describedby={id} leadingIcon={<i data-lucide={props.icon}></i>}>{props.label}</Button>
+        <span role="tooltip" id={id} className="tipwrap__bub">{props.tip}</span>
+      </span>
+    );
+  }
+
+  /* ============================================================= */
+  /* Tab bodies                                                    */
+  /* ============================================================= */
+  function QuestionsTab(props){
+    if (props.empty) {
+      return (
+        <EmptyState icon="file-question"
+          title="No questions yet"
+          body="Upload a question paper to extract them. The primary action is in the header above."
+          action={<Button variant="primary" leadingIcon={<i data-lucide="upload"></i>}>Upload question paper</Button>} />
+      );
+    }
+    var qs = [
+      { n:1, prompt:"State and prove the Rank–Nullity theorem for a linear map T: V → W.", marks:12, type:"Long answer" },
+      { n:2, prompt:"Compute the eigenvalues of the matrix A = [[2,1],[1,2]].", marks:8, type:"Numeric" },
+      { n:3, prompt:"Determine whether the given set of vectors is linearly independent.", marks:6, type:"Short answer" },
+      { n:4, prompt:"Which of the following are valid bases for ℝ³? (Select all that apply.)", marks:6, type:"Multi-select" },
+      { n:5, prompt:"Diagonalize the matrix B and write B = PDP⁻¹.", marks:10, type:"Long answer" },
+    ];
+    return (
+      <div>
+        <AnswerKeyLock title="Staff only — not shown to students">
+          Model answers, rubric guidance and evaluator notes for every question live on the server and are never sent to a student or parent device.
+        </AnswerKeyLock>
+        <div className="qlist" style={{marginTop:"var(--space-4)"}}>
+          {qs.map(function(q){
+            return (
+              <div className="qrow" key={q.n}>
+                <span className="qrow__num">Q{q.n}</span>
+                <div className="qrow__body">
+                  <div className="qrow__prompt">{q.prompt}</div>
+                  <div className="qrow__meta">{q.type} · {q.marks} marks · rubric ✓</div>
+                </div>
+                <Badge variant="info" icon={<i data-lucide="scan-text" style={{width:12,height:12}}></i>}>Extracted</Badge>
+                <IconButton size="sm" label={"Edit Q"+q.n} icon={<i data-lucide="pencil"></i>} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function SubmissionsTab(props){
+    if (props.empty) {
+      return (
+        <EmptyState icon="inbox"
+          title="Waiting on answer sheets"
+          body="No submissions have arrived yet. Scanned or uploaded answer sheets will appear here as they come in." />
+      );
+    }
+    var rows = [
+      { id:"sub_01", name:"Aanya Sharma", roll:"R-1042", status:"graded",       score:71, grade:"B", conf:"high" },
+      { id:"sub_02", name:"Rohit Verma",  roll:"R-1043", status:"needs_review", score:38, grade:"D", conf:"low" },
+      { id:"sub_03", name:"Meera Iyer",   roll:"R-1044", status:"graded",       score:64, grade:"B", conf:"med" },
+      { id:"sub_04", name:"Karthik Nair", roll:"R-1045", status:"grading",      score:null, grade:null, conf:null },
+      { id:"sub_05", name:"Sara Khan",    roll:"R-1046", status:"failed",       score:null, grade:null, conf:null },
+    ];
+    var pipeMap = {
+      graded:       { v:"success", icon:"check-circle", t:"Graded" },
+      needs_review: { v:"warning", icon:"alert-triangle", t:"Needs review" },
+      grading:      { v:"info",    icon:"loader",      t:"Grading…" },
+      failed:       { v:"error",   icon:"x-circle",    t:"Failed (DLQ)" },
+    };
+    var cols = [
+      { label:"Student", key:"name", render:function(r){
+          return (<div className="row-flex">
+            <Avatar size="sm" initials={r.name.split(" ").map(function(w){return w[0];}).join("").slice(0,2)} />
+            <div><div style={{fontWeight:"var(--weight-medium)",fontSize:"var(--text-sm)"}}>{r.name}</div>
+            <div className="cellmono" style={{color:"var(--text-muted)"}}>{r.roll}</div></div>
+          </div>);
+      }},
+      { label:"Pipeline", key:"status", render:function(r){
+          var p = pipeMap[r.status];
+          return (<Badge variant={p.v} icon={<i data-lucide={p.icon} style={{width:12,height:12}}></i>}>{p.t}</Badge>);
+      }},
+      { label:"Confidence", key:"conf", render:function(r){
+          return r.conf ? <ConfidenceBadge level={r.conf} /> : <span className="cellmono" style={{color:"var(--text-muted)"}}>—</span>;
+      }},
+      { label:"Score", key:"score", numeric:true, render:function(r){
+          return r.score!=null ? <span className="cellmono">{r.score}<span style={{color:"var(--text-muted)"}}>/80</span></span> : <span className="cellmono" style={{color:"var(--text-muted)"}}>—</span>;
+      }},
+      { label:"Grade", key:"grade", render:function(r){
+          return r.grade ? <GradePill grade={r.grade} /> : <span className="cellmono" style={{color:"var(--text-muted)"}}>—</span>;
+      }},
+      { label:"", key:"go", render:function(r){
+          return <Button variant="ghost" size="sm" trailingIcon={<i data-lucide="chevron-right"></i>}>Review</Button>;
+      }},
+    ];
+    return (
+      <div>
+        {props.partial && (
+          <div style={{marginBottom:"var(--space-4)"}}>
+            <Alert variant="warning" title="Grading in progress — review needed before release">
+              {EXAM.stats.needsReview} submissions need review and {EXAM.stats.failed} failed (DLQ).
+              Results can't be released until every <code style={{fontFamily:"var(--font-mono)"}}>needs_review</code> question is resolved.{" "}
+              <a href="#" style={{color:"var(--brand-primary)",fontWeight:"var(--weight-semibold)"}}>Go to review →</a>
+            </Alert>
+          </div>
+        )}
+        <div className="tbl-wrap"><DataTable columns={cols} rows={rows} /></div>
+      </div>
+    );
+  }
+
+  function SettingsTab(props){
+    var locked = props.locked; /* post-publish field locks */
+    return (
+      <div>
+        {locked && (
+          <div style={{marginBottom:"var(--space-4)"}}>
+            <Alert variant="info" title="Some fields are locked after publishing">
+              <code style={{fontFamily:"var(--font-mono)"}}>classIds</code>, <code style={{fontFamily:"var(--font-mono)"}}>totalMarks</code> and <code style={{fontFamily:"var(--font-mono)"}}>examDate</code> are read-only once the exam is published. Edit grading behaviour below.
+            </Alert>
+          </div>
+        )}
+        <div className="setgrid">
+          <Panel title="Exam details">
+            <Field label="Exam title"><Input defaultValue={EXAM.title} /></Field>
+            <Field label="Subject"><Input defaultValue={EXAM.subject} /></Field>
+            <Field label={<span className="row-flex">Total marks {locked && <span className="locklbl"><i data-lucide="lock" style={{width:11,height:11}}></i> Locked after publishing</span>}</span>}>
+              <Input defaultValue={String(EXAM.totalMarks)} disabled={locked} />
+            </Field>
+            <Field label={<span className="row-flex">Exam date {locked && <span className="locklbl"><i data-lucide="lock" style={{width:11,height:11}}></i> Locked after publishing</span>}</span>}>
+              <Input defaultValue={EXAM.examDate} disabled={locked} />
+            </Field>
+          </Panel>
+          <Panel title="Grading config">
+            <Field label="Confidence threshold (needs_review below)" hint="Per EvaluationSettings.confidenceConfig">
+              <Input defaultValue="0.70" />
+            </Field>
+            <Field label="Auto-approve threshold (above)">
+              <Input defaultValue="0.90" />
+            </Field>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"var(--space-3) 0",borderTop:"1px solid var(--border-subtle)"}}>
+              <div><div style={{fontSize:"var(--text-sm)",fontWeight:"var(--weight-medium)"}}>Allow manual override</div>
+              <div style={{fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>gradingConfig.allowManualOverride</div></div>
+              <Switch checked={true} onChange={function(){}} />
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"var(--space-3) 0",borderTop:"1px solid var(--border-subtle)"}}>
+              <div><div style={{fontSize:"var(--text-sm)",fontWeight:"var(--weight-medium)"}}>Require override reason</div>
+              <div style={{fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>gradingConfig.requireOverrideReason</div></div>
+              <Switch checked={true} onChange={function(){}} />
+            </div>
+          </Panel>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* Header (with action row + overflow menu)                      */
+  /* ============================================================= */
+  function ExamHeader(props){
+    var s = props.status;
+    var act = PRIMARY_ACTION[s] || PRIMARY_ACTION.draft;
+    var releaseBlocked = props.partial && s === "completed"; /* gate release */
+    /* In partial grading, the next step is "completed"; release stays disabled until reviews clear */
+
+    function clickPrimary(){
+      if (act.confirm) props.onConfirm(act.confirm);
+      else props.onTransition(act.verb);
+    }
+
+    return (
+      <Section className="exhead">
+        <div className="exhead__in">
+          <div className="exhead__top">
+            <div className="exhead__titlewrap">
+              <h1 className="ex-title">{EXAM.title}</h1>
+              <p className="ex-meta">
+                <span>{EXAM.subject}</span><span className="ex-meta__sep">·</span>
+                <span className="mono">{EXAM.examDate}</span><span className="ex-meta__sep">·</span>
+                <span className="mono">{EXAM.duration} min</span><span className="ex-meta__sep">·</span>
+                <span className="mono">{EXAM.totalMarks} marks</span><span className="ex-meta__sep">·</span>
+                <span>Pass <span className="mono">{EXAM.passingMarks}</span></span>
+              </p>
+              <div className="ex-chips">
+                <a className="linkspace" href="#" title="Open linked LevelUp space">
+                  <i data-lucide="graduation-cap" style={{width:13,height:13}}></i>{EXAM.linkedSpaceName}
+                  <i data-lucide="arrow-up-right" style={{width:12,height:12}}></i>
+                </a>
+                <Chip>{EXAM.subject}</Chip>
+                <span className="cellmono" style={{color:"var(--text-muted)"}}>{EXAM.examId}</span>
+              </div>
+            </div>
+            <div className="exhead__rt">
+              <StatusBadge status={s} />
+              <div style={{position:"relative"}}>
+                <IconButton label="More actions" icon={<i data-lucide="more-horizontal"></i>}
+                  aria-haspopup="menu" aria-expanded={props.menuOpen}
+                  onClick={props.onToggleMenu} />
+                {props.menuOpen && (
+                  <div className="menu" role="menu">
+                    <button role="menuitem" onClick={function(){props.onMenu("analytics");}}><i data-lucide="bar-chart-3" style={{width:16,height:16}}></i>View analytics</button>
+                    <button role="menuitem" onClick={function(){props.onMenu("duplicate");}}><i data-lucide="copy" style={{width:16,height:16}}></i>Duplicate exam</button>
+                    <button role="menuitem" onClick={function(){props.onMenu("export");}}><i data-lucide="download" style={{width:16,height:16}}></i>Export grades (CSV)</button>
+                    <hr/>
+                    <button role="menuitem" className="danger" onClick={function(){props.onMenu("archive");}}><i data-lucide="archive" style={{width:16,height:16}}></i>Archive exam…</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <hr className="div" />
+
+          <Lifecycle status={s} partial={props.partial} />
+
+          <hr className="div" />
+
+          <div className="actionrow">
+            {props.transitioning && (
+              <div className="action-overlay" aria-live="polite">
+                <span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)",fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>
+                  <span className="spinner" style={{width:18,height:18}}></span> Applying…
+                </span>
+              </div>
+            )}
+            {releaseBlocked
+              ? <DisabledTip id="tip-release" icon="megaphone" label="Release results"
+                  tip={EXAM.stats.needsReview+" questions still need review. Resolve them before releasing results."} />
+              : <Button variant="primary" leadingIcon={<i data-lucide={act.icon}></i>} onClick={clickPrimary}>{act.verb}</Button>}
+
+            {s === "grading" &&
+              <Button variant="secondary" leadingIcon={<i data-lucide="list-checks"></i>}>Open grading review</Button>}
+            {(s === "question_paper_extracted" || s === "published") &&
+              <Button variant="secondary" leadingIcon={<i data-lucide="eye"></i>}>Preview as student</Button>}
+
+            <div className="actionrow__sp"></div>
+
+            <Button variant="ghost" leadingIcon={<i data-lucide="settings-2"></i>} onClick={function(){props.onGotoSettings();}}>Settings</Button>
+          </div>
+
+          {props.partial && (
+            <div style={{marginTop:"var(--space-4)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"var(--space-2)"}}>
+                <span style={{fontSize:"var(--text-xs)",color:"var(--text-secondary)",fontWeight:"var(--weight-medium)"}}>
+                  Grading progress <span className="cellmono">(server-authoritative)</span>
+                </span>
+                <span className="cellmono" style={{color:"var(--text-secondary)"}}>{Math.round(EXAM.stats.gradingProgress*100)}%</span>
+              </div>
+              <ProgressBar value={Math.round(EXAM.stats.gradingProgress*100)} />
+            </div>
+          )}
+        </div>
+      </Section>
+    );
+  }
+
+  /* ============================================================= */
+  /* KPI strip                                                     */
+  /* ============================================================= */
+  function KpiStrip(props){
+    var st = EXAM.stats;
+    var zero = props.zeros;
+    return (
+      <div className="kpis" role="group" aria-label="Exam key metrics">
+        <KpiCard label="Submissions" icon="users" value={zero ? 0 : st.totalSubmissions} sub="uploadSource: web · scanner" />
+        <KpiCard label="Graded" icon="check-check"
+          value={zero ? 0 : st.gradedSubmissions} denom={zero ? null : st.totalSubmissions}
+          sub={zero ? "awaiting sheets" : (st.needsReview+" need review · "+st.failed+" failed")} />
+        <KpiCard label="Avg score" icon="gauge" value={zero ? "—" : st.avgScore} sub={zero ? "—" : "of "+EXAM.totalMarks+" marks"} />
+        <KpiCard label="Pass rate" icon="trophy" value={zero ? "—" : Math.round(st.passRate*100)+"%"} sub={zero ? "—" : "pass ≥ "+EXAM.passingMarks} />
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* Skeleton loading view                                         */
+  /* ============================================================= */
+  function LoadingView(){
+    return (
+      <div className="page" aria-busy="true" aria-label="Loading exam">
+        <Section className="exhead"><div className="exhead__in">
+          <div className="exhead__top">
+            <div style={{flex:1}}>
+              <Skeleton width="48%" height="32px" />
+              <div style={{marginTop:12}}><Skeleton width="60%" height="14px" /></div>
+            </div>
+            <Skeleton width="120px" height="26px" />
+          </div>
+          <hr className="div" />
+          <div style={{display:"flex",gap:24}}>
+            {[0,1,2,3,4,5,6].map(function(i){return <Skeleton key={i} variant="circle" width="28px" height="28px" />;})}
+          </div>
+          <hr className="div" />
+          <Skeleton width="180px" height="40px" />
+        </div></Section>
+        <div className="kpis">
+          {[0,1,2,3].map(function(i){return (
+            <div className="kpi" key={i}><Skeleton width="50%" height="12px" />
+            <div style={{marginTop:10}}><Skeleton width="70%" height="28px" /></div></div>
+          );})}
+        </div>
+        <div><Skeleton width="320px" height="38px" /></div>
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* Confirm dialogs                                               */
+  /* ============================================================= */
+  var CONFIRM = {
+    publish: { title:"Publish this exam?",
+      body:"Enrolled students will be notified and exam metadata will be locked. classIds, totalMarks and examDate become read-only.",
+      cta:"Publish exam", variant:"primary" },
+    release: { title:"Release results to students and parents?",
+      body:"They'll be able to see scores and feedback. Model answers and AI confidence are never shown to students. This can't be undone.",
+      cta:"Release results", variant:"primary" },
+    archive: { title:"Archive this exam?",
+      body:"It moves out of active exams; you can unarchive later. Submissions and grades are preserved.",
+      cta:"Archive exam", variant:"danger" },
+  };
+
+  /* ============================================================= */
+  /* App                                                           */
+  /* ============================================================= */
+  function App(){
+    var [state, setState] = useState("populated"); // populated | loading | empty | error | partial
+    var [tab, setTab] = useState(0); // 0 questions · 1 submissions · 2 settings
+    var [menuOpen, setMenuOpen] = useState(false);
+    var [confirm, setConfirm] = useState(null);
+    var [transitioning, setTransitioning] = useState(false);
+    var [toast, setToast] = useState(null);
+    var tabRefs = [useRef(null), useRef(null), useRef(null)];
+
+    // server-authoritative status depends on the simulated state
+    var status = state === "partial" ? "grading"
+               : state === "empty"   ? "published"
+               : EXAM.status;
+
+    useLucide([state, tab, menuOpen, confirm, transitioning, toast]);
+
+    // close menu on outside click / Esc
+    useEffect(function(){
+      function onKey(e){ if (e.key === "Escape"){ setMenuOpen(false); setConfirm(null); } }
+      function onClick(){ setMenuOpen(false); }
+      window.addEventListener("keydown", onKey);
+      if (menuOpen) window.addEventListener("click", onClick);
+      return function(){ window.removeEventListener("keydown", onKey); window.removeEventListener("click", onClick); };
+    }, [menuOpen]);
+
+    // auto-dismiss toast
+    useEffect(function(){
+      if (!toast) return;
+      var t = setTimeout(function(){ setToast(null); }, 3200);
+      return function(){ clearTimeout(t); };
+    }, [toast]);
+
+    // ARIA tab keyboard nav (arrow keys), disabled while typing in a field
+    useEffect(function(){
+      function onKey(e){
+        var tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (state === "loading" || state === "error") return;
+        var tabsAvail = state === "empty" ? [0,1] : [0,1,2];
+        if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+          var pos = tabsAvail.indexOf(tab);
+          if (pos < 0) return;
+          var next = e.key === "ArrowRight" ? tabsAvail[(pos+1)%tabsAvail.length] : tabsAvail[(pos-1+tabsAvail.length)%tabsAvail.length];
+          setTab(next);
+          if (tabRefs[next] && tabRefs[next].current) tabRefs[next].current.focus();
+          e.preventDefault();
+        }
+      }
+      window.addEventListener("keydown", onKey);
+      return function(){ window.removeEventListener("keydown", onKey); };
+    }, [tab, state]);
+
+    function runTransition(verb){
+      setTransitioning(true);
+      setTimeout(function(){
+        setTransitioning(false);
+        setToast({ variant:"success", msg:verb+" — done. Status re-synced from server." });
+      }, 1100);
+    }
+    function onConfirm(kind){ setMenuOpen(false); setConfirm(kind); }
+    function doConfirm(){
+      var c = CONFIRM[confirm];
+      setConfirm(null);
+      runTransition(c.cta);
+    }
+    function onMenu(action){
+      setMenuOpen(false);
+      if (action === "archive"){ setConfirm("archive"); return; }
+      setToast({ variant:"info", msg:({analytics:"Opening analytics…",duplicate:"Duplicating exam…",export:"Exporting grades CSV…"})[action] });
+    }
+
+    var partial = state === "partial";
+    var emptyTabs = state === "empty";
+
+    /* ---- error view ---- */
+    if (state === "error"){
+      return (
+        <Shell state={state} setState={setState}>
+          <div className="page">
+            <div style={{maxWidth:520,margin:"80px auto"}}>
+              <EmptyState icon="shield-alert"
+                title="Exam not found or you don't have access"
+                body="This exam may belong to another tenant, or it may have been removed. Tenant isolation means we never reveal whether an exam exists outside your academy."
+                action={<Button variant="primary" leadingIcon={<i data-lucide="arrow-left"></i>}>Back to Exams</Button>} />
+            </div>
+          </div>
+        </Shell>
+      );
+    }
+
+    if (state === "loading"){
+      return (<Shell state={state} setState={setState}><LoadingView/></Shell>);
+    }
+
+    var TABS = [
+      { label:"Questions", count:null,
+        body:<QuestionsTab empty={emptyTabs && status==="draft"} /> },
+      { label:"Submissions", count: emptyTabs ? 0 : EXAM.stats.totalSubmissions,
+        body:<SubmissionsTab empty={emptyTabs} partial={partial} /> },
+      { label:"Settings", count:null, disabled:false,
+        body:<SettingsTab locked={status !== "draft" && status !== "question_paper_uploaded" && status !== "question_paper_extracted"} /> },
+    ];
+    var visibleTabs = emptyTabs ? TABS.slice(0,2) : TABS;
+
+    return (
+      <Shell state={state} setState={setState}>
+        <div className="page">
+          <ExamHeader
+            status={status}
+            partial={partial}
+            menuOpen={menuOpen}
+            transitioning={transitioning}
+            onToggleMenu={function(e){ if(e) e.stopPropagation(); setMenuOpen(!menuOpen); }}
+            onMenu={onMenu}
+            onConfirm={onConfirm}
+            onTransition={runTransition}
+            onGotoSettings={function(){ setTab(2); }}
+          />
+
+          <KpiStrip zeros={emptyTabs} />
+
+          {/* Tabs — controlled, ARIA tab pattern */}
+          <div>
+            <div className="extabs__list" role="tablist" aria-label="Exam sections">
+              {visibleTabs.map(function(t, i){
+                return (
+                  <button key={i}
+                    ref={tabRefs[i]}
+                    role="tab"
+                    id={"extab-"+i}
+                    className="extab"
+                    aria-selected={tab===i}
+                    aria-controls={"expanel-"+i}
+                    tabIndex={tab===i ? 0 : -1}
+                    disabled={t.disabled}
+                    onClick={function(){ setTab(i); }}>
+                    {t.label}
+                    {t.count!=null && <span className="extab__count">{t.count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="tabpanel" key={tab} role="tabpanel" id={"expanel-"+tab} aria-labelledby={"extab-"+tab} tabIndex={0}>
+              {visibleTabs[tab] ? visibleTabs[tab].body : null}
+            </div>
+          </div>
+        </div>
+
+        {/* Confirm dialog */}
+        <Modal open={!!confirm} onClose={function(){setConfirm(null);}}
+          title={confirm ? CONFIRM[confirm].title : ""}
+          footer={confirm ? (
+            <div style={{display:"flex",gap:"var(--space-2)",justifyContent:"flex-end"}}>
+              <Button variant="secondary" onClick={function(){setConfirm(null);}}>Cancel</Button>
+              <Button variant={CONFIRM[confirm].variant} onClick={doConfirm}>{CONFIRM[confirm].cta}</Button>
+            </div>
+          ) : null}>
+          {confirm && <p style={{margin:0,fontSize:"var(--text-sm)",color:"var(--text-secondary)",lineHeight:"var(--leading-base)"}}>{CONFIRM[confirm].body}</p>}
+          {confirm === "release" && (
+            <div className="checklist">
+              <div className="cl-item">
+                <span className="cl-item__ic ok"><i data-lucide="check-circle" style={{width:18,height:18}}></i></span>
+                <span className="cl-item__txt">All auto-approved questions (confidence &gt; 0.90)<div className="cl-item__sub">38 of 38 cleared</div></span>
+              </div>
+              <div className="cl-item">
+                <span className="cl-item__ic warn"><i data-lucide="alert-triangle" style={{width:18,height:18}}></i></span>
+                <span className="cl-item__txt">Needs-review questions (confidence &lt; 0.70)<div className="cl-item__sub">3 unresolved — must clear before release</div></span>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Toast */}
+        {toast && (
+          <div style={{position:"absolute",right:"var(--space-6)",bottom:"var(--space-6)",zIndex:60,minWidth:300}} aria-live="polite">
+            <div style={{boxShadow:"var(--shadow-e3)",borderRadius:"var(--radius-md)"}}>
+              <Alert variant={toast.variant}>{toast.msg}</Alert>
+            </div>
+          </div>
+        )}
+      </Shell>
+    );
+  }
+
+  /* ============================================================= */
+  /* AppShell chrome + state segmented control                     */
+  /* ============================================================= */
+  function Shell(props){
+    var STATES = ["populated","loading","empty","error","partial"];
+    var LABELS = { populated:"Populated", loading:"Loading", empty:"Empty", error:"Error", partial:"Partial" };
+    return (
+      <div className="scene">
+        <div className="appshell">
+          {/* Sidebar */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">L</span>
+              <span className="sidebar__brand-name">Lyceum</span>
+            </div>
+            <nav className="sidebar__nav sb-scroll" aria-label="Primary">
+              <span className="sidebar__section-label">Teach</span>
+              <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+              <NavItem icon="users" href="#">Students</NavItem>
+              <NavItem icon="book-open" href="#">Spaces</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+              <NavItem icon="file-check-2" href="#" active>Exams</NavItem>
+              <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+              <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+              <NavItem icon="settings" href="#">Settings</NavItem>
+            </nav>
+            <div className="sb-foot">
+              <Avatar size="sm" initials="SV" />
+              <div className="sb-foot__meta">
+                <span className="sb-foot__name">S. Verma</span>
+                <span className="sb-foot__role">role: exam_owner</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Topbar */}
+          <header className="appshell__topbar">
+            <div className="tenant" role="button" tabIndex={0}>
+              <i data-lucide="building-2" style={{width:15,height:15}}></i>
+              Subhang Academy
+              <span className="tenant__code">SUB001</span>
+              <i data-lucide="chevrons-up-down" style={{width:13,height:13,opacity:.6}}></i>
+            </div>
+            <div className="tbsearch">
+              <i data-lucide="search" style={{width:15,height:15}}></i>
+              <input placeholder="Search exams, students…" aria-label="Search" />
+              <Kbd>⌘K</Kbd>
+            </div>
+            <div className="tb-icons">
+              <span className="notif"><IconButton label="Notifications" icon={<i data-lucide="bell"></i>} /><span className="notif__dot"></span></span>
+              <IconButton label="Help" icon={<i data-lucide="circle-help"></i>} />
+              <Avatar size="sm" initials="SV" />
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="appshell__main">
+            <div style={{maxWidth:1200,margin:"0 auto"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-4)",marginBottom:"var(--space-4)",flexWrap:"wrap"}}>
+                <Breadcrumb items={[{label:"Exams",href:"#"},{label:EXAM.title}]} />
+                <div className="segrow">
+                  <span className="seg-label">State</span>
+                  <div className="seg" role="group" aria-label="Preview state">
+                    {STATES.map(function(s){
+                      return <button key={s} aria-pressed={props.state===s} onClick={function(){props.setState(s);}}>{LABELS[s]}</button>;
+                    })}
+                  </div>
+                </div>
+              </div>
+              {props.children}
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

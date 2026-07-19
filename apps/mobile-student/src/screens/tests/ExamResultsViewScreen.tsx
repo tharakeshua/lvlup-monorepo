@@ -9,9 +9,9 @@
  * (Firestore Timestamp | ISO | epoch — REAL-DATA fallback §2.4).
  */
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 
-import { useExam, useSubmissions } from "@levelup/query";
+import { useExam, useExamQuestions, useQuestionSubmissions, useSubmissions } from "@levelup/query";
 
 import {
   Accordion,
@@ -66,7 +66,8 @@ interface ExamQuestionVM {
   max: number;
   status: keyof typeof STATUS_META;
   prompt: string;
-  scan: string[];
+  /** Scanned-answer page image URLs (mapping.imageUrls) — the learner's own sheet. */
+  scanUrls: string[];
   feedback: string;
   gradedBy: string;
   grow?: string;
@@ -74,17 +75,38 @@ interface ExamQuestionVM {
   manualOverride?: boolean;
 }
 
-function readExamQuestions(submission: Dict): ExamQuestionVM[] {
-  const list = Array.isArray(submission.questions)
-    ? (submission.questions as unknown[])
-    : Array.isArray(submission.questionSubmissions)
-      ? (submission.questionSubmissions as unknown[])
-      : [];
-  return list.map((raw, i) => {
+interface QMeta {
+  text?: string;
+  order?: number;
+  maxMarks?: number;
+}
+
+/**
+ * The AI grader's headline verdict is stored as `{ keyTakeaway, overallComment }`
+ * (EvaluationSummarySchema). A legacy STRING summary may still arrive from a
+ * not-yet-redeployed backend, so read both shapes.
+ */
+function readEvalSummary(v: unknown): string | undefined {
+  if (typeof v === "string") return v;
+  const obj = o(v);
+  return s(obj.overallComment) ?? s(obj.keyTakeaway);
+}
+
+/**
+ * Map `listQuestionSubmissions` rows (QuestionSubmissionView) into the per-question
+ * view model, joining question text/order from `listQuestions` (ExamQuestionView)
+ * by `questionId`. Per-question marks come from `evaluation.{score,maxScore}`;
+ * rubric criteria from `evaluation.rubricBreakdown` (`criterionName` + `comment`);
+ * the scanned answer from `mapping.imageUrls`. All reads defensive.
+ */
+function readExamQuestions(list: unknown[], meta: Record<string, QMeta>): ExamQuestionVM[] {
+  const rows = list.map((raw) => {
     const q = o(raw);
     const evalr = o(q.evaluation);
-    const marks = n(q.pointsEarned) ?? n(evalr.score) ?? 0;
-    const max = n(q.totalPoints) ?? n(evalr.maxScore) ?? 0;
+    const mapping = o(q.mapping);
+    const m = meta[s(q.questionId) ?? ""] ?? {};
+    const marks = n(evalr.score) ?? 0;
+    const max = n(evalr.maxScore) ?? n(m.maxMarks) ?? 0;
     const ratio = max > 0 ? marks / max : 0;
     const status: keyof typeof STATUS_META =
       ratio >= 1 ? "full" : ratio >= 0.75 ? "almost" : ratio > 0 ? "partial" : "look";
@@ -92,29 +114,45 @@ function readExamQuestions(submission: Dict): ExamQuestionVM[] {
       ? (evalr.rubricBreakdown as unknown[])
       : [];
     const weaknesses = Array.isArray(evalr.weaknesses) ? (evalr.weaknesses as unknown[]) : [];
+    const scanUrls = Array.isArray(mapping.imageUrls)
+      ? (mapping.imageUrls as unknown[]).map(String).filter((u) => /^https?:\/\//.test(u))
+      : [];
+    const manualOverride = q.manualOverride != null && typeof q.manualOverride === "object";
+    const confidence = n(evalr.confidence);
     return {
-      n: n(q.questionNumber) ?? i + 1,
+      order: n(m.order) ?? Number.MAX_SAFE_INTEGER,
+      n: 0,
       marks,
       max,
       status,
-      prompt: s(q.prompt) ?? s(o(q.question).prompt) ?? "",
-      scan: Array.isArray(q.scanLines) ? (q.scanLines as unknown[]).map(String) : [],
-      feedback: s(evalr.summary) ?? s(q.feedback) ?? "",
-      gradedBy: s(q.gradedBy) ?? (q.manualOverride ? "review" : "high"),
+      prompt: s(m.text) ?? "",
+      scanUrls,
+      feedback: readEvalSummary(evalr.summary) ?? "",
+      gradedBy: manualOverride
+        ? "review"
+        : confidence != null && confidence < 0.66
+          ? "med"
+          : "high",
       grow: typeof weaknesses[0] === "string" ? (weaknesses[0] as string) : undefined,
       rubric: rubricSrc.length
         ? rubricSrc.map((r) => {
             const rb = o(r);
             return {
-              label: s(rb.label) ?? s(rb.criterion) ?? "",
-              desc: s(rb.description) ?? s(rb.desc),
-              score: n(rb.score) ?? n(rb.pointsEarned) ?? 0,
+              label: s(rb.criterionName) ?? s(rb.label) ?? s(rb.criterion) ?? "",
+              desc: s(rb.comment) ?? s(rb.description) ?? s(rb.desc),
+              score: n(rb.score) ?? 0,
               max: n(rb.maxScore) ?? n(rb.max) ?? 0,
             };
           })
         : undefined,
-      manualOverride: q.manualOverride === true,
+      manualOverride,
     };
+  });
+  rows.sort((a, b) => a.order - b.order);
+  return rows.map((r, i): ExamQuestionVM => {
+    const { order: _order, ...rest } = r;
+    void _order;
+    return { ...rest, n: i + 1 };
   });
 }
 
@@ -133,24 +171,52 @@ export default function ExamResultsViewScreen() {
 
   const exam = useMemo(() => o(examQ.data), [examQ.data]);
   const submission = useMemo(() => o(flattenPages(subsQ.data)[0]), [subsQ.data]);
-  const questions = useMemo(() => readExamQuestions(submission), [submission]);
+  // Score lives under `summary` in SubmissionListView (nested projection).
+  const summary = useMemo(() => o(submission.summary), [submission]);
+
+  // Per-question detail comes from `listQuestionSubmissions` (never embedded in the
+  // submission projection), joined with `listQuestions` for prompt text + order.
+  const submissionId = s(submission.id) ?? "";
+  const qsubsQ = useQuestionSubmissions(submissionId);
+  const examQsQ = useExamQuestions(examId);
+
+  const questionMeta = useMemo(() => {
+    const raw = o(examQsQ.data).questions;
+    const arr = Array.isArray(raw) ? (raw as unknown[]) : [];
+    const map: Record<string, QMeta> = {};
+    for (const item of arr) {
+      const q = o(item);
+      const id = s(q.id);
+      if (id) map[id] = { text: s(q.text), order: n(q.order), maxMarks: n(q.maxMarks) };
+    }
+    return map;
+  }, [examQsQ.data]);
+
+  const questions = useMemo(() => {
+    const raw = o(qsubsQ.data).questionSubmissions;
+    const arr = Array.isArray(raw) ? (raw as unknown[]) : [];
+    return readExamQuestions(arr, questionMeta);
+  }, [qsubsQ.data, questionMeta]);
 
   const examTitle = s(exam.title) ?? s(exam.name) ?? "Exam results";
   const subject = s(exam.subject) ?? "";
-  const released =
-    (exam.resultsReleased ?? exam.released) === true || submission.percentage != null;
-  const percentage = n(submission.percentage) ?? 0;
-  const grade = s(submission.grade) ?? s(submission.finalGrade) ?? "";
-  const totalScore = n(submission.totalScore) ?? n(submission.marksEarned);
-  const maxScore = n(submission.maxScore) ?? n(submission.totalMarks);
+  // Release gate: SubmissionListView carries `resultsReleased` top-level; the exam
+  // reaches `results_released` status. Neither `percentage` nor `resultsReleased`
+  // sits at the submission top level.
+  const released = submission.resultsReleased === true || s(exam.status) === "results_released";
+  const percentage = Math.round(n(summary.percentage) ?? 0);
+  const grade = s(summary.grade) ?? "";
+  const totalScore = n(summary.totalScore);
+  const maxScore = n(summary.maxScore);
+  const questionsGraded = n(summary.questionsGraded);
+  const totalQuestions = n(summary.totalQuestions);
   const releasedDate = coerceDate(
-    exam.resultsReleasedAt ?? exam.releasedAt ?? submission.releasedAt
+    exam.resultsReleasedAt ?? exam.releasedAt ?? submission.resultsReleasedAt
   );
-  const growTopics = Array.isArray(submission.weaknesses)
-    ? (submission.weaknesses as unknown[])
-        .filter((x): x is string => typeof x === "string")
-        .slice(0, 3)
-    : questions.map((q) => q.grow).filter((x): x is string => Boolean(x));
+  const growTopics = questions
+    .map((q) => q.grow)
+    .filter((x): x is string => Boolean(x))
+    .slice(0, 3);
 
   if (examQ.isLoading || subsQ.isLoading) {
     return (
@@ -256,7 +322,10 @@ export default function ExamResultsViewScreen() {
               </Text>
               {totalScore != null && maxScore != null ? (
                 <Text className="text-text-muted text-center text-sm">
-                  {totalScore} / {maxScore} marks · {questions.length} questions graded
+                  {totalScore} / {maxScore} marks
+                  {questionsGraded != null && totalQuestions != null
+                    ? ` · ${questionsGraded} of ${totalQuestions} questions graded`
+                    : ""}
                 </Text>
               ) : null}
               {releasedDate ? (
@@ -327,26 +396,24 @@ export default function ExamResultsViewScreen() {
                     <View className="gap-4">
                       {q.prompt ? <ContentRenderer math>{q.prompt}</ContentRenderer> : null}
 
-                      {q.scan.length ? (
+                      {q.scanUrls.length ? (
                         <Pressable
                           onPress={() => setLightbox(q)}
                           accessibilityRole="button"
                           accessibilityLabel={`Zoom your scanned answer for question ${q.n}`}
-                          className="border-border-subtle bg-surface-sunken gap-1.5 rounded-md border p-3"
+                          className="border-border-subtle bg-surface-sunken gap-2 rounded-md border p-3"
                         >
                           <Text className="text-2xs text-text-muted uppercase">
                             Your answer (from your sheet)
                           </Text>
-                          {q.scan.map((line, i) => (
-                            <Text
-                              key={i}
-                              className={`font-mono ${i === 0 ? "text-base" : "text-sm"} text-text-primary`}
-                            >
-                              {line}
-                            </Text>
-                          ))}
+                          <Image
+                            source={{ uri: q.scanUrls[0] }}
+                            resizeMode="cover"
+                            className="bg-surface h-40 w-full rounded"
+                          />
                           <Text className="text-2xs text-brand mt-1">
                             <Icon name="zoom-in" size={11} /> Tap to zoom
+                            {q.scanUrls.length > 1 ? ` · ${q.scanUrls.length} pages` : ""}
                           </Text>
                         </Pressable>
                       ) : null}
@@ -425,13 +492,16 @@ export default function ExamResultsViewScreen() {
         {lightbox ? (
           <View className="gap-3">
             <View
-              className="border-border-subtle bg-surface-sunken gap-1 rounded-md border p-4"
+              className="border-border-subtle bg-surface-sunken gap-2 rounded-md border p-3"
               accessibilityLabel={`Your scanned answer for question ${lightbox.n}`}
             >
-              {lightbox.scan.map((line, i) => (
-                <Text key={i} className="text-text-primary font-mono text-base">
-                  {line}
-                </Text>
+              {lightbox.scanUrls.map((uri, i) => (
+                <Image
+                  key={i}
+                  source={{ uri }}
+                  resizeMode="contain"
+                  className="bg-surface h-96 w-full rounded"
+                />
               ))}
             </View>
             <Text className="text-text-muted text-xs">

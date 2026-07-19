@@ -49,6 +49,8 @@ import type {
   PageResponse,
   SubscriptionHandle,
   Callable,
+  ReqOf,
+  ResOf,
 } from "@levelup/api-contract";
 
 export type { PageRequest, PageResponse, SubscriptionHandle };
@@ -228,6 +230,9 @@ export interface GetLeaderboardResponse {
   myEntry?: LeaderboardEntry;
 }
 
+export type GetSpaceAnalyticsRequest = ReqOf<"v1.analytics.getSpaceAnalytics">;
+export type GetSpaceAnalyticsResponse = ResOf<"v1.analytics.getSpaceAnalytics">;
+
 // ---------------------------------------------------------------------------
 // The `v1.analytics.*` namespace surface — only the ops the analytics repos
 // invoke. The permissive `[op]` tail keeps the real (superset) client
@@ -245,6 +250,7 @@ export interface AnalyticsNamespace {
   listLinkedChildren: Callable<ListLinkedChildrenRequest, PageResponse<ChildSummaryRow>>;
   getCostSummary: Callable<GetCostSummaryRequest, GetCostSummaryResponse>;
   getLeaderboard: Callable<GetLeaderboardRequest, GetLeaderboardResponse>;
+  getSpaceAnalytics: Callable<GetSpaceAnalyticsRequest, GetSpaceAnalyticsResponse>;
   // permissive tail — other analytics callables exist on the real client.
   [op: string]: (req: never) => Promise<unknown>;
 }

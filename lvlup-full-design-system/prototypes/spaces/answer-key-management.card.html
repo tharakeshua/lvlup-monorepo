@@ -1,0 +1,642 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Answer Key Management" subtitle="Server-only key · strip / re-merge guard" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell (parent Space editor, dimmed beneath the sheet) ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc a{color:var(--text-muted);text-decoration:none;cursor:pointer;}
+.sx-bc a:hover{color:var(--brand-primary);}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+.sx-scroll{flex:1;overflow-y:auto;}
+.sx-col{max-width:1200px;margin:0 auto;padding:var(--space-5) var(--space-6) var(--space-12);display:flex;flex-direction:column;gap:var(--space-4);}
+.ghosthd{display:flex;align-items:center;gap:var(--space-3);}
+.ghosthd h1{margin:0;font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ghosthd .sub{font-size:var(--text-sm);color:var(--text-muted);}
+.ghosthd .sp{flex:1;}
+.tree{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.tree-sp{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3);font-weight:var(--weight-semibold);font-size:var(--text-sm);background:var(--bg-surface-sunken);}
+.tree-sp i{width:16px;height:16px;color:var(--text-muted);}
+.tree-sp .badge-tt{margin-left:var(--space-2);display:inline-flex;align-items:center;gap:4px;font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--brand-primary);background:var(--brand-subtle);border-radius:var(--radius-pill);padding:1px var(--space-2);}
+.tree-sp .badge-tt i{width:11px;height:11px;color:var(--brand-primary);}
+.tree-sp .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-regular);}
+.tree-row{padding:var(--space-3) var(--space-4) var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);cursor:pointer;}
+.tree-row:last-child{border-bottom:none;}
+.tree-row:hover{background:var(--bg-surface-sunken);}
+.tree-row.sel{background:var(--brand-subtle);}
+.tree-row .tic{width:26px;height:26px;border-radius:var(--radius-sm);background:var(--bg-surface-sunken);color:var(--text-secondary);display:grid;place-items:center;flex:none;}
+.tree-row.sel .tic{background:var(--brand-muted);color:var(--brand-primary);}
+.tree-row .tic i{width:14px;height:14px;}
+.tree-row .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tree-row .lk{color:var(--brand-primary);display:grid;place-items:center;}
+.tree-row .lk i{width:13px;height:13px;}
+.tree-row .typ{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.tree-row .pts{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+/* ---- overlays ---- */
+.scrim{position:fixed;inset:0;background:rgba(20,18,15,.46);z-index:40;animation:fin var(--dur-base) var(--ease-standard);}
+@keyframes fin{from{opacity:0;}to{opacity:1;}}
+.sheet{position:fixed;top:0;right:0;height:100vh;width:min(680px,96vw);background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:50;display:flex;flex-direction:column;animation:slidein var(--dur-base) var(--ease-entrance);}
+@keyframes slidein{from{transform:translateX(28px);opacity:.3;}to{transform:translateX(0);opacity:1;}}
+.sheet-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:5;}
+.sheet-head .hcrumb{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:2px;display:flex;align-items:center;gap:5px;}
+.sheet-head .hcrumb i{width:12px;height:12px;}
+.sheet-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.sheet-head .hsp{flex:1;}
+/* save-status chip */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);flex:none;transition:color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard);}
+.chip i{width:12px;height:12px;}
+.chip.saved{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);}
+.chip.saving{background:var(--status-warning-subtle);color:var(--status-warning);border-color:var(--status-warning);}
+.chip.dirty{background:var(--spark-subtle);color:var(--spark);border-color:var(--spark);}
+.chip.failed{background:var(--status-error-subtle);color:var(--status-error);border-color:var(--status-error);}
+.spin{width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.sheet-body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5);position:relative;}
+.reading{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5);}
+.sheet-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;bottom:0;}
+.sheet-foot .hint{font-size:var(--text-xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;}
+.sheet-foot .sp{flex:1;}
+/* ── question prompt header ── */
+.qhead{display:flex;flex-direction:column;gap:var(--space-2);}
+.qhead .meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.qtag{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px var(--space-2);}
+.qtag i{width:12px;height:12px;}
+.qprompt{font-size:var(--text-base);line-height:var(--leading-base);color:var(--text-primary);}
+.qprompt .mono{font-family:var(--font-mono);background:var(--bg-surface-sunken);border-radius:var(--radius-sm);padding:1px 5px;}
+/* ── (A) Answer key lock (keylock) ── */
+.keylock{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--bg-inset);position:relative;}
+.keylock.fetching{border-style:dashed;}
+.keylock.warned{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.keylock.errored{border-color:var(--status-error);background:var(--status-error-subtle);}
+.keylock .kic{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--brand-primary);display:grid;place-items:center;flex:none;}
+.keylock.warned .kic{color:var(--status-warning);}
+.keylock.errored .kic{color:var(--status-error);}
+.keylock .kic i{width:19px;height:19px;}
+.keylock .kbody{flex:1;min-width:0;}
+.keylock .krow{display:flex;align-items:center;gap:var(--space-2);}
+.keylock .kt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.statepill{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-semibold);border-radius:var(--radius-pill);padding:2px var(--space-2);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);}
+.statepill i{width:11px;height:11px;}
+.statepill.ok{color:var(--status-success);border-color:var(--status-success);background:var(--status-success-subtle);}
+.statepill.busy{color:var(--status-warning);border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.statepill.warn{color:var(--status-warning);border-color:var(--status-warning);background:var(--bg-surface);}
+.statepill.err{color:var(--status-error);border-color:var(--status-error);background:var(--bg-surface);}
+.keylock .kb{font-size:var(--text-xs);color:var(--text-secondary);margin-top:4px;line-height:var(--leading-xs);}
+.keylock .klnk{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--brand-primary);background:none;border:none;cursor:pointer;padding:0;margin-top:var(--space-2);}
+.keylock .klnk i{width:13px;height:13px;}
+.keylock .klnk:hover{color:var(--brand-primary-hover);text-decoration:underline;}
+/* explainer popover */
+.pop{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:min(360px,90vw);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-4);animation:pin var(--dur-base) var(--ease-entrance);}
+@keyframes pin{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.pop .ph{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);margin-bottom:var(--space-3);}
+.pop .ph i{width:15px;height:15px;color:var(--brand-primary);}
+.pop .ph .sp{flex:1;}
+.pop .pclose{background:none;border:none;cursor:pointer;color:var(--text-muted);display:grid;place-items:center;padding:2px;border-radius:var(--radius-sm);}
+.pop .pclose:hover{color:var(--text-primary);background:var(--bg-surface-sunken);}
+.pop .pclose i{width:14px;height:14px;}
+.deflist{display:flex;flex-direction:column;gap:var(--space-3);}
+.deflist .dt{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.deflist .dt i{width:12px;height:12px;}
+.deflist .dd{font-size:var(--text-xs);color:var(--text-secondary);line-height:var(--leading-xs);margin-top:2px;}
+.deflist .dd code{font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface-sunken);border-radius:var(--radius-sm);padding:1px 4px;color:var(--text-primary);}
+/* section label */
+.seclbl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:0 0 var(--space-1);}
+.seclbl .ln{flex:1;height:1px;background:var(--border-subtle);}
+.seclbl .mono{font-family:var(--font-mono);text-transform:none;letter-spacing:0;color:var(--text-muted);}
+/* ── (B) Answer editing sub-editor ── */
+.subed{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);transition:opacity var(--dur-fast) var(--ease-standard);}
+.subed.locked{opacity:.55;pointer-events:none;}
+.subed-hd{display:flex;align-items:center;gap:var(--space-2);}
+.subed-hd i{width:16px;height:16px;color:var(--text-secondary);}
+.subed-hd .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.subed-hd .sp{flex:1;}
+.subed-hd .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.opt{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);}
+.opt.correct{border-color:var(--status-success);background:var(--status-success-subtle);}
+.opt .grip{cursor:grab;color:var(--text-muted);display:grid;place-items:center;width:20px;padding-top:6px;flex:none;}
+.opt .grip i{width:15px;height:15px;}
+.opt .obody{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+.opt .orow{display:flex;align-items:center;gap:var(--space-2);}
+.opt .mark{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px var(--space-2);background:var(--bg-surface);white-space:nowrap;}
+.opt.correct .mark{border-color:var(--status-success);color:var(--status-success);background:var(--status-success-subtle);}
+.opt .mark i{width:13px;height:13px;}
+.opt .del{flex:none;color:var(--text-muted);background:none;border:none;cursor:pointer;display:grid;place-items:center;padding:6px;border-radius:var(--radius-sm);}
+.opt .del:hover{color:var(--status-error);background:var(--status-error-subtle);}
+.opt .del i{width:15px;height:15px;}
+.in{width:100%;font-family:var(--font-ui);font-size:var(--text-sm);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);}
+.in:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.in.mono{font-family:var(--font-mono);}
+.in:disabled{background:var(--bg-surface-sunken);color:var(--text-muted);cursor:not-allowed;}
+.addrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--brand-primary);background:none;border:1px dashed var(--border-strong);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);cursor:pointer;justify-content:center;}
+.addrow:hover{background:var(--brand-subtle);border-color:var(--brand-primary);}
+.addrow i{width:15px;height:15px;}
+.fld{display:flex;flex-direction:column;gap:6px;}
+.fld label{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);}
+.fld .help{font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-regular);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);}
+.combo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);min-height:40px;}
+.tagchip{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);background:var(--status-success-subtle);color:var(--status-success);border:1px solid var(--status-success);}
+.tagchip .x{cursor:pointer;display:grid;place-items:center;}
+.tagchip .x i{width:11px;height:11px;}
+.combo .tin{flex:1;min-width:80px;border:none;background:none;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);padding:3px;}
+.combo .tin::placeholder{color:var(--text-muted);}
+/* skeleton for fetching */
+.sk{background:var(--bg-surface);border-radius:var(--radius-sm);position:relative;overflow:hidden;}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--bg-surface-sunken),transparent);animation:shim 1.3s infinite;}
+@keyframes shim{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+/* scoped loading overlay over zone B */
+.zoneb{position:relative;}
+.zone-ovl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);border-radius:var(--radius-md);z-index:4;}
+.zone-ovl .veil{position:absolute;inset:0;background:var(--bg-surface);opacity:.72;border-radius:var(--radius-md);}
+.zone-ovl .ot{position:relative;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px;}
+.zone-ovl .ot .spin{color:var(--brand-primary);}
+/* ── (C) inline alert / banner ── */
+.banner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);font-size:var(--text-sm);}
+.banner i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.banner .bt{font-weight:var(--weight-semibold);font-size:var(--text-sm);}
+.banner .bb{color:var(--text-secondary);font-size:var(--text-xs);margin-top:3px;line-height:var(--leading-xs);}
+.banner .bact{margin-top:var(--space-2);display:flex;gap:var(--space-2);}
+.banner.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.banner.warn i.lead{color:var(--status-warning);}
+.banner.warn .bt{color:var(--status-warning);}
+.banner.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.banner.err i.lead{color:var(--status-error);}
+.banner.err .bt{color:var(--status-error);}
+.banner.info i.lead{color:var(--status-info);}
+/* footer buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);border:1px solid transparent;cursor:pointer;white-space:nowrap;}
+.btn i{width:16px;height:16px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-strong);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:none;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--danger{background:var(--status-error);color:var(--text-on-accent);}
+.btn--danger:hover{filter:brightness(.94);}
+.btn--sm{padding:5px var(--space-3);font-size:var(--text-xs);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+/* tooltip on disabled save */
+.tipwrap{position:relative;display:inline-flex;}
+.tip{position:absolute;bottom:calc(100% + 8px);right:0;width:max-content;max-width:240px;background:var(--text-primary);color:var(--bg-surface);font-size:var(--text-2xs);line-height:var(--leading-2xs);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);box-shadow:var(--shadow-e2);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-standard);z-index:6;}
+.tipwrap:hover .tip{opacity:1;}
+/* confirm dialog */
+.dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);width:min(480px,94vw);display:flex;flex-direction:column;animation:dpop var(--dur-base) var(--ease-entrance);}
+@keyframes dpop{from{transform:translate(-50%,-46%);opacity:0;}to{transform:translate(-50%,-50%);opacity:1;}}
+.confirm-body{padding:var(--space-5);display:flex;gap:var(--space-3);}
+.confirm-body .cic{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--status-error-subtle);color:var(--status-error);display:grid;place-items:center;flex:none;}
+.confirm-body .cic i{width:19px;height:19px;}
+.confirm-body .ct{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.confirm-body .cb{font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;line-height:var(--leading-sm);}
+.dialog-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:70;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);max-width:380px;animation:tin var(--dur-base) var(--ease-entrance);}
+.toast i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.toast.ok{border-color:var(--status-success);}
+.toast.ok i.lead{color:var(--status-success);}
+.toast.bad{border-color:var(--status-error);}
+.toast.bad i.lead{color:var(--status-error);}
+.toast .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.toast .tb{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;}
+.toast .retry{margin-left:auto;color:var(--brand-primary);font-weight:var(--weight-medium);font-size:var(--text-xs);background:none;border:none;cursor:pointer;}
+@keyframes tin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* demo switcher */
+.demo{position:fixed;left:var(--space-4);bottom:var(--space-4);z-index:80;display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:5px;flex-wrap:wrap;max-width:66vw;}
+.demo .dl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding:0 var(--space-2);}
+.demo button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:none;background:none;color:var(--text-secondary);border-radius:var(--radius-pill);padding:5px var(--space-3);cursor:pointer;}
+.demo button.on{background:var(--brand-primary);color:var(--text-on-accent);}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { Icon } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ---------- dimmed parent: Space editor Content tree ---------- */
+function Nav({icon,label,count,active}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function ParentShell(){
+  const items=[
+    {ic:"list-checks",t:"Q1 — Solve 3x − 7 = 11",typ:"mcq",pts:"2",sel:true,locked:true},
+    {ic:"hash",t:"Q2 — Evaluate 5(x+2) at x=3",typ:"numerical",pts:"3",locked:true},
+    {ic:"type",t:"Q3 — Name the inverse of subtraction",typ:"text",pts:"2",locked:true},
+    {ic:"file-text",t:"Q4 — Define a linear equation",typ:"paragraph",pts:"5",locked:true},
+  ];
+  return <div className="sx" aria-hidden="true">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+          <Nav icon="layout-dashboard" label="Dashboard"/>
+          <Nav icon="school" label="Classes" count="6"/>
+          <Nav icon="layers" label="Spaces" count="9" active/>
+          <Nav icon="file-check" label="Exams" count="4"/>
+          <Nav icon="graduation-cap" label="Students"/></div>
+        <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+          <Nav icon="bar-chart-3" label="Analytics"/>
+          <Nav icon="sparkles" label="AI tutor"/></div>
+      </nav>
+      <div className="foot"><div className="sx-uc"><div className="av">RM</div>
+        <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div></div>
+    </aside>
+    <div className="sx-main">
+      <header className="sx-top">
+        <nav className="sx-bc" aria-label="Breadcrumb">
+          <a>Spaces</a>{I("chevron-right",14)}<a>Algebra I</a>{I("chevron-right",14)}
+          <a>Content</a>{I("chevron-right",14)}<b>Mid-unit Timed Test</b>
+        </nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search items…</span></div>
+        <button className="sx-icbtn" aria-label="Notifications">{I("bell",18)}</button>
+      </header>
+      <div className="sx-scroll"><div className="sx-col">
+        <div className="ghosthd">
+          <h1>Mid-unit Timed Test</h1><div className="sp"></div>
+          <span className="sub">4 questions · 12 pts · 20 min</span>
+        </div>
+        <div className="tree">
+          <div className="tree-sp">{I("timer",16)}Story Point 5 — Mid-unit Timed Test
+            <span className="badge-tt">{I("shield",11)}timed_test</span>
+            <span className="ct">4 items · 12 pts</span></div>
+          {items.map((it,i)=>
+            <div key={i} className={"tree-row"+(it.sel?" sel":"")}>
+              <div className="tic">{I(it.ic,14)}</div>
+              <span className="tt">{it.t}</span>
+              {it.locked&&<span className="lk" title="Server-protected answer key">{I("lock",13)}</span>}
+              <span className="typ">{it.typ}</span>
+              <span className="pts">{it.pts} pts</span>
+            </div>)}
+        </div>
+      </div></div>
+    </div>
+  </div>;
+}
+
+/* ---------- save chip ---------- */
+function SaveChip({status}){
+  const map={
+    saved:{cls:"saved",icon:"check-circle-2",label:"Saved · 12:04"},
+    saving:{cls:"saving",icon:null,label:"Saving…"},
+    dirty:{cls:"dirty",icon:"circle-dot",label:"Unsaved changes"},
+    failed:{cls:"failed",icon:"alert-circle",label:"Save failed — retry"},
+    locked:{cls:"failed",icon:"lock",label:"Editing locked"},
+  };
+  const c=map[status]||map.saved;
+  return <span className={"chip "+c.cls} role="status" aria-live="polite">
+    {c.icon?I(c.icon,12):<span className="spin" aria-hidden="true"></span>}{c.label}</span>;
+}
+
+/* ========== (A) AnswerKeyLock ========== */
+function AnswerKeyLock({mode}){
+  const [open,setOpen]=useState(false);
+  // mode: protected | fetching | warned | errored
+  const cfg={
+    protected:{cls:"",icon:"lock",pill:{cls:"ok",icon:"shield-check",label:"Protected · isolated"},
+      title:"Server-protected answer key",
+      body:"Stored separately. Students can never read this. Every time you save, the answer is moved back out of the question."},
+    fetching:{cls:"fetching",icon:"loader",pill:{cls:"busy",icon:null,label:"Re-merging key"},
+      title:"Fetching the protected answer key…",
+      body:"Re-merging answerKeys into the question via getItemForEdit. Editing is held until the real key loads — you must not author on top of a blank key."},
+    warned:{cls:"warned",icon:"shield-alert",pill:{cls:"warn",icon:"alert-triangle",label:"Looks empty"},
+      title:"Server-protected answer key",
+      body:"The client guard thinks this key is blank. Saving now could replace the real server key with blanks — re-enter the answer first."},
+    errored:{cls:"errored",icon:"shield-x",pill:{cls:"err",icon:"alert-circle",label:"Verify failed"},
+      title:"Couldn't verify the protected answer key",
+      body:"Editing is locked below so a real key can't be overwritten with blanks. Retry the secured fetch to unlock."},
+  }[mode];
+  return <div className={"keylock "+cfg.cls} aria-label="Answer key, server-protected">
+    <div className="kic">{cfg.icon==="loader"?<span className="spin" aria-hidden="true"></span>:I(cfg.icon,19)}</div>
+    <div className="kbody">
+      <div className="krow">
+        <span className="kt">{cfg.title}</span>
+        <span className={"statepill "+cfg.pill.cls} role="status">
+          {cfg.pill.icon?I(cfg.pill.icon,11):<span className="spin" aria-hidden="true"></span>}{cfg.pill.label}</span>
+      </div>
+      <div className="kb">{cfg.body}</div>
+      {mode!=="fetching" &&
+        <button className="klnk" aria-expanded={open} aria-haspopup="dialog"
+          onClick={()=>setOpen(o=>!o)}>{I("help-circle",13)}How is this protected?</button>}
+    </div>
+    {open && <div className="pop" role="dialog" aria-label="How the answer key is protected">
+      <div className="ph">{I("shield-check",15)}<span>How this is protected</span><span className="sp"></span>
+        <button className="pclose" aria-label="Close" onClick={()=>setOpen(false)}>{I("x",14)}</button></div>
+      <div className="deflist">
+        <div><div className="dt">{I("database",12)}Where</div>
+          <div className="dd">Kept in a server-only <code>answerKeys</code> collection, split out from the question document.</div></div>
+        <div><div className="dt">{I("user-check",12)}Who can read</div>
+          <div className="dd">Only graders and this editor — via a secured endpoint. The student app physically cannot fetch it.</div></div>
+        <div><div className="dt">{I("scissors",12)}When stripped</div>
+          <div className="dd">Every time you save, the answer is moved back out of the question (<code>stripAnswerFromPayload</code>).</div></div>
+      </div>
+    </div>}
+  </div>;
+}
+
+/* ---------- MCQ option row (author mode) ---------- */
+function OptionRow({opt,marked,onMark,onDel,letter,disabled}){
+  return <div className={"opt"+(marked?" correct":"")}>
+    <span className="grip" aria-hidden="true">{I("grip-vertical",15)}</span>
+    <div className="obody">
+      <div className="orow">
+        <input className="in" defaultValue={opt.text} disabled={disabled}
+          aria-label={"Option "+letter+" text"} placeholder={"Option "+letter}/>
+        <button className="mark" role="radio" aria-checked={marked} onClick={onMark} disabled={disabled}
+          aria-label={marked?"Marked correct":"Mark correct"}>
+          {I(marked?"check-circle-2":"circle",13)}{marked?"Correct":"Mark correct"}</button>
+        <button className="del" onClick={onDel} disabled={disabled} aria-label={"Remove option "+letter}>{I("trash-2",15)}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ---------- (B) author-mode answer editor (MCQ) ---------- */
+function AnswerEditor({mode,empty,options,setOptions,correctIdx,setCorrectIdx,onAdd,markDirty}){
+  const disabled = mode==="errored" || mode==="fetching";
+  const accept = ["x = 4","four"];
+  return <div className="zoneb">
+    <div className={"subed"+(disabled?" locked":"")} aria-busy={mode==="fetching"}>
+      <div className="subed-hd">
+        {I("list-checks",16)}<span className="tt">Correct answer — single choice</span>
+        <span className="sp"></span>
+        <span className="mono">questionType: mcq · exactly-one</span>
+      </div>
+
+      {mode==="fetching"
+        ? <div style={{display:"flex",flexDirection:"column",gap:"var(--space-2)"}}>
+            {[0,1,2,3].map(i=><div key={i} className="sk" style={{height:48,borderRadius:"var(--radius-md)"}}></div>)}
+          </div>
+        : <>
+            {empty
+              ? <div style={{display:"flex",flexDirection:"column",gap:"var(--space-2)"}}>
+                  <OptionRow opt={{text:""}} letter="A" marked={false} disabled={disabled}
+                    onMark={()=>{}} onDel={()=>{}}/>
+                  <OptionRow opt={{text:""}} letter="B" marked={false} disabled={disabled}
+                    onMark={()=>{}} onDel={()=>{}}/>
+                </>
+              : options.map((o,i)=>
+                  <OptionRow key={o.id} opt={o} letter={String.fromCharCode(65+i)} disabled={disabled}
+                    marked={correctIdx===i} onMark={()=>{setCorrectIdx(i);markDirty();}}
+                    onDel={()=>{setOptions(options.filter((_,j)=>j!==i));markDirty();}}/>)}
+            <button className="addrow" onClick={onAdd} disabled={disabled}>{I("plus",15)}Add option</button>
+
+            {/* acceptable-answers list — for the text-fallback authoring control */}
+            <div className="fld" style={{marginTop:"var(--space-1)"}}>
+              <label>Acceptable typed answers <span className="help">· also accepted when auto-grading short text</span></label>
+              <div className="combo">
+                {accept.map((t,i)=><span key={t} className="tagchip">{t}
+                  <span className="x" role="button" aria-label={"Remove "+t} onClick={markDirty}>{I("x",11)}</span></span>)}
+                <input className="tin" placeholder="Add accepted answer…" aria-label="Add accepted answer" disabled={disabled}/>
+              </div>
+            </div>
+          </>}
+    </div>
+
+    {/* scoped loading overlay (zone B) for fetching */}
+    {mode==="fetching" && <div className="zone-ovl">
+      <span className="veil" aria-hidden="true"></span>
+      <span className="ot"><span className="spin" aria-hidden="true"></span>Fetching the protected answer key…</span>
+    </div>}
+  </div>;
+}
+
+/* ---------- main screen ---------- */
+function Screen(){
+  // demo state: protected | fetching | empty | warned | errored | nonowner
+  const [variant,setVariant]=useState("protected");
+  const [open,setOpen]=useState(true);
+  const [save,setSave]=useState("saved");
+  const [correctIdx,setCorrectIdx]=useState(0);
+  const [options,setOptions]=useState([
+    {id:1,text:"x = 4"},{id:2,text:"x = 6"},{id:3,text:"x = 9"},{id:4,text:"x = 18"},
+  ]);
+  const nextId=useRef(5);
+  const [confirm,setConfirm]=useState(false);
+  const [toast,setToast]=useState(null);
+
+  const mode = variant==="fetching" ? "fetching"
+    : variant==="errored" ? "errored"
+    : variant==="warned" ? "warned" : "protected";
+  const empty = variant==="empty";
+  const stripped = variant==="warned";
+  const errored = variant==="errored";
+  const nonOwner = variant==="nonowner";
+  const fetching = variant==="fetching";
+  // Save disabled while fetching/errored, or for non-owner (ownership-gated)
+  const saveDisabled = fetching || errored || nonOwner || save==="saving";
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+  const markDirty=()=>{ if(stripped){ setSave("dirty"); return; } setSave("dirty"); };
+
+  const addOption=()=>{ const id=nextId.current++; setOptions(o=>[...o,{id,text:""}]); markDirty(); };
+
+  const doSave=()=>{
+    setConfirm(false); setSave("saving");
+    setTimeout(()=>{ setSave("saved");
+      setToast({k:"ok",t:"Answer key saved & protected.",b:"Moved back into server-only storage. The question document is blank."});
+      setTimeout(()=>setToast(null),3200); },800);
+  };
+  const handleSave=()=>{
+    if(saveDisabled) return;
+    if(stripped){ setConfirm(true); return; }  // route through ConfirmDialog
+    doSave();
+  };
+  const retryFetch=()=>{ setVariant("fetching");
+    setTimeout(()=>setVariant("protected"),1400); };
+
+  // chip status derived per variant
+  const chip = fetching ? "saving" : errored ? "locked" : stripped ? "dirty" : save;
+
+  return <>
+    <ParentShell/>
+
+    {open && <>
+      <div className="scrim" onClick={()=>setOpen(false)}></div>
+      <aside className="sheet" role="dialog" aria-modal="true" aria-labelledby="ak-title">
+
+        {/* header */}
+        <div className="sheet-head">
+          <button className="sx-icbtn" aria-label="Back to content" onClick={()=>setOpen(false)}>{I("arrow-left",18)}</button>
+          <div style={{minWidth:0}}>
+            <div className="hcrumb">{I("timer",12)}Story Point 5 · Timed Test · Item 01</div>
+            <h2 id="ak-title">Answer Key</h2>
+          </div>
+          <span className="hsp"></span>
+          <SaveChip status={chip}/>
+        </div>
+
+        {/* body */}
+        <div className="sheet-body">
+          <div className="reading">
+
+            {/* question prompt context (read-only here) */}
+            <div className="qhead">
+              <div className="meta">
+                <span className="qtag">{I("hash",12)}Q1 · mcq</span>
+                <span className="qtag">{I("star",12)}2 pts</span>
+                <span className="qtag">{I("gauge",12)}difficulty: medium</span>
+              </div>
+              <div className="qprompt">Solve the linear equation <span className="mono">3x − 7 = 11</span> for{" "}
+                <span className="mono">x</span>. Choose the value that satisfies the equation.</div>
+            </div>
+
+            {/* ===== (A) Answer key lock ===== */}
+            <div>
+              <div className="seclbl">Protection<span className="mono"> answerKeys/&#123;itemId&#125;</span><span className="ln"></span></div>
+              <AnswerKeyLock mode={mode}/>
+            </div>
+
+            {/* ===== re-merge ERROR fail-safe (read-only safety lock) ===== */}
+            {errored && <div className="banner err" role="alert">
+              <span className="lead">{I("alert-octagon",18)}</span>
+              <div style={{flex:1}}>
+                <div className="bt">Couldn't load the protected answer key</div>
+                <div className="bb">Editing is locked to prevent overwriting it. The answer fields below are
+                  disabled until the secured fetch succeeds.</div>
+                <div className="bact">
+                  <button className="btn btn--secondary btn--sm" onClick={retryFetch}>{I("rotate-cw",15)}Retry</button>
+                </div>
+              </div>
+            </div>}
+
+            {/* ===== empty / new question note ===== */}
+            {empty && <div className="banner info" role="status">
+              <span className="lead">{I("info",18)}</span>
+              <div style={{flex:1}}>
+                <div className="bt">New question — no key stored yet</div>
+                <div className="bb">This answer will be stored server-side once you save. Mark the correct option below.</div>
+              </div>
+            </div>}
+
+            {/* ===== (B) author-mode answer editor ===== */}
+            <div>
+              <div className="seclbl">Correct answer<span className="mono"> author mode</span><span className="ln"></span></div>
+              <AnswerEditor mode={mode} empty={empty} options={options} setOptions={setOptions}
+                correctIdx={correctIdx} setCorrectIdx={setCorrectIdx} onAdd={addOption} markDirty={markDirty}/>
+            </div>
+
+            {/* ===== (C) strip-warning banner (P0-1) ===== */}
+            {stripped && <div className="banner warn" role="alert" tabIndex={-1}>
+              <span className="lead">{I("alert-triangle",18)}</span>
+              <div style={{flex:1}}>
+                <div className="bt">This answer key looks empty.</div>
+                <div className="bb">Saving now may erase the correct answer students are graded against.
+                  Re-open the question or re-enter the answer first. Autosave is suspended until this is resolved.</div>
+              </div>
+            </div>}
+
+          </div>
+        </div>
+
+        {/* footer */}
+        <div className="sheet-foot">
+          <span className="hint">{I("shield-check",13)} Key is stored server-side on save · never sent to students</span>
+          <span className="sp"></span>
+          <button className="btn btn--ghost" onClick={()=>setOpen(false)}>Cancel</button>
+          {nonOwner
+            ? <span className="tipwrap">
+                <button className="btn btn--primary" disabled aria-describedby="own-tip">{I("lock",16)}Save</button>
+                <span className="tip" role="tooltip" id="own-tip">Only the space owner or a tenant admin can edit answer keys here.</span>
+              </span>
+            : <button className="btn btn--primary" disabled={saveDisabled} onClick={handleSave}>
+                {save==="saving"?<span className="spin" aria-hidden="true"></span>:I(stripped?"alert-triangle":"check")}
+                {save==="saving"?"Saving…":"Save key"}</button>}
+        </div>
+      </aside>
+    </>}
+
+    {/* re-open affordance */}
+    {!open && <div className="dialog" role="dialog" aria-label="Editor closed">
+      <div className="confirm-body"><div className="cic" style={{background:"var(--status-success-subtle)",color:"var(--status-success)"}}>{I("check-circle-2",19)}</div>
+        <div><div className="ct">Editor closed</div>
+          <div className="cb">The answer-key editor was dismissed.</div></div></div>
+      <div className="dialog-foot"><button className="btn btn--primary" onClick={()=>{setOpen(true);}}>Reopen editor</button></div>
+    </div>}
+
+    {/* ConfirmDialog — destructive save while stripped */}
+    {confirm && <>
+      <div className="scrim" style={{zIndex:55}} onClick={()=>setConfirm(false)}></div>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-b">
+        <div className="confirm-body">
+          <div className="cic">{I("alert-triangle",19)}</div>
+          <div>
+            <div className="ct" id="cf-t">Save with an empty answer key?</div>
+            <div className="cb" id="cf-b">The protected answer key for this question will be replaced with blank
+              values. Submissions can't be auto-graded until you set it again.</div>
+          </div>
+        </div>
+        <div className="dialog-foot">
+          <button className="btn btn--ghost" autoFocus onClick={()=>setConfirm(false)}>Keep editing</button>
+          <button className="btn btn--danger" onClick={doSave}>{I("trash-2",16)}Save anyway</button>
+        </div>
+      </div>
+    </>}
+
+    {/* toast */}
+    {toast && <div className={"toast "+(toast.k==="ok"?"ok":"bad")} role="status">
+      <span className="lead">{I(toast.k==="ok"?"shield-check":"alert-circle",18)}</span>
+      <div><div className="tt">{toast.t}</div><div className="tb">{toast.b}</div></div>
+    </div>}
+
+    {/* demo state switcher (card chrome — not part of the screen) */}
+    <div className="demo" role="group" aria-label="Preview states">
+      <span className="dl">state</span>
+      {[["protected","Protected"],["fetching","Fetching merge"],["empty","Empty (new)"],
+        ["warned","Strip warning"],["errored","Re-merge error"],["nonowner","Not owner"]].map(([v,l])=>
+        <button key={v} className={variant===v?"on":""}
+          onClick={()=>{setVariant(v);setOpen(true);setConfirm(false);setToast(null);
+            setSave(v==="warned"?"dirty":"saved");}}>{l}</button>)}
+    </div>
+  </>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

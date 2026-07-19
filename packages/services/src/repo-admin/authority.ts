@@ -87,6 +87,22 @@ export function makeAnswerKeyRepo(firestore: Firestore, now: () => string): Answ
       if (!doc) return null;
       return docFromFirestore({ ...doc.data() });
     },
+    async getScoped(tenantId, spaceId, storyPointId, itemId) {
+      const snap = await firestore.doc(answerKeyDoc(tenantId, spaceId, storyPointId, itemId)).get();
+      if (!snap.exists) return null;
+      const data = docFromFirestore({ ...snap.data() });
+      // The exact nested path is the authority.  The denormalized fields are
+      // checked too, which makes a stale/corrupt copied key fail closed.
+      if (
+        (data["tenantId"] !== undefined && data["tenantId"] !== tenantId) ||
+        (data["spaceId"] !== undefined && data["spaceId"] !== spaceId) ||
+        (data["storyPointId"] !== undefined && data["storyPointId"] !== storyPointId) ||
+        (data["itemId"] !== undefined && data["itemId"] !== itemId)
+      ) {
+        return null;
+      }
+      return data;
+    },
   };
 }
 

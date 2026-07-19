@@ -1,0 +1,956 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Exam Settings (Grading Config)" subtitle="gradingConfig toggles · post-publish locks · archive/delete cascade" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+
+/* ----- AppShell sidebar nav ----- */
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-foot{padding:var(--space-3);border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.2}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* ----- Topbar ----- */
+.tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;background:var(--bg-surface)}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tbsearch{display:flex;align-items:center;gap:var(--space-2);flex:1;max-width:420px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted);background:var(--bg-surface-sunken);cursor:text}
+.tbsearch input{border:0;background:transparent;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tbsearch .kbd{margin-left:auto}
+.tb-icons{display:flex;align-items:center;gap:var(--space-2)}
+.notif{position:relative}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:2px solid var(--bg-surface)}
+
+/* ----- page body ----- */
+.appshell__main{position:relative}
+.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5);padding-bottom:96px}
+
+/* state segmented control */
+.segrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px}
+.seg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* ----- exam header (shared chrome) ----- */
+.exhead{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.exhead__in{padding:var(--space-5) var(--space-6) 0}
+.exhead__top{display:flex;align-items:flex-start;gap:var(--space-4)}
+.exhead__titlewrap{flex:1;min-width:0}
+.ex-title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0}
+.ex-meta{margin:var(--space-2) 0 0;font-size:var(--text-sm);color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.ex-meta .mono{font-family:var(--font-mono)}
+.ex-meta__sep{color:var(--border-strong)}
+.exhead__rt{display:flex;align-items:flex-start;gap:var(--space-2)}
+
+.statusbadge{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid transparent;white-space:nowrap}
+.statusbadge svg{width:14px;height:14px}
+.sb--neutral{background:var(--bg-inset);color:var(--text-secondary);border-color:var(--border-strong)}
+.sb--brand{background:var(--brand-subtle);color:var(--brand-primary)}
+.sb--success{background:var(--status-success-subtle);color:var(--status-success)}
+
+/* status action ghost dropdown affordance */
+.statusact{display:inline-flex;align-items:center;gap:var(--space-2)}
+
+/* exam-detail tabs */
+.extabs__list{display:inline-flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);width:100%;margin-top:var(--space-5)}
+.extab{position:relative;display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--dur-fast) var(--ease-standard)}
+.extab:hover{color:var(--text-primary)}
+.extab[aria-selected="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+.extab__count{font-family:var(--font-mono);font-size:var(--text-2xs);min-width:18px;height:18px;padding:0 5px;border-radius:var(--radius-pill);background:var(--bg-inset);color:var(--text-secondary);display:inline-grid;place-items:center}
+
+/* ----- settings sections ----- */
+.setcol{display:flex;flex-direction:column;gap:var(--space-5)}
+.setsec{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.setsec--danger{border-color:var(--status-error)}
+.setsec__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.setsec__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-0.01em;margin:0;display:flex;align-items:center;gap:var(--space-2)}
+.setsec__title svg{width:18px;height:18px;color:var(--text-muted)}
+.setsec--danger .setsec__title svg{color:var(--status-error)}
+.setsec__sub{font-size:var(--text-sm);color:var(--text-secondary);margin:var(--space-1) 0 0;max-width:720px}
+.setsec__body{padding:var(--space-2) var(--space-5) var(--space-5);max-width:760px}
+
+/* toggle effect rows */
+.toggrid{display:flex;flex-direction:column}
+.togrow{display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-4) 0;border-top:1px solid var(--border-subtle)}
+.togrow:first-child{border-top:0}
+.togrow--dep{padding-left:var(--space-6)}
+.togrow__main{flex:1;min-width:0}
+.togrow__label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.togrow__label .mono-key{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-regular)}
+.togrow__help{font-size:var(--text-xs);line-height:var(--leading-sm);color:var(--text-secondary);margin-top:var(--space-2);max-width:560px}
+.togrow__help b{color:var(--text-primary);font-weight:var(--weight-semibold)}
+.togrow__ctrl{flex:0 0 auto;padding-top:2px}
+.togrow--off .togrow__label,.togrow--off .togrow__help{opacity:.55}
+.depnote{margin-top:var(--space-3)}
+.depnote .alert{padding:var(--space-2) var(--space-3)}
+
+/* evaluation profile */
+.evalrow{display:flex;flex-direction:column;gap:var(--space-4)}
+.evalsel{max-width:420px}
+.profmeta{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;font-size:var(--text-xs);color:var(--text-muted)}
+.profmeta .mono{font-family:var(--font-mono)}
+
+/* confidence bar preview */
+.cbar-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);padding:var(--space-4)}
+.cbar-cap{font-size:var(--text-2xs);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2)}
+.cbar{display:flex;height:14px;border-radius:var(--radius-pill);overflow:hidden;background:var(--bg-inset)}
+.cbar__seg{height:100%;transition:flex-basis var(--dur-base) var(--ease-standard)}
+.cbar__seg--low{background:var(--confidence-low)}
+.cbar__seg--med{background:var(--confidence-med)}
+.cbar__seg--high{background:var(--confidence-high)}
+.cbar__ticks{display:flex;justify-content:space-between;margin-top:var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.cbar__legend{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-4)}
+.cleg{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);max-width:200px}
+.cleg__sw{flex:0 0 auto;width:12px;height:12px;border-radius:var(--radius-sm);margin-top:2px;display:grid;place-items:center}
+.cleg__sw svg{width:9px;height:9px;color:var(--text-on-accent)}
+.cleg__sw--low{background:var(--confidence-low)}
+.cleg__sw--med{background:var(--confidence-med)}
+.cleg__sw--high{background:var(--confidence-high)}
+.cleg b{display:block;color:var(--text-primary);font-weight:var(--weight-semibold);font-size:var(--text-xs)}
+.cleg .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* remediation combobox */
+.combo{position:relative}
+.combo__field{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:text;font-size:var(--text-sm)}
+.combo__field--disabled{background:var(--bg-surface-sunken);color:var(--text-muted);cursor:not-allowed}
+.combo__field input{flex:1;border:0;background:transparent;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary)}
+.combo__field svg{width:16px;height:16px;color:var(--text-muted)}
+.combo__pop{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);max-height:240px;overflow-y:auto}
+.combo__opt{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:0;border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer}
+.combo__opt:hover,.combo__opt[aria-selected="true"]{background:var(--bg-surface-sunken)}
+.combo__opt .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto}
+.combo__chosen{display:inline-flex;align-items:center;gap:var(--space-2);font-weight:var(--weight-medium)}
+.combo__hint{font-size:var(--text-xs);color:var(--text-muted);padding:var(--space-3)}
+
+/* metadata grid */
+.metagrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4) var(--space-5)}
+.metagrid__full{grid-column:1 / -1}
+.locklbl{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+.locklbl svg{width:11px;height:11px}
+.chipedit{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);min-height:42px}
+.chipedit input{border:0;background:transparent;outline:none;flex:1;min-width:120px;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary)}
+.fieldlabel{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);margin-bottom:var(--space-2)}
+
+/* danger zone rows */
+.dangerrow{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-4) 0;border-top:1px solid var(--border-subtle)}
+.dangerrow:first-child{border-top:0}
+.dangerrow__main{flex:1}
+.dangerrow__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.dangerrow__help{font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-1)}
+.dangerrow__ctrl{flex:0 0 auto}
+
+/* sticky save bar */
+.savebar{position:absolute;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:center;padding:var(--space-4);pointer-events:none}
+.savebar__in{pointer-events:auto;display:flex;align-items:center;gap:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-5);min-width:520px;max-width:760px;width:100%;transform:translateY(140%);opacity:0;transition:transform var(--dur-base) var(--ease-entrance),opacity var(--dur-base) var(--ease-entrance)}
+.savebar--show .savebar__in{transform:translateY(0);opacity:1}
+.savebar__msg{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);flex:1}
+.savebar__msg svg{width:16px;height:16px;color:var(--status-warning)}
+.savebar__msg .mono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.savebar__acts{display:flex;gap:var(--space-2)}
+
+/* loading overlay over form */
+.formwrap{position:relative}
+.busyveil{position:absolute;inset:0;z-index:40;border-radius:var(--radius-lg);background:color-mix(in srgb, var(--bg-canvas) 62%, transparent);display:grid;place-items:center}
+.busyveil__card{display:inline-flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-3) var(--space-4);font-size:var(--text-sm);color:var(--text-secondary)}
+
+/* answer-key lock spacing */
+.keyspace{margin-top:var(--space-4)}
+
+/* modal extras */
+.cascade{display:flex;flex-direction:column;gap:var(--space-3);margin:var(--space-4) 0;padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken)}
+.cascade__row{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm)}
+.cascade__row svg{width:16px;height:16px;color:var(--status-error)}
+.cascade__n{font-family:var(--font-mono);font-weight:var(--weight-medium);color:var(--text-primary)}
+.typeconfirm{margin-top:var(--space-2)}
+.typeconfirm__lbl{font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-2)}
+.typeconfirm__lbl b{font-family:var(--font-mono);color:var(--text-primary)}
+
+/* toast */
+.toastwrap{position:absolute;right:var(--space-6);bottom:var(--space-6);z-index:70;min-width:320px}
+.toastwrap > div{box-shadow:var(--shadow-e3);border-radius:var(--radius-md)}
+
+/* manage profiles ghost link row */
+.profactions{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .seg button{transition:none}
+  .cbar__seg{transition:none}
+  .savebar__in{transition:opacity var(--dur-fast) linear;transform:none}
+  .savebar--show .savebar__in{transform:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Badge, Chip, Switch, Select, Input, Field,
+    Alert, Modal, Skeleton, AnswerKeyLock,
+    NavItem, Breadcrumb, Avatar, Kbd
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* refresh lucide glyphs after every render */
+  function useLucide(){ useEffect(function(){ if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); }); }
+
+  /* ============================================================= */
+  /* Mock Exam doc (server-authoritative)                          */
+  /* ============================================================= */
+  const EXAM = {
+    examId: "exm_8KQ2dR4mN",
+    title: "Linear Algebra — Unit III Midterm",
+    subject: "Mathematics",
+    topics: ["Vectors", "Matrices", "Eigenvalues"],
+    examDate: "2026-06-12",
+    duration: 90,
+    totalMarks: 80,
+    passingMarks: 32,
+    questionCount: 12,
+    submissionCount: 48,
+    linkedSpaceTitle: "Vectors & Matrices",
+    linkedStoryPoint: "Eigen-decomposition"
+  };
+
+  const STATUS_BADGE = {
+    published: { tone:"brand",   icon:"send",            label:"Published" },
+    grading:   { tone:"brand",   icon:"sparkles",        label:"Grading…" },
+    archived:  { tone:"neutral", icon:"archive",         label:"Archived" },
+  };
+
+  /* evaluation settings profiles (tenant-scoped read) */
+  const PROFILES = [
+    { value:"es_default", label:"Default rubric profile", isDefault:true,  isPublic:true,  conf:0.70, auto:0.90 },
+    { value:"es_strict",  label:"Strict STEM grading",    isDefault:false, isPublic:false, conf:0.80, auto:0.95 },
+    { value:"es_lenient", label:"Lenient first-draft",    isDefault:false, isPublic:true,  conf:0.60, auto:0.85 },
+  ];
+
+  /* LevelUp spaces (cross-domain read) */
+  const SPACES = [
+    { id:"sp_vm",  title:"Vectors & Matrices",   pts:8 },
+    { id:"sp_cal", title:"Calculus Foundations", pts:11 },
+    { id:"sp_prob",title:"Probability Basics",   pts:6 },
+  ];
+  const STORY_POINTS = {
+    sp_vm:  [{id:"st_eig",title:"Eigen-decomposition"},{id:"st_rank",title:"Rank & nullity"},{id:"st_basis",title:"Change of basis"}],
+    sp_cal: [{id:"st_lim",title:"Limits"},{id:"st_der",title:"Derivatives"}],
+    sp_prob:[{id:"st_bay",title:"Bayes' rule"}],
+  };
+
+  /* ============================================================= */
+  /* small presentational helpers                                  */
+  /* ============================================================= */
+  function StatusBadge(props){
+    var m = STATUS_BADGE[props.status] || STATUS_BADGE.published;
+    return (<span className={"statusbadge sb--"+m.tone}><i data-lucide={m.icon}></i>{m.label}</span>);
+  }
+
+  function ConfidenceBar(props){
+    /* read-only preview of confidenceConfig thresholds → routing bands */
+    var conf = props.conf, auto = props.auto;             // e.g. 0.70 / 0.90
+    var low  = Math.round(conf*100);                      // 0..conf → review
+    var med  = Math.round((auto-conf)*100);               // conf..auto → spot-check
+    var high = 100 - low - med;                           // auto..1 → auto-approve
+    return (
+      <div className="cbar-wrap" aria-label="Confidence routing preview">
+        <div className="cbar-cap"><i data-lucide="route" style={{width:13,height:13}}></i> Confidence routing — applies to future grading</div>
+        <div className="cbar" role="img"
+          aria-label={"Below "+conf.toFixed(2)+" routed to human review, "+conf.toFixed(2)+" to "+auto.toFixed(2)+" spot-checked, above "+auto.toFixed(2)+" auto-approved"}>
+          <div className="cbar__seg cbar__seg--low"  style={{flexBasis:low+"%"}}></div>
+          <div className="cbar__seg cbar__seg--med"  style={{flexBasis:med+"%"}}></div>
+          <div className="cbar__seg cbar__seg--high" style={{flexBasis:high+"%"}}></div>
+        </div>
+        <div className="cbar__ticks">
+          <span>0.00</span>
+          <span>{conf.toFixed(2)}</span>
+          <span>{auto.toFixed(2)}</span>
+          <span>1.00</span>
+        </div>
+        <div className="cbar__legend">
+          <div className="cleg">
+            <span className="cleg__sw cleg__sw--low"><i data-lucide="user-check"></i></span>
+            <span><b>Needs review</b><span>Human required</span><span className="mono">&lt; {conf.toFixed(2)}</span></span>
+          </div>
+          <div className="cleg">
+            <span className="cleg__sw cleg__sw--med"><i data-lucide="search-check"></i></span>
+            <span><b>Spot-check</b><span>Graded + review suggested</span><span className="mono">{conf.toFixed(2)}–{auto.toFixed(2)}</span></span>
+          </div>
+          <div className="cleg">
+            <span className="cleg__sw cleg__sw--high"><i data-lucide="check"></i></span>
+            <span><b>Auto-approve</b><span>Accepted automatically</span><span className="mono">&gt; {auto.toFixed(2)}</span></span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* one gradingConfig toggle: Switch + label + downstream-effect helper */
+  function ToggleEffectRow(props){
+    var dimmed = props.disabled && props.dep; // visual dim only when disabled by a dependency
+    return (
+      <div className={"togrow"+(props.dep ? " togrow--dep" : "")+(dimmed ? " togrow--off" : "")}>
+        <div className="togrow__main">
+          <label className="togrow__label" htmlFor={props.id}>
+            {props.label}
+            <span className="mono-key">{props.k}</span>
+          </label>
+          <p className="togrow__help" id={props.id+"-desc"} dangerouslySetInnerHTML={{__html:props.help}}></p>
+          {props.note && (
+            <div className="depnote" aria-live="polite">
+              <Alert variant="info">{props.note}</Alert>
+            </div>
+          )}
+        </div>
+        <div className="togrow__ctrl">
+          <Switch
+            id={props.id}
+            role="switch"
+            checked={props.checked}
+            disabled={props.disabled || props.readOnly}
+            aria-checked={props.checked}
+            aria-describedby={props.id+"-desc"}
+            onChange={function(e){ props.onChange(e.target.checked); }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /* a small debounced-search Combobox (Radix-shaped, no empty-string values) */
+  function Combobox(props){
+    var [open, setOpen] = useState(false);
+    var [q, setQ] = useState("");
+    var wrap = useRef(null);
+    useEffect(function(){
+      function onDoc(e){ if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); }
+      document.addEventListener("mousedown", onDoc);
+      return function(){ document.removeEventListener("mousedown", onDoc); };
+    }, []);
+    var opts = (props.options||[]).filter(function(o){ return o.label.toLowerCase().indexOf(q.toLowerCase())>=0; });
+    var chosen = (props.options||[]).find(function(o){ return o.value===props.value; });
+    if (props.disabled){
+      return (
+        <div className="combo">
+          <div className="combo__field combo__field--disabled" aria-disabled="true">
+            <i data-lucide="git-branch"></i>
+            <span style={{flex:1,color:"var(--text-muted)"}}>{props.placeholder}</span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="combo" ref={wrap}>
+        <div className="combo__field" role="combobox" aria-expanded={open}
+          aria-controls={props.id+"-list"} onClick={function(){ if(!props.readOnly) setOpen(true); }}>
+          <i data-lucide={props.icon}></i>
+          {chosen && !open
+            ? <span className="combo__chosen" style={{flex:1}}>{chosen.label}</span>
+            : <input
+                placeholder={props.placeholder}
+                aria-label={props.ariaLabel}
+                value={q}
+                disabled={props.readOnly}
+                onChange={function(e){ setQ(e.target.value); setOpen(true); }}
+                onFocus={function(){ setOpen(true); }} />}
+          {chosen && !props.readOnly &&
+            <IconButton size="sm" label="Clear" icon={<i data-lucide="x"></i>}
+              onClick={function(e){ e.stopPropagation(); props.onChange(null); setQ(""); }} />}
+          <i data-lucide="chevrons-up-down" style={{opacity:.6}}></i>
+        </div>
+        {open && (
+          <div className="combo__pop" id={props.id+"-list"} role="listbox">
+            {props.loading
+              ? <div style={{padding:"var(--space-2)"}}><Skeleton width="70%" height="14px" /><div style={{marginTop:8}}><Skeleton width="50%" height="14px" /></div></div>
+              : opts.length
+                ? opts.map(function(o){
+                    return (
+                      <button key={o.value} role="option" className="combo__opt"
+                        aria-selected={o.value===props.value}
+                        onClick={function(){ props.onChange(o.value); setOpen(false); setQ(""); }}>
+                        <i data-lucide={props.icon} style={{width:15,height:15,color:"var(--text-muted)"}}></i>
+                        {o.label}{o.meta && <span className="mono">{o.meta}</span>}
+                      </button>
+                    );
+                  })
+                : <div className="combo__hint">{props.emptyHint || "No matches."}</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* Section bodies                                                */
+  /* ============================================================= */
+  function GradingBehaviorSection(props){
+    var c = props.cfg, set = props.setCfg, ro = props.readOnly;
+    function upd(k){ return function(v){ set(Object.assign({}, c, {[k]:v})); }; }
+    /* requireOverrideReason depends on allowManualOverride */
+    return (
+      <section className="setsec" aria-labelledby="sec-grading">
+        <div className="setsec__head"><div>
+          <h2 className="setsec__title" id="sec-grading"><i data-lucide="sliders-horizontal"></i> Grading behavior</h2>
+          <p className="setsec__sub">Every toggle states its downstream effect on the pipeline and on the review UX.</p>
+        </div></div>
+        <div className="setsec__body">
+          <div className="toggrid">
+            <ToggleEffectRow id="autoGrade" k="gradingConfig.autoGrade" label="Auto-grade with AI"
+              checked={c.autoGrade} readOnly={ro} onChange={upd("autoGrade")}
+              help="When on, submissions run through scouting then AI grading (RELMS) automatically. When off, they stop at <b>Ready for review</b> and you grade each question yourself."
+              note={!c.autoGrade ? "Submissions still scout and land at ready_for_review — RELMS is just not auto-invoked. The evaluation profile below is kept and used if you flip this back on or grade with AI per-question." : null} />
+
+            <ToggleEffectRow id="allowRubricEdit" k="gradingConfig.allowRubricEdit" label="Allow rubric editing"
+              checked={c.allowRubricEdit} readOnly={ro} onChange={upd("allowRubricEdit")}
+              help="Lets graders adjust the rubric while reviewing. When off, the published rubric is fixed for this exam." />
+
+            <ToggleEffectRow id="allowManualOverride" k="gradingConfig.allowManualOverride" label="Allow manual override"
+              checked={c.allowManualOverride} readOnly={ro} onChange={upd("allowManualOverride")}
+              help="Lets reviewers replace an AI score. The original AI score (<b>manualOverride.originalScore</b>) is always kept for audit." />
+
+            <ToggleEffectRow id="requireOverrideReason" dep k="gradingConfig.requireOverrideReason" label="Require override reason"
+              checked={c.allowManualOverride && c.requireOverrideReason}
+              disabled={!c.allowManualOverride} readOnly={ro} onChange={upd("requireOverrideReason")}
+              help="Reviewers must enter a reason before an override is saved. Enforced server-side at override time."
+              note={!c.allowManualOverride ? "Enable manual override to require reasons." : null} />
+
+            <ToggleEffectRow id="releaseResultsAutomatically" k="gradingConfig.releaseResultsAutomatically" label="Release results automatically"
+              checked={c.releaseResultsAutomatically} readOnly={ro} onChange={upd("releaseResultsAutomatically")}
+              help="When on, results become visible to students and parents as soon as grading completes (sets <b>resultsReleased</b>). When off, you release them manually after review." />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function EvaluationProfileSection(props){
+    var ro = props.readOnly;
+    var empty = props.empty;             // no profiles in tenant
+    var prof = PROFILES.find(function(p){ return p.value===props.value; }) || PROFILES[0];
+    var conf = empty ? 0.70 : prof.conf;
+    var auto = empty ? 0.90 : prof.auto;
+    return (
+      <section className="setsec" aria-labelledby="sec-eval">
+        <div className="setsec__head"><div>
+          <h2 className="setsec__title" id="sec-eval"><i data-lucide="scale"></i> Evaluation profile</h2>
+          <p className="setsec__sub">Sets the dimensions, display options, and confidence thresholds AI uses. Confidence below the review threshold is routed to you; above the auto-approve threshold is accepted automatically.</p>
+        </div></div>
+        <div className="setsec__body">
+          <div className="evalrow">
+            {empty ? (
+              <div>
+                <div className="fieldlabel">Evaluation settings</div>
+                <Select disabled value="none" options={[{value:"none",label:"No profiles yet"}]} style={{maxWidth:420}} aria-label="Evaluation settings" />
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Alert variant="info" title="No evaluation profiles yet">
+                    Create one to customize how AI grades. The preview below falls back to platform defaults (0.70 / 0.90).
+                  </Alert>
+                </div>
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Button variant="ghost" leadingIcon={<i data-lucide="plus"></i>}>Create evaluation profile</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="evalsel">
+                <label className="fieldlabel" htmlFor="evalSelect">Evaluation settings</label>
+                <Select id="evalSelect" disabled={ro} value={props.value} aria-label="Evaluation settings"
+                  options={PROFILES.map(function(p){ return {value:p.value, label:p.label + (p.isDefault ? " (default)" : "")}; })}
+                  onChange={function(e){ props.onChange(e.target.value); }} />
+                <div className="profmeta" style={{marginTop:"var(--space-2)"}}>
+                  <span className="mono">{prof.value}</span>
+                  {prof.isDefault && <Badge variant="brand" icon={<i data-lucide="star" style={{width:11,height:11}}></i>}>Default</Badge>}
+                  <Badge icon={<i data-lucide={prof.isPublic ? "globe" : "lock"} style={{width:11,height:11}}></i>}>{prof.isPublic ? "Public" : "Private"}</Badge>
+                </div>
+              </div>
+            )}
+
+            <ConfidenceBar conf={conf} auto={auto} />
+
+            <div className="keyspace">
+              <AnswerKeyLock title="Staff only — not shown to students">
+                Rubric <code style={{fontFamily:"var(--font-mono)"}}>modelAnswer</code> and <code style={{fontFamily:"var(--font-mono)"}}>evaluatorGuidance</code> configured by this profile are teacher-only — they drive grading on the server and never reach a student or parent device.
+              </AnswerKeyLock>
+            </div>
+
+            <div className="profactions">
+              <Button variant="ghost" trailingIcon={<i data-lucide="arrow-up-right"></i>}>Manage profiles</Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function RemediationSection(props){
+    var ro = props.readOnly;
+    var noSpaces = props.empty;
+    var spaceOpts = SPACES.map(function(s){ return {value:s.id, label:s.title, meta:s.pts+" pts"}; });
+    var spOpts = props.spaceId ? (STORY_POINTS[props.spaceId]||[]).map(function(s){ return {value:s.id, label:s.title}; }) : [];
+    return (
+      <section className="setsec" aria-labelledby="sec-rem">
+        <div className="setsec__head"><div>
+          <h2 className="setsec__title" id="sec-rem"><i data-lucide="graduation-cap"></i> Remediation link <span style={{fontFamily:"var(--font-ui)",fontSize:"var(--text-xs)",fontWeight:"var(--weight-regular)",color:"var(--text-muted)"}}>(LevelUp)</span></h2>
+          <p className="setsec__sub">Link this exam to a LevelUp space so students with weak topics get targeted practice. Optional.</p>
+        </div></div>
+        <div className="setsec__body">
+          {noSpaces ? (
+            <Alert variant="info" title="No learning spaces to link">
+              There are no LevelUp spaces in this tenant yet. This link is optional — you can add it later.
+            </Alert>
+          ) : (
+            <div className="metagrid">
+              <div>
+                <label className="fieldlabel" htmlFor="spaceCombo">Learning space</label>
+                <Combobox id="spaceCombo" icon="book-open" ariaLabel="Search learning spaces"
+                  placeholder="Search spaces…" options={spaceOpts} value={props.spaceId}
+                  readOnly={ro} emptyHint="No spaces match."
+                  onChange={props.onSpace} />
+              </div>
+              <div>
+                <label className="fieldlabel" htmlFor="spCombo">Story point</label>
+                <Combobox id="spCombo" icon="git-branch" ariaLabel="Search story points"
+                  placeholder={props.spaceId ? "Search story points…" : "Choose a space first"}
+                  options={spOpts} value={props.storyId} loading={props.spLoading}
+                  disabled={!props.spaceId} readOnly={ro} emptyHint="No story points."
+                  onChange={props.onStory} />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  function ExamDetailsSection(props){
+    var locked = props.locked;   // POST_PUBLISH_LOCKED_FIELDS
+    var c = props.meta, set = props.setMeta, ro = props.readOnly;
+    function upd(k){ return function(e){ set(Object.assign({}, c, {[k]:e.target.value})); }; }
+    function LockTag(){ return (<span className="locklbl"><i data-lucide="lock"></i> Locked after publishing</span>); }
+    return (
+      <section className="setsec" aria-labelledby="sec-meta">
+        <div className="setsec__head"><div>
+          <h2 className="setsec__title" id="sec-meta"><i data-lucide="file-text"></i> Exam details</h2>
+        </div></div>
+        <div className="setsec__body">
+          {locked && (
+            <div style={{marginBottom:"var(--space-4)"}}>
+              <Alert variant="info" title="Published — some fields are locked">
+                Total marks, passing marks, and questions are locked to keep grading consistent. Title and linked space can still change.
+              </Alert>
+            </div>
+          )}
+          <div className="metagrid">
+            <div className="metagrid__full">
+              <label className="fieldlabel" htmlFor="m-title">Title</label>
+              <Input id="m-title" value={c.title} disabled={ro} onChange={upd("title")} />
+            </div>
+            <div>
+              <label className="fieldlabel" htmlFor="m-subj">Subject</label>
+              <Input id="m-subj" value={c.subject} disabled={ro} onChange={upd("subject")} />
+            </div>
+            <div>
+              <label className="fieldlabel" htmlFor="m-date">Exam date</label>
+              <Input id="m-date" type="date" value={c.examDate} disabled={ro} onChange={upd("examDate")} />
+            </div>
+            <div className="metagrid__full">
+              <label className="fieldlabel" htmlFor="m-topics">Topics</label>
+              <div className="chipedit" id="m-topics">
+                {c.topics.map(function(t,i){ return <Chip key={i} removable>{t}</Chip>; })}
+                <input placeholder={ro ? "" : "Add topic…"} aria-label="Add topic" disabled={ro} />
+              </div>
+            </div>
+            <div>
+              <label className="fieldlabel" htmlFor="m-dur">Duration (min)</label>
+              <Input id="m-dur" value={String(c.duration)} disabled={ro} onChange={upd("duration")} />
+            </div>
+            <div>
+              <span className="fieldlabel">Total marks {locked && <LockTag/>}</span>
+              <Input id="m-total" value={String(c.totalMarks)} disabled={ro || locked}
+                aria-disabled={locked} aria-describedby={locked ? "lock-note" : undefined} onChange={upd("totalMarks")} />
+            </div>
+            <div>
+              <span className="fieldlabel">Passing marks {locked && <LockTag/>}</span>
+              <Input id="m-pass" value={String(c.passingMarks)} disabled={ro || locked}
+                aria-disabled={locked} aria-describedby={locked ? "lock-note" : undefined} onChange={upd("passingMarks")} />
+            </div>
+            {locked && <span id="lock-note" className="sr-only">This field is locked because the exam is published.</span>}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function DangerZone(props){
+    return (
+      <section className="setsec setsec--danger" aria-labelledby="sec-danger">
+        <div className="setsec__head"><div>
+          <h2 className="setsec__title" id="sec-danger"><i data-lucide="triangle-alert"></i> Danger zone</h2>
+        </div></div>
+        <div className="setsec__body">
+          <div className="dangerrow">
+            <div className="dangerrow__main">
+              <div className="dangerrow__title">{props.archived ? "Unarchive exam" : "Archive exam"}</div>
+              <div className="dangerrow__help">{props.archived ? "Returns the exam to active and lets it accept submissions again." : "Stops new submissions; reversible. Submissions and grades are preserved."}</div>
+            </div>
+            <div className="dangerrow__ctrl">
+              {props.archived
+                ? <Button variant="secondary" leadingIcon={<i data-lucide="archive-restore"></i>} onClick={props.onUnarchive}>Unarchive</Button>
+                : <Button variant="secondary" leadingIcon={<i data-lucide="archive"></i>} onClick={props.onArchive}>Archive</Button>}
+            </div>
+          </div>
+          <div className="dangerrow">
+            <div className="dangerrow__main">
+              <div className="dangerrow__title">Delete exam</div>
+              <div className="dangerrow__help">Removes the exam and everything graded under it. Permanent — cascades {EXAM.submissionCount} submissions + analytics.</div>
+            </div>
+            <div className="dangerrow__ctrl">
+              <Button variant="danger" leadingIcon={<i data-lucide="trash-2"></i>} onClick={props.onDelete}>Delete</Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /* ============================================================= */
+  /* Loading skeleton                                              */
+  /* ============================================================= */
+  function LoadingForm(){
+    return (
+      <div className="setcol" aria-busy="true" aria-label="Loading settings">
+        {[0,1,2].map(function(s){
+          return (
+            <div className="setsec" key={s}>
+              <div className="setsec__head"><Skeleton width="220px" height="20px" /></div>
+              <div className="setsec__body">
+                {[0,1,2].map(function(r){
+                  return (
+                    <div className="togrow" key={r} style={{borderTopColor:"var(--border-subtle)"}}>
+                      <div className="togrow__main"><Skeleton width="40%" height="14px" /><div style={{marginTop:8}}><Skeleton width="75%" height="12px" /></div></div>
+                      <Skeleton width="44px" height="24px" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* App                                                           */
+  /* ============================================================= */
+  function App(){
+    var [state, setState] = useState("populated"); // populated | loading | empty | error | partial | readOnly | archived
+    var [cfg, setCfg] = useState({ autoGrade:true, allowRubricEdit:true, allowManualOverride:true, requireOverrideReason:true, releaseResultsAutomatically:false });
+    var [evalId, setEvalId] = useState("es_default");
+    var [spaceId, setSpaceId] = useState("sp_vm");
+    var [storyId, setStoryId] = useState("st_eig");
+    var [spLoading, setSpLoading] = useState(false);
+    var [meta, setMeta] = useState({ title:EXAM.title, subject:EXAM.subject, examDate:EXAM.examDate, duration:EXAM.duration, totalMarks:EXAM.totalMarks, passingMarks:EXAM.passingMarks, topics:EXAM.topics });
+    var [dirty, setDirty] = useState(false);
+    var [saving, setSaving] = useState(false);
+    var [confirm, setConfirm] = useState(null); // 'archive' | 'delete'
+    var [typeVal, setTypeVal] = useState("");
+    var [toast, setToast] = useState(null);
+
+    useLucide();
+
+    var readOnly = state === "readOnly" || state === "archived";
+    var archived = state === "archived";
+    var emptyProfiles = state === "empty";
+    var emptySpaces = state === "empty";
+    var locked = state === "partial" || state === "populated" || state === "readOnly" || state === "archived"; // published+ ⇒ POST_PUBLISH locks
+    var gradingLock = state === "partial"; // grading underway disables several toggles
+
+    var status = state === "archived" ? "archived" : state === "partial" ? "grading" : "published";
+
+    // mark dirty on any controlled change (skeleton/error states excluded)
+    function withDirty(setter){ return function(v){ setter(v); if (!readOnly) setDirty(true); }; }
+
+    // space change → load story points
+    function onSpace(id){
+      withDirty(setSpaceId)(id);
+      withDirty(setStoryId)(null);
+      if (id){
+        setSpLoading(true);
+        setTimeout(function(){ setSpLoading(false); }, 900);
+      }
+    }
+
+    // toast auto-dismiss
+    useEffect(function(){ if (!toast) return; var t=setTimeout(function(){ setToast(null); }, 3200); return function(){ clearTimeout(t); }; }, [toast]);
+
+    // Esc closes confirm dialog; focus trap simplified (returns focus visually)
+    useEffect(function(){
+      function onKey(e){ if (e.key==="Escape") setConfirm(null); }
+      window.addEventListener("keydown", onKey);
+      return function(){ window.removeEventListener("keydown", onKey); };
+    }, []);
+
+    function discard(){
+      setCfg({ autoGrade:true, allowRubricEdit:true, allowManualOverride:true, requireOverrideReason:true, releaseResultsAutomatically:false });
+      setEvalId("es_default"); setSpaceId("sp_vm"); setStoryId("st_eig");
+      setMeta({ title:EXAM.title, subject:EXAM.subject, examDate:EXAM.examDate, duration:EXAM.duration, totalMarks:EXAM.totalMarks, passingMarks:EXAM.passingMarks, topics:EXAM.topics });
+      setDirty(false);
+    }
+
+    // governance fields are NOT optimistic — LoadingOverlay covers the form during saveExam
+    function save(){
+      setSaving(true);
+      setTimeout(function(){
+        setSaving(false);
+        if (state === "error"){ setToast({ variant:"error", msg:"Couldn't save — that field is locked after publishing." }); return; }
+        setDirty(false);
+        setToast({ variant:"success", msg:"Settings saved — reconciled from server echo." });
+      }, 1100);
+    }
+
+    function doArchive(){ setConfirm(null); setToast({ variant:"success", msg:"Exam archived — it stops accepting submissions. Unarchive any time." }); setState("archived"); }
+    function doUnarchive(){ setToast({ variant:"success", msg:"Exam unarchived — now accepting submissions." }); setState("populated"); }
+    function doDelete(){
+      if (typeVal !== meta.title) return;
+      setConfirm(null); setTypeVal("");
+      setToast({ variant:"info", msg:"Deleting exam + cascade (onExamDeleted)… returning to Exams." });
+    }
+
+    var savebarShow = dirty && !readOnly;
+
+    return (
+      <Shell state={state} setState={setState} status={status}>
+        <div className="formwrap">
+          {state === "loading" && <LoadingForm/>}
+
+          {state === "error" && (
+            <div style={{maxWidth:560,margin:"40px auto"}}>
+              <Alert variant="error" title="Couldn't load exam settings">
+                We couldn't read this exam. It may belong to another tenant, or the request failed.
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Button variant="primary" leadingIcon={<i data-lucide="rotate-cw"></i>} onClick={function(){ setState("populated"); }}>Retry</Button>
+                </div>
+              </Alert>
+            </div>
+          )}
+
+          {state !== "loading" && state !== "error" && (
+            <div className="setcol">
+              {gradingLock && (
+                <Alert variant="info" title="Grading is underway — some settings are locked">
+                  The server controls the status machine. While <code style={{fontFamily:"var(--font-mono)"}}>status: grading</code>, locked metadata and a few toggles are read-only. Edits are still validated server-side on save.
+                </Alert>
+              )}
+              {readOnly && !archived && (
+                <Alert variant="info" title="Read-only — you're not the exam owner">
+                  Only the exam owner or an admin can change these settings. The danger zone is hidden for non-owners.
+                </Alert>
+              )}
+              {archived && (
+                <Alert variant="warning" title="This exam is archived">
+                  The form is read-only. Unarchive it to edit, or delete it permanently from the danger zone.
+                </Alert>
+              )}
+
+              <GradingBehaviorSection cfg={cfg} setCfg={withDirty(setCfg)} readOnly={readOnly || gradingLock} />
+              <EvaluationProfileSection value={evalId} onChange={withDirty(setEvalId)} readOnly={readOnly} empty={emptyProfiles} />
+              <RemediationSection spaceId={spaceId} storyId={storyId} spLoading={spLoading}
+                onSpace={onSpace} onStory={withDirty(setStoryId)} readOnly={readOnly} empty={emptySpaces} />
+              <ExamDetailsSection meta={meta} setMeta={withDirty(setMeta)} readOnly={readOnly} locked={locked} />
+
+              {/* danger zone hidden for non-owner; shown for owner & archived */}
+              {(!readOnly || archived) && (
+                <DangerZone archived={archived}
+                  onArchive={function(){ setConfirm("archive"); }}
+                  onUnarchive={doUnarchive}
+                  onDelete={function(){ setTypeVal(""); setConfirm("delete"); }} />
+              )}
+            </div>
+          )}
+
+          {/* LoadingOverlay during saveExam round-trip (non-optimistic) */}
+          {saving && (
+            <div className="busyveil" aria-live="polite" aria-busy="true">
+              <div className="busyveil__card"><span className="spinner" style={{width:18,height:18}}></span> Saving via saveExam…</div>
+            </div>
+          )}
+        </div>
+
+        {/* sticky save bar */}
+        <div className={"savebar"+(savebarShow ? " savebar--show" : "")} aria-hidden={!savebarShow}>
+          <div className="savebar__in" role="region" aria-label="Unsaved changes">
+            <span className="savebar__msg"><i data-lucide="circle-alert"></i> Unsaved changes <span className="mono">saveExam</span></span>
+            <div className="savebar__acts">
+              <Button variant="secondary" onClick={discard} disabled={!savebarShow}>Discard</Button>
+              <Button variant="primary" leadingIcon={<i data-lucide="check"></i>} onClick={save} disabled={!savebarShow}>Save changes</Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Archive confirm */}
+        <Modal open={confirm==="archive"} onClose={function(){ setConfirm(null); }} title="Archive this exam?"
+          footer={
+            <div style={{display:"flex",gap:"var(--space-2)",justifyContent:"flex-end"}}>
+              <Button variant="secondary" onClick={function(){ setConfirm(null); }}>Cancel</Button>
+              <Button variant="danger" leadingIcon={<i data-lucide="archive"></i>} onClick={doArchive}>Archive exam</Button>
+            </div>
+          }>
+          <p style={{margin:0,fontSize:"var(--text-sm)",color:"var(--text-secondary)",lineHeight:"var(--leading-base)"}}>
+            It moves to <b>Archived</b> and stops accepting submissions. Submissions and grades are preserved — you can unarchive later.
+          </p>
+        </Modal>
+
+        {/* Delete confirm — type-to-confirm cascade */}
+        <Modal open={confirm==="delete"} onClose={function(){ setConfirm(null); setTypeVal(""); }} title="Delete this exam permanently?"
+          footer={
+            <div style={{display:"flex",gap:"var(--space-2)",justifyContent:"flex-end"}}>
+              <Button variant="secondary" onClick={function(){ setConfirm(null); setTypeVal(""); }}>Cancel</Button>
+              <Button variant="danger" leadingIcon={<i data-lucide="trash-2"></i>}
+                disabled={typeVal !== meta.title} aria-disabled={typeVal !== meta.title} onClick={doDelete}>Delete forever</Button>
+            </div>
+          }>
+          <p style={{margin:0,fontSize:"var(--text-sm)",color:"var(--text-secondary)",lineHeight:"var(--leading-base)"}}>
+            This permanently deletes the exam and everything graded under it via the <code style={{fontFamily:"var(--font-mono)"}}>onExamDeleted</code> cascade. This cannot be undone.
+          </p>
+          <div className="cascade" aria-label="Cascade preview">
+            <div className="cascade__row"><i data-lucide="file-text"></i> Questions <span className="cascade__n" style={{marginLeft:"auto"}}>{EXAM.questionCount}</span></div>
+            <div className="cascade__row"><i data-lucide="inbox"></i> Submissions <span style={{color:"var(--text-muted)",fontSize:"var(--text-2xs)",fontFamily:"var(--font-mono)"}}>+ questionSubmissions</span><span className="cascade__n" style={{marginLeft:"auto"}}>{EXAM.submissionCount}</span></div>
+            <div className="cascade__row"><i data-lucide="bar-chart-3"></i> Exam analytics <span className="cascade__n" style={{marginLeft:"auto"}}>all</span></div>
+          </div>
+          <div className="typeconfirm">
+            <div className="typeconfirm__lbl">To confirm, type the exam title <b>{meta.title}</b></div>
+            <Input value={typeVal} aria-label="Type exam title to confirm" placeholder="Exam title…"
+              onChange={function(e){ setTypeVal(e.target.value); }} />
+          </div>
+        </Modal>
+
+        {/* Toast */}
+        {toast && (
+          <div className="toastwrap" aria-live="polite">
+            <Alert variant={toast.variant}>{toast.msg}</Alert>
+          </div>
+        )}
+      </Shell>
+    );
+  }
+
+  /* ============================================================= */
+  /* AppShell chrome + exam header + tabs + state control          */
+  /* ============================================================= */
+  function Shell(props){
+    var STATES = ["populated","loading","empty","error","partial","readOnly","archived"];
+    var LABELS = { populated:"Populated", loading:"Loading", empty:"Empty", error:"Error", partial:"Partial", readOnly:"Read-only", archived:"Archived" };
+    useLucide();
+    return (
+      <div className="scene">
+        <div className="appshell">
+          {/* Sidebar */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">L</span>
+              <span className="sidebar__brand-name">Lyceum</span>
+            </div>
+            <nav className="sidebar__nav sb-scroll" aria-label="Primary">
+              <span className="sidebar__section-label">Teach</span>
+              <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+              <NavItem icon="users" href="#">Students</NavItem>
+              <NavItem icon="book-open" href="#">Spaces</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+              <NavItem icon="file-check-2" href="#" active>Exams</NavItem>
+              <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+              <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+              <NavItem icon="settings" href="#">Settings</NavItem>
+            </nav>
+            <div className="sb-foot">
+              <Avatar size="sm" initials="SV" />
+              <div className="sb-foot__meta">
+                <span className="sb-foot__name">S. Verma</span>
+                <span className="sb-foot__role">role: exam_owner</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Topbar */}
+          <header className="appshell__topbar">
+            <div className="tenant" role="button" tabIndex={0}>
+              <i data-lucide="building-2" style={{width:15,height:15}}></i>
+              Subhang Academy
+              <span className="tenant__code">SUB001</span>
+              <i data-lucide="chevrons-up-down" style={{width:13,height:13,opacity:.6}}></i>
+            </div>
+            <div className="tbsearch">
+              <i data-lucide="search" style={{width:15,height:15}}></i>
+              <input placeholder="Search exams, students…" aria-label="Search" />
+              <Kbd>⌘K</Kbd>
+            </div>
+            <div className="tb-icons">
+              <span className="notif"><IconButton label="Notifications" icon={<i data-lucide="bell"></i>} /><span className="notif__dot"></span></span>
+              <IconButton label="Help" icon={<i data-lucide="circle-help"></i>} />
+              <Avatar size="sm" initials="SV" />
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="appshell__main">
+            <div className="page">
+              {/* Breadcrumb + state control */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-4)",flexWrap:"wrap"}}>
+                <Breadcrumb items={[{label:"Exams",href:"#"},{label:EXAM.title,href:"#"},{label:"Settings"}]} />
+                <div className="segrow">
+                  <span className="seg-label">State</span>
+                  <div className="seg" role="group" aria-label="Preview state">
+                    {STATES.map(function(s){
+                      return <button key={s} aria-pressed={props.state===s} onClick={function(){ props.setState(s); }}>{LABELS[s]}</button>;
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Shared exam header + tabs (owned by exam-detail) */}
+              <div className="exhead">
+                <div className="exhead__in">
+                  <div className="exhead__top">
+                    <div className="exhead__titlewrap">
+                      <h1 className="ex-title">{EXAM.title}</h1>
+                      <p className="ex-meta">
+                        <span>{EXAM.subject}</span><span className="ex-meta__sep">·</span>
+                        <span className="mono">{EXAM.duration} min</span><span className="ex-meta__sep">·</span>
+                        <span className="mono">{EXAM.totalMarks} marks</span><span className="ex-meta__sep">·</span>
+                        <span>Pass <span className="mono">{EXAM.passingMarks}</span></span><span className="ex-meta__sep">·</span>
+                        <span className="mono">{EXAM.examId}</span>
+                      </p>
+                    </div>
+                    <div className="exhead__rt">
+                      <StatusBadge status={props.status} />
+                      <Button variant="secondary" trailingIcon={<i data-lucide="chevron-down"></i>}>Status action</Button>
+                    </div>
+                  </div>
+                  <div className="extabs__list" role="tablist" aria-label="Exam sections">
+                    <button className="extab" role="tab" aria-selected={false}>Questions <span className="extab__count">{EXAM.questionCount}</span></button>
+                    <button className="extab" role="tab" aria-selected={false}>Submissions <span className="extab__count">{EXAM.submissionCount}</span></button>
+                    <button className="extab" role="tab" aria-selected={true} aria-controls="settings-panel">Settings</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Settings panel body */}
+              <div id="settings-panel" role="tabpanel" aria-label="Settings">
+                {props.children}
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

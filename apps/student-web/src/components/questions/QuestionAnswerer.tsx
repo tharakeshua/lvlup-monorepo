@@ -40,6 +40,7 @@ import ImageLightbox, { type LightboxImage } from "../common/ImageLightbox";
 import { useSendChatMessage } from "../../hooks/useChatTutor";
 import { useAuthStore } from "@levelup/shared-stores";
 import { MessageCircle, History } from "lucide-react";
+import { DifficultyChip } from "../common/lyceum";
 
 interface QuestionAnswererProps {
   item: UnifiedItem;
@@ -77,9 +78,28 @@ export default function QuestionAnswerer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const sendChatMessage = useSendChatMessage();
 
-  const imageAttachments: LightboxImage[] = (item.attachments ?? [])
-    .filter((a: ItemAttachment) => a.type === "image")
-    .map((a: ItemAttachment) => ({ url: a.url, alt: a.fileName }));
+  // Extract markdown-embedded images (`![alt](url)`) from the question text —
+  // the deployed backend strips top-level `attachments` for questions, so the
+  // subhang data migration re-injects diagram URLs as markdown at the end of
+  // `content` (marker: `<!-- imgs:auto -->`). We split them out here so they
+  // render in the image grid, not as raw markdown in the prose.
+  const rawText: string = typeof questionText === "string" ? questionText : "";
+  const IMG_MD_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+  const embeddedImages: LightboxImage[] = [];
+  for (const m of rawText.matchAll(IMG_MD_RE)) {
+    embeddedImages.push({ url: m[2], alt: m[1] || "diagram" });
+  }
+  const cleanText = rawText
+    .replace(/<!--\s*imgs:auto\s*-->/g, "")
+    .replace(IMG_MD_RE, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const imageAttachments: LightboxImage[] = [
+    ...(item.attachments ?? [])
+      .filter((a: ItemAttachment) => a.type === "image")
+      .map((a: ItemAttachment) => ({ url: a.url, alt: a.fileName })),
+    ...embeddedImages,
+  ];
   const { currentTenantId } = useAuthStore();
 
   // Handler for ChatAgentAnswerer AI replies
@@ -275,27 +295,25 @@ export default function QuestionAnswerer({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Question content */}
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      {/* Question content — foregrounded: larger, more line-height, less chrome */}
       <div>
-        {questionTitle && <h3 className="mb-1 text-base font-semibold">{questionTitle}</h3>}
-        <div className="text-foreground whitespace-pre-wrap text-base">{questionText}</div>
-        {payload.difficulty && (
-          <span
-            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-              payload.difficulty === "easy"
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : payload.difficulty === "medium"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-destructive/10 text-destructive"
-            }`}
-          >
-            {payload.difficulty}
-          </span>
+        {(payload.difficulty || payload.basePoints) && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <DifficultyChip difficulty={payload.difficulty} />
+            {payload.basePoints ? (
+              <span className="border-spark/30 bg-spark-subtle text-spark-hover rounded-pill text-2xs inline-flex items-center border px-2 py-0.5 font-medium">
+                <span className="font-mono tabular-nums">{payload.basePoints}</span>&nbsp;pts
+              </span>
+            ) : null}
+          </div>
         )}
-        {payload.basePoints && (
-          <span className="text-muted-foreground ml-2 text-xs">{payload.basePoints} pts</span>
+        {questionTitle && (
+          <h3 className="font-display text-fg mb-2 text-xl leading-snug">{questionTitle}</h3>
         )}
+        <div className="text-fg max-w-reading whitespace-pre-wrap text-lg font-medium leading-relaxed">
+          {cleanText}
+        </div>
       </div>
 
       {/* Item attachments (images, diagrams) */}
@@ -315,7 +333,7 @@ export default function QuestionAnswerer({
                 alt={img.alt}
                 loading="lazy"
                 decoding="async"
-                className="max-h-96 w-full rounded-lg border object-contain"
+                className="max-h-[28rem] w-full rounded-lg border object-contain"
               />
             </button>
           ))}
@@ -334,33 +352,33 @@ export default function QuestionAnswerer({
       {renderInput()}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         {!submitted && mode !== "test" && (
           <button
             type="button"
             onClick={handleSubmit}
             disabled={answer == null}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+            className="bg-brand text-fg-on-accent hover:bg-brand-hover shadow-e1 duration-fast ease-standard rounded-md px-5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Submit Answer
+            Check answer
           </button>
         )}
         {submitted && mode === "practice" && (
           <button
             type="button"
             onClick={handleRetry}
-            className="hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
+            className="border-strong text-fg hover:bg-surface-sunken duration-fast ease-standard rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors"
           >
-            Try Again
+            Try again
           </button>
         )}
         {onOpenChat && (
           <button
             type="button"
             onClick={onOpenChat}
-            className="hover:bg-accent flex items-center gap-1 rounded-md border px-3 py-2 text-sm"
+            className="border-subtle text-fg-secondary hover:border-strong hover:text-fg duration-fast ease-standard flex items-center gap-1.5 rounded-md border px-3.5 py-2.5 text-sm transition-colors"
           >
-            <MessageCircle className="h-4 w-4" /> Ask AI Tutor
+            <MessageCircle className="h-4 w-4" aria-hidden /> Ask tutor
           </button>
         )}
       </div>
@@ -374,22 +392,22 @@ export default function QuestionAnswerer({
           <button
             type="button"
             onClick={() => setShowPrevious(true)}
-            className="text-muted-foreground hover:bg-accent flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+            className="border-subtle text-fg-muted hover:border-strong hover:text-fg duration-fast flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
           >
-            <History className="h-3.5 w-3.5" /> Previous Submission
+            <History className="h-3.5 w-3.5" aria-hidden /> Previous submission
           </button>
         </div>
       )}
       {showPrevious && previousEvaluation && (
-        <div className="rounded-lg border border-dashed p-4">
+        <div className="border-strong rounded-lg border border-dashed p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-muted-foreground text-xs font-semibold uppercase">
-              Previous Submission
+            <h4 className="text-fg-muted text-2xs tracking-caps font-semibold uppercase">
+              Previous submission
             </h4>
             <button
               type="button"
               onClick={() => setShowPrevious(false)}
-              className="text-muted-foreground hover:text-foreground text-xs"
+              className="text-fg-muted hover:text-fg text-xs"
             >
               Hide
             </button>

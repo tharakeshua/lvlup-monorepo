@@ -75,6 +75,7 @@ export {
   RoleTenantPill,
   FilterChips,
 } from "./teacher";
+export { TeacherPageHeader, TeacherHero, FeatureActionCard } from "./teacher-aesthetic";
 
 // theme re-exports (convenience for screens needing JS token values)
 export { theme, colors, palette } from "../theme";

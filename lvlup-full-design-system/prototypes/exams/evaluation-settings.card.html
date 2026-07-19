@@ -1,0 +1,822 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Evaluation Settings" subtitle="Tenant confidence thresholds 0.7/0.9 · display · AI usage budgets" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+
+/* ----- AppShell sidebar nav ----- */
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-foot{padding:var(--space-3);border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.2}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* ----- Topbar ----- */
+.tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;background:var(--bg-surface)}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tbsearch{display:flex;align-items:center;gap:var(--space-2);flex:1;max-width:420px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted);background:var(--bg-surface-sunken);cursor:text}
+.tbsearch input{border:0;background:transparent;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tbsearch .kbd{margin-left:auto}
+.tb-icons{display:flex;align-items:center;gap:var(--space-2)}
+.notif{position:relative}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:2px solid var(--bg-surface)}
+
+/* ----- page header ----- */
+.topbar-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-4);flex-wrap:wrap}
+.segrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px}
+.seg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+
+.pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-5)}
+.pagehead__l{min-width:0}
+.page-title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0}
+.page-sub{margin:var(--space-2) 0 0;font-size:var(--text-sm);color:var(--text-secondary);max-width:64ch}
+
+/* ----- master/detail grid ----- */
+.ms-grid{display:grid;grid-template-columns:320px 1fr;gap:var(--space-5);align-items:start}
+.ms-grid .panel{margin:0}
+
+/* profiles list */
+.pf-filter{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);margin-bottom:var(--space-3)}
+.pf-filter input{border:0;background:transparent;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.pf-list{display:flex;flex-direction:column;gap:var(--space-2)}
+.pf-item{position:relative;text-align:left;width:100%;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard)}
+.pf-item:hover{border-color:var(--border-strong)}
+.pf-item--active{border-color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.pf-item--active::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:var(--radius-pill);background:var(--brand-primary)}
+.pf-item__name{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2)}
+.pf-item__meta{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:4px}
+.pf-item__badges{display:flex;flex-wrap:wrap;gap:var(--space-1);margin-top:var(--space-2)}
+
+/* editor tabs */
+.ed-tabs__list{display:inline-flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);width:100%}
+.ed-tab{position:relative;display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--dur-fast) var(--ease-standard)}
+.ed-tab:hover{color:var(--text-primary)}
+.ed-tab[aria-selected="true"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary)}
+.ed-panel{padding-top:var(--space-5);animation:fadein var(--dur-fast) var(--ease-standard)}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.lede{font-size:var(--text-sm);color:var(--text-secondary);margin:0 0 var(--space-4)}
+
+/* dimension rows */
+.dim-actions{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);flex-wrap:wrap}
+.dim-actions__sp{flex:1}
+.dim-list{display:flex;flex-direction:column;gap:var(--space-2)}
+.dim-row{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.dim-row--off .dim-row__head{opacity:.62}
+.dim-row__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+.dim-grip{display:flex;color:var(--text-muted);cursor:grab;flex:0 0 auto}
+.dim-grip svg{width:16px;height:16px}
+.dim-row__name{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);min-width:0;flex:1;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.dim-weight{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px var(--space-2)}
+.dim-expand{background:transparent;border:0;color:var(--text-muted);cursor:pointer;display:flex;padding:var(--space-1);border-radius:var(--radius-sm);transition:transform var(--dur-fast) var(--ease-standard)}
+.dim-expand svg{width:18px;height:18px}
+.dim-expand[aria-expanded="true"]{transform:rotate(180deg)}
+.dim-body{border-top:1px solid var(--border-subtle);padding:var(--space-4);background:var(--bg-surface-sunken);display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.dim-body .span2{grid-column:1 / -1}
+
+/* priority chips */
+.prio{display:inline-flex;align-items:center;gap:var(--space-1);padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;border:1px solid transparent}
+.prio--high{background:var(--status-error-subtle);color:var(--status-error);border-color:var(--status-error-subtle)}
+.prio--med{background:var(--status-warning-subtle);color:var(--status-warning)}
+.prio--low{background:var(--bg-inset);color:var(--text-secondary);border-color:var(--border-strong)}
+
+/* display tab */
+.toggle-row{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-4) 0;border-bottom:1px solid var(--border-subtle)}
+.toggle-row:last-child{border-bottom:0}
+.toggle-row__txt{flex:1;min-width:0}
+.toggle-row__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.toggle-row__help{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+.preview-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4)}
+.preview-tag{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3)}
+.fb-section{margin-bottom:var(--space-3)}
+.fb-section__label{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
+.fb-section__label svg{width:14px;height:14px}
+.fb-li{font-size:var(--text-sm);color:var(--text-primary);display:flex;gap:var(--space-2);margin-bottom:var(--space-1)}
+.fb-li svg{width:14px;height:14px;flex:0 0 auto;margin-top:3px;color:var(--status-success)}
+.fb-take{font-size:var(--text-sm);color:var(--text-primary);background:var(--brand-subtle);border-radius:var(--radius-md);padding:var(--space-3)}
+
+/* confidence tab — routing band */
+.band-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5)}
+.band{position:relative;height:46px;border-radius:var(--radius-md);overflow:hidden;display:flex;border:1px solid var(--border-subtle)}
+.band__zone{display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-on-accent);transition:flex-basis var(--dur-fast) var(--ease-standard);overflow:hidden;white-space:nowrap}
+.band__zone svg{width:13px;height:13px;flex:0 0 auto}
+.band__zone--low{background:var(--confidence-low)}
+.band__zone--med{background:var(--confidence-med);color:var(--text-primary)}
+.band__zone--high{background:var(--confidence-high)}
+.band-handles{position:relative;height:0}
+.band-handle{position:absolute;top:-58px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.band-handle__pin{font-family:var(--font-mono);font-size:var(--text-2xs);font-weight:var(--weight-semibold);background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-pill);padding:1px var(--space-2);box-shadow:var(--shadow-e1);color:var(--text-primary)}
+.band-handle__stem{width:2px;height:14px;background:var(--text-secondary)}
+.band-scale{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2)}
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);margin-top:var(--space-5)}
+.sl-field__top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.sl-field__label{font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary)}
+.sl-field__val{font-family:var(--font-mono);font-size:var(--text-base);font-weight:var(--weight-medium);color:var(--text-primary)}
+.routing-def dt{display:flex;align-items:center;gap:var(--space-2)}
+.routing-def dt svg{width:14px;height:14px}
+
+/* usage tab */
+.usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);align-items:start}
+.meter-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5)}
+.meter-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
+.meter-big{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);line-height:1;letter-spacing:-0.01em}
+.meter-big .denom{color:var(--text-muted);font-size:var(--text-lg)}
+.meter-cap{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:var(--space-3)}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-top:var(--space-4)}
+.usage-link{display:inline-flex;align-items:center;gap:var(--space-2);margin-top:var(--space-4);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--brand-primary);text-decoration:none;cursor:pointer}
+.usage-link svg{width:15px;height:15px}
+
+/* sticky save bar */
+.savebar{position:sticky;bottom:0;margin-top:var(--space-5);display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);animation:slideup var(--dur-base) var(--ease-entrance)}
+@keyframes slideup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.savebar__dirty{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+.savebar__dirty svg{width:15px;height:15px;color:var(--status-warning)}
+.savebar__sp{flex:1}
+
+/* read-only banner spacing */
+.stack{display:flex;flex-direction:column;gap:var(--space-4)}
+.helper{font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1)}
+.defaults-note{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-3)}
+
+.sk-list{display:flex;flex-direction:column;gap:var(--space-3)}
+
+@media (prefers-reduced-motion: reduce){
+  .ed-panel,.savebar{animation:none}
+  .band__zone,.seg button,.pf-item,.dim-expand{transition:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Input, Textarea, Select, Switch, Slider, Field,
+    Panel, Tabs, Modal, DataTable, DefinitionList, Stat, ProgressBar,
+    EmptyState, Skeleton, Alert, Badge, Chip, Breadcrumb, NavItem, Avatar,
+    Kbd, ConfidenceBadge, Toast, Icon
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---- mock data (entity field names from spec) ---------------------- */
+  const PROFILES = [
+    { id:"prof_std",    name:"Standard",            isDefault:true,  isPublic:false, isCustom:false, exams:12 },
+    { id:"prof_strict", name:"Strict (Boards)",     isDefault:false, isPublic:true,  isCustom:true,  exams:4 },
+    { id:"prof_lenient",name:"Lenient (Practice)",  isDefault:false, isPublic:false, isCustom:true,  exams:2 },
+  ];
+
+  const DIMENSIONS = [
+    { id:"correctness", name:"Correctness", priority:"high", weight:"40", enabled:true,  isCustom:false,
+      desc:"How accurate the answer is against the model answer and rubric.",
+      scoringScale:"0-10", expectedFeedbackCount:"2",
+      promptGuidance:"Compare the student's reasoning to the model answer. Award full marks only when the final result and the method are both correct. Penalise unsupported leaps." },
+    { id:"completeness",name:"Completeness", priority:"high", weight:"25", enabled:true,  isCustom:false,
+      desc:"Whether all required parts of the question were addressed.",
+      scoringScale:"0-10", expectedFeedbackCount:"2",
+      promptGuidance:"Check each sub-part is attempted. Deduct proportionally for missing parts." },
+    { id:"clarity",     name:"Clarity & structure", priority:"med", weight:"20", enabled:true,  isCustom:false,
+      desc:"Readability, logical ordering, and presentation of working.",
+      scoringScale:"0-5", expectedFeedbackCount:"1",
+      promptGuidance:"Reward clearly labelled steps and legible working. Do not penalise handwriting." },
+    { id:"originality", name:"Originality", priority:"low", weight:"15", enabled:false, isCustom:true,
+      desc:"Evidence of independent reasoning beyond the taught method.",
+      scoringScale:"0-5", expectedFeedbackCount:"1",
+      promptGuidance:"Optional. Reward valid alternative approaches; never penalise the standard method." },
+  ];
+
+  function badgesFor(p){
+    const out=[];
+    if(p.isDefault) out.push(<Badge key="d" variant="brand" icon={<i data-lucide="star" style={{width:11,height:11}}></i>}>Default</Badge>);
+    if(p.isPublic)  out.push(<Badge key="p" variant="info" icon={<i data-lucide="users" style={{width:11,height:11}}></i>}>Public</Badge>);
+    out.push(p.isCustom
+      ? <Badge key="c" variant="warning">Custom</Badge>
+      : <Badge key="b">Built-in</Badge>);
+    return out;
+  }
+
+  function prioChip(prio){
+    const lbl={high:"High",med:"Med",low:"Low"}[prio];
+    return <span className={"prio prio--"+prio}>{lbl}</span>;
+  }
+
+  /* ===================================================================== */
+  /* DIMENSIONS TAB                                                         */
+  /* ===================================================================== */
+  function DimensionsTab(props){
+    const [dims,setDims]=useState(DIMENSIONS);
+    const [open,setOpen]=useState("correctness");
+    const ro=props.readOnly;
+
+    function toggle(id){
+      setDims(d=>d.map(x=>x.id===id?{...x,enabled:!x.enabled}:x));
+      props.onDirty();
+    }
+    const anyEnabled=dims.some(d=>d.enabled);
+
+    return (
+      <div>
+        <p className="lede">These are the axes RELMS scores each answer against.</p>
+        <div className="dim-actions">
+          <span className="dim-actions__sp"></span>
+          <Button variant="secondary" size="sm" disabled={ro}
+            leadingIcon={<i data-lucide="rotate-ccw" style={{width:14,height:14}}></i>}>Restore default dimensions</Button>
+          <Button variant="primary" size="sm" disabled={ro}
+            leadingIcon={<i data-lucide="plus" style={{width:14,height:14}}></i>}>Add custom dimension</Button>
+        </div>
+
+        {!anyEnabled && (
+          <div style={{marginBottom:"var(--space-3)"}}>
+            <EmptyState icon="scale" title="No dimensions enabled"
+              body="Grading will fall back to holistic scoring until you enable at least one dimension."
+              action={<Button variant="secondary" size="sm" disabled={ro}>Restore defaults</Button>} />
+          </div>
+        )}
+
+        <div className="dim-list">
+          {dims.map(d=>{
+            const isOpen=open===d.id;
+            return (
+              <div key={d.id} className={"dim-row"+(d.enabled?"":" dim-row--off")}>
+                <div className="dim-row__head">
+                  <span className="dim-grip" aria-hidden="true"><i data-lucide="grip-vertical"></i></span>
+                  <Switch checked={d.enabled} disabled={ro} onChange={()=>toggle(d.id)} aria-label={"Enable "+d.name} />
+                  <span className="dim-row__name">
+                    {d.name}
+                    {prioChip(d.priority)}
+                    {d.isCustom ? <Badge variant="warning">Custom</Badge> : <Badge>Built-in</Badge>}
+                  </span>
+                  <span className="dim-weight" title="Weight">w {d.weight}</span>
+                  <button className="dim-expand" aria-expanded={isOpen} aria-label={(isOpen?"Collapse ":"Expand ")+d.name}
+                    onClick={()=>setOpen(isOpen?null:d.id)}>
+                    <i data-lucide="chevron-down"></i>
+                  </button>
+                </div>
+                {isOpen && (
+                  <div className="dim-body">
+                    <Field label="Description" className="span2">
+                      <Input defaultValue={d.desc} disabled={ro} onInput={props.onDirty} />
+                    </Field>
+                    <Field label="Priority">
+                      <Select disabled={ro} defaultValue={d.priority} onChange={props.onDirty}
+                        options={[{value:"high",label:"High"},{value:"med",label:"Medium"},{value:"low",label:"Low"}]} />
+                    </Field>
+                    <Field label="Weight">
+                      <Input type="number" defaultValue={d.weight} disabled={ro} onInput={props.onDirty} />
+                    </Field>
+                    <Field label="Scoring scale">
+                      <Select disabled={ro} defaultValue={d.scoringScale} onChange={props.onDirty}
+                        options={[{value:"0-5",label:"0–5"},{value:"0-10",label:"0–10"},{value:"0-100",label:"0–100"}]} />
+                    </Field>
+                    <Field label="Expected feedback count">
+                      <Input type="number" defaultValue={d.expectedFeedbackCount} disabled={ro} onInput={props.onDirty} />
+                    </Field>
+                    <Field label="Prompt guidance" className="span2"
+                      hint="Instructions the grader follows for this dimension — never shown to students.">
+                      <Textarea rows={3} defaultValue={d.promptGuidance} disabled={ro} onInput={props.onDirty} />
+                    </Field>
+                    <div className="span2">
+                      <div className="keylock">
+                        <span className="keylock__icon"><i data-lucide="lock"></i></span>
+                        <div className="keylock__text"><strong>Staff only — not shown to students.</strong> Prompt guidance, model answers and rubric guidance are grading-only.</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================================================================== */
+  /* DISPLAY TAB                                                            */
+  /* ===================================================================== */
+  function DisplayTab(props){
+    const [s,setS]=useState({ showStrengths:true, showKeyTakeaway:true, prioritizeByImportance:false });
+    const ro=props.readOnly;
+    function flip(k){ setS(v=>({...v,[k]:!v[k]})); props.onDirty(); }
+    const rows=[
+      ["showStrengths","Show strengths","List what the student did well in their released feedback."],
+      ["showKeyTakeaway","Show key takeaway","Surface a single most-important takeaway at the top of the result."],
+      ["prioritizeByImportance","Prioritize feedback by importance","Order feedback points by weight rather than by dimension."],
+    ];
+    return (
+      <div className="usage-grid">
+        <div>
+          <p className="lede">Control what feedback students see in their released results.</p>
+          <div style={{marginBottom:"var(--space-4)"}}>
+            <Alert variant="info" title="Model answers stay private">
+              Model answers and rubric guidance are never shown to students, regardless of these settings.
+            </Alert>
+          </div>
+          <div>
+            {rows.map(([k,t,h])=>(
+              <div key={k} className="toggle-row">
+                <div className="toggle-row__txt">
+                  <div className="toggle-row__title">{t}</div>
+                  <div className="toggle-row__help">{h}</div>
+                </div>
+                <Switch checked={s[k]} disabled={ro} onChange={()=>flip(k)} aria-label={t} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="preview-card" aria-label="Student feedback preview">
+          <div className="preview-tag">Live preview · what students see</div>
+          {s.showKeyTakeaway && (
+            <div className="fb-section">
+              <div className="fb-section__label"><i data-lucide="key-round"></i>Key takeaway</div>
+              <div className="fb-take">Strong grasp of the core method — focus next on justifying each step before the final answer.</div>
+            </div>
+          )}
+          {s.showStrengths && (
+            <div className="fb-section">
+              <div className="fb-section__label"><i data-lucide="check-check"></i>Strengths</div>
+              <div className="fb-li"><i data-lucide="check"></i>Correct final result with a valid method.</div>
+              <div className="fb-li"><i data-lucide="check"></i>Clear, well-ordered working.</div>
+            </div>
+          )}
+          <div className="fb-section">
+            <div className="fb-section__label"><i data-lucide="target"></i>To improve {s.prioritizeByImportance && <Chip>by importance</Chip>}</div>
+            <div className="fb-li" style={{color:"var(--text-secondary)"}}><i data-lucide="dot" style={{color:"var(--text-muted)"}}></i>Show the intermediate step that links setup to answer.</div>
+          </div>
+          <div className="keylock" style={{marginTop:"var(--space-3)"}}>
+            <span className="keylock__icon"><i data-lucide="lock"></i></span>
+            <div className="keylock__text"><strong>Hidden from this view:</strong> model answer, raw AI confidence, AI cost.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================================================================== */
+  /* CONFIDENCE TAB (flagship)                                              */
+  /* ===================================================================== */
+  function ConfidenceTab(props){
+    const [lo,setLo]=useState(0.70);     // confidenceThreshold
+    const [hi,setHi]=useState(0.90);     // autoApproveThreshold
+    const [partial,setPartial]=useState(true);
+    const ro=props.readOnly;
+
+    function setLow(v){ const nv=Math.min(v,hi); setLo(nv); props.onDirty(); }
+    function setHigh(v){ const nv=Math.max(v,lo); setHigh2(nv); }
+    function setHigh2(nv){ setHi(nv); props.onDirty(); }
+
+    const lowPct=Math.round(lo*100);
+    const highPct=Math.round(hi*100);
+    const reviewW=lowPct, spotW=highPct-lowPct, autoW=100-highPct;
+    const showFloorWarn=hi<0.85;
+
+    return (
+      <div className="stack">
+        <p className="lede">Confidence routing decides what the AI grades automatically and what you must review by hand.</p>
+
+        <div className="band-wrap">
+          <div className="band-handles" aria-hidden="true">
+            <div className="band-handle" style={{left:lowPct+"%"}}>
+              <span className="band-handle__pin">{lo.toFixed(2)}</span>
+              <span className="band-handle__stem"></span>
+            </div>
+            <div className="band-handle" style={{left:highPct+"%"}}>
+              <span className="band-handle__pin">{hi.toFixed(2)}</span>
+              <span className="band-handle__stem"></span>
+            </div>
+          </div>
+          <div className="band" role="img"
+            aria-label={"Routing band: needs review below "+lo.toFixed(2)+", spot-check "+lo.toFixed(2)+" to "+hi.toFixed(2)+", auto-accept above "+hi.toFixed(2)}>
+            <div className="band__zone band__zone--low" style={{flexBasis:reviewW+"%"}}>
+              {reviewW>14 && <><i data-lucide="user-check"></i>{reviewW}% review</>}
+            </div>
+            <div className="band__zone band__zone--med" style={{flexBasis:spotW+"%"}}>
+              {spotW>14 && <><i data-lucide="search-check"></i>{spotW}% spot</>}
+            </div>
+            <div className="band__zone band__zone--high" style={{flexBasis:autoW+"%"}}>
+              {autoW>14 && <><i data-lucide="check-circle"></i>{autoW}% auto</>}
+            </div>
+          </div>
+          <div className="band-scale"><span>0.00</span><span>0.50</span><span>1.00</span></div>
+
+          <div className="sliders">
+            <div>
+              <div className="sl-field__top">
+                <span className="sl-field__label">Review threshold</span>
+                <span className="sl-field__val">{lo.toFixed(2)}</span>
+              </div>
+              <Slider min="0" max="1" step="0.01" value={lo} disabled={ro}
+                aria-label="Review threshold"
+                aria-valuetext={"Review threshold "+lo.toFixed(2)+"; below this, answers need human review"}
+                onChange={e=>setLow(parseFloat(e.target.value))} />
+            </div>
+            <div>
+              <div className="sl-field__top">
+                <span className="sl-field__label">Auto-accept threshold</span>
+                <span className="sl-field__val">{hi.toFixed(2)}</span>
+              </div>
+              <Slider min="0" max="1" step="0.01" value={hi} disabled={ro}
+                aria-label="Auto-accept threshold"
+                aria-valuetext={"Auto-accept threshold "+hi.toFixed(2)+"; above this, answers are accepted automatically"}
+                onChange={e=>setHigh(parseFloat(e.target.value))} />
+            </div>
+          </div>
+          <div className="defaults-note">Default threshold 0.7 · auto-accept 0.9 · auto-accept must be ≥ the review threshold.</div>
+        </div>
+
+        {showFloorWarn && (
+          <Alert variant="warning" title="More questions will auto-accept without review">
+            Lowering auto-accept to {hi.toFixed(2)} routes fewer answers to you. For a profile already in use this affects future grading runs only.
+          </Alert>
+        )}
+
+        <div className="toggle-row" style={{borderTop:"1px solid var(--border-subtle)",borderBottom:0,paddingBottom:0}}>
+          <div className="toggle-row__txt">
+            <div className="toggle-row__title">Always review partial-credit answers</div>
+            <div className="toggle-row__help">Any answer scored between 0 and full marks is routed to you, ignoring confidence.</div>
+          </div>
+          <Switch checked={partial} disabled={ro} onChange={()=>{setPartial(v=>!v);props.onDirty();}} aria-label="Always review partial-credit answers" />
+        </div>
+
+        <DefinitionList className="routing-def" items={[
+          { term:<><i data-lucide="user-check" style={{color:"var(--confidence-low)"}}></i><ConfidenceBadge level="low" value={"< "+lo.toFixed(2)} /> Needs review</>,
+            value:"Routed to you. Human grading required." },
+          { term:<><i data-lucide="search-check" style={{color:"var(--confidence-med)"}}></i><ConfidenceBadge level="med" value={lo.toFixed(2)+"–"+hi.toFixed(2)} /> Spot-check</>,
+            value:"Graded, but flagged for a quick look." },
+          { term:<><i data-lucide="check-circle" style={{color:"var(--confidence-high)"}}></i><ConfidenceBadge level="high" value={"> "+hi.toFixed(2)} /> Auto-accept</>,
+            value:"Accepted automatically." },
+        ]} />
+      </div>
+    );
+  }
+
+  /* ===================================================================== */
+  /* USAGE TAB                                                              */
+  /* ===================================================================== */
+  function UsageTab(props){
+    const ro=props.readOnly;
+    const partial=props.partial; // analytics unavailable
+    const budget=120, spent=86, warnPct=80;
+    const pct=Math.round(spent/budget*100);
+    const over=pct>=100;
+    const warn=pct>=warnPct;
+    const meterVariant=over?undefined:(warn?"warning":"success");
+    return (
+      <div className="usage-grid">
+        <div className="stack">
+          <p className="lede" style={{margin:0}}>Set your monthly AI spend ceiling and per-day call limit. Crossing the warning line flips the meter; over budget, new grading runs queue as needs_review.</p>
+          <Field label="Monthly AI budget (USD)">
+            <Input type="number" defaultValue="120" disabled={ro} onInput={props.onDirty} />
+          </Field>
+          <Field label="Daily call limit">
+            <Input type="number" defaultValue="2000" disabled={ro} onInput={props.onDirty} />
+          </Field>
+          <Field label="Warn me at (% of budget)" hint="Default 80. The meter turns amber at this point.">
+            <Input type="number" defaultValue="80" disabled={ro} onInput={props.onDirty} />
+          </Field>
+        </div>
+
+        <div className="meter-card">
+          <div className="preview-tag">AI usage meter · this billing period</div>
+
+          {partial ? (
+            <div style={{padding:"var(--space-4) 0"}}>
+              <Alert variant="warning" title="Usage data unavailable">
+                Analytics is lagging. You can still edit and save budgets — saving is not blocked.
+              </Alert>
+            </div>
+          ) : over ? (
+            <>
+              <div className="meter-head">
+                <span className="meter-big">${spent}<span className="denom"> / ${budget}</span></span>
+                <Badge variant="error" icon={<i data-lucide="alert-triangle" style={{width:12,height:12}}></i>}>Over budget</Badge>
+              </div>
+              <ProgressBar value={100} />
+              <div className="meter-cap">Spent ${spent} of ${budget} this month · 1,184 calls today</div>
+            </>
+          ) : (
+            <>
+              <div className="meter-head">
+                <span className="meter-big">${spent}<span className="denom"> / ${budget}</span></span>
+                {warn
+                  ? <Badge variant="warning" icon={<i data-lucide="alert-triangle" style={{width:12,height:12}}></i>}>{pct}% used</Badge>
+                  : <Badge variant="success" icon={<i data-lucide="check" style={{width:12,height:12}}></i>}>{pct}% used</Badge>}
+              </div>
+              <ProgressBar value={pct} variant={meterVariant} />
+              <div className="meter-cap">Spent ${spent} of ${budget} this month · 1,184 calls today</div>
+            </>
+          )}
+
+          <div className="kpi-row">
+            <Stat label="Calls today" value="1,184" delta="vs 980 avg" trend="up" />
+            <Stat label="Avg cost / exam" value="$0.42" delta="−6%" trend="down" />
+          </div>
+
+          {over && (
+            <div style={{marginTop:"var(--space-4)"}}>
+              <Alert variant="error" title="You've reached your monthly AI budget">
+                New grading runs will queue as needs_review until the budget resets or is raised.
+              </Alert>
+            </div>
+          )}
+
+          <a className="usage-link" href="#"><i data-lucide="bar-chart-3"></i>Open full AI usage report</a>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================================================================== */
+  /* EDITOR (right pane)                                                    */
+  /* ===================================================================== */
+  function Editor(props){
+    const [tab,setTab]=useState(0);
+    const TABS=["Dimensions","Display","Confidence","Usage"];
+    const ro=props.readOnly;
+    const partialUsage=props.state==="partial";
+    return (
+      <Panel>
+        <div className="ed-tabs__list" role="tablist" aria-label="Profile editor">
+          {TABS.map((t,i)=>(
+            <button key={t} className="ed-tab" role="tab" aria-selected={tab===i}
+              tabIndex={tab===i?0:-1} onClick={()=>setTab(i)}>{t}</button>
+          ))}
+        </div>
+        <div className="ed-panel" role="tabpanel" key={tab}>
+          {tab===0 && <DimensionsTab readOnly={ro} onDirty={props.onDirty} />}
+          {tab===1 && <DisplayTab readOnly={ro} onDirty={props.onDirty} />}
+          {tab===2 && <ConfidenceTab readOnly={ro} onDirty={props.onDirty} />}
+          {tab===3 && <UsageTab readOnly={ro} partial={partialUsage} onDirty={props.onDirty} />}
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ===================================================================== */
+  /* PROFILES (left pane)                                                   */
+  /* ===================================================================== */
+  function ProfileList(props){
+    return (
+      <Panel>
+        <div className="pf-filter">
+          <i data-lucide="search" style={{width:15,height:15}}></i>
+          <input placeholder="Filter profiles" aria-label="Filter profiles" />
+        </div>
+        <div className="pf-list" role="listbox" aria-label="Evaluation profiles">
+          {PROFILES.map(p=>(
+            <button key={p.id} role="option" aria-selected={props.active===p.id}
+              className={"pf-item"+(props.active===p.id?" pf-item--active":"")}
+              onClick={()=>props.onSelect(p.id)}>
+              <div className="pf-item__name">{p.name}</div>
+              <div className="pf-item__meta">used by {p.exams} exam{p.exams===1?"":"s"}</div>
+              <div className="pf-item__badges">{badgesFor(p)}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{marginTop:"var(--space-3)"}}>
+          <Button variant="secondary" size="sm" block
+            leadingIcon={<i data-lucide="plus" style={{width:14,height:14}}></i>}
+            onClick={props.onNew}>New profile</Button>
+        </div>
+      </Panel>
+    );
+  }
+
+  /* ===================================================================== */
+  /* MAIN APP                                                               */
+  /* ===================================================================== */
+  function App(){
+    const [state,setState]=useState("populated");
+    const [active,setActive]=useState("prof_std");
+    const [dirty,setDirty]=useState(false);
+    const [saving,setSaving]=useState(false);
+    const [toast,setToast]=useState(null);
+    const [newOpen,setNewOpen]=useState(false);
+
+    const readOnly = state==="readonly";
+
+    function markDirty(){ if(!readOnly) setDirty(true); }
+    function selectProfile(id){ setActive(id); setDirty(false); }
+    function save(){
+      setSaving(true);
+      setTimeout(()=>{ setSaving(false); setDirty(false); setToast({variant:"success",title:"Profile saved"}); },700);
+    }
+    useEffect(()=>{ if(toast){ const t=setTimeout(()=>setToast(null),2600); return ()=>clearTimeout(t); } },[toast]);
+
+    const STATES=["populated","loading","empty","error","partial","readonly"];
+    const LABELS={populated:"Populated",loading:"Loading",empty:"Empty",error:"Error",partial:"Partial",readonly:"Read-only"};
+
+    let body;
+    if(state==="loading"){
+      body = (
+        <div className="ms-grid">
+          <Panel>
+            <Skeleton height="40px" />
+            <div className="sk-list" style={{marginTop:"var(--space-3)"}}>
+              {[0,1,2,3].map(i=><Skeleton key={i} height="72px" />)}
+            </div>
+          </Panel>
+          <Panel>
+            <Skeleton height="38px" width="60%" />
+            <div className="sk-list" style={{marginTop:"var(--space-4)"}}>
+              {[0,1,2,3,4].map(i=><Skeleton key={i} height="56px" />)}
+            </div>
+          </Panel>
+        </div>
+      );
+    } else if(state==="empty"){
+      body = (
+        <Panel>
+          <EmptyState icon="sliders-horizontal" title="No evaluation profiles yet"
+            body="Create a profile to define how AI grades your exams."
+            action={<Button variant="primary"
+              leadingIcon={<i data-lucide="plus" style={{width:15,height:15}}></i>}
+              onClick={()=>setNewOpen(true)}>Create your first profile</Button>} />
+        </Panel>
+      );
+    } else if(state==="error"){
+      body = (
+        <Panel>
+          <Alert variant="error" title="Couldn't load evaluation settings">
+            We couldn't reach your tenant's grading profiles. Your data is safe.
+            <div style={{marginTop:"var(--space-3)"}}>
+              <Button variant="secondary" size="sm"
+                leadingIcon={<i data-lucide="rotate-cw" style={{width:14,height:14}}></i>}>Retry</Button>
+            </div>
+          </Alert>
+        </Panel>
+      );
+    } else {
+      const activeProfile=PROFILES.find(p=>p.id===active);
+      body = (
+        <>
+          {readOnly && (
+            <div style={{marginBottom:"var(--space-4)"}}>
+              <Alert variant="info" title="You can view but not edit this profile">
+                This profile is shared (public) by another teacher. Duplicate it to customize.
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Button variant="secondary" size="sm"
+                    leadingIcon={<i data-lucide="copy" style={{width:14,height:14}}></i>}>Duplicate</Button>
+                </div>
+              </Alert>
+            </div>
+          )}
+          {activeProfile && activeProfile.exams>0 && !readOnly && (
+            <div style={{marginBottom:"var(--space-4)"}}>
+              <Alert variant="warning" title={"Used by "+activeProfile.exams+" exams"}>
+                Changes affect future grading; already-graded submissions aren't re-scored automatically.
+              </Alert>
+            </div>
+          )}
+          {state==="partial" && (
+            <div style={{marginBottom:"var(--space-4)"}}>
+              <Alert variant="warning" title="Usage data unavailable">
+                The AI usage meter is temporarily unavailable (analytics lag). The rest of the editor is fully editable and saving is not blocked.
+              </Alert>
+            </div>
+          )}
+
+          <div className="ms-grid">
+            <ProfileList active={active} onSelect={selectProfile} onNew={()=>setNewOpen(true)} />
+            <Editor readOnly={readOnly} state={state} onDirty={markDirty} />
+          </div>
+
+          {dirty && !readOnly && (
+            <div className="savebar" role="region" aria-live="polite" aria-label="Save changes">
+              <span className="savebar__dirty"><i data-lucide="circle-dot"></i>Unsaved changes</span>
+              <span className="savebar__sp"></span>
+              <Button variant="secondary" disabled={saving} onClick={()=>setDirty(false)}>Discard</Button>
+              <Button variant="primary" loading={saving} onClick={save}>Save changes</Button>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    return (
+      <div className="scene">
+        <div className="appshell">
+          {/* Sidebar */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">L</span>
+              <span className="sidebar__brand-name">Lyceum</span>
+            </div>
+            <nav className="sidebar__nav sb-scroll" aria-label="Primary">
+              <span className="sidebar__section-label">Teach</span>
+              <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+              <NavItem icon="users" href="#">Students</NavItem>
+              <NavItem icon="book-open" href="#">Spaces</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+              <NavItem icon="file-check-2" href="#">Exams</NavItem>
+              <NavItem icon="sliders-horizontal" href="#" active>Evaluation Settings</NavItem>
+              <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+              <NavItem icon="bar-chart-3" href="#">AI usage</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+              <NavItem icon="settings" href="#">Settings</NavItem>
+            </nav>
+            <div className="sb-foot">
+              <Avatar size="sm" initials="SV" />
+              <div className="sb-foot__meta">
+                <span className="sb-foot__name">S. Verma</span>
+                <span className="sb-foot__role">role: admin</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Topbar */}
+          <header className="appshell__topbar">
+            <div className="tenant" role="button" tabIndex={0}>
+              <i data-lucide="building-2" style={{width:15,height:15}}></i>
+              Subhang Academy
+              <span className="tenant__code">SUB001</span>
+              <i data-lucide="chevrons-up-down" style={{width:13,height:13,opacity:.6}}></i>
+            </div>
+            <div className="tbsearch">
+              <i data-lucide="search" style={{width:15,height:15}}></i>
+              <input placeholder="Search exams, students…" aria-label="Search" />
+              <Kbd>⌘K</Kbd>
+            </div>
+            <div className="tb-icons">
+              <span className="notif"><IconButton label="Notifications" icon={<i data-lucide="bell"></i>} /><span className="notif__dot"></span></span>
+              <IconButton label="Help" icon={<i data-lucide="circle-help"></i>} />
+              <Avatar size="sm" initials="SV" />
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="appshell__main">
+            <div style={{maxWidth:1200,margin:"0 auto"}}>
+              <div className="topbar-row">
+                <Breadcrumb items={[{label:"Exams",href:"#"},{label:"Evaluation Settings"}]} />
+                <div className="segrow">
+                  <span className="seg-label">State</span>
+                  <div className="seg" role="group" aria-label="Preview state">
+                    {STATES.map(s=>(
+                      <button key={s} aria-pressed={state===s} onClick={()=>{setState(s);setDirty(false);}}>{LABELS[s]}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pagehead">
+                <div className="pagehead__l">
+                  <h1 className="page-title">Evaluation Settings</h1>
+                  <p className="page-sub">Define how AI grades your exams — scoring dimensions, confidence routing, what students see, and your AI budget.</p>
+                </div>
+                {(state==="populated"||state==="partial"||state==="readonly") &&
+                  <Button variant="primary"
+                    leadingIcon={<i data-lucide="plus" style={{width:15,height:15}}></i>}
+                    onClick={()=>setNewOpen(true)}>New profile</Button>}
+              </div>
+
+              {body}
+            </div>
+          </main>
+        </div>
+
+        {/* New profile modal */}
+        <Modal open={newOpen} onClose={()=>setNewOpen(false)} title="New evaluation profile"
+          footer={<>
+            <Button variant="secondary" onClick={()=>setNewOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={()=>{setNewOpen(false);setState("populated");setToast({variant:"success",title:"Profile created",body:"Seeded with the built-in default dimensions."});}}>Create profile</Button>
+          </>}>
+          <div className="stack">
+            <Field label="Profile name" required hint="Shown when picking a grading profile on an exam.">
+              <Input placeholder="e.g. Strict (Boards)" defaultValue="" />
+            </Field>
+            <Field label="Description">
+              <Textarea rows={2} placeholder="What is this profile for?" />
+            </Field>
+            <div className="toggle-row" style={{borderBottom:0,paddingBottom:0}}>
+              <div className="toggle-row__txt">
+                <div className="toggle-row__title">Share within tenant (public)</div>
+                <div className="toggle-row__help">Other teachers in Subhang Academy can use, but not edit, this profile.</div>
+              </div>
+              <Switch aria-label="Share within tenant" />
+            </div>
+            <Alert variant="info" title="Starts from defaults">
+              New profiles are seeded with the built-in default dimensions and thresholds (0.7 / 0.9). The server keeps exactly one default per tenant.
+            </Alert>
+          </div>
+        </Modal>
+
+        {/* Toast */}
+        {toast && (
+          <div style={{position:"fixed",right:24,bottom:24,zIndex:50}}>
+            <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  setTimeout(function(){ if(window.lucide) window.lucide.createIcons(); }, 60);
+</script></body></html>

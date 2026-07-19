@@ -13,6 +13,7 @@ import {
   zUserId,
   zTeacherId,
   zAgentId,
+  zEvaluationSettingsId,
   zRubricPresetId,
   zAcademicSessionId,
 } from "../../primitives/branded-id.zod.js";
@@ -22,17 +23,17 @@ import { zSpaceStatus, zSpaceType, zSpaceAccessType } from "../../enums/space.js
 import { UnifiedRubricSchema } from "../content/rubric.js";
 
 export const SpaceStatsSchema = zObject({
-  storyPointCount: z.number().int().default(0),
-  itemCount: z.number().int().default(0),
-  enrolledCount: z.number().int().default(0),
-  completionCount: z.number().int().default(0),
+  storyPointCount: z.number().int().nonnegative().default(0),
+  itemCount: z.number().int().nonnegative().default(0),
+  enrolledCount: z.number().int().nonnegative().default(0),
+  completionCount: z.number().int().nonnegative().default(0),
 });
 export type SpaceStats = z.infer<typeof SpaceStatsSchema>;
 
 export const SpaceRatingAggregateSchema = zObject({
-  averageRating: z.number(),
-  totalReviews: z.number().int(),
-  distribution: z.record(z.string(), z.number().int()),
+  averageRating: z.number().min(0).max(5),
+  totalReviews: z.number().int().nonnegative(),
+  distribution: z.record(z.string(), z.number().int().nonnegative()),
 });
 export type SpaceRatingAggregate = z.infer<typeof SpaceRatingAggregateSchema>;
 
@@ -55,6 +56,9 @@ export const SpaceSchema = zObject({
   defaultTutorAgentId: zAgentId.optional(),
   defaultRubric: UnifiedRubricSchema.optional(),
   defaultRubricId: zRubricPresetId.optional(),
+  // Space-level evaluation-settings ref (AI-EVALUATION-CORE-PLAN.md D3):
+  // shared tenant pool; resolution space → tenant default.
+  evaluationSettingsId: zEvaluationSettingsId.optional(),
   // assessment defaults (space-level, applied to timed_test/quiz story points)
   allowRetakes: z.boolean().optional(),
   maxRetakes: z.number().int().nonnegative().optional(),

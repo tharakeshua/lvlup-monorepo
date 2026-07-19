@@ -46,6 +46,7 @@ export async function generateContentService(
   const ai = await ctx.ai.generate(
     {
       purpose: "content_draft",
+      feature: "levelup.authoring",
       promptKey: "contentDraft",
       operation: "levelup.generateContent",
       variables: {
@@ -68,10 +69,22 @@ export async function generateContentService(
     {
       tenantId,
       uid: ctx.uid,
-      role: ctx.role,
+      role: ctx.role ?? "teacher",
       resourceType: "storyPoint",
       resourceId: input.storyPointId,
       ...(spaceId ? { spaceId } : {}),
+      storyPointId: input.storyPointId,
+      usage: {
+        actorUserId: ctx.uid,
+        actorRole: ctx.role ?? "teacher",
+        initiatedByUserId: ctx.uid,
+        billingUserId: ctx.uid,
+        initiatorRole: ctx.role ?? "teacher",
+        related: {
+          ...(spaceId ? { spaceId } : {}),
+          storyPointId: input.storyPointId,
+        },
+      },
       now: ctx.now,
     }
   );

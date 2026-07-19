@@ -24,6 +24,8 @@ export interface IconProps extends Styleable {
   size?: number;
   color?: string;
   strokeWidth?: number;
+  /** SVG fill (e.g. a solid star); defaults to none. */
+  fill?: string;
 }
 
 // --- primitives -------------------------------------------------------------
@@ -287,6 +289,11 @@ export interface QuestionViewProps extends Styleable {
     earnedPoints?: number;
     feedback?: string;
   };
+  /**
+   * Suppress the built-in correctness banner (screens that render the rich
+   * lyceum FeedbackPanel themselves set this to avoid a double verdict).
+   */
+  hideBanner?: boolean;
 }
 
 /** Per-item mastery state in the item-viewer progress strip. */

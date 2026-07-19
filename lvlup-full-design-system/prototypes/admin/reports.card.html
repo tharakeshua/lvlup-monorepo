@@ -1,0 +1,570 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Reports" subtitle="Report builder · type → params → generate · signed-URL PDF · tenant-scoped" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);text-decoration:none;}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:280px;max-width:32vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);cursor:pointer;}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1232px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.icon-btn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+/* card / panel */
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);}
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.panel .ph{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.panel .ph .pt{font-size:var(--text-sm);font-weight:var(--weight-semibold);margin-right:auto;}
+.panel .pb{padding:var(--space-5);}
+/* builder */
+.builder{padding:0;overflow:hidden;}
+.builder.focuspulse{animation:fpulse var(--dur-base) var(--ease-standard);}
+@keyframes fpulse{0%{box-shadow:0 0 0 0 var(--border-focus),var(--shadow-e1)}50%{box-shadow:var(--ring-focus),var(--shadow-e2)}100%{box-shadow:var(--shadow-e1)}}
+.bsec{padding:var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.bsec:last-child{border-bottom:none;}
+.bsec-lbl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--space-3);}
+.bsec-lbl i{width:14px;height:14px;}
+/* report type radio cards */
+.rtgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);}
+.rtcard{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:pointer;text-align:left;transition:border-color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard);}
+.rtcard:hover{border-color:var(--border-strong);}
+.rtcard:focus-visible{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.rtcard.on{border-color:var(--brand-primary);background:var(--brand-subtle);}
+.rtcard .rth{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);}
+.rtcard .rth i{width:16px;height:16px;color:var(--text-secondary);}
+.rtcard.on .rth i{color:var(--brand-primary);}
+.rtcard .rtdot{margin-left:auto;width:16px;height:16px;border-radius:var(--radius-pill);border:1.5px solid var(--border-strong);display:grid;place-items:center;}
+.rtcard.on .rtdot{border-color:var(--brand-primary);}
+.rtcard.on .rtdot::after{content:"";width:8px;height:8px;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.rtcard .rthelp{font-size:var(--text-xs);color:var(--text-secondary);}
+/* param grid */
+.pgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--space-4);transition:opacity var(--dur-fast) var(--ease-standard);}
+.col6{grid-column:span 6;}.col4{grid-column:span 4;}.col12{grid-column:span 12;}
+.field{display:flex;flex-direction:column;gap:var(--space-2);}
+.field .fl{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.field .fl .req{color:var(--status-error);margin-left:2px;}
+.combo,.sel{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer;min-height:40px;width:100%;box-sizing:border-box;}
+.combo i.lead,.sel i.lead{width:15px;height:15px;color:var(--text-muted);}
+.combo .cv{flex:1;}.sel .cv{flex:1;}
+.combo .cv.ph,.sel .cv.ph{color:var(--text-muted);}
+.combo i.caret,.sel i.caret{width:15px;height:15px;color:var(--text-muted);margin-left:auto;}
+.combo:focus-visible,.sel:focus-visible{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.field.bad .combo{border-color:var(--status-error);}
+.fe{display:flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--status-error);}
+.fe i{width:12px;height:12px;}
+.fh{font-size:var(--text-2xs);color:var(--text-muted);}
+.dis{opacity:.5;pointer-events:none;}
+/* scope segmented (radio horizontal) */
+.scope{display:inline-flex;border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;}
+.scope button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);background:var(--bg-surface);border:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;min-height:40px;}
+.scope button+button{border-left:1px solid var(--border-subtle);}
+.scope button i{width:14px;height:14px;}
+.scope button.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+/* generate row */
+.genrow{display:flex;align-items:center;gap:var(--space-3);}
+.genrow .gh{font-size:var(--text-xs);color:var(--text-muted);margin-right:auto;display:flex;align-items:center;gap:var(--space-2);}
+.genrow .gh i{width:14px;height:14px;}
+/* result strip */
+.strip{border:1px solid var(--status-success);background:var(--status-success-subtle);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);animation:stripin var(--dur-slow) var(--ease-entrance);}
+@keyframes stripin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.strip .sh{display:flex;align-items:center;gap:var(--space-2);}
+.strip .sh i{width:18px;height:18px;color:var(--status-success);}
+.strip .sht{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.strip .sa{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.deflist{display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-5);font-size:var(--text-sm);max-width:520px;}
+.deflist dt{color:var(--text-muted);}
+.deflist dd{color:var(--text-primary);margin:0;}
+/* badge */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.warn{background:var(--status-warning-subtle);color:var(--status-warning);}
+.badge.info{background:var(--status-info-subtle);color:var(--status-info);}
+.badge.brd{background:var(--brand-subtle);color:var(--brand-primary);}
+/* alerts */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:var(--text-sm);background:var(--bg-surface);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.alert.warn i.lead{color:var(--status-warning);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert.err i.lead{color:var(--status-error);}
+.alert.info{border-color:var(--status-info);background:var(--status-info-subtle);}
+.alert.info i.lead{color:var(--status-info);}
+.alert .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;}
+/* tabs */
+.tabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);}
+.tabs button{padding:var(--space-3) var(--space-4);background:none;border:none;border-bottom:2px solid transparent;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);}
+.tabs button .cnt{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.tabs button.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+.tbl thead th{text-align:left;padding:var(--space-2) var(--space-4);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);}
+.tbl tbody td{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);color:var(--text-primary);vertical-align:middle;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover{background:var(--bg-surface-sunken);}
+.tbl .tmeta{font-size:var(--text-2xs);color:var(--text-muted);}
+.tbl .nm{font-weight:var(--weight-medium);}
+/* skeleton */
+.skl{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);animation:shim 1.3s var(--ease-standard) infinite;}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.45}}
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-10) var(--space-6);text-align:center;}
+.empty .ei{width:48px;height:48px;border-radius:var(--radius-lg);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);}
+.empty .ei i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:38ch;}
+/* state demo label */
+.statelbl{display:flex;align-items:center;gap:var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);padding-top:var(--space-2);}
+.statelbl::before,.statelbl::after{content:"";flex:1;height:1px;background:var(--border-subtle);}
+/* toast */
+.toast{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);box-shadow:var(--shadow-e2);font-size:var(--text-sm);max-width:380px;}
+.toast i.lead{width:17px;height:17px;flex:none;margin-top:1px;}
+.toast.suc i.lead{color:var(--status-success);}
+.toast.warn i.lead{color:var(--status-warning);}
+.toast .tt{font-weight:var(--weight-semibold);}
+/* popover menu */
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:170px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);display:flex;flex-direction:column;}
+.menu button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;}
+.menu button:hover{background:var(--bg-surface-sunken);}
+.menu button i{width:15px;height:15px;}
+.relpos{position:relative;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+const Button = ({children,leadingIcon,trailingIcon,variant,size,disabled,loading,onClick,...rest})=>
+  <button className={"btn btn--"+(variant||"primary")+(size?" btn--"+size:"")+(loading?" btn--loading":"")}
+    disabled={disabled||loading} onClick={onClick} {...rest}>
+    {leadingIcon&&<i data-lucide={leadingIcon}></i>}{children}{trailingIcon&&<i data-lucide={trailingIcon}></i>}</button>;
+
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined} href="#">
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood Academy · Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Overview</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active={active}/>
+          <Nav icon="rocket" label="Onboarding" route="/onboarding" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Management</div>
+          <Nav icon="users" label="Users" route="/users" active={active}/>
+          <Nav icon="school" label="Classes" route="/classes" active={active}/>
+          <Nav icon="shield-check" label="Staff & Permissions" route="/staff" active={active}/>
+          <Nav icon="file-check" label="Exams" route="/exams" active={active}/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active={active}/>
+          <Nav icon="book-open" label="Courses" route="/courses" active={active}/>
+          <Nav icon="calendar-range" label="Academic Sessions" route="/academic-sessions" active={active}/>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Analytics</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active={active}/>
+          <Nav icon="file-text" label="Reports" route="/reports" active={active}/>
+          <Nav icon="sparkles" label="AI Usage" route="/ai-usage" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Configuration</div>
+          <Nav icon="bell" label="Notifications" route="/notifications" active={active}/>
+          <Nav icon="download" label="Data Export" route="/data-export" active={active}/>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="building"></i><span>Switch tenant</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">AK</div>
+          <div><div className="nm">Anita Kapoor</div><div className="rl">Tenant Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">
+          <span>Analytics</span><i data-lucide="chevron-right" style={{width:14,height:14}}></i><b>Reports</b></nav>
+        <div className="sp"></div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn" aria-label="Toggle theme"><i data-lucide="sun"></i></button>
+        <button className="icon-btn" aria-label="Notifications, 3 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- sample data (server-authoritative; render-only) ---- */
+const REPORT_TYPES=[
+  {id:"exam-result",icon:"file-check",label:"Exam result",help:"Per-exam results, for the whole class or one student."},
+  {id:"class",icon:"school",label:"Class report card",help:"A class-level summary card."},
+  {id:"progress",icon:"line-chart",label:"Student progress",help:"A learner's cross-space progress over time."},
+];
+const EXAMS=[
+  {id:"ex_alg2",label:"Algebra Unit 2",status:"completed",cls:"8A",when:"Mar 12"},
+  {id:"ex_geo1",label:"Geometry Midterm",status:"results_released",cls:"8C",when:"Mar 08"},
+  {id:"ex_phy3",label:"Physics — Motion",status:"grading",cls:"9B",when:"Mar 14"},
+];
+const CLASSES=[{id:"c8a",label:"Grade 8A"},{id:"c8c",label:"Grade 8C"},{id:"c9b",label:"Grade 9B"}];
+const SESSIONS=[{id:"none",label:"All time (no session)"},{id:"s2526",label:"2025–26"},{id:"s2425",label:"2024–25"}];
+const STUDENTS=[{id:"st1",label:"Priya Nair"},{id:"st2",label:"Rohan Das"},{id:"st3",label:"Mei Lin"}];
+const STATUS_META={
+  grading:{cls:"warn",icon:"loader",label:"Grading"},
+  completed:{cls:"info",icon:"check-check",label:"Completed"},
+  results_released:{cls:"suc",icon:"badge-check",label:"Results released"},
+};
+
+function StatusBadge({status}){const m=STATUS_META[status];return <span className={"badge "+m.cls}><i data-lucide={m.icon}></i>{m.label}</span>;}
+
+/* ---- Combobox / Select (display-only popover for prototype) ---- */
+function Picker({kind,value,placeholder,options,onPick,error,leadIcon}){
+  const [open,setOpen]=React.useState(false);
+  const sel=options.find(o=>o.id===value);
+  return <div className="relpos">
+    <div className={kind==="combo"?"combo":"sel"} role={kind==="combo"?"combobox":"button"} tabIndex="0"
+      aria-expanded={open} aria-invalid={error?"true":undefined}
+      onClick={()=>setOpen(o=>!o)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpen(o=>!o);}}}>
+      <i data-lucide={leadIcon||(kind==="combo"?"search":"chevron-down")} className="lead"></i>
+      <span className={"cv"+(sel?"":" ph")}>{sel?sel.label:placeholder}</span>
+      <i data-lucide="chevron-down" className="caret"></i>
+    </div>
+    {open && <div className="menu" role="listbox">
+      {options.map(o=><button key={o.id} role="option" aria-selected={o.id===value}
+        onClick={()=>{onPick(o.id);setOpen(false);}}>
+        {o.id===value&&<i data-lucide="check"></i>}<span>{o.label}</span></button>)}
+    </div>}
+  </div>;
+}
+
+function Builder({onGenerate,generating}){
+  const [type,setType]=React.useState("exam-result");
+  const [examId,setExamId]=React.useState("ex_alg2");
+  const [scope,setScope]=React.useState("class"); // class | student
+  const [studentId,setStudentId]=React.useState(null);
+  const [classId,setClassId]=React.useState(null);
+  const [progStudent,setProgStudent]=React.useState(null);
+  const [session,setSession]=React.useState("none");
+  const [touched,setTouched]=React.useState(false);
+
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+
+  // switching type clears unrelated params (§6)
+  function pickType(t){ setType(t); setTouched(false);
+    setExamId(t==="exam-result"?"ex_alg2":null); setScope("class"); setStudentId(null);
+    setClassId(null); setProgStudent(null); }
+
+  const missing = type==="exam-result" ? (!examId || (scope==="student" && !studentId))
+    : type==="class" ? !classId : !progStudent;
+  const studentErr = touched && type==="exam-result" && scope==="student" && !studentId;
+
+  function handleGenerate(){
+    setTouched(true);
+    if(missing) return;
+    const meta = type==="exam-result"
+      ? {type:"Exam result", scope: scope==="class"?"Whole class":"One student",
+         subject: (EXAMS.find(e=>e.id===examId)||{}).label + (scope==="student"? " · "+(STUDENTS.find(s=>s.id===studentId)||{}).label : "")}
+      : type==="class"
+      ? {type:"Class report card", scope:"Whole class", subject:(CLASSES.find(c=>c.id===classId)||{}).label}
+      : {type:"Student progress", scope:"One student", subject:(STUDENTS.find(s=>s.id===progStudent)||{}).label};
+    onGenerate(meta);
+  }
+
+  return <div className="card builder" aria-busy={generating?"true":undefined}>
+    {/* REPORT TYPE */}
+    <div className="bsec">
+      <div className="bsec-lbl"><i data-lucide="layers"></i>Report type</div>
+      <div className="rtgrid" role="radiogroup" aria-label="Report type">
+        {REPORT_TYPES.map(rt=>
+          <button key={rt.id} role="radio" aria-checked={type===rt.id}
+            className={"rtcard"+(type===rt.id?" on":"")} onClick={()=>pickType(rt.id)}>
+            <div className="rth"><i data-lucide={rt.icon}></i><span>{rt.label}</span><span className="rtdot"></span></div>
+            <div className="rthelp">{rt.help}</div>
+          </button>)}
+      </div>
+    </div>
+
+    {/* PARAMETERS — swap by type */}
+    <div className="bsec">
+      <div className="bsec-lbl"><i data-lucide="sliders-horizontal"></i>Parameters</div>
+      <div className="pgrid">
+        {type==="exam-result" && <>
+          <div className="field col6">
+            <label className="fl">Exam<span className="req">*</span></label>
+            <Picker kind="combo" value={examId} placeholder="Search exams…" options={EXAMS} onPick={setExamId} leadIcon="search"/>
+            <span className="fh">Only exams in grading, completed, or released states appear.</span>
+          </div>
+          <div className="field col6">
+            <label className="fl" id="scope-lbl">Scope<span className="req">*</span></label>
+            <div className="scope" role="radiogroup" aria-labelledby="scope-lbl">
+              <button role="radio" aria-checked={scope==="class"} className={scope==="class"?"on":""}
+                onClick={()=>{setScope("class");setStudentId(null);}}><i data-lucide="users"></i>Whole class</button>
+              <button role="radio" aria-checked={scope==="student"} className={scope==="student"?"on":""}
+                onClick={()=>setScope("student")}><i data-lucide="user"></i>One student</button>
+            </div>
+            <span className="fh">A student makes this an individual result; whole class is the summary PDF.</span>
+          </div>
+          {scope==="student" && <div className="field col6">
+            <label className="fl">Student<span className="req">*</span></label>
+            <Picker kind="combo" value={studentId} placeholder="Search students in 8A…" options={STUDENTS} onPick={setStudentId} leadIcon="search" error={studentErr}/>
+            {studentErr && <span className="fe"><i data-lucide="alert-circle"></i>Select a student to generate an individual result.</span>}
+          </div>}
+          <div className="field col4">
+            <label className="fl">Academic session (optional)</label>
+            <Picker kind="sel" value={session} placeholder="All time" options={SESSIONS} onPick={setSession} leadIcon="calendar-range"/>
+          </div>
+        </>}
+        {type==="class" && <>
+          <div className="field col6">
+            <label className="fl">Class<span className="req">*</span></label>
+            <Picker kind="combo" value={classId} placeholder="Search classes…" options={CLASSES} onPick={setClassId} leadIcon="search"/>
+          </div>
+          <div className="field col4">
+            <label className="fl">Academic session (optional)</label>
+            <Picker kind="sel" value={session} placeholder="All time" options={SESSIONS} onPick={setSession} leadIcon="calendar-range"/>
+          </div>
+        </>}
+        {type==="progress" && <>
+          <div className="field col6">
+            <label className="fl">Class<span className="req">*</span></label>
+            <Picker kind="combo" value={classId} placeholder="Search classes…" options={CLASSES} onPick={(v)=>{setClassId(v);setProgStudent(null);}} leadIcon="search"/>
+            <span className="fh">The student list is scoped to the chosen class.</span>
+          </div>
+          <div className="field col6">
+            <label className="fl">Student<span className="req">*</span></label>
+            <Picker kind="combo" value={progStudent} placeholder={classId?"Search students…":"Choose a class first"} options={classId?STUDENTS:[]} onPick={setProgStudent} leadIcon="search"/>
+          </div>
+          <div className="field col4">
+            <label className="fl">Academic session (optional)</label>
+            <Picker kind="sel" value={session} placeholder="All time" options={SESSIONS} onPick={setSession} leadIcon="calendar-range"/>
+          </div>
+        </>}
+      </div>
+    </div>
+
+    {/* EXPORT FORMAT + GENERATE */}
+    <div className="bsec">
+      <div className="genrow">
+        <div className="field" style={{width:200}}>
+          <label className="fl">Export format</label>
+          <Picker kind="sel" value="pdf" placeholder="PDF" options={[{id:"pdf",label:"PDF document"}]} onPick={()=>{}} leadIcon="file-text"/>
+        </div>
+        <span className="gh"><i data-lucide="shield"></i>Content is computed server-side. Answer keys are never included.</span>
+        <Button variant="primary" leadingIcon={generating?undefined:"file-down"} loading={generating}
+          disabled={missing&&!generating} onClick={handleGenerate}>
+          {generating?"Generating…":"Generate report"}</Button>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ---- quick-pick tables ---- */
+function ExamRows({onUse}){
+  const [menu,setMenu]=React.useState(null);
+  return <table className="tbl"><thead><tr><th>Exam</th><th>Class</th><th>Status</th><th>Date</th><th></th></tr></thead>
+    <tbody>{EXAMS.map(e=><tr key={e.id}>
+      <td className="nm">{e.label}</td>
+      <td className="ax-mono ax-sec">{e.cls}</td>
+      <td><StatusBadge status={e.status}/></td>
+      <td className="ax-mono ax-sec">{e.when}</td>
+      <td style={{textAlign:"right"}}>
+        <div className="relpos" style={{display:"inline-flex",gap:"var(--space-2)"}}>
+          <Button variant="secondary" size="sm" leadingIcon="wand-2" onClick={()=>onUse("exam-result")}>Use</Button>
+          <button className="icon-btn" aria-label="Row actions" onClick={()=>setMenu(menu===e.id?null:e.id)}><i data-lucide="more-horizontal"></i></button>
+          {menu===e.id && <div className="menu" onMouseLeave={()=>setMenu(null)}>
+            <button onClick={()=>{onUse("exam-result");setMenu(null);}}><i data-lucide="wand-2"></i>Use in builder</button>
+            <button onClick={()=>setMenu(null)}><i data-lucide="external-link"></i>Open exam</button>
+          </div>}
+        </div>
+      </td></tr>)}
+    </tbody></table>;
+}
+function ClassRows({onUse}){
+  return <table className="tbl"><thead><tr><th>Class</th><th>Students</th><th>Avg score</th><th></th></tr></thead>
+    <tbody>{[["Grade 8A",32,"82%"],["Grade 8C",29,"71%"],["Grade 9B",27,"68%"]].map(([n,s,a])=><tr key={n}>
+      <td className="nm">{n}</td><td className="ax-mono ax-sec">{s}</td><td className="ax-mono ax-sec">{a}</td>
+      <td style={{textAlign:"right"}}><Button variant="secondary" size="sm" leadingIcon="wand-2" onClick={()=>onUse("class")}>Use</Button></td>
+    </tr>)}</tbody></table>;
+}
+
+function Screen(){
+  const [generating,setGenerating]=React.useState(false);
+  const [result,setResult]=React.useState(null);
+  const [toast,setToast]=React.useState(null);
+  const [tab,setTab]=React.useState("exams");
+  const [pulse,setPulse]=React.useState(false);
+  const stripRef=React.useRef(null);
+
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  React.useEffect(()=>{ if(toast){const t=setTimeout(()=>setToast(null),4200);return ()=>clearTimeout(t);} },[toast]);
+
+  function onGenerate(meta){
+    setGenerating(true); setResult(null);
+    setTimeout(()=>{
+      setGenerating(false);
+      setResult({...meta, until:"14:32", file:"algebra-unit-2-summary.pdf"});
+      setToast({variant:"suc",icon:"check-circle",title:"Report generated",body:"Your PDF is ready to download."});
+      requestAnimationFrame(()=>{stripRef.current && stripRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});});
+    },900);
+  }
+  function onUse(t){ setPulse(true); setTimeout(()=>setPulse(false),320);
+    window.scrollTo({top:0,behavior:"smooth"});
+    setToast({variant:"suc",icon:"wand-2",title:"Builder pre-filled",body:"Confirm scope and session, then generate."}); }
+
+  return <Shell active="/reports">
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Reports</h1>
+        <div className="ax-sub">Generate and download PDF reports for this academy.</div>
+        <div className="ax-sub ax-muted ax-row" style={{gap:"var(--space-2)"}}>
+          <span>Northwood Academy</span><span>·</span>
+          <span className="badge brd"><i data-lucide="badge-check"></i>Analytics enabled</span></div>
+      </div>
+      <div className="ac">
+        <span className="ax-row ax-muted" style={{fontSize:"var(--text-xs)",gap:"var(--space-2)"}}>
+          <i data-lucide="lock" style={{width:14,height:14}}></i>Tenant-scoped · no cross-tenant targeting</span>
+      </div>
+    </div>
+
+    {/* aria-live announcement for SR users */}
+    <div className="ax-sr" role="status" aria-live="polite">{result?"Report ready. Download available.":""}</div>
+
+    {/* PRIMARY: builder */}
+    <div className={pulse?"builder focuspulse":""} style={{borderRadius:"var(--radius-lg)"}}>
+      <Builder onGenerate={onGenerate} generating={generating}/>
+    </div>
+
+    {/* PRIMARY success: result strip (renders after generate) */}
+    {result && <div className="strip" ref={stripRef} role="region" aria-label="Generated report">
+      <div className="sh">
+        <i data-lucide="check-circle"></i>
+        <span className="sht">Report ready</span>
+        <span className="sa">
+          <Button variant="primary" leadingIcon="download" onClick={()=>setToast({variant:"suc",icon:"download",title:"Downloading",body:result.file})}>Download PDF</Button>
+          <Button variant="ghost" leadingIcon="external-link" onClick={()=>{}}>Open</Button>
+          <Button variant="ghost" leadingIcon="refresh-cw" onClick={()=>onGenerate(result)}>Regenerate</Button>
+        </span>
+      </div>
+      <dl className="deflist">
+        <dt>Type</dt><dd>{result.type}</dd>
+        <dt>Scope</dt><dd>{result.scope}</dd>
+        <dt>Subject of report</dt><dd>{result.subject}</dd>
+        <dt>Link valid until</dt><dd className="ax-mono">{result.until} <span className="ax-muted">(≈1 hr)</span></dd>
+      </dl>
+    </div>}
+
+    {/* quick-pick tables */}
+    <div className="panel">
+      <div className="tabs" role="tablist" aria-label="Quick pick">
+        <button role="tab" aria-selected={tab==="exams"} className={tab==="exams"?"on":""} onClick={()=>setTab("exams")}>
+          Reportable exams <span className="cnt">3</span></button>
+        <button role="tab" aria-selected={tab==="classes"} className={tab==="classes"?"on":""} onClick={()=>setTab("classes")}>
+          Classes <span className="cnt">3</span></button>
+      </div>
+      <div style={{padding:"var(--space-1) 0"}}>
+        {tab==="exams" ? <ExamRows onUse={onUse}/> : <ClassRows onUse={onUse}/>}
+      </div>
+    </div>
+
+    {/* ============ SECONDARY §5 STATES — present in markup ============ */}
+    <div className="statelbl">Other states (spec §5) — rendered for reference</div>
+
+    {/* error: integrity / not-found → inline alert in result strip */}
+    <div className="alert err" role="alert">
+      <i data-lucide="alert-octagon" className="lead"></i>
+      <div className="ab"><span className="at">Couldn't generate</span><br/>
+        <span className="ax-sec">This report couldn't be built — some underlying records are missing or invalid. Try a different exam, or contact support if this persists.</span></div>
+    </div>
+
+    {/* rate limited → warning toast preview + cooldown */}
+    <div className="toast warn" role="status">
+      <i data-lucide="timer" className="lead"></i>
+      <div><div className="tt">Slow down</div>
+        <div className="ax-sec">You're generating reports quickly. Please wait a moment and try again.</div></div>
+    </div>
+
+    {/* partial: analytics feature flag off → disabled builder under info banner */}
+    <div className="alert info" role="status">
+      <i data-lucide="info" className="lead"></i>
+      <div className="ab"><span className="at">Reporting is part of the Analytics feature, which isn't enabled for this academy. </span>
+        <span className="ax-sec">Contact your administrator.</span></div>
+    </div>
+    <div className="card dis" aria-disabled="true">
+      <div className="bsec"><div className="bsec-lbl"><i data-lucide="lock"></i>Builder disabled — Analytics off</div>
+        <div className="rtgrid">{REPORT_TYPES.map(rt=>
+          <div key={rt.id} className="rtcard"><div className="rth"><i data-lucide={rt.icon}></i><span>{rt.label}</span></div>
+            <div className="rthelp">{rt.help}</div></div>)}</div></div>
+    </div>
+
+    {/* loading skeleton: picker state */}
+    <div className="card"><div className="bsec">
+      <div className="bsec-lbl"><i data-lucide="loader"></i>Loading pickers</div>
+      <div className="pgrid">
+        <div className="field col6"><div className="skl" style={{height:12,width:64}}></div><div className="skl" style={{height:40}}></div></div>
+        <div className="field col6"><div className="skl" style={{height:12,width:48}}></div><div className="skl" style={{height:40}}></div></div>
+      </div>
+    </div></div>
+
+    {/* empty: no reportable exams */}
+    <div className="panel"><div className="empty">
+      <div className="ei"><i data-lucide="file-x"></i></div>
+      <div className="et">No exams ready to report</div>
+      <div className="eb">Reports become available once an exam reaches grading, completion, or released results.</div>
+    </div></div>
+
+    {/* permission / role variant */}
+    <div className="alert" role="status" style={{borderColor:"var(--border-strong)"}}>
+      <i data-lucide="shield-off" className="lead" style={{color:"var(--text-muted)"}}></i>
+      <div className="ab"><span className="at">Role variant — staff without reporting permission</span><br/>
+        <span className="ax-sec">The Reports nav entry is hidden and the route is denied via StaffPermissions. A tenantAdmin (or impersonating superAdmin acting as this tenant) sees the full builder above.</span></div>
+    </div>
+
+    {/* live toast (success) */}
+    {toast && <div style={{position:"fixed",right:"var(--space-6)",bottom:"var(--space-6)",zIndex:60}}>
+      <div className={"toast "+(toast.variant||"suc")} role="status">
+        <i data-lucide={toast.icon} className="lead"></i>
+        <div><div className="tt">{toast.title}</div><div className="ax-sec">{toast.body}</div></div>
+      </div></div>}
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

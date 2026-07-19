@@ -1,0 +1,494 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Consumer Dashboard / My Learning (B2C)" subtitle="Owned spaces · continue learning · momentum" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumer Dashboard / My Learning (B2C)</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body, #root, .appshell { height: 100%; }
+
+  .home { display: flex; flex-direction: column; gap: var(--space-8); max-width: 1200px; }
+
+  .greet__title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0; letter-spacing: var(--tracking-display); }
+  .greet__sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: var(--space-1); }
+
+  /* Continue-learning banner */
+  .continue { display: grid; grid-template-columns: 132px 1fr auto; gap: var(--space-5); align-items: center; }
+  .continue__thumb { width: 132px; height: 96px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); display: grid; place-items: center; overflow: hidden; position: relative; }
+  .continue__thumb--spark { background: var(--spark-subtle); color: var(--spark); }
+  .continue__eyebrow { font-size: var(--text-2xs); font-weight: var(--weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  .continue__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); margin: 2px 0 0; }
+  .continue__micro { color: var(--text-muted); font-size: var(--text-sm); margin-top: var(--space-1); display: flex; align-items: center; gap: var(--space-2); }
+  .continue__right { display: flex; align-items: center; gap: var(--space-5); }
+
+  /* Plan summary stat strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); animation: kpi-in var(--dur-base) var(--ease-entrance) both; }
+  .kpi-card:nth-child(2) { animation-delay: 40ms; }
+  .kpi-card:nth-child(3) { animation-delay: 80ms; }
+  .kpi-card__top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); }
+  .kpi-card__icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .kpi-card__icon--spark { background: var(--spark-subtle); color: var(--spark); }
+  .kpi-card__value { font-family: var(--font-mono); font-size: var(--text-2xl); color: var(--text-primary); font-weight: var(--weight-semibold); display: flex; align-items: center; gap: var(--space-2); }
+  .kpi-card__sub { font-size: var(--text-xs); color: var(--text-muted); }
+  @keyframes kpi-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* My spaces grid */
+  .spaces-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .space-link { position: relative; display: block; text-decoration: none; color: inherit; border-radius: var(--radius-lg); transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+  .space-link .space-card { transition: box-shadow var(--dur-fast) var(--ease-standard); height: 100%; }
+  .space-link:hover .space-card { box-shadow: var(--shadow-e2); }
+  .space-link:hover { transform: translateY(-2px); }
+  .space-link:hover .space-card__title { color: var(--brand-primary); }
+  .space-link:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .space-link__ring { position: absolute; right: var(--space-4); bottom: var(--space-4); }
+  .space-link__badge { position: absolute; top: var(--space-3); left: var(--space-3); z-index: 1; }
+  .space-link__new { position: absolute; top: var(--space-3); right: var(--space-3); z-index: 1; animation: new-in var(--dur-base) var(--ease-entrance) both; }
+  @keyframes new-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+
+  /* State preview chrome */
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .skel-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-bottom: var(--space-4); }
+  .skel-thumb { height: 96px; border-radius: var(--radius-md); }
+
+  .divider { height: 1px; background: var(--border-subtle); border: none; margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .space-link, .space-link .space-card { transition: none !important; }
+    .space-link:hover { transform: none !important; }
+    .kpi-card, .space-link__new { animation: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Card, Section, Panel, Avatar, Badge, Chip,
+    ProgressRing, SpaceCard, EmptyState, Skeleton, Alert, NavItem,
+    CommandPalette, Tooltip
+  } = LU;
+
+  const { useState, useEffect } = React;
+
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ----------------------------------------------------------------- */
+  /* ConsumerLayout shell — sidebar (My Learning / Store / Cart / etc.) */
+  /* ----------------------------------------------------------------- */
+  function Sidebar() {
+    const learn = [
+      { icon: "graduation-cap", label: "My Learning", active: true },
+      { icon: "store", label: "Browse the Store" },
+      { icon: "shopping-cart", label: "Cart", badge: <span className="nav-item__badge"><Badge variant="spark">2</Badge></span> },
+    ];
+    const me = [
+      { icon: "receipt", label: "Purchases" },
+      { icon: "user", label: "Profile" },
+      { icon: "settings", label: "Settings" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {learn.map((n) => (
+            <NavItem key={n.label} icon={n.icon} active={n.active} badge={n.badge} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div className="sidebar__section-label">You</div>
+        <nav className="sidebar__nav">
+          {me.map((n) => (
+            <NavItem key={n.label} icon={n.icon} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+            <Avatar initials="PM" size="sm"/>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)" }}>Priya Menon</div>
+              <div className="u-caption" style={{ color:"var(--text-muted)" }}>Pro plan · Learner</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenPalette }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          <Input placeholder="Search the store…  ⌘K" onFocus={onOpenPalette} aria-label="Search the store"/>
+        </div>
+        <div className="topbar__spacer"/>
+        <Tooltip><IconButton icon={<Icon name="search" size={18}/>} label="Search (⌘K)" onClick={onOpenPalette}/></Tooltip>
+        <span style={{ position:"relative", display:"inline-flex" }}>
+          <IconButton icon={<Icon name="shopping-cart" size={18}/>} label="Cart, 2 items"/>
+          <span style={{ position:"absolute", top:-2, right:-2 }}><Badge variant="spark" dot/></span>
+        </span>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <Avatar initials="PM" size="sm"/>
+      </header>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  /* Continue-learning banner (Card + thumb + ProgressRing + spark CTA) */
+  /* ----------------------------------------------------------------- */
+  function ContinueBanner() {
+    return (
+      <Card>
+        <div className="continue">
+          <div className="continue__thumb continue__thumb--spark" aria-hidden="true">
+            <Icon name="git-branch" size={34}/>
+          </div>
+          <div>
+            <div className="continue__eyebrow">Continue learning</div>
+            <h2 className="continue__title">System Design for Interviews</h2>
+            <div className="continue__micro">
+              <Icon name="play-circle" size={15}/>
+              Lesson 8 of 13 · keep the momentum going
+            </div>
+          </div>
+          <div className="continue__right">
+            <ProgressRing value={62} size={64} label="62%"/>
+            <Button variant="spark" size="lg" trailingIcon={<Icon name="arrow-right" size={18}/>}>Continue</Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  /* Plan summary StatCards                                             */
+  /* ----------------------------------------------------------------- */
+  function PlanStat() {
+    return (
+      <div className="kpi-card" role="group" aria-label="Plan: Pro">
+        <div className="kpi-card__top">
+          <span className="kpi-card__icon kpi-card__icon--spark"><Icon name="badge-check" size={16}/></span>
+          <span style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-medium)" }}>Plan</span>
+        </div>
+        <div className="kpi-card__value">
+          <Badge variant="spark" icon={<Icon name="sparkles" size={12}/>}>Pro</Badge>
+        </div>
+        <div className="kpi-card__sub">Renews 14 Jul 2026</div>
+      </div>
+    );
+  }
+
+  function SpacesStat({ count }) {
+    return (
+      <div className="kpi-card" role="group" aria-label={"My spaces: " + count}>
+        <div className="kpi-card__top">
+          <span className="kpi-card__icon"><Icon name="layers" size={16}/></span>
+          <span style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-medium)" }}>My spaces</span>
+        </div>
+        <div className="kpi-card__value">{count}</div>
+        <div className="kpi-card__sub">{count === 0 ? "Nothing enrolled yet" : "1 in progress · 1 completed"}</div>
+      </div>
+    );
+  }
+
+  function InvestedStat({ amount, purchases }) {
+    return (
+      <div className="kpi-card" role="group" aria-label={"Invested: " + amount}>
+        <div className="kpi-card__top">
+          <span className="kpi-card__icon"><Icon name="wallet" size={16}/></span>
+          <span style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-medium)" }}>Invested</span>
+        </div>
+        <div className="kpi-card__value">{amount}</div>
+        <div className="kpi-card__sub">{purchases > 0 ? "across " + purchases + " purchases" : "no purchases yet"}</div>
+      </div>
+    );
+  }
+
+  function PlanStrip({ count, amount, purchases }) {
+    return (
+      <section aria-label="Your plan at a glance" className="kpi-strip">
+        <PlanStat/>
+        <SpacesStat count={count}/>
+        <InvestedStat amount={amount} purchases={purchases}/>
+      </section>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  /* SpaceCard as a single focusable link (a11y §9)                     */
+  /* ----------------------------------------------------------------- */
+  function EnrolledSpace({ title, description, lessons, pct, spark, completed, isNew, unavailable }) {
+    const aria = completed
+      ? title + " cover. Completed."
+      : unavailable
+        ? title + " cover. Progress will catch up shortly."
+        : title + " cover. " + pct + " percent complete.";
+    return (
+      <a className="space-link" href="#" role="link" aria-label={aria} onClick={(e)=>e.preventDefault()}>
+        {completed && (
+          <span className="space-link__badge">
+            <Badge variant="success" icon={<Icon name="check-circle" size={12}/>}>Completed</Badge>
+          </span>
+        )}
+        {isNew && (
+          <span className="space-link__new">
+            <Badge variant="spark" icon={<Icon name="sparkles" size={12}/>}>New</Badge>
+          </span>
+        )}
+        <SpaceCard title={title} description={description} points={lessons} progress={pct} spark={spark}/>
+        {unavailable ? (
+          <span className="space-link__ring" style={{ fontSize:"var(--text-2xs)", color:"var(--text-muted)", maxWidth:96, textAlign:"right", lineHeight:"var(--leading-2xs)" }}>
+            Progress will catch up shortly.
+          </span>
+        ) : (
+          <span className="space-link__ring">
+            <ProgressRing value={pct} size={48} label={completed ? "✓" : pct + "%"}/>
+          </span>
+        )}
+      </a>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  /* State preview blocks                                               */
+  /* ----------------------------------------------------------------- */
+  function LoadingState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your learning home">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading skeleton — stats + cards reserve height, greeting stays</div>
+        <div className="skel-card" style={{ marginBottom:"var(--space-4)", flexDirection:"row", alignItems:"center", gap:"var(--space-5)" }}>
+          <Skeleton width="132px" height="96px"/>
+          <div style={{ flex:1, display:"flex", flexDirection:"column", gap:"var(--space-2)" }}>
+            <Skeleton width="40%" height="0.7rem"/>
+            <Skeleton width="55%" height="1.2rem"/>
+            <Skeleton width="35%" height="0.7rem"/>
+          </div>
+          <Skeleton variant="circle" width="64px" height="64px"/>
+        </div>
+        <div className="skel-strip">
+          {[0,1,2].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="50%" height="0.7rem"/>
+              <Skeleton width="40%" height="1.4rem"/>
+              <Skeleton width="70%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+        <div className="skel-grid">
+          {[0,1,2].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton className="skel-thumb"/>
+              <Skeleton width="80%" height="0.9rem"/>
+              <Skeleton width="55%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function EmptyStateBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="sparkles" size={13}/> State: empty — no enrolled spaces (stats still render, no continue banner)</div>
+        <div style={{ marginBottom:"var(--space-4)" }}>
+          <h2 className="greet__title" style={{ fontSize:"var(--text-2xl)" }}>Welcome back, Priya</h2>
+          <p className="greet__sub">Your learning, all in one place.</p>
+        </div>
+        <div style={{ marginBottom:"var(--space-4)" }}>
+          <PlanStrip count={0} amount="₹0.00" purchases={0}/>
+        </div>
+        <EmptyState
+          icon="compass"
+          title="Your learning starts here"
+          body="You haven't enrolled in any spaces yet. Explore the store to find a topic you're excited about — your progress will live right here."
+          action={<Button variant="spark" leadingIcon={<Icon name="store" size={16}/>}>Explore the store</Button>}
+        />
+      </div>
+    );
+  }
+
+  function ErrorStateBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: error — spaces failed, stats still render</div>
+        <EmptyState
+          icon="cloud-off"
+          title="We couldn't load your spaces just now"
+          body="Let's try that again — this one's on us, not you."
+          action={<Button variant="primary" leadingIcon={<Icon name="rotate-cw" size={16}/>}>Try again</Button>}
+        />
+      </div>
+    );
+  }
+
+  function PartialStateBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="layers" size={13}/> State: partial — profile loaded, some progress reads pending (per-card, never blocks grid)</div>
+        <div className="spaces-grid">
+          <EnrolledSpace title="Data Structures & Algorithms" description="Arrays, trees, recursion & graphs." lessons={12} pct={64}/>
+          <EnrolledSpace title="Behavioral Interview Prep" description="STAR stories & communication." lessons={6} pct={0} unavailable/>
+        </div>
+      </div>
+    );
+  }
+
+  function LowConnState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="wifi-off" size={13}/> State: stats-only fallback — banner suppressed, warm not alarming</div>
+        <Alert variant="info" title="Your spaces are still loading">
+          Your plan details are ready. Spaces will appear in a moment.
+        </Alert>
+      </div>
+    );
+  }
+
+  function CompletedState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="check-circle" size={13}/> State: 100% on a space — calm success badge + filled ring (no celebration burst here)</div>
+        <div className="spaces-grid">
+          <EnrolledSpace title="Low-Level Design" description="OOP, SOLID & design patterns." lessons={10} pct={100} completed/>
+        </div>
+      </div>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  /* SUCCESS (primary view)                                             */
+  /* ----------------------------------------------------------------- */
+  function MyLearning() {
+    return (
+      <div className="home">
+        {/* GREETING */}
+        <div>
+          <h1 className="greet__title">Welcome back, Priya</h1>
+          <p className="greet__sub">Pick up where you left off.</p>
+        </div>
+
+        {/* CONTINUE-LEARNING BANNER */}
+        <ContinueBanner/>
+
+        {/* PLAN SUMMARY */}
+        <PlanStrip count={4} amount="₹2,400" purchases={3}/>
+
+        {/* MY SPACES */}
+        <Section
+          title="My spaces"
+          actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>Browse the store</Button>}
+        >
+          <div className="spaces-grid">
+            <EnrolledSpace
+              title="System Design for Interviews"
+              description="Scalability, caching, queues & trade-offs."
+              lessons={13} pct={62} spark isNew
+            />
+            <EnrolledSpace
+              title="Data Structures & Algorithms"
+              description="Arrays, trees, recursion & graphs."
+              lessons={12} pct={48}
+            />
+            <EnrolledSpace
+              title="Low-Level Design"
+              description="OOP, SOLID & design patterns."
+              lessons={10} pct={100} completed
+            />
+            <EnrolledSpace
+              title="Behavioral Interview Prep"
+              description="STAR stories & confident communication."
+              lessons={6} pct={20}
+            />
+          </div>
+        </Section>
+
+        {/* ---- Secondary: other spec'd states surfaced for review ---- */}
+        <Section title="Other states (for review)">
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-6)" }}>
+            <LoadingState/>
+            <div className="state-grid">
+              <EmptyStateBlock/>
+              <ErrorStateBlock/>
+            </div>
+            <div className="state-grid">
+              <PartialStateBlock/>
+              <CompletedState/>
+            </div>
+            <LowConnState/>
+          </div>
+        </Section>
+
+        <div style={{ height:"var(--space-6)" }}/>
+      </div>
+    );
+  }
+
+  /* ----------------------------------------------------------------- */
+  function Screen() {
+    const [palette, setPalette] = useState(false);
+    const [announce, setAnnounce] = useState("");
+
+    useEffect(() => {
+      const onKey = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette(true); }
+        if (e.key === "Escape") setPalette(false);
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    return (
+      <div className="appshell" style={{ position:"relative" }}>
+        <Sidebar/>
+        <Topbar onOpenPalette={() => setPalette(true)}/>
+        <main className="appshell__main" id="main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <MyLearning/>
+        </main>
+
+        {/* polite live region for retry-success announcement (a11y §9) */}
+        <div className="u-sr-only" role="status" aria-live="polite">{announce}</div>
+
+        {/* Command palette (⌘K) */}
+        {palette && (
+          <div className="modal-scrim" onClick={() => setPalette(false)}>
+            <div onClick={(e)=>e.stopPropagation()} style={{ position:"absolute", top:"14%", left:"50%", transform:"translateX(-50%)", width:"min(560px, 90%)" }}>
+              <CommandPalette
+                placeholder="Search the store or jump to…"
+                selected={0}
+                items={[
+                  { icon:"play-circle", label:"Continue: System Design (Lesson 8)", kbd:"↵" },
+                  { icon:"store", label:"Browse the store", kbd:"B" },
+                  { icon:"layers", label:"My spaces", kbd:"S" },
+                  { icon:"receipt", label:"Purchase history", kbd:"P" },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

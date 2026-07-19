@@ -13,6 +13,7 @@ export {
   useHealthSummary,
   // exam analytics / insights / cost / trends
   useExamAnalytics,
+  useSpaceAnalytics,
   useInsights,
   useCostSummary,
   usePerformanceTrends,
@@ -40,9 +41,11 @@ export type {
   ParentRepoSeam,
   ReportRepoSeam,
   LeaderboardRepoSeam,
+  SpaceAnalyticsRepoSeam,
   CostGranularity,
   CostFilter,
   GetPerformanceTrendsRequest,
   GetLeaderboardRequest,
   ListInsightsRequest,
+  GetSpaceAnalyticsResponse,
 } from "./repos.js";

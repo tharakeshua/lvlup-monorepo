@@ -1,0 +1,579 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Tests" subtitle="Calm planning · open/upcoming/done/locked · attempts" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tests</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  .frame { height: 820px; overflow: hidden; }
+
+  .page { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+  .page-head h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0 0 var(--space-1); }
+  .page-sub { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
+  .head-title-row { display: flex; align-items: center; gap: var(--space-3); }
+
+  .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .toolbar__chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+  .toolbar__sort { display: flex; align-items: center; gap: var(--space-2); }
+  .toolbar__sort label { font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-medium); }
+  .chip-btn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+
+  /* table surface wrapper */
+  .table-wrap { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); }
+  .table-wrap .table { width: 100%; }
+
+  /* row affordances */
+  .t-test { display: flex; flex-direction: column; gap: 2px; }
+  .t-test__title { font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary); }
+  .t-test__meta { font-size: var(--text-2xs); color: var(--text-muted); }
+  .row-link { all: unset; display: contents; cursor: pointer; }
+  .table tbody tr { transition: background-color var(--dur-fast) var(--ease-standard); }
+  .table tbody tr.is-actionable { cursor: pointer; }
+  .table tbody tr.is-actionable:hover { background: var(--bg-surface-sunken); }
+  .table tbody tr.is-static { cursor: default; }
+  .table tbody tr:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+
+  .u-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .win-cell { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
+  .win-cell--mono .u-num { color: var(--text-primary); }
+  .status-cell { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .why-btn { background: none; border: 0; padding: 0; margin: 0; cursor: pointer; color: var(--text-muted); display: inline-flex; }
+  .why-btn:hover, .why-btn:focus-visible { color: var(--brand-primary); }
+
+  .sort-ind { margin-left: var(--space-1); display: inline-flex; vertical-align: middle; }
+
+  /* mobile card column (secondary reference block) */
+  .mcard { cursor: pointer; }
+  .mcard .submission { align-items: flex-start; flex-direction: column; gap: var(--space-3); }
+  .mcard__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); width: 100%; }
+  .mcard__title { font-family: var(--font-display); font-size: var(--text-base); font-weight: var(--weight-semibold); margin: 0; }
+  .mcard__line { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); flex-wrap: wrap; }
+  .mcard__line .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-strong); display: inline-block; }
+  .mcard__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; padding-top: var(--space-2); border-top: 1px solid var(--border-subtle); }
+
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: var(--space-2) 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .eyebrow::before { content: ""; height: 1px; width: var(--space-6); background: var(--border-subtle); }
+
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-top: var(--space-2); }
+  .state-box { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--bg-surface); }
+  .state-box--full { grid-column: 1 / -1; }
+  .state-cap { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 var(--space-3); }
+
+  .stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .stack--narrow { max-width: 420px; }
+
+  /* skeleton table */
+  .sk-cell { padding: var(--space-3) var(--space-4); }
+
+  .syncing { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-muted); }
+  .syncing svg { animation: spin 1.4s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .syncing svg { animation: none; } }
+
+  /* status-badge legend grid */
+  .legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2) var(--space-4); }
+  .legend__row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Icon, IconButton, Input, Select, Button, Badge, Chip, GradePill,
+          SubmissionCard, Avatar, EmptyState, Skeleton, Drawer, Tooltip, Alert,
+          AnswerKeyLock } = LU;
+  const { useState, useMemo, useEffect } = React;
+
+  /* ----------------------------------------------------------------------- */
+  /* Server-derived status meta — icon + label + semantic chrome             */
+  /* (status is RENDERED, never recomputed from the device clock)            */
+  /* ----------------------------------------------------------------------- */
+  const STATUS_META = {
+    available:   { label: "Available",   icon: "circle-play",   badge: "brand",   actionable: true,  intent: "Start" },
+    in_progress: { label: "In progress", icon: "play",          badge: "spark",   actionable: true,  intent: "Resume" },
+    scheduled:   { label: "Upcoming",    icon: "calendar-clock",badge: "info",    actionable: false, intent: "Opens" },
+    cooldown:    { label: "Cooldown",    icon: "refresh-cw",    badge: "warning", actionable: false, intent: "Retry soon" },
+    completed:   { label: "Completed",   icon: "check-circle",  badge: "success", actionable: true,  intent: "Review" },
+    closed:      { label: "Closed",      icon: "lock",          badge: null,      actionable: false, intent: "Closed" },
+    locked:      { label: "Locked",      icon: "lock",          badge: null,      actionable: false, intent: "Review" },
+  };
+
+  // map status -> filter group
+  const GROUP = {
+    available: "Available", in_progress: "Available", cooldown: "Available",
+    scheduled: "Upcoming",
+    completed: "Completed",
+    closed: "Completed",
+    locked: "Locked",
+  };
+
+  function gradeFromPct(p){
+    if (p == null) return "b";
+    if (p >= 90) return "a"; if (p >= 80) return "b"; if (p >= 70) return "c";
+    if (p >= 60) return "d"; return "f";
+  }
+
+  // mm:ss from seconds
+  function clock(s){
+    const m = Math.floor(s/60), ss = s%60;
+    return m + ":" + String(ss).padStart(2,"0");
+  }
+
+  /* ---- seed: realistic learner test schedule across spaces ---- */
+  const TESTS = [
+    { id:"arrays",  title:"Arrays & Strings Quiz", space:"DSA",     questions:12, duration:25, status:"available",
+      windowLabel:"Closes Jun 22, 6:00 pm", used:1, max:3, best:82, retake:true },
+    { id:"resume",  title:"Recursion Checkpoint",  space:"DSA",     questions:8,  duration:20, status:"in_progress",
+      windowLabel:"Closes Jun 21, 9:00 pm", used:1, max:2, best:null },
+    { id:"bigo",    title:"Big-O Analysis Test",   space:"DSA",     questions:15, duration:35, status:"scheduled",
+      windowLabel:"Opens Jun 24, 10:00 am", used:0, max:2, best:null,
+      schedDate:"Jun 24", schedTime:"10:00 am" },
+    { id:"mock1",   title:"System Design Mock 1",  space:"Sys Design", questions:6,  duration:45, status:"completed",
+      windowLabel:"Closed", used:2, max:2, best:91 },
+    { id:"midterm", title:"LLD Mid-term",          space:"LLD",     questions:20, duration:40, status:"cooldown",
+      windowLabel:null, used:1, max:3, best:64, cooldownSecs:1085 /* 18:05 */ },
+    { id:"final",   title:"LLD Final",             space:"LLD",     questions:25, duration:60, status:"locked",
+      windowLabel:"—", used:2, max:2, best:88, lockReason:"passed" },
+    { id:"behav",   title:"Behavioral Screen",     space:"Behavioral", questions:10, duration:30, status:"closed",
+      windowLabel:"Closed", used:0, max:1, best:null },
+  ];
+
+  const FILTERS = ["All", "Available", "Upcoming", "Completed", "Locked"];
+  const SORT_OPTS = [
+    { value:"window", label:"Window" },
+    { value:"space",  label:"Space" },
+    { value:"status", label:"Status" },
+  ];
+  const STATUS_ORDER = ["in_progress","available","cooldown","scheduled","completed","closed","locked"];
+
+  /* ----------------------------------------------------------------------- */
+  /* Status badge (icon + label — never color alone)                         */
+  /* ----------------------------------------------------------------------- */
+  function StatusBadge({ status, cooldownLabel }){
+    const m = STATUS_META[status];
+    const label = status === "cooldown" && cooldownLabel ? ("Retry in " + cooldownLabel) : m.label;
+    const inner = (<><Icon name={m.icon} size={12}/> {label}</>);
+    if (m.badge) return <Badge variant={m.badge}>{inner}</Badge>;
+    // neutral (closed / locked) — text.muted chrome via plain badge
+    return <span className="badge" style={{ color:"var(--text-muted)", background:"var(--bg-surface-sunken)" }}>{inner}</span>;
+  }
+
+  /* Window cell */
+  function WindowCell({ t, cooldownLabel }){
+    if (t.status === "cooldown")
+      return <span className="win-cell win-cell--mono"><Icon name="refresh-cw" size={13}/> Retry in <span className="u-num">{cooldownLabel}</span></span>;
+    if (!t.windowLabel || t.windowLabel === "—")
+      return <span className="win-cell" style={{color:"var(--text-muted)"}}>—</span>;
+    const icon = t.status === "scheduled" ? "calendar" : (t.status === "available" || t.status === "in_progress") ? "calendar-clock" : "calendar-x";
+    return <span className="win-cell"><Icon name={icon} size={13}/> {t.windowLabel}</span>;
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* The why-tooltip copy for non-startable rows                             */
+  /* ----------------------------------------------------------------------- */
+  function whyCopy(t, cooldownLabel){
+    switch (t.status){
+      case "scheduled": return "This test opens " + t.schedDate + " at " + t.schedTime + ". We'll be ready when it does.";
+      case "cooldown":  return "Take a breather — you can retry in " + cooldownLabel + ".";
+      case "closed":    return "This test's window has closed.";
+      case "locked":    return t.lockReason === "passed"
+        ? "Nice work — you've passed this one, so it's locked. Open Review to see how you did."
+        : "You've used all your attempts for this test. Open Review to revisit your work.";
+      default: return "";
+    }
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* Sidebar + Topbar (AppShell frame)                                       */
+  /* ----------------------------------------------------------------------- */
+  function Sidebar(){
+    const learn = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"book-open", label:"My Spaces" },
+      { icon:"clipboard-list", label:"Tests", active:true, badge:"5" },
+      { icon:"bar-chart-3", label:"Progress" },
+    ];
+    const play = [
+      { icon:"flame", label:"Streak" },
+      { icon:"trophy", label:"Leaderboard" },
+      { icon:"award", label:"Achievements" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <nav className="sidebar__nav">
+          <span className="sidebar__section-label">Learn</span>
+          {learn.map((n,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={n.active ? "page" : undefined}>
+              <Icon name={n.icon} size={18}/><span>{n.label}</span>
+              {n.badge && <span className="nav-item__badge"><Badge variant="brand">{n.badge}</Badge></span>}
+            </a>
+          ))}
+          <span className="sidebar__section-label">Momentum</span>
+          {play.map((n,i)=>(
+            <a key={i} className="nav-item" href="#"><Icon name={n.icon} size={18}/><span>{n.label}</span></a>
+          ))}
+        </nav>
+        <div style={{marginTop:"auto", padding:"var(--space-3)"}}>
+          <a className="nav-item" href="#"><Icon name="settings" size={18}/><span>Settings</span></a>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search">
+          <Input placeholder="Search tests…  ⌘K" aria-label="Search tests" />
+        </div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications" />
+        <span className="avatar avatar--sm" aria-label="Maya Chen">MC</span>
+      </header>
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* Mobile-divergence reference card                                        */
+  /* ----------------------------------------------------------------------- */
+  function MobileTestCard({ t, cooldownLabel }){
+    const m = STATUS_META[t.status];
+    const aria = [t.title, t.space, m.label, t.best!=null ? ("best " + t.best + " percent") : "no attempt yet",
+                  t.used + " of " + t.max + " attempts used"].join(", ");
+    return (
+      <div className="mcard submission" role="button" tabIndex={0} aria-label={aria}
+           style={{cursor: m.actionable ? "pointer" : "default"}}>
+        <div className="mcard__head">
+          <div>
+            <h4 className="mcard__title">{t.title}</h4>
+            <div className="mcard__line">
+              <span>{t.space}</span><span className="dot"></span>
+              <span><span className="u-num">{t.questions}</span> questions</span><span className="dot"></span>
+              <span><span className="u-num">{t.duration}</span> min</span>
+            </div>
+          </div>
+          <StatusBadge status={t.status} cooldownLabel={cooldownLabel}/>
+        </div>
+        <div className="mcard__line"><WindowCell t={t} cooldownLabel={cooldownLabel}/></div>
+        <div className="mcard__foot">
+          <span className="mcard__line">Attempts <span className="u-num">{t.used} / {t.max}</span></span>
+          {t.best != null
+            ? <span role="img" aria-label={"Best score " + t.best + " percent"}><GradePill grade={gradeFromPct(t.best)} score={t.best + "%"} /></span>
+            : <span style={{fontSize:"var(--text-sm)", color:"var(--text-muted)"}} aria-label="No attempt yet">—</span>}
+        </div>
+      </div>
+    );
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* Screen                                                                  */
+  /* ----------------------------------------------------------------------- */
+  function Screen(){
+    const [filter, setFilter] = useState("All");
+    const [sort, setSort] = useState("window");
+    const [sortOpen, setSortOpen] = useState(false);
+    const [why, setWhy] = useState(null);       // test whose "why" tooltip/sheet is open
+    const [cooldownSecs, setCooldownSecs] = useState(1085);
+
+    /* server-returned remaining cooldown ticker — DISPLAY ONLY.
+       It does NOT gate start; on zero we'd quietly refetch (not auto-flip). */
+    useEffect(()=>{
+      const id = setInterval(()=> setCooldownSecs(s => s > 0 ? s - 1 : 0), 1000);
+      return ()=> clearInterval(id);
+    }, []);
+    const cooldownLabel = clock(cooldownSecs);
+
+    const rows = useMemo(()=>{
+      let list = filter === "All" ? TESTS : TESTS.filter(t => GROUP[t.status] === filter);
+      if (sort === "space")  list = [...list].sort((a,b)=> a.space.localeCompare(b.space) || a.title.localeCompare(b.title));
+      else if (sort === "status") list = [...list].sort((a,b)=> STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+      else list = [...list].sort((a,b)=> STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)); // window default ~ time-sensitive first
+      return list;
+    }, [filter, sort]);
+
+    /* DataTable column definitions */
+    const columns = [
+      { label:"Test", key:"title", render:(t)=>(
+        <div className="t-test">
+          <span className="t-test__title">{t.title}</span>
+          <span className="t-test__meta"><span className="u-num">{t.questions}</span> questions · <span className="u-num">{t.duration}</span> min</span>
+        </div>) },
+      { label:"Space", key:"space", render:(t)=> <span style={{fontSize:"var(--text-sm)", color:"var(--text-secondary)"}}>{t.space}</span> },
+      { label:"Status", key:"status", sortable:true, render:(t)=> {
+          const m = STATUS_META[t.status];
+          return (
+            <span className="status-cell">
+              <StatusBadge status={t.status} cooldownLabel={cooldownLabel}/>
+              {!m.actionable && (
+                <button className="why-btn" aria-label={"Why is " + t.title + " not available?"}
+                        onClick={(e)=>{ e.stopPropagation(); setWhy(t.id); }}>
+                  <Icon name="help-circle" size={14}/>
+                </button>
+              )}
+            </span>);
+        } },
+      { label:"Window", key:"window", sortable:true, render:(t)=> <WindowCell t={t} cooldownLabel={cooldownLabel}/> },
+      { label:"Attempts", key:"attempts", numeric:true, render:(t)=>
+          <span className="u-num" title={"You've used " + t.used + " of " + t.max + " attempts."}>{t.used} / {t.max}</span> },
+      { label:"Best", key:"best", sortable:true, render:(t)=>
+          t.best != null
+            ? <span role="img" aria-label={"Best score " + t.best + " percent"}><GradePill grade={gradeFromPct(t.best)} score={t.best + "%"} /></span>
+            : <span style={{color:"var(--text-muted)"}} title="No attempt yet — ready when you are." aria-label="No attempt yet">—</span> },
+    ];
+
+    /* Manually render the table so each row carries activation + a11y semantics
+       (the bundle DataTable renders a flat <table>; we mirror its classes). */
+    function rowAriaName(t){
+      const m = STATUS_META[t.status];
+      const best = t.best!=null ? ("best " + t.best + " percent") : "no attempt yet";
+      const reason = m.actionable ? m.intent : (STATUS_META[t.status].label.toLowerCase() + ", " + whyCopy(t, cooldownLabel));
+      return [t.title, t.space, m.label, t.windowLabel || "", best, t.used + " of " + t.max + " attempts"].join(", ");
+    }
+
+    return (
+      <div className="appshell frame">
+        <Sidebar/>
+        <Topbar/>
+        <main className="appshell__main" role="main" aria-label="Tests">
+          <div className="page">
+
+            {/* Page header */}
+            <div className="page-head">
+              <div>
+                <div className="head-title-row">
+                  <h1>Tests</h1>
+                  <Badge variant="brand">{TESTS.length} tests</Badge>
+                </div>
+                <p className="page-sub">Your scheduled tests across every space.</p>
+              </div>
+            </div>
+
+            {/* Filter / sort bar */}
+            <div className="toolbar" role="region" aria-label="Filter and sort tests">
+              <div className="toolbar__chips" role="group" aria-label="Filter by status">
+                {FILTERS.map(f => (
+                  <button key={f} className="chip-btn" onClick={()=>setFilter(f)} aria-pressed={filter === f}>
+                    <Chip active={filter === f}>{f}</Chip>
+                  </button>
+                ))}
+              </div>
+              <div className="toolbar__right">
+                <div className="toolbar__sort">
+                  <label htmlFor="sortsel">Sort</label>
+                  <Select id="sortsel" value={sort} onChange={(e)=>setSort(e.target.value)} options={SORT_OPTS} />
+                </div>
+                {/* mobile sort fallback -> bottom Sheet */}
+                <IconButton icon={<Icon name="sliders-horizontal" size={18}/>} label="Sort options"
+                            onClick={()=>setSortOpen(true)} />
+              </div>
+            </div>
+
+            {/* PRIMARY: populated web DataTable */}
+            {rows.length > 0 ? (
+              <div className="table-wrap">
+                <table className="table" aria-label="Your tests">
+                  <thead>
+                    <tr>
+                      {columns.map((c,i)=>(
+                        <th key={i} scope="col" aria-sort={c.sortable ? (sort === c.key ? "ascending" : "none") : undefined}
+                            className={c.numeric ? "num" : undefined}>
+                          {c.label}
+                          {c.sortable && sort === c.key && <span className="sort-ind"><Icon name="arrow-down" size={12}/></span>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((t,ri)=>{
+                      const m = STATUS_META[t.status];
+                      return (
+                        <tr key={t.id} tabIndex={0}
+                            className={m.actionable ? "is-actionable" : "is-static"}
+                            aria-label={rowAriaName(t)}
+                            onClick={()=> { if (!m.actionable) setWhy(t.id); }}>
+                          {columns.map((c,ci)=>(
+                            <td key={ci} className={c.numeric ? "num" : undefined}>{c.render(t)}</td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="state-box">
+                <EmptyState icon="filter" title="No tests match this filter."
+                  body="Try ‘All’ to see everything."
+                  action={<Button variant="ghost" leadingIcon={<Icon name="x" size={16}/>}
+                            onClick={()=>setFilter("All")}>Clear filter</Button>} />
+              </div>
+            )}
+
+            {/* in-progress Resume affordance (spark) surfaced under the table */}
+            {filter === "All" && (
+              <Alert variant="info" title="You have a test in progress">
+                Recursion Checkpoint in DSA is still open — pick up right where you left off.
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Button variant="spark" size="sm" leadingIcon={<Icon name="play" size={16}/>}>Resume test</Button>
+                </div>
+              </Alert>
+            )}
+
+            {/* ===================== Spec states (reference) ===================== */}
+            <div className="eyebrow">Spec states &amp; mobile divergence (reference)</div>
+
+            <div className="states">
+
+              {/* Partial — score syncing */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: partial · score syncing</p>
+                <Alert variant="info" title="Scores syncing…">
+                  Your tests loaded — attempts and best scores are catching up. We never block the list on attempt history.
+                </Alert>
+                <div className="table-wrap" style={{marginTop:"var(--space-4)"}}>
+                  <table className="table">
+                    <thead><tr><th scope="col">Test</th><th scope="col">Space</th><th scope="col">Status</th><th scope="col">Window</th><th scope="col" className="num">Attempts</th><th scope="col">Best</th></tr></thead>
+                    <tbody>
+                      {TESTS.slice(0,2).map(t=>(
+                        <tr key={t.id}>
+                          <td><div className="t-test"><span className="t-test__title">{t.title}</span><span className="t-test__meta"><span className="u-num">{t.questions}</span> questions · <span className="u-num">{t.duration}</span> min</span></div></td>
+                          <td style={{fontSize:"var(--text-sm)", color:"var(--text-secondary)"}}>{t.space}</td>
+                          <td><StatusBadge status={t.status} cooldownLabel={cooldownLabel}/></td>
+                          <td><WindowCell t={t} cooldownLabel={cooldownLabel}/></td>
+                          <td className="num"><span className="syncing"><Icon name="loader" size={12}/> —</span></td>
+                          <td><span className="syncing"><Icon name="loader" size={12}/> Score syncing…</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Loading skeleton */}
+              <div className="state-box state-box--full">
+                <p className="state-cap">State: loading skeleton</p>
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead><tr><th scope="col">Test</th><th scope="col">Space</th><th scope="col">Status</th><th scope="col">Window</th><th scope="col" className="num">Attempts</th><th scope="col">Best</th></tr></thead>
+                    <tbody>
+                      {[0,1,2,3].map(i=>(
+                        <tr key={i}>
+                          <td><Skeleton width="70%" height="14px"/></td>
+                          <td><Skeleton width="50%" height="14px"/></td>
+                          <td><Skeleton width="80px" height="20px"/></td>
+                          <td><Skeleton width="60%" height="14px"/></td>
+                          <td className="num"><Skeleton width="40px" height="14px"/></td>
+                          <td><Skeleton variant="circle" width="34px" height="34px"/></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile divergence — stacked SubmissionCard list */}
+              <div className="state-box">
+                <p className="state-cap">Mobile &lt; md · stacked cards</p>
+                <div className="stack stack--narrow">
+                  <MobileTestCard t={TESTS[0]} cooldownLabel={cooldownLabel}/>
+                  <MobileTestCard t={TESTS[4]} cooldownLabel={cooldownLabel}/>
+                  <MobileTestCard t={TESTS[5]} cooldownLabel={cooldownLabel}/>
+                </div>
+              </div>
+
+              {/* Status badge legend — all seven, icon + label */}
+              <div className="state-box">
+                <p className="state-cap">All seven status badges (icon + label)</p>
+                <div className="legend">
+                  {Object.keys(STATUS_META).map(k=>(
+                    <div key={k} className="legend__row">
+                      <StatusBadge status={k} cooldownLabel={cooldownLabel}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:"var(--space-4)"}}>
+                  <AnswerKeyLock title="Answer key never shown">
+                    This list shows status, attempts and best score only — item correctness lives on the released results surface.
+                  </AnswerKeyLock>
+                </div>
+              </div>
+
+              {/* Empty — no tests */}
+              <div className="state-box">
+                <p className="state-cap">State: empty · no tests</p>
+                <EmptyState icon="clipboard-list" title="No tests scheduled"
+                  body="You don't have any tests right now. When your teacher schedules one, it'll appear here with its dates and details — you'll have plenty of notice." />
+              </div>
+
+              {/* Error (distinct from empty) */}
+              <div className="state-box">
+                <p className="state-cap">State: error · load failure</p>
+                <EmptyState icon="cloud-off" title="We couldn't load your tests"
+                  body="Check your connection and try again."
+                  action={<Button variant="ghost" leadingIcon={<Icon name="refresh-cw" size={16}/>}>Retry</Button>} />
+              </div>
+
+            </div>
+          </div>
+
+          {/* "Why not available" — Sheet via Drawer (mobile long-press / row tap on static rows) */}
+          <Drawer open={why != null} onClose={()=>setWhy(null)} title="About this test">
+            {why != null && (()=> {
+              const t = TESTS.find(x => x.id === why);
+              const m = STATUS_META[t.status];
+              return (
+                <div className="stack">
+                  <div className="status-cell"><StatusBadge status={t.status} cooldownLabel={cooldownLabel}/></div>
+                  <h4 className="mcard__title" style={{margin:0}}>{t.title}</h4>
+                  <p className="page-sub" style={{margin:0}}>{whyCopy(t, cooldownLabel)}</p>
+                  {(t.status === "completed" || t.status === "locked" || t.status === "closed") &&
+                    (t.best != null) && (
+                    <div style={{marginTop:"var(--space-2)"}}>
+                      <Button variant="secondary" size="sm" leadingIcon={<Icon name="file-text" size={16}/>}>Open Review</Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </Drawer>
+
+          {/* Mobile sort fallback — Sheet via Drawer */}
+          <Drawer open={sortOpen} onClose={()=>setSortOpen(false)} title="Sort tests">
+            <div style={{display:"flex", flexDirection:"column", gap:"var(--space-2)"}}>
+              {SORT_OPTS.map(o => (
+                <button key={o.value} className="chip-btn"
+                        onClick={()=>{ setSort(o.value); setSortOpen(false); }}
+                        style={{textAlign:"left"}}>
+                  <div className="nav-item" aria-current={sort === o.value ? "page" : undefined}>
+                    <Icon name={sort === o.value ? "check" : "arrow-down-up"} size={18}/>
+                    <span>{o.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Drawer>
+        </main>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

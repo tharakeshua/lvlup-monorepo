@@ -125,6 +125,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── Server-only LLM credential metadata ───────────────
+    // Plaintext values live only in Secret Manager. These collections contain
+    // opaque refs, masks, status and version metadata, but are still callable-only
+    // authority data: clients use v1.identity.* key-management operations.
+    match /userProviderKeys/{keyId} {
+      allow read, write: if false;
+    }
+
+    match /keyMetadata/{scopeKey} {
+      allow read, write: if false;
+    }
+
     // ── /tenants/{tenantId} ──────────────────────────────
     match /tenants/{tenantId} {
       // Pre-auth login flow needs single-doc get; once authenticated, full access
@@ -695,6 +707,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /tenants/{tenantId}/examAnalytics/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Conversational runtime authority records are callable/Admin-SDK only.
+    // Keep an explicit unprefixed deny here as well as the v2 root deny below:
+    // local development intentionally uses an empty collection prefix and must
+    // never inherit the permissive legacy chat-session rules.
+    match /tenants/{tenantId}/conversationSessions/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/conversationSessionKeys/{document=**} {
+      allow read, write: if false;
+    }
+    match /tenants/{tenantId}/itemSubmissions/{document=**} {
       allow read, write: if false;
     }
 

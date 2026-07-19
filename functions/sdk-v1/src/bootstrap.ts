@@ -34,16 +34,24 @@ import admin from "firebase-admin";
 import { isoNow, type Timestamp } from "@levelup/domain";
 import { createRepos } from "@levelup/services/repo-admin";
 import {
+  createSupabaseLlmTelemetrySink,
+  getSupabaseServerClient,
+  isSupabaseTelemetryConfigured,
+  createUserKeyLookup,
+} from "@levelup/services";
+import {
   createAiGateway,
   createStubProvider,
   createStubImageStore,
   type SecretResolver,
+  type UserSecretResolver,
 } from "@levelup/ai";
 import {
   configureRuntime,
   projectId,
   createAdminStorageSigner,
   createRtdbGradingProjections,
+  createRtdbExtractionProjections,
   createRtdbLevelupProjections,
   enqueuePipelineAdvance,
   type Repos as PortRepos,
@@ -98,14 +106,35 @@ export function bootstrapRuntime(): void {
     repos: repos as unknown as Parameters<typeof createAiGateway>[0]["repos"],
     projectId: projectId(),
     imageStore: isEmulatorOrTest ? createStubImageStore() : createAdminImageStore(),
+    // BYOK precedence (user → tenant → platform): the gateway discovers a user's
+    // own key via this repo-backed lookup, then reads the value from Secret Manager.
+    userKeyLookup: createUserKeyLookup(
+      repos as unknown as Parameters<typeof createUserKeyLookup>[0]
+    ),
   };
+  if (isSupabaseTelemetryConfigured()) {
+    aiDeps.telemetry = createSupabaseLlmTelemetrySink(getSupabaseServerClient());
+    aiDeps.onTelemetryError = ({ stage, requestId, attemptId, error }) => {
+      console.error("LLM telemetry delivery failed", {
+        stage,
+        requestId,
+        ...(attemptId !== undefined ? { attemptId } : {}),
+        error: error instanceof Error ? error.message : "unknown telemetry error",
+      });
+    };
+  }
   if (isEmulatorOrTest) {
     const stubSecretResolver: SecretResolver = {
       getApiKey: async () => "stub-emulator-key",
       invalidate: () => {},
     };
+    const stubUserSecretResolver: UserSecretResolver = {
+      getKeyByRef: async () => "stub-emulator-key",
+      invalidate: () => {},
+    };
     aiDeps.providerFactory = (apiKey, model) => createStubProvider(apiKey, model);
     aiDeps.secretResolver = stubSecretResolver;
+    aiDeps.userSecretResolver = stubUserSecretResolver;
   }
   const ai = createAiGateway(aiDeps);
 
@@ -147,6 +176,8 @@ export function bootstrapRuntime(): void {
   if (rtdbAvailable) {
     (repos as unknown as Record<string, unknown>)["gradingProjections"] =
       createRtdbGradingProjections();
+    (repos as unknown as Record<string, unknown>)["extractionProjections"] =
+      createRtdbExtractionProjections();
     (repos as unknown as Record<string, unknown>)["levelupProjections"] =
       createRtdbLevelupProjections();
   }

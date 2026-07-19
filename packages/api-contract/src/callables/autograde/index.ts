@@ -27,6 +27,7 @@ import { getSubmissionDef } from "./get-submission.js";
 import { listQuestionSubmissionsDef } from "./list-question-submissions.js";
 import { getExamAnalyticsDef } from "./get-exam-analytics.js";
 import { listEvaluationSettingsDef } from "./list-evaluation-settings.js";
+import { getAutogradeEvaluationConfigDef } from "./get-evaluation-config.js";
 import { listDeadLetterDef } from "./list-dead-letter.js";
 
 /** The autograde slice of the callable registry. Spread by core into `CALLABLES`. */
@@ -47,6 +48,7 @@ export const AUTOGRADE_CALLABLES = {
   "v1.autograde.listQuestionSubmissions": listQuestionSubmissionsDef,
   "v1.autograde.getExamAnalytics": getExamAnalyticsDef,
   "v1.autograde.listEvaluationSettings": listEvaluationSettingsDef,
+  "v1.autograde.getEvaluationConfig": getAutogradeEvaluationConfigDef,
   "v1.autograde.listDeadLetter": listDeadLetterDef,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as const satisfies Record<string, CallableDef<any, any>>;
@@ -69,4 +71,5 @@ export * from "./get-submission.js";
 export * from "./list-question-submissions.js";
 export * from "./get-exam-analytics.js";
 export * from "./list-evaluation-settings.js";
+export * from "./get-evaluation-config.js";
 export * from "./list-dead-letter.js";

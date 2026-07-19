@@ -1,0 +1,455 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Add Item Type Picker" subtitle="Modal · 15 question + 7 material types" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell (dimmed parent) ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.sx-uc:hover{background:var(--bg-surface-sunken);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+/* parent editor sub-header (dimmed context) */
+.sx-sub{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0;}
+.sx-subrow{display:flex;align-items:center;gap:var(--space-3);}
+.sx-titlewrap{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.sx-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);line-height:1.1;}
+.sx-titlemeta{display:flex;align-items:center;gap:var(--space-2);}
+.sx-stat{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.sx-stat i{width:12px;height:12px;}
+.sx-typelabel{font-size:var(--text-xs);color:var(--text-muted);}
+.sx-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-4);}
+.sx-tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;background:none;border-top:none;border-left:none;border-right:none;}
+.sx-tab i{width:15px;height:15px;}
+.sx-tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-scroll{flex:1;overflow-y:auto;}
+.sx-col{max-width:1200px;margin:0 auto;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4);}
+.csh{display:flex;align-items:center;gap:var(--space-3);}
+.csh h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.csh .cnt{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);}
+.csh .act{margin-left:auto;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-semibold);border-radius:var(--radius-md);border:1px solid transparent;cursor:pointer;padding:var(--space-2) var(--space-3);white-space:nowrap;}
+.btn i{width:15px;height:15px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-subtle);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--ghost{background:none;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--sm{padding:5px var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+/* dimmed ghost rows of the parent content list */
+.ghostnode{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-3);}
+.ghostnode .gi{color:var(--text-muted);display:inline-flex;}
+.ghostnode .gi i{width:16px;height:16px;}
+.ghostnode .gt{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.ghostnode .gm{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto;}
+
+/* ---- modal overlay ---- */
+.scrim{position:fixed;inset:0;background:rgba(20,18,16,.46);z-index:60;animation:fade var(--dur-fast) var(--ease-standard);}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.pmodal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:880px;max-width:94vw;max-height:88vh;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);z-index:70;display:flex;flex-direction:column;overflow:hidden;animation:pop var(--dur-base) var(--ease-entrance);}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-46%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.pm-head{padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:relative;}
+.pm-head .x{position:absolute;top:var(--space-4);right:var(--space-4);}
+.pm-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;}
+.pm-sub{font-size:var(--text-sm);color:var(--text-secondary);margin:var(--space-2) 0 0;max-width:60ch;}
+.pm-searchrow{margin-top:var(--space-4);display:flex;align-items:center;gap:var(--space-3);}
+.searchbox{flex:1;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.searchbox:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus);background:var(--bg-surface);}
+.searchbox i{width:16px;height:16px;color:var(--text-muted);flex:none;}
+.searchbox input{flex:1;border:none;background:none;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);}
+.searchbox input::placeholder{color:var(--text-muted);}
+.searchbox .clr{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--radius-pill);border:none;background:none;color:var(--text-muted);cursor:pointer;flex:none;}
+.searchbox .clr:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+/* segmented step-1 chips */
+.seg{display:inline-flex;gap:var(--space-1);padding:3px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);}
+.seg button{display:inline-flex;align-items:center;gap:6px;padding:6px var(--space-3);border-radius:var(--radius-pill);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;white-space:nowrap;}
+.seg button i{width:14px;height:14px;}
+.seg button.on{background:var(--bg-surface);color:var(--text-primary);font-weight:var(--weight-semibold);box-shadow:var(--shadow-e1);}
+.seg button .sc{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+
+.pm-body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5);}
+/* section header */
+.sechd{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);}
+.sechd .lb{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);}
+.sechd .ct{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sechd .rule{flex:1;height:1px;background:var(--border-subtle);}
+/* tile grid */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);}
+@media (max-width:1023px){.grid{grid-template-columns:repeat(3,1fr);}}
+.tile{display:flex;flex-direction:column;gap:var(--space-2);text-align:left;padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);cursor:pointer;font-family:var(--font-ui);transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),transform var(--dur-instant) var(--ease-standard);}
+.tile:hover{box-shadow:var(--shadow-e2);border-color:var(--border-focus);}
+.tile:focus-visible{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.tile:active{transform:scale(.98);}
+.tile.disabled{cursor:not-allowed;opacity:.62;box-shadow:none;background:var(--bg-surface-sunken);}
+.tile.disabled:hover{box-shadow:none;border-color:var(--border-subtle);}
+.tile-top{display:flex;align-items:center;gap:var(--space-2);}
+.tile-ic{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);flex:none;}
+.tile-ic.q{background:var(--brand-subtle);color:var(--brand-primary);}
+.tile-ic.m{background:var(--status-info-subtle);color:var(--status-info);}
+.tile-ic.ai{background:var(--spark-subtle);color:var(--spark);}
+.tile-ic i{width:17px;height:17px;}
+.tile-lb{font-size:var(--text-base);font-weight:var(--weight-semibold);line-height:1.15;}
+.tile-desc{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);flex:1;}
+.tile-foot{display:flex;align-items:center;gap:var(--space-2);}
+/* grading badge — color + icon + text */
+.gbadge{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.02em;border:1px solid transparent;}
+.gbadge i{width:11px;height:11px;}
+.gbadge.auto{background:var(--status-success-subtle);color:var(--status-success);}
+.gbadge.ai{background:var(--spark-subtle);color:var(--spark);}
+.gbadge.both{background:var(--brand-subtle);color:var(--brand-primary);}
+.gbadge.muted{background:var(--bg-surface-sunken);color:var(--text-muted);border-color:var(--border-subtle);}
+.tile .tnote{font-size:var(--text-2xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:4px;}
+.tile .tnote i{width:11px;height:11px;}
+/* tooltip-ish */
+.tip{position:relative;}
+.tip .bub{position:absolute;bottom:calc(100% + 8px);left:0;width:200px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--text-primary);color:var(--text-on-accent);font-size:var(--text-2xs);line-height:var(--leading-sm);box-shadow:var(--shadow-e3);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-standard);z-index:5;}
+.tile.disabled:hover .tip .bub{opacity:1;}
+/* banner */
+.banner{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-info);background:var(--status-info-subtle);font-size:var(--text-sm);}
+.banner .lead{color:var(--status-info);flex:none;display:inline-flex;}
+.banner .lead i{width:18px;height:18px;}
+.banner .sp{flex:1;}
+.banner b{font-weight:var(--weight-semibold);}
+/* empty state */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-3);padding:var(--space-12) var(--space-4);}
+.empty .ec{width:48px;height:48px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-muted);display:grid;place-items:center;}
+.empty .ec i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-muted);max-width:380px;}
+.empty .ehint{font-size:var(--text-xs);color:var(--text-muted);}
+.empty .ehint b{color:var(--text-secondary);font-weight:var(--weight-medium);}
+.pm-foot{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface);}
+.pm-foot .note{font-size:var(--text-xs);color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;}
+.pm-foot .note i{width:13px;height:13px;}
+.pm-foot .note kbd{font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.pm-foot .sp{flex:1;}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--status-error);box-shadow:var(--shadow-e3);font-size:var(--text-sm);animation:toastup var(--dur-base) var(--ease-entrance);}
+.toast>span:first-child{flex:none;color:var(--status-error);display:inline-flex;}
+.toast .ta{font-weight:var(--weight-semibold);}
+@keyframes toastup{from{opacity:0}to{opacity:1}}
+.srlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+@media (prefers-reduced-motion: reduce){.pmodal,.toast,.scrim{animation:none;}.tile{transition:none;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { Icon } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ===== dimmed parent shell ===== */
+function Nav({icon,label,route,active,count}){
+  return <a className={"sx-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({children}){
+  return <div className="sx" aria-hidden="true">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+      <nav style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active="/spaces"/>
+          <Nav icon="school" label="Classes" route="/classes" active="/spaces" count="6"/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active="/spaces" count="9"/>
+          <Nav icon="file-check" label="Exams" route="/exams" active="/spaces" count="4"/>
+          <Nav icon="graduation-cap" label="Students" route="/students" active="/spaces"/></div>
+        <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active="/spaces"/>
+          <Nav icon="sparkles" label="AI tutor" route="/tutor" active="/spaces"/></div>
+      </nav>
+      <div className="foot">
+        <div className="sx-uc"><div className="av">RM</div>
+          <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div>
+      </div>
+    </aside>
+    <div className="sx-main">
+      <header className="sx-top">
+        <nav className="sx-bc" aria-label="Breadcrumb">
+          <span>Spaces</span>{I("chevron-right",14)}<span>Algebra I — Foundations</span>{I("chevron-right",14)}<b>Quadratics</b>
+        </nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="sx-icbtn" tabIndex={-1}>{I("bell",18)}</button>
+      </header>
+      <div className="sx-sub">
+        <div className="sx-subrow">
+          <div className="sx-titlewrap">
+            <h1 className="sx-title">Algebra I — Foundations</h1>
+            <div className="sx-titlemeta">
+              <span className="sx-stat">{I("circle-dashed",12)}Draft</span>
+              <span className="sx-typelabel">· Quadratics · timed_test</span>
+            </div>
+          </div>
+        </div>
+        <div className="sx-tabs">
+          <button className="sx-tab">{I("settings",15)}Settings</button>
+          <button className="sx-tab on">{I("book-open",15)}Content</button>
+          <button className="sx-tab">{I("clipboard-check",15)}Rubric</button>
+          <button className="sx-tab">{I("bot",15)}Agents</button>
+          <button className="sx-tab">{I("history",15)}History</button>
+        </div>
+      </div>
+      {children}
+    </div>
+  </div>;
+}
+
+/* ===== type catalog (exact: 15 question + 7 material) ===== */
+/* grade modes: auto | ai | both (code) — from AUTO_EVALUATABLE_TYPES / AI_EVALUATABLE_TYPES */
+const Q_AUTO=[
+  {id:"mcq",label:"MCQ",icon:"circle-dot",desc:"One correct answer from a list.",kw:"multiple choice single radio",dq:"{ options[], correctIndex: 0 }"},
+  {id:"mcaq",label:"MCAQ",icon:"list-checks",desc:"Several correct answers; set min/max.",kw:"multi answer checkbox select",dq:"{ options[], correctIndices: [] }"},
+  {id:"true-false",label:"True / False",icon:"toggle-left",desc:"A single binary choice.",kw:"binary yes no boolean",dq:"{ correct: true }"},
+  {id:"numerical",label:"Numerical",icon:"hash",desc:"A number, with optional tolerance and unit.",kw:"number numeric value",dq:"{ correctAnswer: 0, tolerance: 0 }"},
+  {id:"fill-blanks",label:"Fill in the Blanks",icon:"text-cursor-input",desc:"Type the missing words.",kw:"cloze gap typing",dq:"{ blanks: [] }"},
+  {id:"fill-blanks-dd",label:"Fill Blanks (Dropdown)",icon:"chevrons-down-up",desc:"Pick the missing words from menus.",kw:"cloze dropdown select gap",dq:"{ blanks: [{options:[]}] }"},
+  {id:"matching",label:"Matching",icon:"arrow-left-right",desc:"Match items in the left column to the right.",kw:"pair connect drag link",dq:"{ pairs: [] }"},
+  {id:"jumbled",label:"Jumbled / Ordering",icon:"arrow-down-up",desc:"Put shuffled items in the correct order.",kw:"order sort sequence drag arrange",dq:"{ order: [] }"},
+  {id:"group-options",label:"Group Options",icon:"group",desc:"Sort items into the correct groups.",kw:"categorize bucket classify sort",dq:"{ groups: [] }"},
+];
+const Q_AI=[
+  {id:"text",label:"Short Text",icon:"type",desc:"A short exact answer; accepts alternatives.",kw:"short answer text alternatives",mode:"ai",dq:"{ guidance: '', accepted: [] }"},
+  {id:"paragraph",label:"Paragraph",icon:"pilcrow",desc:"An open essay, scored by AI against your guidance.",kw:"essay long open writing prose",mode:"ai",dq:"{ guidance: '', maxWords: 0 }"},
+  {id:"code",label:"Code",icon:"braces",desc:"Code run against test cases, plus AI review.",kw:"program tests run compile language",mode:"both",dq:"{ language, tests: [], rubric }"},
+  {id:"audio",label:"Audio Response",icon:"mic",desc:"A spoken answer, transcribed and AI-scored.",kw:"spoken voice speaking recording",mode:"ai",dq:"{ guidance: '', maxSeconds: 120 }"},
+  {id:"image_evaluation",label:"Image Evaluation",icon:"image",desc:"Learner uploads images; AI evaluates them.",kw:"photo upload picture vision diagram",mode:"ai",dq:"{ guidance: '', maxImages: 3 }"},
+  {id:"chat_agent_question",label:"Chat Agent",icon:"message-square",desc:"A guided conversation against your objectives.",kw:"chat conversation tutor dialogue agent",mode:"ai",dq:"{ objectives: [], agentId }",needsAgent:true},
+];
+const MATERIALS=[
+  {id:"text",label:"Text",icon:"file-text",desc:"Plain written content.",kw:"markdown note written prose"},
+  {id:"video",label:"Video",icon:"play-circle",desc:"Embed a video by URL.",kw:"youtube embed media watch url"},
+  {id:"pdf",label:"PDF",icon:"file-down",desc:"Link a PDF, optionally downloadable.",kw:"document attachment download file"},
+  {id:"link",label:"Link",icon:"link",desc:"An external resource.",kw:"url website external bookmark"},
+  {id:"interactive",label:"Interactive",icon:"mouse-pointer-click",desc:"Embed a tool or simulation.",kw:"embed widget simulation iframe tool"},
+  {id:"story",label:"Story",icon:"book-marked",desc:"Long-form narrative with blocks.",kw:"narrative chapters long form"},
+  {id:"rich",label:"Rich Content",icon:"layout-template",desc:"Structured article with media blocks.",kw:"article blocks structured media mixed"},
+];
+
+/* grading badge mapping */
+function GBadge({mode}){
+  if(mode==="ai") return <span className="gbadge ai" title="Scored by AI, may take a moment">{I("sparkles",11)}AI</span>;
+  if(mode==="both") return <span className="gbadge both" title="Test cases run instantly, plus AI review">{I("zap",11)}Auto + AI</span>;
+  if(mode==="material") return <span className="gbadge muted" title="Not graded — reference material">{I("book-open",11)}Material</span>;
+  return <span className="gbadge auto" title="Graded instantly, server-side">{I("zap",11)}Auto</span>;
+}
+
+/* ===== type tile ===== */
+function Tile({t,kind,mode,onPick,refFn,idx}){
+  const disabled=t.needsAgent; // chat_agent_question gated by feature flag
+  const accName=t.label+", "+(mode==="ai"?"AI-graded":mode==="both"?"auto and AI-graded":mode==="material"?"material":"auto-graded")+" "+(kind==="m"?"material":"question")+(disabled?", disabled":"");
+  const icCls=mode==="ai"||mode==="both"?"ai":kind==="m"?"m":"q";
+  return <button type="button" className={"tile"+(disabled?" disabled":"")}
+    role="gridcell" aria-label={accName} aria-disabled={disabled||undefined}
+    ref={refFn} data-idx={idx}
+    onClick={()=>!disabled&&onPick(t,kind,mode)}>
+    <div className="tile-top">
+      <span className={"tile-ic "+icCls}>{I(t.icon,17)}</span>
+      <span className="tile-lb">{t.label}</span>
+    </div>
+    <div className="tile-desc">{t.desc}</div>
+    <div className="tile-foot">
+      <GBadge mode={mode}/>
+      {disabled && <span className="tip" style={{marginLeft:"auto"}}>
+        <span className="tnote">{I("lock",11)}Locked</span>
+        <span className="bub" role="tooltip">Configure an agent in the Agent Config tab on this space first.</span>
+      </span>}
+    </div>
+  </button>;
+}
+
+/* ===== section block ===== */
+function SectionBlock({label,count,children}){
+  return <section>
+    <div className="sechd">
+      <span className="lb">{label}</span><span className="ct">· {count}</span><span className="rule"></span>
+    </div>
+    <div className="grid" role="grid" aria-label={label}>{children}</div>
+  </section>;
+}
+
+/* ===== the picker modal ===== */
+function PickerModal({onClose,onPick,onBank}){
+  const [top,setTop]=useState("question"); // question | material
+  const [q,setQ]=useState("");
+  const searchRef=useRef(null);
+  useEffect(()=>{ if(searchRef.current) searchRef.current.focus(); },[]);
+  useEffect(()=>{
+    const h=e=>{ if(e.key==="Escape") onClose(); };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  },[]);
+
+  const match=t=>{
+    const s=q.trim().toLowerCase(); if(!s) return true;
+    return (t.label+" "+t.desc+" "+(t.kw||"")).toLowerCase().includes(s);
+  };
+  const qAuto=Q_AUTO.filter(match), qAi=Q_AI.filter(match), mats=MATERIALS.filter(match);
+
+  const showQ=top==="question";
+  const showM=top==="material";
+  const visibleQ=(showQ?qAuto.length+qAi.length:0);
+  const visibleM=(showM?mats.length:0);
+  const nothing=(showQ&&visibleQ===0)||(showM&&visibleM===0);
+
+  return <>
+    <div className="scrim" onClick={onClose}></div>
+    <div className="pmodal" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+      <div className="pm-head">
+        <button className="sx-icbtn x" aria-label="Close — Esc" onClick={onClose}>{I("x",18)}</button>
+        <h2 className="pm-title" id="pm-title">Add an item</h2>
+        <p className="pm-sub">Choose what you want to create. You can change the details on the next step.</p>
+        <div className="pm-searchrow">
+          <div className="searchbox">
+            {I("search",16)}
+            <input ref={searchRef} value={q} onChange={e=>setQ(e.target.value)}
+              placeholder="Search types — e.g. essay, code, video…" aria-label="Search item types"/>
+            {q && <button className="clr" aria-label="Clear search" onClick={()=>setQ("")}>{I("x",13)}</button>}
+          </div>
+          <div className="seg" role="tablist" aria-label="Item category">
+            <button role="tab" aria-selected={showQ} className={showQ?"on":""} onClick={()=>setTop("question")}>
+              {I("help-circle",14)}Question <span className="sc">15</span></button>
+            <button role="tab" aria-selected={showM} className={showM?"on":""} onClick={()=>setTop("material")}>
+              {I("file-text",14)}Material <span className="sc">7</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div className="pm-body">
+        {nothing
+          ? <div className="empty">
+              <div className="ec">{I("search-x",22)}</div>
+              <div className="et">Nothing matches "{q}"</div>
+              <div className="eb">Try a broader word, or browse all types.</div>
+              <div className="ehint">Closest matches: <b>essay → Paragraph</b> · <b>ordering → Jumbled</b> · <b>drag → Matching</b></div>
+              <button className="btn btn--secondary" onClick={()=>setQ("")}>{I("x",15)}Clear search</button>
+            </div>
+          : <>
+            {showQ && qAuto.length>0 &&
+              <SectionBlock label="Questions · Auto-graded" count={qAuto.length}>
+                {qAuto.map((t,i)=><Tile key={t.id} t={t} kind="q" mode="auto" onPick={onPick} idx={i}/>)}
+              </SectionBlock>}
+            {showQ && qAi.length>0 &&
+              <SectionBlock label="Questions · AI-graded" count={qAi.length}>
+                {qAi.map((t,i)=><Tile key={t.id} t={t} kind="q" mode={t.mode} onPick={onPick} idx={i}/>)}
+              </SectionBlock>}
+            {showM && mats.length>0 &&
+              <SectionBlock label="Materials" count={mats.length}>
+                {mats.map((t,i)=><Tile key={t.id} t={t} kind="m" mode="material" onPick={onPick} idx={i}/>)}
+              </SectionBlock>}
+
+            {showQ &&
+              <div className="banner">
+                <span className="lead">{I("library",18)}</span>
+                <span className="sp">Reuse a question you've already written — bank originals stay intact.</span>
+                <button className="btn btn--ghost btn--sm" onClick={onBank}>{I("import",15)}Pick from question bank{I("arrow-right",15)}</button>
+              </div>}
+          </>}
+      </div>
+
+      <div className="pm-foot">
+        <span className="note">{I("shield-check",13)} Answer keys are added in the editor and stored server-side — never here.</span>
+        <span className="sp"></span>
+        <span className="note"><kbd>↑↓←→</kbd> move · <kbd>Enter</kbd> select · <kbd>Esc</kbd> close</span>
+        <button className="btn btn--secondary" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  </>;
+}
+
+/* ===== screen ===== */
+function Screen(){
+  const [open,setOpen]=useState(true);
+  const [toast,setToast]=useState(null);
+  const [live,setLive]=useState("");
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){const t=setTimeout(()=>setToast(null),3000);return ()=>clearTimeout(t);} },[toast]);
+
+  /* selecting a type: closes picker, forward-pushes to item-editor with seeded draft.
+     The picker performs NO writes — defaultQuestionData(qt) seeds the editor draft. */
+  const pick=(t,kind,mode)=>{
+    setOpen(false);
+    setLive("Opening editor — "+t.label);
+  };
+  const bank=()=>{
+    /* error path: question-bank handoff failing surfaces a toast; picker stays open */
+    setToast({title:"Couldn't open the question bank.",body:"Try again."});
+    setLive("Couldn't open the question bank. Try again.");
+  };
+
+  return <>
+    <Shell>
+      <div className="sx-scroll">
+        <div className="sx-col">
+          <div className="csh">
+            <h2>Content</h2><span className="cnt">· Quadratics · 5 items</span>
+            <div className="act">
+              <button className="btn btn--primary" onClick={()=>setOpen(true)}>{I("plus",15)}Add Item</button>
+            </div>
+          </div>
+          {/* dimmed parent content rows for context */}
+          <div className="ghostnode"><span className="gi">{I("circle-dot",16)}</span><span className="gt">Solve x² − 4 = 0</span><span className="gm">mcq · 5 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("file-text",16)}</span><span className="gt">Factoring recap</span><span className="gm">material · text</span></div>
+          <div className="ghostnode"><span className="gi">{I("hash",16)}</span><span className="gt">Identify the vertex</span><span className="gm">numerical · 5 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("braces",16)}</span><span className="gt">Implement quadratic_roots()</span><span className="gm">code · 12 pts</span></div>
+          <div className="ghostnode"><span className="gi">{I("pilcrow",16)}</span><span className="gt">Explain the discriminant</span><span className="gm">paragraph · 10 pts</span></div>
+        </div>
+      </div>
+    </Shell>
+
+    <div className="srlive" aria-live="polite">{live}</div>
+
+    {open && <PickerModal onClose={()=>setOpen(false)} onPick={pick} onBank={bank}/>}
+
+    {toast && <div className="toast" role="alert">
+      <span>{I("alert-circle",18)}</span>
+      <span><span className="ta">{toast.title}</span> {toast.body}</span>
+    </div>}
+  </>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

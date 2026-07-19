@@ -23,7 +23,7 @@ import type {
 interface QuestionLike {
   maxMarks?: number;
   rubric?: {
-    criteria?: { points?: number; maxPoints?: number }[];
+    criteria?: { maxScore?: number; maxPoints?: number; points?: number }[];
     modelAnswer?: unknown;
     evaluatorGuidance?: unknown;
   } | null;
@@ -44,7 +44,10 @@ export function createExamQuestionRepo(api: ApiClient): ExamQuestionRepo {
   const ag = api.autograde;
 
   const sum = (q: QuestionLike): number =>
-    (q.rubric?.criteria ?? []).reduce((acc, c) => acc + (c.maxPoints ?? c.points ?? 0), 0);
+    (q.rubric?.criteria ?? []).reduce(
+      (acc, c) => acc + (c.maxScore ?? c.maxPoints ?? c.points ?? 0),
+      0
+    );
 
   return {
     list: async (examId) => (await ag.listQuestions({ examId: examId as never })).questions,

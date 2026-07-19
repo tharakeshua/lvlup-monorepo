@@ -28,6 +28,8 @@ const PACKAGES_DIR = path.join(ROOT_DIR, "packages");
 
 // Workspace packages in packages/
 const WORKSPACE_PACKAGES: Record<string, string> = {
+  "@levelup/domain": "domain",
+  "@levelup/api-contract": "api-contract",
   "@levelup/shared-types": "shared-types",
   "@levelup/shared-services": "shared-services",
 };
@@ -108,6 +110,8 @@ let sharedBuilt = false;
 function buildSharedPackages(): void {
   if (sharedBuilt) return;
   console.log(">>> Building shared packages...");
+  exec("pnpm run --filter @levelup/domain build");
+  exec("pnpm run --filter @levelup/api-contract build");
   exec("pnpm run --filter @levelup/shared-types build");
   exec("pnpm run --filter @levelup/shared-services build");
   exec("pnpm run --filter @levelup/functions-shared build");

@@ -26,6 +26,7 @@ import { studentLevelLive } from "./student-level-live.js";
 import { achievementUnlock } from "./achievement-unlock.js";
 import { gradingStatus } from "./grading-status.js";
 import { examGrading } from "./exam-grading.js";
+import { extractionStatus } from "./extraction-status.js";
 import { notificationBadge } from "./notification-badge.js";
 
 // Per-channel defs.
@@ -37,6 +38,7 @@ export { studentLevelLive } from "./student-level-live.js";
 export { achievementUnlock } from "./achievement-unlock.js";
 export { gradingStatus } from "./grading-status.js";
 export { examGrading } from "./exam-grading.js";
+export { extractionStatus } from "./extraction-status.js";
 export { notificationBadge } from "./notification-badge.js";
 
 // Per-channel slim-projection payload + params schemas and inferred types.
@@ -86,6 +88,13 @@ export {
   type ExamGradingParams,
 } from "./exam-grading.js";
 export {
+  ExtractionStatusSchema,
+  ExtractionStatusParamsSchema,
+  EXTRACTION_PHASES,
+  type ExtractionStatus,
+  type ExtractionStatusParams,
+} from "./extraction-status.js";
+export {
   NotificationStateSchema,
   NotificationBadgeParamsSchema,
   type NotificationState,
@@ -106,5 +115,6 @@ export const SUBSCRIPTION_DEFS = {
   "v1.levelup.achievementUnlock": achievementUnlock,
   "v1.autograde.gradingStatus": gradingStatus,
   "v1.autograde.examGrading": examGrading,
+  "v1.autograde.extractionStatus": extractionStatus,
   "v1.notification.badge": notificationBadge,
 } as const satisfies Record<string, SubscriptionDef<any, any>>;

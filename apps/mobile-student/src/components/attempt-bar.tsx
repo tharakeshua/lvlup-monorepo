@@ -1,7 +1,8 @@
 /**
  * AttemptBar — the numbered item-progress strip at the top of the learning
- * content view (design: the `NumNode` row). Each node reflects the learner's
- * mastery on that item; tap to jump. Horizontally scrollable for long tracks.
+ * content view. Lyceum language: square rounded-md nodes, mono numerals,
+ * status-colored (mastered green / partial amber / incorrect soft red), the
+ * current node ringed in brand indigo. Tap to jump; horizontally scrollable.
  */
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -15,15 +16,15 @@ const STATUS_META: Record<
   { box: string; text: string; icon?: string; iconColor?: string }
 > = {
   mastered: {
-    box: "bg-success border-success",
+    box: "bg-mastery-mastered border-transparent",
     text: "text-text-on-accent",
     icon: "check",
     iconColor: colors.textOnAccent,
   },
-  partial: { box: "bg-marigold-200 border-warning", text: "text-warning" },
-  incorrect: { box: "bg-red-200 border-error", text: "text-error" },
-  current: { box: "bg-surface border-brand", text: "text-brand" },
-  none: { box: "bg-surface border-border-strong", text: "text-text-muted" },
+  partial: { box: "bg-warning border-transparent", text: "text-text-on-accent" },
+  incorrect: { box: "bg-red-200 border-error/40", text: "text-error" },
+  current: { box: "bg-surface border-brand border-2", text: "text-brand" },
+  none: { box: "bg-surface-sunken border-transparent", text: "text-text-muted" },
 };
 
 export function AttemptBar({ items = [], current, onSelect, className }: AttemptBarProps) {
@@ -36,16 +37,17 @@ export function AttemptBar({ items = [], current, onSelect, className }: Attempt
     >
       {items.map((it: AttemptBarItem, i) => {
         const isCurrent = current === i;
-        const status: AttemptItemStatus = isCurrent ? "current" : (it.status ?? "none");
+        const status: AttemptItemStatus =
+          isCurrent && (it.status ?? "none") === "none" ? "current" : (it.status ?? "none");
         const m = STATUS_META[status];
         return (
           <Pressable
             key={i}
             onPress={onSelect ? () => onSelect(i) : undefined}
             className={cx(
-              "h-9 w-9 items-center justify-center rounded-full border-2",
+              "h-11 w-11 items-center justify-center rounded-md border",
               m.box,
-              isCurrent && "shadow-sm"
+              isCurrent && status !== "current" && "border-brand border-2"
             )}
             accessibilityRole="button"
             accessibilityState={{ selected: isCurrent }}
@@ -53,7 +55,7 @@ export function AttemptBar({ items = [], current, onSelect, className }: Attempt
             {m.icon ? (
               <Icon name={m.icon} size={16} color={m.iconColor} strokeWidth={2.6} />
             ) : (
-              <Text className={cx("font-ui text-sm font-bold", m.text)}>{i + 1}</Text>
+              <Text className={cx("font-mono text-sm font-medium", m.text)}>{i + 1}</Text>
             )}
           </Pressable>
         );

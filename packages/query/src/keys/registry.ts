@@ -53,6 +53,28 @@ export const versionKeys = QUERY_KEYS.versions;
 export const questionBankKeys = QUERY_KEYS.questionBank;
 export const rubricPresetKeys = QUERY_KEYS.rubricPresets;
 export const chatKeys = QUERY_KEYS.chat;
+/**
+ * Conversation cache hierarchy. Unlike the generic domain factory this exposes
+ * the conventional list/detail prefix helpers plus a transcript-page child key.
+ * `detail(sessionId)` intentionally prefixes every `messages(sessionId, page)`
+ * key, so one RTDB bump can invalidate the authoritative callable read without
+ * putting transcript content into RTDB.
+ */
+// Derive the root from the exhaustive contract registry, so a contract-root
+// rename fails at this query boundary instead of silently minting a stray key.
+const CONVERSATION_ROOT = QUERY_KEYS.conversations.all();
+const EMPTY_CONVERSATION_PARAMS = {} as const;
+
+export const conversationKeys = {
+  all: CONVERSATION_ROOT,
+  lists: () => [...CONVERSATION_ROOT, "list"] as const,
+  list: <F extends object>(filter: F = EMPTY_CONVERSATION_PARAMS as F) =>
+    [...CONVERSATION_ROOT, "list", filter] as const,
+  details: () => [...CONVERSATION_ROOT, "detail"] as const,
+  detail: (sessionId: string) => [...CONVERSATION_ROOT, "detail", String(sessionId)] as const,
+  messages: <P extends object>(sessionId: string, page: P = EMPTY_CONVERSATION_PARAMS as P) =>
+    [...CONVERSATION_ROOT, "detail", String(sessionId), "messages", page] as const,
+};
 export const storeKeys = QUERY_KEYS.store;
 export const reviewKeys = QUERY_KEYS.reviews;
 export const enrollmentKeys = QUERY_KEYS.enrollment;

@@ -11,6 +11,7 @@ import { requireTenant, fail } from "../../shared/context.js";
 import { listExamQuestions, listQuestionSubmissions } from "./questions.js";
 import { resolveRubricService } from "./resolve-rubric.js";
 import { projectSubmissionStatus } from "./grading-projection.js";
+import { evaluateWithAi } from "../../evaluation/evaluate.js";
 
 export interface ProcessAnswerGradingInput {
   submissionId: string;
@@ -25,14 +26,6 @@ export interface ProcessAnswerGradingResult {
   failedCount: number;
 }
 
-interface AiGradeJson {
-  score?: number;
-  maxScore?: number;
-  confidence?: number;
-  feedback?: unknown;
-  breakdown?: unknown;
-}
-
 export async function processAnswerGradingService(
   input: ProcessAnswerGradingInput,
   ctx: SystemContext
@@ -41,6 +34,10 @@ export async function processAnswerGradingService(
   const sub = await ctx.repos.submissions.get(tenantId, input.submissionId);
   if (!sub) fail("NOT_FOUND", `submission ${input.submissionId} not found`);
   const examId = sub["examId"] as string;
+  const causation = (sub["llmCausation"] as Record<string, string | undefined> | undefined) ?? {};
+  const studentId = sub["studentId"] as string;
+  const student = await ctx.repos.students.get(tenantId, studentId);
+  const subjectUserId = causation["subjectUserId"] ?? (student?.["authUid"] as string | undefined);
   const exam = await ctx.repos.exams.get(tenantId, examId);
   if (!exam) fail("NOT_FOUND", `exam ${examId} not found`);
 
@@ -70,7 +67,12 @@ export async function processAnswerGradingService(
       failedCount += 1;
       continue;
     }
-    const { rubric, confidenceConfig } = await resolveRubricService(ctx, tenantId, exam, question);
+    const { rubric, confidenceConfig, settings } = await resolveRubricService(
+      ctx,
+      tenantId,
+      exam,
+      question
+    );
     const now = ctx.now();
 
     // The pages the scout mapped to THIS question (P0-C invariant: written by
@@ -106,30 +108,67 @@ export async function processAnswerGradingService(
 
     try {
       await markQuestionStatus(ctx, tenantId, qsub, "pending", "processing");
-      const ai = await ctx.ai.generate(
+      // Context-isolation note (extraction-architect seam): mapped pages may also
+      // carry OTHER questions' answers — tell the grader to score only this one.
+      const otherQuestionIds =
+        ((qsub["mapping"] as Record<string, unknown> | undefined)?.["otherQuestionIds"] as
+          | string[]
+          | undefined) ?? [];
+      const gradingNote =
+        `The student's handwritten answer is in the ${mappedImageUrls.length} ` +
+        "attached answer-sheet image(s). Grade ONLY what is written there." +
+        (otherQuestionIds.length > 0
+          ? ` The attached pages may ALSO contain answers to other questions (${otherQuestionIds.join(", ")}) — evaluate ONLY the answer to THIS question and ignore the rest.`
+          : "");
+
+      // Evaluation Core (AI-EVALUATION-CORE-PLAN.md Phase 3): same engine as the
+      // online path — persona (none for autograde v-now) + rubric snapshot +
+      // settings dimensions → dimension-derived responseSchema.
+      const outcome = await evaluateWithAi(
+        ctx.ai,
         {
-          promptKey: "answerGrading",
-          operation: "grade.ai",
-          // The `answerGrading` template's requiredVariables are
-          // {question, maxMarks, rubric, answer} — locked by the contract test.
-          variables: {
-            question: String(question["text"] ?? ""),
-            maxMarks: (question["maxMarks"] as number) ?? 0,
-            rubric,
-            answer:
-              `The student's handwritten answer is in the ${mappedImageUrls.length} ` +
-              "attached answer-sheet image(s). Grade ONLY what is written there.",
+          tenantId,
+          uid: ctx.uid,
+          role: ctx.role ?? "system",
+          resourceType: "questionSubmission",
+          resourceId: String(qsub["id"]),
+          now: ctx.now,
+          examId,
+          submissionId: input.submissionId,
+          questionId,
+          usage: {
+            actorUserId: ctx.uid,
+            actorRole: ctx.role ?? "system",
+            ...(causation["initiatedByUserId"]
+              ? { initiatedByUserId: causation["initiatedByUserId"] }
+              : {}),
+            ...(causation["initiatorRole"] ? { initiatorRole: causation["initiatorRole"] } : {}),
+            ...(subjectUserId ? { subjectUserId, billingUserId: subjectUserId } : {}),
+            related: { examId, submissionId: input.submissionId, questionId },
           },
-          // The mapped pages as storage paths — the ai gateway inlines the bytes.
-          images: mappedImageUrls.map((path) => ({ storagePath: path })),
-          responseSchema: { type: "object" },
         },
-        { tenantId, uid: ctx.uid, now: ctx.now, examId }
+        {
+          question: {
+            text: String(question["text"] ?? ""),
+            questionType: String(question["questionType"] ?? "subjective"),
+            maxScore: (question["maxMarks"] as number) ?? 0,
+          },
+          answer: {
+            note: gradingNote,
+            // The mapped pages as storage paths — the ai gateway inlines the bytes.
+            media: mappedImageUrls.map((path) => ({ storagePath: path })),
+          },
+          agent: null,
+          rubric: rubric ?? null,
+          settings: settings ?? null,
+          mode: "batch",
+          operation: "grade.ai",
+          feature: "autograde.answer_sheet",
+        }
       );
-      const result = (ai.json as AiGradeJson) ?? {};
-      const score = result.score ?? 0;
-      const maxScore = result.maxScore ?? (question["maxMarks"] as number) ?? 0;
-      const confidence = result.confidence ?? 0;
+      const score = outcome.score;
+      const maxScore = outcome.maxScore || ((question["maxMarks"] as number) ?? 0);
+      const confidence = outcome.confidence;
       const threshold = (confidenceConfig?.["confidenceThreshold"] as number) ?? 0.7;
       const needsReview = confidence < threshold;
 
@@ -137,10 +176,21 @@ export async function processAnswerGradingService(
         score,
         maxScore,
         confidence,
-        feedback: result.feedback,
-        breakdown: result.breakdown,
-        costUsd: ai.costUsd,
-        tokenUsage: ai.tokensUsed,
+        // `feedback`/`breakdown` keep their historical field names (teacher-web
+        // reads them); the Core enrichments ride alongside.
+        feedback: outcome.summary?.overallComment ?? "",
+        breakdown: outcome.rubricBreakdown ?? [],
+        strengths: outcome.strengths,
+        weaknesses: outcome.weaknesses,
+        missingConcepts: outcome.missingConcepts,
+        ...(outcome.structuredFeedback ? { structuredFeedback: outcome.structuredFeedback } : {}),
+        ...(outcome.rubricBreakdown ? { rubricBreakdown: outcome.rubricBreakdown } : {}),
+        ...(outcome.summary ? { summary: outcome.summary } : {}),
+        ...(outcome.mistakeClassification
+          ? { mistakeClassification: outcome.mistakeClassification }
+          : {}),
+        costUsd: outcome.costUsd,
+        tokenUsage: outcome.tokensUsed,
       };
 
       await ctx.repos.submissions.upsert(

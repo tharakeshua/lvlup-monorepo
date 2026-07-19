@@ -14,7 +14,13 @@
  * it is written concurrently.
  */
 import { ALLOWED_TRANSITIONS } from "@levelup/api-contract";
-import type { PageRequestInput as PageRequest, PageResponse } from "@levelup/api-contract";
+import type {
+  CallableName,
+  PageRequestInput as PageRequest,
+  PageResponse,
+  ReqOf,
+  ResOf,
+} from "@levelup/api-contract";
 import type { ApiClient as RealApiClient } from "@levelup/api-client";
 // Single canonical source for the answer-key editor cache-scope helpers (§4.2).
 import { EDIT_ITEM_SCOPE, editItemKey, isSensitiveKey } from "../internal/sensitive-keys";
@@ -48,6 +54,18 @@ export interface ApiClientLike {
       | { next: (p: unknown) => void; error?: (e: unknown) => void; onSynced?: () => void }
   ) => { unsubscribe(): void };
   call: (name: string) => CallableFn;
+}
+
+/**
+ * Recover the registry-derived request/response pair at the repository boundary.
+ * ApiClientLike stays structurally injectable for the local fake, while each
+ * repository call site is still checked against the canonical callable contract.
+ */
+export async function invokeCallable<N extends CallableName>(
+  invoke: CallableFn,
+  request: ReqOf<N>
+): Promise<ResOf<N>> {
+  return (await invoke(request)) as ResOf<N>;
 }
 
 /**

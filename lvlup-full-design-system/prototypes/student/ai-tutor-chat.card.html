@@ -1,0 +1,606 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="AI Tutor Chat — Socratic Tutor" subtitle="Guides not answers · panel + full page · never reveals key" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tutor Chat — Socratic Tutor</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  .shell { height: 820px; width: 1280px; overflow: hidden; position: relative; }
+
+  /* ---- full chat page two-column layout --------------------------------- */
+  .tc-page { display: grid; grid-template-columns: 280px 1fr; gap: var(--space-6); height: 100%; }
+  .tc-rail { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+    display: flex; flex-direction: column; overflow: hidden; }
+  .tc-rail__head { padding: var(--space-4) var(--space-4) var(--space-3); display: flex; flex-direction: column; gap: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle); }
+  .tc-rail__title { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-lg); margin: 0; }
+  .tc-rail__list { padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); overflow-y: auto; flex: 1; }
+  .tc-srow { text-align: left; width: 100%; background: var(--bg-surface); border: 1px solid transparent;
+    border-left: 3px solid transparent; border-radius: var(--radius-md); padding: var(--space-3); cursor: pointer;
+    display: flex; flex-direction: column; gap: var(--space-1); font-family: var(--font-ui);
+    transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard); }
+  .tc-srow:hover { background: var(--bg-surface-sunken); }
+  .tc-srow[data-active="true"] { background: var(--brand-subtle); border-left-color: var(--brand-primary); }
+  .tc-srow__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .tc-srow__name { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary); }
+  .tc-srow__preview { font-size: var(--text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tc-srow__meta { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+
+  .tc-conv { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+    display: flex; flex-direction: column; overflow: hidden; max-width: 760px; }
+  .tc-conv__head { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-3); }
+  .tc-conv__headrow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tc-conv__h1 { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-xl); margin: 0; }
+  .tc-conv__ctx { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .tc-thread { flex: 1; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .tc-composer { border-top: 1px solid var(--border-subtle); padding: var(--space-3) var(--space-4) var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .tc-composer__row { display: flex; align-items: flex-end; gap: var(--space-2); }
+  .tc-composer__row .textarea { flex: 1; resize: none; min-height: 44px; }
+  .tc-helper { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
+  .tc-helper svg { width: 14px; height: 14px; }
+
+  /* ---- bubbles / thread bits -------------------------------------------- */
+  .tc-turn { display: flex; gap: var(--space-2); align-items: flex-end; }
+  .tc-turn--tutor { justify-content: flex-start; }
+  .tc-turn--user { justify-content: flex-end; }
+  .tc-botglyph { width: 30px; height: 30px; border-radius: var(--radius-pill); background: var(--brand-subtle);
+    color: var(--brand-primary); display: grid; place-items: center; flex: 0 0 auto; }
+  .tc-botglyph svg { width: 17px; height: 17px; }
+  .tc-bubblewrap { max-width: 78%; display: flex; flex-direction: column; }
+  .tc-bubblewrap--user { align-items: flex-end; }
+  .tc-bubble-err { border-left: 3px solid var(--status-error); padding-left: var(--space-3); }
+  .tc-retry { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1);
+    font-size: var(--text-xs); color: var(--status-error); background: none; border: none; cursor: pointer;
+    font-family: var(--font-ui); padding: 0; }
+  .tc-retry svg { width: 13px; height: 13px; }
+
+  /* ---- StreamingDots (reduced-motion aware) ----------------------------- */
+  .tc-dots { display: inline-flex; align-items: center; gap: 5px; padding: var(--space-3) var(--space-4); }
+  .tc-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted);
+    animation: tc-bounce 1.2s var(--ease-standard) infinite; }
+  .tc-dots span:nth-child(2) { animation-delay: .18s; }
+  .tc-dots span:nth-child(3) { animation-delay: .36s; }
+  .tc-thinking-text { display: none; font-size: var(--text-sm); color: var(--text-secondary); padding: var(--space-3) var(--space-4); }
+  @keyframes tc-bounce { 0%,80%,100% { opacity:.3; transform: translateY(0); } 40% { opacity:1; transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .tc-dots { display: none; }
+    .tc-thinking-text { display: block; }
+    .tc-panel { animation: none !important; }
+  }
+
+  .tc-newreply { align-self: center; display: inline-flex; align-items: center; gap: var(--space-1);
+    background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-pill);
+    padding: var(--space-1) var(--space-3); font-size: var(--text-xs); color: var(--text-secondary);
+    cursor: pointer; box-shadow: var(--shadow-e1); font-family: var(--font-ui); }
+  .tc-newreply svg { width: 13px; height: 13px; }
+
+  .tc-starter { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; margin-top: var(--space-4); }
+  .tc-starter button { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill);
+    padding: var(--space-2) var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); cursor: pointer;
+    font-family: var(--font-ui); transition: border-color var(--dur-fast) var(--ease-standard); }
+  .tc-starter button:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+  /* ---- floating panel (docked bottom-right of learning view) ------------ */
+  .tc-learnbg { position: absolute; inset: 0; padding: var(--space-6); pointer-events: none; }
+  .tc-learnbg__ghost { max-width: 620px; opacity: .55; }
+  .tc-learnbg__ghost .tc-h { font-family: var(--font-display); font-weight: var(--weight-semibold);
+    font-size: var(--text-2xl); margin: 0 0 var(--space-3); }
+  .tc-panel { position: absolute; right: var(--space-6); bottom: var(--space-6); width: 384px; height: min(500px, 70vh);
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-e2); display: flex; flex-direction: column; overflow: hidden;
+    animation: tc-slidein var(--dur-base) var(--ease-entrance); }
+  @keyframes tc-slidein { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  .tc-panel__head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle); }
+  .tc-panel__title { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .tc-panel__actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+  .tc-panel__thread { flex: 1; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .tc-panel__composer { border-top: 1px solid var(--border-subtle); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+  .tc-pill { position: absolute; right: var(--space-6); bottom: var(--space-6); display: inline-flex; align-items: center;
+    gap: var(--space-2); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill);
+    padding: var(--space-3) var(--space-4); box-shadow: var(--shadow-e2); cursor: pointer; font-weight: var(--weight-medium);
+    font-size: var(--text-sm); }
+  .tc-pill__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--spark); }
+  .tc-pill__bot { color: var(--brand-primary); display: inline-flex; }
+
+  /* ---- state gallery ----------------------------------------------------- */
+  .tc-states { margin-top: var(--space-6); }
+  .tc-states__grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-5); }
+  .tc-tile { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); }
+  .tc-tile--wide { grid-column: span 2; }
+  .tc-eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: var(--space-3); display: block; }
+  .tc-mini-thread { display: flex; flex-direction: column; gap: var(--space-2); }
+  .tc-h2 { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-2xl); margin: 0 0 var(--space-1); }
+  .tc-sub { color: var(--text-secondary); font-size: var(--text-sm); margin: 0 0 var(--space-5); max-width: var(--reading-max); }
+  .tc-section-eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-muted); margin: var(--space-6) 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .tc-section-eyebrow::before { content:""; flex:0 0 18px; height:2px; background: var(--brand-muted); border-radius: var(--radius-pill); }
+  .tc-insightrow { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+  .tc-insightrow > * { flex: 1 1 220px; }
+  .tc-countdown { font-family: var(--font-mono); }
+  .tc-toast-fixed { position: absolute; right: var(--space-6); bottom: 120px; max-width: 320px; box-shadow: var(--shadow-e2);
+    border-radius: var(--radius-md); }
+  .tc-tt-suppress { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4);
+    background: var(--bg-inset); border: 1px dashed var(--border-strong); border-radius: var(--radius-md); color: var(--text-secondary);
+    font-size: var(--text-sm); }
+  .tc-tt-suppress svg { width: 18px; height: 18px; flex: 0 0 auto; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Textarea, Card,
+    Panel, Drawer, Popover, NavItem, Badge, Chip, Breadcrumb,
+    Skeleton, EmptyState, Alert, Toast, CommandPalette,
+    TutorChatBubble, AnswerKeyLock, InsightCard, ContentRenderer
+  } = LU;
+  const { useState } = React;
+
+  /* ---- realistic conversation data -------------------------------------- */
+  const SESSIONS = [
+    { id:"s1", name:"The recursion one", preview:"So if the smallest case returns 1, what should the next call add?", count:9, updated:"2m ago" },
+    { id:"s2", name:"Why my answer was partial", preview:"Good thinking — you handled the base case. What about an empty list?", count:6, updated:"1h ago" },
+    { id:"s3", name:"Hash collisions, simply", preview:"Picture two keys landing in the same bucket — what could we store instead?", count:4, updated:"Yesterday" },
+  ];
+
+  const Bot = () => <span className="tc-botglyph"><Icon name="bot" size={17}/></span>;
+
+  function StreamingDots(){
+    return (
+      <div className="tc-turn tc-turn--tutor">
+        <Bot/>
+        <div className="tc-bubblewrap">
+          <div className="bubble bubble--tutor" aria-label="Tutor is thinking" style={{padding:0}}>
+            <div className="tc-dots" aria-hidden="true"><span/><span/><span/></div>
+            <div className="tc-thinking-text">Tutor is thinking…</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Turn({ from, author, children, error, onRetry }){
+    if (from === "user") {
+      return (
+        <div className="tc-turn tc-turn--user">
+          <div className="tc-bubblewrap tc-bubblewrap--user">
+            <div className={"bubble bubble--user" + (error ? " tc-bubble-err" : "")}>
+              <span className="u-sr-only">You said: </span>{children}
+            </div>
+            {error && (
+              <button className="tc-retry" onClick={onRetry}>
+                <Icon name="rotate-ccw" size={13}/> Couldn't send that — Retry
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="tc-turn tc-turn--tutor">
+        <Bot/>
+        <div className="tc-bubblewrap">
+          <div className="bubble bubble--tutor">
+            <span className="u-sr-only">Tutor said: </span>
+            <ContentRenderer math>{children}</ContentRenderer>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* full conversation thread (success + streaming + error turn) */
+  function FullThread({ withError }){
+    return (
+      <>
+        <Turn from="tutor" author="Tutor">
+          Hey Aanya — glad you brought this one over. You wrote a recursive sum, but it returned the wrong
+          total on <code>[3, 7, 2]</code>. Before we touch the code: what should <code>sum([])</code> give back?
+        </Turn>
+        <Turn from="user">I think an empty list should return 0?</Turn>
+        <Turn from="tutor" author="Tutor">
+          Exactly right — that's your base case, and it's solid. Now walk me through one level up:
+          if <code>sum([2])</code> is supposed to be 2, what does your function do with that single element
+          before it recurses?
+        </Turn>
+        <Turn from="user">It adds the first element to sum of the rest… but I wrote `sum(arr)` not `sum(arr[1:])`.</Turn>
+        <Turn from="tutor" author="Tutor">
+          You just found it yourself — nice. So what happens to the list each time you recurse if you pass
+          the <em>whole</em> array back in instead of the tail? Picture it shrinking… or not shrinking.
+        </Turn>
+        {withError ? (
+          <Turn from="user" error onRetry={()=>{}}>It would never get smaller, so it recurses forever — stack overflow.</Turn>
+        ) : (
+          <>
+            <Turn from="user">It never gets smaller, so it recurses forever — stack overflow!</Turn>
+            <StreamingDots/>
+          </>
+        )}
+      </>
+    );
+  }
+
+  /* ---- floating panel (own state machine) ------------------------------- */
+  function FloatingPanel(){
+    const [open, setOpen] = useState(true);
+    const [view, setView] = useState("thread"); // thread | sessions
+    const [draft, setDraft] = useState("");
+
+    if (!open) {
+      return (
+        <button className="tc-pill" onClick={()=>setOpen(true)} aria-label="Open AI Tutor (1 new reply)">
+          <span className="tc-pill__bot"><Icon name="bot" size={18}/></span>
+          AI Tutor
+          <span className="tc-pill__dot" title="New reply"/>
+        </button>
+      );
+    }
+
+    return (
+      <div className="tc-panel" role="dialog" aria-label="AI Tutor">
+        <div className="tc-panel__head">
+          {view === "sessions" ? (
+            <button className="tc-retry" style={{color:"var(--text-secondary)"}} onClick={()=>setView("thread")}>
+              <Icon name="chevron-left" size={14}/> Back
+            </button>
+          ) : (
+            <span className="tc-panel__title"><span className="tc-pill__bot"><Icon name="bot" size={17}/></span> AI Tutor</span>
+          )}
+          <div className="tc-panel__actions">
+            {view === "thread" && (
+              <button className="chip" onClick={()=>setView("sessions")} style={{cursor:"pointer",fontFamily:"var(--font-ui)"}}>
+                <Icon name="messages-square" size={13}/> Threads · 3
+              </button>
+            )}
+            <IconButton size="sm" icon={<Icon name="maximize-2" size={16}/>} label="Open in full view"/>
+            <IconButton size="sm" icon={<Icon name="minus" size={16}/>} label="Minimize chat" onClick={()=>setOpen(false)}/>
+            <IconButton size="sm" icon={<Icon name="x" size={16}/>} label="Close chat" onClick={()=>setOpen(false)}/>
+          </div>
+        </div>
+
+        {view === "sessions" ? (
+          <div className="tc-rail__list" style={{flex:1}}>
+            <Button variant="secondary" size="sm" block leadingIcon={<Icon name="plus" size={15}/>} onClick={()=>setView("thread")}>
+              New conversation
+            </Button>
+            {SESSIONS.map((s,i)=>(
+              <button key={s.id} className="tc-srow" data-active={i===0} onClick={()=>setView("thread")}>
+                <div className="tc-srow__top">
+                  <span className="tc-srow__name">{s.name}</span>
+                  <span className="tc-srow__meta">{s.count} msgs</span>
+                </div>
+                <span className="tc-srow__preview">{s.preview}</span>
+                <span className="tc-srow__meta">{s.updated}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="tc-panel__thread" role="log" aria-live="polite" aria-atomic="false">
+              <Turn from="tutor" author="Tutor">
+                Welcome back. You're on <strong>Q3 · Recursion</strong>. Where are you feeling stuck —
+                the base case, or how the calls stack up?
+              </Turn>
+              <Turn from="user">The base case I get. It's the recursive step I keep messing up.</Turn>
+              <Turn from="tutor" author="Tutor">
+                Totally fair — that's the trickiest part. Quick check: when you call the function on a
+                smaller piece, what do you do with the <em>first</em> element you set aside?
+              </Turn>
+              <StreamingDots/>
+            </div>
+            <div className="tc-panel__composer">
+              <div className="tc-composer__row">
+                <Textarea rows={1} placeholder="Ask your tutor anything…" value={draft}
+                  onChange={(e)=>setDraft(e.target.value)} aria-label="Message the tutor"/>
+                <IconButton solid icon={<Icon name="send-horizontal" size={16}/>} label="Send message"/>
+              </div>
+              <div className="tc-helper"><Icon name="shield-check" size={14}/> I guide you to the answer — I won't just give it away.</div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  /* ====================================================================== */
+  function Screen(){
+    const [panelDemo, setPanelDemo] = useState("panel"); // panel | minimized | sessions
+    const [draft, setDraft] = useState("");
+    const [cmdkOpen, setCmdkOpen] = useState(false);
+
+    return (
+      <div className="shell">
+        <div className="appshell">
+          {/* Sidebar */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">L</span>
+              <span className="sidebar__brand-name">LevelUp</span>
+            </div>
+            <nav className="sidebar__nav">
+              <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+              <NavItem icon="library" href="#">Spaces</NavItem>
+              <NavItem icon="target" href="#">Practice</NavItem>
+              <NavItem icon="messages-square" href="#" active>Tutor</NavItem>
+              <NavItem icon="trophy" href="#" badge={<Badge variant="spark" dot/>}>Achievements</NavItem>
+              <div className="sidebar__section-label">Subjects</div>
+              <NavItem icon="binary" href="#">Data Structures</NavItem>
+              <NavItem icon="network" href="#">System Design</NavItem>
+            </nav>
+          </aside>
+
+          {/* Topbar */}
+          <header className="appshell__topbar">
+            <div className="topbar__spacer"></div>
+            <button className="chip" onClick={()=>setCmdkOpen(true)} style={{cursor:"pointer",fontFamily:"var(--font-ui)"}}
+              aria-label="Open command palette">
+              <Icon name="command" size={13}/> K
+            </button>
+            <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications" />
+            <span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)",fontSize:"var(--text-sm)",fontWeight:"var(--weight-medium)"}}>
+              <span className="avatar avatar--sm">AR</span> Aanya
+            </span>
+          </header>
+
+          {/* Main */}
+          <main className="appshell__main">
+            <Breadcrumb items={[{ label:"Tutor", href:"#" },{ label:"Q3 · Recursion" }]}/>
+            <h1 className="tc-h2" style={{marginTop:"var(--space-4)"}}>Your tutor</h1>
+            <p className="tc-sub">A patient mentor keyed to whatever you're working on — it asks the right questions
+              so the insight lands as <em>yours</em>. Pick a thread, or start a fresh one.</p>
+
+            {/* ---- PRIMARY: full chat page (success state) ---- */}
+            <div className="tc-page" style={{height:"540px"}}>
+              {/* sessions rail */}
+              <div className="tc-rail">
+                <div className="tc-rail__head">
+                  <h2 className="tc-rail__title">Threads</h2>
+                  <Button variant="secondary" size="sm" block leadingIcon={<Icon name="plus" size={15}/>}>New conversation</Button>
+                </div>
+                <div className="tc-rail__list">
+                  {SESSIONS.map((s,i)=>(
+                    <button key={s.id} className="tc-srow" data-active={i===0}>
+                      <div className="tc-srow__top">
+                        <span className="tc-srow__name">{s.name}</span>
+                        <span className="tc-srow__meta">{s.count} msgs</span>
+                      </div>
+                      <span className="tc-srow__preview">{s.preview}</span>
+                      <span className="tc-srow__meta">{s.updated}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* conversation column */}
+              <div className="tc-conv">
+                <div className="tc-conv__head">
+                  <div className="tc-conv__headrow">
+                    <h2 className="tc-conv__h1">The recursion one</h2>
+                    <div className="tc-conv__ctx">
+                      <Badge variant="brand" icon={<Icon name="hash" size={12}/>}>Q3 · Recursion</Badge>
+                    </div>
+                  </div>
+                  <AnswerKeyLock title="Answers stay hidden — that's on purpose.">
+                    The win is <em>you</em> figuring it out.
+                  </AnswerKeyLock>
+                </div>
+                <div className="tc-thread" role="log" aria-live="polite" aria-atomic="false">
+                  <FullThread/>
+                </div>
+                <div className="tc-composer">
+                  <div className="tc-composer__row">
+                    <Textarea rows={1} placeholder="Ask your tutor anything…" value={draft}
+                      onChange={(e)=>setDraft(e.target.value)} aria-label="Message the tutor"/>
+                    <IconButton solid icon={<Icon name="send-horizontal" size={16}/>} label="Send message"/>
+                  </div>
+                  <div className="tc-helper"><Icon name="shield-check" size={14}/> I guide you to the answer — I won't just give it away.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ---- post-session insights (optional) ---- */}
+            <div className="tc-section-eyebrow">After the session · encouraging next-steps, never grades</div>
+            <div className="tc-insightrow">
+              <InsightCard icon="lightbulb" title="What we touched">
+                Base case vs. recursive step · how the call stack shrinks the input.
+              </InsightCard>
+              <InsightCard icon="check-circle-2" title="What clicked">
+                You spotted the missing tail slice on your own — that's the real win.
+              </InsightCard>
+              <InsightCard icon="compass" title="Where to revisit">
+                Try the same pattern on <em>reverse a string</em> to lock it in.
+              </InsightCard>
+            </div>
+
+            {/* ============ STATE GALLERY ============ */}
+            <div className="tc-section-eyebrow">All spec'd states</div>
+            <div className="tc-states__grid">
+
+              {/* loading skeleton */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: loading (skeleton)</span>
+                <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                  <Skeleton width="70%" height="2.5rem"/>
+                  <Skeleton width="55%" height="2.5rem" style={{alignSelf:"flex-end"}}/>
+                  <div style={{borderTop:"1px solid var(--border-subtle)",margin:"var(--space-2) 0"}}/>
+                  <Skeleton width="40%"/><Skeleton width="60%"/><Skeleton width="35%"/>
+                </div>
+              </div>
+
+              {/* empty — no messages */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: empty (fresh session)</span>
+                <EmptyState
+                  icon="bot"
+                  title="Let's work through this together"
+                  body="Ask me anything about this question — where you're stuck, what's confusing, or how to start. I'll ask the right questions to help you get there yourself."
+                />
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <AnswerKeyLock title="Answers stay hidden — that's on purpose.">The win is <em>you</em> figuring it out.</AnswerKeyLock>
+                </div>
+                <div className="tc-starter">
+                  <button>I'm not sure where to start</button>
+                  <button>Why was my answer marked partial?</button>
+                  <button>Explain this idea simply</button>
+                  <button>Give me a hint, not the answer</button>
+                </div>
+              </div>
+
+              {/* empty — no sessions */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: empty (no threads for item)</span>
+                <EmptyState
+                  icon="message-circle-plus"
+                  title="Start a conversation"
+                  body="No threads yet for this question. Open one whenever you're ready — there's no wrong question to ask."
+                  action={<Button variant="secondary" size="sm" leadingIcon={<Icon name="plus" size={15}/>}>New conversation</Button>}
+                />
+              </div>
+
+              {/* streaming / partial */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: streaming (optimistic + StreamingDots)</span>
+                <div className="tc-mini-thread">
+                  <Turn from="user">It never gets smaller, so it recurses forever — stack overflow!</Turn>
+                  <StreamingDots/>
+                </div>
+                <div className="tc-helper" style={{marginTop:"var(--space-3)"}}>
+                  <Icon name="info" size={14}/> Reduced motion shows a static "Tutor is thinking…" instead of dots.
+                </div>
+              </div>
+
+              {/* success + new-reply affordance */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: success (scrolled-up → "New reply")</span>
+                <div className="tc-mini-thread">
+                  <Turn from="tutor" author="Tutor">You're close — what happens if the list already has one item?</Turn>
+                  <Turn from="user">Oh… it returns that item directly. So the recursion bottoms out one step sooner.</Turn>
+                  <button className="tc-newreply"><Icon name="arrow-down" size={13}/> New reply</button>
+                </div>
+              </div>
+
+              {/* send error */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: error — send failed (retry)</span>
+                <div className="tc-mini-thread">
+                  <Turn from="user" error onRetry={()=>{}}>So the recursive case adds arr[0] to sum(arr[1:])?</Turn>
+                </div>
+                <div className="tc-helper" style={{marginTop:"var(--space-3)"}}>
+                  <Icon name="info" size={14}/> Text stays in the bubble &amp; composer — nothing is lost. A Toast mirrors it.
+                </div>
+              </div>
+
+              {/* moderation blocked */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: moderation blocked (status.warning · non-punitive)</span>
+                <Alert variant="warning" title="Let's keep this focused on your learning">
+                  Try rephrasing your question. The blocked message isn't added to the thread.
+                </Alert>
+                <div className="tc-helper" style={{marginTop:"var(--space-3)"}}>
+                  <Icon name="server" size={14}/> Server-decided — the UI only reflects the verdict, never makes it.
+                </div>
+              </div>
+
+              {/* rate-limited */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: rate-limited (status.info)</span>
+                <Alert variant="info" title="You've asked a lot of great questions!">
+                  Take a short breather — I'll be ready again in <span className="tc-countdown">2:48</span>.
+                </Alert>
+                <div className="tc-composer__row" style={{marginTop:"var(--space-3)"}}>
+                  <Textarea rows={1} placeholder="Composer paused…" disabled aria-label="Composer disabled"/>
+                  <IconButton solid disabled icon={<Icon name="send-horizontal" size={16}/>} label="Send message"/>
+                </div>
+              </div>
+
+              {/* permission-gated: no tutor in timed test */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: gated — disabled in a live timed test</span>
+                <div className="tc-tt-suppress">
+                  <Icon name="lock"/>
+                  <div>
+                    <strong>Tutor is paused during this timed test.</strong><br/>
+                    It'll be right here the moment you submit — then we can talk it through (still no answer key).
+                  </div>
+                </div>
+              </div>
+
+              {/* floating panel — minimized pill */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">State: floating panel — minimized pill</span>
+                <div style={{position:"relative",height:"90px",background:"var(--bg-surface-sunken)",borderRadius:"var(--radius-md)"}}>
+                  <span className="tc-pill" style={{position:"absolute",right:"var(--space-3)",bottom:"var(--space-3)"}}>
+                    <span className="tc-pill__bot"><Icon name="bot" size={18}/></span>
+                    AI Tutor <span className="tc-pill__dot"/>
+                  </span>
+                </div>
+                <div className="tc-helper" style={{marginTop:"var(--space-3)"}}>
+                  <Icon name="dot" size={14}/> The spark dot marks an unread streamed reply.
+                </div>
+              </div>
+
+              {/* md responsive: Threads popover */}
+              <div className="tc-tile">
+                <span className="tc-eyebrow">Responsive (md): sessions → "Threads" Popover</span>
+                <Button variant="secondary" size="sm" leadingIcon={<Icon name="messages-square" size={15}/>} trailingIcon={<Icon name="chevron-down" size={14}/>}>
+                  Threads · 3
+                </Button>
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Popover>
+                    {SESSIONS.slice(0,2).map((s)=>(
+                      <button key={s.id} className="tc-srow" style={{border:"none"}}>
+                        <span className="tc-srow__name">{s.name}</span>
+                        <span className="tc-srow__meta">{s.count} msgs · {s.updated}</span>
+                      </button>
+                    ))}
+                  </Popover>
+                </div>
+              </div>
+
+            </div>
+          </main>
+        </div>
+
+        {/* ---- floating ChatTutorPanel demo overlay (docked bottom-right) ---- */}
+        <FloatingPanel/>
+
+        {/* send-failure toast (mirrors the error bubble) */}
+        <div className="tc-toast-fixed">
+          <Toast variant="error" title="Hmm, that didn't go through." body="Tap retry — your message is still here."/>
+        </div>
+
+        {/* ⌘K command palette */}
+        {cmdkOpen && (
+          <div className="modal-scrim" onClick={()=>setCmdkOpen(false)}>
+            <div style={{maxWidth:"520px",width:"100%",marginTop:"12vh"}} onClick={(e)=>e.stopPropagation()}>
+              <CommandPalette selected={0} placeholder="Ask the tutor…" items={[
+                { icon:"bot", label:"Ask the tutor…", kbd:"↵" },
+                { icon:"plus", label:"New conversation", kbd:"N" },
+                { icon:"messages-square", label:"Open thread · The recursion one" },
+              ]}/>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

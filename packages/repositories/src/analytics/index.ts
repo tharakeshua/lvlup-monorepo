@@ -24,6 +24,7 @@ import { createExamAnalyticsRepo, type ExamAnalyticsRepo } from "./views/exam-an
 import { createTrendsRepo, type TrendsRepo } from "./views/trends.js";
 import { createParentRepo, type ParentRepo } from "./views/parent.js";
 import { createLeaderboardRepo, type LeaderboardRepo } from "./views/leaderboard.js";
+import { createSpaceAnalyticsRepo, type SpaceAnalyticsRepo } from "./views/space-analytics.js";
 
 export interface AnalyticsRepos {
   // per-entity
@@ -36,6 +37,7 @@ export interface AnalyticsRepos {
   trendsRepo: TrendsRepo;
   parentRepo: ParentRepo;
   leaderboardRepo: LeaderboardRepo;
+  spaceAnalyticsRepo: SpaceAnalyticsRepo;
 }
 
 export function createAnalyticsRepos(api: ApiClient): AnalyticsRepos {
@@ -48,6 +50,7 @@ export function createAnalyticsRepos(api: ApiClient): AnalyticsRepos {
     trendsRepo: createTrendsRepo(api),
     parentRepo: createParentRepo(api),
     leaderboardRepo: createLeaderboardRepo(api),
+    spaceAnalyticsRepo: createSpaceAnalyticsRepo(api),
   };
 }
 
@@ -77,6 +80,8 @@ export type {
   LeaderboardScope,
   GetLeaderboardRequest,
   GetLeaderboardResponse,
+  GetSpaceAnalyticsRequest,
+  GetSpaceAnalyticsResponse,
 } from "./api-types.js";
 export { paginate, listOnce, type PageBag, type Paged } from "./paginate.js";
 
@@ -111,3 +116,4 @@ export {
   type RankedEntry,
   type LeaderboardSubParams,
 } from "./views/leaderboard.js";
+export { createSpaceAnalyticsRepo, type SpaceAnalyticsRepo } from "./views/space-analytics.js";

@@ -17,6 +17,7 @@ export interface TestNav {
   toRun: (storyPointId: string) => void;
   toResults: (storyPointId: string) => void;
   toAnalytics: (storyPointId: string) => void;
+  toExams: () => void;
   toExamResults: (examId: string) => void;
   back: () => void;
 }
@@ -29,6 +30,7 @@ export function useTestNav(): TestNav {
     toRun: (id) => router.push(routes.testRun(id)),
     toResults: (id) => router.push(routes.testResults(id)),
     toAnalytics: (id) => router.push(routes.testAnalytics(id)),
+    toExams: () => router.push(routes.exams()),
     toExamResults: (id) => router.push(routes.examResults(id)),
     back: () => (router.canGoBack() ? router.back() : router.push(routes.tests())),
   };

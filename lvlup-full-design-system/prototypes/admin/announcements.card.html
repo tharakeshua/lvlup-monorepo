@@ -1,0 +1,616 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Announcements" subtitle="Broadcast to your academy · draft → publish → archive · platform notices read-only" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);text-decoration:none;}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:280px;max-width:32vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1264px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;border:1px solid transparent;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.btn i{width:15px;height:15px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--spark{background:var(--spark);color:var(--text-on-accent);box-shadow:var(--glow-spark);}
+.btn--spark:hover{background:var(--spark-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-strong);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:transparent;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--danger{background:var(--status-error);color:var(--text-on-accent);}
+.btn--danger:hover{filter:brightness(.94);}
+.btn--sm{padding:var(--space-1) var(--space-3);font-size:var(--text-xs);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+.icon-btn{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.icon-btn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.icon-btn i{width:17px;height:17px;}
+/* tabs */
+.tabs{display:inline-flex;gap:var(--space-1);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:3px;}
+.tab{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:none;background:none;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.tab.on{background:var(--bg-surface);color:var(--text-primary);font-weight:var(--weight-semibold);box-shadow:var(--shadow-e1);}
+.tab .pill{font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-inset);color:var(--text-muted);border-radius:var(--radius-pill);padding:0 var(--space-2);}
+.tab.on .pill{background:var(--brand-subtle);color:var(--brand-primary);}
+/* platform notices band */
+.pn-band{border:1px solid var(--status-info);background:var(--status-info-subtle);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);}
+.pn-head{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--status-info);}
+.pn-head i{width:16px;height:16px;}
+.pn-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);}
+.pn-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);}
+.pn-card .ct{font-size:var(--text-sm);font-weight:var(--weight-semibold);display:flex;align-items:center;gap:var(--space-2);}
+.pn-card .ro{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-medium);}
+.pn-card .ro i{width:11px;height:11px;}
+.pn-card .cb{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);}
+.pn-card .cb code{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--bg-surface-sunken);padding:0 4px;border-radius:var(--radius-sm);}
+.pn-card .mt{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+/* table */
+.tbl-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:visible;}
+table.tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+table.tbl th{text-align:left;padding:var(--space-3) var(--space-4);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);white-space:nowrap;}
+table.tbl th.so{cursor:pointer;}
+table.tbl th.so i{width:12px;height:12px;vertical-align:-1px;margin-left:2px;}
+table.tbl td{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);color:var(--text-primary);vertical-align:top;}
+table.tbl tr:last-child td{border-bottom:none;}
+table.tbl tbody tr{transition:background var(--dur-fast) var(--ease-standard);}
+table.tbl tbody tr:hover{background:var(--bg-surface-sunken);}
+table.tbl tr.sel{background:var(--brand-subtle);}
+table.tbl tr.sel:hover{background:var(--brand-subtle);}
+.cell-title{display:flex;flex-direction:column;gap:2px;max-width:340px;}
+.cell-title .tt{font-weight:var(--weight-medium);line-height:1.2;}
+.cell-title .bp{font-size:var(--text-2xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+.cell-author{display:flex;align-items:center;gap:var(--space-2);}
+.av-sm{width:26px;height:26px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-2xs);font-weight:var(--weight-semibold);flex:none;}
+.chk{appearance:none;width:16px;height:16px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);cursor:pointer;background:var(--bg-surface);display:inline-grid;place-items:center;}
+.chk:checked{background:var(--brand-primary);border-color:var(--brand-primary);}
+.chk:checked::after{content:"";width:9px;height:9px;background:var(--text-on-accent);clip-path:polygon(14% 52%,0 65%,40% 100%,100% 18%,86% 7%,38% 73%);}
+.chk:focus-visible{box-shadow:var(--ring-focus);outline:none;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.drf{background:var(--bg-surface-sunken);color:var(--text-secondary);border-color:var(--border-strong);}
+.badge.arc{background:var(--status-warning-subtle);color:var(--status-warning);}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-2xs);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);white-space:nowrap;}
+.chip i{width:11px;height:11px;}
+.chip-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
+/* pagination */
+.pag{display:flex;align-items:center;gap:var(--space-3);justify-content:space-between;flex-wrap:wrap;}
+.pag .nums{display:flex;align-items:center;gap:var(--space-1);}
+.pag .pg{min-width:30px;height:30px;display:grid;place-items:center;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);cursor:pointer;}
+.pag .pg.on{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);}
+.tb-sel{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.tb-sel i{width:15px;height:15px;}
+/* alerts */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:var(--text-sm);background:var(--bg-surface);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.alert.warn i.lead{color:var(--status-warning);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert.err i.lead{color:var(--status-error);}
+.alert.info{border-color:var(--status-info);background:var(--status-info-subtle);}
+.alert.info i.lead{color:var(--status-info);}
+.alert .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;}
+.sec-label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);}
+.sec-label i{width:14px;height:14px;}
+/* empty / skeleton */
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:var(--space-12) var(--space-6);text-align:center;}
+.empty .ei{width:52px;height:52px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);}
+.empty .ei i{width:24px;height:24px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:38ch;}
+.empty .ea{display:flex;gap:var(--space-2);margin-top:var(--space-2);}
+.skl{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);animation:shim 1.3s var(--ease-standard) infinite;}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.5}}
+/* modal */
+.overlay{position:fixed;inset:0;background:var(--ink-900);opacity:.42;z-index:40;}
+.modal{position:fixed;inset:0;z-index:41;display:grid;place-items:center;padding:var(--space-6);}
+.modal .box{width:100%;max-width:560px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);box-shadow:var(--shadow-e3);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;}
+.modal .box.sm{max-width:440px;}
+.modal .mh{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle);}
+.modal .mh .mt{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.modal .mh .ms{font-size:var(--text-sm);color:var(--text-secondary);margin-top:2px;}
+.modal .mb{padding:var(--space-5);overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-4);position:relative;}
+.modal .mf{display:flex;align-items:center;gap:var(--space-2);justify-content:flex-end;padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken);}
+.modal .mf .gr{margin-right:auto;}
+.field{display:flex;flex-direction:column;gap:var(--space-2);}
+.field .fl{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);display:flex;align-items:center;gap:var(--space-2);}
+.field .fl .req{color:var(--status-error);}
+.field .fl .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.field input,.field select,.field textarea{padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);width:100%;box-sizing:border-box;}
+.field textarea{font-family:var(--font-mono);font-size:var(--text-xs);line-height:var(--leading-sm);resize:vertical;min-height:120px;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.field.bad input,.field.bad textarea{border-color:var(--status-error);}
+.field .fe{display:flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--status-error);}
+.field .fe i{width:12px;height:12px;}
+.field .fh{font-size:var(--text-2xs);color:var(--text-muted);}
+.subtabs{display:inline-flex;gap:2px;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:2px;}
+.subtab{padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.subtab i{width:12px;height:12px;}
+.subtab.on{background:var(--bg-surface);color:var(--text-primary);font-weight:var(--weight-semibold);box-shadow:var(--shadow-e1);}
+.preview{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);padding:var(--space-4);min-height:120px;font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm);}
+.preview h3{font-family:var(--font-display);font-size:var(--text-base);margin:0 0 var(--space-2);}
+.preview code{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--bg-inset);padding:0 4px;border-radius:var(--radius-sm);}
+.preview p{margin:0 0 var(--space-2);}
+.divh{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);}
+.divh::after{content:"";flex:1;height:1px;background:var(--border-subtle);}
+.opts{display:flex;gap:var(--space-2);flex-wrap:wrap;}
+.opt{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);cursor:pointer;background:var(--bg-surface);transition:border-color var(--dur-fast) var(--ease-standard);}
+.opt.on{border-color:var(--brand-primary);background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-medium);}
+.classlist{border:1px solid var(--border-subtle);border-radius:var(--radius-md);max-height:148px;overflow-y:auto;}
+.classlist .cs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);position:sticky;top:0;}
+.classlist .cs input{flex:1;border:none;outline:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);}
+.classlist .cs i{width:14px;height:14px;color:var(--text-muted);}
+.classlist .ci{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);cursor:pointer;}
+.classlist .ci:hover{background:var(--bg-surface-sunken);}
+.audsum{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--brand-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--brand-primary);}
+.audsum i{width:15px;height:15px;}
+.loadover{position:absolute;inset:0;background:var(--bg-surface);opacity:.72;display:grid;place-items:center;z-index:5;}
+.spinner{width:26px;height:26px;border:2.5px solid var(--border-subtle);border-top-color:var(--brand-primary);border-radius:var(--radius-pill);animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:184px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);display:flex;flex-direction:column;}
+.menu button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;}
+.menu button:hover{background:var(--bg-surface-sunken);}
+.menu button.danger{color:var(--status-error);}
+.menu button i{width:15px;height:15px;}
+.menu .div{height:1px;background:var(--border-subtle);margin:var(--space-1) 0;}
+.relpos{position:relative;}
+/* toast */
+.toastwrap{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:50;display:flex;flex-direction:column;gap:var(--space-2);}
+.toast{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);font-size:var(--text-sm);min-width:260px;}
+.toast i.lead{width:17px;height:17px;flex:none;}
+.toast.suc i.lead{color:var(--status-success);}
+.toast .tl{font-weight:var(--weight-medium);}
+.toast .undo{margin-left:auto;color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+const Button = ({children,leadingIcon,variant,size,disabled,onClick})=>
+  <button className={"btn btn--"+(variant||"primary")+(size?" btn--"+size:"")} disabled={disabled} onClick={onClick}>
+    {leadingIcon&&<i data-lucide={leadingIcon}></i>}{children}</button>;
+
+/* ---- Reusable admin shell (tokens-only frame; tenant surface) ---- */
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined} href="#">
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood Academy · Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Overview</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active={active}/>
+          <Nav icon="rocket" label="Onboarding" route="/onboarding" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Management</div>
+          <Nav icon="users" label="Users" route="/users" active={active}/>
+          <Nav icon="school" label="Classes" route="/classes" active={active}/>
+          <Nav icon="shield-check" label="Staff & Permissions" route="/staff" active={active}/>
+          <Nav icon="file-check" label="Exams" route="/exams" active={active}/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active={active}/>
+          <Nav icon="book-open" label="Courses" route="/courses" active={active}/>
+          <Nav icon="calendar-range" label="Academic Sessions" route="/academic-sessions" active={active}/>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Analytics</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active={active}/>
+          <Nav icon="file-text" label="Reports" route="/reports" active={active}/>
+          <Nav icon="sparkles" label="AI Usage" route="/ai-usage" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Configuration</div>
+          <Nav icon="bell" label="Notifications" route="/notifications" active={active}/>
+          <Nav icon="download" label="Data Export" route="/data-export" active={active}/>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="building"></i><span>Switch tenant</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">AK</div>
+          <div><div className="nm">Anita Kapoor</div><div className="rl">Tenant Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">{crumb.map((c,i)=>(
+          <React.Fragment key={i}>{i>0&&<i data-lucide="chevron-right" style={{width:14,height:14}}></i>}{i===crumb.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>))}</nav>
+        <div className="sp"></div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn" aria-label="Toggle theme"><i data-lucide="sun"></i></button>
+        <button className="icon-btn" aria-label="Notifications, 3 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- status helper: icon + label, never color-only (foundation §2.2) ---- */
+function StatusBadge({status}){
+  if(status==="published") return <span className="badge suc"><i data-lucide="check-circle-2"></i>Published</span>;
+  if(status==="archived")  return <span className="badge arc"><i data-lucide="archive"></i>Archived</span>;
+  return <span className="badge drf"><i data-lucide="pencil-line"></i>Draft</span>;
+}
+
+/* ---- audience cell: role + class chips (icon+label), default "Everyone", "+N classes" overflow ---- */
+function Audience({roles,classes}){
+  if((!roles||!roles.length)&&(!classes||!classes.length))
+    return <span className="chip"><i data-lucide="globe"></i>Everyone</span>;
+  const shown = classes ? classes.slice(0,2) : [];
+  const extra = classes ? classes.length-shown.length : 0;
+  return <div className="chip-row">
+    {(roles||[]).map(r=><span className="chip" key={r}><i data-lucide="user"></i>{r}</span>)}
+    {shown.map(c=><span className="chip" key={c}><i data-lucide="school"></i>{c}</span>)}
+    {extra>0 && <span className="chip">+{extra} classes</span>}
+  </div>;
+}
+
+/* ---- sample data (server-authoritative; render-only) ---- */
+const PLATFORM=[
+  {id:"pn1",title:"Scheduled maintenance window",body:"Auto-LevelUp will be read-only on 22 Jun 02:00–03:00 UTC for a database upgrade. No data loss is expected.",date:"12 Jun · Platform",author:"Platform Operations"},
+  {id:"pn2",title:"New: KaTeX in announcements",body:"Announcement bodies now render inline math, e.g. the quadratic root x = −b±√(b²−4ac)/2a.",date:"09 Jun · Platform",author:"Product"},
+];
+const ROWS=[
+  {id:"a1",title:"End-of-term exam timetable",preview:"Grade 8 mathematics and science exams begin Monday 24 June. See the attached schedule by class.",status:"published",roles:["Students"],classes:["Grade 8 – A","Grade 8 – C","Grade 7 – B"],author:"Arjun Rao",init:"AR",created:"12 Jun 2026"},
+  {id:"a2",title:"Summer holiday notice",preview:"The academy closes for the summer break from 1 July. Portals remain available for revision.",status:"draft",roles:[],classes:[],author:"Anita Kapoor",init:"AK",created:"11 Jun 2026"},
+  {id:"a3",title:"Parent–teacher meeting reschedule",preview:"The PTM originally set for 18 June moves to 21 June, 4–6 pm, in the main hall.",status:"published",roles:["Parents","Teachers"],classes:[],author:"Anita Kapoor",init:"AK",created:"09 Jun 2026"},
+  {id:"a4",title:"Library policy update",preview:"Borrowing limits increase to five titles per student from the new term.",status:"archived",roles:["Students"],classes:["Grade 10 – A"],author:"Sara Lindqvist",init:"SL",created:"02 Jun 2026"},
+  {id:"a5",title:"Lab safety induction (drafting)",preview:"All Grade 9 students must complete the safety induction before the first chemistry practical.",status:"draft",roles:["Students"],classes:["Grade 9 – A","Grade 9 – B"],author:"David Okafor",init:"DO",created:"31 May 2026"},
+];
+const TABS=[
+  {key:"all",label:"All",count:18},
+  {key:"draft",label:"Draft",count:5},
+  {key:"published",label:"Published",count:11},
+  {key:"archived",label:"Archived",count:2},
+];
+
+/* ---- row actions popover: only valid lifecycle transitions per status ---- */
+function RowMenu({status,onPublish,onArchive,onDelete}){
+  return <div className="menu" role="menu" onClick={e=>e.stopPropagation()}>
+    {status!=="archived" && <button role="menuitem"><i data-lucide="pencil"></i>Edit</button>}
+    {status==="draft" && <button role="menuitem" onClick={onPublish}><i data-lucide="send"></i>Publish</button>}
+    {status==="published" && <button role="menuitem"><i data-lucide="eye"></i>View</button>}
+    {status==="published" && <button role="menuitem" onClick={onArchive}><i data-lucide="archive"></i>Archive</button>}
+    {status==="archived" && <button role="menuitem"><i data-lucide="eye"></i>View</button>}
+    {status==="archived" && <button role="menuitem"><i data-lucide="undo-2"></i>Restore to draft</button>}
+    {(status==="draft"||status==="archived") && <React.Fragment>
+      <div className="div"></div>
+      <button role="menuitem" className="danger" onClick={onDelete}><i data-lucide="trash-2"></i>Delete</button>
+    </React.Fragment>}
+  </div>;
+}
+
+function Screen(){
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  const [tab,setTab]=React.useState("all");
+  const [menuId,setMenuId]=React.useState(null);
+  const [editorOpen,setEditorOpen]=React.useState(false);
+  const [bodyTab,setBodyTab]=React.useState("write");
+  const [roles,setRoles]=React.useState({Students:false,Parents:false,Teachers:false});
+  const [classSel,setClassSel]=React.useState({"Grade 10 – A":true,"Grade 10 – B":false,"Grade 9 – A":false});
+  const [saving,setSaving]=React.useState(false);
+  const [confirm,setConfirm]=React.useState(null); // {kind, row}
+  const [toast,setToast]=React.useState(null);
+
+  const showToast=(t)=>{ setToast(t); };
+  const rows = tab==="all" ? ROWS : ROWS.filter(r=>r.status===tab);
+  const switchTab=(k)=>{ setTab(k); setMenuId(null); };
+
+  // editor audience summary (optimistic / local)
+  const selRoles = Object.keys(roles).filter(k=>roles[k]);
+  const selClasses = Object.keys(classSel).filter(k=>classSel[k]);
+  let audText;
+  if(!selRoles.length && !selClasses.length) audText="Everyone in this academy";
+  else {
+    const parts=[];
+    if(selRoles.length) parts.push(selRoles.join(", "));
+    if(selClasses.length) parts.push(selClasses.length+" class"+(selClasses.length>1?"es":""));
+    audText=parts.join(" · ");
+  }
+
+  const doSave=()=>{ setSaving(true); setTimeout(()=>{ setSaving(false); setEditorOpen(false); showToast({icon:"check-circle-2",label:"Draft saved."}); },800); };
+  const runConfirm=()=>{
+    const k=confirm.kind; setConfirm(null);
+    if(k==="publish") showToast({icon:"check-circle-2",label:"Announcement published."});
+    else if(k==="archive") showToast({icon:"check-circle-2",label:"Announcement archived."});
+    else if(k==="delete") showToast({icon:"check-circle-2",label:"Announcement deleted.",undo:true});
+  };
+
+  return <Shell active="/announcements" crumb={["Academy","Announcements"]}>
+
+    {/* Page header — single spark CTA (foundation §2.2) */}
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Announcements</h1>
+        <div className="ax-sub">Broadcast notices to your academy.</div></div>
+      <div className="ac">
+        <Button variant="spark" leadingIcon="plus" onClick={()=>{setEditorOpen(true);setBodyTab("write");}}>New announcement</Button>
+      </div>
+    </div>
+
+    {/* Platform notices band — read-only context; OMITTED entirely when none (§5) */}
+    <div className="pn-band" aria-label="Platform notices">
+      <div className="pn-head"><i data-lucide="info"></i>Platform notices</div>
+      <div className="pn-grid">
+        {PLATFORM.map(p=>(
+          <div className="pn-card" key={p.id}>
+            <div className="ct"><i data-lucide="radio" style={{width:14,height:14,color:"var(--status-info)"}}></i>{p.title}
+              <span className="ro"><i data-lucide="lock"></i>Read-only</span></div>
+            {/* ContentRenderer (md + KaTeX) — read-only render of the notice body */}
+            <div className="cb">{p.body}</div>
+            <div className="mt">{p.date} · {p.author}</div>
+          </div>))}
+      </div>
+    </div>
+
+    {/* Status filter tabs with count chips */}
+    <div className="ax-row" style={{justifyContent:"space-between",flexWrap:"wrap"}}>
+      <div className="tabs" role="tablist" aria-label="Filter announcements by status">
+        {TABS.map(t=>(
+          <button key={t.key} role="tab" aria-selected={tab===t.key} aria-label={t.label+", "+t.count}
+            className={"tab"+(tab===t.key?" on":"")} onClick={()=>switchTab(t.key)}>
+            {t.label}<span className="pill">{t.count}</span></button>
+        ))}
+      </div>
+      <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Scoped to <b className="ax-sec">Northwood Academy</b> only</span>
+    </div>
+
+    {/* Primary success state — DataTable */}
+    {rows.length>0 ? <div className="tbl-wrap">
+      <table className="tbl" aria-label="Announcements">
+        <thead><tr>
+          <th className="so">Title <i data-lucide="chevrons-up-down"></i></th>
+          <th className="so">Status</th>
+          <th>Audience</th>
+          <th>Author</th>
+          <th className="so">Created <i data-lucide="chevron-down"></i></th>
+          <th style={{width:48}}><span className="ax-sr">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          {rows.map(r=>(
+            <tr key={r.id}>
+              <td><div className="cell-title"><span className="tt">{r.title}</span><span className="bp">{r.preview}</span></div></td>
+              <td><StatusBadge status={r.status}/></td>
+              <td><Audience roles={r.roles} classes={r.classes}/></td>
+              <td><div className="cell-author"><div className="av-sm">{r.init}</div><span className="ax-sec">{r.author}</span></div></td>
+              <td className="ax-mono ax-sec" style={{whiteSpace:"nowrap"}}>{r.created}</td>
+              <td className="relpos" style={{textAlign:"right"}}>
+                <button className="icon-btn" aria-label={"Actions for "+r.title} onClick={()=>setMenuId(menuId===r.id?null:r.id)}><i data-lucide="more-horizontal"></i></button>
+                {menuId===r.id && <RowMenu status={r.status}
+                  onPublish={()=>{setMenuId(null);setConfirm({kind:"publish",row:r});}}
+                  onArchive={()=>{setMenuId(null);setConfirm({kind:"archive",row:r});}}
+                  onDelete={()=>{setMenuId(null);setConfirm({kind:"delete",row:r});}}/>}
+              </td>
+            </tr>))}
+        </tbody>
+      </table>
+    </div>
+    : /* Filtered-empty variant (§5) */ <div className="tbl-wrap"><div className="empty">
+        <div className="ei"><i data-lucide="filter-x"></i></div>
+        <div className="et">No {tab} announcements</div>
+        <div className="eb">No announcements match this filter.</div>
+        <div className="ea"><Button variant="ghost" leadingIcon="x" onClick={()=>setTab("all")}>Clear filter</Button></div>
+      </div></div>}
+
+    {/* Pagination */}
+    <div className="pag">
+      <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Showing <span className="ax-mono">1–{rows.length}</span> of <span className="ax-mono">18</span> announcements</span>
+      <div className="nums">
+        <button className="pg" aria-label="Previous page"><i data-lucide="chevron-left" style={{width:14,height:14}}></i></button>
+        <button className="pg on" aria-current="page">1</button>
+        <button className="pg">2</button>
+        <button className="pg">3</button>
+        <button className="pg" aria-label="Next page"><i data-lucide="chevron-right" style={{width:14,height:14}}></i></button>
+      </div>
+      <button className="tb-sel">Rows: 20<i data-lucide="chevron-down"></i></button>
+    </div>
+
+    {/* ===== Secondary stacked examples: the spec's other distinctive §5 states ===== */}
+    <div className="sec-label" style={{marginTop:"var(--space-4)"}}><i data-lucide="layers-2"></i>Other states (reference)</div>
+
+    {/* Error: list-load failure inside the card region + Retry (§5 Error) */}
+    <div className="alert err" role="alert">
+      <i data-lucide="alert-octagon" className="lead"></i>
+      <div className="ab"><span className="at">Couldn't load announcements. </span>
+        <span className="ax-sec">The directory service timed out.</span></div>
+      <span className="lnk">Retry →</span>
+    </div>
+
+    {/* Quota-blocked publish (§8 cost/quota — publish blocked server-side, surfaced as toast/banner) */}
+    <div className="alert warn" role="status">
+      <i data-lucide="bell-off" className="lead"></i>
+      <div className="ab"><span className="at">Notification quota reached for this billing cycle. </span>
+        <span className="ax-sec">Publishing is paused until the quota resets. Drafts can still be saved.</span></div>
+      <span className="lnk">Review plan →</span>
+    </div>
+
+    {/* Permission-gated (useCan('manageAnnouncements')=false → actions hidden, not just disabled — §8 RBAC) */}
+    <div className="alert info" role="status">
+      <i data-lucide="eye" className="lead"></i>
+      <div className="ab"><span className="at">You have view-only access to announcements. </span>
+        <span className="ax-sec">New announcement, Edit, Publish, Archive, and Delete are hidden for your role.</span></div>
+    </div>
+
+    {/* Loading skeleton — 5 placeholder rows (§5 Loading) */}
+    <div className="tbl-wrap" aria-busy="true" aria-label="Loading announcements">
+      <table className="tbl"><tbody>
+        {[0,1,2,3,4].map(i=>(
+          <tr key={i}>
+            <td><div className="ax-col" style={{gap:6}}><div className="skl" style={{width:200,height:13}}></div><div className="skl" style={{width:280,height:10}}></div></div></td>
+            <td><div className="skl" style={{width:78,height:18,borderRadius:"var(--radius-pill)"}}></div></td>
+            <td><div className="skl" style={{width:96,height:18,borderRadius:"var(--radius-sm)"}}></div></td>
+            <td><div className="cell-author"><div className="skl" style={{width:26,height:26,borderRadius:"var(--radius-pill)"}}></div><div className="skl" style={{width:80,height:11}}></div></div></td>
+            <td><div className="skl" style={{width:74,height:11}}></div></td>
+            <td></td>
+          </tr>))}
+      </tbody></table>
+    </div>
+
+    {/* True-empty onboarding state (§5 / §7) — Megaphone glyph + spark CTA */}
+    <div className="tbl-wrap"><div className="empty">
+      <div className="ei"><i data-lucide="megaphone"></i></div>
+      <div className="et">No announcements yet</div>
+      <div className="eb">Create your first announcement to reach students, parents, and teachers.</div>
+      <div className="ea"><Button variant="spark" leadingIcon="plus" onClick={()=>setEditorOpen(true)}>New announcement</Button></div>
+    </div></div>
+
+    {/* ===== Editor Modal (create/edit) ===== */}
+    {editorOpen && <React.Fragment>
+      <div className="overlay" onClick={()=>!saving&&setEditorOpen(false)}></div>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="New announcement">
+        <div className="box">
+          <div className="mh"><div><div className="mt">New announcement</div>
+            <div className="ms">Compose a notice for your academy. It will be saved as a draft.</div></div>
+            <button className="icon-btn" aria-label="Close" onClick={()=>!saving&&setEditorOpen(false)}><i data-lucide="x"></i></button></div>
+          <div className="mb">
+            {saving && <div className="loadover" aria-hidden="true"><div className="spinner"></div></div>}
+
+            <div className="field">
+              <label className="fl" htmlFor="an-title">Title <span className="req">*</span><span className="ct">23 / 200</span></label>
+              <input id="an-title" defaultValue="End-of-term exam timetable" autoFocus/>
+            </div>
+
+            <div className="field">
+              <label className="fl">Body <span className="req">*</span>
+                <span style={{marginLeft:"auto"}}><div className="subtabs" role="tablist" aria-label="Body editor mode">
+                  <button role="tab" aria-selected={bodyTab==="write"} className={"subtab"+(bodyTab==="write"?" on":"")} onClick={()=>setBodyTab("write")}><i data-lucide="pencil"></i>Write</button>
+                  <button role="tab" aria-selected={bodyTab==="preview"} className={"subtab"+(bodyTab==="preview"?" on":"")} onClick={()=>setBodyTab("preview")}><i data-lucide="eye"></i>Preview</button>
+                </div></span>
+              </label>
+              {bodyTab==="write"
+                ? <textarea aria-label="Announcement body (Markdown and KaTeX)" defaultValue={"## Exam timetable\n\nGrade 8 exams begin **Monday 24 June**. Grading uses the weighted mean $\\bar{x}=\\frac{1}{n}\\sum x_i$.\n\nSee the attached schedule by class."}></textarea>
+                : <div className="preview"><h3>Exam timetable</h3>
+                    <p>Grade 8 exams begin <b>Monday 24 June</b>. Grading uses the weighted mean <code>x̄ = (1/n)·Σxᵢ</code>.</p>
+                    <p>See the attached schedule by class.</p></div>}
+              <span className="fh">Markdown + math supported. Source is stored, not raw HTML.</span>
+            </div>
+
+            <div className="field" style={{maxWidth:240}}>
+              <label className="fl" htmlFor="an-exp">Expiry date (optional)</label>
+              <input id="an-exp" type="date" defaultValue="2026-06-30"/>
+            </div>
+
+            <div className="divh">Audience</div>
+
+            <div className="field">
+              <label className="fl">Target roles (optional)</label>
+              <div className="opts" role="group" aria-label="Target roles">
+                {["Students","Parents","Teachers"].map(rk=>(
+                  <button key={rk} className={"opt"+(roles[rk]?" on":"")} aria-pressed={roles[rk]}
+                    onClick={()=>setRoles(s=>({...s,[rk]:!s[rk]}))}>
+                    <i data-lucide={roles[rk]?"check-square":"square"}></i>{rk}</button>
+                ))}
+              </div>
+              <span className="fh">Leave unchecked to send to everyone.</span>
+            </div>
+
+            <div className="field">
+              <label className="fl">Target classes (optional)</label>
+              <div className="classlist">
+                <div className="cs"><i data-lucide="search"></i><input placeholder="Search classes…" aria-label="Search classes"/></div>
+                {Object.keys(classSel).map(c=>(
+                  <label className="ci" key={c}>
+                    <input type="checkbox" className="chk" checked={classSel[c]} onChange={()=>setClassSel(s=>({...s,[c]:!s[c]}))}/>
+                    <span>{c}</span></label>
+                ))}
+              </div>
+              <span className="fh">Leave unchecked to send to all classes.</span>
+            </div>
+
+            {/* AudienceSummary — recomputes locally; recipient count omitted (server-computed, §8) */}
+            <div className="audsum" aria-live="polite"><i data-lucide="users"></i><span>{audText}</span></div>
+          </div>
+          <div className="mf">
+            <div className="gr ax-row" style={{gap:6,fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>
+              <i data-lucide="shield" style={{width:13,height:13}}></i>Author and timestamps are recorded automatically.</div>
+            <Button variant="ghost" disabled={saving} onClick={()=>setEditorOpen(false)}>Cancel</Button>
+            <Button variant="secondary" disabled={saving} leadingIcon="save" onClick={doSave}>{saving?"Saving…":"Save draft"}</Button>
+            <Button variant="primary" disabled={saving} leadingIcon="send" onClick={()=>{setEditorOpen(false);setConfirm({kind:"publish",row:{title:"this announcement"}});}}>Publish</Button>
+          </div>
+        </div>
+      </div>
+    </React.Fragment>}
+
+    {/* ===== ConfirmDialog — Publish / Archive / Delete (explicit consequence copy; audit-logged) ===== */}
+    {confirm && <React.Fragment>
+      <div className="overlay" onClick={()=>setConfirm(null)}></div>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Confirm action">
+        <div className="box sm">
+          <div className="mh"><div><div className="mt">
+            {confirm.kind==="publish" && "Publish this announcement?"}
+            {confirm.kind==="archive" && "Archive this announcement?"}
+            {confirm.kind==="delete"  && "Delete this announcement?"}
+          </div></div>
+            <button className="icon-btn" aria-label="Close" onClick={()=>setConfirm(null)}><i data-lucide="x"></i></button></div>
+          <div className="mb">
+            {confirm.kind==="publish" && <div className="alert info" role="note"><i data-lucide="send" className="lead"></i>
+              <div className="ab"><span className="ax-sec">It will be visible to <b className="ax-sec">{(selRoles.length||selClasses.length)?audText:"everyone in this academy"}</b> and can only be archived afterward — not unpublished. This action is logged.</span></div></div>}
+            {confirm.kind==="archive" && <div className="alert warn" role="note"><i data-lucide="archive" className="lead"></i>
+              <div className="ab"><span className="ax-sec">It will stop being shown to recipients. You can restore it to a draft later. This action is logged.</span></div></div>}
+            {confirm.kind==="delete" && <div className="alert err" role="note"><i data-lucide="trash-2" className="lead"></i>
+              <div className="ab"><span className="ax-sec">This permanently deletes the announcement. This can't be undone. This action is logged.</span></div></div>}
+          </div>
+          <div className="mf">
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            {confirm.kind==="publish" && <Button variant="primary" leadingIcon="send" onClick={runConfirm}>Publish</Button>}
+            {confirm.kind==="archive" && <Button variant="secondary" leadingIcon="archive" onClick={runConfirm}>Archive</Button>}
+            {confirm.kind==="delete"  && <Button variant="danger" leadingIcon="trash-2" onClick={runConfirm}>Delete permanently</Button>}
+          </div>
+        </div>
+      </div>
+    </React.Fragment>}
+
+    {/* ===== Toast (sonner) — save / publish / archive / delete results ===== */}
+    {toast && <div className="toastwrap"><div className="toast suc" role="status" aria-live="polite">
+      <i data-lucide={toast.icon} className="lead"></i>
+      <span className="tl">{toast.label}</span>
+      {toast.undo && <span className="undo" onClick={()=>setToast(null)}>Undo</span>}
+      <button className="icon-btn" aria-label="Dismiss" onClick={()=>setToast(null)}><i data-lucide="x" style={{width:14,height:14}}></i></button>
+    </div></div>}
+
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

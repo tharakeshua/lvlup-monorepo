@@ -524,19 +524,29 @@ function GroupOptionsPreview({ data }: { data: GroupOptionsData }) {
   );
 }
 
-function ChatAgentPreview({ data }: { data: ChatAgentQuestionData }) {
+function ChatAgentPreview({
+  data,
+}: {
+  data: ChatAgentQuestionData & {
+    scenario?: string;
+    publicLearningObjectives?: Array<{ id: string; label: string }>;
+    interviewerAgentId?: string;
+    completionPolicy?: { minLearnerTurns: number; maxLearnerTurns: number };
+  };
+}) {
   return (
     <div className="space-y-2">
       <div className="bg-muted/30 flex items-center gap-2 rounded-md border p-3 text-sm">
         <MessageCircle className="text-muted-foreground h-4 w-4" />
         <span>Conversational agent task</span>
       </div>
-      {(data?.objectives ?? []).length > 0 && (
+      {data.scenario && <p className="text-sm">{data.scenario}</p>}
+      {(data.publicLearningObjectives ?? []).length > 0 && (
         <div className="text-xs">
           <p className="text-fg-muted tracking-caps mb-1 font-bold uppercase">Objectives</p>
           <ul className="list-disc space-y-0.5 pl-5">
-            {data.objectives.map((o, i) => (
-              <li key={i}>{o}</li>
+            {data.publicLearningObjectives!.map((objective) => (
+              <li key={objective.id}>{objective.label}</li>
             ))}
           </ul>
         </div>
@@ -551,9 +561,10 @@ function ChatAgentPreview({ data }: { data: ChatAgentQuestionData }) {
           </ul>
         </div>
       )}
-      {data?.maxTurns != null && (
+      {data.completionPolicy && (
         <p className="text-muted-foreground text-xs">
-          <strong>Max turns:</strong> {data.maxTurns}
+          <strong>Turns:</strong> {data.completionPolicy.minLearnerTurns}–
+          {data.completionPolicy.maxLearnerTurns}
         </p>
       )}
     </div>

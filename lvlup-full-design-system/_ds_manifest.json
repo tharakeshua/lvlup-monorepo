@@ -1,0 +1,2525 @@
+{
+  "namespace": "LvlupV0DesignSystem_5d0725",
+  "components": [
+    { "name": "Icon", "sourcePath": "components/_shared/Icon.jsx" },
+    { "name": "AnswerKeyLock", "sourcePath": "components/assessment/AnswerKeyLock.jsx" },
+    { "name": "ConfidenceBadge", "sourcePath": "components/assessment/ConfidenceBadge.jsx" },
+    { "name": "GradePill", "sourcePath": "components/assessment/GradePill.jsx" },
+    {
+      "name": "ManualOverrideControl",
+      "sourcePath": "components/assessment/ManualOverrideControl.jsx"
+    },
+    { "name": "Option", "sourcePath": "components/assessment/Option.jsx" },
+    { "name": "QuestionCard", "sourcePath": "components/assessment/QuestionCard.jsx" },
+    { "name": "RubricBreakdown", "sourcePath": "components/assessment/RubricBreakdown.jsx" },
+    { "name": "SubmissionCard", "sourcePath": "components/assessment/SubmissionCard.jsx" },
+    { "name": "TimerBar", "sourcePath": "components/assessment/TimerBar.jsx" },
+    { "name": "Accordion", "sourcePath": "components/containers/Accordion.jsx" },
+    { "name": "Card", "sourcePath": "components/containers/Card.jsx" },
+    { "name": "Drawer", "sourcePath": "components/containers/Drawer.jsx" },
+    { "name": "Modal", "sourcePath": "components/containers/Modal.jsx" },
+    { "name": "Panel", "sourcePath": "components/containers/Panel.jsx" },
+    { "name": "Popover", "sourcePath": "components/containers/Popover.jsx" },
+    { "name": "Section", "sourcePath": "components/containers/Section.jsx" },
+    { "name": "Tabs", "sourcePath": "components/containers/Tabs.jsx" },
+    { "name": "Tooltip", "sourcePath": "components/containers/Tooltip.jsx" },
+    { "name": "Avatar", "sourcePath": "components/data/Avatar.jsx" },
+    { "name": "AvatarGroup", "sourcePath": "components/data/AvatarGroup.jsx" },
+    { "name": "Badge", "sourcePath": "components/data/Badge.jsx" },
+    { "name": "Chip", "sourcePath": "components/data/Chip.jsx" },
+    { "name": "DataTable", "sourcePath": "components/data/DataTable.jsx" },
+    { "name": "DefinitionList", "sourcePath": "components/data/DefinitionList.jsx" },
+    { "name": "EmptyState", "sourcePath": "components/data/EmptyState.jsx" },
+    { "name": "Pagination", "sourcePath": "components/data/Pagination.jsx" },
+    { "name": "ProgressBar", "sourcePath": "components/data/ProgressBar.jsx" },
+    { "name": "ProgressRing", "sourcePath": "components/data/ProgressRing.jsx" },
+    { "name": "Skeleton", "sourcePath": "components/data/Skeleton.jsx" },
+    { "name": "Stat", "sourcePath": "components/data/Stat.jsx" },
+    { "name": "Timeline", "sourcePath": "components/data/Timeline.jsx" },
+    { "name": "Alert", "sourcePath": "components/feedback/Alert.jsx" },
+    { "name": "LoadingOverlay", "sourcePath": "components/feedback/LoadingOverlay.jsx" },
+    { "name": "Toast", "sourcePath": "components/feedback/Toast.jsx" },
+    { "name": "Achievement", "sourcePath": "components/gamification/Achievement.jsx" },
+    { "name": "LeaderboardRow", "sourcePath": "components/gamification/LeaderboardRow.jsx" },
+    { "name": "LevelBadge", "sourcePath": "components/gamification/LevelBadge.jsx" },
+    { "name": "StreakFlame", "sourcePath": "components/gamification/StreakFlame.jsx" },
+    { "name": "XPMeter", "sourcePath": "components/gamification/XPMeter.jsx" },
+    { "name": "AtRiskBadge", "sourcePath": "components/learning/AtRiskBadge.jsx" },
+    { "name": "ContentRenderer", "sourcePath": "components/learning/ContentRenderer.jsx" },
+    { "name": "InsightCard", "sourcePath": "components/learning/InsightCard.jsx" },
+    { "name": "SpaceCard", "sourcePath": "components/learning/SpaceCard.jsx" },
+    { "name": "StoryPointNode", "sourcePath": "components/learning/StoryPointNode.jsx" },
+    { "name": "StoryPointTrack", "sourcePath": "components/learning/StoryPointTrack.jsx" },
+    { "name": "TutorChatBubble", "sourcePath": "components/learning/TutorChatBubble.jsx" },
+    { "name": "Breadcrumb", "sourcePath": "components/navigation/Breadcrumb.jsx" },
+    { "name": "CommandPalette", "sourcePath": "components/navigation/CommandPalette.jsx" },
+    { "name": "Kbd", "sourcePath": "components/navigation/Kbd.jsx" },
+    { "name": "NavItem", "sourcePath": "components/navigation/NavItem.jsx" },
+    { "name": "Tabbar", "sourcePath": "components/navigation/Tabbar.jsx" },
+    { "name": "Button", "sourcePath": "components/primitives/Button.jsx" },
+    { "name": "Checkbox", "sourcePath": "components/primitives/Checkbox.jsx" },
+    { "name": "Field", "sourcePath": "components/primitives/Field.jsx" },
+    { "name": "FileDrop", "sourcePath": "components/primitives/FileDrop.jsx" },
+    { "name": "IconButton", "sourcePath": "components/primitives/IconButton.jsx" },
+    { "name": "Input", "sourcePath": "components/primitives/Input.jsx" },
+    { "name": "Radio", "sourcePath": "components/primitives/Radio.jsx" },
+    { "name": "Select", "sourcePath": "components/primitives/Select.jsx" },
+    { "name": "Slider", "sourcePath": "components/primitives/Slider.jsx" },
+    { "name": "Switch", "sourcePath": "components/primitives/Switch.jsx" },
+    { "name": "Textarea", "sourcePath": "components/primitives/Textarea.jsx" },
+    { "name": "ScanFrame", "sourcePath": "components/scanner/ScanFrame.jsx" },
+    { "name": "UploadQueueItem", "sourcePath": "components/scanner/UploadQueueItem.jsx" }
+  ],
+  "startingPoints": [],
+  "cards": [
+    {
+      "path": "prototypes/admin/academic-sessions.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Sessions · current-year governance · roll over · promote & archive",
+      "name": "Academic Sessions"
+    },
+    {
+      "path": "prototypes/admin/admin-dashboard.card.html",
+      "group": "Admin",
+      "viewport": "1280x820",
+      "subtitle": "Tenant home · KPIs · at-risk · quota & AI cost · read-only launch pad",
+      "name": "Admin Dashboard ★"
+    },
+    {
+      "path": "prototypes/admin/ai-usage-cost.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant AI spend · budget vs quota · purpose & model breakdown · failed-grading DLQ",
+      "name": "AI Usage & Cost"
+    },
+    {
+      "path": "prototypes/admin/analytics.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant performance · progress · at-risk · mastery · class drill-down (read-only)",
+      "name": "Analytics"
+    },
+    {
+      "path": "prototypes/admin/announcements.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Broadcast to your academy · draft → publish → archive · platform notices read-only",
+      "name": "Announcements"
+    },
+    {
+      "path": "prototypes/admin/class-detail.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Single class deep view · roster · teachers · exams · spaces · settings",
+      "name": "Class Detail"
+    },
+    {
+      "path": "prototypes/admin/class-management.card.html",
+      "group": "Admin",
+      "viewport": "1280x820",
+      "subtitle": "Classes & sections · roster · assign · archive · bulk",
+      "name": "Class Management"
+    },
+    {
+      "path": "prototypes/admin/courses.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Content catalog · spaces · status & class mapping · lifecycle governance",
+      "name": "Courses"
+    },
+    {
+      "path": "prototypes/admin/cross-tenant-global-users.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super Admin · cross-tenant lookup · audited elevated actions · forensic tool",
+      "name": "Global Users (Cross-Tenant)"
+    },
+    {
+      "path": "prototypes/admin/data-export.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Governance · tenant-scoped · JSON or CSV · signed links expire 1h",
+      "name": "Data Export"
+    },
+    {
+      "path": "prototypes/admin/exams-overview.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant-wide oversight · status · grading progress · AI-grading confidence · read-only",
+      "name": "Exams Overview"
+    },
+    {
+      "path": "prototypes/admin/feature-flags.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin · per-tenant toggles · plan-gated · audited",
+      "name": "Feature Flags"
+    },
+    {
+      "path": "prototypes/admin/global-presets.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin · cross-tenant rubric library · create/edit drawer · soft-archive",
+      "name": "Global Evaluation Presets"
+    },
+    {
+      "path": "prototypes/admin/llm-usage.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Platform · cross-tenant AI spend · budgets · read-only",
+      "name": "LLM Usage & Cost"
+    },
+    {
+      "path": "prototypes/admin/memberships-roles-permissions.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "RBAC surface · members · role change · permission matrix · self-lockout guard",
+      "name": "Memberships, Roles & Permissions"
+    },
+    {
+      "path": "prototypes/admin/notifications.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant inbox · read-only receiving · triage · mark-read & mark-all · deep-link out",
+      "name": "Notifications"
+    },
+    {
+      "path": "prototypes/admin/onboarding-wizard.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "First-run setup · gated · stepper · server-authoritative completion",
+      "name": "Onboarding Wizard"
+    },
+    {
+      "path": "prototypes/admin/parent-linking.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Users · Parents tab · guardian access scope · link drawer · confirm",
+      "name": "Parent–Student Linking"
+    },
+    {
+      "path": "prototypes/admin/platform-analytics.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super admin · cross-tenant users · growth · per-tenant compare",
+      "name": "Platform Analytics"
+    },
+    {
+      "path": "prototypes/admin/platform-overview.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin home · cross-tenant KPIs · growth · audit feed · read-only triage",
+      "name": "Platform Overview"
+    },
+    {
+      "path": "prototypes/admin/reports.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Report builder · type → params → generate · signed-URL PDF · tenant-scoped",
+      "name": "Reports"
+    },
+    {
+      "path": "prototypes/admin/spaces-overview.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant spaces · grid/table · lifecycle · states · read-first oversight",
+      "name": "Learning Spaces Overview"
+    },
+    {
+      "path": "prototypes/admin/staff-management.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Tenant staff · invite · RBAC grants · server-authoritative · soft-deactivate",
+      "name": "Staff & Permissions"
+    },
+    {
+      "path": "prototypes/admin/super-admin-announcements.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super admin · platform-wide notices · draft → publish → archive · server-stamped audit",
+      "name": "Platform Announcements ★"
+    },
+    {
+      "path": "prototypes/admin/super-admin-billing.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin · tenant subscription · cost reconciliation · quota caps",
+      "name": "Billing & Subscriptions"
+    },
+    {
+      "path": "prototypes/admin/super-admin-settings.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin · platform/config · global defaults · maintenance kill switch",
+      "name": "Platform Settings"
+    },
+    {
+      "path": "prototypes/admin/system-health.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Super-admin · service probes · 30-day uptime · 24h errors · read-only",
+      "name": "System Health"
+    },
+    {
+      "path": "prototypes/admin/tenant-detail.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Cross-tenant cockpit · profile · subscription · lifecycle · audit",
+      "name": "Tenant Detail"
+    },
+    {
+      "path": "prototypes/admin/tenant-provisioning.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "Platform control plane · all tenants · search · status filter · create",
+      "name": "Tenant Provisioning"
+    },
+    {
+      "path": "prototypes/admin/tenant-settings-branding.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "School info · branding · evaluation · features · AI key · self-service",
+      "name": "Tenant Settings & Branding"
+    },
+    {
+      "path": "prototypes/admin/user-management.card.html",
+      "group": "Admin",
+      "viewport": "1280x860",
+      "subtitle": "People directory · teachers · students · parents · bulk import & archive",
+      "name": "User Management"
+    },
+    {
+      "path": "app/web-admin/App-Admin.card.html",
+      "group": "App-Admin",
+      "viewport": "1440x940",
+      "subtitle": "Interactive SPA · hash-routed",
+      "name": "Admin — App"
+    },
+    {
+      "path": "app/mobile-family/App-MobileFamily.card.html",
+      "group": "App-MobileFamily",
+      "viewport": "390x844",
+      "subtitle": "Interactive SPA · hash-routed · learner + parent",
+      "name": "Mobile Family — App"
+    },
+    {
+      "path": "app/mobile-scanner/App-MobileScanner.card.html",
+      "group": "App-MobileScanner",
+      "viewport": "390x844",
+      "subtitle": "Interactive SPA · hash-routed",
+      "name": "Mobile Scanner — App"
+    },
+    {
+      "path": "app/mobile-staff/App-MobileStaff.card.html",
+      "group": "App-MobileStaff",
+      "viewport": "390x844",
+      "subtitle": "Interactive SPA · hash-routed · teacher ⇆ admin role switcher",
+      "name": "Mobile Staff — App"
+    },
+    {
+      "path": "app/web-parent/App-Parent.card.html",
+      "group": "App-Parent",
+      "viewport": "1440x940",
+      "subtitle": "Interactive SPA · hash-routed",
+      "name": "Parent Portal — App"
+    },
+    {
+      "path": "app/web-student/App-Student.card.html",
+      "group": "App-Student",
+      "viewport": "1440x940",
+      "subtitle": "Interactive SPA · hash-routed",
+      "name": "Student — App"
+    },
+    {
+      "path": "app/web-super-admin/App-SuperAdmin.card.html",
+      "group": "App-SuperAdmin",
+      "viewport": "1440x940",
+      "subtitle": "Interactive SPA · hash-routed",
+      "name": "Super Admin — App"
+    },
+    {
+      "path": "components/assessment/answer-key-lock.card.html",
+      "group": "Assessment",
+      "viewport": "740x220",
+      "subtitle": "Server-only guard",
+      "name": "AnswerKeyLock"
+    },
+    {
+      "path": "components/assessment/confidence-badge.card.html",
+      "group": "Assessment",
+      "viewport": "700x220",
+      "subtitle": "AI routing confidence",
+      "name": "ConfidenceBadge"
+    },
+    {
+      "path": "components/assessment/grade-pill.card.html",
+      "group": "Assessment",
+      "viewport": "700x220",
+      "subtitle": "Letter A–F + score",
+      "name": "GradePill"
+    },
+    {
+      "path": "components/assessment/manual-override.card.html",
+      "group": "Assessment",
+      "viewport": "740x260",
+      "subtitle": "Teacher score override",
+      "name": "ManualOverrideControl"
+    },
+    {
+      "path": "components/assessment/question-card.card.html",
+      "group": "Assessment",
+      "viewport": "740x480",
+      "subtitle": "MCQ with option states",
+      "name": "QuestionCard"
+    },
+    {
+      "path": "components/assessment/rubric-breakdown.card.html",
+      "group": "Assessment",
+      "viewport": "740x400",
+      "subtitle": "Criteria scoring",
+      "name": "RubricBreakdown"
+    },
+    {
+      "path": "components/assessment/submission-card.card.html",
+      "group": "Assessment",
+      "viewport": "740x300",
+      "subtitle": "Student submission row",
+      "name": "SubmissionCard"
+    },
+    {
+      "path": "components/assessment/timer-bar.card.html",
+      "group": "Assessment",
+      "viewport": "740x260",
+      "subtitle": "Normal · warning · critical",
+      "name": "TimerBar"
+    },
+    {
+      "path": "foundations/brand.html",
+      "group": "Brand",
+      "viewport": "1000x640",
+      "subtitle": "Identity · mark · palette summary",
+      "name": "Brand — Modern Scholarly"
+    },
+    {
+      "path": "components/primitives/button.card.html",
+      "group": "Buttons",
+      "viewport": "720x300",
+      "subtitle": "5 variants · sizes · icon · loading · disabled",
+      "name": "Button"
+    },
+    {
+      "path": "components/primitives/icon-button.card.html",
+      "group": "Buttons",
+      "viewport": "700x200",
+      "subtitle": "Default · solid · sizes",
+      "name": "IconButton"
+    },
+    {
+      "path": "cards/colors.html",
+      "group": "Colors",
+      "viewport": "1240x1480",
+      "subtitle": "Primitives, semantic roles & domain scales",
+      "name": "Color"
+    },
+    {
+      "path": "foundations/colors.html",
+      "group": "Colors",
+      "viewport": "1000x680",
+      "subtitle": "Semantic + domain palette",
+      "name": "Color Tokens"
+    },
+    {
+      "path": "cards/buttons.html",
+      "group": "Components",
+      "viewport": "1240x1280",
+      "subtitle": "Primitives — actions, fields & controls",
+      "name": "Buttons & Inputs"
+    },
+    {
+      "path": "cards/containers.html",
+      "group": "Components",
+      "viewport": "1240x1360",
+      "subtitle": "Cards, panels, tabs, accordion & app shell",
+      "name": "Containers & Navigation"
+    },
+    {
+      "path": "cards/data.html",
+      "group": "Components",
+      "viewport": "1240x1400",
+      "subtitle": "Tables, stats, badges, toasts & alerts",
+      "name": "Data & Feedback"
+    },
+    {
+      "path": "cards/domain.html",
+      "group": "Components",
+      "viewport": "1240x1560",
+      "subtitle": "Questions, grading, mastery tracks, XP & streaks",
+      "name": "Domain — Assessment & Gamification"
+    },
+    {
+      "path": "components/containers/accordion.card.html",
+      "group": "Containers",
+      "viewport": "700x380",
+      "subtitle": "Expand / collapse",
+      "name": "Accordion"
+    },
+    {
+      "path": "components/containers/card.card.html",
+      "group": "Containers",
+      "viewport": "780x360",
+      "subtitle": "Rest · interactive · header + actions",
+      "name": "Card"
+    },
+    {
+      "path": "components/containers/drawer.card.html",
+      "group": "Containers",
+      "viewport": "860x560",
+      "subtitle": "Right slide-over (open state)",
+      "name": "Drawer / Sheet"
+    },
+    {
+      "path": "components/containers/modal.card.html",
+      "group": "Containers",
+      "viewport": "860x560",
+      "subtitle": "Centered dialog (open state)",
+      "name": "Modal / Dialog"
+    },
+    {
+      "path": "components/containers/panel.card.html",
+      "group": "Containers",
+      "viewport": "780x320",
+      "subtitle": "Titled panel with header actions",
+      "name": "Panel"
+    },
+    {
+      "path": "components/containers/popover.card.html",
+      "group": "Containers",
+      "viewport": "700x300",
+      "subtitle": "Floating panel",
+      "name": "Popover"
+    },
+    {
+      "path": "components/containers/section.card.html",
+      "group": "Containers",
+      "viewport": "780x260",
+      "subtitle": "Section header + content",
+      "name": "Section"
+    },
+    {
+      "path": "components/containers/tabs.card.html",
+      "group": "Containers",
+      "viewport": "780x320",
+      "subtitle": "Underline + pill variants",
+      "name": "Tabs"
+    },
+    {
+      "path": "components/containers/tooltip.card.html",
+      "group": "Containers",
+      "viewport": "700x200",
+      "subtitle": "Label on hover (shown)",
+      "name": "Tooltip"
+    },
+    {
+      "path": "components/data/avatar.card.html",
+      "group": "Data",
+      "viewport": "700x220",
+      "subtitle": "Sizes · image · initials · group",
+      "name": "Avatar & Group"
+    },
+    {
+      "path": "components/data/badge.card.html",
+      "group": "Data",
+      "viewport": "780x240",
+      "subtitle": "All status variants + dot",
+      "name": "Badge"
+    },
+    {
+      "path": "components/data/chip.card.html",
+      "group": "Data",
+      "viewport": "780x220",
+      "subtitle": "Default · active · removable",
+      "name": "Chip / Tag"
+    },
+    {
+      "path": "components/data/data-table.card.html",
+      "group": "Data",
+      "viewport": "860x480",
+      "subtitle": "Sortable · selected row · numeric · badges",
+      "name": "DataTable"
+    },
+    {
+      "path": "components/data/definition-list.card.html",
+      "group": "Data",
+      "viewport": "700x280",
+      "subtitle": "Key/value pairs",
+      "name": "DefinitionList"
+    },
+    {
+      "path": "components/data/empty-state.card.html",
+      "group": "Data",
+      "viewport": "700x360",
+      "subtitle": "No-data with CTA",
+      "name": "EmptyState"
+    },
+    {
+      "path": "components/data/pagination.card.html",
+      "group": "Data",
+      "viewport": "700x180",
+      "subtitle": "Page navigation",
+      "name": "Pagination"
+    },
+    {
+      "path": "components/data/progress-bar.card.html",
+      "group": "Data",
+      "viewport": "700x240",
+      "subtitle": "Brand · spark · success",
+      "name": "ProgressBar"
+    },
+    {
+      "path": "components/data/progress-ring.card.html",
+      "group": "Data",
+      "viewport": "700x220",
+      "subtitle": "Circular percentage",
+      "name": "ProgressRing"
+    },
+    {
+      "path": "components/data/skeleton.card.html",
+      "group": "Data",
+      "viewport": "700x280",
+      "subtitle": "Loading placeholders",
+      "name": "Skeleton"
+    },
+    {
+      "path": "components/data/stat.card.html",
+      "group": "Data",
+      "viewport": "780x240",
+      "subtitle": "Value · up & down deltas",
+      "name": "Stat / KPI"
+    },
+    {
+      "path": "components/data/timeline.card.html",
+      "group": "Data",
+      "viewport": "700x380",
+      "subtitle": "Activity feed",
+      "name": "Timeline"
+    },
+    {
+      "path": "prototypes/exams/answer-sheet-upload.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "uploadAnswerSheets · creates Submission · auto-starts pipeline",
+      "name": "Answer Sheet Upload"
+    },
+    {
+      "path": "prototypes/exams/evaluation-settings.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Tenant confidence thresholds 0.7/0.9 · display · AI usage budgets",
+      "name": "Evaluation Settings"
+    },
+    {
+      "path": "prototypes/exams/exam-analytics-results.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "KPIs · score/grade distributions · item analysis · at-risk",
+      "name": "Exam Analytics & Results"
+    },
+    {
+      "path": "prototypes/exams/exam-create-setup.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Step 1 of 4 wizard · draft via saveExam · lock-gated stepper",
+      "name": "Exam Create — Setup"
+    },
+    {
+      "path": "prototypes/exams/exam-detail-overview.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Lifecycle header · KPI strip · Questions/Submissions/Settings tabs",
+      "name": "Exam Detail — Overview"
+    },
+    {
+      "path": "prototypes/exams/exam-questions-editor.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Correct AI-extracted questions · rubrics · publish via saveExam",
+      "name": "Exam Questions Editor"
+    },
+    {
+      "path": "prototypes/exams/exam-settings.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "gradingConfig toggles · post-publish locks · archive/delete cascade",
+      "name": "Exam Settings (Grading Config)"
+    },
+    {
+      "path": "prototypes/exams/exams-list.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Status-aware exam index · triage by pipeline state · filter/search/sort",
+      "name": "Exams List"
+    },
+    {
+      "path": "prototypes/exams/grading-review.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "FLAGSHIP · HITL cockpit · confidence-routed · keyboard-driven",
+      "name": "Grading Review ★"
+    },
+    {
+      "path": "prototypes/exams/manual-override.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Non-destructive override · originalScore + reason audit trail",
+      "name": "Manual Override & Timeline"
+    },
+    {
+      "path": "prototypes/exams/pipeline-deadletter-monitor.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Pipeline health · DLQ retry/manual-grade/dismiss",
+      "name": "Pipeline & Dead-Letter Monitor"
+    },
+    {
+      "path": "prototypes/exams/question-paper-upload.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Gemini extractQuestions · per-page state · rubrics staff-only",
+      "name": "Question Paper Upload & Extraction"
+    },
+    {
+      "path": "prototypes/exams/results-release.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Gated release · what-they-see preview · fans out notifications",
+      "name": "Results Release"
+    },
+    {
+      "path": "prototypes/exams/submission-detail.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Full teacher view vs sanitized AnswerKeyLock-gated student view",
+      "name": "Submission Detail / Result Summary"
+    },
+    {
+      "path": "prototypes/exams/submissions-grading-queue.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "Live pipeline status · grading progress · bulk review/release",
+      "name": "Submissions Grading Queue"
+    },
+    {
+      "path": "prototypes/exams/subquestion-rubric.card.html",
+      "group": "Exams",
+      "viewport": "1280x820",
+      "subtitle": "UnifiedRubric · scoring mode · model answer locked · points reconciler",
+      "name": "Rubric Editor (Question / Sub-question)"
+    },
+    {
+      "path": "components/feedback/alert.card.html",
+      "group": "Feedback",
+      "viewport": "780x380",
+      "subtitle": "Four severities",
+      "name": "InlineAlert / Banner"
+    },
+    {
+      "path": "components/feedback/confirm-dialog.card.html",
+      "group": "Feedback",
+      "viewport": "780x440",
+      "subtitle": "Destructive confirm (open)",
+      "name": "ConfirmDialog"
+    },
+    {
+      "path": "components/feedback/form-field-error.card.html",
+      "group": "Feedback",
+      "viewport": "700x320",
+      "subtitle": "Inline validation",
+      "name": "FormFieldError"
+    },
+    {
+      "path": "components/feedback/loading-overlay.card.html",
+      "group": "Feedback",
+      "viewport": "700x320",
+      "subtitle": "Spinner over content",
+      "name": "LoadingOverlay"
+    },
+    {
+      "path": "components/feedback/toast.card.html",
+      "group": "Feedback",
+      "viewport": "780x340",
+      "subtitle": "Success · error · warning · info",
+      "name": "Toast"
+    },
+    {
+      "path": "components/primitives/checkbox-radio.card.html",
+      "group": "Forms",
+      "viewport": "700x240",
+      "subtitle": "Checked · unchecked · disabled",
+      "name": "Checkbox & Radio"
+    },
+    {
+      "path": "components/primitives/combobox.card.html",
+      "group": "Forms",
+      "viewport": "700x340",
+      "subtitle": "Search input + filtered popover list",
+      "name": "Combobox"
+    },
+    {
+      "path": "components/primitives/datepicker.card.html",
+      "group": "Forms",
+      "viewport": "700x420",
+      "subtitle": "Input + month calendar grid",
+      "name": "DatePicker"
+    },
+    {
+      "path": "components/primitives/filedrop.card.html",
+      "group": "Forms",
+      "viewport": "700x280",
+      "subtitle": "Idle · active drag",
+      "name": "FileDrop"
+    },
+    {
+      "path": "components/primitives/form-field.card.html",
+      "group": "Forms",
+      "viewport": "700x340",
+      "subtitle": "Label · required · hint · error",
+      "name": "Form Field"
+    },
+    {
+      "path": "components/primitives/input.card.html",
+      "group": "Forms",
+      "viewport": "700x300",
+      "subtitle": "Default · focus · error · disabled",
+      "name": "Input"
+    },
+    {
+      "path": "components/primitives/select.card.html",
+      "group": "Forms",
+      "viewport": "700x240",
+      "subtitle": "Default · disabled",
+      "name": "Select"
+    },
+    {
+      "path": "components/primitives/slider.card.html",
+      "group": "Forms",
+      "viewport": "700x180",
+      "subtitle": "Range control",
+      "name": "Slider"
+    },
+    {
+      "path": "components/primitives/switch.card.html",
+      "group": "Forms",
+      "viewport": "700x180",
+      "subtitle": "On · off · with label",
+      "name": "Switch"
+    },
+    {
+      "path": "components/primitives/textarea.card.html",
+      "group": "Forms",
+      "viewport": "700x300",
+      "subtitle": "Default · error · disabled",
+      "name": "Textarea"
+    },
+    {
+      "path": "components/gamification/achievement.card.html",
+      "group": "Gamification",
+      "viewport": "720x260",
+      "subtitle": "Unlocked + locked",
+      "name": "Achievement"
+    },
+    {
+      "path": "components/gamification/leaderboard-row.card.html",
+      "group": "Gamification",
+      "viewport": "500x380",
+      "subtitle": "Ranked list with the 'me' row highlighted",
+      "name": "LeaderboardRow"
+    },
+    {
+      "path": "components/gamification/level-badge.card.html",
+      "group": "Gamification",
+      "viewport": "700x220",
+      "subtitle": "Default + spark",
+      "name": "LevelBadge"
+    },
+    {
+      "path": "components/gamification/streak-flame.card.html",
+      "group": "Gamification",
+      "viewport": "700x200",
+      "subtitle": "Daily streak",
+      "name": "StreakFlame"
+    },
+    {
+      "path": "components/gamification/xp-meter.card.html",
+      "group": "Gamification",
+      "viewport": "700x240",
+      "subtitle": "Level progress",
+      "name": "XPMeter"
+    },
+    {
+      "path": "components/learning/at-risk-badge.card.html",
+      "group": "Learning",
+      "viewport": "700x220",
+      "subtitle": "At-risk + watch",
+      "name": "AtRiskBadge"
+    },
+    {
+      "path": "components/learning/content-renderer.card.html",
+      "group": "Learning",
+      "viewport": "780x480",
+      "subtitle": "Markdown + math + code",
+      "name": "ContentRenderer"
+    },
+    {
+      "path": "components/learning/insight-card.card.html",
+      "group": "Learning",
+      "viewport": "740x280",
+      "subtitle": "AI insight callout",
+      "name": "InsightCard"
+    },
+    {
+      "path": "components/learning/space-card.card.html",
+      "group": "Learning",
+      "viewport": "780x360",
+      "subtitle": "Subject space tile",
+      "name": "SpaceCard"
+    },
+    {
+      "path": "components/learning/story-point-track.card.html",
+      "group": "Learning",
+      "viewport": "900x240",
+      "subtitle": "Learning path · mastery states",
+      "name": "StoryPointTrack"
+    },
+    {
+      "path": "components/learning/tutor-chat-bubble.card.html",
+      "group": "Learning",
+      "viewport": "700x360",
+      "subtitle": "Tutor + student turns",
+      "name": "TutorChatBubble"
+    },
+    {
+      "path": "components/navigation/app-shell.card.html",
+      "group": "Navigation",
+      "viewport": "1280x820",
+      "subtitle": "Sidebar + topbar + main",
+      "name": "AppShell"
+    },
+    {
+      "path": "components/navigation/breadcrumb.card.html",
+      "group": "Navigation",
+      "viewport": "780x140",
+      "subtitle": "Hierarchical path",
+      "name": "Breadcrumb"
+    },
+    {
+      "path": "components/navigation/command-palette.card.html",
+      "group": "Navigation",
+      "viewport": "640x460",
+      "subtitle": "⌘K quick switcher",
+      "name": "CommandPalette"
+    },
+    {
+      "path": "components/navigation/role-switcher.card.html",
+      "group": "Navigation",
+      "viewport": "700x260",
+      "subtitle": "Merged-app role toggle",
+      "name": "RoleSwitcher"
+    },
+    {
+      "path": "components/navigation/sidebar.card.html",
+      "group": "Navigation",
+      "viewport": "320x720",
+      "subtitle": "Role-driven nav",
+      "name": "Sidebar"
+    },
+    {
+      "path": "components/navigation/tabbar.card.html",
+      "group": "Navigation",
+      "viewport": "420x180",
+      "subtitle": "Bottom tab navigation",
+      "name": "Tabbar (mobile)"
+    },
+    {
+      "path": "components/navigation/topbar.card.html",
+      "group": "Navigation",
+      "viewport": "1280x160",
+      "subtitle": "Tenant switcher · search · notifications · profile",
+      "name": "Topbar"
+    },
+    {
+      "path": "prototypes/parent/announcements.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "School & class announcements (read)",
+      "name": "Announcements"
+    },
+    {
+      "path": "prototypes/parent/child-comparison.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Side-by-side across children",
+      "name": "Child Comparison"
+    },
+    {
+      "path": "prototypes/parent/child-exam-result-detail.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Per-question structured feedback",
+      "name": "Exam Result Detail"
+    },
+    {
+      "path": "prototypes/parent/child-exam-results-released.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Released submissions · per-exam summary",
+      "name": "Exam Results"
+    },
+    {
+      "path": "prototypes/parent/child-progress.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Per-child deep dive · trends · recommendations",
+      "name": "Child Progress"
+    },
+    {
+      "path": "prototypes/parent/child-space-progress.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "LevelUp progress grouped by child",
+      "name": "Space Progress"
+    },
+    {
+      "path": "prototypes/parent/children-roster.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Linked children roster",
+      "name": "My Children"
+    },
+    {
+      "path": "prototypes/parent/multi-child-switcher.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Topbar menu · pick active child",
+      "name": "Active-Child Switcher"
+    },
+    {
+      "path": "prototypes/parent/notifications.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "All / unread · mark read",
+      "name": "Notifications"
+    },
+    {
+      "path": "prototypes/parent/parent-dashboard.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Children overview · KPIs · alerts · activity",
+      "name": "Parent Dashboard"
+    },
+    {
+      "path": "prototypes/parent/parent-login.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Two-step school code → credentials",
+      "name": "Parent Login"
+    },
+    {
+      "path": "prototypes/parent/parent-settings.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Profile · notification prefs · account",
+      "name": "Parent Settings"
+    },
+    {
+      "path": "prototypes/parent/performance-alerts.card.html",
+      "group": "Parent",
+      "viewport": "1440x940",
+      "subtitle": "Server-derived alerts per child",
+      "name": "Performance Alerts"
+    },
+    {
+      "path": "components/scanner/scan-frame.card.html",
+      "group": "Scanner",
+      "viewport": "480x620",
+      "subtitle": "Camera capture guide",
+      "name": "ScanFrame"
+    },
+    {
+      "path": "components/scanner/upload-queue-item.card.html",
+      "group": "Scanner",
+      "viewport": "740x360",
+      "subtitle": "Offline upload states",
+      "name": "UploadQueueItem"
+    },
+    {
+      "path": "prototypes/scanner/camera-capture.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Capture or upload answer-sheet pages · flow step 3",
+      "name": "Camera Capture"
+    },
+    {
+      "path": "prototypes/scanner/capture-review.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Review pages & submit to AutoGrade",
+      "name": "Capture Review"
+    },
+    {
+      "path": "prototypes/scanner/scan-history.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Read-only pipeline ledger",
+      "name": "Scan History"
+    },
+    {
+      "path": "prototypes/scanner/scanner-login.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Tenant code + username + password · public pre-auth",
+      "name": "Scanner Login"
+    },
+    {
+      "path": "prototypes/scanner/scanner-settings.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Profile, capture prefs, storage, theme & sign-out",
+      "name": "Scanner Settings"
+    },
+    {
+      "path": "prototypes/scanner/select-exam.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Scan tab home · pick exam · published/grading · search",
+      "name": "Select Exam"
+    },
+    {
+      "path": "prototypes/scanner/select-student.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Flow step 2 · pick the student whose sheet you're scanning",
+      "name": "Select Student"
+    },
+    {
+      "path": "prototypes/scanner/submit-confirm.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Submit pipeline → success · duplicate/offline/closed states",
+      "name": "Submit Confirm"
+    },
+    {
+      "path": "prototypes/scanner/upload-queue.card.html",
+      "group": "Scanner",
+      "viewport": "390x844",
+      "subtitle": "Offline-durable upload queue",
+      "name": "Upload Queue"
+    },
+    {
+      "path": "prototypes/spaces/agent-config.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Per-space tutor agents · safety posture",
+      "name": "AI Agent Configuration"
+    },
+    {
+      "path": "prototypes/spaces/ai-content-generation.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Drawer · configure → review draft cards",
+      "name": "AI Content Generation"
+    },
+    {
+      "path": "prototypes/spaces/answer-key-management.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Server-only key · strip / re-merge guard",
+      "name": "Answer Key Management"
+    },
+    {
+      "path": "prototypes/spaces/assessment-config.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Timing · order mode · attempts policy",
+      "name": "Assessment Configuration"
+    },
+    {
+      "path": "prototypes/spaces/b2c-store-browse.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Shopfront · published spaces grid",
+      "name": "B2C Store Browse"
+    },
+    {
+      "path": "prototypes/spaces/b2c-store-detail.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Store projection · curriculum · buy",
+      "name": "B2C Store Space Detail"
+    },
+    {
+      "path": "prototypes/spaces/content-version-history.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Append-only timeline · restore-forward",
+      "name": "Version History"
+    },
+    {
+      "path": "prototypes/spaces/item-editor.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Sheet · per-type editors · answer-key lock",
+      "name": "Item Editor ★"
+    },
+    {
+      "path": "prototypes/spaces/item-preview.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Student-eye preview · mock timer · staff answer-key",
+      "name": "Item / Story Point Preview"
+    },
+    {
+      "path": "prototypes/spaces/item-type-picker.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Modal · 15 question + 7 material types",
+      "name": "Add Item Type Picker"
+    },
+    {
+      "path": "prototypes/spaces/question-bank-import.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Modal · select & import into story point",
+      "name": "Question Bank Import"
+    },
+    {
+      "path": "prototypes/spaces/question-bank.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Reusable item library · filter, search & curate",
+      "name": "Question Bank"
+    },
+    {
+      "path": "prototypes/spaces/rubric-editor.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "4 scoring modes · scope inheritance",
+      "name": "Rubric Editor ★"
+    },
+    {
+      "path": "prototypes/spaces/rubric-presets.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Reusable rubrics · apply = clone",
+      "name": "Rubric Presets Library"
+    },
+    {
+      "path": "prototypes/spaces/space-content-structure.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "StoryPoint track · sortable items · split add",
+      "name": "Content Structure ★"
+    },
+    {
+      "path": "prototypes/spaces/space-create.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "New-space modal over /spaces · saveSpace (no id = create)",
+      "name": "Create Space"
+    },
+    {
+      "path": "prototypes/spaces/space-detail-overview.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "StoryPoint track · versions · lifecycle status",
+      "name": "Space Detail / Overview"
+    },
+    {
+      "path": "prototypes/spaces/space-editor-settings.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Space metadata · classification · access · AI & assessment defaults",
+      "name": "Settings Tab"
+    },
+    {
+      "path": "prototypes/spaces/space-editor-shell.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Tabbed authoring shell · autosave + status gate",
+      "name": "Space Editor Shell"
+    },
+    {
+      "path": "prototypes/spaces/space-purchase.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Demo checkout · idempotent purchase",
+      "name": "Space Purchase / Checkout"
+    },
+    {
+      "path": "prototypes/spaces/space-review-publish.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Drawer · validate gate · store mirror",
+      "name": "Review & Publish Flow ★"
+    },
+    {
+      "path": "prototypes/spaces/space-reviews-ratings.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Store reviews · write & read",
+      "name": "Reviews & Ratings"
+    },
+    {
+      "path": "prototypes/spaces/spaces-library.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Authoring home · status filter · SpaceCard grid",
+      "name": "Spaces Library ★"
+    },
+    {
+      "path": "prototypes/spaces/storypoint-editor.card.html",
+      "group": "Spaces",
+      "viewport": "1280x820",
+      "subtitle": "Drawer · difficulty scale · item sections",
+      "name": "Story Point Editor"
+    },
+    {
+      "path": "cards/spacing.html",
+      "group": "Spacing",
+      "viewport": "1240x1180",
+      "subtitle": "4px base · warm-tinted shadows · scholarly easing",
+      "name": "Spacing, Radius, Elevation & Motion"
+    },
+    {
+      "path": "foundations/elevation-motion.html",
+      "group": "Spacing",
+      "viewport": "920x460",
+      "subtitle": "Shadows + easing",
+      "name": "Elevation & Motion"
+    },
+    {
+      "path": "foundations/spacing-radius.html",
+      "group": "Spacing",
+      "viewport": "920x560",
+      "subtitle": "4px scale + corner radii",
+      "name": "Spacing & Radius"
+    },
+    {
+      "path": "prototypes/student/achievements.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Earned wins · how close the next badge is",
+      "name": "Achievements Gallery"
+    },
+    {
+      "path": "prototypes/student/ai-tutor-chat.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Guides not answers · panel + full page · never reveals key",
+      "name": "AI Tutor Chat — Socratic Tutor"
+    },
+    {
+      "path": "prototypes/student/checkout.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Order summary · payment · entitlement grant",
+      "name": "B2C Checkout (Cart & Purchase)"
+    },
+    {
+      "path": "prototypes/student/consumer-dashboard.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Owned spaces · continue learning · momentum",
+      "name": "Consumer Dashboard / My Learning (B2C)"
+    },
+    {
+      "path": "prototypes/student/consumer-profile.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Identity · plan · receipts · enter a school code",
+      "name": "Consumer Profile / Account (B2C)"
+    },
+    {
+      "path": "prototypes/student/exam-results-view.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Released sanitized ResultSummary · B2B-only",
+      "name": "Physical Exam Results / AutoGrade"
+    },
+    {
+      "path": "prototypes/student/gamification-xp-streaks.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "XPMeter/LevelBadge/StreakFlame · spark-burst moment",
+      "name": "Gamification — XP, Levels & Streaks ★"
+    },
+    {
+      "path": "prototypes/student/goals.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Learner-chosen targets · progress ring · study history",
+      "name": "Study Goals & Planner"
+    },
+    {
+      "path": "prototypes/student/leaderboard.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Live ranked classmates · self-row pinned & highlighted",
+      "name": "Leaderboard"
+    },
+    {
+      "path": "prototypes/student/learner-app-shell.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Role-aware frame · Sidebar/Topbar · XP/streak chrome",
+      "name": "Learner App Shell ★"
+    },
+    {
+      "path": "prototypes/student/learner-authentication.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "B2B school-code join vs B2C self-serve · mode-switched",
+      "name": "Learner Authentication"
+    },
+    {
+      "path": "prototypes/student/learning-content-view.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Story-point viewer · ContentRenderer md+KaTeX · item nav",
+      "name": "Learning Content View"
+    },
+    {
+      "path": "prototypes/student/notifications.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "New spaces, results, achievements, gentle nudges",
+      "name": "Notifications"
+    },
+    {
+      "path": "prototypes/student/practice-mode.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Unlimited-retry drilling · instant feedback · no key",
+      "name": "Practice Mode"
+    },
+    {
+      "path": "prototypes/student/profile.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Identity + momentum snapshot · quick edits",
+      "name": "Profile"
+    },
+    {
+      "path": "prototypes/student/progress-analytics.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Subject mastery · trends · at-risk with next steps",
+      "name": "Progress & Analytics"
+    },
+    {
+      "path": "prototypes/student/settings.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Notification toggles · theme · password/account",
+      "name": "Settings"
+    },
+    {
+      "path": "prototypes/student/space-detail-learning-track.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "StoryPointTrack · mastery path · content/practice/test",
+      "name": "Space Detail — Learning Track ★"
+    },
+    {
+      "path": "prototypes/student/spaces-list.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Assigned (B2B) / owned (B2C) library · resume-ready",
+      "name": "My Spaces"
+    },
+    {
+      "path": "prototypes/student/store-browse.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "B2C marketplace · SpaceCard catalog · search/filter",
+      "name": "Store (Browse)"
+    },
+    {
+      "path": "prototypes/student/store-space-detail.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Sales page · syllabus preview · ratings · buy CTA",
+      "name": "Store: Space Detail"
+    },
+    {
+      "path": "prototypes/student/student-home-dashboard.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Warm B2B front door · momentum · next best action",
+      "name": "Student Home Dashboard ★"
+    },
+    {
+      "path": "prototypes/student/test-results-review.card.html",
+      "group": "Student",
+      "viewport": "1280x860",
+      "subtitle": "Sanitized ResultSummary per question · no answer key",
+      "name": "Timed Test — Results Review"
+    },
+    {
+      "path": "prototypes/student/test-session-analytics.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Cross-attempt deep dive · what to study next",
+      "name": "Test Session Analytics"
+    },
+    {
+      "path": "prototypes/student/tests-list.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Calm planning · open/upcoming/done/locked · attempts",
+      "name": "Tests"
+    },
+    {
+      "path": "prototypes/student/timed-test-landing.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Rules, attempts, duration, consent · no clock yet",
+      "name": "Timed Test — Pre-start Gate"
+    },
+    {
+      "path": "prototypes/student/timed-test-runner.card.html",
+      "group": "Student",
+      "viewport": "1280x820",
+      "subtitle": "Focus mode · server-authoritative timer · sealed answers",
+      "name": "Timed Test — Runner ★"
+    },
+    {
+      "path": "prototypes/teacher/announcements-compose.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Compose/list staff announcements · draft/publish/archive",
+      "name": "Announcements — Compose"
+    },
+    {
+      "path": "prototypes/teacher/assign-content-to-class.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Route a space/exam to classes · the bridge write surface",
+      "name": "Assign Content to Class"
+    },
+    {
+      "path": "prototypes/teacher/assignment-tracker.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Read-only completion matrix · content × class/student progress",
+      "name": "Assignment Tracker"
+    },
+    {
+      "path": "prototypes/teacher/at-risk-students.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Intervention triage worklist · severity · bulk message/export",
+      "name": "At-Risk Students"
+    },
+    {
+      "path": "prototypes/teacher/class-analytics-insights.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Single-class console · KPIs · distribution · trend · insights",
+      "name": "Class Analytics & Insights"
+    },
+    {
+      "path": "prototypes/teacher/class-detail-roster.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Single class · roster · assigned content · light enroll admin",
+      "name": "Class Detail / Roster"
+    },
+    {
+      "path": "prototypes/teacher/class-test-analytics.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "In-space timed tests · attempts · score/time dist · retakes",
+      "name": "Class Test Analytics"
+    },
+    {
+      "path": "prototypes/teacher/classes-overview.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Class index · headline health · create/edit · launch pad",
+      "name": "Classes Overview"
+    },
+    {
+      "path": "prototypes/teacher/exam-analytics.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Post-exam analysis · histogram · A-F grade spread · per-question",
+      "name": "Exam Analytics"
+    },
+    {
+      "path": "prototypes/teacher/exams-overview.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Monitoring list · status · awaiting-review backlog · release state",
+      "name": "Exams Overview"
+    },
+    {
+      "path": "prototypes/teacher/notifications.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Reverse-chron feed · read state · source deep-links",
+      "name": "Notifications"
+    },
+    {
+      "path": "prototypes/teacher/space-analytics.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Learning-space performance · story-point funnel · mastery · difficulty",
+      "name": "Space Analytics"
+    },
+    {
+      "path": "prototypes/teacher/student-detail-progress.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Per-student read-only report · submissions · progress · PDF export",
+      "name": "Student Detail / Progress"
+    },
+    {
+      "path": "prototypes/teacher/students-directory.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Cross-class register · search/filter · in-table light admin",
+      "name": "Students Directory"
+    },
+    {
+      "path": "prototypes/teacher/teacher-dashboard.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Operational triage · KPI strip · attention feed · my-classes grid",
+      "name": "Teacher Dashboard"
+    },
+    {
+      "path": "prototypes/teacher/teacher-settings.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Profile/display · theme · notification prefs · admin Evaluation",
+      "name": "Teacher Settings"
+    },
+    {
+      "path": "prototypes/teacher/tenant-switcher.card.html",
+      "group": "Teacher",
+      "viewport": "1280x820",
+      "subtitle": "Topbar + Cmd-K control · switch active tenant · multi-membership",
+      "name": "Tenant Switcher"
+    },
+    {
+      "path": "cards/type.html",
+      "group": "Type",
+      "viewport": "1240x1320",
+      "subtitle": "Fraunces · Schibsted Grotesk · Spline Sans Mono",
+      "name": "Typography"
+    },
+    {
+      "path": "foundations/typography.html",
+      "group": "Type",
+      "viewport": "920x720",
+      "subtitle": "Scale + three families",
+      "name": "Typography"
+    }
+  ],
+  "templates": [],
+  "hasThumbnailHtml": false,
+  "globalCssPaths": ["tokens/fonts.css", "tokens/lyceum.css", "components.css", "styles.css"],
+  "tokens": [
+    { "name": "--paper-50", "value": "#FBF8F3", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--paper-100",
+      "value": "#F4EEE4",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--paper-200",
+      "value": "#E8DFD0",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--paper-300",
+      "value": "#D6C9B4",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--paper-400",
+      "value": "#B3A487",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--paper-500",
+      "value": "#8A7B5E",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--ink-900", "value": "#1C1A16", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--ink-800", "value": "#2A2620", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--ink-700", "value": "#3D382F", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--ink-600", "value": "#565046", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--ink-500", "value": "#756E61", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--ink-400", "value": "#9A9486", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--indigo-700",
+      "value": "#322C63",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--indigo-600",
+      "value": "#423A82",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--indigo-500",
+      "value": "#564BA6",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--indigo-400",
+      "value": "#7A6FC9",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--indigo-200",
+      "value": "#CFC9EC",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--indigo-50",
+      "value": "#EEEBF8",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--marigold-600",
+      "value": "#C97A14",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--marigold-500",
+      "value": "#E8972B",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--marigold-400",
+      "value": "#F4B45A",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--marigold-200",
+      "value": "#FBE0B0",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--marigold-50",
+      "value": "#FDF4E3",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--green-600",
+      "value": "#2F7D5B",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--green-500",
+      "value": "#3EA876",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--green-200",
+      "value": "#BFE6D2",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--amber-600",
+      "value": "#B7791F",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--amber-500",
+      "value": "#E0A12E",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--red-600", "value": "#B23A36", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--red-500", "value": "#D85650", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--red-200", "value": "#F3CFCD", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--sky-600", "value": "#2D6E8E", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    { "name": "--sky-500", "value": "#3F92B8", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--warm-white",
+      "value": "#FFFDFA",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--bg-canvas",
+      "value": "var(--paper-50)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--bg-surface",
+      "value": "var(--warm-white)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--bg-surface-sunken",
+      "value": "var(--paper-100)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--bg-inset",
+      "value": "var(--paper-100)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-primary",
+      "value": "var(--ink-900)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-secondary",
+      "value": "var(--ink-600)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-muted",
+      "value": "var(--ink-500)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-on-accent",
+      "value": "var(--warm-white)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--border-subtle",
+      "value": "var(--paper-200)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--border-strong",
+      "value": "var(--paper-300)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--border-focus",
+      "value": "var(--indigo-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--brand-primary",
+      "value": "var(--indigo-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--brand-primary-hover",
+      "value": "var(--indigo-700)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--brand-subtle",
+      "value": "var(--indigo-50)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--brand-muted",
+      "value": "var(--indigo-200)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--spark",
+      "value": "var(--marigold-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--spark-hover",
+      "value": "var(--marigold-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--spark-subtle",
+      "value": "var(--marigold-50)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-success",
+      "value": "var(--green-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-warning",
+      "value": "var(--amber-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-error",
+      "value": "var(--red-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-info",
+      "value": "var(--sky-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-success-subtle",
+      "value": "var(--green-200)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-error-subtle",
+      "value": "var(--red-200)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-warning-subtle",
+      "value": "var(--marigold-50)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--status-info-subtle",
+      "value": "#DCEAF1",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--confidence-low",
+      "value": "var(--red-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--confidence-med",
+      "value": "var(--amber-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--confidence-high",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--grade-a",
+      "value": "var(--green-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--grade-b",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--grade-c",
+      "value": "var(--amber-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--grade-d",
+      "value": "var(--marigold-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--grade-f",
+      "value": "var(--red-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--mastery-not-started",
+      "value": "var(--border-strong)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--mastery-in-progress",
+      "value": "var(--indigo-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--mastery-mastered",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--xp", "value": "var(--spark)", "kind": "color", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--streak",
+      "value": "var(--spark)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--font-display",
+      "value": "'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--font-ui",
+      "value": "'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--font-mono",
+      "value": "'Spline Sans Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-2xs",
+      "value": "0.6875rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--leading-2xs", "value": "1rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    { "name": "--text-xs", "value": "0.75rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--leading-xs",
+      "value": "1.125rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--text-sm", "value": "0.8125rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--leading-sm",
+      "value": "1.25rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--text-base", "value": "1rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--leading-base",
+      "value": "1.5rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--text-lg", "value": "1.25rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--leading-lg",
+      "value": "1.75rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--text-xl", "value": "1.5625rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    { "name": "--leading-xl", "value": "2rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--text-2xl",
+      "value": "1.9375rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--leading-2xl",
+      "value": "2.375rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-3xl",
+      "value": "2.4375rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--leading-3xl",
+      "value": "2.875rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-4xl",
+      "value": "3.0625rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--leading-4xl",
+      "value": "3.375rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--text-5xl",
+      "value": "3.8125rem",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--leading-5xl", "value": "4rem", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--weight-regular",
+      "value": "400",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--weight-medium", "value": "500", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--weight-semibold",
+      "value": "600",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--weight-bold", "value": "700", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--tracking-display",
+      "value": "-0.02em",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--tracking-body", "value": "0", "kind": "font", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--tracking-caption",
+      "value": "0.01em",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--space-0", "value": "0", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--space-1",
+      "value": "0.25rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--space-2", "value": "0.5rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--space-3",
+      "value": "0.75rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--space-4", "value": "1rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--space-5",
+      "value": "1.25rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--space-6", "value": "1.5rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--space-8", "value": "2rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--space-10",
+      "value": "2.5rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--space-12", "value": "3rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--space-16", "value": "4rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--space-20", "value": "5rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--space-24", "value": "6rem", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--gutter-mobile",
+      "value": "1rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--gutter-tablet",
+      "value": "1.5rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--gutter-desktop",
+      "value": "2rem",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--content-max",
+      "value": "1200px",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--reading-max",
+      "value": "720px",
+      "kind": "spacing",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--radius-sm", "value": "6px", "kind": "radius", "definedIn": "tokens/lyceum.css" },
+    { "name": "--radius-md", "value": "10px", "kind": "radius", "definedIn": "tokens/lyceum.css" },
+    { "name": "--radius-lg", "value": "14px", "kind": "radius", "definedIn": "tokens/lyceum.css" },
+    { "name": "--radius-xl", "value": "20px", "kind": "radius", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--radius-pill",
+      "value": "999px",
+      "kind": "radius",
+      "definedIn": "tokens/lyceum.css"
+    },
+    { "name": "--shadow-e0", "value": "none", "kind": "shadow", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--shadow-e1",
+      "value": "0 1px 2px rgba(28, 26, 22, 0.06)",
+      "kind": "shadow",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--shadow-e2",
+      "value": "0 4px 12px rgba(28, 26, 22, 0.08)",
+      "kind": "shadow",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--shadow-e3",
+      "value": "0 12px 28px rgba(28, 26, 22, 0.12)",
+      "kind": "shadow",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--ring-focus",
+      "value": "0 0 0 3px rgba(86, 75, 166, 0.35)",
+      "kind": "shadow",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--glow-spark",
+      "value": "0 6px 20px rgba(232, 151, 43, 0.30)",
+      "kind": "shadow",
+      "definedIn": "tokens/lyceum.css"
+    },
+    {
+      "name": "--dur-instant",
+      "value": "100ms",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--dur-fast",
+      "value": "160ms",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--dur-base",
+      "value": "220ms",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--dur-slow",
+      "value": "320ms",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--dur-page",
+      "value": "420ms",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--ease-standard",
+      "value": "cubic-bezier(0.2, 0, 0, 1)",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--ease-entrance",
+      "value": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    {
+      "name": "--ease-exit",
+      "value": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+      "kind": "other",
+      "definedIn": "tokens/lyceum.css",
+      "annotation": "other"
+    },
+    { "name": "--bp-sm", "value": "640px", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--bp-md", "value": "768px", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--bp-lg", "value": "1024px", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--bp-xl", "value": "1280px", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    { "name": "--bp-2xl", "value": "1536px", "kind": "spacing", "definedIn": "tokens/lyceum.css" },
+    {
+      "name": "--bg-canvas",
+      "value": "var(--ink-900)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--bg-surface",
+      "value": "var(--ink-800)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--bg-surface-sunken",
+      "value": "var(--ink-900)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--bg-inset",
+      "value": "#232019",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--text-primary",
+      "value": "var(--paper-100)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--text-secondary",
+      "value": "var(--ink-400)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--text-muted",
+      "value": "var(--ink-500)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--text-on-accent",
+      "value": "var(--warm-white)",
+      "kind": "font",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--border-subtle",
+      "value": "var(--ink-700)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--border-strong",
+      "value": "var(--ink-600)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--border-focus",
+      "value": "var(--indigo-400)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--brand-primary",
+      "value": "var(--indigo-400)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--brand-primary-hover",
+      "value": "var(--indigo-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--brand-subtle",
+      "value": "var(--ink-700)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--brand-muted",
+      "value": "var(--indigo-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--spark",
+      "value": "var(--marigold-400)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--spark-hover",
+      "value": "var(--marigold-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--status-success",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--status-warning",
+      "value": "var(--amber-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--status-error",
+      "value": "var(--red-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--status-info",
+      "value": "var(--sky-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--confidence-low",
+      "value": "var(--red-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--confidence-med",
+      "value": "var(--amber-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--confidence-high",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--mastery-not-started",
+      "value": "var(--border-strong)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--mastery-in-progress",
+      "value": "var(--indigo-400)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--mastery-mastered",
+      "value": "var(--green-500)",
+      "kind": "color",
+      "definedIn": "tokens/lyceum.css",
+      "scope": "[data-theme=\"dark\"]"
+    },
+    {
+      "name": "--ring-size",
+      "value": "56px",
+      "kind": "spacing",
+      "definedIn": "components.css",
+      "scope": ".ring"
+    },
+    {
+      "name": "--ring-pct",
+      "value": "0",
+      "kind": "other",
+      "definedIn": "components.css",
+      "scope": ".ring",
+      "annotation": "other"
+    }
+  ],
+  "themes": [{ "selector": "[data-theme=\"dark\"]", "label": "Dark" }],
+  "fonts": [],
+  "brandFonts": [
+    {
+      "family": "Fraunces",
+      "status": "ok",
+      "tokens": ["--font-display"],
+      "path": "tokens/lyceum.css"
+    },
+    {
+      "family": "Schibsted Grotesk",
+      "status": "ok",
+      "tokens": ["--font-ui"],
+      "path": "tokens/lyceum.css"
+    },
+    {
+      "family": "Spline Sans Mono",
+      "status": "ok",
+      "tokens": ["--font-mono"],
+      "path": "tokens/lyceum.css"
+    }
+  ],
+  "source": "designsync-incremental"
+}

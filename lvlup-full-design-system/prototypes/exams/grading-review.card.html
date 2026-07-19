@@ -1,0 +1,953 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Grading Review ★" subtitle="FLAGSHIP · HITL cockpit · confidence-routed · keyboard-driven" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+.appshell__main{padding:0!important;display:flex;flex-direction:column}
+
+/* sidebar foot */
+.sb-foot{margin-top:auto;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.1}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* topbar bits */
+.tenant{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);padding:1px var(--space-1);border-radius:var(--radius-sm)}
+.tbsearch{flex:1;max-width:420px;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted)}
+.tbsearch input{flex:1;border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tb-icons{display:flex;align-items:center;gap:var(--space-1)}
+.notif{position:relative;display:inline-flex}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:1.5px solid var(--bg-surface)}
+
+/* top bar: breadcrumb + state segmented */
+.crumbbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) var(--gutter-desktop);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);flex-wrap:wrap}
+.segrow{display:flex;align-items:center;gap:var(--space-2)}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:2px}
+.seg button{border:0;background:transparent;font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-sm);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+
+/* submission header (sticky) */
+.subhead{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);box-shadow:var(--shadow-e1);padding:var(--space-4) var(--gutter-desktop);position:relative;z-index:5}
+.subhead__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.subhead__id{display:flex;align-items:center;gap:var(--space-3)}
+.subhead__name{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);line-height:var(--leading-xl);letter-spacing:-.01em}
+.subhead__meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.result-summary{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-3);flex-wrap:wrap}
+.result-score{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);letter-spacing:-.01em;line-height:1}
+.result-score .denom{color:var(--text-muted);font-size:var(--text-lg)}
+.result-pct{font-family:var(--font-mono);font-size:var(--text-base);color:var(--text-secondary)}
+.subhead__progress{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap}
+.progress-wrap{flex:1;min-width:220px;max-width:420px}
+.progress-cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:var(--space-1);display:flex;justify-content:space-between}
+.subhead__actions{display:flex;gap:var(--space-2);align-items:center}
+.pstatus{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);border:1px solid var(--border-subtle)}
+.pstatus svg,.pstatus i{width:14px;height:14px}
+.pstatus--ready{background:var(--status-info-subtle);color:var(--status-info);border-color:transparent}
+.pstatus--reviewed{background:var(--status-success-subtle);color:var(--status-success);border-color:transparent}
+.pstatus--partial{background:var(--status-warning-subtle);color:var(--status-warning);border-color:transparent}
+.needs-chip{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--status-error);background:var(--status-error-subtle);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill)}
+.released-chip{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);padding:2px var(--space-2);border-radius:var(--radius-pill)}
+
+/* two-pane workspace */
+.workspace{flex:1;display:grid;grid-template-columns:var(--split, 45%) 6px 1fr;min-height:0;overflow:hidden}
+.divider{background:var(--border-subtle);cursor:col-resize;position:relative}
+.divider::after{content:"";position:absolute;inset:0 -4px;}
+.divider:hover{background:var(--border-strong)}
+.divider:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+
+/* answer pane */
+.answerpane{background:var(--bg-surface-sunken);display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--border-subtle)}
+.answerpane__toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
+.answerpane__pagelabel{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+.answerpane__zoom{display:flex;align-items:center;gap:var(--space-1)}
+.answerpane__zoom .zval{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);min-width:38px;text-align:center}
+.answerpane__canvas{flex:1;display:grid;place-items:center;overflow:auto;padding:var(--space-5);min-height:0;position:relative}
+.sheet{width:min(92%,520px);aspect-ratio:1/1.34;border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e2);position:relative;overflow:hidden;transition:transform var(--dur-fast) var(--ease-standard)}
+.sheet__ruled{position:absolute;inset:0;background-image:repeating-linear-gradient(var(--bg-surface) 0 26px,var(--border-subtle) 26px 27px);opacity:.5}
+.sheet__hdr{position:absolute;top:0;left:0;right:0;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);display:flex;justify-content:space-between;background:var(--bg-surface)}
+.sheet__ink{position:absolute;left:var(--space-5);right:var(--space-5);height:8px;border-radius:var(--radius-pill);background:var(--text-muted);opacity:.32}
+.sheet__qtag{position:absolute;left:var(--space-4);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--brand-primary);font-weight:var(--weight-semibold)}
+.sheet__map{position:absolute;left:var(--space-3);right:var(--space-3);border:2px solid var(--confidence-low);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--confidence-low) 9%, transparent);transition:all var(--dur-fast) var(--ease-standard)}
+.sheet__maplabel{position:absolute;top:-9px;left:var(--space-3);font-family:var(--font-mono);font-size:9px;font-weight:var(--weight-semibold);color:var(--text-on-accent);background:var(--confidence-low);padding:1px var(--space-1);border-radius:var(--radius-sm)}
+.answerpane__nav{display:flex;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface)}
+.pagedots{display:flex;gap:var(--space-1)}
+.pagedot{font-family:var(--font-mono);font-size:var(--text-2xs);min-width:24px;height:24px;display:inline-grid;place-items:center;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;position:relative}
+.pagedot[aria-current="true"]{border-color:var(--brand-primary);color:var(--brand-primary);background:var(--brand-subtle)}
+.pagedot.mapped::after{content:"";position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:var(--radius-pill);background:var(--confidence-low)}
+.thumbrail{display:flex;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken);overflow-x:auto}
+.thumb{flex:0 0 auto;width:46px;height:62px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);background:var(--bg-surface);cursor:pointer;position:relative;overflow:hidden;transition:border-color var(--dur-fast) var(--ease-standard)}
+.thumb__lines{position:absolute;inset:6px;background-image:repeating-linear-gradient(var(--bg-surface) 0 4px,var(--border-subtle) 4px 5px);opacity:.6}
+.thumb[aria-current="true"]{border-color:var(--brand-primary);box-shadow:0 0 0 1px var(--brand-primary)}
+.thumb.mapped{border-color:var(--confidence-low)}
+.thumb__n{position:absolute;bottom:2px;right:3px;font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}
+
+/* review pane */
+.reviewpane{display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg-canvas)}
+.reviewpane__scroll{flex:1;overflow-y:auto;padding:var(--space-4) var(--space-5);min-height:0;display:flex;flex-direction:column;gap:var(--space-4)}
+.rqtoolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:3;flex-wrap:wrap}
+.rqtoolbar__group{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.rqtoolbar__lbl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.chip-btn{cursor:pointer;border:0;background:transparent;padding:0}
+.sortsel{display:flex;align-items:center;gap:var(--space-1);font-family:var(--font-ui);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-1) var(--space-2)}
+
+/* question card */
+.qcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);scroll-margin-top:var(--space-4)}
+.qcard--focused{border-color:var(--border-focus);box-shadow:var(--ring-focus)}
+.qcard--review{border-left:3px solid var(--confidence-low)}
+.qcard--spot{border-left:3px solid var(--confidence-med)}
+.qcard__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-4) var(--space-3)}
+.qcard__qno{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);font-weight:var(--weight-medium)}
+.qcard__title{font-family:var(--font-ui);font-size:var(--text-base);font-weight:var(--weight-semibold);margin-top:2px}
+.qcard__statusrow{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-1)}
+.qbadge{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:2px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.qbadge svg,.qbadge i{width:12px;height:12px}
+.qbadge--review{color:var(--status-error);background:var(--status-error-subtle);border-color:transparent}
+.qbadge--graded{color:var(--status-success);background:var(--status-success-subtle);border-color:transparent}
+.qbadge--overridden{color:var(--brand-primary);background:var(--brand-subtle);border-color:transparent}
+.qbadge--failed{color:var(--status-error);background:var(--status-error-subtle);border-color:transparent}
+.qcard__body{padding:0 var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.qprompt{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm)}
+.qprompt .katex{font-family:var(--font-mono);background:var(--bg-surface-sunken);padding:1px var(--space-1);border-radius:var(--radius-sm);font-size:var(--text-xs)}
+.scorebar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.scorebar__score{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-medium)}
+.scorebar__score .denom{color:var(--text-muted);font-size:var(--text-base)}
+.scorebar__score .was{color:var(--text-muted);font-size:var(--text-sm);text-decoration:line-through;margin-right:var(--space-1)}
+.confbar{flex:1;min-width:140px;max-width:240px}
+.confbar__track{height:6px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);overflow:hidden}
+.confbar__fill{height:100%;border-radius:var(--radius-pill);transition:width var(--dur-base) var(--ease-standard)}
+.confbar__fill--low{background:var(--confidence-low)}
+.confbar__fill--med{background:var(--confidence-med)}
+.confbar__fill--high{background:var(--confidence-high)}
+.confbar__cap{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-top:3px;display:flex;justify-content:space-between}
+.feedpanel{background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.feedrow{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}
+.feedrow__lbl{font-family:var(--font-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);flex:0 0 96px;padding-top:2px}
+.feedrow__sev{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:1px var(--space-2);border-radius:var(--radius-pill)}
+.sev--major{color:var(--status-warning);background:var(--status-warning-subtle)}
+.sev--minor{color:var(--status-info);background:var(--status-info-subtle)}
+.qactions{display:flex;gap:var(--space-2);align-items:center;padding-top:var(--space-1);flex-wrap:wrap}
+.qactions__hint{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* override inline */
+.ov{background:var(--brand-subtle);border:1px solid var(--border-focus);border-radius:var(--radius-md);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.ov__row{display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap}
+.ov__scorefield{width:120px}
+.ov__foot{display:flex;gap:var(--space-2);justify-content:flex-end}
+
+/* accordion auto-approved group */
+.autogroup{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface)}
+
+/* help popover */
+.helpover{position:absolute;top:54px;right:var(--space-5);width:320px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);padding:var(--space-4);z-index:20}
+.helpover__title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);margin:0 0 var(--space-3)}
+.helprow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-1) 0;font-size:var(--text-sm);color:var(--text-secondary)}
+.helprow .kbd{font-family:var(--font-mono)}
+
+.skel-line{height:14px;border-radius:var(--radius-sm)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Avatar, NavItem, Breadcrumb, Kbd, Field, Textarea, Input,
+    Card, Accordion, Modal, Alert, Toast, Skeleton, EmptyState, ProgressBar,
+    ConfidenceBadge, GradePill, RubricBreakdown, SubmissionCard, AnswerKeyLock, ManualOverrideControl,
+    DefinitionList, Timeline, Chip, Badge, Icon
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ----- thresholds from EvaluationSettings.confidenceConfig ----- */
+  const T_REVIEW = 0.70;       // confidenceThreshold
+  const T_AUTO   = 0.90;       // autoApproveThreshold
+  const routeOf = (c) => c < T_REVIEW ? "low" : (c > T_AUTO ? "high" : "med");
+
+  /* ----- seed: one Submission + its QuestionSubmission[] ----- */
+  const EXAM = { title: "Physics Mid-Term", maxScore: 50 };
+  const SUB  = { studentName: "Aarav Mehta", rollNumber: "R-042", className: "Class 10-B",
+                 initials: "AM", pages: 4 };
+
+  const SEED = [
+    { id:"qs_3", qno:3, type:"Long answer", points:8, prompt:'Derive the expression for the time period of a simple pendulum and state the assumptions. $T = 2\\pi\\sqrt{L/g}$',
+      conf:0.58, score:4, status:"needs_review", pages:[1],
+      rubric:[
+        {label:"C1 · Restoring force & SHM setup", desc:"F = −mg·sinθ ≈ −mgθ", score:2, max:2},
+        {label:"C2 · Derivation of ω and T", desc:"links a = −(g/L)x to ω²", score:2, max:4},
+        {label:"C3 · States assumptions", desc:"small angle, massless string", score:0, max:2},
+      ],
+      mistake:"Conceptual",
+      feedback:[
+        {lbl:"Issue", sev:"major", text:"Small-angle approximation sinθ ≈ θ is used but never stated as an assumption; C3 unaddressed."},
+        {lbl:"Why it matters", text:"The derivation is only valid for small oscillations — omitting it makes T = 2π√(L/g) ungrounded."},
+        {lbl:"How to fix", text:"Add the small-angle and massless-inextensible-string assumptions before integrating."},
+      ],
+      strengths:["Correct SHM identification","Clean algebra to ω²=g/L"],
+      weaknesses:["Assumptions missing","Units dropped in final line"],
+      missing:["Small-angle assumption","Massless string condition"] },
+
+    { id:"qs_5", qno:5, type:"Numerical", points:6, prompt:'A 2 kg block on a frictionless incline (30°) — find acceleration. $a = g\\sin\\theta$',
+      conf:0.82, score:5, status:"graded", pages:[2],
+      rubric:[
+        {label:"C1 · Free-body & component", desc:"mg sinθ along incline", score:3, max:3},
+        {label:"C2 · Numerical answer", desc:"a = 4.9 m/s²", score:2, max:3},
+      ],
+      mistake:"Silly error",
+      feedback:[
+        {lbl:"Issue", sev:"minor", text:"Final value rounded to 5 m/s² instead of 4.9 m/s²; method is correct."},
+        {lbl:"Why it matters", text:"Method marks awarded; only the final significant-figure handling cost a mark."},
+        {lbl:"How to fix", text:"Carry g = 9.8 through to the final answer."},
+      ],
+      strengths:["Correct free-body diagram","Right governing equation"],
+      weaknesses:["Rounding in final answer"],
+      missing:[] },
+
+    { id:"qs_7", qno:7, type:"Short answer", points:4, prompt:"State Newton's third law and give one everyday example.",
+      conf:0.96, score:4, status:"graded", pages:[3],
+      rubric:[
+        {label:"C1 · States the law", desc:"equal & opposite reaction", score:2, max:2},
+        {label:"C2 · Valid example", desc:"recoil / walking", score:2, max:2},
+      ],
+      mistake:"—",
+      feedback:[{lbl:"Issue", text:"Fully correct and well-stated."}],
+      strengths:["Precise statement","Relevant example (rocket recoil)"],
+      weaknesses:[], missing:[] },
+
+    { id:"qs_1", qno:1, type:"MCQ", points:2, prompt:"The SI unit of impulse is —",
+      conf:0.99, score:2, status:"graded", pages:[1],
+      rubric:[{label:"C1 · Correct option (N·s)", score:2, max:2}],
+      mistake:"—", feedback:[{lbl:"Issue", text:"Correct."}],
+      strengths:["Correct"], weaknesses:[], missing:[] },
+
+    { id:"qs_9", qno:9, type:"Long answer", points:10, prompt:"Explain conservation of momentum in a two-body collision with a derivation.",
+      conf:null, score:null, status:"failed", pages:[4],
+      rubric:[], mistake:"—", feedback:[], strengths:[], weaknesses:[], missing:[] },
+  ];
+
+  const TOTAL_Q = SEED.length;
+  const MAX_SCORE = SEED.reduce((s,q)=>s+q.points,0);
+
+  /* ----- copy maps ----- */
+  const CONF_LABEL = { low:"Needs review", med:"Spot-check", high:"Auto-accepted" };
+  const STATUS_BADGE = {
+    needs_review:{cls:"review", icon:"alert-triangle", label:"Needs review"},
+    graded:{cls:"graded", icon:"check", label:"AI graded"},
+    overridden:{cls:"overridden", icon:"edit-3", label:"Overridden"},
+    failed:{cls:"failed", icon:"x", label:"Failed"},
+  };
+  const FILTERS = [
+    {key:"all", label:"All"},
+    {key:"needs_review", label:"Needs review"},
+    {key:"low_conf", label:"Low confidence"},
+  ];
+
+  function gradeFor(pct){ return pct>=85?"A":pct>=70?"B":pct>=55?"C":pct>=40?"D":"F"; }
+
+  /* ============================ APP ============================ */
+  function App(){
+    const STATES = ["populated","loading","empty","error","partial"];
+    const SLABELS = { populated:"Populated", loading:"Loading", empty:"Empty", error:"Error", partial:"Partial" };
+    const [view, setView] = useState("populated");
+
+    // grading state (live model)
+    const [qs, setQs] = useState(() => SEED.map(q=>({...q})));
+    const [focusId, setFocusId] = useState("qs_3");
+    const [filter, setFilter] = useState("all");
+    const [overrideId, setOverrideId] = useState(null);
+    const [ovScore, setOvScore] = useState("");
+    const [ovReason, setOvReason] = useState("");
+    const [ovErr, setOvErr] = useState("");
+    const [confirm, setConfirm] = useState(null); // 'approveAll' | 'markReviewed'
+    const [showHelp, setShowHelp] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [reviewed, setReviewed] = useState(false);
+    const [page, setPage] = useState(1);
+    const [zoom, setZoom] = useState(100);
+    const [split, setSplit] = useState(45);
+    const requireReason = true; // gradingConfig.requireOverrideReason
+    const allowOverride = true; // gradingConfig.allowManualOverride
+    const resultsReleased = true;
+
+    const scrollRef = useRef(null);
+
+    /* derived */
+    const visible = qs
+      .filter(q => filter==="all" ? true
+        : filter==="needs_review" ? (q.status==="needs_review"||q.status==="failed")
+        : (q.conf!=null && q.conf < T_REVIEW))
+      .slice()
+      .sort((a,b)=>{
+        const rank = (q)=> q.status==="failed"?0 : q.status==="needs_review"?1 : (q.conf!=null && q.conf<T_AUTO?2:3);
+        const r = rank(a)-rank(b);
+        return r!==0 ? r : (a.qno-b.qno);
+      });
+
+    const reviewQ = visible.filter(q=>q.status==="needs_review"||q.status==="failed");
+    const autoApproved = visible.filter(q=>q.status!=="needs_review"&&q.status!=="failed"&&q.conf!=null&&q.conf>=T_AUTO);
+    const reviewList = visible.filter(q=>!(q.status!=="needs_review"&&q.status!=="failed"&&q.conf!=null&&q.conf>=T_AUTO));
+
+    const gradedCount = qs.filter(q=>q.status==="graded"||q.status==="overridden").length;
+    const needsCount = qs.filter(q=>q.status==="needs_review"||q.status==="failed").length;
+    const totalScore = qs.reduce((s,q)=> s + (q.score!=null ? q.score : 0), 0);
+    const pct = Math.round((totalScore/MAX_SCORE)*100);
+    const grade = gradeFor(pct);
+    const allDone = needsCount===0;
+
+    const fireToast = (variant,title,body)=>{ setToast({variant,title,body}); };
+    useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(null),2600); return ()=>clearTimeout(t); },[toast]);
+
+    /* lucide refresh */
+    useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+
+    /* keyboard cursor */
+    const focusNextNeeds = (fromId)=>{
+      const order = reviewList.map(q=>q.id);
+      const next = reviewList.find(q=>(q.status==="needs_review"||q.status==="failed"));
+      if(next) setFocusId(next.id);
+    };
+
+    const doApprove = (id)=>{
+      setQs(prev=>prev.map(q=> q.id===id ? {...q, status:"graded"} : q));
+      const q = qs.find(x=>x.id===id);
+      fireToast("success", "Q"+(q?q.qno:"")+" approved", "AI score accepted");
+      setTimeout(()=>focusNextNeeds(id),10);
+    };
+    const doRetry = (id)=>{
+      const q = qs.find(x=>x.id===id);
+      fireToast("info", "Retry queued", "Q"+(q?q.qno:"")+" re-running through grading");
+    };
+    const openOverride = (id)=>{
+      const q = qs.find(x=>x.id===id); if(!q) return;
+      setOverrideId(id); setOvScore(q.score!=null?String(q.score):""); setOvReason(""); setOvErr("");
+    };
+    const commitOverride = ()=>{
+      const q = qs.find(x=>x.id===overrideId); if(!q) return;
+      if(requireReason && !ovReason.trim()){ setOvErr("A reason is required to override (rubric-grounded)."); return; }
+      const newScore = Math.max(0, Math.min(q.points, Number(ovScore)||0));
+      setQs(prev=>prev.map(x=> x.id===overrideId ? {
+        ...x, status:"overridden", originalScore:x.score, score:newScore,
+        overriddenBy:"S. Verma", overriddenAt:"just now", reason:ovReason.trim()
+      } : x));
+      fireToast("success", "Q"+q.qno+" overridden", "Now "+newScore+" / "+q.points+" · audited");
+      setOverrideId(null);
+      setTimeout(()=>focusNextNeeds(overrideId),10);
+    };
+
+    /* global key handler */
+    useEffect(()=>{
+      if(view!=="populated" && view!=="partial") return;
+      const onKey=(e)=>{
+        const tag=(e.target.tagName||"").toLowerCase();
+        const typing = tag==="input"||tag==="textarea"||tag==="select"||e.target.isContentEditable;
+        if(e.key==="?"){ setShowHelp(v=>!v); return; }
+        if(typing) return;
+        const ids = reviewList.map(q=>q.id);
+        const idx = ids.indexOf(focusId);
+        if(e.key==="j"||e.key==="ArrowDown"){ e.preventDefault(); const n=ids[Math.min(ids.length-1,idx+1)]; if(n)setFocusId(n); }
+        else if(e.key==="k"||e.key==="ArrowUp"){ e.preventDefault(); const n=ids[Math.max(0,idx-1)]; if(n)setFocusId(n); }
+        else if(e.key==="a"){ const q=qs.find(x=>x.id===focusId); if(q&&(q.status==="needs_review"||q.status==="graded")) doApprove(focusId); }
+        else if(e.key==="o"){ if(allowOverride){ const q=qs.find(x=>x.id===focusId); if(q) openOverride(focusId); } }
+        else if(e.key==="r"){ const q=qs.find(x=>x.id===focusId); if(q&&(q.status==="failed"||q.status==="needs_review")) doRetry(focusId); }
+        else if(e.key==="A"&&e.shiftKey){ setConfirm("approveAll"); }
+        else if(e.key==="["){ setPage(p=>Math.max(1,p-1)); }
+        else if(e.key==="]"){ setPage(p=>Math.min(SUB.pages,p+1)); }
+        else if(e.key==="+"||e.key==="="){ setZoom(z=>Math.min(180,z+20)); }
+        else if(e.key==="-"){ setZoom(z=>Math.max(60,z-20)); }
+        else if(e.key==="0"){ setZoom(100); }
+        else if(e.key==="Escape"){ setOverrideId(null); setShowHelp(false); setConfirm(null); }
+      };
+      window.addEventListener("keydown", onKey);
+      return ()=>window.removeEventListener("keydown", onKey);
+    },[view,focusId,qs,reviewList,allowOverride]);
+
+    /* focusing a question → drive answer pane to its mapped page */
+    useEffect(()=>{
+      const q = qs.find(x=>x.id===focusId);
+      if(q && q.pages && q.pages.length) setPage(q.pages[0]);
+    },[focusId]);
+
+    /* scroll focused card into view */
+    useEffect(()=>{
+      if(!scrollRef.current) return;
+      const el = scrollRef.current.querySelector('[data-qid="'+focusId+'"]');
+      if(el) el.scrollIntoView({block:"nearest", behavior:"smooth"});
+    },[focusId,filter]);
+
+    const confirmApproveAll = ()=>{
+      const eligible = qs.filter(q=>q.status==="graded"&&q.conf!=null&&q.conf>=T_AUTO);
+      setQs(prev=>prev.map(q=> (q.status==="graded"&&q.conf!=null&&q.conf>=T_AUTO)?{...q,status:"graded"}:q));
+      fireToast("success", "Approved "+eligible.length+" questions", "Low-confidence questions kept for review");
+      setConfirm(null);
+    };
+    const confirmMarkReviewed = ()=>{ setReviewed(true); setConfirm(null);
+      fireToast("success", "Submission reviewed", resultsReleased?"Results already released to students":"Marked reviewed"); };
+    const onMarkReviewed = ()=>{ if(needsCount>0){ setConfirm("markReviewed"); } else { confirmMarkReviewed(); } };
+
+    const focusedQ = qs.find(q=>q.id===focusId);
+
+    return (
+      <div className="scene">
+        <div className="appshell">
+          <Sidebar/>
+          <Topbar/>
+          <main className="appshell__main">
+            {/* breadcrumb + state segmented */}
+            <div className="crumbbar">
+              <Breadcrumb items={[
+                {label:"Exams",href:"#"},
+                {label:EXAM.title,href:"#"},
+                {label:"Submissions",href:"#"},
+                {label:SUB.rollNumber},
+              ]}/>
+              <div className="segrow">
+                <span className="seg-label">State</span>
+                <div className="seg" role="group" aria-label="Preview state">
+                  {STATES.map(s=>(
+                    <button key={s} aria-pressed={view===s} onClick={()=>setView(s)}>{SLABELS[s]}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {view==="error" ? (
+              <div style={{padding:"var(--space-12) var(--gutter-desktop)",maxWidth:560,margin:"0 auto"}}>
+                <Alert variant="error" title="Couldn't load this submission">
+                  It may have moved or you may not have access.
+                  <div style={{marginTop:"var(--space-3)",display:"flex",gap:"var(--space-2)"}}>
+                    <Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={15}/>}>Retry</Button>
+                    <Button variant="ghost">Back to submissions</Button>
+                  </div>
+                </Alert>
+              </div>
+            ) : view==="empty" ? (
+              <div style={{padding:"var(--space-16) var(--gutter-desktop)"}}>
+                <EmptyState icon={<Icon name="scan-search" size={30}/>}
+                  title="No graded questions yet"
+                  body="Scouting hasn't mapped this sheet to questions yet."
+                  action={<Button variant="secondary" leadingIcon={<Icon name="rotate-ccw" size={15}/>}>Re-run scouting</Button>}/>
+              </div>
+            ) : (
+              <React.Fragment>
+                {/* SUBMISSION HEADER (sticky) */}
+                <div className="subhead">
+                  {view==="loading" ? <HeaderSkeleton/> : (
+                    <React.Fragment>
+                      <div className="subhead__top">
+                        <div>
+                          <div className="subhead__id">
+                            <Avatar initials={SUB.initials} size="lg"/>
+                            <div>
+                              <div className="subhead__name">{SUB.studentName}</div>
+                              <div className="subhead__meta">{SUB.rollNumber} · {SUB.className} · exam {EXAM.title}</div>
+                            </div>
+                          </div>
+                          <div className="result-summary">
+                            <span className="result-score">{totalScore}<span className="denom"> / {MAX_SCORE}</span></span>
+                            <span className="result-pct">{pct}%</span>
+                            <GradePill grade={grade}/>
+                            {needsCount>0 && (
+                              <span className="needs-chip"><Icon name="alert-triangle" size={13}/>{needsCount} need review</span>
+                            )}
+                            {resultsReleased && (
+                              <span className="released-chip"><Icon name="lock" size={11}/>Results released · 2d ago</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"var(--space-2)"}}>
+                          {reviewed ? (
+                            <span className="pstatus pstatus--reviewed"><Icon name="check-circle" size={14}/>Reviewed · S. Verma</span>
+                          ) : view==="partial" ? (
+                            <span className="pstatus pstatus--partial"><Icon name="alert-triangle" size={14}/>Partially graded</span>
+                          ) : (
+                            <span className="pstatus pstatus--ready"><Icon name="inbox" size={14}/>Ready for review</span>
+                          )}
+                          <div className="subhead__actions">
+                            <Button variant="secondary" size="sm" leadingIcon={<Icon name="check-check" size={15}/>}
+                              onClick={()=>setConfirm("approveAll")}>Approve all</Button>
+                            <Button variant={allDone?"primary":"secondary"} size="sm"
+                              leadingIcon={<Icon name="clipboard-check" size={15}/>} onClick={onMarkReviewed}>Mark reviewed</Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="subhead__progress">
+                        <div className="progress-wrap">
+                          <div className="progress-cap"><span>gradingProgress</span><span>{gradedCount} / {TOTAL_Q} graded</span></div>
+                          <ProgressBar value={Math.round((gradedCount/TOTAL_Q)*100)} variant="success"/>
+                        </div>
+                        {allDone && !reviewed && (
+                          <span className="pstatus pstatus--reviewed"><Icon name="check-circle" size={14}/>All questions reviewed</span>
+                        )}
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+
+                {/* WORKSPACE */}
+                <div className="workspace" style={{"--split":split+"%"}}>
+                  <AnswerPane loading={view==="loading"} page={page} setPage={setPage}
+                    zoom={zoom} setZoom={setZoom} focusedQ={focusedQ}/>
+                  <div className="divider" role="separator" aria-orientation="vertical"
+                    aria-label="Resize panes" tabIndex={0}
+                    onKeyDown={(e)=>{ if(e.key==="ArrowLeft")setSplit(s=>Math.max(40,s-3)); if(e.key==="ArrowRight")setSplit(s=>Math.min(65,s+3)); }}/>
+                  <div className="reviewpane">
+                    {/* toolbar */}
+                    <div className="rqtoolbar">
+                      <div className="rqtoolbar__group">
+                        <span className="rqtoolbar__lbl">Filter</span>
+                        {FILTERS.map(f=>{
+                          const count = f.key==="all" ? qs.length
+                            : f.key==="needs_review" ? needsCount
+                            : qs.filter(q=>q.conf!=null&&q.conf<T_REVIEW).length;
+                          return (
+                            <button key={f.key} className="chip-btn" onClick={()=>setFilter(f.key)} aria-pressed={filter===f.key}>
+                              <Chip active={filter===f.key}>{f.label}{f.key!=="all" && count>0 ? " · "+count : ""}</Chip>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="rqtoolbar__group">
+                        <span className="sortsel"><Icon name="arrow-down-narrow-wide" size={13}/>Review priority</span>
+                        <IconButton label="Keyboard shortcuts" size="sm" icon={<Icon name="keyboard" size={16}/>}
+                          onClick={()=>setShowHelp(v=>!v)}/>
+                      </div>
+                      {showHelp && <HelpPopover onClose={()=>setShowHelp(false)}/>}
+                    </div>
+
+                    {/* scroll body */}
+                    <div className="reviewpane__scroll" ref={scrollRef}
+                      role="list" aria-label="Questions to review" aria-activedescendant={"qcard-"+focusId}>
+                      {view==="loading" ? (
+                        [0,1,2].map(i=><QCardSkeleton key={i}/>)
+                      ) : (
+                        <React.Fragment>
+                          {view==="partial" && (
+                            <Alert variant="warning" title="Some questions couldn't be graded automatically">
+                              Failed questions are surfaced first. Retry them, or grade manually.
+                            </Alert>
+                          )}
+                          {reviewList.length===0 && (
+                            <Alert variant="success" title="All questions reviewed">
+                              Nothing left in this filter. Mark the submission reviewed when ready.
+                            </Alert>
+                          )}
+
+                          {reviewList.map(q=>(
+                            <QuestionReviewCard key={q.id} q={q}
+                              focused={q.id===focusId}
+                              allowOverride={allowOverride}
+                              onFocus={()=>setFocusId(q.id)}
+                              onApprove={()=>doApprove(q.id)}
+                              onOverride={()=>openOverride(q.id)}
+                              onRetry={()=>doRetry(q.id)}
+                              isOverriding={overrideId===q.id}
+                              ovScore={ovScore} setOvScore={setOvScore}
+                              ovReason={ovReason} setOvReason={setOvReason}
+                              ovErr={ovErr} requireReason={requireReason}
+                              onCommit={commitOverride} onCancel={()=>setOverrideId(null)}/>
+                          ))}
+
+                          {autoApproved.length>0 && (
+                            <div className="autogroup">
+                              <Accordion defaultOpen={-1} items={[{
+                                title: (<span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)",fontFamily:"var(--font-ui)",fontWeight:"var(--weight-medium)"}}>
+                                  <Icon name="check-circle" size={16}/> {autoApproved.length} auto-approved (high confidence)
+                                </span>),
+                                content: (
+                                  <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                                    {autoApproved.map(q=>(
+                                      <div key={q.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-3)",padding:"var(--space-2) 0",borderBottom:"1px solid var(--border-subtle)"}}>
+                                        <div>
+                                          <span className="qcard__qno">Q{q.qno} · {q.type}</span>
+                                          <div style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)",marginTop:2}}>{q.prompt.replace(/\$[^$]*\$/g,"…")}</div>
+                                        </div>
+                                        <div style={{display:"flex",alignItems:"center",gap:"var(--space-2)"}}>
+                                          <ConfidenceBadge level="high" value={q.conf.toFixed(2)}/>
+                                          <span className="scorebar__score" style={{fontSize:"var(--text-base)"}}>{q.score}<span className="denom"> / {q.points}</span></span>
+                                          <Button variant="ghost" size="sm" onClick={()=>{setFocusId(q.id);}}>Expand</Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              }]}/>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </React.Fragment>
+            )}
+          </main>
+        </div>
+
+        {/* confirm dialogs */}
+        <Modal open={confirm==="approveAll"} onClose={()=>setConfirm(null)} title="Approve AI-graded questions"
+          footer={<React.Fragment>
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            <Button variant="primary" onClick={confirmApproveAll}>Approve {qs.filter(q=>q.status==="graded"&&q.conf!=null&&q.conf>=T_AUTO).length}</Button>
+          </React.Fragment>}>
+          Approve {qs.filter(q=>q.status==="graded"&&q.conf!=null&&q.conf>=T_AUTO).length} AI-graded questions for {SUB.rollNumber}?
+          {" "}{needsCount} low-confidence / failed questions are excluded and stay for review.
+        </Modal>
+
+        <Modal open={confirm==="markReviewed"} onClose={()=>setConfirm(null)} title="Mark submission reviewed?"
+          footer={<React.Fragment>
+            <Button variant="ghost" onClick={()=>setConfirm(null)}>Cancel</Button>
+            <Button variant="primary" onClick={confirmMarkReviewed}>Mark reviewed anyway</Button>
+          </React.Fragment>}>
+          {needsCount} questions still need review. Mark the submission reviewed anyway? This is discouraged — unreviewed AI scores will be finalized.
+        </Modal>
+
+        {/* toast */}
+        {toast && (
+          <div style={{position:"fixed",right:"var(--space-5)",bottom:"var(--space-5)",zIndex:50}} aria-live="polite">
+            <Toast variant={toast.variant} title={toast.title} body={toast.body}/>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------- Sidebar ---------- */
+  function Sidebar(){
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">Lyceum</span>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <span className="sidebar__section-label">Teach</span>
+          <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+          <NavItem icon="users" href="#">Students</NavItem>
+          <NavItem icon="book-open" href="#">Spaces</NavItem>
+          <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+          <NavItem icon="file-check-2" href="#" active>Exams</NavItem>
+          <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+          <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+          <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+          <NavItem icon="settings" href="#">Settings</NavItem>
+        </nav>
+        <div className="sb-foot">
+          <Avatar size="sm" initials="SV"/>
+          <div className="sb-foot__meta">
+            <span className="sb-foot__name">S. Verma</span>
+            <span className="sb-foot__role">role: grader</span>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  /* ---------- Topbar ---------- */
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="tenant" role="button" tabIndex={0}>
+          <Icon name="building-2" size={15}/> Subhang Academy
+          <span className="tenant__code">SUB001</span>
+          <Icon name="chevrons-up-down" size={13}/>
+        </div>
+        <div className="tbsearch">
+          <Icon name="search" size={15}/>
+          <input placeholder="Go to submission, student…" aria-label="Search"/>
+          <Kbd>⌘K</Kbd>
+        </div>
+        <div className="topbar__spacer"/>
+        <div className="tb-icons">
+          <span className="notif"><IconButton label="Notifications" icon={<Icon name="bell" size={18}/>}/><span className="notif__dot"/></span>
+          <IconButton label="Help" icon={<Icon name="circle-help" size={18}/>}/>
+          <Avatar size="sm" initials="SV"/>
+        </div>
+      </header>
+    );
+  }
+
+  /* ---------- Answer-sheet pane ---------- */
+  function AnswerPane({loading,page,setPage,zoom,setZoom,focusedQ}){
+    const pages = [1,2,3,4];
+    const mapped = focusedQ && focusedQ.pages ? focusedQ.pages : [];
+    const focusRoute = focusedQ ? routeOf(focusedQ.conf==null?0:focusedQ.conf) : "low";
+    return (
+      <div className="answerpane">
+        <div className="answerpane__toolbar">
+          <span className="answerpane__pagelabel">
+            {loading ? "—" : "Answer sheet · page "+page+" / "+SUB.pages}
+            {!loading && focusedQ && <span style={{color:"var(--brand-primary)"}}> · mapped to Q{focusedQ.qno}</span>}
+          </span>
+          <div className="answerpane__zoom">
+            <IconButton label="Zoom out" size="sm" icon={<Icon name="zoom-out" size={16}/>} onClick={()=>setZoom(z=>Math.max(60,z-20))}/>
+            <span className="zval">{zoom}%</span>
+            <IconButton label="Zoom in" size="sm" icon={<Icon name="zoom-in" size={16}/>} onClick={()=>setZoom(z=>Math.min(180,z+20))}/>
+            <IconButton label="Reset zoom" size="sm" icon={<Icon name="maximize" size={16}/>} onClick={()=>setZoom(100)}/>
+          </div>
+        </div>
+
+        <div className="answerpane__canvas">
+          {loading ? (
+            <div style={{width:"min(92%,520px)",aspectRatio:"1/1.34"}}><Skeleton width="100%" height="100%"/></div>
+          ) : (
+            <div className="sheet" style={{transform:"scale("+(zoom/100)+")"}}
+              role="img" aria-label={"Answer sheet page "+page+" of "+SUB.pages+(focusedQ?", mapped to Q"+focusedQ.qno:"")}>
+              <div className="sheet__ruled"/>
+              <div className="sheet__hdr"><span>{SUB.rollNumber} · {EXAM.title}</span><span>p.{page}/{SUB.pages}</span></div>
+              {[0,1,2,3].map(i=>(
+                <div key={i} className="sheet__ink" style={{top:(80+i*34)+"px",width:(70-i*9)+"%"}}/>
+              ))}
+              {mapped.indexOf(page)>=0 && (
+                <div className="sheet__map" style={{top:"64px",height:"170px",
+                  borderColor:"var(--confidence-"+focusRoute+")",
+                  background:"color-mix(in srgb, var(--confidence-"+focusRoute+") 9%, transparent)"}}>
+                  <span className="sheet__maplabel" style={{background:"var(--confidence-"+focusRoute+")"}}>Q{focusedQ.qno}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="answerpane__nav">
+          <IconButton label="Previous page" size="sm" icon={<Icon name="chevron-left" size={18}/>}
+            onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={loading||page<=1}/>
+          <div className="pagedots">
+            {pages.map(p=>(
+              <button key={p} className={"pagedot"+(mapped.indexOf(p)>=0?" mapped":"")} aria-current={page===p}
+                onClick={()=>setPage(p)} aria-label={"Page "+p}>{p}</button>
+            ))}
+          </div>
+          <IconButton label="Next page" size="sm" icon={<Icon name="chevron-right" size={18}/>}
+            onClick={()=>setPage(p=>Math.min(SUB.pages,p+1))} disabled={loading||page>=SUB.pages}/>
+        </div>
+
+        <div className="thumbrail" aria-label="Page thumbnails">
+          {loading ? pages.map(p=><Skeleton key={p} width={46} height={62}/>) :
+            pages.map(p=>(
+              <button key={p} className={"thumb"+(mapped.indexOf(p)>=0?" mapped":"")} aria-current={page===p}
+                onClick={()=>setPage(p)} aria-label={"Thumbnail page "+p}>
+                <span className="thumb__lines"/>
+                <span className="thumb__n">{p}</span>
+              </button>
+            ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- one review card ---------- */
+  function QuestionReviewCard(props){
+    const { q, focused, allowOverride, onFocus, onApprove, onOverride, onRetry,
+      isOverriding, ovScore, setOvScore, ovReason, setOvReason, ovErr, requireReason, onCommit, onCancel } = props;
+    const isFailed = q.status==="failed";
+    const route = q.conf==null ? "low" : routeOf(q.conf);
+    const sb = STATUS_BADGE[q.status] || STATUS_BADGE.graded;
+
+    return (
+      <div data-qid={q.id} id={"qcard-"+q.id} role="listitem"
+        className={"qcard"+(focused?" qcard--focused":"")+(q.status==="needs_review"||isFailed?" qcard--review":(route==="med"?" qcard--spot":""))}
+        tabIndex={0} onClick={onFocus}
+        aria-labelledby={"qh-"+q.id}>
+        <div className="qcard__head">
+          <div>
+            <span className="qcard__qno">Q{q.qno} · {q.type} · {q.points} pts</span>
+            <div className="qcard__title" id={"qh-"+q.id}>{q.prompt.replace(/\$[^$]*\$/g,"…").slice(0,60)}{q.prompt.length>60?"…":""}</div>
+            <div className="qcard__statusrow">
+              {q.conf!=null ? (
+                <ConfidenceBadge level={route} value={q.conf.toFixed(2)}
+                  className=""/>
+              ) : (
+                <span className="qbadge qbadge--failed"><Icon name="x" size={12}/>No AI result</span>
+              )}
+              {q.conf!=null && <span style={{fontFamily:"var(--font-ui)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>{CONF_LABEL[route]}</span>}
+              <span className={"qbadge qbadge--"+sb.cls}><Icon name={sb.icon} size={12}/>{sb.label}</span>
+              {q.mistake && q.mistake!=="—" && <span className="qbadge"><Icon name="tag" size={12}/>{q.mistake}</span>}
+              {focused && <span className="qbadge" style={{color:"var(--brand-primary)",borderColor:"var(--border-focus)"}}><Icon name="crosshair" size={12}/>Focused · j/k</span>}
+            </div>
+          </div>
+        </div>
+
+        {isFailed ? (
+          <div className="qcard__body">
+            <Alert variant="error" title="AI grading unavailable">
+              This question is queued for manual review (quota / circuit-breaker). A dead-letter entry was written.
+            </Alert>
+            <div className="qactions">
+              <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-ccw" size={15}/>} onClick={onRetry}>Retry</Button>
+              {allowOverride && <Button variant="ghost" size="sm" leadingIcon={<Icon name="edit-3" size={15}/>} onClick={onOverride}>Grade manually</Button>}
+              <span className="qactions__hint"><span className="kbd">r</span> retry</span>
+            </div>
+          </div>
+        ) : (
+          <div className="qcard__body">
+            <div className="qprompt">{renderPrompt(q.prompt)}</div>
+
+            {/* score + confidence bar */}
+            <div className="scorebar">
+              <span className="scorebar__score">
+                {q.originalScore!=null && <span className="was">{q.originalScore}</span>}
+                {q.score}<span className="denom"> / {q.points}</span>
+              </span>
+              <div className="confbar">
+                <div className="confbar__track">
+                  <div className={"confbar__fill confbar__fill--"+route} style={{width:Math.round((q.conf||0)*100)+"%"}}/>
+                </div>
+                <div className="confbar__cap"><span>AI confidence</span><span style={{fontFamily:"var(--font-mono)"}}>{(q.conf||0).toFixed(2)}</span></div>
+              </div>
+            </div>
+
+            {/* rubric */}
+            {q.rubric.length>0 && <RubricBreakdown criteria={q.rubric}/>}
+
+            {/* feedback panel */}
+            {q.feedback.length>0 && (
+              <div className="feedpanel">
+                {q.feedback.map((f,i)=>(
+                  <div className="feedrow" key={i}>
+                    <span className="feedrow__lbl">{f.lbl}</span>
+                    <div style={{flex:1}}>
+                      {f.sev && <span className={"feedrow__sev sev--"+f.sev}><Icon name={f.sev==="major"?"alert-triangle":"info"} size={11}/>{f.sev}</span>}
+                      {f.sev?" ":""}{f.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* strengths / weaknesses / missing */}
+            {(q.strengths.length||q.weaknesses.length||q.missing.length)>0 && (
+              <DefinitionList items={[
+                q.strengths.length && {term:"Strengths", value:q.strengths.join(" · ")},
+                q.weaknesses.length && {term:"Weaknesses", value:q.weaknesses.join(" · ")},
+                q.missing.length && {term:"Missing concepts", value:q.missing.join(" · ")},
+              ].filter(Boolean)}/>
+            )}
+
+            {/* model answer — staff only */}
+            <AnswerKeyLock title="Staff only — not shown to students">
+              Model answer & rubric notes are stripped from student/parent payloads.
+            </AnswerKeyLock>
+
+            {/* override audit timeline (if overridden) */}
+            {q.status==="overridden" && (
+              <div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:".05em",marginBottom:"var(--space-2)"}}>Override audit</div>
+                <Timeline items={[
+                  {time:"AI", label:"AI graded "+q.originalScore+" / "+q.points, variant:"muted"},
+                  {time:q.overriddenAt, label:q.overriddenBy+" → "+q.score+" / "+q.points+" · "+q.reason, variant:"success"},
+                ]}/>
+              </div>
+            )}
+
+            {/* inline override editor */}
+            {isOverriding ? (
+              <div className="ov">
+                <ManualOverrideControl label={"Override Q"+q.qno+" — non-destructive (keeps original AI score "+(q.originalScore!=null?q.originalScore:q.score)+" / "+q.points+")"}/>
+                <div className="ov__row">
+                  <div className="ov__scorefield">
+                    <Field label="New score" required>
+                      <Input type="number" min={0} max={q.points} value={ovScore}
+                        onChange={(e)=>setOvScore(e.target.value)} aria-label="Override score"/>
+                    </Field>
+                  </div>
+                  <div style={{flex:1,minWidth:240}}>
+                    <Field label="Reason" required error={ovErr||undefined}>
+                      <Textarea rows={2} value={ovReason} onChange={(e)=>setOvReason(e.target.value)}
+                        placeholder="Why are you changing this score? (e.g. 'Awarded method marks per rubric C2')"
+                        error={ovErr?true:undefined}/>
+                    </Field>
+                  </div>
+                </div>
+                <div className="ov__foot">
+                  <Button variant="ghost" size="sm" onClick={onCancel}>Cancel <span className="kbd" style={{marginLeft:6}}>Esc</span></Button>
+                  <Button variant="primary" size="sm" onClick={onCommit}>Save override <span className="kbd" style={{marginLeft:6}}>Enter</span></Button>
+                </div>
+              </div>
+            ) : (
+              <div className="qactions">
+                <Button variant="primary" size="sm" leadingIcon={<Icon name="check" size={15}/>} onClick={onApprove}>Approve</Button>
+                {allowOverride && <Button variant="secondary" size="sm" leadingIcon={<Icon name="edit-3" size={15}/>} onClick={onOverride}>Override</Button>}
+                <Button variant="ghost" size="sm" leadingIcon={<Icon name="rotate-ccw" size={15}/>} onClick={onRetry}>Retry</Button>
+                <span className="qactions__hint"><span className="kbd">a</span> approve · <span className="kbd">o</span> override · <span className="kbd">r</span> retry</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* render prompt with simple inline $math$ → styled span */
+  function renderPrompt(p){
+    const parts = p.split(/(\$[^$]*\$)/g);
+    return parts.map((seg,i)=> seg.startsWith("$") && seg.endsWith("$")
+      ? <span key={i} className="katex">{seg.slice(1,-1)}</span>
+      : <span key={i}>{seg}</span>);
+  }
+
+  /* ---------- keyboard help ---------- */
+  function HelpPopover({onClose}){
+    const rows = [
+      ["j / ↓","Focus next question"],["k / ↑","Focus previous"],
+      ["a","Approve focused AI score"],["o","Open override"],["r","Retry failed / needs-review"],
+      ["Enter","Commit override"],["Esc","Close / cancel"],
+      ["[ / ]","Prev / next answer page"],["+ / − / 0","Zoom in / out / reset"],
+      ["Shift+A","Approve all"],["?","Toggle this help"],
+    ];
+    return (
+      <div className="helpover" role="dialog" aria-label="Keyboard shortcuts">
+        <h3 className="helpover__title">Keyboard shortcuts</h3>
+        {rows.map((r,i)=>(
+          <div className="helprow" key={i}><span>{r[1]}</span><span className="kbd">{r[0]}</span></div>
+        ))}
+        <div style={{marginTop:"var(--space-3)",textAlign:"right"}}>
+          <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- skeletons ---------- */
+  function HeaderSkeleton(){
+    return (
+      <div>
+        <div style={{display:"flex",gap:"var(--space-3)",alignItems:"center"}}>
+          <Skeleton variant="circle" width={48} height={48}/>
+          <div style={{flex:1,maxWidth:360}}>
+            <Skeleton width="50%" height={20}/>
+            <div style={{height:8}}/>
+            <Skeleton width="70%" height={12}/>
+          </div>
+        </div>
+        <div style={{height:16}}/>
+        <Skeleton width="40%" height={28}/>
+        <div style={{height:16}}/>
+        <Skeleton width="32%" height={10}/>
+      </div>
+    );
+  }
+  function QCardSkeleton(){
+    return (
+      <div className="qcard"><div style={{padding:"var(--space-4)"}}>
+        <Skeleton width="30%" height={12}/>
+        <div style={{height:10}}/>
+        <Skeleton width="80%" height={16}/>
+        <div style={{height:16}}/>
+        <Skeleton width="100%" height={12}/>
+        <div style={{height:6}}/>
+        <Skeleton width="100%" height={12}/>
+        <div style={{height:6}}/>
+        <Skeleton width="60%" height={12}/>
+      </div></div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

@@ -1,0 +1,549 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Space Detail — Learning Track ★" subtitle="StoryPointTrack · mastery path · content/practice/test" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Detail — Learning Track ★</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  .shell { height: 860px; }
+  .sb__brandmark { width:30px; height:30px; border-radius: var(--radius-md); background: var(--brand-primary); color: var(--text-on-accent); display:flex; align-items:center; justify-content:center; font-family: var(--font-display); font-weight: var(--weight-bold); }
+  .sb__brandname { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-md); }
+  .nav-item--active { background: var(--brand-subtle); color: var(--brand-primary); }
+  .topbar__profile { display:flex; align-items:center; gap: var(--space-2); }
+  .pagewrap { max-width: 1024px; margin: 0 auto; }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing:.06em; text-transform:uppercase; color: var(--text-muted); margin: var(--space-6) 0 var(--space-2); }
+
+  .hero { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6); box-shadow: var(--shadow-e1); margin-top: var(--space-3); }
+  .hero__h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin:0 0 var(--space-2); }
+  .hero__desc { color: var(--text-secondary); max-width: 72ch; margin:0 0 var(--space-5); font-size: var(--text-md); line-height: var(--leading-md); }
+  .hero__row { display:flex; gap: var(--space-6); align-items:flex-end; flex-wrap:wrap; }
+  .hero__journey { flex:1 1 360px; min-width: 320px; }
+  .hero__jlabel { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: var(--space-2); }
+  .hero__jname { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .hero__jpct { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--brand-primary); }
+  .hero__side { display:flex; flex-direction:column; gap: var(--space-3); min-width: 260px; }
+
+  .track-grid { display:grid; grid-template-columns: 44px 1fr; column-gap: var(--space-4); }
+  .spine { display:flex; flex-direction:column; align-items:center; }
+  .spine__dot { width:44px; height:44px; border-radius: var(--radius-pill); display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-weight: var(--weight-semibold); border:2px solid var(--border-strong); background: var(--bg-surface); color: var(--text-secondary); flex:0 0 auto; }
+  .spine__dot--prog { border-color: var(--mastery-in-progress); color: var(--mastery-in-progress); }
+  .spine__dot--master { border-color: var(--mastery-mastered); background: var(--mastery-mastered); color: var(--text-on-accent); }
+  .spine__dot--locked { border-style:dashed; }
+  .spine__line { width:2px; flex:1 1 auto; background: var(--border-subtle); min-height: var(--space-4); }
+  .spine__line--done { background: var(--mastery-mastered); }
+
+  .nodecard { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); transition: box-shadow var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard); cursor:pointer; }
+  .nodecard:hover { box-shadow: var(--shadow-e2); border-color: var(--border-strong); }
+  .nodecard:focus-visible { outline:none; box-shadow: var(--ring-focus); }
+  .nodecard--active { border-color: var(--mastery-in-progress); box-shadow: 0 0 0 1px var(--mastery-in-progress); }
+  .nc__top { display:flex; align-items:flex-start; justify-content:space-between; gap: var(--space-3); }
+  .nc__title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-semibold); margin:0 0 var(--space-1); }
+  .nc__meta { display:flex; align-items:center; gap: var(--space-2); flex-wrap:wrap; margin: var(--space-2) 0; }
+  .nc__stat { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); display:inline-flex; align-items:center; gap:4px; }
+  .nc__statesb { display:inline-flex; align-items:center; gap:6px; font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+  .nc__statesb--ns { color: var(--text-secondary); }
+  .nc__statesb--ip { color: var(--mastery-in-progress); }
+  .nc__statesb--m { color: var(--mastery-mastered); }
+
+  .grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap: var(--space-4); }
+  .grid2 { display:grid; grid-template-columns: repeat(2,1fr); gap: var(--space-4); }
+  .typerow { display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom:1px solid var(--border-subtle); }
+  .typerow:last-child { border-bottom:none; }
+  .typerow__name { width:140px; font-weight: var(--weight-medium); font-size: var(--text-sm); }
+  .typerow__bar { flex:1; }
+  .typerow__num { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); width:64px; text-align:right; }
+
+  .bars { display:flex; align-items:flex-end; gap: var(--space-4); height:140px; padding: var(--space-3) var(--space-2) 0; }
+  .bars__col { flex:1; display:flex; flex-direction:column; align-items:center; gap: var(--space-2); height:100%; justify-content:flex-end; }
+  .bars__bar { width:100%; max-width:46px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--brand-primary); }
+  .bars__bar--2 { background: var(--brand-primary-hover); }
+  .bars__bar--3 { background: var(--spark); }
+  .bars__bar--4 { background: var(--spark-hover); }
+  .bars__lbl { font-size: var(--text-xs); color: var(--text-secondary); }
+  .bars__cnt { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+
+  .honesty { display:inline-flex; align-items:center; gap:6px; font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-3); }
+
+  .statecard { background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4); }
+
+  .review__stars { display:flex; gap: var(--space-1); margin: var(--space-2) 0 var(--space-3); }
+  .starbtn { background:none; border:none; cursor:pointer; padding:2px; color: var(--text-muted); line-height:0; transition: transform var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+  .starbtn--on { color: var(--spark); }
+  .starbtn:hover { transform: scale(1.12); }
+  .review__other { display:flex; gap: var(--space-3); padding: var(--space-3) 0; border-bottom:1px solid var(--border-subtle); }
+  .review__other:last-child { border-bottom:none; }
+  .review__oname { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .review__ostars { color: var(--spark); font-size: var(--text-xs); letter-spacing:1px; }
+  .review__obody { color: var(--text-secondary); font-size: var(--text-sm); margin-top:2px; }
+
+  .modal-scrim { position:absolute; inset:0; background: var(--bg-inset); opacity:.55; }
+  .modal-shell { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:50; }
+  .celebrate { position:relative; z-index:51; background: var(--bg-surface); border:1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-8) var(--space-10); text-align:center; box-shadow: var(--shadow-e3); max-width:440px; animation: pop var(--dur-base) var(--ease-entrance); }
+  @keyframes pop { from { transform: scale(.85); opacity:0; } to { transform: scale(1); opacity:1; } }
+  .celebrate__spark { width:64px; height:64px; border-radius: var(--radius-pill); margin:0 auto var(--space-4); background: var(--spark-subtle); color: var(--spark); display:flex; align-items:center; justify-content:center; box-shadow: var(--glow-spark); }
+  .celebrate__h { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: var(--weight-semibold); margin:0 0 var(--space-2); }
+  .celebrate__b { color: var(--text-secondary); margin:0 0 var(--space-5); }
+  .completed-line { display:inline-flex; align-items:center; gap: var(--space-2); color: var(--mastery-mastered); font-weight: var(--weight-semibold); font-size: var(--text-md); }
+
+  .toast-host { position:absolute; right: var(--space-6); bottom: var(--space-6); z-index:60; }
+  @media (prefers-reduced-motion: reduce){ .celebrate{ animation:none; } .starbtn{ transition:none; } }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Icon, Button, Breadcrumb, Tabs, ProgressBar, XPMeter, Badge, Chip, Stat, Panel, Section,
+    StoryPointTrack, AnswerKeyLock, TimerBar, GradePill, InsightCard, EmptyState, Skeleton,
+    Alert, Toast, Avatar, Textarea
+  } = LU;
+  const { useState } = React;
+
+  /* ---------- Sidebar / Topbar shell ---------- */
+  function Sidebar(){
+    const nav = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"book-open", label:"My Spaces", active:true },
+      { icon:"timer", label:"Tests" },
+      { icon:"trophy", label:"Leaderboard" },
+      { icon:"user", label:"Profile" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sb__brandmark">L</span>
+          <span className="sb__brandname">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learn</div>
+        <nav className="sidebar__nav">
+          {nav.map((n,i)=>(
+            <a key={i} href="#" className={"nav-item"+(n.active?" nav-item--active":"")}>
+              <Icon name={n.icon} size={18}/>
+              <span>{n.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search">
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="search" size={15}/>} trailingIcon={<span className="kbd" style={{marginLeft:8}}>⌘K</span>}>
+            Go to space…
+          </Button>
+        </div>
+        <div className="topbar__spacer" style={{flex:1}}></div>
+        <Button variant="ghost" size="sm" leadingIcon={<Icon name="bell" size={16}/>} aria-label="Notifications"></Button>
+        <div className="topbar__profile">
+          <Avatar initials="AR" size="sm"/>
+          <span style={{fontSize:"var(--text-sm)",fontWeight:"var(--weight-medium)"}}>Ananya R.</span>
+        </div>
+      </header>
+    );
+  }
+
+  /* ---------- Data ---------- */
+  const NODES = [
+    { id:"n1", title:"Arrays & Hashing Foundations", type:"Learning", typeIcon:"book-open", route:"story-points",
+      state:"mastered", items:8, pts:120, min:null, grade:"A", pctDone:100 },
+    { id:"n2", title:"Two Pointers & Sliding Window", type:"Learning", typeIcon:"book-open", route:"story-points",
+      state:"mastered", items:6, pts:90, min:null, grade:"A", pctDone:100 },
+    { id:"n3", title:"Stacks & Queues — Practice Set", type:"Practice", typeIcon:"dumbbell", route:"practice",
+      state:"in-progress", items:10, pts:60, min:null, pctDone:60, active:true },
+    { id:"n4", title:"Binary Search Checkpoint", type:"Quiz", typeIcon:"list-checks", route:"story-points",
+      state:"not-started", items:5, pts:50, min:null, pctDone:0 },
+    { id:"n5", title:"Trees & Graphs — Timed Test", type:"Timed test", typeIcon:"timer", route:"test",
+      state:"not-started", items:12, pts:150, min:30, timed:true, pctDone:0 },
+  ];
+  const TOTAL_PTS = NODES.reduce((a,n)=>a+n.pts,0);
+  const EARNED_PTS = 210;
+  const OVERALL = 38;
+
+  function MasteryLabel({ state, pct }){
+    if(state==="mastered") return <span className="nc__statesb nc__statesb--m"><Icon name="check-circle" size={16}/>Mastered</span>;
+    if(state==="in-progress") return <span className="nc__statesb nc__statesb--ip"><Icon name="circle-dashed" size={16}/>In progress · {pct}%</span>;
+    return <span className="nc__statesb nc__statesb--ns"><Icon name="circle" size={16}/>Not started</span>;
+  }
+  function spineClass(state){
+    if(state==="mastered") return "spine__dot spine__dot--master";
+    if(state==="in-progress") return "spine__dot spine__dot--prog";
+    return "spine__dot";
+  }
+
+  /* ---------- Node card ---------- */
+  function NodeCard({ n, idx, last }){
+    const aria = n.title+", "+n.type.toLowerCase()+", "+
+      (n.state==="mastered"?"mastered":n.state==="in-progress"?("in progress, "+n.pctDone+" percent"):"not started")+". Activate to open.";
+    return (
+      <React.Fragment>
+        <div className="spine">
+          <div className={spineClass(n.state)} aria-hidden="true">
+            {n.state==="mastered" ? <Icon name="check" size={18}/> : (idx+1)}
+          </div>
+          {!last && <div className={"spine__line"+(n.state==="mastered"?" spine__line--done":"")}></div>}
+        </div>
+        <div className={"nodecard"+(n.active?" nodecard--active":"")} tabIndex={0} role="link" aria-label={aria}>
+          <div className="nc__top">
+            <div>
+              <h3 className="nc__title">{n.title}</h3>
+              <div className="nc__meta">
+                <Chip><Icon name={n.typeIcon} size={13}/>&nbsp;{n.type}</Chip>
+                <span className="nc__stat"><Icon name="layers" size={12}/>{n.items} items</span>
+                <span className="nc__stat"><Icon name="star" size={12}/>{n.pts} pts</span>
+                {n.timed && <span className="nc__stat"><Icon name="timer" size={12}/>{n.min} min</span>}
+              </div>
+            </div>
+            <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"var(--space-2)"}}>
+              <MasteryLabel state={n.state} pct={n.pctDone}/>
+              {n.grade && <GradePill grade={n.grade}/>}
+            </div>
+          </div>
+
+          {n.state==="in-progress" && (
+            <div style={{marginTop:"var(--space-2)"}}>
+              <ProgressBar value={n.pctDone} variant="spark"/>
+            </div>
+          )}
+
+          {n.timed && (
+            <div style={{marginTop:"var(--space-3)",display:"flex",flexDirection:"column",gap:"var(--space-2)"}}>
+              <AnswerKeyLock title="Answers stay sealed">until you finish — the answer key is server-only and never sent to your device.</AnswerKeyLock>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:"6px",fontSize:"var(--text-xs)",color:"var(--text-muted)",marginBottom:"4px"}}>
+                  <Icon name="info" size={12}/>Preview only — the live clock starts (and is trusted) inside the test.
+                </div>
+                <TimerBar time={n.min+":00"} percent={100}/>
+              </div>
+            </div>
+          )}
+
+          <div style={{marginTop:"var(--space-3)",display:"flex",justifyContent:"flex-end"}}>
+            {n.state==="mastered"
+              ? <Button variant="ghost" size="sm" trailingIcon={<Icon name="rotate-ccw" size={14}/>}>Review</Button>
+              : n.state==="in-progress"
+              ? <Button variant="primary" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>Continue</Button>
+              : <Button variant="secondary" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>Start</Button>}
+          </div>
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  /* ---------- Tab: Contents ---------- */
+  function ContentsTab(){
+    return (
+      <ol className="track-grid" role="list" style={{listStyle:"none",margin:0,padding:0}} aria-label="Learning track">
+        {NODES.map((n,i)=> <li key={n.id} style={{display:"contents"}}><NodeCard n={n} idx={i} last={i===NODES.length-1}/></li>)}
+      </ol>
+    );
+  }
+
+  /* ---------- Tab: Overview ---------- */
+  function OverviewTab(){
+    const types = [
+      { name:"Learning", done:2, total:2 },
+      { name:"Practice", done:0, total:1 },
+      { name:"Quiz", done:0, total:1 },
+      { name:"Timed test", done:0, total:1 },
+    ];
+    const diff = [
+      { lbl:"Easy", n:12, h:90, cls:"" },
+      { lbl:"Medium", n:14, h:115, cls:"bars__bar--2" },
+      { lbl:"Hard", n:9, h:74, cls:"bars__bar--3" },
+      { lbl:"Expert", n:6, h:50, cls:"bars__bar--4" },
+    ];
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="grid3">
+          <Stat label="Modules" value="5"/>
+          <Stat label="Total items" value="41"/>
+          <Stat label="Total points" value={TOTAL_PTS}/>
+        </div>
+        <Panel title="What's in this space">
+          {types.map((t,i)=>(
+            <div className="typerow" key={i}>
+              <span className="typerow__name">{t.name}</span>
+              <span className="typerow__bar"><ProgressBar value={Math.round(t.done/t.total*100)} variant="success"/></span>
+              <span className="typerow__num">{t.done}/{t.total}</span>
+            </div>
+          ))}
+        </Panel>
+        <Panel title="Difficulty mix">
+          <div className="bars">
+            {diff.map((d,i)=>(
+              <div className="bars__col" key={i}>
+                <span className="bars__cnt">{d.n}</span>
+                <div className={"bars__bar "+d.cls} style={{height:d.h+"px"}}></div>
+                <span className="bars__lbl">{d.lbl}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </div>
+    );
+  }
+
+  /* ---------- Tab: Insights ---------- */
+  function InsightsTab(){
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="grid3">
+          <InsightCard icon="trending-up" title="You've completed 38%">
+            Nice momentum, Ananya. Next up: Stacks &amp; Queues — Practice Set.
+          </InsightCard>
+          <InsightCard icon="award" title="Your strong suit: Arrays &amp; Hashing">
+            You aced both foundation modules with an A. That base will carry you.
+          </InsightCard>
+          <InsightCard icon="compass" title="Let's look at this one again: Two Pointers">
+            A couple of sliding-window items tripped you up — worth a quick revisit.
+          </InsightCard>
+        </div>
+        <Panel title="How you're doing">
+          {[
+            { m:"Arrays & Hashing Foundations", s:94 },
+            { m:"Two Pointers & Sliding Window", s:81 },
+            { m:"Stacks & Queues — Practice Set", s:60 },
+            { m:"Binary Search Checkpoint", s:0 },
+            { m:"Trees & Graphs — Timed Test", s:0 },
+          ].map((r,i)=>(
+            <div className="typerow" key={i}>
+              <span className="typerow__name" style={{width:240}}>{r.m}</span>
+              <span className="typerow__bar"><ProgressBar value={r.s} variant={r.s>=80?"success":"spark"}/></span>
+              <span className="typerow__num">{r.s}%</span>
+            </div>
+          ))}
+          <div className="honesty"><Icon name="circle-check" size={14}/>Based on your real activity.</div>
+        </Panel>
+      </div>
+    );
+  }
+
+  /* ---------- Review section ---------- */
+  function ReviewSection(){
+    const [stars,setStars] = useState(0);
+    const [text,setText] = useState("");
+    const [toast,setToast] = useState(false);
+    const submit = ()=>{ setToast(true); setTimeout(()=>setToast(false), 3200); };
+    return (
+      <Section title="How was this journey?">
+        <div style={{display:"flex",gap:"var(--space-2)",alignItems:"baseline",marginBottom:"var(--space-3)"}}>
+          <span style={{fontFamily:"var(--font-display)",fontSize:"var(--text-2xl)",fontWeight:"var(--weight-semibold)"}}>4.7</span>
+          <span className="review__ostars">★★★★★</span>
+          <span style={{color:"var(--text-muted)",fontSize:"var(--text-sm)"}}>· 128 learners</span>
+        </div>
+        <div className="statecard" style={{marginBottom:"var(--space-4)"}}>
+          <div style={{fontWeight:"var(--weight-semibold)",fontSize:"var(--text-sm)"}}>Rate this journey</div>
+          <div className="review__stars" role="radiogroup" aria-label="Your rating">
+            {[1,2,3,4,5].map(i=>(
+              <button key={i} className={"starbtn"+(i<=stars?" starbtn--on":"")} aria-label={i+" stars"} aria-checked={i===stars} role="radio" onClick={()=>setStars(i)}>
+                <Icon name="star" size={26}/>
+              </button>
+            ))}
+          </div>
+          <Textarea rows={3} placeholder="What stood out for you? (optional)" value={text} onChange={e=>setText(e.target.value)}/>
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:"var(--space-3)"}}>
+            <Button variant="primary" size="sm" disabled={stars===0} leadingIcon={<Icon name="send" size={14}/>} onClick={submit}>Share review</Button>
+          </div>
+        </div>
+        <div>
+          {[
+            { i:"PK", n:"Priya K.", s:5, b:"The track made it obvious what to do next every single day. Loved the momentum." },
+            { i:"DM", n:"Dev M.", s:4, b:"Timed test was tough but fair — the sealed-answer thing kept me honest." },
+          ].map((r,k)=>(
+            <div className="review__other" key={k}>
+              <Avatar initials={r.i} size="sm"/>
+              <div>
+                <span className="review__oname">{r.n}</span>{" "}
+                <span className="review__ostars">{"★".repeat(r.s)}</span>
+                <div className="review__obody">{r.b}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {toast && (
+          <div className="toast-host">
+            <Toast variant="success" title="Thanks for sharing — this helps other learners"/>
+          </div>
+        )}
+      </Section>
+    );
+  }
+
+  /* ---------- Secondary state showcase ---------- */
+  function StateShowcase(){
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:"var(--space-4)"}}>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: loading (skeleton)</div>
+          <div className="statecard">
+            <Skeleton width="40%" height="1.6rem"/>
+            <div style={{height:"var(--space-2)"}}/>
+            <Skeleton width="70%" height="0.8rem"/>
+            <div style={{height:"var(--space-3)"}}/>
+            <Skeleton width="100%" height="0.7rem"/>
+            <div style={{height:"var(--space-4)"}}/>
+            {[0,1,2].map(i=>(<div key={i} style={{marginBottom:"var(--space-3)"}}><Skeleton width="100%" height="62px" /></div>))}
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: partial (progress hydrating)</div>
+          <div className="statecard">
+            <div className="hero__jlabel"><span className="hero__jname">Your journey</span><span className="hero__jpct">…</span></div>
+            <ProgressBar value={62} variant="spark"/>
+            <div className="honesty"><Icon name="loader" size={14}/>Track is ready — your progress is catching up.</div>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: empty (no story points)</div>
+          <div className="statecard">
+            <EmptyState icon="book-open" title="This journey is still being built"
+              body="Your teacher is adding content here. Check back soon — it'll be worth the wait."
+              action={<Button variant="secondary" size="sm" leadingIcon={<Icon name="arrow-left" size={14}/>}>Back to spaces</Button>}/>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: error (space load failed)</div>
+          <div className="statecard" style={{borderColor:"var(--status-error)"}}>
+            <Alert variant="error" title="We couldn't load this space.">
+              It's not you — let's try that again.
+              <div style={{marginTop:"var(--space-3)"}}>
+                <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Try again</Button>
+              </div>
+            </Alert>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: insights degraded (inline)</div>
+          <div className="statecard">
+            <Alert variant="info" title="Insights are taking a break">
+              Your track is still here whenever you're ready.
+            </Alert>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: locked / low-time preview (timed node)</div>
+          <div className="statecard" style={{display:"flex",flexDirection:"column",gap:"var(--space-2)"}}>
+            <AnswerKeyLock title="Answers stay sealed">until you finish. Server-only — never sent to your device.</AnswerKeyLock>
+            <div style={{display:"flex",alignItems:"center",gap:"6px",fontSize:"var(--text-xs)",color:"var(--status-warning)"}}>
+              <Icon name="alert-triangle" size={13}/>Low time warning shown by icon + text + color — never color alone.
+            </div>
+            <TimerBar time="02:00" percent={14} tone="warning"/>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{margin:"0 0 var(--space-2)"}}>State: permission-gated (B2C, not enrolled)</div>
+          <div className="statecard">
+            <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)"}}>
+              <Icon name="lock" size={18}/>
+              <div>
+                <div style={{fontWeight:"var(--weight-semibold)",fontSize:"var(--text-sm)"}}>Reviews open after you enroll</div>
+                <div style={{color:"var(--text-muted)",fontSize:"var(--text-xs)"}}>Join this journey to share how it went.</div>
+              </div>
+              <div style={{marginLeft:"auto"}}><Button variant="spark" size="sm">Enroll</Button></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  /* ---------- Hero ---------- */
+  function Hero({ onCelebrate }){
+    return (
+      <div className="hero">
+        <h1 className="hero__h1">Data Structures & Algorithms</h1>
+        <p className="hero__desc">A guided path from arrays to graphs. Each module builds on the last — you'll learn it, practice it, then prove it under the clock.</p>
+        <div className="hero__row">
+          <div className="hero__journey">
+            <div className="hero__jlabel">
+              <span className="hero__jname">Your journey</span>
+              <span className="hero__jpct">{OVERALL}%</span>
+            </div>
+            <ProgressBar value={OVERALL} variant="spark"/>
+          </div>
+          <div className="hero__side">
+            <XPMeter level={4} xp={EARNED_PTS} next={TOTAL_PTS}/>
+            <div style={{display:"flex",gap:"var(--space-2)"}}>
+              <Button variant="primary" leadingIcon={<Icon name="play" size={16}/>}>Resume</Button>
+              <Button variant="ghost" size="sm" onClick={onCelebrate} leadingIcon={<Icon name="party-popper" size={15}/>}>Preview 100%</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Screen ---------- */
+  function Screen(){
+    const [celebrate,setCelebrate] = useState(false);
+    const tabs = [
+      { label:"Contents", content:<ContentsTab/> },
+      { label:"Overview", content:<OverviewTab/> },
+      { label:"Insights", content:<InsightsTab/> },
+    ];
+    return (
+      <div className="shell appshell">
+        <Sidebar/>
+        <Topbar/>
+        <main className="appshell__main" style={{position:"relative"}}>
+          <div className="pagewrap">
+            <Breadcrumb items={[{label:"Spaces",href:"#"},{label:"Data Structures & Algorithms"}]}/>
+            <Hero onCelebrate={()=>setCelebrate(true)}/>
+
+            <div style={{marginTop:"var(--space-6)"}}>
+              <Tabs items={tabs} pill defaultIndex={0}/>
+            </div>
+
+            <div style={{marginTop:"var(--space-8)"}}>
+              <ReviewSection/>
+            </div>
+
+            <div className="eyebrow">Secondary states (reviewer reference)</div>
+            <StateShowcase/>
+
+            <div style={{height:"var(--space-8)"}}/>
+          </div>
+
+          {celebrate && (
+            <div className="modal-shell" role="dialog" aria-modal="true" aria-label="Space complete">
+              <div className="modal-scrim" onClick={()=>setCelebrate(false)}></div>
+              <div className="celebrate">
+                <div className="celebrate__spark"><Icon name="sparkles" size={30}/></div>
+                <h2 className="celebrate__h">Space complete!</h2>
+                <p className="celebrate__b">Beautiful work, Ananya — you've finished every module in Data Structures &amp; Algorithms. Your XP is maxed and the final node just flipped to Mastered.</p>
+                <div style={{display:"flex",justifyContent:"center",gap:"var(--space-3)",alignItems:"center",marginBottom:"var(--space-5)"}}>
+                  <span className="completed-line"><Icon name="check-circle" size={18}/>You've completed this space 🎉</span>
+                </div>
+                <Button variant="spark" onClick={()=>setCelebrate(false)}>Keep the momentum</Button>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

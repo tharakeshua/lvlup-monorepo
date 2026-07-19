@@ -1,0 +1,769 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Timed Test — Results Review" subtitle="Sanitized ResultSummary per question · no answer key" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timed Test — Results Review</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* live desktop shell — positioned ancestor for Drawer */
+  .shell-frame { position: relative; height: 800px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  .tb-back { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-secondary);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface); }
+  .tb-back:hover { border-color: var(--border-strong); color: var(--text-primary); }
+  .tb-title { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-base); }
+
+  /* main results column */
+  .rmain { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ── VERDICT HERO ── */
+  .hero { position: relative; overflow: hidden; padding: var(--space-8) var(--space-8) var(--space-6); text-align: center; }
+  .hero--pass { background: linear-gradient(180deg, var(--status-success-subtle), var(--bg-surface) 70%); }
+  .hero--miss { background: linear-gradient(180deg, var(--status-warning-subtle), var(--bg-surface) 70%); }
+  .hero__row { display: flex; align-items: center; justify-content: center; gap: var(--space-8);
+    flex-wrap: wrap; margin-bottom: var(--space-5); }
+  .hero__ringwrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+  .hero__ring { --ring-size: 132px; }
+  .hero__ring .ring__label { font-size: var(--text-3xl); font-family: var(--font-mono);
+    font-weight: var(--weight-semibold); color: var(--text-primary); }
+  .hero__verdict { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+    text-align: left; max-width: 360px; }
+  .hero__pillrow { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .hero__h2 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .hero__marks { font-family: var(--font-mono); font-size: var(--text-base); color: var(--text-secondary); }
+  .hero__marks .div { color: var(--border-strong); margin: 0 var(--space-2); }
+  .hero__cta { display: flex; align-items: center; justify-content: center; gap: var(--space-3);
+    flex-wrap: wrap; margin-top: var(--space-2); }
+  .verdict-pill { display: inline-flex; align-items: center; gap: var(--space-2); height: 34px;
+    padding: 0 var(--space-4); border-radius: var(--radius-pill); font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+  .verdict-pill--pass { background: var(--status-success); color: var(--text-on-accent); }
+  .verdict-pill--miss { background: var(--status-warning-subtle); color: var(--amber-600);
+    border: 1px solid var(--status-warning); }
+  .pb-chip { display: inline-flex; align-items: center; gap: var(--space-2); height: 28px; padding: 0 var(--space-3);
+    border-radius: var(--radius-pill); background: var(--spark-subtle); color: var(--spark-hover);
+    font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+  .keylock-chip { margin-top: var(--space-4); display: inline-flex; }
+
+  /* celebration burst (the ONE moment — pass / personal best) */
+  .burst { position: absolute; inset: 0; pointer-events: none; }
+  .burst i { position: absolute; top: 18%; width: 9px; height: 9px; border-radius: 2px;
+    opacity: 0; animation: confetti var(--dur-slow) var(--ease-entrance) forwards; }
+  @keyframes confetti {
+    0% { opacity: 0; transform: translateY(0) rotate(0deg) scale(0.6); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(220px) rotate(220deg) scale(1); }
+  }
+  .pop { animation: pop var(--dur-slow) var(--ease-entrance) both; }
+  @keyframes pop {
+    0% { transform: scale(0.84); opacity: 0; }
+    60% { transform: scale(1.04); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .burst { display: none; }
+    .pop { animation: none; }
+  }
+  .rm-ribbon { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill); background: var(--spark-subtle); color: var(--spark-hover);
+    font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+
+  /* ── breakdown grid ── */
+  .bk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .bk-row { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .bk-row:last-child { margin-bottom: 0; }
+  .bk-row__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .bk-row__label { display: inline-flex; align-items: center; gap: var(--space-2);
+    font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--weight-medium); }
+  .bk-row__nums { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); }
+
+  /* ── difficulty progression chart ── */
+  .prog-cap { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-4);
+    max-width: var(--reading-max); }
+  .prog-chart { display: flex; align-items: flex-end; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2); }
+  .prog-col { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); min-width: 52px; }
+  .prog-band { display: flex; flex-direction: column; justify-content: flex-end; height: 120px; }
+  .prog-dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    border: 2px solid var(--border-strong); background: var(--bg-surface); }
+  .prog-dot--easy { border-color: var(--mastery-mastered); }
+  .prog-dot--med { border-color: var(--confidence-med); }
+  .prog-dot--hard { border-color: var(--confidence-low); }
+  .prog-dot svg { stroke-width: 2.5; }
+  .prog-dot--correct { background: var(--status-success-subtle); color: var(--status-success); }
+  .prog-dot--miss { background: var(--status-warning-subtle); color: var(--status-warning); }
+  .prog-q { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+  .prog-mark { display: inline-flex; align-items: center; gap: 2px; font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold); }
+  .prog-mark--correct { color: var(--status-success); }
+  .prog-mark--miss { color: var(--status-warning); }
+  .prog-legend { display: flex; gap: var(--space-5); margin-top: var(--space-4); flex-wrap: wrap; }
+  .prog-leg { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs);
+    color: var(--text-secondary); }
+  .leg-swatch { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); }
+
+  /* ── per-question review ── */
+  .qhead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; }
+  .qhead__left { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  .qhead__qno { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted); }
+  .qhead__meta { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .qbody { display: flex; flex-direction: column; gap: var(--space-4); }
+  .your-answer { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+    background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle); }
+  .your-answer__lbl { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.06em;
+    font-family: var(--font-mono); color: var(--text-muted); margin-bottom: var(--space-1); }
+  .your-answer__val { font-size: var(--text-sm); color: var(--text-primary); }
+
+  /* feedback panel */
+  .fb { border-radius: var(--radius-md); padding: var(--space-4) var(--space-5); border: 1px solid var(--border-subtle); }
+  .fb--ok { background: var(--status-success-subtle); border-color: var(--status-success); }
+  .fb--miss { background: var(--status-warning-subtle); border-color: var(--status-warning); }
+  .fb-head { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--weight-semibold);
+    font-size: var(--text-sm); margin-bottom: var(--space-2); }
+  .fb--ok .fb-head { color: var(--status-success); }
+  .fb--miss .fb-head { color: var(--status-warning); }
+  .fb-intro { font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-1);
+    font-style: italic; }
+  .fb-body { font-size: var(--text-sm); color: var(--text-primary); line-height: var(--leading-sm);
+    max-width: var(--reading-max); }
+  .fb-confrow { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+  .fb-confnote { font-size: var(--text-xs); color: var(--text-secondary); }
+
+  /* secondary state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+  .skel-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-row { display: flex; gap: var(--space-3); align-items: center; }
+  .mini-hero { display: flex; align-items: center; gap: var(--space-5); justify-content: center;
+    padding: var(--space-5) 0; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Chip, Kbd,
+    Card, Panel, Section, Accordion, Drawer, Alert, EmptyState, Skeleton, ProgressBar, ProgressRing,
+    ContentRenderer, ConfidenceBadge, RubricBreakdown, AnswerKeyLock, InsightCard, TutorChatBubble,
+    Input
+  } = LU;
+  const { useState, useEffect, useRef } = React;
+
+  /* ---- student sidebar nav ---- */
+  const NAV = [
+    { icon: "layout-dashboard", label: "Dashboard" },
+    { icon: "book-open", label: "My Spaces" },
+    { icon: "file-check", label: "Tests", active: true },
+    { icon: "trophy", label: "Leaderboard" },
+    { icon: "user", label: "Profile" },
+  ];
+
+  function NavLink({ icon, label, active }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+      </a>
+    );
+  }
+
+  /* ── server-graded result payload (sanitized — NO answer key) ── */
+  const RESULT = {
+    percentage: 78, score: 39, total: 50, passMark: 70, passed: true,
+    priorBest: 71, personalBest: true,
+    difficulty: [
+      { label: "Easy",   got: 8, max: 9 },
+      { label: "Medium", got: 6, max: 10 },
+      { label: "Hard",   got: 2, max: 8 },
+    ],
+    bloom: [
+      { label: "Remember", got: 5, max: 6 },
+      { label: "Apply",    got: 3, max: 7 },
+      { label: "Analyze",  got: 2, max: 6 },
+    ],
+    section: [
+      { label: "A · Basics", got: 9, max: 10 },
+      { label: "B · Proofs", got: 4, max: 10 },
+    ],
+    topic: [
+      { label: "Congruence", got: 6, max: 10 },
+      { label: "Similarity", got: 5, max: 11 },
+    ],
+    progression: [
+      { q: 1, diff: "easy", correct: true },
+      { q: 2, diff: "easy", correct: true },
+      { q: 3, diff: "med",  correct: true },
+      { q: 4, diff: "med",  correct: false },
+      { q: 5, diff: "med",  correct: true },
+      { q: 6, diff: "hard", correct: false },
+      { q: 7, diff: "hard", correct: false },
+      { q: 8, diff: "med",  correct: true },
+    ],
+  };
+
+  const QUESTIONS = [
+    {
+      n: 1, section: "A · Basics", diff: "Medium", type: "Multiple choice", correct: true,
+      prompt: "Two angles of a triangle measure 50° and 60°. What is the measure of the third angle?",
+      your: "70°",
+      feedback: "Exactly right — you used the angle-sum property (interior angles total 180°) and subtracted cleanly. Solid foundation work.",
+      ai: false,
+    },
+    {
+      n: 2, section: "B · Proofs", diff: "Hard", type: "Short answer", correct: false,
+      prompt: "Explain why two triangles with the same three angle measures are *similar* but not necessarily *congruent*.",
+      your: "Because they have the same angles, so they must be the same triangle.",
+      feedback: "You're close on the similarity idea — equal angles do guarantee the same shape. The gap is the *congruence* claim: equal angles fix the shape but not the size, so the triangles can be scaled copies. Revisit the AA-similarity vs. SAS-congruence distinction.",
+      ai: true, confidence: "high",
+      rubric: [
+        { label: "Identifies similarity (AA)", desc: "Equal angles → same shape", score: 2, max: 2 },
+        { label: "Explains size independence", desc: "Why congruence isn't implied", score: 1, max: 3 },
+        { label: "Uses precise terminology", desc: "similar / congruent / scale factor", score: 1, max: 2 },
+      ],
+    },
+    {
+      n: 3, section: "B · Proofs", diff: "Hard", type: "Proof / free response", correct: false,
+      prompt: "Given triangle ABC with a midsegment DE parallel to BC, prove that DE = ½·BC.",
+      your: "DE is parallel so it's half of BC by the triangle.",
+      feedback: "You named the right theorem in spirit, but a proof needs the steps. A teacher will take a second look at this one — your reasoning shows promise and deserves a careful read.",
+      ai: true, confidence: "low",
+      rubric: [
+        { label: "States midsegment theorem", desc: "DE ∥ BC and DE = ½ BC", score: 1, max: 2 },
+        { label: "Justifies with similarity", desc: "△ADE ~ △ABC, ratio 1:2", score: 0, max: 4 },
+        { label: "Logical structure", desc: "Given → steps → conclusion", score: 1, max: 2 },
+      ],
+    },
+    {
+      n: 4, section: "A · Basics", diff: "Easy", type: "Multiple choice", correct: true,
+      prompt: "Which of these is always true for an equilateral triangle?",
+      your: "All three interior angles equal 60°.",
+      feedback: "Correct, and well reasoned — equal sides force equal angles, and three equal angles summing to 180° gives 60° each.",
+      ai: false,
+    },
+  ];
+
+  function pct(got, max) { return Math.round((got / max) * 100); }
+
+  /* ── animated count-up ring (respects reduced motion) ── */
+  function CountUpRing({ value, passed }) {
+    const reduce = typeof window !== "undefined" &&
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const [n, setN] = useState(reduce ? value : 0);
+    useEffect(() => {
+      if (reduce) return;
+      let raf, start;
+      const dur = 900;
+      const step = (t) => {
+        if (!start) start = t;
+        const p = Math.min(1, (t - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setN(Math.round(eased * value));
+        if (p < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }, [value, reduce]);
+    return (
+      <div className="ring hero__ring" style={{ "--ring-pct": n, "--ring-size": "132px" }}
+           role="img" aria-label={"Score " + value + " percent, " + (passed ? "passed" : "not yet passed")}>
+        <span className="ring__label">{n}%</span>
+      </div>
+    );
+  }
+
+  /* ── celebration burst — fires ONCE on pass/personal-best only ── */
+  function CelebrationBurst({ active }) {
+    if (!active) return null;
+    const pieces = [];
+    const cols = ["var(--spark)", "var(--spark-hover)", "var(--marigold-400)", "var(--marigold-500)", "var(--brand-primary)"];
+    for (let i = 0; i < 22; i++) {
+      pieces.push(
+        <i key={i} aria-hidden="true" style={{
+          left: (8 + (i * 4.1) % 84) + "%",
+          background: cols[i % cols.length],
+          animationDelay: ((i % 6) * 60) + "ms",
+        }} />
+      );
+    }
+    return <div className="burst" aria-hidden="true">{pieces}</div>;
+  }
+
+  function BreakdownRows({ rows, icon }) {
+    return rows.map((r, i) => {
+      const p = pct(r.got, r.max);
+      return (
+        <div className="bk-row" key={i}>
+          <div className="bk-row__top">
+            <span className="bk-row__label"><Icon name={icon} size={15} /> {r.label}</span>
+            <span className="bk-row__nums">{r.got} / {r.max} · {p}%</span>
+          </div>
+          <ProgressBar value={p} variant={p >= RESULT.passMark ? "success" : undefined} />
+        </div>
+      );
+    });
+  }
+
+  function ProgressionChart() {
+    const bandClass = { easy: "prog-dot--easy", med: "prog-dot--med", hard: "prog-dot--hard" };
+    const bandOffset = { easy: 0, med: 36, hard: 72 };
+    return (
+      <div>
+        <p className="prog-cap">
+          How the test adapted to you — each step shows the difficulty you reached. Correct and
+          missed are marked with an icon and label, not colour alone.
+        </p>
+        <div className="prog-chart" role="img"
+          aria-label="Adaptive difficulty path across 8 questions: easy, easy, medium, medium, medium, hard, hard, medium. Correct on questions 1, 2, 3, 5 and 8; review on 4, 6 and 7.">
+          {RESULT.progression.map((s) => (
+            <div className="prog-col" key={s.q}>
+              <div className="prog-band" style={{ height: 120 }}>
+                <div style={{ height: bandOffset[s.diff] }} />
+                <div className={"prog-dot " + bandClass[s.diff] +
+                  (s.correct ? " prog-dot--correct" : " prog-dot--miss")}>
+                  <Icon name={s.correct ? "check" : "rotate-ccw"} size={15} />
+                </div>
+              </div>
+              <span className="prog-q">Q{s.q}</span>
+              <span className={"prog-mark " + (s.correct ? "prog-mark--correct" : "prog-mark--miss")}>
+                {s.correct ? "Correct" : "Review"}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="prog-legend">
+          <span className="prog-leg"><span className="leg-swatch" style={{ borderColor: "var(--mastery-mastered)" }} /> Easy</span>
+          <span className="prog-leg"><span className="leg-swatch" style={{ borderColor: "var(--confidence-med)" }} /> Medium</span>
+          <span className="prog-leg"><span className="leg-swatch" style={{ borderColor: "var(--confidence-low)" }} /> Hard</span>
+          <span className="prog-leg"><Icon name="check" size={14} style={{ color: "var(--status-success)" }} /> Correct</span>
+          <span className="prog-leg"><Icon name="rotate-ccw" size={14} style={{ color: "var(--status-warning)" }} /> Review</span>
+        </div>
+      </div>
+    );
+  }
+
+  function QuestionReviewItem({ q }) {
+    return (
+      <div className="qbody">
+        <div className="your-answer">
+          <div className="your-answer__lbl">Your answer</div>
+          <div className="your-answer__val">{q.your}</div>
+        </div>
+
+        <div className={"fb " + (q.correct ? "fb--ok" : "fb--miss")} role="status">
+          <div className="fb-head">
+            <Icon name={q.correct ? "check-circle" : "compass"} size={18} />
+            {q.correct ? "Correct" : "Let's look at this one again"}
+          </div>
+          <div className="fb-intro">Here's what the grader noted:</div>
+          <div className="fb-body"><ContentRenderer math>{q.feedback}</ContentRenderer></div>
+
+          {q.ai && (
+            <div className="fb-confrow">
+              <ConfidenceBadge level={q.confidence}
+                value={q.confidence === "high" ? "High confidence" :
+                       q.confidence === "med" ? "Medium confidence" : "Low confidence"} />
+              {q.confidence === "low" && (
+                <span className="fb-confnote">A teacher will take a second look at this one.</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {q.rubric && (
+          <div>
+            <div className="eyebrow" style={{ marginBottom: "var(--space-2)" }}>Rubric breakdown</div>
+            <RubricBreakdown criteria={q.rubric} />
+          </div>
+        )}
+
+        <AnswerKeyLock title="Answer keys stay sealed —">
+          your feedback above shows what to improve.
+        </AnswerKeyLock>
+      </div>
+    );
+  }
+
+  /* ============================ PRIMARY: live results screen ============================ */
+  function ResultsScreen() {
+    const reduce = typeof window !== "undefined" &&
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const [tutorOpen, setTutorOpen] = useState(false);
+    const [burst, setBurst] = useState(false);
+    const reviewRef = useRef(null);
+
+    const celebrate = RESULT.passed || RESULT.personalBest;
+
+    useEffect(() => {
+      if (!celebrate || reduce) return;
+      setBurst(true);
+      const t = setTimeout(() => setBurst(false), 1400); // fire once, then clear
+      return () => clearTimeout(t);
+    }, []);
+
+    const scrollToReview = () => {
+      if (reviewRef.current) {
+        reviewRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+        reviewRef.current.focus({ preventScroll: true });
+      }
+    };
+
+    const accItems = QUESTIONS.map((q) => ({
+      title: (
+        <div className="qhead">
+          <div className="qhead__left">
+            <span className="qhead__qno">Q{q.n}</span>
+            {q.correct
+              ? <Badge variant="success" icon={<Icon name="check" size={12} />}>Correct</Badge>
+              : <Badge variant="warning" icon={<Icon name="compass" size={12} />}>Let's look again</Badge>}
+          </div>
+          <span className="qhead__meta">
+            <Chip>{q.section}</Chip>
+            <Chip>{q.diff}</Chip>
+          </span>
+        </div>
+      ),
+      content: (
+        <div>
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <ContentRenderer math>{q.prompt}</ContentRenderer>
+          </div>
+          <QuestionReviewItem q={q} />
+        </div>
+      ),
+    }));
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">M</span>
+              <span className="sidebar__brand-name">Maple Grove School</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {NAV.map((n, i) => <NavLink key={i} {...n} />)}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials="Am" />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>Amara Okafor</b>
+                  <span>amara.o@maplegrove.edu</span>
+                </div>
+                <Icon name="chevron-up" size={16} />
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <button className="tb-back" onClick={(e) => e.preventDefault()}>
+              <Icon name="arrow-left" size={16} /> Back to space
+            </button>
+            <span className="tb-title">Geometry · Triangles — Test</span>
+            <div className="topbar__spacer" />
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="list-checks" size={16} />}
+              onClick={scrollToReview}>Review answers</Button>
+            <IconButton icon={<Icon name="bell" size={20} />} label="Updates" />
+            <Avatar initials="Am" />
+          </header>
+
+          {/* MAIN */}
+          <main className="appshell__main" id="main-content">
+            <div className="rmain">
+              {/* aria-live verdict announcement */}
+              <div aria-live="polite" className="sr-only">
+                You scored {RESULT.percentage} percent — passed. New personal best.
+              </div>
+
+              {/* VERDICT HERO */}
+              <Card className="pop">
+                <div className="hero hero--pass">
+                  <CelebrationBurst active={burst} />
+                  <div className="hero__row">
+                    <div className="hero__ringwrap">
+                      <CountUpRing value={RESULT.percentage} passed={RESULT.passed} />
+                    </div>
+                    <div className="hero__verdict">
+                      <div className="hero__pillrow">
+                        <span className="verdict-pill verdict-pill--pass">
+                          <Icon name="check-circle" size={16} /> Passed
+                        </span>
+                        {RESULT.personalBest && !reduce && (
+                          <span className="pb-chip"><Icon name="sparkles" size={13} /> Personal best!</span>
+                        )}
+                        {RESULT.personalBest && reduce && (
+                          <span className="rm-ribbon"><Icon name="sparkles" size={13} /> Personal best!</span>
+                        )}
+                      </div>
+                      <h2 className="hero__h2">Nice work — you passed!</h2>
+                      <div className="hero__marks">
+                        78% <span className="div">·</span> 39 / 50 marks <span className="div">·</span> Pass mark 70%
+                      </div>
+                      <div className="hero__marks" style={{ fontSize: "var(--text-sm)", color: "var(--spark-hover)" }}>
+                        You beat your previous best of 71%.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hero__cta">
+                    <Button variant="secondary" leadingIcon={<Icon name="list-checks" size={16} />}
+                      onClick={scrollToReview}>Review answers</Button>
+                    <Button variant="spark" trailingIcon={<Icon name="arrow-right" size={16} />}>
+                      Practice weak topics
+                    </Button>
+                    <Button variant="ghost" leadingIcon={<Icon name="message-circle-question" size={16} />}
+                      onClick={() => setTutorOpen(true)}>Ask the tutor</Button>
+                  </div>
+
+                  <div className="keylock-chip">
+                    <AnswerKeyLock title="Answer keys stay sealed">
+                      your feedback shows what to improve.
+                    </AnswerKeyLock>
+                  </div>
+                </div>
+              </Card>
+
+              {/* BREAKDOWN GRID 2×2 */}
+              <div className="bk-grid">
+                <Panel title="By difficulty">
+                  <BreakdownRows rows={RESULT.difficulty} icon="bar-chart-3" />
+                </Panel>
+                <Panel title="By Bloom's level">
+                  <BreakdownRows rows={RESULT.bloom} icon="brain" />
+                </Panel>
+                <Panel title="By section">
+                  <BreakdownRows rows={RESULT.section} icon="folder" />
+                </Panel>
+                <Panel title="By topic">
+                  <BreakdownRows rows={RESULT.topic} icon="tag" />
+                </Panel>
+              </div>
+
+              {/* DIFFICULTY PROGRESSION */}
+              <Panel title="Difficulty progression — the adaptive path">
+                <ProgressionChart />
+              </Panel>
+
+              {/* WHAT TO REVIEW NEXT */}
+              <InsightCard icon="compass" title="Let's revisit Proofs together.">
+                <div style={{ marginBottom: "var(--space-3)" }}>
+                  This was the trickiest area today — a few minutes of practice will help it click.
+                </div>
+                <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                  <Button variant="spark" size="sm" trailingIcon={<Icon name="arrow-right" size={14} />}>
+                    Practice this story point
+                  </Button>
+                  <Button variant="ghost" size="sm" leadingIcon={<Icon name="message-circle-question" size={14} />}
+                    onClick={() => setTutorOpen(true)}>Ask the tutor</Button>
+                </div>
+              </InsightCard>
+
+              {/* PER-QUESTION REVIEW */}
+              <section ref={reviewRef} tabIndex={-1} aria-label="Per-question review"
+                style={{ outline: "none" }}>
+                <Section title="Per-question review"
+                  actions={<span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)",
+                    fontFamily: "var(--font-mono)" }}>4 questions · feedback only, no answer key</span>}>
+                  <Accordion defaultOpen={0} items={accItems} />
+                </Section>
+              </section>
+            </div>
+          </main>
+        </div>
+
+        {/* TUTOR DRAWER (right side, default closed) */}
+        <Drawer open={tutorOpen} onClose={() => setTutorOpen(false)} title="Ask the tutor — Proofs">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <TutorChatBubble from="tutor" author="Tutor">
+              Proofs were the toughest part today — want to start with why equal angles don't make
+              triangles congruent?
+            </TutorChatBubble>
+            <TutorChatBubble from="user" author="You">
+              Yes — I thought same angles meant same triangle.
+            </TutorChatBubble>
+            <TutorChatBubble from="tutor" author="Tutor">
+              Close! Equal angles fix the *shape* (that's AA similarity), but not the *size*. Picture a
+              small triangle and a photocopy enlarged 2× — same angles, different side lengths. What
+              extra information would you need to also guarantee they're congruent?
+            </TutorChatBubble>
+            <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+              <Input placeholder="Type your question…" />
+              <Button variant="primary"><Icon name="send" size={16} /></Button>
+            </div>
+          </div>
+        </Drawer>
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* LOADING / SKELETON */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (revisit skeleton)</div>
+          <div className="skel-stack">
+            <div className="skel-row">
+              <Skeleton variant="circle" width="96px" height="96px" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="50%" height="14px" />
+                <Skeleton width="70%" height="26px" />
+                <Skeleton width="60%" height="13px" />
+              </div>
+            </div>
+            <div className="skel-row" style={{ alignItems: "stretch" }}>
+              <Skeleton height="90px" /><Skeleton height="90px" />
+            </div>
+            <Skeleton height="90px" />
+          </div>
+        </div>
+
+        {/* EMPTY */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (no completed session)</div>
+          <EmptyState icon="clipboard-list"
+            title="No results yet"
+            body="You haven't finished this test. Ready when you are."
+            action={<Button variant="primary" trailingIcon={<Icon name="arrow-right" size={16} />}>Start the test</Button>} />
+        </div>
+
+        {/* ERROR */}
+        <div className="tile">
+          <div className="eyebrow">State: error (session read failed — distinct from empty)</div>
+          <EmptyState icon="cloud-off"
+            title="We couldn't load your results right now"
+            body="Something hiccuped on our end. Your grade is safe — give it another go."
+            action={<Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16} />}>Try again</Button>} />
+        </div>
+
+        {/* NON-PASS HERO (calm — NO celebration) */}
+        <div className="tile">
+          <div className="eyebrow">State: non-pass verdict (calm · warm · no burst)</div>
+          <div className="mini-hero">
+            <div className="ring" style={{ "--ring-pct": 62, "--ring-size": "84px" }}>
+              <span className="ring__label" style={{ fontSize: "var(--text-lg)" }}>62%</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", alignItems: "flex-start" }}>
+              <span className="verdict-pill verdict-pill--miss">
+                <Icon name="compass" size={16} /> Not yet passed
+              </span>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)",
+                fontWeight: "var(--weight-semibold)" }}>Good effort — let's close the gap.</div>
+              <div className="hero__marks" style={{ fontSize: "var(--text-sm)" }}>
+                62% · 31 / 50 marks · Pass mark 70% — you're close.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* LOCKED */}
+        <div className="tile">
+          <div className="eyebrow">State: locked (passed + lockAfterPassing)</div>
+          <Alert variant="info" title="This test is locked">
+            You've passed and locked this test — your best result is saved. Review and practice stay open.
+          </Alert>
+          <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)", alignItems: "center",
+            fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            <Icon name="lock" size={14} /> No retake · best result preserved
+          </div>
+        </div>
+
+        {/* PARTIAL */}
+        <div className="tile">
+          <div className="eyebrow">State: partial (legacy session · breakdowns omitted silently)</div>
+          <Alert variant="warning" title="We're still grading one question">
+            Your overall score is final. One short-answer item is taking a moment — we'll show its
+            feedback as soon as it's ready, no action needed.
+          </Alert>
+          <div style={{ marginTop: "var(--space-3)", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+            Breakdown charts hidden for this older session rather than shown as empty shells.
+          </div>
+        </div>
+
+        {/* AUTO-SUBMIT + KEY-SEALED guarantees */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">Domain: server-authoritative grade · answer key never shown</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+              <Icon name="server" size={20} style={{ color: "var(--brand-primary)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Time was up — submitted for you</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  The timer is server-owned. If the clock ran out, we submitted automatically and graded
+                  on the server — the score shown is authoritative.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+              <Icon name="shield-check" size={20} style={{ color: "var(--status-success)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Guidance, never the key</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  You see server feedback, explanations, correctness and rubric scores — the raw answer
+                  key stays sealed on the server for every question.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <AnswerKeyLock title="Answer keys stay sealed —">
+              your feedback above shows what to improve.
+            </AnswerKeyLock>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <ResultsScreen />
+        <div>
+          <div className="eyebrow">Spec'd secondary states</div>
+          <StateTiles />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

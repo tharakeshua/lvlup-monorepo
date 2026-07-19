@@ -24,6 +24,7 @@ import {
   type EnsureAuthUserInput,
   type EnsureAuthUserResult,
 } from "./ensure-auth-user.js";
+import { SeedManifest } from "./manifest.js";
 
 export interface SeedContextOptions extends InitAdminOptions {
   /** No writes are committed when true — ops are counted and logged only. */
@@ -42,6 +43,8 @@ export class SeedContext {
   readonly logger: Logger;
   readonly dryRun: boolean;
   readonly batch: BatchWriter;
+  /** Deterministic document plan, emitted for dry runs and reused by exact verify. */
+  readonly manifest = new SeedManifest();
 
   /** Running tally of docs ensured per logical kind — surfaced by verify(). */
   readonly counts: Record<string, number> = {};
@@ -87,7 +90,12 @@ export class SeedContext {
     kind: string,
     path: string,
     data: Record<string, unknown>,
-    options: { merge?: boolean; stampAudit?: boolean } = {}
+    options: {
+      merge?: boolean;
+      stampAudit?: boolean;
+      logicalKey?: string;
+      verifyAs?: readonly string[];
+    } = {}
   ): Promise<void> {
     const stamp = options.stampAudit ?? true;
     const now = this.clock.now();
@@ -97,6 +105,13 @@ export class SeedContext {
       if (payload.createdAt === undefined) payload.createdAt = now;
       payload.updatedAt = payload.updatedAt ?? now;
     }
+    this.manifest.record({
+      kind,
+      path,
+      data: payload,
+      logicalKey: options.logicalKey,
+      verifyAs: options.verifyAs,
+    });
     await this.batch.set(this.ref(path), payload, { merge: options.merge ?? true });
     this.bump(kind);
   }
@@ -108,14 +123,31 @@ export class SeedContext {
   async ensureCollection<T>(
     kind: string,
     items: readonly T[],
-    toDoc: (item: T, index: number) => { path: string; data: Record<string, unknown> },
-    options: { merge?: boolean; stampAudit?: boolean } = {}
+    toDoc: (
+      item: T,
+      index: number
+    ) => {
+      path: string;
+      data: Record<string, unknown>;
+      logicalKey?: string;
+      verifyAs?: readonly string[];
+    },
+    options: {
+      merge?: boolean;
+      stampAudit?: boolean;
+      logicalKey?: string;
+      verifyAs?: readonly string[];
+    } = {}
   ): Promise<number> {
     let n = 0;
     for (let i = 0; i < items.length; i++) {
       const item = items[i] as T;
-      const { path, data } = toDoc(item, i);
-      await this.ensureDoc(kind, path, data, options);
+      const { path, data, logicalKey, verifyAs } = toDoc(item, i);
+      await this.ensureDoc(kind, path, data, {
+        ...options,
+        logicalKey: logicalKey ?? options.logicalKey,
+        verifyAs: verifyAs ?? options.verifyAs,
+      });
       n++;
     }
     return n;

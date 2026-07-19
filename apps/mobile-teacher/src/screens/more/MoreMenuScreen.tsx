@@ -25,6 +25,7 @@ import {
   RoleTenantPill,
   Screen,
   SectionHeader,
+  TeacherHero,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { useSession } from "../../sdk/session";
@@ -201,25 +202,25 @@ export default function MoreMenuScreen(): React.JSX.Element {
 
   return (
     <Screen background="canvas" contentClassName="gap-6 p-4 pb-12">
-      {/* identity header */}
-      <View className="gap-4 pt-2">
+      {/* identity hero */}
+      <TeacherHero
+        eyebrow="Teacher profile"
+        title={id.name || "Welcome back"}
+        subtitle={id.email || "Manage your workspace and preferences."}
+        icon="user-round"
+      >
         <View className="flex-row items-center gap-3">
           <Avatar initials={initialsOf(id.name, id.email)} size="lg" />
-          <View className="flex-1">
-            <Text className="font-display text-text-primary text-2xl">
-              {id.name || "Welcome back"}
-            </Text>
-            {id.email ? <Text className="font-ui text-text-muted text-sm">{id.email}</Text> : null}
-          </View>
+          <RoleTenantPill
+            tenant={id.tenantName}
+            role={roleLabel(id.role)}
+            code={id.tenantCode || id.tenantName.slice(0, 2).toUpperCase()}
+            switchable={id.memberships > 1}
+            onPress={() => router.push(routes.tenantSwitcher())}
+            className="flex-1"
+          />
         </View>
-        <RoleTenantPill
-          tenant={id.tenantName}
-          role={roleLabel(id.role)}
-          code={id.tenantCode || id.tenantName.slice(0, 2).toUpperCase()}
-          switchable={id.memberships > 1}
-          onPress={() => router.push(routes.tenantSwitcher())}
-        />
-      </View>
+      </TeacherHero>
 
       {renderGroup("Communicate", communicate)}
       {renderGroup("Insights", insights)}

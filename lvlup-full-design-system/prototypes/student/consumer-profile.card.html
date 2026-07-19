@@ -1,0 +1,689 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Consumer Profile / Account (B2C)" subtitle="Identity · plan · receipts · enter a school code" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumer Profile / Account (B2C)</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body, #root, .appshell { height: 100%; }
+
+  /* content region — vertical stack */
+  .content { display: flex; flex-direction: column; gap: var(--space-8); padding-bottom: var(--space-12); }
+  /* identity / details / plan capped at reading measure; receipts get the full width */
+  .reading { max-width: 720px; }
+
+  .surface { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); }
+  .card-pad { padding: var(--space-6); }
+
+  /* page entry stagger (reduced-motion safe) */
+  .enter { opacity: 0; transform: translateY(8px); animation: enterIn var(--dur-base) var(--ease-entrance) forwards; }
+  .enter.d1 { animation-delay: 40ms; } .enter.d2 { animation-delay: 90ms; }
+  .enter.d3 { animation-delay: 140ms; } .enter.d4 { animation-delay: 190ms; } .enter.d5 { animation-delay: 240ms; }
+  @keyframes enterIn { to { opacity: 1; transform: none; } }
+
+  /* PAGE HEADER */
+  .pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+  .h1 { font-family: var(--font-display); font-size: var(--text-4xl); line-height: var(--leading-4xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-display); margin: 0; }
+  .h1-sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: 4px; }
+  .h2 { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); margin: 0; display: flex; align-items: center; gap: var(--space-2); }
+
+  /* IDENTITY CARD */
+  .idhead { display: flex; gap: var(--space-5); align-items: center; padding: var(--space-6); }
+  .id-avatar .avatar { width: 72px; height: 72px; font-size: var(--text-2xl); }
+  .id-main { min-width: 0; flex: 1; }
+  .id-name { font-family: var(--font-display); font-size: var(--text-2xl); line-height: var(--leading-2xl); font-weight: var(--weight-semibold); margin: 0; }
+  .id-email { color: var(--text-secondary); font-size: var(--text-base); margin-top: 2px; display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+  /* STAT GRID (3-up) */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .stat-tile { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .stat-top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); }
+  .stat-ic { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .stat-ic--spark { background: var(--spark-subtle); color: var(--spark); }
+  .stat-lab { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .stat-big { font-family: var(--font-mono); font-size: var(--text-3xl); line-height: 1.1; font-weight: var(--weight-semibold); }
+  .stat-sub { font-size: var(--text-2xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+
+  /* RECEIPTS TABLE */
+  .receipt-wrap { overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); }
+  .receipt-wrap .table { width: 100%; border-collapse: collapse; background: var(--bg-surface); }
+  .receipt-wrap .table thead th { background: var(--bg-surface-sunken); text-align: left; font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); font-weight: var(--weight-semibold); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+  .receipt-wrap .table tbody td { padding: var(--space-4); border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); vertical-align: middle; }
+  .receipt-wrap .table tbody tr { transition: box-shadow var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard); }
+  .receipt-wrap .table tbody tr:hover { background: var(--bg-surface-sunken); box-shadow: inset 3px 0 0 0 var(--brand-primary); }
+  .receipt-wrap .table tbody tr:last-child td { border-bottom: none; }
+  .receipt-wrap .table tfoot td { padding: var(--space-3) var(--space-4); background: var(--bg-surface-sunken); border-top: 1px solid var(--border-strong); font-size: var(--text-sm); color: var(--text-secondary); }
+  .mono { font-family: var(--font-mono); }
+  .num-cell { font-family: var(--font-mono); font-weight: var(--weight-medium); color: var(--text-primary); }
+  .sort-th { background: none; border: none; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .sort-th:focus-visible { outline: none; box-shadow: var(--ring-focus); border-radius: var(--radius-sm); }
+  .sort-chev { display: inline-flex; transition: transform var(--dur-fast) var(--ease-standard); color: var(--text-secondary); }
+  .sort-chev.desc { transform: rotate(0deg); } .sort-chev.asc { transform: rotate(180deg); }
+  .txn { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .txn-id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); }
+  .copy-btn { background: none; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); width: 26px; height: 26px; display: grid; place-items: center; cursor: pointer; color: var(--text-muted); transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard); }
+  .copy-btn:hover { color: var(--brand-primary); border-color: var(--border-strong); }
+  .copy-btn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .open-link { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-primary); font-weight: var(--weight-medium); text-decoration: none; font-size: var(--text-sm); }
+  .open-link:hover { text-decoration: underline; }
+  .open-link.disabled { color: var(--text-muted); pointer-events: none; }
+
+  /* JOIN-A-SCHOOL panel */
+  .join { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); padding: var(--space-5) var(--space-6); display: flex; align-items: center; gap: var(--space-5); }
+  .join-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .join-body { flex: 1; min-width: 0; }
+  .join-title { font-weight: var(--weight-semibold); font-size: var(--text-base); }
+  .join-copy { color: var(--text-secondary); font-size: var(--text-sm); margin-top: 2px; }
+
+  /* DANGER zone */
+  .danger { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface); }
+  .danger__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-6); }
+  .danger__row + .danger__row { border-top: 1px solid var(--border-subtle); }
+  .danger__label { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .danger__hint { color: var(--text-muted); font-size: var(--text-xs); margin-top: 2px; }
+
+  /* state preview scaffolding */
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--bg-surface-sunken); }
+  .state-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+
+  /* skeleton helpers */
+  .skel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-row { display: flex; gap: var(--space-4); align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+
+  /* mobile receipt cards (rendered in a labeled preview band) */
+  .mreceipts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); max-width: 380px; }
+  .mreceipt { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-e1); padding: var(--space-4); }
+  .mreceipt__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+  .mreceipt__title { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+  .mreceipt__kv { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); }
+  .mreceipt__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+
+  .confirm-typed { margin-top: var(--space-4); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enter { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .receipt-wrap .table tbody tr, .sort-chev, .copy-btn, .open-link { transition: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Field,
+    Card, Panel, Section, Modal,
+    DefinitionList, Skeleton, EmptyState, Avatar, Badge, Chip, Alert, Toast, NavItem
+  } = LU;
+
+  const { useState, useEffect } = React;
+
+  /* ---------------- Data (realistic B2C account) ---------------- */
+  const USER = {
+    name: "Lena Okafor",
+    email: "lena@hey.com",
+    initials: "LO",
+    plan: "Pro",
+    memberSince: "March 2026",
+    enrolledSpaces: 4,
+    totalSpend: "₹2,400",
+  };
+
+  const RECEIPTS = [
+    { id: "r1", date: "20 Jun 2026", ts: 20260620, space: "DSA Masterclass", spaceId: "ZikR8", amount: "₹1,200", free: false, txn: "txn_a93f0c", available: true },
+    { id: "r2", date: "02 Jun 2026", ts: 20260602, space: "System Design Deep-Dive", spaceId: "PDFq1", amount: "₹1,200", free: false, txn: "txn_7f1b22", available: true },
+    { id: "r3", date: "18 May 2026", ts: 20260518, space: "Behavioral Prep", spaceId: "1AqFw", amount: "Free", free: true, txn: "txn_001e8a", available: false },
+  ];
+
+  /* ---------------- Shell: Sidebar (Consumer) ---------------- */
+  function Sidebar() {
+    const nav = [
+      { icon: "layout-dashboard", label: "Home" },
+      { icon: "compass", label: "Explore store" },
+      { icon: "book-open", label: "My spaces" },
+      { icon: "trending-up", label: "Progress" },
+      { icon: "user", label: "My account", active: true },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map((n) => (
+            <NavItem key={n.label} icon={n.icon} active={n.active} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div className="sidebar__section-label">Account</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="receipt" href="#">Receipts</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+            <Avatar initials={USER.initials} size="sm"/>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)" }}>{USER.name}</div>
+              <div className="u-caption" style={{ color:"var(--text-muted)" }}>Pro · Personal</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onSignOut }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          <Input placeholder="Search the store…  ⌘K" aria-label="Search"/>
+        </div>
+        <div className="topbar__spacer"/>
+        <IconButton icon={<Icon name="shopping-cart" size={18}/>} label="Cart, 0 items"/>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <button
+          onClick={onSignOut}
+          aria-label="Account menu"
+          style={{ display:"inline-flex", alignItems:"center", gap:"6px", background:"transparent", border:"none", cursor:"pointer", padding:"var(--space-1)" }}>
+          <Avatar initials={USER.initials} size="sm"/>
+          <Icon name="chevron-down" size={16}/>
+        </button>
+      </header>
+    );
+  }
+
+  /* ---------------- Plan tier badge ---------------- */
+  function PlanBadge({ tier }) {
+    if (tier === "Pro") return <Badge variant="spark" icon={<Icon name="crown" size={12}/>}>Pro</Badge>;
+    if (tier === "Premium") return <Badge variant="brand" icon={<Icon name="gem" size={12}/>}>Premium</Badge>;
+    return <Badge icon={<Icon name="user" size={12}/>}>Free</Badge>;
+  }
+
+  /* ---------------- StatCard tile ---------------- */
+  function StatTile({ icon, spark, label, sub, subIcon, children }) {
+    return (
+      <div className="stat-tile">
+        <div className="stat-top">
+          <span className={"stat-ic" + (spark ? " stat-ic--spark" : "")}><Icon name={icon} size={16}/></span>
+          <span className="stat-lab">{label}</span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:"var(--space-2)", minHeight:"34px" }}>{children}</div>
+        {sub && <div className="stat-sub">{subIcon && <Icon name={subIcon} size={12}/>}{sub}</div>}
+      </div>
+    );
+  }
+
+  /* ---------------- Receipts table (sortable, copy, open) ---------------- */
+  function ReceiptsTable({ onCopy }) {
+    const [dir, setDir] = useState("desc"); // newest-first default
+    const sorted = [...RECEIPTS].sort((a, b) => dir === "desc" ? b.ts - a.ts : a.ts - b.ts);
+    return (
+      <div className="receipt-wrap">
+        <table className="table">
+          <caption className="u-sr-only">Your purchase history, newest first</caption>
+          <thead>
+            <tr>
+              <th scope="col" aria-sort={dir === "desc" ? "descending" : "ascending"}>
+                <button className="sort-th" onClick={() => setDir(d => d === "desc" ? "asc" : "desc")}
+                  aria-label={"Sort by date, currently " + (dir === "desc" ? "newest first" : "oldest first")}>
+                  Date <span className={"sort-chev " + dir}><Icon name="chevron-down" size={13}/></span>
+                </button>
+              </th>
+              <th scope="col">Space</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => (
+              <tr key={r.id}>
+                <td className="mono" style={{ color:"var(--text-secondary)", whiteSpace:"nowrap" }}>{r.date}</td>
+                <td style={{ fontWeight:"var(--weight-medium)" }}>{r.space}</td>
+                <td className="num-cell">{r.free
+                  ? <Badge variant="success" icon={<Icon name="gift" size={11}/>}>Free</Badge>
+                  : r.amount}</td>
+                <td>
+                  <div style={{ display:"flex", alignItems:"center", gap:"var(--space-4)" }}>
+                    <span className="txn" title={"Transaction " + r.txn}>
+                      <span className="txn-id">#{r.txn.slice(0, 9)}…</span>
+                      <button className="copy-btn" aria-label={"Copy receipt id " + r.txn}
+                        onClick={() => onCopy(r.txn)}>
+                        <Icon name="copy" size={13}/>
+                      </button>
+                    </span>
+                    {r.available
+                      ? <a href="#" className="open-link" onClick={(e)=>e.preventDefault()}>Open <Icon name="arrow-up-right" size={13}/></a>
+                      : <span className="open-link disabled" title="This space is no longer available, but your receipt is kept." aria-label="This space is no longer available, but your receipt is kept">
+                          <Icon name="lock" size={13}/> Unavailable
+                        </span>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4} style={{ textAlign:"right" }}>
+                Total invested: <span className="mono" style={{ color:"var(--text-primary)", fontWeight:"var(--weight-semibold)" }}>{USER.totalSpend}</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  }
+
+  /* ================= MAIN ACCOUNT VIEW (success — primary) ================= */
+  function AccountMain({ onSignOut, onDelete, onSchoolCode, onCopy }) {
+    return (
+      <div className="content">
+        {/* PAGE HEADER */}
+        <div className="pagehead enter d1">
+          <div>
+            <h1 className="h1">My account</h1>
+            <div className="h1-sub">Your identity, plan and every receipt — always available.</div>
+          </div>
+          <Button variant="ghost" leadingIcon={<Icon name="log-out" size={16}/>} onClick={onSignOut}>Sign out</Button>
+        </div>
+
+        {/* IDENTITY CARD */}
+        <div className="reading surface idhead enter d2">
+          <div className="id-avatar"><Avatar initials={USER.initials} size="lg"/></div>
+          <div className="id-main">
+            <div className="id-name">{USER.name}</div>
+            <div className="id-email">
+              <span style={{ color:"var(--text-secondary)" }}>{USER.email}</span>
+              <Badge variant="success" icon={<Icon name="check-circle" size={11}/>}>Verified</Badge>
+            </div>
+          </div>
+          <Button variant="ghost" trailingIcon={<Icon name="chevron-right" size={16}/>}>Settings</Button>
+        </div>
+
+        {/* PLAN STATCARDS (3-up) */}
+        <section aria-label="Your plan at a glance" className="reading stat-grid enter d2" style={{ maxWidth:"720px" }}>
+          <StatTile icon="crown" spark label="Plan" sub="Renews 1 Jul 2026" subIcon="refresh-cw">
+            <PlanBadge tier={USER.plan}/>
+          </StatTile>
+          <StatTile icon="book-open" label="Enrolled spaces" sub="Across your library" subIcon="layers">
+            <span className="stat-big">{USER.enrolledSpaces}</span>
+          </StatTile>
+          <StatTile icon="wallet" label="Invested" sub="Lifetime, all receipts" subIcon="receipt">
+            <span className="stat-big">{USER.totalSpend}</span>
+          </StatTile>
+        </section>
+
+        {/* ACCOUNT DETAILS (DefinitionList in Panel) */}
+        <div className="reading enter d3">
+          <Panel title="Account details">
+            <DefinitionList items={[
+              { term: "Plan", value: <span style={{ display:"inline-flex", alignItems:"center" }}><PlanBadge tier={USER.plan}/></span> },
+              { term: "Member since", value: USER.memberSince },
+              { term: "Email", value: (
+                <span style={{ display:"inline-flex", alignItems:"center", gap:"var(--space-2)" }}>
+                  {USER.email}
+                  <Badge variant="success" icon={<Icon name="check-circle" size={11}/>}>Verified</Badge>
+                </span>
+              )},
+              { term: "Enrolled spaces", value: String(USER.enrolledSpaces) },
+            ]}/>
+          </Panel>
+        </div>
+
+        {/* PURCHASE HISTORY (Section → DataTable) — full width */}
+        <Section
+          className="enter d4"
+          title={<span className="h2"><Icon name="credit-card" size={18}/> Purchase history</span>}
+          actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>}>Browse the store</Button>}>
+          <ReceiptsTable onCopy={onCopy}/>
+        </Section>
+
+        {/* JOIN A SCHOOL */}
+        <div className="reading join enter d5" style={{ maxWidth:"720px" }}>
+          <span className="join-ic"><Icon name="school" size={20}/></span>
+          <div className="join-body">
+            <div className="join-title">Join a school</div>
+            <div className="join-copy">Have a school code? Link your account to access school content while keeping your personal learning progress.</div>
+          </div>
+          <Button variant="primary" leadingIcon={<Icon name="key-round" size={16}/>} onClick={onSchoolCode}>Enter school code</Button>
+        </div>
+
+        {/* DANGER / ACCOUNT ZONE */}
+        <div className="reading enter d5" style={{ maxWidth:"720px" }}>
+          <Section title="Account">
+            <div className="danger">
+              <div className="danger__row">
+                <div>
+                  <div className="danger__label">Sign out</div>
+                  <div className="danger__hint">You can sign back in anytime.</div>
+                </div>
+                <Button variant="secondary" leadingIcon={<Icon name="log-out" size={16}/>} onClick={onSignOut}>Sign out</Button>
+              </div>
+              <div className="danger__row">
+                <div>
+                  <div className="danger__label">Delete account</div>
+                  <div className="danger__hint">Permanently removes your account and learning progress. Receipts are retained for billing.</div>
+                </div>
+                <Button variant="danger" leadingIcon={<Icon name="trash-2" size={16}/>} onClick={onDelete}>Delete account</Button>
+              </div>
+            </div>
+          </Section>
+        </div>
+
+        {/* ============ OTHER SPEC'd STATES (for review) ============ */}
+        <Section title="Other states (for review)">
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-6)" }}>
+            <LoadingSkeletonState/>
+            <div className="state-cols">
+              <EmptyPurchasesState/>
+              <FreePlanEmptyState/>
+            </div>
+            <div className="state-cols">
+              <SnapshotErrorState/>
+              <PartialResolveState/>
+            </div>
+            <PermissionGatedState/>
+            <MobileReceiptsState onCopy={onCopy}/>
+          </div>
+        </Section>
+
+        <div style={{ height:"var(--space-6)" }}/>
+      </div>
+    );
+  }
+
+  /* ---------- State: loading skeleton (no spinner, matches geometry) ---------- */
+  function LoadingSkeletonState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your account">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading — skeleton (shimmer only, never a spinner)</div>
+        <div className="surface idhead" style={{ marginBottom:"var(--space-4)" }}>
+          <Skeleton variant="circle" width="72px" height="72px"/>
+          <div style={{ flex:1, display:"flex", flexDirection:"column", gap:"var(--space-2)" }}>
+            <Skeleton width="40%" height="1.4rem"/>
+            <Skeleton width="55%" height="0.9rem"/>
+          </div>
+        </div>
+        <div className="skel-grid" style={{ marginBottom:"var(--space-4)" }}>
+          {[0,1,2].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="55%" height="0.7rem"/>
+              <Skeleton width="45%" height="1.7rem"/>
+              <Skeleton width="70%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+        <div className="surface" style={{ overflow:"hidden" }}>
+          {[0,1,2].map(i => (
+            <div className="skel-row" key={i} style={{ borderBottom: i===2 ? "none" : undefined }}>
+              <Skeleton width="90px" height="0.8rem"/>
+              <Skeleton width="40%" height="0.8rem"/>
+              <Skeleton width="60px" height="0.8rem"/>
+              <div style={{ marginLeft:"auto" }}><Skeleton width="80px" height="0.8rem"/></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: empty (no purchases) ---------- */
+  function EmptyPurchasesState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="inbox" size={13}/> State: empty — no purchases yet</div>
+        <div className="surface" style={{ padding:"var(--space-2)" }}>
+          <EmptyState
+            icon="receipt"
+            title="No purchases yet"
+            body="When you buy a space, your receipts will live here — every one, always available."
+            action={<Button variant="primary" leadingIcon={<Icon name="compass" size={16}/>}>Browse the store</Button>}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: free plan, no spend (kind zeros) ---------- */
+  function FreePlanEmptyState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="user" size={13}/> State: empty — free plan, ₹0 invested (never punitive)</div>
+        <div className="skel-grid" style={{ gridTemplateColumns:"1fr 1fr" }}>
+          <div className="stat-tile">
+            <div className="stat-top"><span className="stat-ic"><Icon name="user" size={16}/></span><span className="stat-lab">Plan</span></div>
+            <div style={{ minHeight:"34px", display:"flex", alignItems:"center" }}><PlanBadge tier="Free"/></div>
+            <div className="stat-sub"><Icon name="sparkles" size={12}/> Upgrade anytime</div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-top"><span className="stat-ic"><Icon name="wallet" size={16}/></span><span className="stat-lab">Invested</span></div>
+            <span className="stat-big" style={{ color:"var(--text-muted)" }}>₹0</span>
+            <div className="stat-sub"><Icon name="receipt" size={12}/> No receipts yet</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: snapshot error ---------- */
+  function SnapshotErrorState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: error — /users snapshot failed</div>
+        <Alert variant="error" title="We couldn’t load your account just now">
+          Your data is safe — let’s try again.
+        </Alert>
+        <div style={{ marginTop:"var(--space-3)" }}>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={15}/>}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: partial (receipts render, "Open" still resolving) ---------- */
+  function PartialResolveState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: partial — rows live, “Open” resolving via getSpace</div>
+        <div className="receipt-wrap">
+          <table className="table">
+            <tbody>
+              <tr>
+                <td className="mono" style={{ color:"var(--text-secondary)" }}>20 Jun 2026</td>
+                <td style={{ fontWeight:"var(--weight-medium)" }}>DSA Masterclass</td>
+                <td className="num-cell">₹1,200</td>
+                <td><Skeleton width="74px" height="0.9rem"/></td>
+              </tr>
+              <tr>
+                <td className="mono" style={{ color:"var(--text-secondary)" }}>02 Jun 2026</td>
+                <td style={{ fontWeight:"var(--weight-medium)" }}>System Design Deep-Dive</td>
+                <td className="num-cell">₹1,200</td>
+                <td><Skeleton width="74px" height="0.9rem"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="u-caption" style={{ color:"var(--text-muted)", marginTop:"var(--space-2)", display:"flex", alignItems:"center", gap:"6px" }}>
+          <Icon name="info" size={13}/> Receipts never wait on space resolution — title, date and amount show immediately.
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: permission / B2C-only ---------- */
+  function PermissionGatedState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="shield" size={13}/> State: permission-gated — B2C-only (a B2B membership resolves the tenant ProfilePage instead)</div>
+        <div className="surface card-pad" style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+          <Icon name="user-round-check" size={18}/>
+          <div className="u-caption" style={{ color:"var(--text-secondary)" }}>
+            This account view is scoped to <span className="mono">platform_public</span> + your consumer profile — no tenant reads. Join a school and your <span className="mono">/profile</span> resolves to the school view.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: mobile (table → stacked receipt cards) ---------- */
+  function MobileReceiptsState({ onCopy }) {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="smartphone" size={13}/> State: mobile — DataTable degrades to stacked receipt cards (role=list, ≥44px targets)</div>
+        <ul className="mreceipts" role="list">
+          {RECEIPTS.map(r => (
+            <li className="mreceipt" key={r.id} aria-label={r.space + ", " + r.date + ", " + r.amount}>
+              <div className="mreceipt__top">
+                <span className="mreceipt__title">{r.space}</span>
+                {r.free
+                  ? <Badge variant="success" icon={<Icon name="gift" size={11}/>}>Free</Badge>
+                  : <span className="num-cell">{r.amount}</span>}
+              </div>
+              <div className="mreceipt__kv">
+                <span><Icon name="calendar" size={12}/> {r.date}</span>
+                <span className="txn-id">#{r.txn.slice(0,9)}…</span>
+              </div>
+              <div className="mreceipt__foot">
+                {r.available
+                  ? <a href="#" className="open-link" onClick={(e)=>e.preventDefault()}>Open <Icon name="arrow-up-right" size={13}/></a>
+                  : <span className="open-link disabled"><Icon name="lock" size={13}/> Unavailable</span>}
+                <button className="copy-btn" aria-label={"Copy receipt id " + r.txn} onClick={() => onCopy(r.txn)}>
+                  <Icon name="copy" size={13}/>
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  /* ============================== SCREEN ============================== */
+  function Screen() {
+    const [signOutOpen, setSignOutOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [schoolOpen, setSchoolOpen] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState("");
+    const [schoolCode, setSchoolCode] = useState("");
+    const [signingOut, setSigningOut] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const fireToast = (t) => { setToast(t); setTimeout(() => setToast(null), 2600); };
+
+    useEffect(() => {
+      const onKey = (e) => { if (e.key === "Escape") { setSignOutOpen(false); setDeleteOpen(false); setSchoolOpen(false); } };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const onCopy = (txn) => fireToast({ variant: "success", title: "Receipt ID copied", body: "#" + txn });
+
+    const doSignOut = () => {
+      setSigningOut(true);
+      setTimeout(() => {
+        setSigningOut(false);
+        setSignOutOpen(false);
+        fireToast({ variant: "success", title: "Signed out", body: "See you soon, Lena." });
+      }, 650);
+    };
+
+    return (
+      <div className="appshell" style={{ position:"relative" }}>
+        <Sidebar/>
+        <Topbar onSignOut={() => setSignOutOpen(true)}/>
+        <main className="appshell__main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <AccountMain
+            onSignOut={() => setSignOutOpen(true)}
+            onDelete={() => { setDeleteConfirm(""); setDeleteOpen(true); }}
+            onSchoolCode={() => { setSchoolCode(""); setSchoolOpen(true); }}
+            onCopy={onCopy}
+          />
+        </main>
+
+        {/* SIGN-OUT confirm (default closed) */}
+        <Modal
+          open={signOutOpen}
+          onClose={() => setSignOutOpen(false)}
+          title="Sign out?"
+          footer={
+            <div style={{ display:"flex", gap:"var(--space-3)", justifyContent:"flex-end", width:"100%" }}>
+              <Button variant="ghost" onClick={() => setSignOutOpen(false)} disabled={signingOut}>Stay</Button>
+              <Button variant="primary" loading={signingOut} leadingIcon={!signingOut && <Icon name="log-out" size={16}/>} onClick={doSignOut}>Sign out</Button>
+            </div>
+          }>
+          <p style={{ margin:0, color:"var(--text-secondary)" }}>You can sign back in anytime.</p>
+        </Modal>
+
+        {/* DELETE ACCOUNT confirm — typed confirmation (default closed) */}
+        <Modal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          title="Delete your account?"
+          footer={
+            <div style={{ display:"flex", gap:"var(--space-3)", justifyContent:"flex-end", width:"100%" }}>
+              <Button variant="ghost" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+              <Button variant="danger" disabled={deleteConfirm.trim().toUpperCase() !== "DELETE"} leadingIcon={<Icon name="trash-2" size={16}/>}
+                onClick={() => { setDeleteOpen(false); fireToast({ variant: "info", title: "Deletion requested", body: "Your purchase records are retained for billing." }); }}>
+                Delete account
+              </Button>
+            </div>
+          }>
+          <Alert variant="warning" title="This can’t be undone">
+            This permanently removes your account and learning progress. Your purchase records are retained for legal and billing requirements.
+          </Alert>
+          <div className="confirm-typed">
+            <Field label="Type DELETE to confirm" htmlFor="del-confirm">
+              <Input id="del-confirm" value={deleteConfirm} onChange={(e)=>setDeleteConfirm(e.target.value)} placeholder="DELETE" autoFocus/>
+            </Field>
+          </div>
+        </Modal>
+
+        {/* ENTER SCHOOL CODE (default closed; spec: navigates to /login B2B join) */}
+        <Modal
+          open={schoolOpen}
+          onClose={() => setSchoolOpen(false)}
+          title="Enter your school code"
+          footer={
+            <div style={{ display:"flex", gap:"var(--space-3)", justifyContent:"flex-end", width:"100%" }}>
+              <Button variant="ghost" onClick={() => setSchoolOpen(false)}>Cancel</Button>
+              <Button variant="primary" disabled={!schoolCode.trim()} trailingIcon={<Icon name="arrow-right" size={16}/>}
+                onClick={() => { setSchoolOpen(false); fireToast({ variant: "info", title: "Taking you to sign-in", body: "Continue joining " + schoolCode.trim().toUpperCase() + "." }); }}>
+                Continue
+              </Button>
+            </div>
+          }>
+          <p style={{ margin:"0 0 var(--space-4)", color:"var(--text-secondary)" }}>
+            Link your account to access school content while keeping your personal learning progress.
+          </p>
+          <Field label="School code" htmlFor="school-code" hint="Ask your teacher or admin — looks like SUB001.">
+            <Input id="school-code" value={schoolCode} onChange={(e)=>setSchoolCode(e.target.value)} placeholder="e.g. SUB001" autoFocus/>
+          </Field>
+        </Modal>
+
+        {/* Toast (polite live region) */}
+        {toast && (
+          <div style={{ position:"absolute", right:"var(--space-6)", top:"var(--space-6)", zIndex:50, width:"min(360px, 90%)" }} aria-live="polite">
+            <Toast variant={toast.variant} title={toast.title} body={toast.body}/>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

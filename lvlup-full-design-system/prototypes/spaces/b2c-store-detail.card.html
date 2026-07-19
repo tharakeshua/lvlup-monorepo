@@ -1,0 +1,747 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="B2C Store Space Detail" subtitle="Store projection · curriculum · buy" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html,body{margin:0;height:100%}
+    body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+    #root{height:100vh}
+
+    /* consumer shell: topbar only, no role sidebar */
+    .bs-shell{display:flex;flex-direction:column;min-height:100vh}
+    .bs-topbar{display:flex;align-items:center;gap:var(--space-4);height:60px;padding:0 var(--space-8);
+      background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);position:sticky;top:0;z-index:30}
+    .bs-brand{display:flex;align-items:center;gap:var(--space-2)}
+    .bs-brand__mark{display:grid;place-items:center;width:30px;height:30px;border-radius:var(--radius-md);
+      background:var(--brand-primary);color:var(--text-on-accent);font-family:var(--font-display);font-weight:var(--weight-bold)}
+    .bs-brand__name{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold)}
+    .bs-brand__tag{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
+    .bs-topbar__spacer{flex:1}
+    .bs-search{position:relative;flex:0 1 320px;display:flex;align-items:center}
+    .bs-search .bs-search__icon{position:absolute;left:var(--space-3);display:flex;color:var(--text-muted)}
+    .bs-search input{padding-left:var(--space-8)}
+    .bs-cart{position:relative}
+    .bs-cart__count{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:var(--radius-pill);
+      background:var(--spark);color:var(--text-on-accent);font-family:var(--font-mono);font-size:9px;line-height:16px;text-align:center}
+
+    .bs-page{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:var(--space-5) var(--space-8) var(--space-16);
+      display:flex;flex-direction:column;gap:var(--space-5)}
+
+    /* demo state switcher */
+    .bs-statebar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+    .bs-toggle{display:inline-flex;flex-wrap:wrap;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:2px}
+    .bs-toggle button{display:flex;align-items:center;gap:var(--space-1);height:30px;padding:0 var(--space-3);border:0;background:transparent;
+      color:var(--text-secondary);font-family:var(--font-ui);font-size:var(--text-xs);border-radius:var(--radius-sm);cursor:pointer}
+    .bs-toggle button[aria-pressed="true"]{background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-e1)}
+
+    .bs-back{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary);
+      text-decoration:none;background:transparent;border:0;cursor:pointer;font-family:var(--font-ui);padding:0;align-self:flex-start}
+    .bs-back:hover{color:var(--brand-primary)}
+
+    /* entry rise */
+    @keyframes bs-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    .bs-rise{animation:bs-rise var(--dur-page) var(--ease-entrance) both}
+    @media (prefers-reduced-motion: reduce){.bs-rise{animation:none}}
+
+    /* hero */
+    .bs-hero__cover{height:224px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;margin:calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-5);
+      background:var(--bg-surface-sunken);border-bottom:1px solid var(--border-subtle);position:relative;overflow:hidden;display:grid;place-items:center}
+    .bs-hero__cover-grad{position:absolute;inset:0;background:linear-gradient(135deg,var(--brand-subtle),var(--spark-subtle))}
+    .bs-hero__cover-glyph{position:relative;color:var(--brand-primary);opacity:.6}
+    .bs-hero__body{display:flex;flex-direction:column;gap:var(--space-4)}
+    .bs-h1{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+    .bs-chiprow{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+    .bs-chiprow__spacer{flex:1}
+    .bs-rating{display:inline-flex;align-items:center;gap:var(--space-2)}
+    .bs-stars{display:inline-flex;color:var(--spark)}
+    .bs-stars--muted{color:var(--border-strong)}
+    .bs-rating__num{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+    .bs-rating__count{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted)}
+    .bs-desc{max-width:720px}
+
+    .bs-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);
+      padding:var(--space-4) 0;border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle)}
+    .bs-stat__value{font-family:var(--font-mono);font-size:var(--text-2xl);line-height:1;color:var(--text-primary)}
+    .bs-stat__label{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:var(--space-2)}
+
+    .bs-buyrow{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap}
+    .bs-price{display:flex;flex-direction:column;gap:2px}
+    .bs-price__amount{font-family:var(--font-mono);font-size:var(--text-3xl);line-height:1;color:var(--text-primary)}
+    .bs-price__free{color:var(--status-success)}
+    .bs-price__note{font-size:var(--text-2xs);color:var(--text-muted)}
+    .bs-buyrow__spacer{flex:1}
+
+    /* spark burst on CTA */
+    .bs-ctawrap{position:relative;display:inline-flex}
+    @keyframes bs-burst{0%{transform:scale(.6);opacity:0}40%{transform:scale(1.2);opacity:1}100%{transform:scale(2);opacity:0}}
+    .bs-burst{position:absolute;inset:-8px;border-radius:var(--radius-pill);box-shadow:var(--glow-spark);background:var(--spark-subtle);pointer-events:none;animation:bs-burst var(--dur-slow) var(--ease-standard) forwards}
+    @keyframes bs-pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+    .bs-pop{animation:bs-pop var(--dur-base) var(--ease-standard)}
+    @media (prefers-reduced-motion: reduce){.bs-burst{display:none}.bs-pop{animation:none}}
+
+    /* two-column */
+    .bs-grid{display:grid;grid-template-columns:8fr 4fr;gap:var(--space-5);align-items:start}
+    .bs-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+
+    /* curriculum track */
+    .bs-track-wrap{overflow-x:auto;padding:var(--space-2) 0 var(--space-3)}
+    .bs-spnode{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);min-width:128px}
+    .bs-spnode__btn{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);border-radius:var(--radius-md);padding:var(--space-1)}
+    .bs-spnode__btn:focus-visible{outline:var(--ring-focus)}
+    .bs-spnode__btn[aria-disabled="true"]{cursor:not-allowed}
+    .bs-spnode__lock{position:relative}
+    .bs-spnode__lockbadge{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:20px;height:20px;border-radius:var(--radius-pill);
+      background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-muted);box-shadow:var(--shadow-e1)}
+    .bs-spmeta{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+    .bs-spmeta__title{font-size:var(--text-xs);color:var(--text-primary);font-weight:var(--weight-medium);max-width:124px}
+    .bs-spmeta__row{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--text-muted)}
+    .bs-spmeta__min{font-family:var(--font-mono)}
+
+    /* reviews */
+    .bs-ratingsummary{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap}
+    .bs-avgblock{display:flex;flex-direction:column;align-items:center;gap:var(--space-1);min-width:120px}
+    .bs-avgnum{font-family:var(--font-display);font-size:var(--text-5xl);line-height:1;font-weight:var(--weight-semibold)}
+    .bs-avgcount{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+    .bs-distbars{flex:1;min-width:240px;display:flex;flex-direction:column;gap:var(--space-2)}
+    .bs-distrow{display:grid;grid-template-columns:42px 1fr 40px;align-items:center;gap:var(--space-3)}
+    .bs-distrow__star{display:inline-flex;align-items:center;gap:2px;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+    .bs-distrow__n{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);text-align:right}
+    .bs-reviewlist{display:flex;flex-direction:column;gap:var(--space-4);margin-top:var(--space-5)}
+    .bs-review{display:flex;gap:var(--space-3);padding-bottom:var(--space-4);border-bottom:1px solid var(--border-subtle)}
+    .bs-review:last-child{border-bottom:0;padding-bottom:0}
+    .bs-review__body{flex:1;display:flex;flex-direction:column;gap:var(--space-1)}
+    .bs-review__top{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+    .bs-review__name{font-weight:var(--weight-semibold);font-size:var(--text-sm)}
+    .bs-review__date{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+    .bs-review__text{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm)}
+    .bs-stars-sm{display:inline-flex;color:var(--spark)}
+    .bs-pagination{margin-top:var(--space-5);display:flex;justify-content:center}
+
+    /* composer */
+    .bs-composer{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);margin-bottom:var(--space-5)}
+    .bs-composer__stars{display:inline-flex;gap:var(--space-1)}
+    .bs-starbtn{all:unset;cursor:pointer;color:var(--border-strong);display:inline-flex;border-radius:var(--radius-sm)}
+    .bs-starbtn:focus-visible{outline:var(--ring-focus)}
+    .bs-starbtn--on{color:var(--spark)}
+
+    /* sticky buy aside */
+    .bs-buypanel{position:sticky;top:84px;display:flex;flex-direction:column;gap:var(--space-4)}
+    .bs-buypanel__price{font-family:var(--font-mono);font-size:var(--text-4xl);line-height:1;color:var(--text-primary)}
+    .bs-buypanel__sub{font-size:var(--text-xs);color:var(--text-muted)}
+    .bs-minirating{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+    .bs-divider{height:1px;background:var(--border-subtle)}
+    .bs-included{display:flex;flex-direction:column;gap:var(--space-2)}
+    .bs-included__item{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+    .bs-included__item .bs-mono{font-family:var(--font-mono);color:var(--text-primary)}
+
+    .bs-kv{display:flex;flex-direction:column;gap:var(--space-3)}
+    .bs-kvrow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm)}
+    .bs-kvrow dt{color:var(--text-secondary);margin:0;display:inline-flex;align-items:center;gap:var(--space-2)}
+    .bs-kvrow dd{margin:0;color:var(--text-primary);text-align:right}
+    .bs-mono{font-family:var(--font-mono)}
+    .bs-muted{color:var(--text-muted);font-size:var(--text-sm)}
+
+    /* skeleton helpers */
+    .bs-skelcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+    .bs-skel-nodes{display:flex;gap:var(--space-5);padding:var(--space-3) 0}
+
+    /* mobile fixed action bar mock (always rendered as a labelled variant note in aside) */
+    .bs-confirm-body{display:flex;flex-direction:column;gap:var(--space-3);max-width:420px}
+    .bs-toasts{position:fixed;right:var(--space-5);bottom:var(--space-5);z-index:60;display:flex;flex-direction:column;gap:var(--space-2)}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const {
+      Button, IconButton, Icon, Input, Card, Section, Modal, Badge, Chip, Avatar,
+      ProgressBar, StoryPointNode, ContentRenderer, DefinitionList, AnswerKeyLock,
+      EmptyState, Skeleton, Alert, Toast, Pagination, Textarea
+    } = window.LvlupV0DesignSystem_5d0725;
+
+    /* ---------- data (store projection of Space) ---------- */
+    const SPACE = {
+      id:"spc_PDFq1OluyAG",
+      title:"Algorithms & Data Structures, End to End",
+      subject:"Computer Science",
+      labels:["Interview Prep","Intermediate","48 hrs"],
+      type:"hybrid",
+      currency:"USD",
+      price:49,
+      thumb:"book-marked",
+      stats:{ totalStoryPoints:6, totalItems:142, estMinutes:1860, totalStudents:1284 },
+      ratingAggregate:{
+        averageRating:4.7, totalReviews:128,
+        distribution:{ 5:92, 4:24, 3:8, 2:3, 1:1 }
+      },
+    };
+
+    const DESC_HTML =
+      "<p>Go from algorithmic foundations to confident graph traversal with a path designed " +
+      "the way interviewers actually think. Every unit pairs a worked example with auto-graded " +
+      "practice, so you always know where you stand.</p>" +
+      "<p>You'll master complexity analysis, build the core data structures by hand, and finish " +
+      "with a server-graded timed test that mirrors a real coding round.</p>" +
+      "<p>By the end you'll reason fluently about why an efficient comparison sort runs in " +
+      "<code>O(n&nbsp;log&nbsp;n)</code> time — and prove it under pressure.</p>";
+
+    /* curriculum preview — title / type / estimatedMinutes ONLY (server projection) */
+    const SP_TYPE_ICON = { lesson:"book-open", concept:"lightbulb", practice:"dumbbell", quiz:"list-checks", timed_test:"timer" };
+    const NODES = [
+      { title:"Big-O & Complexity", spType:"lesson",     min:180 },
+      { title:"Arrays & Strings",   spType:"practice",   min:240 },
+      { title:"Hashing",            spType:"concept",    min:300 },
+      { title:"Sorting",            spType:"quiz",       min:360 },
+      { title:"Trees & Graphs",     spType:"lesson",     min:480 },
+      { title:"Module Test",        spType:"timed_test", min:300 },
+    ];
+
+    const INCLUDED = [
+      { term:"Lessons & concepts",  value:"6 guided units" },
+      { term:"Practice items",      value:"142 auto-graded" },
+      { term:"Timed mock test",     value:"server-graded" },
+      { term:"AI tutor",            value:"Socratic, unlimited" },
+      { term:"Access",              value:"Lifetime, all updates" },
+      { term:"Certificate",         value:"On completion" },
+    ];
+
+    const REVIEWS = [
+      { initials:"PR", name:"Priya R.",   date:"2026-05-18", stars:5, text:"The practice items are brutal in the best way. Cleared my interview loop two weeks after finishing the Trees & Graphs unit." },
+      { initials:"DM", name:"Daniel M.",  date:"2026-05-02", stars:5, text:"Finally a course that explains complexity instead of just stating it. The O(n log n) walkthrough alone was worth it." },
+      { initials:"AK", name:"Aisha K.",   date:"2026-04-21", stars:4, text:"Loved the auto-grading feedback. Wished the Sorting quiz had a few more edge-case questions, otherwise excellent." },
+      { initials:"TS", name:"Tom S.",     date:"2026-04-09", stars:5, text:"The timed mock test felt exactly like the real thing. Stressful, fair, and a genuinely useful confidence check." },
+    ];
+
+    const fmtMin = m => (m>=60 ? Math.round(m/60)+"h" : m+"m");
+    const totalMin = NODES.reduce((s,n)=>s+n.min,0);
+
+    /* ---------- small presentational helpers ---------- */
+    function Stars({ n, size, dim }){
+      const full = Math.round(n);
+      return (
+        <span className={"bs-stars" + (dim?" bs-stars--muted":"")} aria-hidden="true">
+          {Array.from({length:5}).map((_,i)=>(
+            <Icon key={i} name="star" size={size||16}
+              style={{ fill: i<full ? "currentColor" : "transparent" }}/>
+          ))}
+        </span>
+      );
+    }
+
+    function CurriculumNode({ n, idx, owned, onOpen }){
+      const locked = !owned;
+      const label = "Story point " + idx + ": " + n.title + " — " + n.spType.replace("_"," ") +
+        ", about " + fmtMin(n.min) + (locked ? ". Locked — unlocks after purchase." : "");
+      return (
+        <div className="bs-spnode" role="listitem">
+          <button className="bs-spnode__btn" aria-disabled={locked} aria-label={label}
+            tabIndex={locked ? -1 : 0}
+            title={locked ? "Unlocks after purchase" : "Open " + n.title}
+            onClick={()=> locked ? null : onOpen(n)}>
+            <span className="bs-spnode__lock">
+              <StoryPointNode state="not-started" index={idx}/>
+              {locked && (
+                <span className="bs-spnode__lockbadge" aria-hidden="true"><Icon name="lock" size={11}/></span>
+              )}
+            </span>
+            <div className="bs-spmeta">
+              <div className="bs-spmeta__title">{n.title}</div>
+              <div className="bs-spmeta__row"><Icon name={SP_TYPE_ICON[n.spType]} size={11}/> {n.spType.replace("_"," ")}</div>
+              <div className="bs-spmeta__row"><Icon name="clock" size={11}/> <span className="bs-spmeta__min">{fmtMin(n.min)}</span></div>
+            </div>
+          </button>
+        </div>
+      );
+    }
+    function CurriculumTrack({ owned, onOpen }){
+      const out = [];
+      NODES.forEach((n,i)=>{
+        out.push(<CurriculumNode key={"n"+i} n={n} idx={i+1} owned={owned} onOpen={onOpen}/>);
+        if (i < NODES.length-1) out.push(<div key={"c"+i} className="track__connector"/>);
+      });
+      return <div className="track" role="list" aria-label="Curriculum preview">{out}</div>;
+    }
+
+    function RatingSummary({ agg }){
+      const dist = agg.distribution;
+      const max = Math.max(...Object.values(dist), 1);
+      return (
+        <div className="bs-ratingsummary">
+          <div className="bs-avgblock">
+            <span className="bs-avgnum">{agg.averageRating}</span>
+            <Stars n={agg.averageRating}/>
+            <span className="bs-avgcount">{agg.totalReviews} reviews</span>
+          </div>
+          <div className="bs-distbars" role="img"
+            aria-label={"Rating distribution: 5 stars " + dist[5] + ", 4 stars " + dist[4] + ", 3 stars " + dist[3] + ", 2 stars " + dist[2] + ", 1 star " + dist[1]}>
+            {[5,4,3,2,1].map(s=>(
+              <div className="bs-distrow" key={s}>
+                <span className="bs-distrow__star">{s} <Icon name="star" size={11} style={{fill:"var(--spark)",color:"var(--spark)"}}/></span>
+                <ProgressBar value={Math.round((dist[s]/max)*100)} variant="spark"/>
+                <span className="bs-distrow__n">{dist[s]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ---------- topbar (consumer) ---------- */
+    function Topbar({ cartCount }){
+      return (
+        <header className="bs-topbar">
+          <div className="bs-brand">
+            <span className="bs-brand__mark">L</span>
+            <span className="bs-brand__name">Lyceum</span>
+            <span className="bs-brand__tag">Store</span>
+          </div>
+          <nav aria-label="Store" style={{display:"flex",gap:"var(--space-2)"}}>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="store" size={15}/>}>Browse</Button>
+          </nav>
+          <div className="bs-topbar__spacer"/>
+          <div className="bs-search">
+            <span className="bs-search__icon"><Icon name="search" size={16}/></span>
+            <Input placeholder="Search courses…" aria-label="Search the store" readOnly/>
+          </div>
+          <div className="bs-cart">
+            <IconButton icon={<Icon name="shopping-cart" size={18}/>} label="Cart"/>
+            {cartCount>0 && <span className="bs-cart__count" aria-label={cartCount + " items in cart"}>{cartCount}</span>}
+          </div>
+          <Avatar initials="JL" size="sm"/>
+        </header>
+      );
+    }
+
+    function Screen(){
+      // demo states: default(anon/not-owned) | loading | empty(no reviews) | error | owned | free
+      const [demo, setDemo] = useState("default");
+      const owned = demo === "owned";
+      const free  = demo === "free";
+
+      const [inCart, setInCart] = useState(false);
+      const [confirm, setConfirm] = useState(false);
+      const [purchasing, setPurchasing] = useState(false);
+      const [purchaseError, setPurchaseError] = useState(false);
+      const [popped, setPopped] = useState(false);
+      const [sparking, setSparking] = useState(false);
+      const [toasts, setToasts] = useState([]);
+      const [live, setLive] = useState("");
+      const [page, setPage] = useState(1);
+      const [composerStars, setComposerStars] = useState(0);
+      const [composerText, setComposerText] = useState("");
+
+      function pushToast(t){ const id=Date.now()+Math.random(); setToasts(p=>[...p,{id,...t}]); setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),3600); }
+
+      const priceLabel = free || SPACE.price===0 ? "Free" : SPACE.currency + " " + SPACE.price;
+      const ctaLabel = owned ? "Continue Learning" : (free ? "Enroll Free" : "Enroll Now");
+      const ctaVariant = owned ? "primary" : "spark";
+      const ctaIcon = owned ? "play" : (free ? "unlock" : "sparkles");
+
+      function finishPurchase(){
+        setPurchasing(false);
+        setSparking(true); setPopped(true);
+        setTimeout(()=>{ setSparking(false); setPopped(false); }, 700);
+        setDemo("owned");
+        setLive("You're enrolled in " + SPACE.title + ". Lessons are now unlocked.");
+        pushToast({ variant:"success", title:"You're in!", body:"Jump into " + SPACE.title + " whenever you're ready." });
+      }
+
+      function onPrimaryCta(){
+        if (owned){ pushToast({ variant:"info", title:"Opening your space…", body:SPACE.title }); return; }
+        setPurchaseError(false);
+        if (free){ runEnroll(); }       // no confirm dialog for free
+        else { setConfirm(true); }      // paid → confirm
+      }
+      function runEnroll(){
+        setConfirm(false);
+        setPurchasing(true);
+        // simulate the callable resolving (idempotencyKey on the wire); never optimistic on ownership
+        setTimeout(()=>{
+          if (purchaseError){ setPurchasing(false); return; } // error toggle keeps it failed
+          finishPurchase();
+        }, 1100);
+      }
+
+      function toggleCart(){
+        const next = !inCart; setInCart(next);
+        pushToast({ variant: next?"success":"info", title: next?"Added to cart":"Removed from cart", body:SPACE.title });
+      }
+
+      function openNode(n){ pushToast({ variant:"info", title:"Opening lesson…", body:n.title }); }
+
+      /* ---------- HERO ---------- */
+      const hero = (
+        <Card>
+          <div className="bs-hero__cover" aria-hidden="true">
+            <div className="bs-hero__cover-grad"/>
+            <span className="bs-hero__cover-glyph"><Icon name={SPACE.thumb} size={56}/></span>
+          </div>
+          <div className="bs-hero__body">
+            <div className="bs-chiprow">
+              <Chip><Icon name="cpu" size={12}/>&nbsp;{SPACE.subject}</Chip>
+              {SPACE.labels.map(l => <Chip key={l}><Icon name="tag" size={11}/>&nbsp;{l}</Chip>)}
+              <span className="bs-chiprow__spacer"/>
+              <span className="bs-rating"
+                aria-label={"Rated " + SPACE.ratingAggregate.averageRating + " out of 5, " + SPACE.ratingAggregate.totalReviews + " reviews"}>
+                <Stars n={SPACE.ratingAggregate.averageRating}/>
+                <span className="bs-rating__num">{SPACE.ratingAggregate.averageRating}</span>
+                <span className="bs-rating__count">({SPACE.ratingAggregate.totalReviews})</span>
+              </span>
+            </div>
+
+            <h1 className="bs-h1">{SPACE.title}</h1>
+
+            <div className="bs-desc"><ContentRenderer html={DESC_HTML} math/></div>
+
+            <div className="bs-stats" role="group" aria-label="Course statistics">
+              <div>
+                <div className="bs-stat__value">{SPACE.stats.totalStoryPoints}</div>
+                <div className="bs-stat__label">Lessons</div>
+              </div>
+              <div>
+                <div className="bs-stat__value">{SPACE.stats.totalItems}</div>
+                <div className="bs-stat__label">Items</div>
+              </div>
+              <div>
+                <div className="bs-stat__value">{Math.round(totalMin/60)}h</div>
+                <div className="bs-stat__label">Est. time</div>
+              </div>
+              <div>
+                <div className="bs-stat__value">{SPACE.stats.totalStudents.toLocaleString()}</div>
+                <div className="bs-stat__label">Learners enrolled</div>
+              </div>
+            </div>
+
+            <div className="bs-buyrow">
+              <div className="bs-price">
+                <span className={"bs-price__amount" + ((free||SPACE.price===0)?" bs-price__free":"")}>{priceLabel}</span>
+                <span className="bs-price__note">{owned ? "You own this course" : (free ? "No payment required" : "One-time · lifetime access")}</span>
+              </div>
+              <span className="bs-buyrow__spacer"/>
+              {!owned && !free && (
+                <Button variant="secondary"
+                  leadingIcon={<Icon name={inCart?"check":"shopping-cart"} size={16}/>}
+                  onClick={toggleCart}>{inCart ? "Remove from Cart" : "Add to Cart"}</Button>
+              )}
+              <span className="bs-ctawrap">
+                {sparking && <span className="bs-burst" key="burst"/>}
+                <span className={popped?"bs-pop":""}>
+                  <Button variant={ctaVariant} size="lg"
+                    loading={purchasing}
+                    leadingIcon={!purchasing ? <Icon name={ctaIcon} size={18}/> : undefined}
+                    onClick={onPrimaryCta}>
+                    {purchasing ? "Enrolling…" : ctaLabel}
+                  </Button>
+                </span>
+              </span>
+            </div>
+
+            {purchaseError && !owned && (
+              <Alert variant="error" title="We couldn't complete your enrollment.">
+                Please try again — you haven't been charged.
+                <div style={{marginTop:"var(--space-2)"}}>
+                  <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}
+                    onClick={()=>{ setPurchaseError(false); onPrimaryCta(); }}>Retry</Button>
+                </div>
+              </Alert>
+            )}
+          </div>
+        </Card>
+      );
+
+      /* ---------- CURRICULUM ---------- */
+      const curriculum = (
+        <Section title="Curriculum"
+          actions={<span className="bs-muted" style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)"}}>
+            <Icon name={owned?"unlock":"lock"} size={13}/> {owned ? "Unlocked — tap a lesson to begin" : "Preview · " + NODES.length + " units · " + fmtMin(totalMin)}</span>}>
+          <div className="bs-track-wrap"><CurriculumTrack owned={owned} onOpen={openNode}/></div>
+          {!owned && (
+            <div style={{marginTop:"var(--space-3)"}}>
+              <AnswerKeyLock title="Content locked until you enroll">
+                Full lessons, practice, and the timed test unlock the moment you enroll. Bodies and answer
+                keys are never sent before purchase.
+              </AnswerKeyLock>
+            </div>
+          )}
+        </Section>
+      );
+
+      /* ---------- WHAT YOU'LL GET ---------- */
+      const whatYouGet = (
+        <Section title="What you'll get">
+          <DefinitionList items={INCLUDED.map(i => ({
+            term: i.term,
+            value: <span className="bs-mono" style={{color:"var(--text-primary)"}}>{i.value}</span>
+          }))}/>
+        </Section>
+      );
+
+      /* ---------- REVIEWS ---------- */
+      const noReviews = demo === "empty";
+      const reviewsSection = (
+        <Section title="Reviews">
+          {noReviews ? (
+            <EmptyState icon="message-square" title="No reviews yet"
+              body="Be the first to share what you thought."
+              action={owned ? <Button variant="primary" size="sm" leadingIcon={<Icon name="pencil" size={15}/>}>Write a review</Button> : undefined}/>
+          ) : (
+            <React.Fragment>
+              <RatingSummary agg={SPACE.ratingAggregate}/>
+
+              {owned && (
+                <div className="bs-composer" style={{marginTop:"var(--space-5)"}}>
+                  <div style={{fontWeight:"var(--weight-semibold)",fontSize:"var(--text-sm)"}}>Share your experience</div>
+                  <div className="bs-composer__stars" role="radiogroup" aria-label="Your rating">
+                    {[1,2,3,4,5].map(s=>(
+                      <button key={s} className={"bs-starbtn" + (s<=composerStars?" bs-starbtn--on":"")}
+                        role="radio" aria-checked={composerStars===s} aria-label={s + " star" + (s>1?"s":"")}
+                        onClick={()=>setComposerStars(s)}>
+                        <Icon name="star" size={22} style={{ fill: s<=composerStars ? "currentColor" : "transparent" }}/>
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea placeholder="What did you think of this course?" rows={3}
+                    value={composerText} onChange={e=>setComposerText(e.target.value)} aria-label="Your review"/>
+                  <div style={{display:"flex",justifyContent:"flex-end"}}>
+                    <Button variant="primary" size="sm" disabled={composerStars===0}
+                      leadingIcon={<Icon name="send" size={15}/>}
+                      onClick={()=>{ pushToast({variant:"success",title:"Review posted",body:"Thanks for your feedback!"}); setComposerText(""); setComposerStars(0); }}>
+                      Post review</Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="bs-reviewlist">
+                {REVIEWS.map((r,i)=>(
+                  <div className="bs-review" key={i}>
+                    <Avatar initials={r.initials}/>
+                    <div className="bs-review__body">
+                      <div className="bs-review__top">
+                        <span className="bs-review__name">{r.name}</span>
+                        <span className="bs-stars-sm" aria-label={"Rated " + r.stars + " out of 5"}>
+                          {Array.from({length:5}).map((_,k)=>(
+                            <Icon key={k} name="star" size={13} style={{ fill: k<r.stars ? "currentColor":"transparent" }}/>
+                          ))}
+                        </span>
+                        <span className="bs-review__date">{r.date}</span>
+                      </div>
+                      <div className="bs-review__text">{r.text}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bs-pagination">
+                <Pagination pages={4} current={page}/>
+              </div>
+            </React.Fragment>
+          )}
+        </Section>
+      );
+
+      /* ---------- STICKY BUY ASIDE ---------- */
+      const buyAside = (
+        <Card>
+          <div className="bs-buypanel">
+            <div>
+              <div className={"bs-buypanel__price" + ((free||SPACE.price===0)?" bs-price__free":"")}>{priceLabel}</div>
+              <div className="bs-buypanel__sub">{owned ? "Enrolled" : (free ? "No payment required" : "One-time payment · lifetime access")}</div>
+            </div>
+
+            <span className="bs-ctawrap" style={{display:"block"}}>
+              {sparking && <span className="bs-burst" key="burst2"/>}
+              <span className={popped?"bs-pop":""} style={{display:"block"}}>
+                <Button variant={ctaVariant} size="lg" block
+                  loading={purchasing}
+                  leadingIcon={!purchasing ? <Icon name={ctaIcon} size={18}/> : undefined}
+                  onClick={onPrimaryCta}>
+                  {purchasing ? "Enrolling…" : ctaLabel}
+                </Button>
+              </span>
+            </span>
+
+            {!owned && !free && (
+              <Button variant="secondary" block
+                leadingIcon={<Icon name={inCart?"check":"shopping-cart"} size={16}/>}
+                onClick={toggleCart}>{inCart ? "Remove from Cart" : "Add to Cart"}</Button>
+            )}
+
+            <div className="bs-minirating"
+              aria-label={"Rated " + SPACE.ratingAggregate.averageRating + " out of 5, " + SPACE.ratingAggregate.totalReviews + " reviews"}>
+              <Stars n={SPACE.ratingAggregate.averageRating} size={14}/>
+              <span className="bs-mono" style={{color:"var(--text-primary)"}}>{SPACE.ratingAggregate.averageRating}</span>
+              <span className="bs-mono">({SPACE.ratingAggregate.totalReviews})</span>
+            </div>
+
+            <div className="bs-divider"/>
+
+            <div className="bs-included">
+              <div className="bs-included__item"><Icon name="layers" size={15}/> <span className="bs-mono">{SPACE.stats.totalStoryPoints}</span> lessons & concepts</div>
+              <div className="bs-included__item"><Icon name="dumbbell" size={15}/> <span className="bs-mono">{SPACE.stats.totalItems}</span> practice items</div>
+              <div className="bs-included__item"><Icon name="timer" size={15}/> Server-graded mock test</div>
+              <div className="bs-included__item"><Icon name="infinity" size={15}/> Lifetime access</div>
+            </div>
+
+            {!owned && (
+              <React.Fragment>
+                <div className="bs-divider"/>
+                <AnswerKeyLock title="Content unlocks on purchase">
+                  Lesson bodies and answer keys stay server-side until you enroll.
+                </AnswerKeyLock>
+              </React.Fragment>
+            )}
+
+            {/* mobile divergence note (sm → fixed bottom action bar) */}
+            <div className="bs-muted" style={{display:"flex",alignItems:"center",gap:"var(--space-2)",fontSize:"var(--text-2xs)"}}>
+              <Icon name="smartphone" size={12}/> On mobile this panel pins to a bottom action bar.
+            </div>
+          </div>
+        </Card>
+      );
+
+      /* ---------- LOADING SKELETON ---------- */
+      if (demo === "loading"){
+        return (
+          <div className="bs-shell">
+            <Topbar cartCount={inCart?1:0}/>
+            <main className="bs-page" aria-busy="true">
+              <StateBar demo={demo} setDemo={setDemo}/>
+              <div className="bs-skelcard">
+                <Skeleton width="100%" height="200px"/>
+                <Skeleton variant="text" width="60%"/>
+                <Skeleton variant="text" width="90%"/>
+                <Skeleton variant="text" width="85%"/>
+                <div style={{display:"flex",gap:"var(--space-5)",marginTop:"var(--space-2)"}}>
+                  {Array.from({length:4}).map((_,i)=><Skeleton key={i} variant="text" width="80px"/>)}
+                </div>
+                <Skeleton width="220px" height="44px"/>
+              </div>
+              <div className="bs-grid">
+                <div className="bs-skelcard">
+                  <Skeleton variant="text" width="40%"/>
+                  <div className="bs-skel-nodes">{Array.from({length:6}).map((_,i)=><Skeleton key={i} variant="circle" width="44px" height="44px"/>)}</div>
+                  <Skeleton variant="text" width="50%"/>
+                  {Array.from({length:3}).map((_,i)=>(<div key={i} style={{display:"flex",gap:"var(--space-3)",marginTop:"var(--space-3)"}}>
+                    <Skeleton variant="circle" width="36px" height="36px"/>
+                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:"var(--space-2)"}}><Skeleton variant="text" width="30%"/><Skeleton variant="text" width="90%"/></div>
+                  </div>))}
+                </div>
+                <div className="bs-skelcard">
+                  <Skeleton variant="text" width="50%"/><Skeleton width="100%" height="44px"/><Skeleton variant="text" width="70%"/><Skeleton variant="text" width="80%"/>
+                </div>
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      /* ---------- ERROR (not in store) ---------- */
+      if (demo === "error"){
+        return (
+          <div className="bs-shell">
+            <Topbar cartCount={inCart?1:0}/>
+            <main className="bs-page">
+              <StateBar demo={demo} setDemo={setDemo}/>
+              <button className="bs-back" onClick={()=>setDemo("default")}><Icon name="chevron-left" size={16}/> Back to Store</button>
+              <Alert variant="error" title="This space isn't available in the store.">
+                It may have been unpublished or removed. Browse the rest of the catalog instead.
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <Button variant="primary" size="sm" leadingIcon={<Icon name="store" size={15}/>} onClick={()=>setDemo("default")}>Back to Store</Button>
+                </div>
+              </Alert>
+            </main>
+          </div>
+        );
+      }
+
+      /* ---------- DEFAULT / OWNED / FREE / EMPTY ---------- */
+      return (
+        <div className="bs-shell">
+          <Topbar cartCount={inCart?1:0}/>
+          <main className="bs-page">
+            <StateBar demo={demo} setDemo={setDemo}/>
+            <button className="bs-back" onClick={()=>pushToast({variant:"info",title:"Back to Store"})}>
+              <Icon name="chevron-left" size={16}/> Back to Store
+            </button>
+
+            {owned && (
+              <Alert variant="success" title="You're enrolled in this course">
+                Your lessons are unlocked below. Pick up wherever you left off.
+              </Alert>
+            )}
+
+            <div className="bs-rise">{hero}</div>
+
+            <div className="bs-grid">
+              <div className="bs-col">
+                {whatYouGet}
+                {curriculum}
+                {reviewsSection}
+              </div>
+              <div className="bs-col">
+                {buyAside}
+              </div>
+            </div>
+          </main>
+
+          {/* Confirm dialog (paid purchase only) */}
+          <Modal open={confirm} onClose={()=>setConfirm(false)}
+            title={"Enroll in " + SPACE.title + "?"}
+            footer={
+              <React.Fragment>
+                <Button variant="ghost" onClick={()=>setConfirm(false)}>Cancel</Button>
+                <Button variant="secondary" onClick={()=>setPurchaseError(e=>!e)}>{purchaseError?"Let it succeed":"Simulate failure"}</Button>
+                <Button variant="spark" leadingIcon={<Icon name="sparkles" size={16}/>} onClick={runEnroll}>
+                  Confirm · {SPACE.currency} {SPACE.price}
+                </Button>
+              </React.Fragment>
+            }>
+            <div className="bs-confirm-body">
+              <div className="bs-muted" style={{color:"var(--text-secondary)"}}>
+                You'll be charged once for lifetime access. A double-tap is safe — enrollment is idempotent.
+              </div>
+              <dl className="bs-kv">
+                <div className="bs-kvrow"><dt>Course</dt><dd>{SPACE.title}</dd></div>
+                <div className="bs-kvrow"><dt>Price</dt><dd><span className="bs-mono">{SPACE.currency} {SPACE.price}</span></dd></div>
+                <div className="bs-kvrow"><dt>Access</dt><dd>Lifetime · all updates</dd></div>
+              </dl>
+            </div>
+          </Modal>
+
+          {/* aria-live announcer */}
+          <div aria-live="polite" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0 0 0 0)"}}>{live}</div>
+
+          {/* toasts */}
+          <div className="bs-toasts" role="status" aria-live="polite">
+            {toasts.map(t => <Toast key={t.id} variant={t.variant} title={t.title} body={t.body}/>)}
+          </div>
+        </div>
+      );
+    }
+
+    /* demo-state switcher — not part of production chrome */
+    function StateBar({ demo, setDemo }){
+      return (
+        <div className="bs-statebar" role="group" aria-label="Preview state">
+          <span className="bs-mono" style={{fontSize:"var(--text-xs)",color:"var(--text-muted)"}}>Preview state:</span>
+          <div className="bs-toggle">
+            {[["default","Visitor / not owned"],["owned","Owned (enrolled)"],["free","Free space"],["loading","Loading"],["empty","No reviews"],["error","Not in store"]].map(([k,lbl])=>(
+              <button key={k} aria-pressed={demo===k} onClick={()=>setDemo(k)}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+    if (window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

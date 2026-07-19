@@ -17,6 +17,7 @@ import { QuestionTypeDataSchema } from "./question-payload.js";
 const QuestionPayloadSchema = zObject({
   type: z.literal("question"),
   basePoints: z.number().optional(),
+  explanation: z.string().optional(),
   questionData: QuestionTypeDataSchema,
 });
 
@@ -44,6 +45,16 @@ const StoryMaterialSchema = zObject({
 const RichMaterialSchema = zObject({
   materialType: z.literal("rich"),
   blocks: z.array(z.unknown()),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
+  coverImage: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  author: zObject({
+    name: z.string(),
+    avatar: z.string().optional(),
+    bio: z.string().optional(),
+  }).optional(),
+  readingTime: z.number().nonnegative().optional(),
 });
 
 const MaterialDataSchema = z.discriminatedUnion("materialType", [

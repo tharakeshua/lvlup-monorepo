@@ -1,0 +1,681 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Timed Test — Pre-start Gate" subtitle="Rules, attempts, duration, consent · no clock yet" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timed Test — Pre-start Gate</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+
+  /* live desktop shell — positioned ancestor for any overlay */
+  .shell-frame { position: relative; height: 760px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); cursor: pointer; }
+  .sb-avatar-row:hover { background: var(--bg-surface-sunken); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-kbd:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+  .tb-back { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-secondary);
+    font-size: var(--text-sm); text-decoration: none; padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md); }
+  .tb-back:hover { color: var(--text-primary); background: var(--bg-surface-sunken); }
+
+  /* centered reading-width gate column (~720) */
+  .gate-col { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-5); }
+
+  .g-head { display: flex; flex-direction: column; gap: var(--space-2); }
+  .g-title-row { display: flex; align-items: flex-start; gap: var(--space-3); }
+  .g-icon { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center;
+    border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); }
+  .g-h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .g-sub { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1);
+    display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+  /* at-a-glance stat strip — 3-col grid, 2 rows */
+  .glance { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--border-subtle); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; }
+  .glance__cell { background: var(--bg-surface); padding: var(--space-4) var(--space-4) var(--space-5); }
+  .glance__top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-muted);
+    font-size: var(--text-xs); font-weight: var(--weight-medium); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: var(--space-2); }
+  .glance__top .info { margin-left: auto; color: var(--text-muted); display: inline-flex; cursor: help;
+    position: relative; }
+  .glance__val { font-family: var(--font-mono); font-size: var(--text-2xl); line-height: 1;
+    font-weight: var(--weight-semibold); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .glance__unit { font-family: var(--font-ui); font-size: var(--text-sm); color: var(--text-secondary);
+    font-weight: var(--weight-regular); margin-left: var(--space-1); }
+  .glance__note { margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
+
+  .tip-pop { position: absolute; bottom: calc(100% + 8px); right: -8px; width: 220px; z-index: 5;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-e2); padding: var(--space-3); font-size: var(--text-xs);
+    color: var(--text-secondary); line-height: var(--leading-xs); text-transform: none;
+    letter-spacing: normal; font-weight: var(--weight-regular); }
+
+  /* adaptive note */
+  .adaptive { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--spark-subtle); background: var(--spark-subtle); border-radius: var(--radius-md); }
+  .adaptive__txt { font-size: var(--text-sm); color: var(--text-primary); }
+
+  /* instructions panel */
+  .instr-lead { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: flex;
+    flex-direction: column; gap: var(--space-3); }
+  .instr-lead li { display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--text-sm);
+    color: var(--text-primary); line-height: var(--leading-sm); }
+  .instr-lead .ic { flex: 0 0 auto; margin-top: 1px; color: var(--brand-primary); }
+  .instr-divider { height: 1px; background: var(--border-subtle); margin: var(--space-2) 0 var(--space-4); }
+
+  /* CTA */
+  .cta-wrap { display: flex; flex-direction: column; gap: var(--space-2); }
+  .cta-reason { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+    color: var(--text-secondary); justify-content: center; }
+
+  /* attempts rows in accordion */
+  .att-list { display: flex; flex-direction: column; gap: var(--space-2); }
+  .att-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-1); }
+  .att-row + .att-row { border-top: 1px solid var(--border-subtle); }
+  .att-n { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary);
+    min-width: 84px; }
+  .att-pct { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary);
+    font-weight: var(--weight-medium); min-width: 52px; }
+  .att-meta { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); }
+
+  /* gate toggle control row (demo affordance) */
+  .gate-toggle { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4); border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md); background: var(--bg-surface-sunken); margin-bottom: var(--space-4); }
+  .gate-toggle .lbl { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-right: var(--space-1); }
+  .seg-btn { cursor: pointer; border: 1px solid var(--border-subtle); background: var(--bg-surface);
+    color: var(--text-secondary); font: inherit; font-size: var(--text-xs); padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill); }
+  .seg-btn[aria-pressed="true"] { border-color: var(--brand-primary); color: var(--brand-primary);
+    background: var(--brand-subtle); }
+
+  /* secondary state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+  .skel-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-row { display: flex; gap: var(--space-2); }
+  .skel-glance { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+
+  .toast-host { position: absolute; bottom: var(--space-5); left: 50%; transform: translateX(-50%); z-index: 40;
+    min-width: 340px; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Chip, Kbd,
+    Card, Panel, Section, Accordion, Alert, EmptyState, Skeleton,
+    Stat, ContentRenderer, AnswerKeyLock, GradePill, Toast
+  } = LU;
+  const { useState } = React;
+
+  /* ---- student sidebar nav ---- */
+  const NAV = [
+    { icon: "layout-dashboard", label: "Dashboard", key: "dashboard" },
+    { icon: "book-open", label: "My Spaces", key: "spaces" },
+    { icon: "file-check", label: "Tests", key: "tests", active: true },
+    { icon: "trophy", label: "Leaderboard", key: "leaderboard" },
+    { icon: "user", label: "Profile", key: "profile" },
+  ];
+  function NavLink({ icon, label, active }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+      </a>
+    );
+  }
+
+  /* ---- the assessment "contract" ---- */
+  const TEST = {
+    title: "Trees, Tries & Balanced Search",
+    space: "DSA Mastery",
+    durationMinutes: 45,
+    questions: 20,
+    maxMarks: 100,
+    passingPercentage: 60,
+    attemptsUsed: 1,
+    maxAttempts: 3,
+    windowNote: "Closes in 2d",
+  };
+
+  /* prior attempts — sub-passing framed as "Keep going", never "Failed" */
+  const ATTEMPTS = [
+    { n: 2, pct: 72, passed: true },
+    { n: 1, pct: 48, passed: false },
+  ];
+
+  const LEAD_LINES = [
+    { icon: "timer", text: "The clock starts on the server the moment you press Start." },
+    { icon: "pause-circle", text: "It can't be paused — give yourself one uninterrupted sitting." },
+    { icon: "lock", text: "Answers stay sealed during the test; you'll get feedback right after you submit." },
+  ];
+
+  const AUTHORED_HTML =
+    "<p>Work through all <strong>20 questions</strong>. You can move freely between them and change answers until you submit.</p>" +
+    "<p>For the complexity questions, give bounds in Big-O — e.g. a balanced BST search runs in " +
+    "<code>O(log n)</code> for n keys.</p>" +
+    "<p>Show brief reasoning on the short-answer items; partial credit is awarded for correct method.</p>";
+
+  /* gate scenarios for the primary panel toggle */
+  const GATES = {
+    startable: { label: "Startable", disabled: false },
+    resume:    { label: "Resume",    disabled: false },
+    schedule:  { label: "Before schedule", disabled: true },
+    closed:    { label: "Window closed",   disabled: true },
+    cooldown:  { label: "Cooldown",        disabled: true },
+    exhausted: { label: "Attempts used",   disabled: true },
+    locked:    { label: "Passed · locked", disabled: true },
+  };
+
+  function GateBanner({ gate }) {
+    if (gate === "resume")
+      return (
+        <Alert variant="info" title="You have a test in progress">
+          Your time has kept running on the server. Jump back in where you left off — pick up exactly where you stopped.
+        </Alert>
+      );
+    if (gate === "schedule")
+      return (
+        <Alert variant="info" title="Not open just yet">
+          This test opens <strong>Monday, Jun 23, 9:00 AM</strong>. We'll have it ready for you.
+        </Alert>
+      );
+    if (gate === "closed")
+      return (
+        <Alert variant="warning" title="This test's window has closed">
+          If you think this is a mistake, reach out to your teacher — your best result is safe below.
+        </Alert>
+      );
+    if (gate === "cooldown")
+      return (
+        <Alert variant="warning" title="Take a breath">
+          You can retry this test in <strong>8 minutes</strong> — a short pause helps things sink in.
+        </Alert>
+      );
+    if (gate === "exhausted")
+      return (
+        <Alert variant="warning" title="You've used all 3 of your attempts">
+          That's all the tries for this one. Your best result is saved in Previous attempts below.
+        </Alert>
+      );
+    if (gate === "locked")
+      return (
+        <Alert variant="success" title="You've already passed this — nicely done!">
+          It's locked now so your result stays put. On to the next thing.
+        </Alert>
+      );
+    return null;
+  }
+
+  function ctaLabel(gate) {
+    switch (gate) {
+      case "resume":    return "Resume your test";
+      case "schedule":  return "Opens in 2h 40m";
+      case "closed":    return "Window closed";
+      case "cooldown":  return "Retry in 8 min";
+      case "exhausted": return "All attempts used";
+      case "locked":    return "Already passed";
+      default:          return "Start test";
+    }
+  }
+  function ctaReason(gate) {
+    switch (gate) {
+      case "schedule":  return "Opens Monday, Jun 23 at 9:00 AM.";
+      case "closed":    return "The submission window closed on Jun 18.";
+      case "cooldown":  return "A short cooldown is on — retry available in 8 minutes.";
+      case "exhausted": return "You've used all 3 attempts on this test.";
+      case "locked":    return "You passed at 72% — this test is locked.";
+      default:          return null;
+    }
+  }
+
+  /* ============================ PRIMARY: live landing / gate ============================ */
+  function LandingScreen() {
+    const [gate, setGate] = useState("startable");      // startable is the main view
+    const [starting, setStarting] = useState(false);
+    const [tip, setTip] = useState(false);
+    const [toast, setToast] = useState(null);           // null | 'fail'
+
+    const blocked = GATES[gate].disabled;
+    const isResume = gate === "resume";
+
+    const onStart = () => {
+      if (blocked) return;
+      setStarting(true);
+      // server-authoritative: we WAIT for serverDeadline before transitioning — no fake clock.
+      setTimeout(() => {
+        setStarting(false);
+        // demo the failure-reconciles-to-server branch
+        setToast("fail");
+      }, 1100);
+    };
+
+    const reason = ctaReason(gate);
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">C</span>
+              <span className="sidebar__brand-name">Crestwood Academy</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {NAV.map((n) => <NavLink key={n.key} {...n} />)}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials="RK" />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>Rohan Kapoor</b>
+                  <span>rohan.k@crestwood.edu</span>
+                </div>
+                <Icon name="chevron-up" size={16} />
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <a className="tb-back" href="#" onClick={(e) => e.preventDefault()}>
+              <Icon name="chevron-left" size={16} /> Back to {TEST.space}
+            </a>
+            <div className="topbar__spacer" />
+            <div className="tb-kbd" role="button" aria-label="Search, command menu">
+              <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+            </div>
+            <IconButton icon={<Icon name="bell" size={20} />} label="Updates" />
+            <Avatar initials="RK" />
+          </header>
+
+          {/* MAIN — centered reading column */}
+          <main className="appshell__main" id="main-content">
+            <div className="gate-col">
+              {/* DEMO: gate scenario switcher (mirrors server-evaluated gates) */}
+              <div className="gate-toggle" role="group" aria-label="Preview gate scenario">
+                <span className="lbl">Gate</span>
+                {Object.keys(GATES).map((g) => (
+                  <button key={g} className="seg-btn" aria-pressed={gate === g}
+                    onClick={() => { setGate(g); setToast(null); }}>
+                    {GATES[g].label}
+                  </button>
+                ))}
+              </div>
+
+              <Breadcrumb items={[
+                { label: "Spaces", href: "#" },
+                { label: TEST.space, href: "#" },
+                { label: TEST.title },
+              ]} />
+
+              {/* HEADER */}
+              <div className="g-head">
+                <div className="g-title-row">
+                  <div className="g-icon"><Icon name="timer" size={24} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <h1 className="g-h1" tabIndex={-1}>{TEST.title}</h1>
+                    <div className="g-sub">
+                      <span>{TEST.space} · Timed assessment</span>
+                      <Chip>Timed</Chip>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* GATE BANNER (only when blocked or resume) */}
+              {(blocked || isResume) && (
+                <div role={blocked ? "alert" : "status"} aria-live="polite">
+                  <GateBanner gate={gate} />
+                </div>
+              )}
+
+              {/* AT A GLANCE */}
+              <div>
+                <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>At a glance</div>
+                <div className="glance">
+                  <div className="glance__cell" aria-label={"Duration, " + TEST.durationMinutes + " minutes"}>
+                    <div className="glance__top">
+                      <Icon name="timer" size={14} /> Duration
+                      <span className="info" tabIndex={0} role="button" aria-label="About the server clock"
+                        onMouseEnter={() => setTip(true)} onMouseLeave={() => setTip(false)}
+                        onFocus={() => setTip(true)} onBlur={() => setTip(false)}>
+                        <Icon name="info" size={13} />
+                        {tip && (
+                          <span className="tip-pop" role="tooltip">
+                            The clock is kept on the server, not your device — it can't be paused or rewound by reloading.
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="glance__val">{TEST.durationMinutes}<span className="glance__unit">min</span></div>
+                  </div>
+
+                  <div className="glance__cell" aria-label={"Questions, " + TEST.questions}>
+                    <div className="glance__top"><Icon name="list-checks" size={14} /> Questions</div>
+                    <div className="glance__val">{TEST.questions}</div>
+                  </div>
+
+                  <div className="glance__cell" aria-label={"Max marks, " + TEST.maxMarks}>
+                    <div className="glance__top"><Icon name="award" size={14} /> Max marks</div>
+                    <div className="glance__val">{TEST.maxMarks}</div>
+                  </div>
+
+                  <div className="glance__cell" aria-label={"Passing, " + TEST.passingPercentage + " percent"}>
+                    <div className="glance__top"><Icon name="check-circle" size={14} /> Passing</div>
+                    <div className="glance__val">{TEST.passingPercentage}<span className="glance__unit">%</span></div>
+                  </div>
+
+                  <div className="glance__cell" aria-label={"Attempts, " + TEST.attemptsUsed + " of " + TEST.maxAttempts + " used"}>
+                    <div className="glance__top"><Icon name="rotate-ccw" size={14} /> Attempts</div>
+                    <div className="glance__val">{TEST.attemptsUsed}<span className="glance__unit">of {TEST.maxAttempts} used</span></div>
+                  </div>
+
+                  <div className="glance__cell" aria-label="Window, closes in 2 days">
+                    <div className="glance__top"><Icon name="calendar-clock" size={14} /> Window</div>
+                    <div className="glance__val" style={{ fontSize: "var(--text-lg)" }}>{TEST.windowNote}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ADAPTIVE NOTE */}
+              <div className="adaptive">
+                <Chip active><Icon name="sparkles" size={13} /> Adaptive</Chip>
+                <div className="adaptive__txt">
+                  The questions adapt to how you're doing, so it'll feel just-right-hard.
+                </div>
+              </div>
+
+              {/* INSTRUCTIONS */}
+              <Panel title="Before you begin">
+                <ul className="instr-lead">
+                  {LEAD_LINES.map((l, i) => (
+                    <li key={i}>
+                      <span className="ic"><Icon name={l.icon} size={18} /></span>
+                      <span>{l.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="instr-divider" />
+                <ContentRenderer math html={AUTHORED_HTML} />
+              </Panel>
+
+              {/* ANSWER KEY LOCK — sealed reassurance */}
+              <AnswerKeyLock title="Answers are sealed during the test.">
+                You'll see your results and feedback as soon as you submit.
+              </AnswerKeyLock>
+
+              {/* START FAILURE inline alert (reconciles to server) */}
+              {toast === "fail" && (
+                <Alert variant="error" title="We couldn't start the test">
+                  Something hiccuped on our end — your attempts and clock are untouched. Let's try that again.
+                </Alert>
+              )}
+
+              {/* HERO CTA */}
+              <div className="cta-wrap">
+                <Button
+                  variant="spark"
+                  size="lg"
+                  block
+                  loading={starting}
+                  disabled={blocked || starting}
+                  aria-describedby={blocked ? "cta-reason" : undefined}
+                  leadingIcon={!starting ? <Icon name="play" size={18} /> : undefined}
+                  onClick={onStart}>
+                  {starting ? "Starting…" : ctaLabel(gate)}
+                </Button>
+                {reason && (
+                  <div className="cta-reason" id="cta-reason" aria-live="polite">
+                    <Icon name="info" size={14} /> {reason}
+                  </div>
+                )}
+                {!blocked && !starting && (
+                  <div className="cta-reason">
+                    <Icon name="shield-check" size={14} /> The clock only starts once the server confirms — never before.
+                  </div>
+                )}
+              </div>
+
+              {/* PREVIOUS ATTEMPTS — collapsed accordion */}
+              <Accordion
+                defaultOpen={-1}
+                items={[{
+                  title: "Previous attempts (" + ATTEMPTS.length + ")",
+                  content: (
+                    <div className="att-list">
+                      {ATTEMPTS.map((a) => (
+                        <div className="att-row" key={a.n}>
+                          <span className="att-n">Attempt #{a.n}</span>
+                          <GradePill grade={a.passed ? "B" : "D"} score={a.pct + "%"} />
+                          <span className="att-pct" aria-hidden="true"></span>
+                          {a.passed
+                            ? <Badge variant="success" icon={<Icon name="check" size={12} />}>Passed</Badge>
+                            : <Badge variant="info" icon={<Icon name="trending-up" size={12} />}>Keep going</Badge>}
+                          <span className="att-meta">Jun 14 · 38 min</span>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                }]}
+              />
+            </div>
+          </main>
+        </div>
+
+        {/* start-failure Toast — recovery, no celebration ever on this screen */}
+        {toast === "fail" && (
+          <div className="toast-host">
+            <Toast variant="error" title="Hmm, we couldn't start the test."
+              body="Let's try that again — nothing was used up." />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* LOADING — skeleton matches gate layout */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (skeleton · no spinner-only)</div>
+          <div className="skel-stack">
+            <div className="skel-row">
+              <Skeleton variant="circle" width="46px" height="46px" />
+              <div style={{ flex: 1 }}>
+                <Skeleton width="60%" height="24px" />
+                <Skeleton width="42%" height="13px" />
+              </div>
+            </div>
+            <div className="skel-glance">
+              {[0,1,2,3,4,5].map((i) => (
+                <div key={i}>
+                  <Skeleton width="50%" height="11px" />
+                  <Skeleton width="70%" height="22px" />
+                </div>
+              ))}
+            </div>
+            <Skeleton height="14px" />
+            <Skeleton width="85%" height="14px" />
+            <Skeleton height="48px" />
+          </div>
+        </div>
+
+        {/* PARTIAL — attempts still resolving */}
+        <div className="tile">
+          <div className="eyebrow">State: partial (checking attempts · Start disabled)</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+              <Stat label="Attempts" value={<Skeleton width="60px" height="22px" />} />
+              <Stat label="Window" value={<Skeleton width="72px" height="22px" />} />
+            </div>
+            <Button variant="spark" size="lg" block disabled
+              leadingIcon={<Icon name="loader" size={16} />}>
+              Checking your attempts…
+            </Button>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", textAlign: "center" }}>
+              We confirm the server-side attempt context before you can start.
+            </div>
+          </div>
+        </div>
+
+        {/* EMPTY / MISCONFIGURED */}
+        <div className="tile">
+          <div className="eyebrow">State: empty (misconfigured · 0 questions)</div>
+          <EmptyState icon="construction"
+            title="This test isn't quite ready yet"
+            body="Your teacher is still setting it up. Check back soon — we'll have it waiting for you."
+            action={<Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16} />}>Back to DSA Mastery</Button>} />
+        </div>
+
+        {/* ERROR — read failed (distinct from empty) */}
+        <div className="tile">
+          <div className="eyebrow">State: error (read failed · retry)</div>
+          <EmptyState icon="cloud-off"
+            title="We couldn't load this test right now"
+            body="Something hiccuped on our end. Give it another go."
+            action={<Button variant="primary" leadingIcon={<Icon name="rotate-ccw" size={16} />}>Try again</Button>} />
+        </div>
+
+        {/* RESUME — in-progress session */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">State: resume (in-progress session · honest clock)</div>
+          <Alert variant="info" title="You have a test in progress">
+            Your time has kept running on the server — we never reset it on reload. Pick up where you left off.
+          </Alert>
+          <div style={{ marginTop: "var(--space-3)", maxWidth: 360 }}>
+            <Button variant="spark" size="lg" block leadingIcon={<Icon name="play" size={18} />}>
+              Resume your test
+            </Button>
+          </div>
+        </div>
+
+        {/* GATED variants — banner + disabled CTA + reason, icon+label never color-only */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">States: gated (each = warm banner + disabled CTA + under-CTA reason)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Alert variant="info" title="Not open just yet">
+                Opens <strong>Mon, Jun 23, 9:00 AM</strong>.
+              </Alert>
+              <Button variant="spark" block disabled leadingIcon={<Icon name="clock" size={16} />}>Opens in 2h 40m</Button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Alert variant="warning" title="Window closed">
+                Reach out to your teacher if this looks wrong.
+              </Alert>
+              <Button variant="spark" block disabled leadingIcon={<Icon name="calendar-x" size={16} />}>Window closed</Button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Alert variant="warning" title="Take a breath">
+                Retry available in <strong>8 minutes</strong>.
+              </Alert>
+              <Button variant="spark" block disabled leadingIcon={<Icon name="coffee" size={16} />}>Retry in 8 min</Button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Alert variant="warning" title="All 3 attempts used">
+                Your best result is saved below.
+              </Alert>
+              <Button variant="spark" block disabled leadingIcon={<Icon name="ban" size={16} />}>All attempts used</Button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", gridColumn: "span 2" }}>
+              <Alert variant="success" title="You've already passed this — nicely done!">
+                Locked now so your result stays put. Tone is reward, not denial — and still no celebration burst here.
+              </Alert>
+              <div style={{ maxWidth: 360 }}>
+                <Button variant="spark" block disabled leadingIcon={<Icon name="lock" size={16} />}>Already passed</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* DOMAIN GUARANTEES */}
+        <div className="tile tile-tall">
+          <div className="eyebrow">Domain: server-authoritative clock · sealed key · no TimerBar pre-start</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+              <Icon name="server" size={20} style={{ color: "var(--brand-primary)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Clock lives on the server</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Start computes <code>serverDeadline</code> server-side. We never fabricate a ticking clock client-side.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+              <Icon name="lock" size={20} style={{ color: "var(--status-success)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>Answer key never shown</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  No model answers, no preview — the key stays in a server-only subcollection the client can't read.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+              <Icon name="timer-off" size={20} style={{ color: "var(--text-secondary)", flex: "0 0 auto", marginTop: "2px" }} />
+              <div>
+                <div style={{ fontWeight: "var(--weight-semibold)", fontSize: "var(--text-sm)" }}>No TimerBar yet</div>
+                <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                  Pre-start shows no running countdown — a TimerBar here would falsely imply the clock is ticking.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <LandingScreen />
+        <div>
+          <div className="eyebrow">Spec'd secondary states</div>
+          <StateTiles />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

@@ -39,6 +39,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@levelup/shared-ui";
+import { DifficultyChip, navNodeClass, type NavNodeState } from "../components/common/lyceum";
 
 /**
  * Convert a StoredEvaluation (from Firestore) to a UnifiedEvaluationResult
@@ -102,13 +103,17 @@ function ItemNavigator({
   const currentItem = items[currentIndex];
 
   if (!items.length) {
-    return <p className="text-muted-foreground py-2 text-sm">No items in this section.</p>;
+    return (
+      <p className="text-fg-secondary py-2 text-sm">
+        No items in this section yet — check back soon.
+      </p>
+    );
   }
 
   return (
     <div className="space-y-4">
       {/* Numbered item buttons */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5" role="navigation" aria-label="Items in this section">
         {items.map((item, idx) => {
           const itemProgress = spProgress?.items?.[item.id];
           const isCompleted = itemProgress?.completed;
@@ -123,22 +128,26 @@ function ItemNavigator({
           const isIncorrect = (eval_ != null && eval_.correctness === 0) || qStatus === "incorrect";
           const isCurrent = idx === currentIndex;
 
-          let bg = "bg-muted text-muted-foreground";
-          if (isCorrect || (isCompleted && item.type === "material")) {
-            bg = "bg-emerald-500 text-white";
-          } else if (isPartial) {
-            bg = "bg-yellow-500 text-white";
-          } else if (isIncorrect) {
-            bg = "bg-red-400 text-white";
-          } else if (isCompleted) {
-            bg = "bg-emerald-500 text-white";
-          }
+          let state: NavNodeState = "idle";
+          if (isCorrect || isCompleted) state = "correct";
+          else if (isPartial) state = "partial";
+          else if (isIncorrect) state = "incorrect";
 
           return (
             <button
               key={item.id}
               onClick={() => setCurrentIndex(idx)}
-              className={`h-8 w-8 rounded text-xs font-medium transition-colors ${bg} ${isCurrent ? "ring-primary ring-2 ring-offset-1" : ""}`}
+              aria-label={`Item ${idx + 1}: ${
+                state === "correct"
+                  ? "done"
+                  : state === "partial"
+                    ? "almost there"
+                    : state === "incorrect"
+                      ? "worth another look"
+                      : "not attempted"
+              }`}
+              aria-current={isCurrent ? "step" : undefined}
+              className={navNodeClass(state, isCurrent)}
             >
               {idx + 1}
             </button>
@@ -148,31 +157,26 @@ function ItemNavigator({
 
       {/* Current item */}
       {currentItem && (
-        <div className="bg-card rounded-lg border p-5">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="border-subtle bg-surface shadow-e1 rounded-xl border p-5 sm:p-6">
+          <div className="border-subtle mb-4 flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
               {currentItem.type === "material" ? (
-                <FileText className="text-primary h-4 w-4" />
+                <span className="bg-brand-subtle text-brand flex h-7 w-7 items-center justify-center rounded-md">
+                  <FileText className="h-3.5 w-3.5" aria-hidden />
+                </span>
               ) : currentItem.type === "question" ? (
-                <HelpCircle className="h-4 w-4 text-purple-500" />
+                <span className="bg-brand-subtle text-brand flex h-7 w-7 items-center justify-center rounded-md">
+                  <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+                </span>
               ) : null}
-              <span className="text-muted-foreground text-sm">
-                {currentIndex + 1} of {items.length}
+              <span className="text-fg-muted text-xs">
+                {currentItem.type === "material" ? "Material" : "Question"}{" "}
+                <span className="font-mono tabular-nums">
+                  {currentIndex + 1} of {items.length}
+                </span>
               </span>
             </div>
-            {currentItem.difficulty && (
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                  currentItem.difficulty === "easy"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : currentItem.difficulty === "medium"
-                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                }`}
-              >
-                {currentItem.difficulty}
-              </span>
-            )}
+            <DifficultyChip difficulty={currentItem.difficulty} />
           </div>
 
           {currentItem.type === "material" ? (
@@ -195,9 +199,7 @@ function ItemNavigator({
               <AttemptHistoryPanel attempts={spProgress?.items?.[currentItem.id]?.attempts ?? []} />
             </>
           ) : (
-            <div className="text-muted-foreground text-sm">
-              {currentItem.title ?? "Content item"}
-            </div>
+            <div className="text-fg-secondary text-sm">{currentItem.title ?? "Content item"}</div>
           )}
         </div>
       )}
@@ -389,13 +391,17 @@ export default function StoryPointViewerPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mt-2">
-        <h1 className="text-xl font-bold">{storyPoint?.title ?? "Story Point"}</h1>
+      <div className="mt-3">
+        <h1 className="font-display text-fg text-2xl">{storyPoint?.title ?? "Story Point"}</h1>
         {storyPoint?.description && (
-          <p className="text-muted-foreground mt-1 text-sm">{storyPoint.description}</p>
+          <p className="text-fg-secondary max-w-reading mt-1.5 text-sm leading-relaxed">
+            {storyPoint.description}
+          </p>
         )}
         {!storyPoint && storyPoints && storyPoints.length > 0 && (
-          <p className="text-destructive mt-1 text-sm">Story point not found</p>
+          <p className="text-error mt-1 text-sm">
+            We couldn&apos;t find this lesson — it may have moved.
+          </p>
         )}
       </div>
     </>
@@ -406,7 +412,7 @@ export default function StoryPointViewerPage() {
       <div className="space-y-4">
         {header}
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 rounded-lg" />
+          <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
     );
@@ -416,15 +422,17 @@ export default function StoryPointViewerPage() {
     return (
       <div className="space-y-4">
         {header}
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-          <p className="text-destructive text-sm font-medium">Failed to load content items</p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            {itemsError instanceof Error ? itemsError.message : "An unexpected error occurred"}
+        <div className="border-subtle flex flex-col items-center justify-center rounded-xl border border-dashed py-16">
+          <p className="font-display text-fg text-lg">We couldn&apos;t load this lesson</p>
+          <p className="text-fg-secondary mt-1 text-xs">
+            {itemsError instanceof Error
+              ? itemsError.message
+              : "Something hiccuped on our end. Give it another go."}
           </p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-3"
+            className="mt-4"
             onClick={() => window.location.reload()}
           >
             Retry
@@ -435,12 +443,12 @@ export default function StoryPointViewerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="animate-ly-rise space-y-6">
       {header}
 
-      {/* Story point prev/next */}
+      {/* Story point prev/next rail */}
       {storyPoints && storyPoints.length > 1 && (
-        <div className="bg-card flex items-center justify-between rounded-lg border px-4 py-2">
+        <div className="border-subtle bg-surface shadow-e1 rounded-pill flex items-center justify-between border px-3 py-1.5">
           {prevSP ? (
             <Button
               variant="ghost"
@@ -449,13 +457,13 @@ export default function StoryPointViewerPage() {
               onClick={() => navigate(getStoryPointLink(prevSP))}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{prevSP.title}</span>
+              <span className="hidden max-w-[16rem] truncate sm:inline">{prevSP.title}</span>
               <span className="sm:hidden">Previous</span>
             </Button>
           ) : (
             <div />
           )}
-          <span className="text-muted-foreground text-xs">
+          <span className="text-fg-muted font-mono text-xs tabular-nums">
             {currentSPIndex + 1} / {storyPoints.length}
           </span>
           {nextSP ? (
@@ -465,7 +473,7 @@ export default function StoryPointViewerPage() {
               className="gap-1.5"
               onClick={() => navigate(getStoryPointLink(nextSP))}
             >
-              <span className="hidden sm:inline">{nextSP.title}</span>
+              <span className="hidden max-w-[16rem] truncate sm:inline">{nextSP.title}</span>
               <span className="sm:hidden">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -484,42 +492,52 @@ export default function StoryPointViewerPage() {
             const completedCount = sectionItems.filter(
               (item) => spProgress?.items?.[item.id]?.completed
             ).length;
+            const allDone = completedCount === sectionItems.length && sectionItems.length > 0;
 
             return (
               <Collapsible key={section.id} open={isOpen}>
                 <div
-                  className={`bg-card overflow-hidden rounded-lg border-2 transition-colors ${isOpen ? "border-primary/30" : "border-border"}`}
+                  className={`bg-surface duration-fast ease-standard overflow-hidden rounded-xl border transition-colors ${
+                    isOpen ? "border-brand-muted shadow-e1" : "border-subtle"
+                  }`}
                 >
                   <CollapsibleTrigger asChild>
                     <button
                       onClick={() => toggleSection(section.id)}
-                      className={`flex w-full items-center justify-between p-4 text-left transition-colors ${isOpen ? "bg-primary/5" : "hover:bg-accent/50"}`}
+                      aria-expanded={isOpen}
+                      className={`duration-fast ease-standard flex w-full items-center justify-between p-4 text-left transition-colors ${
+                        isOpen ? "bg-brand-subtle/40" : "hover:bg-surface-sunken/60"
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <ChevronDown
-                          className={`text-muted-foreground h-4 w-4 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                          className={`text-fg-muted duration-fast h-4 w-4 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                          aria-hidden
                         />
                         <div>
-                          <h3 className="text-sm font-semibold">{section.title}</h3>
+                          <h3 className="text-fg text-sm font-semibold">{section.title}</h3>
                           {section.description && (
-                            <p className="text-muted-foreground mt-0.5 text-xs">
+                            <p className="text-fg-secondary mt-0.5 text-xs">
                               {section.description}
                             </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs tabular-nums">
+                        <span className="text-fg-muted font-mono text-xs tabular-nums">
                           {completedCount}/{sectionItems.length}
                         </span>
-                        {completedCount === sectionItems.length && sectionItems.length > 0 && (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        {allDone && (
+                          <span className="text-mastery-mastered inline-flex items-center gap-1 text-xs font-medium">
+                            <CheckCircle2 className="h-4 w-4" aria-hidden />
+                            <span className="hidden sm:inline">All done</span>
+                          </span>
                         )}
                       </div>
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="border-t px-4 pb-4 pt-4">
+                    <div className="border-subtle border-t px-4 pb-4 pt-4">
                       <ItemNavigator items={sectionItems} {...navigatorProps} />
                     </div>
                   </CollapsibleContent>
@@ -530,8 +548,8 @@ export default function StoryPointViewerPage() {
 
           {/* Unsectioned items */}
           {itemsBySection.unsectioned.length > 0 && (
-            <div className="bg-card rounded-lg border p-4">
-              <h3 className="mb-3 text-sm font-semibold">Other Items</h3>
+            <div className="border-subtle bg-surface rounded-xl border p-4">
+              <h3 className="text-fg mb-3 text-sm font-semibold">Other items</h3>
               <ItemNavigator items={itemsBySection.unsectioned} {...navigatorProps} />
             </div>
           )}
@@ -543,7 +561,7 @@ export default function StoryPointViewerPage() {
 
       {/* Bottom story point nav */}
       {storyPoints && storyPoints.length > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
+        <div className="border-subtle flex items-center justify-between border-t pt-4">
           {prevSP ? (
             <Button
               variant="outline"

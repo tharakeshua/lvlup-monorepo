@@ -16,7 +16,16 @@ import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useExams } from "@levelup/query";
 
-import { Badge, Button, Card, Chip, EmptyState, Icon, Screen } from "../../components";
+import {
+  Badge,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Icon,
+  Screen,
+  TeacherPageHeader,
+} from "../../components";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
 import { ErrorCard, ListSkeleton, examStatus, flattenPages, num, pct } from "./_shared";
@@ -151,10 +160,17 @@ export default function ExamsOverviewScreen() {
 
   return (
     <Screen className="bg-canvas" contentClassName="gap-4 p-4">
-      <View className="gap-1">
-        <Text className="font-display text-text-primary text-2xl">Exams</Text>
-        <Text className="text-text-muted text-sm">Monitor collection, grading and release.</Text>
-      </View>
+      <TeacherPageHeader
+        eyebrow="Assessment desk"
+        title="Review"
+        subtitle="Move every exam from collection to confident release."
+        action={
+          <View className="bg-marigold-50 border-marigold-200 rounded-pill flex-row items-center gap-1.5 border px-3 py-2">
+            <Icon name="files" size={14} color="#B7791F" />
+            <Text className="text-warning font-mono text-xs">{exams.length}</Text>
+          </View>
+        }
+      />
 
       <View className="flex-row flex-wrap gap-2">
         {FILTERS.map((f) => (

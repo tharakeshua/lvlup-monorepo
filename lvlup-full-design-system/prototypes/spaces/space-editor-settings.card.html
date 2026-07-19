@@ -1,0 +1,857 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Settings Tab" subtitle="Space metadata · classification · access · AI & assessment defaults" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local LAYOUT-ONLY rules — Lyceum vars only, NO raw hex, NO :root redefinition */
+html,body{margin:0}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:820px;overflow:hidden;position:relative;display:flex}
+
+/* ---- topbar bits ---- */
+.tb-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:var(--bg-surface)}
+.tb-tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tb-search{flex:1;max-width:420px;position:relative;display:flex;align-items:center}
+.tb-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tb-search .input{padding-left:var(--space-8)}
+.tb-kbd{position:absolute;right:var(--space-2);display:flex;gap:2px}
+.tb-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--text-secondary)}
+
+/* ---- main column scroll region ---- */
+.sx-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.sx-crumb{padding:var(--space-3) var(--space-6) 0}
+
+/* ---- sticky editor sub-header ---- */
+.eh{position:sticky;top:0;z-index:20;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0}
+.eh-top{display:flex;align-items:center;gap:var(--space-3)}
+.eh-title{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0}
+.eh-spacer{flex:1}
+.eh-meta{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.eh-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-3)}
+.tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:color var(--dur-fast) var(--ease-standard)}
+.tab:hover{color:var(--text-primary)}
+.tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold)}
+
+/* status badge with icon (never color-alone) */
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle)}
+.status-badge.draft{background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.status-badge.published{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success)}
+.status-badge.archived{background:var(--bg-inset);color:var(--text-muted)}
+
+/* ---- scroll body + reading column ---- */
+.sx-scroll{flex:1;overflow-y:auto;position:relative}
+.sx-col{max-width:768px;margin:0 auto;padding:var(--space-6) var(--space-6) 140px;display:flex;flex-direction:column;gap:var(--space-6)}
+
+/* ---- section card ---- */
+.scard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.scard__head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.scard__icon{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);flex:none}
+.scard__h{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0}
+.scard__d{font-size:var(--text-xs);line-height:var(--leading-xs);color:var(--text-muted);margin-top:2px}
+.scard__body{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* ---- field ---- */
+.fld{display:flex;flex-direction:column;gap:var(--space-2)}
+.fld__lab{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.fld__opt{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-xs)}
+.fld__req{color:var(--status-error);font-weight:var(--weight-bold)}
+.fld__help{font-size:var(--text-xs);color:var(--text-muted);line-height:var(--leading-xs);transition:opacity var(--dur-instant) var(--ease-standard)}
+.fld__err{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--status-error);font-weight:var(--weight-medium)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.counter{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-align:right;font-variant-numeric:tabular-nums}
+.counter--warn{color:var(--status-warning)}
+.counter--over{color:var(--status-error)}
+
+/* ---- slug input w/ prefix ---- */
+.slug-wrap{display:flex;align-items:stretch;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);overflow:hidden}
+.slug-wrap:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus)}
+.slug-pre{display:flex;align-items:center;padding:0 var(--space-3);background:var(--bg-surface-sunken);font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);border-right:1px solid var(--border-subtle)}
+.slug-in{flex:1;border:none;outline:none;background:transparent;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);padding:var(--space-2) var(--space-3)}
+
+/* ---- thumbnail ---- */
+.thumb-row{display:flex;gap:var(--space-4);align-items:stretch}
+.thumb-prev{width:200px;flex:none;aspect-ratio:16/9;border-radius:var(--radius-md);overflow:hidden;position:relative;background:linear-gradient(135deg,var(--brand-muted),var(--bg-surface-sunken));border:1px solid var(--border-subtle);display:grid;place-items:center}
+.thumb-prev__txt{font-family:var(--font-display);font-size:var(--text-lg);color:var(--text-secondary)}
+.thumb-prev__rm{position:absolute;top:6px;right:6px}
+.thumb-prev__up{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);background:var(--bg-surface-sunken);color:var(--text-secondary);font-size:var(--text-xs)}
+.thumb-drop{flex:1;min-height:112px}
+.thumb-modes{display:flex;gap:var(--space-2);margin-bottom:var(--space-2)}
+
+/* ---- chip tokenizer ---- */
+.lbl-tags{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+
+/* ---- entity picker ---- */
+.picker{display:flex;flex-direction:column;gap:var(--space-2);position:relative}
+.picker__field{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);min-height:42px;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:text}
+.picker__field.is-disabled{background:var(--bg-surface-sunken);cursor:not-allowed;opacity:.7}
+.picker__field:focus-within{border-color:var(--border-focus);box-shadow:var(--ring-focus)}
+.picker__input{flex:1;min-width:120px;border:none;outline:none;background:transparent;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);padding:var(--space-1)}
+.picker__menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);max-height:220px;overflow-y:auto}
+.picker__opt{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-secondary);line-height:1.4;background:none;border:none;cursor:pointer}
+.picker__opt:hover,.picker__opt.is-active{background:var(--bg-surface-sunken);color:var(--text-primary)}
+.picker__opt-meta{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.picker__opt .check{margin-left:auto;color:var(--brand-primary)}
+.picker__sk{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3)}
+.teacher-tag{display:inline-flex;align-items:center;gap:var(--space-1);padding:2px 8px 2px 2px;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-xs);color:var(--text-primary)}
+.teacher-tag button{display:grid;place-items:center;color:var(--text-muted);border-radius:var(--radius-pill);background:none;border:none;cursor:pointer}
+.teacher-tag button:hover{color:var(--status-error)}
+
+/* ---- switch rows ---- */
+.swrow{display:flex;align-items:flex-start;gap:var(--space-4);justify-content:space-between}
+.swrow__txt{flex:1;min-width:0}
+.reveal{overflow:hidden;animation:revealIn var(--dur-base) var(--ease-entrance)}
+@keyframes revealIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.num-suffix{display:flex;align-items:center;gap:var(--space-2)}
+.num-suffix .input{max-width:120px;font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.num-suffix__u{font-size:var(--text-sm);color:var(--text-secondary)}
+
+/* ---- audit deflist footer ---- */
+.audit{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4) var(--space-5);font-size:var(--text-xs);color:var(--text-muted)}
+.audit__row{display:flex;justify-content:space-between;gap:var(--space-4)}
+.audit__v{font-family:var(--font-mono);color:var(--text-secondary)}
+
+/* ---- sticky savebar ---- */
+.savebar{position:absolute;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-6);background:var(--bg-surface);border-top:1px solid var(--border-subtle);box-shadow:var(--shadow-e2)}
+.savebar__hint{font-size:var(--text-xs);color:var(--text-muted);flex:1;display:flex;align-items:center;gap:var(--space-2)}
+.savebar__state{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui)}
+.savebar__state.saved{color:var(--status-success)}
+.savebar__state.saving{color:var(--text-secondary)}
+.savebar__state.dirty{color:var(--spark)}
+.savebar__state.failed{color:var(--status-error)}
+.dirty-dot{width:6px;height:6px;border-radius:var(--radius-pill);background:var(--spark);display:inline-block;box-shadow:var(--glow-spark)}
+.savebar__actions{display:flex;align-items:center;gap:var(--space-3)}
+
+/* ---- skeleton helpers ---- */
+.sk-line{height:14px;border-radius:var(--radius-sm);background:var(--bg-surface-sunken)}
+
+/* ---- prototype state switcher (chrome) ---- */
+.proto-bar{position:absolute;top:var(--space-3);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.proto-bar__lab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding-left:var(--space-2)}
+.segmented{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.segmented button{font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6;border:none;background:none;cursor:pointer}
+.segmented button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+/* ---- toast ---- */
+.toast-stack{position:absolute;right:var(--space-6);bottom:96px;z-index:120}
+.toast-card{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-4);min-width:300px;animation:toastIn var(--dur-base) var(--ease-entrance)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast-card__icon{display:grid;place-items:center;color:var(--status-success)}
+.toast-card__txt{flex:1;font-size:var(--text-sm);color:var(--text-primary)}
+
+.u-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .reveal,.toast-card{animation:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Input, Textarea, Select, Switch, FileDrop, Field,
+    Badge, Chip, Avatar, AvatarGroup, Skeleton, EmptyState, Alert, Breadcrumb, Kbd
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---- closed enums (verbatim from SpaceSettingsPanel) ---- */
+  const SPACE_TYPES = [
+    { value:"learning",   label:"Learning",   desc:"Sequenced lessons and story points students work through to learn new material." },
+    { value:"practice",   label:"Practice",   desc:"Drills and repeatable question sets for reinforcement — light on new content." },
+    { value:"assessment", label:"Assessment", desc:"Graded checkpoints; results feed dashboards and at-risk detection." },
+    { value:"resource",   label:"Resource",   desc:"A reference library of materials with no required progression." },
+    { value:"hybrid",     label:"Hybrid",     desc:"Mixes lessons, practice, and graded items in one space." },
+  ];
+  const ACCESS_TYPES = [
+    { value:"class_assigned", label:"Class Assigned", desc:"Visible only to the classes and teachers you assign below.", admin:false },
+    { value:"tenant_wide",    label:"Tenant Wide",    desc:"Visible to every class in your tenant — no assignment needed.", admin:true },
+    { value:"public_store",   label:"Public Store",   desc:"Listed on the public store after you publish (configure pricing in Store).", admin:true },
+  ];
+
+  /* ---- tenant-scoped mock options (tenant_subhang / SUB001) ---- */
+  const CLASS_OPTIONS = [
+    { id:"cls_9c", label:"Grade 9C", meta:"26 students" },
+    { id:"cls_9d", label:"Grade 9D", meta:"29 students" },
+    { id:"cls_10a",label:"Grade 10A", meta:"30 students" },
+    { id:"cls_10b",label:"Grade 10B", meta:"27 students" },
+    { id:"cls_11b",label:"Grade 11B", meta:"24 students" },
+  ];
+  const SECTION_OPTIONS = [
+    { id:"sec_alpha", label:"Section Alpha", meta:"Grade 9C" },
+    { id:"sec_beta",  label:"Section Beta",  meta:"Grade 10A" },
+    { id:"sec_gamma", label:"Section Gamma", meta:"Grade 10B" },
+  ];
+  const TEACHER_OPTIONS = [
+    { id:"tch_self", name:"Tara Sen (you)", initials:"TS", meta:"Owner" },
+    { id:"tch_rao",  name:"Anil Rao",       initials:"AR", meta:"Mathematics" },
+    { id:"tch_iyer", name:"Meera Iyer",     initials:"MI", meta:"Science" },
+    { id:"tch_dey",  name:"Sandeep Dey",    initials:"SD", meta:"Mathematics" },
+  ];
+  const SESSION_OPTIONS = [
+    { value:"as_2526", label:"2025–26 (active)" },
+    { value:"as_2425", label:"2024–25" },
+    { value:"as_2324", label:"2023–24" },
+  ];
+  const TUTOR_AGENTS = [
+    { value:"", label:"None (use tenant default)" },
+    { value:"agt_socratic", label:"Socratic Tutor · v3" },
+    { value:"agt_stepwise", label:"Stepwise Math Coach · v2" },
+    { value:"agt_concise",  label:"Concise Explainer · v1" },
+  ];
+  const EVAL_AGENTS = [
+    { value:"", label:"None (use tenant default)" },
+    { value:"agt_rubric",   label:"Rubric Grader · v4" },
+    { value:"agt_strict",   label:"Strict Marker · v2" },
+    { value:"agt_lenient",  label:"Partial-Credit Grader · v1" },
+  ];
+
+  /* ================= sidebar / topbar chrome ================= */
+  function SidebarNav(){
+    const items = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"graduation-cap",   label:"Spaces", active:true },
+      { icon:"users",            label:"Students" },
+      { icon:"file-check-2",     label:"Exams" },
+      { icon:"bar-chart-3",      label:"Analytics" },
+      { icon:"settings",         label:"Settings" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <div className="sidebar__brand-mark">L</div>
+          <div className="sidebar__brand-name">LevelUp</div>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Teach</div>
+          {items.map((it,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+              <Icon name={it.icon} size={18} /><span>{it.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="tb-tenant">
+          <Avatar initials="SA" size="sm" />
+          <div>Subhang Academy</div>
+          <span className="tb-tenant__code">SUB001</span>
+          <Icon name="chevron-down" size={14} />
+        </div>
+        <div className="tb-search">
+          <Icon name="search" size={16} />
+          <input className="input" placeholder="Search students, exams, spaces…" readOnly />
+          <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+        </div>
+        <div className="topbar__spacer" style={{flex:1}} />
+        <button className="tb-icon" aria-label="Notifications"><Icon name="bell" size={18} /></button>
+        <Avatar initials="TS" size="sm" />
+      </header>
+    );
+  }
+
+  /* ================= section card wrapper ================= */
+  function SectionCard({ icon, title, desc, children }){
+    return (
+      <section className="scard">
+        <div className="scard__head">
+          <div className="scard__icon"><Icon name={icon} size={18} /></div>
+          <div>
+            <h2 className="scard__h">{title}</h2>
+            <div className="scard__d">{desc}</div>
+          </div>
+        </div>
+        <div className="scard__body">{children}</div>
+      </section>
+    );
+  }
+
+  /* ================= multi-entity picker (classes / sections / teachers) ================= */
+  function EntityPicker({ kind, options, selected, onToggle, loading, disabled }){
+    const [open,setOpen]=useState(false);
+    const [q,setQ]=useState("");
+    const ref=useRef(null);
+    useEffect(()=>{
+      if(!open) return;
+      const onDoc=(e)=>{ if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
+      document.addEventListener("mousedown",onDoc);
+      return ()=>document.removeEventListener("mousedown",onDoc);
+    },[open]);
+
+    const sel = options.filter(o=>selected.includes(o.id));
+    const filtered = options.filter(o=>(o.label||o.name||"").toLowerCase().includes(q.toLowerCase()));
+    const placeholder = kind==="teachers" ? "Search teachers…" : kind==="sections" ? "Search sections…" : "Search classes…";
+    const icon = kind==="teachers" ? "user-plus" : kind==="sections" ? "rows-3" : "school";
+
+    return (
+      <div className="picker" ref={ref}>
+        {kind!=="teachers" && sel.length>0 && (
+          <div className="lbl-tags">
+            {sel.map(o=>(
+              <span key={o.id} className="chip chip--brand" style={{display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                {o.label} <span className="picker__opt-meta">{o.meta}</span>
+                {!disabled && (
+                  <button aria-label={"Remove " + o.label} onClick={()=>onToggle(o.id)} className="chip__remove" style={{background:"none",border:"none",cursor:"pointer",display:"grid",placeItems:"center",color:"var(--text-muted)"}}>
+                    <Icon name="x" size={12} />
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+        {kind==="teachers" && sel.length>0 && (
+          <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)",flexWrap:"wrap"}}>
+            <AvatarGroup>{sel.map(o=><Avatar key={o.id} initials={o.initials} size="sm" />)}</AvatarGroup>
+            <div style={{display:"flex",gap:"var(--space-2)",flexWrap:"wrap"}}>
+              {sel.map(o=>(
+                <span key={o.id} className="teacher-tag">
+                  {o.name}
+                  {!disabled && o.id!=="tch_self" && (
+                    <button aria-label={"Remove " + o.name} onClick={()=>onToggle(o.id)}><Icon name="x" size={12} /></button>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className={"picker__field" + (disabled ? " is-disabled" : "")} onClick={()=>!disabled && setOpen(true)}>
+          <Icon name={icon} size={16} />
+          <input className="picker__input" placeholder={placeholder}
+            aria-label={placeholder} value={q} disabled={disabled}
+            onChange={(e)=>{ setQ(e.target.value); setOpen(true); }}
+            onFocus={()=>!disabled && setOpen(true)} />
+          <Icon name="chevron-down" size={16} />
+        </div>
+
+        {open && !disabled && (
+          <div className="picker__menu" role="listbox" aria-multiselectable="true">
+            {loading && Array.from({length:4}).map((_,i)=>(
+              <div className="picker__sk" key={i}>
+                {kind==="teachers" && <Skeleton variant="circle" width="20px" height="20px" />}
+                <Skeleton variant="text" width={i%2?"58%":"74%"} />
+              </div>
+            ))}
+            {!loading && filtered.length===0 && (
+              <div className="picker__opt" aria-disabled="true">No matches for “{q}”.</div>
+            )}
+            {!loading && filtered.map(o=>{
+              const on=selected.includes(o.id);
+              const locked = kind==="teachers" && o.id==="tch_self";
+              return (
+                <button key={o.id} role="option" aria-selected={on} className="picker__opt"
+                  onClick={()=>{ if(!locked) onToggle(o.id); }} aria-disabled={locked}>
+                  {kind==="teachers" && <Avatar initials={o.initials} size="sm" />}
+                  <span>{o.label || o.name}</span>
+                  <span className="picker__opt-meta">{o.meta}</span>
+                  {on && <span className="check"><Icon name="check" size={15} /></span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ================= loading skeleton column ================= */
+  function LoadingCol(){
+    const Block = ({rows}) => (
+      <section className="scard">
+        <div className="scard__head">
+          <div className="scard__icon"><Skeleton variant="circle" width="18px" height="18px" /></div>
+          <div style={{flex:1}}>
+            <Skeleton variant="text" width="32%" />
+            <div style={{height:6}} />
+            <Skeleton variant="text" width="58%" />
+          </div>
+        </div>
+        <div className="scard__body">
+          {Array.from({length:rows}).map((_,i)=>(
+            <div className="fld" key={i}>
+              <Skeleton variant="text" width="22%" />
+              <div className="sk-line" style={{height:38}} />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+    return (<><Block rows={3} /><Block rows={2} /><Block rows={3} /></>);
+  }
+
+  /* ======================================================================= */
+  function App(){
+    // prototype state: default | loading | empty | error | readonly
+    const [proto,setProto]=useState("default");
+    const readOnly = proto==="readonly";
+    const isTeacher = !readOnly; // owner teacher (admin-only options disabled)
+
+    // ---- form state ----
+    const [title,setTitle]=useState("Trigonometry — Term 2");
+    const [titleTouched,setTitleTouched]=useState(false);
+    const [slug,setSlug]=useState("trigonometry-term-2");
+    const [slugTouched,setSlugTouched]=useState(false);
+    const [desc,setDesc]=useState("Right-triangle ratios, the unit circle, and graphing sine and cosine — paced for a single term.");
+    const [thumbMode,setThumbMode]=useState("upload"); // upload | url
+    const [thumb,setThumb]=useState("ALG");
+    const [thumbUploading,setThumbUploading]=useState(false);
+    const [thumbUrl,setThumbUrl]=useState("");
+
+    const [type,setType]=useState("learning");
+    const [subject,setSubject]=useState("Mathematics");
+    const [labelInput,setLabelInput]=useState("");
+    const [labels,setLabels]=useState(["trigonometry","term-2","grade-10"]);
+
+    const [access,setAccess]=useState("class_assigned");
+    const [classes,setClasses]=useState(["cls_10a","cls_10b"]);
+    const [sections,setSections]=useState(["sec_beta"]);
+    const [teachers,setTeachers]=useState(["tch_self","tch_rao"]);
+    const [session,setSession]=useState("as_2526");
+
+    const [tutorAgent,setTutorAgent]=useState("agt_stepwise");
+    const [evalAgent,setEvalAgent]=useState("");
+
+    const [timeLimit,setTimeLimit]=useState("0");
+    const [allowRetakes,setAllowRetakes]=useState(true);
+    const [maxRetakes,setMaxRetakes]=useState("3");
+    const [showAnswers,setShowAnswers]=useState(true);
+
+    // ---- save lifecycle ----
+    const [dirty,setDirty]=useState(false);
+    const [saveStatus,setSaveStatus]=useState("clean"); // clean | dirty | saving | saved | failed
+    const [toast,setToast]=useState(false);
+    const titleRef=useRef(null);
+
+    const DESC_MAX=600;
+    const overLimit = desc.length>DESC_MAX;
+    const nearCap = !overLimit && desc.length>DESC_MAX-50;
+    const titleEmpty = !title.trim();
+    const titleError = titleTouched && titleEmpty;
+    const slugBad = slugTouched && slug!=="" && !/^[a-z0-9-]+$/.test(slug);
+
+    const pickersLoading = proto==="loading";
+    const showEmptyAssign = proto==="empty";
+
+    const typeMeta = SPACE_TYPES.find(t=>t.value===type);
+    const accessMeta = ACCESS_TYPES.find(a=>a.value===access);
+
+    function markDirty(){ if(!readOnly){ setDirty(true); setSaveStatus("dirty"); } }
+
+    function field(setter){ return (v)=>{ setter(v); markDirty(); }; }
+
+    function commitLabel(raw){
+      const t=raw.trim().replace(/,$/,"").trim().toLowerCase().replace(/\s+/g,"-");
+      if(t && !labels.includes(t)){ setLabels(l=>[...l,t]); markDirty(); }
+      setLabelInput("");
+    }
+    function onLabelKey(e){
+      if(e.key==="Enter" || e.key===","){ e.preventDefault(); commitLabel(labelInput); }
+      else if(e.key==="Backspace" && labelInput==="" && labels.length){ setLabels(l=>l.slice(0,-1)); markDirty(); }
+    }
+    function togglePick(setter, list, id){ setter(list.includes(id) ? list.filter(x=>x!==id) : [...list,id]); markDirty(); }
+
+    function onTitle(v){ setTitle(v); markDirty(); if(!slugTouched){ setSlug(v.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")); } }
+
+    function fakeUpload(){
+      setThumbUploading(true);
+      setTimeout(()=>{ setThumbUploading(false); setThumb("TRG"); markDirty(); },1100);
+    }
+
+    function save(){
+      setTitleTouched(true);
+      if(titleEmpty){ titleRef.current && titleRef.current.focus && titleRef.current.focus(); return; }
+      setSaveStatus("saving");
+      setTimeout(()=>{
+        if(proto==="error"){ setSaveStatus("failed"); return; }
+        setSaveStatus("saved"); setDirty(false); setToast(true);
+      },950);
+    }
+
+    useEffect(()=>{ if(!toast) return; const t=setTimeout(()=>setToast(false),4200); return ()=>clearTimeout(t); },[toast]);
+
+    // when switching prototype state, reset transient flags
+    useEffect(()=>{ setSaveStatus(dirty?"dirty":"clean"); setToast(false); },[proto]); // eslint-disable-line
+
+    const canSave = !readOnly && dirty && !titleEmpty && !overLimit && !slugBad && saveStatus!=="saving";
+
+    /* status badge in sub-header (color + icon + text) */
+    const StatusBadge = () => (
+      <span className="status-badge draft"><Icon name="pencil-ruler" size={12} /> Draft</span>
+    );
+
+    const EDITOR_TABS = [
+      { id:"content",  label:"Content",  icon:"list-tree" },
+      { id:"settings", label:"Settings", icon:"sliders-horizontal", on:true },
+      { id:"assign",   label:"Assignments", icon:"users" },
+      { id:"store",    label:"Store",    icon:"store" },
+      { id:"versions", label:"Versions", icon:"history" },
+    ];
+
+    return (
+      <div className="shell appshell">
+        {/* prototype state switcher */}
+        <div className="proto-bar" role="group" aria-label="Preview state">
+          <span className="proto-bar__lab">State</span>
+          <div className="segmented">
+            {[["default","Default"],["loading","Loading"],["empty","No classes"],["error","Save failed"],["readonly","View-only"]].map(([v,l])=>(
+              <button key={v} aria-pressed={proto===v} onClick={()=>setProto(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <SidebarNav/>
+
+        <div className="sx-main">
+          <Topbar/>
+          <div className="sx-crumb">
+            <Breadcrumb items={[{label:"Spaces", href:"#"},{label:"Trigonometry — Term 2"}]} />
+          </div>
+
+          {/* sticky editor sub-header */}
+          <div className="eh">
+            <div className="eh-top">
+              <h1 className="eh-title">{title || "Untitled space"}</h1>
+              <StatusBadge/>
+              <span className="eh-spacer" />
+              <span className="eh-meta">spaceId · sp_7Qa3Zk</span>
+            </div>
+            <div className="eh-tabs" role="tablist" aria-label="Space editor sections">
+              {EDITOR_TABS.map(t=>(
+                <button key={t.id} className={"tab" + (t.on?" on":"")} role="tab" aria-selected={t.on?"true":"false"}>
+                  <Icon name={t.icon} size={15} /> {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* scroll body */}
+          <div className="sx-scroll">
+            <div className="sx-col">
+
+              {readOnly && (
+                <Alert variant="info" title="View-only">
+                  You aren’t an owner or co-teacher of this space, so settings are read-only. Ask the owner (Tara Sen) for edit access.
+                </Alert>
+              )}
+
+              {proto==="error" && saveStatus==="failed" && (
+                <Alert variant="error" title="Couldn’t save settings.">
+                  The save request failed — your changes are kept here. Check your connection and retry. The status badge stays Draft until the server confirms.
+                </Alert>
+              )}
+
+              {proto==="loading" ? <LoadingCol/> : (
+              <>
+                {/* ============ CORE ============ */}
+                <SectionCard icon="book-open" title="Core" desc="Identity shown on cards, breadcrumbs, and student dashboards.">
+                  {/* Title */}
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-title">
+                      Title <span className="fld__req" aria-hidden="true">*</span><span className="u-sr-only">(required)</span>
+                    </label>
+                    <Input id="s-title" ref={titleRef} value={title} disabled={readOnly}
+                      placeholder="e.g. Algebra I — Semester 1" error={titleError}
+                      aria-invalid={titleError || undefined}
+                      aria-describedby={titleError ? "s-title-err" : "s-title-help"}
+                      onChange={(e)=>onTitle(e.target.value)} onBlur={()=>setTitleTouched(true)} />
+                    {titleError
+                      ? <div className="fld__err" id="s-title-err" aria-live="polite"><Icon name="alert-circle" size={13} /> A title is required.</div>
+                      : <div className="fld__help" id="s-title-help">Shown on cards, breadcrumbs, and student dashboards.</div>}
+                  </div>
+
+                  {/* Slug */}
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-slug">Slug</label>
+                    <div className="slug-wrap" aria-disabled={readOnly}>
+                      <span className="slug-pre">/spaces/</span>
+                      <input id="s-slug" className="slug-in" value={slug} disabled={readOnly}
+                        aria-invalid={slugBad || undefined}
+                        aria-describedby={slugBad ? "s-slug-err" : "s-slug-help"}
+                        onChange={(e)=>{ setSlug(e.target.value); setSlugTouched(true); markDirty(); }} />
+                    </div>
+                    {slugBad
+                      ? <div className="fld__err" id="s-slug-err" aria-live="polite"><Icon name="alert-circle" size={13} /> Use only lowercase letters, numbers, and hyphens.</div>
+                      : <div className="fld__help" id="s-slug-help">URL-safe identifier. Lowercase letters, numbers, and hyphens. Auto-suggested from the title.</div>}
+                  </div>
+
+                  {/* Description */}
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-desc">Description <span className="fld__opt">(optional)</span></label>
+                    <Textarea id="s-desc" rows={3} value={desc} disabled={readOnly}
+                      placeholder="Briefly describe what students will learn or do in this space."
+                      error={overLimit} aria-describedby="s-desc-count"
+                      onChange={(e)=>{ setDesc(e.target.value); markDirty(); }} />
+                    <div className={"counter" + (overLimit?" counter--over":nearCap?" counter--warn":"")} id="s-desc-count" aria-live="polite">
+                      {nearCap && !overLimit && <span aria-hidden="true">⚠ </span>}{desc.length}/{DESC_MAX}
+                    </div>
+                  </div>
+
+                  {/* Thumbnail */}
+                  <div className="fld">
+                    <span className="fld__lab">Thumbnail <span className="fld__opt">(16:9 · PNG/JPEG/WebP ≤2MB)</span></span>
+                    <div className="thumb-modes">
+                      <Button size="sm" variant={thumbMode==="upload"?"secondary":"ghost"} disabled={readOnly}
+                        onClick={()=>setThumbMode("upload")} leadingIcon={<Icon name="upload" size={14} />}>Upload</Button>
+                      <Button size="sm" variant={thumbMode==="url"?"secondary":"ghost"} disabled={readOnly}
+                        onClick={()=>setThumbMode("url")} leadingIcon={<Icon name="link" size={14} />}>URL</Button>
+                    </div>
+                    <div className="thumb-row">
+                      <div className="thumb-prev">
+                        {thumbUploading
+                          ? <div className="thumb-prev__up" role="status" aria-live="polite"><Icon name="loader" size={18} /> Uploading…</div>
+                          : <div className="thumb-prev__txt">{thumb}</div>}
+                        {!thumbUploading && !readOnly && (
+                          <div className="thumb-prev__rm">
+                            <IconButton size="sm" solid label="Remove thumbnail" icon={<Icon name="trash-2" size={14} />} onClick={()=>{ setThumb(""); markDirty(); }} />
+                          </div>
+                        )}
+                      </div>
+                      {thumbMode==="upload" ? (
+                        <div className="thumb-drop" onClick={()=>!readOnly && !thumbUploading && fakeUpload()}>
+                          <FileDrop title="Drop an image or browse" hint="PNG, JPEG, or WebP up to 2MB" active={false} />
+                        </div>
+                      ) : (
+                        <div className="thumb-drop">
+                          <Input value={thumbUrl} disabled={readOnly} placeholder="https://cdn.example.com/cover.png"
+                            onChange={(e)=>{ setThumbUrl(e.target.value); markDirty(); }} />
+                          <div className="fld__help" style={{marginTop:"var(--space-2)"}}>Paste a hosted image URL — stored directly into thumbnailUrl.</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* ============ CLASSIFICATION ============ */}
+                <SectionCard icon="tag" title="Classification" desc="How this space is categorized for filtering, search, and reports.">
+                  <div className="grid-2">
+                    <div className="fld">
+                      <label className="fld__lab" htmlFor="s-type">Type</label>
+                      <Select id="s-type" value={type} disabled={readOnly}
+                        onChange={(e)=>{ setType(e.target.value); markDirty(); }}
+                        options={SPACE_TYPES.map(t=>({value:t.value,label:t.label}))} />
+                      <div className="fld__help" key={type} aria-live="polite">{typeMeta.desc}</div>
+                    </div>
+                    <div className="fld">
+                      <label className="fld__lab" htmlFor="s-subject">Subject <span className="fld__opt">(optional)</span></label>
+                      <Input id="s-subject" value={subject} disabled={readOnly} placeholder="e.g. Mathematics"
+                        onChange={(e)=>{ setSubject(e.target.value); markDirty(); }} />
+                      <div className="fld__help">Used for filtering and discovery.</div>
+                    </div>
+                  </div>
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-labels">Labels <span className="fld__opt">(optional)</span></label>
+                    {labels.length>0 && (
+                      <div className="lbl-tags">
+                        {labels.map((l,i)=>(
+                          <span key={i} className="chip" style={{display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                            {l}
+                            {!readOnly && (
+                              <button aria-label={"Remove " + l} className="chip__remove" style={{background:"none",border:"none",cursor:"pointer",display:"grid",placeItems:"center",color:"var(--text-muted)"}}
+                                onClick={()=>{ setLabels(arr=>arr.filter((_,j)=>j!==i)); markDirty(); }}>
+                                <Icon name="x" size={12} />
+                              </button>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <Input id="s-labels" value={labelInput} disabled={readOnly}
+                      placeholder="e.g. algebra, semester-1, honors"
+                      onChange={(e)=>setLabelInput(e.target.value)} onKeyDown={onLabelKey}
+                      onBlur={()=>{ if(labelInput.trim()) commitLabel(labelInput); }} />
+                    <div className="fld__help">Comma-separated tags for grouping in search and reports. Press comma or Enter to add.</div>
+                  </div>
+                </SectionCard>
+
+                {/* ============ ASSIGNMENT / ACCESS ============ */}
+                <SectionCard icon="users" title="Assignment" desc="Who can see this space, and which classes, sections, and teachers it belongs to.">
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-access">Access type</label>
+                    <Select id="s-access" value={access} disabled={readOnly}
+                      onChange={(e)=>{ setAccess(e.target.value); markDirty(); }}
+                      options={ACCESS_TYPES.map(a=>({value:a.value,label:a.label + (a.admin && isTeacher ? " (admin only)" : "")}))} />
+                    <div className="fld__help" key={access} aria-live="polite">{accessMeta.desc}</div>
+                    {isTeacher && accessMeta.admin && (
+                      <div className="fld__help" style={{display:"flex",alignItems:"center",gap:"6px",color:"var(--text-secondary)"}}>
+                        <Icon name="lock" size={13} /> Tenant admins control organization-wide and store visibility.
+                      </div>
+                    )}
+                    {access==="class_assigned" && (
+                      <div className="fld__help" style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                        <Icon name="info" size={13} /> Visibility derives from the classes and sections you assign — narrowing it later may unassign students until you re-add them.
+                      </div>
+                    )}
+                  </div>
+
+                  {access==="class_assigned" && (
+                    showEmptyAssign && classes.length===0 ? (
+                      <EmptyState icon="school"
+                        title="No classes assigned yet"
+                        body="Students won’t see this space until you assign at least one class."
+                        action={<Button variant="primary" size="sm" leadingIcon={<Icon name="plus" size={14} />} onClick={()=>{ setProto("default"); }}>Assign a class</Button>} />
+                    ) : (
+                    <>
+                      <div className="fld">
+                        <span className="fld__lab"><Icon name="school" size={14} /> Classes</span>
+                        <EntityPicker kind="classes" options={CLASS_OPTIONS} selected={showEmptyAssign?[]:classes}
+                          loading={pickersLoading} disabled={readOnly}
+                          onToggle={(id)=>togglePick(setClasses,classes,id)} />
+                      </div>
+                      <div className="grid-2">
+                        <div className="fld">
+                          <span className="fld__lab"><Icon name="rows-3" size={14} /> Sections <span className="fld__opt">(optional)</span></span>
+                          <EntityPicker kind="sections" options={SECTION_OPTIONS} selected={sections}
+                            loading={pickersLoading} disabled={readOnly}
+                            onToggle={(id)=>togglePick(setSections,sections,id)} />
+                        </div>
+                        <div className="fld">
+                          <label className="fld__lab" htmlFor="s-session">Academic session</label>
+                          <Select id="s-session" value={session} disabled={readOnly}
+                            onChange={(e)=>{ setSession(e.target.value); markDirty(); }} options={SESSION_OPTIONS} />
+                          <div className="fld__help">Defaults to your active session.</div>
+                        </div>
+                      </div>
+                      <div className="fld">
+                        <span className="fld__lab"><Icon name="users" size={14} /> Teachers</span>
+                        <EntityPicker kind="teachers" options={TEACHER_OPTIONS} selected={teachers}
+                          loading={pickersLoading} disabled={readOnly}
+                          onToggle={(id)=>togglePick(setTeachers,teachers,id)} />
+                        <div className="fld__help">You’re the implicit owner even if no other teacher is added.</div>
+                      </div>
+                    </>
+                    )
+                  )}
+                </SectionCard>
+
+                {/* ============ AI DEFAULTS ============ */}
+                <SectionCard icon="sparkles" title="AI defaults" desc="Seed the agents for story points and items — overridable per item downstream.">
+                  <div className="grid-2">
+                    <div className="fld">
+                      <label className="fld__lab" htmlFor="s-tutor">Default tutor agent</label>
+                      <Select id="s-tutor" value={tutorAgent} disabled={readOnly}
+                        onChange={(e)=>{ setTutorAgent(e.target.value); markDirty(); }} options={TUTOR_AGENTS} />
+                      <div className="fld__help">Applied to story points unless overridden per item.</div>
+                    </div>
+                    <div className="fld">
+                      <label className="fld__lab" htmlFor="s-eval">Default evaluator agent</label>
+                      <Select id="s-eval" value={evalAgent} disabled={readOnly}
+                        onChange={(e)=>{ setEvalAgent(e.target.value); markDirty(); }} options={EVAL_AGENTS} />
+                      <div className="fld__help">Applied to graded items unless overridden per item.</div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* ============ ASSESSMENT DEFAULTS ============ */}
+                <SectionCard icon="clipboard-list" title="Assessment defaults" desc="Default attempt behavior for graded story points in this space.">
+                  <div className="fld">
+                    <label className="fld__lab" htmlFor="s-time">Default time limit</label>
+                    <div className="num-suffix">
+                      <Input id="s-time" type="number" min="0" value={timeLimit} disabled={readOnly}
+                        inputMode="numeric"
+                        onChange={(e)=>{ setTimeLimit(e.target.value); markDirty(); }} />
+                      <span className="num-suffix__u">minutes</span>
+                    </div>
+                    <div className="fld__help">Set to <span style={{fontFamily:"var(--font-mono)"}}>0</span> for no limit. The server-authoritative timer honors this default.</div>
+                  </div>
+
+                  <div className="fld">
+                    <div className="swrow">
+                      <div className="swrow__txt">
+                        <div className="fld__lab" id="s-retake-lab">Allow retakes</div>
+                        <div className="fld__help">Students can re-attempt graded story points up to the limit below.</div>
+                      </div>
+                      <Switch checked={allowRetakes} disabled={readOnly}
+                        aria-labelledby="s-retake-lab" aria-controls="s-maxretakes-region"
+                        aria-expanded={allowRetakes}
+                        onChange={(v)=>{ setAllowRetakes(typeof v==="boolean"?v:!allowRetakes); markDirty(); }} />
+                    </div>
+                    {allowRetakes && (
+                      <div id="s-maxretakes-region" className="reveal" style={{paddingTop:"var(--space-4)"}}>
+                        <label className="fld__lab" htmlFor="s-max">Maximum retakes</label>
+                        <div className="num-suffix" style={{marginTop:"var(--space-2)"}}>
+                          <Input id="s-max" type="number" min="1" value={maxRetakes} disabled={readOnly}
+                            inputMode="numeric"
+                            onChange={(e)=>{ setMaxRetakes(e.target.value); markDirty(); }} />
+                          <span className="num-suffix__u">attempts total</span>
+                        </div>
+                        <div className="fld__help" style={{marginTop:"var(--space-2)"}}>Total attempts allowed, including the first.</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="swrow">
+                    <div className="swrow__txt">
+                      <div className="fld__lab" id="s-ans-lab">Show correct answers after submission</div>
+                      <div className="fld__help">Students see correct answers and explanations once they submit. Answer keys are never shown during an attempt.</div>
+                    </div>
+                    <Switch checked={showAnswers} disabled={readOnly} aria-labelledby="s-ans-lab"
+                      onChange={(v)=>{ setShowAnswers(typeof v==="boolean"?v:!showAnswers); markDirty(); }} />
+                  </div>
+                </SectionCard>
+
+                {/* ============ AUDIT FOOTER (read-only, server-managed) ============ */}
+                <section className="scard">
+                  <div className="audit">
+                    <div className="audit__row"><span>Created by</span><span className="audit__v">Tara Sen · 2026-02-14 09:12</span></div>
+                    <div className="audit__row"><span>Last updated by</span><span className="audit__v">Tara Sen · 2026-06-18 16:40</span></div>
+                    <div className="audit__row"><span>Version</span><span className="audit__v">v7 (append-only)</span></div>
+                  </div>
+                </section>
+              </>
+              )}
+            </div>
+
+            {/* ===== sticky SaveBar ===== */}
+            {!readOnly && (
+              <div className="savebar">
+                <div className="savebar__hint">
+                  <Icon name="users-round" size={14} /> Changes apply to all teachers and students of this space.
+                </div>
+                {saveStatus==="saving" && <span className="savebar__state saving"><Icon name="loader" size={13} /> Saving…</span>}
+                {saveStatus==="saved" && <span className="savebar__state saved"><Icon name="check-circle-2" size={13} /> Saved 16:40</span>}
+                {saveStatus==="dirty" && <span className="savebar__state dirty"><span className="dirty-dot" /> Unsaved changes</span>}
+                {saveStatus==="failed" && <span className="savebar__state failed"><Icon name="alert-triangle" size={13} /> Save failed — retry</span>}
+                <div className="savebar__actions">
+                  <Button variant="ghost" disabled={!dirty || saveStatus==="saving"}
+                    onClick={()=>{ setDirty(false); setSaveStatus("clean"); }}>Discard</Button>
+                  <Button variant="primary" loading={saveStatus==="saving"} disabled={!canSave}
+                    leadingIcon={saveStatus==="saving"?undefined:<Icon name="save" size={16} />}
+                    onClick={save}>
+                    {saveStatus==="saving" ? "Saving…" : "Save settings"}
+                    {dirty && saveStatus!=="saving" && <span className="dirty-dot" style={{marginLeft:6}} aria-hidden="true" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* success toast */}
+        {toast && (
+          <div className="toast-stack">
+            <div className="toast-card" role="status">
+              <span className="toast-card__icon"><Icon name="check-circle-2" size={18} /></span>
+              <span className="toast-card__txt">Settings saved.</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

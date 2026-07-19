@@ -1,0 +1,28 @@
+{
+  "scanned": 3569,
+  "planned": 1103,
+  "byKind": {
+    "material-rich-blocks": 182,
+    "question-content-md": 921
+  },
+  "imagesInjected": 2246,
+  "skippedAlreadyPatched": 0,
+  "skippedNoChannel": 0,
+  "samples": [
+    {
+      "path": "spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/5eIFRnFmtSubC9bO0qPZ",
+      "kind": "material-rich-blocks",
+      "added": 1
+    },
+    {
+      "path": "spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/CHmtlqJo4S1YFQ68y59W",
+      "kind": "material-rich-blocks",
+      "added": 1
+    },
+    {
+      "path": "spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/I8yX8s8TeE3qF1rNp5qF",
+      "kind": "question-content-md",
+      "added": 2
+    }
+  ]
+}

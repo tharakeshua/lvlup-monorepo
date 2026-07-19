@@ -33,6 +33,7 @@ import type {
   PageRequestInput as PageRequest,
   PageResponse,
   SubscriptionHandle,
+  ResOf,
 } from "@levelup/api-contract";
 
 export type { PageRequest, PageResponse, SubscriptionHandle };
@@ -71,6 +72,7 @@ export interface GetLeaderboardResponse {
   myEntry?: LeaderboardEntry;
   [k: string]: unknown;
 }
+export type GetSpaceAnalyticsResponse = ResOf<"v1.analytics.getSpaceAnalytics">;
 
 // ── request filters ──────────────────────────────────────────────────────────
 export interface ListInsightsRequest extends PageRequest {
@@ -166,6 +168,10 @@ export interface LeaderboardRepoSeam {
   ): SubscriptionHandle;
 }
 
+export interface SpaceAnalyticsRepoSeam {
+  get(spaceId: string): Promise<GetSpaceAnalyticsResponse>;
+}
+
 /** The slice of the repo bag this domain reaches for. */
 export interface AnalyticsDomainRepos {
   summaryRepo: SummaryRepoSeam;
@@ -176,6 +182,7 @@ export interface AnalyticsDomainRepos {
   parentRepo: ParentRepoSeam;
   reportRepo: ReportRepoSeam;
   leaderboardRepo: LeaderboardRepoSeam;
+  spaceAnalyticsRepo: SpaceAnalyticsRepoSeam;
 }
 
 /** Narrow the open repo bag to this domain's seams (one cast, here). */

@@ -47,6 +47,11 @@ export type ScannerId = Brand<string, "ScannerId">;
 export type ExamQuestionId = Brand<string, "ExamQuestionId">;
 
 // Additional brands required by the per-domain plans.
+export type ConversationSessionId = Brand<string, "ConversationSessionId">;
+export type ConversationMessageId = Brand<string, "ConversationMessageId">;
+export type ConversationTurnId = Brand<string, "ConversationTurnId">;
+export type ConversationEvidenceId = Brand<string, "ConversationEvidenceId">;
+export type ItemSubmissionId = Brand<string, "ItemSubmissionId">;
 export type TenantCode = Brand<string, "TenantCode">;
 export type MembershipId = Brand<string, "MembershipId">;
 export type SectionId = Brand<string, "SectionId">;
@@ -98,6 +103,15 @@ export const asQuestionBankItemId = (id: string): QuestionBankItemId => id as Qu
 export const asStaffId = (id: string): StaffId => id as StaffId;
 export const asScannerId = (id: string): ScannerId => id as ScannerId;
 export const asExamQuestionId = (id: string): ExamQuestionId => id as ExamQuestionId;
+
+export const asConversationSessionId = (id: string): ConversationSessionId =>
+  id as ConversationSessionId;
+export const asConversationMessageId = (id: string): ConversationMessageId =>
+  id as ConversationMessageId;
+export const asConversationTurnId = (id: string): ConversationTurnId => id as ConversationTurnId;
+export const asConversationEvidenceId = (id: string): ConversationEvidenceId =>
+  id as ConversationEvidenceId;
+export const asItemSubmissionId = (id: string): ItemSubmissionId => id as ItemSubmissionId;
 
 export const asTenantCode = (id: string): TenantCode => id as TenantCode;
 export const asMembershipId = (id: string): MembershipId => id as MembershipId;

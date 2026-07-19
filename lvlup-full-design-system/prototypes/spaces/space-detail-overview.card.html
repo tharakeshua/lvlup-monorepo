@@ -1,0 +1,647 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Space Detail / Overview" subtitle="StoryPoint track · versions · lifecycle status" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    html,body{margin:0;height:100%}
+    body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+    #root{height:100vh}
+    .sd-topbar__spacer{flex:1}
+    .sd-search{position:relative;flex:0 1 300px;display:flex;align-items:center}
+    .sd-search .sd-search__icon{position:absolute;left:var(--space-3);display:flex;color:var(--text-muted)}
+    .sd-search input{padding-left:var(--space-8)}
+    .sd-main{display:flex;flex-direction:column;gap:var(--space-5);max-width:1200px}
+    .sd-iconrow{display:inline-flex;align-items:center;gap:4px}
+    .sd-livenote{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+
+    /* demo state switcher (not production chrome) */
+    .sd-statebar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+    .sd-toggle{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:2px}
+    .sd-toggle button{display:flex;align-items:center;gap:var(--space-1);height:30px;padding:0 var(--space-3);border:0;background:transparent;color:var(--text-secondary);font-family:var(--font-ui);font-size:var(--text-xs);border-radius:var(--radius-sm);cursor:pointer}
+    .sd-toggle button[aria-pressed="true"]{background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-e1)}
+
+    /* header band */
+    .sd-headerband{display:flex;gap:var(--space-5);align-items:flex-start;padding:var(--space-5)}
+    .sd-thumb{flex:0 0 96px;width:96px;height:96px;border-radius:var(--radius-lg);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);display:grid;place-items:center;color:var(--brand-primary);position:relative;overflow:hidden}
+    .sd-thumb__accent{position:absolute;top:0;left:0;right:0;height:4px;background:var(--brand-primary)}
+    .sd-head-body{flex:1;display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+    .sd-head-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+    .sd-h1{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+    .sd-head-actions{display:flex;align-items:center;gap:var(--space-2);flex-shrink:0;position:relative}
+    .sd-badges{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+    .sd-metaline{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)}
+    .sd-metaline .sd-sep{color:var(--border-strong)}
+    .sd-mono{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+    .sd-rating{display:inline-flex;align-items:center;gap:4px;color:var(--text-primary)}
+    .sd-star{color:var(--spark);display:inline-flex}
+    .sd-subjects{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+
+    .sd-statuswrap{position:relative;display:inline-flex}
+    @keyframes sd-spark{0%{transform:scale(.6);opacity:0}40%{transform:scale(1.25);opacity:1}100%{transform:scale(2.1);opacity:0}}
+    .sd-spark-burst{position:absolute;inset:-6px;border-radius:var(--radius-pill);box-shadow:var(--glow-spark);background:var(--spark-subtle);pointer-events:none;animation:sd-spark var(--dur-slow) var(--ease-standard) forwards}
+    @media (prefers-reduced-motion: reduce){.sd-spark-burst{display:none}}
+
+    /* publish menu */
+    .sd-menu{position:absolute;top:calc(100% + var(--space-2));right:0;z-index:20;min-width:208px;padding:var(--space-1)}
+    .sd-menu-item{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;border:0;background:transparent;color:var(--text-primary);font-family:var(--font-ui);font-size:var(--text-sm);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);cursor:pointer}
+    .sd-menu-item:hover{background:var(--bg-surface-sunken)}
+    .sd-menu-item:disabled{color:var(--text-muted);cursor:not-allowed}
+    .sd-menu-item--danger{color:var(--status-error)}
+    .sd-menu-sep{height:1px;background:var(--border-subtle);margin:var(--space-1) 0}
+
+    /* KPI row */
+    .sd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+    .sd-kpi{position:relative}
+    .sd-kpi .stat__value{font-family:var(--font-mono)}
+    .sd-kpi-completion{display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-1)}
+    .sd-kpi-pct{font-family:var(--font-mono);font-size:var(--text-2xl);line-height:1;color:var(--text-primary)}
+    .sd-kpi-label{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+    /* main grid */
+    .sd-grid{display:grid;grid-template-columns:8fr 4fr;gap:var(--space-5);align-items:start}
+    .sd-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+
+    /* story point track */
+    .sd-track-wrap{overflow-x:auto;padding:var(--space-2) 0 var(--space-3)}
+    .sd-spnode{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);min-width:120px}
+    .sd-spmeta{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+    .sd-spmeta-row{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);color:var(--text-muted)}
+    .sd-spdiff{font-family:var(--font-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.05em}
+    .sd-spdiff--easy{color:var(--status-success)}
+    .sd-spdiff--medium{color:var(--status-warning)}
+    .sd-spdiff--hard{color:var(--status-error)}
+    .sd-spkeylock{display:inline-flex;align-items:center;gap:3px;font-size:var(--text-2xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:1px var(--space-2)}
+    .sd-spnode button.sd-spnode__btn{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);border-radius:var(--radius-md);padding:var(--space-1)}
+    .sd-spnode button.sd-spnode__btn:focus-visible{outline:var(--ring-focus)}
+
+    /* card key/value summary */
+    .sd-kv{display:flex;flex-direction:column;gap:var(--space-3)}
+    .sd-kvrow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);font-size:var(--text-sm)}
+    .sd-kvrow dt{color:var(--text-secondary);margin:0}
+    .sd-kvrow dd{margin:0;color:var(--text-primary);text-align:right}
+    .sd-kvrow dd .sd-mono{color:var(--text-primary)}
+    .sd-inherit{display:inline-flex;align-items:center;gap:4px}
+    .sd-agentblock{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+    .sd-agentblock + .sd-agentblock{margin-top:var(--space-2)}
+    .sd-agent-name{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
+    .sd-agent-meta{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+    .sd-cardlink{margin-top:var(--space-3)}
+    .sd-muted{color:var(--text-muted);font-size:var(--text-sm)}
+
+    .sd-versionhead{display:flex;align-items:center;gap:var(--space-3);padding-bottom:var(--space-3);margin-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+    .sd-versionhead__txt{display:flex;flex-direction:column;gap:2px}
+    .sd-versionhead__v{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+    .sd-versionhead__sub{font-size:var(--text-xs);color:var(--text-muted)}
+
+    .sd-skelcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+    .sd-skel-badges{display:flex;gap:var(--space-2)}
+    .sd-skel-nodes{display:flex;gap:var(--space-5);padding:var(--space-3) 0}
+
+    .sd-confirm-body{display:flex;flex-direction:column;gap:var(--space-3);max-width:400px}
+    .sd-toasts{position:fixed;right:var(--space-5);bottom:var(--space-5);z-index:60;display:flex;flex-direction:column;gap:var(--space-2)}
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const {
+      Button, IconButton, Icon, Input, Card, Section, Modal, Badge, Chip, Avatar,
+      Stat, ProgressBar, Timeline, StoryPointTrack, StoryPointNode, ContentRenderer,
+      RubricBreakdown, AnswerKeyLock, EmptyState, Skeleton, Alert, Toast,
+      LoadingOverlay, NavItem, Breadcrumb, Kbd
+    } = window.LvlupV0DesignSystem_5d0725;
+
+    /* ---------- badge helpers (icon + text, never color alone) ---------- */
+    function StatusBadge({ status, animate }) {
+      const map = {
+        draft:     { variant:"warning", icon:"pencil-line", label:"Draft" },
+        published: { variant:"success", icon:"check-circle", label:"Published" },
+        archived:  { variant:undefined, icon:"archive",     label:"Archived" },
+      };
+      const c = map[status];
+      return (
+        <span className="sd-statuswrap">
+          {animate && <span className="sd-spark-burst" key={status}/>}
+          <Badge variant={c.variant} icon={<span className="sd-iconrow"><Icon name={c.icon} size={12}/></span>}>&nbsp;{c.label}</Badge>
+        </span>
+      );
+    }
+    function TypeBadge({ type }) {
+      const map = {
+        learning:{icon:"book-open",label:"Learning"}, practice:{icon:"dumbbell",label:"Practice"},
+        assessment:{icon:"clipboard-check",label:"Assessment"}, resource:{icon:"folder",label:"Resource"},
+        hybrid:{icon:"layers",label:"Hybrid"},
+      };
+      const c = map[type];
+      return <Badge variant="info" icon={<span className="sd-iconrow"><Icon name={c.icon} size={12}/></span>}>&nbsp;{c.label}</Badge>;
+    }
+    function AccessBadge({ access }) {
+      const map = {
+        class:{icon:"users",label:"Class-assigned"}, tenant:{icon:"building",label:"Tenant-wide"},
+        store:{icon:"store",label:"Public store"},
+      };
+      const c = map[access];
+      return <Badge variant="brand" icon={<span className="sd-iconrow"><Icon name={c.icon} size={12}/></span>}>&nbsp;{c.label}</Badge>;
+    }
+
+    /* ---------- story-point node (read-only) ---------- */
+    const SP_TYPE_ICON = { lesson:"book-open", concept:"lightbulb", practice:"dumbbell", quiz:"list-checks", timed_test:"timer" };
+    function SpNode({ n, idx, onOpen }) {
+      const aria = "Story point " + idx + ": " + n.title + " — " + n.spType.replace("_"," ") + ", " + n.difficulty + " difficulty";
+      return (
+        <div className="sd-spnode" role="listitem">
+          <button className="sd-spnode__btn" aria-label={aria} onClick={()=>onOpen(n)}>
+            <StoryPointNode state={n.state} index={idx} />
+            <div className="sd-spmeta">
+              <div style={{fontSize:"var(--text-xs)",color:"var(--text-primary)",fontWeight:"var(--weight-medium)",maxWidth:120}}>{n.title}</div>
+              <div className="sd-spmeta-row"><Icon name={SP_TYPE_ICON[n.spType]} size={11}/> {n.spType.replace("_"," ")}</div>
+              <div className={"sd-spdiff sd-spdiff--"+n.difficulty}>{n.difficulty}</div>
+              {n.spType==="timed_test" && (
+                <span className="sd-spkeylock" title="Answer keys are server-protected" aria-label="Answer keys are server-protected">
+                  <Icon name="lock" size={10}/> keys protected
+                </span>
+              )}
+            </div>
+          </button>
+        </div>
+      );
+    }
+    function ReadOnlyTrack({ nodes, onOpen }) {
+      const out = [];
+      nodes.forEach((n,i)=>{
+        out.push(<SpNode key={"n"+i} n={n} idx={i+1} onOpen={onOpen}/>);
+        if (i < nodes.length-1) out.push(<div key={"c"+i} className={"track__connector"+(n.state==="mastered"?" track__connector--done":"")}/>);
+      });
+      return <div className="track" role="list" aria-label="Story-point track (read-only)">{out}</div>;
+    }
+
+    const SPACE = {
+      id:"sp_8744",
+      title:"Algorithms & Data Structures",
+      type:"hybrid", status:"draft", access:"store",
+      version:12, publishedRel:"3d ago",
+      rating:4.6, ratingCount:128, currency:"₹", price:"1,499", inStore:false,
+      subjects:["Computer Science","Interview Prep","Intermediate"],
+      stats:{ storyPoints:6, items:142, enrolled:38, completion:71 },
+      owner:"You", ownerInitials:"SK", createdBy:"Maya Chen",
+    };
+
+    const NODES = [
+      { title:"Big-O & Complexity", spType:"lesson",     difficulty:"easy",   state:"mastered" },
+      { title:"Arrays & Strings",   spType:"practice",   difficulty:"easy",   state:"mastered" },
+      { title:"Hashing",            spType:"concept",    difficulty:"medium", state:"in-progress" },
+      { title:"Sorting",            spType:"quiz",       difficulty:"medium", state:"not-started" },
+      { title:"Trees & Graphs",     spType:"lesson",     difficulty:"hard",   state:"not-started" },
+      { title:"Module Test",        spType:"timed_test", difficulty:"hard",   state:"locked" },
+    ];
+
+    const DESC_HTML =
+      "<p>A staff-authored path covering algorithmic foundations through graph traversal, mapped to " +
+      "interview-grade story points. Each unit pairs worked examples with auto-graded practice.</p>" +
+      "<p>Mastery is computed from item-level signals; the timed module test at the end is " +
+      "server-graded and its answer keys are never sent to the client.</p>" +
+      "<p>Target complexity reference: an efficient comparison sort runs in " +
+      "<code>O(n&nbsp;log&nbsp;n)</code> time.</p>";
+
+    const VERSIONS = [
+      { time:"v12 · 3d ago", label:"Reordered Sorting before Trees & Graphs", variant:"muted" },
+      { time:"v11 · 6d ago", label:"Published — 142 items, 6 story points", variant:"success" },
+      { time:"v10 · 2w ago", label:"Added Module Test (timed) story point", variant:"muted" },
+    ];
+
+    function Sidebar(){
+      return (
+        <aside className="appshell__sidebar">
+          <div className="sidebar__brand">
+            <span className="sidebar__brand-mark">L</span>
+            <span className="sidebar__brand-name">Lyceum</span>
+          </div>
+          <nav className="sidebar__nav" aria-label="Primary">
+            <div className="sidebar__section-label">Workspace</div>
+            <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+            <NavItem icon="library" href="#" active>Spaces</NavItem>
+            <NavItem icon="file-text" href="#">Exams</NavItem>
+            <NavItem icon="users" href="#">Students</NavItem>
+            <NavItem icon="graduation-cap" href="#">Classes</NavItem>
+            <div className="sidebar__section-label">Insights</div>
+            <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+            <NavItem icon="bell" href="#" badge="3">Notifications</NavItem>
+            <div className="sidebar__section-label">Tenant</div>
+            <NavItem icon="settings" href="#">Settings</NavItem>
+          </nav>
+        </aside>
+      );
+    }
+
+    function Topbar(){
+      return (
+        <header className="appshell__topbar">
+          <Breadcrumb items={[{label:"Spaces", href:"#"}, {label:"Algorithms & Data Structures"}]}/>
+          <div className="sd-topbar__spacer"/>
+          <div className="sd-search">
+            <span className="sd-search__icon"><Icon name="search" size={16}/></span>
+            <Input placeholder="Search or jump to…" aria-label="Global search" readOnly/>
+          </div>
+          <Kbd>⌘K</Kbd>
+          <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+          <Avatar initials="SK" size="sm"/>
+        </header>
+      );
+    }
+
+    function Screen(){
+      const [demo, setDemo]     = useState("default"); // default | loading | partial | empty | error | readonly
+      const [status, setStatus] = useState(SPACE.status);
+      const [menuOpen, setMenu] = useState(false);
+      const [confirm, setConfirm] = useState(null);   // {kind}
+      const [pubBlocked, setPubBlocked] = useState(false);
+      const [dupLoading, setDupLoading] = useState(false);
+      const [sparking, setSparking] = useState(false);
+      const [toasts, setToasts] = useState([]);
+      const [live, setLive] = useState("");
+      const [autosave] = useState("Saved 2m ago");
+
+      const readonly = demo === "readonly";
+
+      function pushToast(t){ const id=Date.now()+Math.random(); setToasts(p=>[...p,{id,...t}]); setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),3400); }
+
+      function openNode(n){ pushToast({variant:"info", title:"Opening in editor…", body:n.title}); }
+
+      function doConfirm(){
+        if (!confirm) return;
+        const k = confirm.kind;
+        if (k==="publish"){
+          // simulate server validatePublish blockers
+          if (pubBlocked) return;
+          setStatus("published"); setSparking(true); setTimeout(()=>setSparking(false), 700);
+          setLive("Space published. Now version 13, published just now.");
+          pushToast({variant:"success", title:"Space published", body:SPACE.title});
+        } else if (k==="unpublish"){
+          setStatus("draft"); setLive("Space returned to draft and hidden from students.");
+          pushToast({variant:"info", title:"Returned to draft", body:SPACE.title});
+        } else if (k==="archive"){
+          setStatus("archived"); setLive("Space archived. Students lose access until restored.");
+          pushToast({variant:"info", title:"Space archived", body:SPACE.title});
+        } else if (k==="restore"){
+          setStatus("draft"); setLive("Space restored to draft.");
+          pushToast({variant:"info", title:"Restored to draft", body:SPACE.title});
+        }
+        setConfirm(null); setPubBlocked(false);
+      }
+
+      function doDuplicate(){
+        setMenu(false); setDupLoading(true);
+        setTimeout(()=>{ setDupLoading(false); pushToast({variant:"success", title:"Duplicated as draft", body:SPACE.title + " (copy)"}); }, 900);
+      }
+
+      /* primary CTA derives from live status + ALLOWED_TRANSITIONS */
+      const primaryActions = (
+        <div className="sd-head-actions" onClick={(e)=>e.stopPropagation()}>
+          {!readonly && <Button variant="primary" leadingIcon={<Icon name="pencil" size={16}/>} onClick={()=>pushToast({variant:"info",title:"Opening editor…",body:SPACE.title})}>Edit</Button>}
+          {!readonly && status==="draft" && (
+            <Button variant="spark" leadingIcon={<Icon name="send" size={16}/>} onClick={()=>{setPubBlocked(false);setConfirm({kind:"publish"});}}>Publish</Button>
+          )}
+          {!readonly && status==="published" && (
+            <Button variant="secondary" leadingIcon={<Icon name="eye-off" size={16}/>} onClick={()=>setConfirm({kind:"unpublish"})}>Unpublish</Button>
+          )}
+          {!readonly && status==="archived" && (
+            <Button variant="secondary" leadingIcon={<Icon name="corner-up-left" size={16}/>} onClick={()=>setConfirm({kind:"restore"})}>Restore to draft</Button>
+          )}
+          <Button variant="secondary" leadingIcon={<Icon name="play" size={16}/>} onClick={()=>pushToast({variant:"info",title:"Opening preview…",body:"Student preview (read-only)"})}>Preview</Button>
+          {!readonly && (
+            <IconButton icon={<Icon name="more-horizontal" size={18}/>} label="More actions"
+              aria-haspopup="menu" aria-expanded={menuOpen} onClick={()=>setMenu(m=>!m)}/>
+          )}
+          {readonly && <Button variant="secondary" leadingIcon={<Icon name="bar-chart-3" size={16}/>}>View analytics</Button>}
+          {menuOpen && !readonly && (
+            <div className="popover sd-menu" role="menu">
+              <button className="sd-menu-item" role="menuitem" onClick={doDuplicate}><Icon name="copy" size={14}/> Duplicate</button>
+              <button className="sd-menu-item" role="menuitem" onClick={()=>{setMenu(false);pushToast({variant:"info",title:"Opening analytics…",body:SPACE.title});}}><Icon name="bar-chart-3" size={14}/> View analytics</button>
+              <div className="sd-menu-sep"/>
+              {status==="published" && <button className="sd-menu-item sd-menu-item--danger" role="menuitem" onClick={()=>{setMenu(false);setConfirm({kind:"archive"});}}><Icon name="archive" size={14}/> Archive</button>}
+              {status==="draft" && <button className="sd-menu-item sd-menu-item--danger" role="menuitem" onClick={()=>{setMenu(false);setConfirm({kind:"archive"});}}><Icon name="archive" size={14}/> Archive</button>}
+              {status==="archived" && <button className="sd-menu-item" role="menuitem" onClick={()=>{setMenu(false);setConfirm({kind:"restore"});}}><Icon name="corner-up-left" size={14}/> Restore to draft</button>}
+            </div>
+          )}
+        </div>
+      );
+
+      /* ---------- header band ---------- */
+      const headerBand = (
+        <Card>
+          <div className="sd-headerband">
+            <div className="sd-thumb"><div className="sd-thumb__accent"/><Icon name="book-marked" size={32}/></div>
+            <div className="sd-head-body">
+              <div className="sd-head-top">
+                <h1 className="sd-h1">{SPACE.title}</h1>
+                {primaryActions}
+              </div>
+              <div className="sd-badges">
+                <TypeBadge type={SPACE.type}/>
+                <StatusBadge status={status} animate={sparking}/>
+                <AccessBadge access={SPACE.access}/>
+                {!readonly && (
+                  <span className="sd-livenote">
+                    <Icon name={autosave.startsWith("Saved")?"check":"loader"} size={12}/> {autosave}
+                  </span>
+                )}
+              </div>
+              {/* store row renders only for public_store access */}
+              {SPACE.access==="store" && (
+                <div className="sd-metaline">
+                  <span className="sd-rating"><span className="sd-star"><Icon name="star" size={14}/></span>
+                    <span className="sd-mono" style={{color:"var(--text-primary)"}}>{SPACE.rating}</span>
+                    <span className="sd-mono">({SPACE.ratingCount})</span>
+                  </span>
+                  <span className="sd-sep">·</span>
+                  <span>Store: <span className="sd-mono" style={{color:"var(--text-primary)"}}>{SPACE.currency}{SPACE.price}</span></span>
+                  <span className="sd-sep">·</span>
+                  {SPACE.inStore
+                    ? <Badge variant="success" icon={<span className="sd-iconrow"><Icon name="check-circle" size={12}/></span>}>&nbsp;In store</Badge>
+                    : <Badge variant="warning" icon={<span className="sd-iconrow"><Icon name="circle-slash" size={12}/></span>}>&nbsp;Not in store</Badge>}
+                  <span className="sd-sep">·</span>
+                  <span className="sd-mono">{status==="draft" ? "v"+SPACE.version+" · Draft — never published" : "v"+SPACE.version+" · Published "+SPACE.publishedRel}</span>
+                </div>
+              )}
+              <div className="sd-subjects">
+                {SPACE.subjects.map(s => <Chip key={s}>{s}</Chip>)}
+              </div>
+            </div>
+          </div>
+        </Card>
+      );
+
+      /* ---------- KPI row ---------- */
+      const partialStats = demo === "partial";
+      const kpis = (
+        <div className="sd-kpis" role="group" aria-label="Space statistics">
+          <Card><Stat className="sd-kpi" label="Story points" value={partialStats ? "—" : SPACE.stats.storyPoints}/></Card>
+          <Card><Stat className="sd-kpi" label="Items" value={partialStats ? "—" : SPACE.stats.items}/></Card>
+          <Card><Stat className="sd-kpi" label="Enrolled" value={partialStats ? "—" : SPACE.stats.enrolled} delta="+4 this week" trend="up"/></Card>
+          <Card>
+            <div className="sd-kpi-completion" role="group" aria-label={"Completion: "+SPACE.stats.completion+" percent"}>
+              <span className="sd-kpi-label">Completion</span>
+              <span className="sd-kpi-pct">{partialStats ? "—" : SPACE.stats.completion + "%"}</span>
+              <ProgressBar value={partialStats ? 0 : SPACE.stats.completion} variant="success"/>
+            </div>
+          </Card>
+        </div>
+      );
+
+      /* ---------- left column ---------- */
+      const trackPending = demo === "partial";
+      const trackEmpty   = demo === "empty";
+      let trackBody;
+      if (trackPending){
+        trackBody = (
+          <div className="sd-skel-nodes" aria-busy="true">
+            {Array.from({length:6}).map((_,i)=><Skeleton key={i} variant="circle" width="44px" height="44px"/>)}
+          </div>
+        );
+      } else if (trackEmpty){
+        trackBody = (
+          <EmptyState icon="route" title="No story points yet"
+            body="Add your first story point to start building the path."
+            action={<Button variant="primary" leadingIcon={<Icon name="pencil" size={16}/>}>Edit Space</Button>}/>
+        );
+      } else {
+        trackBody = <div className="sd-track-wrap"><ReadOnlyTrack nodes={NODES} onOpen={openNode}/></div>;
+      }
+
+      const descBody = trackEmpty
+        ? <div className="sd-muted">No description added.</div>
+        : <ContentRenderer html={DESC_HTML} math/>;
+
+      const leftCol = (
+        <div className="sd-col">
+          <Section title="Story-point track"
+            actions={<span className="sd-livenote"><Icon name="info" size={12}/> Read-only · tap a node to open in editor</span>}>
+            {trackBody}
+            {!trackPending && !trackEmpty && (
+              <div style={{marginTop:"var(--space-3)"}}>
+                <AnswerKeyLock title="Answer keys are server-protected">Timed-test keys live in a server-only subcollection and are never sent to any client.</AnswerKeyLock>
+              </div>
+            )}
+          </Section>
+          <Section title="Description">{descBody}</Section>
+        </div>
+      );
+
+      /* ---------- right column ---------- */
+      const emptyRubric = demo === "empty";
+      const rubricCard = (
+        <Card>
+          <Section title="Default rubric">
+            {emptyRubric ? (
+              <div className="sd-muted">No default rubric — items inherit from tenant.</div>
+            ) : (
+              <React.Fragment>
+                <dl className="sd-kv">
+                  <div className="sd-kvrow"><dt>Scoring mode</dt><dd>Criteria-based</dd></div>
+                  <div className="sd-kvrow"><dt>Criteria</dt><dd><span className="sd-mono">5</span></dd></div>
+                  <div className="sd-kvrow"><dt>Source</dt><dd><span className="sd-inherit"><Icon name="git-branch" size={13}/> inherited from Space</span></dd></div>
+                </dl>
+                <div style={{marginTop:"var(--space-3)"}}>
+                  <RubricBreakdown criteria={[
+                    { label:"Correctness", desc:"Solution produces correct output", score:5, max:5 },
+                    { label:"Complexity",  desc:"Meets target time/space bound",    score:3, max:5 },
+                    { label:"Clarity",     desc:"Readable, well-structured",          score:4, max:5 },
+                  ]}/>
+                </div>
+                <div className="sd-cardlink"><Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>View rubric</Button></div>
+              </React.Fragment>
+            )}
+          </Section>
+        </Card>
+      );
+
+      const emptyAgents = demo === "empty";
+      const agentsCard = (
+        <Card>
+          <Section title="Default agents">
+            {emptyAgents ? (
+              <div className="sd-muted">Using tenant defaults — no Space-level tutor or evaluator set.</div>
+            ) : (
+              <React.Fragment>
+                <div className="sd-agentblock">
+                  <div className="sd-agent-name"><Icon name="graduation-cap" size={15}/> Tutor · Socratic</div>
+                  <div className="sd-agent-meta">gemini-1.5-pro · temp 0.7</div>
+                </div>
+                <div className="sd-agentblock">
+                  <div className="sd-agent-name"><Icon name="scale" size={15}/> Evaluator · Strict</div>
+                  <div className="sd-agent-meta">gemini-1.5-flash · temp 0.2</div>
+                </div>
+              </React.Fragment>
+            )}
+          </Section>
+        </Card>
+      );
+
+      const versionFailed = demo === "default" ? false : false; // version partial demo handled inline below
+      const versionCard = (
+        <Card>
+          <Section title="Version & history">
+            {demo === "partial" ? (
+              <Alert variant="error" title="Couldn't load version history">
+                <div style={{marginTop:"var(--space-2)"}}>
+                  <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>} onClick={()=>setDemo("default")}>Retry</Button>
+                </div>
+              </Alert>
+            ) : (
+              <React.Fragment>
+                <div className="sd-versionhead">
+                  <Avatar initials={SPACE.ownerInitials} size="sm"/>
+                  <div className="sd-versionhead__txt">
+                    <span className="sd-versionhead__v">{status==="draft" ? "v"+SPACE.version+" · Draft" : "v"+SPACE.version+" · Published "+SPACE.publishedRel}</span>
+                    <span className="sd-versionhead__sub">Owner {SPACE.owner} · created by {SPACE.createdBy}</span>
+                  </div>
+                </div>
+                <Timeline items={VERSIONS}/>
+                <div className="sd-cardlink"><Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>View all versions</Button></div>
+              </React.Fragment>
+            )}
+          </Section>
+        </Card>
+      );
+
+      const rightCol = (
+        <div className="sd-col">
+          {rubricCard}
+          {agentsCard}
+          {versionCard}
+        </div>
+      );
+
+      /* ---------- whole-screen states ---------- */
+      let body;
+      if (demo === "loading"){
+        body = (
+          <div className="sd-main" aria-busy="true">
+            <div className="sd-skelcard">
+              <div style={{display:"flex",gap:"var(--space-5)"}}>
+                <Skeleton width="96px" height="96px"/>
+                <div style={{flex:1,display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                  <Skeleton variant="text" width="55%"/>
+                  <div className="sd-skel-badges"><Skeleton variant="text" width="90px"/><Skeleton variant="text" width="80px"/><Skeleton variant="text" width="110px"/></div>
+                  <Skeleton variant="text" width="40%"/>
+                </div>
+              </div>
+            </div>
+            <div className="sd-kpis">{Array.from({length:4}).map((_,i)=><div className="sd-skelcard" key={i}><Skeleton variant="text" width="60%"/><Skeleton variant="text" width="40%"/></div>)}</div>
+            <div className="sd-grid">
+              <div className="sd-skelcard"><Skeleton variant="text" width="40%"/><div className="sd-skel-nodes">{Array.from({length:6}).map((_,i)=><Skeleton key={i} variant="circle" width="44px" height="44px"/>)}</div></div>
+              <div className="sd-col">{Array.from({length:3}).map((_,i)=><div className="sd-skelcard" key={i}><Skeleton variant="text" width="50%"/><Skeleton variant="text" width="80%"/><Skeleton variant="text" width="70%"/></div>)}</div>
+            </div>
+          </div>
+        );
+      } else if (demo === "error"){
+        body = (
+          <div className="sd-main">
+            <EmptyState icon="alert-triangle" title="Couldn't load this Space"
+              body="Check your connection and try again."
+              action={
+                <div style={{display:"flex",gap:"var(--space-3)"}}>
+                  <Button variant="primary" leadingIcon={<Icon name="refresh-cw" size={16}/>} onClick={()=>setDemo("default")}>Retry</Button>
+                  <Button variant="secondary" leadingIcon={<Icon name="arrow-left" size={16}/>}>Back to Spaces</Button>
+                </div>
+              }/>
+          </div>
+        );
+      } else {
+        body = (
+          <div className="sd-main">
+            {readonly && (
+              <Alert variant="info" title="Read-only — content overview">
+                You are viewing this Space as a Tenant Admin. Mutating actions are hidden; owner attribution is shown for audit.
+              </Alert>
+            )}
+            {headerBand}
+            {kpis}
+            <div className="sd-grid">
+              {leftCol}
+              {rightCol}
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------- confirm dialog copy ---------- */
+      const CC = {
+        publish:   { title:"Publish this Space?", body:"The server will validate the Space before it goes live. Assigned students will be notified.", cta:"Publish", variant:"primary" },
+        unpublish: { title:"Unpublish '"+SPACE.title+"'?", body:"It returns to draft and is hidden from students.", cta:"Unpublish", variant:"primary" },
+        archive:   { title:"Archive '"+SPACE.title+"'?", body:"Students lose access until you restore it. Archiving is reversible.", cta:"Archive", variant:"danger" },
+        restore:   { title:"Restore to draft?", body:"The Space becomes editable again as a draft. If listed in the store, the listing is removed.", cta:"Restore", variant:"primary" },
+      };
+      const cc = confirm ? CC[confirm.kind] : null;
+
+      return (
+        <div className="appshell" onClick={()=>setMenu(false)}>
+          <Sidebar/>
+          <Topbar/>
+          <main className="appshell__main">
+            {/* demo-state switcher — not part of production chrome */}
+            <div className="sd-main" style={{maxWidth:1200}}>
+              <div className="sd-statebar" role="group" aria-label="Preview state">
+                <span className="sd-mono">Preview state:</span>
+                <div className="sd-toggle">
+                  {[["default","Success"],["loading","Loading"],["partial","Partial / scoped errors"],["empty","Empty sub-regions"],["error","Load error"],["readonly","Tenant admin (read-only)"]].map(([k,lbl])=>(
+                    <button key={k} aria-pressed={demo===k} onClick={()=>setDemo(k)}>{lbl}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {body}
+          </main>
+
+          {/* Confirm / publish dialog */}
+          <Modal open={!!confirm} onClose={()=>{setConfirm(null);setPubBlocked(false);}} title={cc?cc.title:""}
+            footer={
+              <React.Fragment>
+                <Button variant="ghost" onClick={()=>{setConfirm(null);setPubBlocked(false);}}>Cancel</Button>
+                {confirm && confirm.kind==="publish" && (
+                  <Button variant="secondary" onClick={()=>setPubBlocked(b=>!b)}>{pubBlocked?"Pass validation":"Simulate blockers"}</Button>
+                )}
+                <Button variant={cc?cc.variant:"primary"} disabled={confirm && confirm.kind==="publish" && pubBlocked} onClick={doConfirm}>{cc?cc.cta:"Confirm"}</Button>
+              </React.Fragment>
+            }>
+            <div className="sd-confirm-body">
+              {cc && <div className="sd-muted" style={{color:"var(--text-secondary)"}}>{cc.body}</div>}
+              {confirm && <div style={{fontSize:"var(--text-sm)"}}><strong>{SPACE.title}</strong></div>}
+              {confirm && confirm.kind==="publish" && pubBlocked && (
+                <Alert variant="error" title="Can't publish yet:">
+                  <ul style={{margin:"var(--space-1) 0 0",paddingLeft:"var(--space-5)",fontSize:"var(--text-sm)"}}>
+                    <li>Add at least one story point to "Trees &amp; Graphs"</li>
+                    <li>Resolve 2 items missing answer keys</li>
+                  </ul>
+                </Alert>
+              )}
+            </div>
+          </Modal>
+
+          {/* duplicate loading overlay */}
+          {dupLoading && <LoadingOverlay/>}
+
+          {/* aria-live status announcer */}
+          <div aria-live="polite" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0 0 0 0)"}}>{live}</div>
+
+          {/* toasts */}
+          <div className="sd-toasts" role="status" aria-live="polite">
+            {toasts.map(t => <Toast key={t.id} variant={t.variant} title={t.title} body={t.body}/>)}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+    if (window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

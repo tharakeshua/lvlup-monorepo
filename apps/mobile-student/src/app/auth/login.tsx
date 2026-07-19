@@ -62,7 +62,7 @@ export default function LoginScreen() {
       ) : (
         <View className="flex-1 justify-center gap-6 px-8">
           <View className="gap-2">
-            <Text className="font-display text-text-primary text-3xl font-bold">LevelUp</Text>
+            <Text className="font-display text-text-primary text-3xl">LevelUp</Text>
             <Text className="text-text-muted text-base">Sign in to continue learning.</Text>
           </View>
 

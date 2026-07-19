@@ -1,0 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+const sa = JSON.parse(readFileSync('/Users/subhang/Desktop/Projects/auto-levleup/lvlup-ff6fa-firebase-adminsdk-fbsvc-ecf4e4fdb0.json', 'utf8'));
+const app = initializeApp({ credential: cert(sa), projectId: 'lvlup-ff6fa' });
+const db = getFirestore(app);
+const d=(await db.doc('tenants/tenant_subhang/spaces/BNgauCHCWi3rfHRLcsFy/storyPoints/9tjs2PcWx2bRpr0gpBAb/items/5eIFRnFmtSubC9bO0qPZ').get()).data();
+const blocks=d.payload?.richContent?.blocks||[];
+console.log('total blocks:',blocks.length);
+console.log('last 3:'); console.log(JSON.stringify(blocks.slice(-3),null,2));
+process.exit(0);

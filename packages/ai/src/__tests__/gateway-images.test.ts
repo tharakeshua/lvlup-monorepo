@@ -170,8 +170,11 @@ describe("model defaults (retired-generation regression)", () => {
     }
   });
 
-  it("resolveModelDefaults: env overrides win, else current stable defaults", () => {
-    expect(resolveModelDefaults({})).toEqual({ pro: "gemini-2.5-pro", flash: "gemini-2.5-flash" });
+  it("resolveModelDefaults: env overrides win, else current supported defaults", () => {
+    expect(resolveModelDefaults({})).toEqual({
+      pro: "gemini-3.1-pro-preview",
+      flash: "gemini-3.5-flash",
+    });
     expect(
       resolveModelDefaults({ LEVELUP_AI_MODEL_PRO: "gemini-9-pro", LEVELUP_AI_MODEL_FLASH: "x" })
     ).toEqual({ pro: "gemini-9-pro", flash: "x" });

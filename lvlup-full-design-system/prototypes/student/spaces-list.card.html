@@ -1,0 +1,374 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="My Spaces" subtitle="Assigned (B2B) / owned (B2C) library · resume-ready" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Spaces</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  .frame { height: 820px; overflow: hidden; }
+
+  .page { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+  .page-head h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0 0 var(--space-1); }
+  .page-sub { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
+  .head-title-row { display: flex; align-items: center; gap: var(--space-3); }
+
+  .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .toolbar__chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+  .toolbar__sort { display: flex; align-items: center; gap: var(--space-2); }
+  .toolbar__sort label { font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-medium); }
+  .chip-btn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+
+  .sc { cursor: pointer; }
+  .sc__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
+  .sc__tags { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .sc__title { font-family: var(--font-display); font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); margin: 0; }
+  .sc__desc { color: var(--text-secondary); font-size: var(--text-sm); line-height: var(--leading-base); margin: 0; }
+  .sc__meta { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-xs); color: var(--text-muted); flex-wrap: wrap; margin-top: auto; }
+  .sc__meta .u-num { font-family: var(--font-mono); color: var(--text-secondary); }
+  .sc__meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-strong); display: inline-block; }
+  .sc__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-subtle); }
+  .sc__last { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
+  .sc__last .u-num { font-family: var(--font-mono); }
+  .sc__ringwrap { display: flex; align-items: center; gap: var(--space-2); }
+  .sc__ringside { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-2xs); color: var(--text-secondary); font-weight: var(--weight-medium); }
+
+  /* mastery-scale ring tints (compose conic-gradient from mastery tokens only) */
+  .ring--m-not::before, .ring--m-prog::before, .ring--m-done::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--bg-surface); }
+  .ring--m-not  { background: conic-gradient(var(--mastery-not-started) calc(var(--ring-pct) * 1%), var(--bg-inset) 0) !important; }
+  .ring--m-prog { background: conic-gradient(var(--mastery-in-progress) calc(var(--ring-pct) * 1%), var(--bg-inset) 0) !important; }
+  .ring--m-done { background: conic-gradient(var(--mastery-mastered) calc(var(--ring-pct) * 1%), var(--bg-inset) 0) !important; }
+  .ring--syncing { background: var(--bg-inset) !important; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: var(--space-2) 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+  .eyebrow::before { content: ""; height: 1px; width: var(--space-6); background: var(--border-subtle); }
+
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-top: var(--space-2); }
+  .state-box { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--bg-surface); }
+  .state-box--full { grid-column: 1 / -1; }
+
+  .skelcard { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); }
+  .skelcard__banner { height: 8px; background: var(--bg-inset); }
+  .skelcard__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skelcard__foot { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-subtle); }
+
+  .scroll { overflow-y: auto; height: 820px; padding: var(--gutter-desktop); box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Icon, IconButton, Input, Select, Button, Badge, Chip, ProgressRing,
+          EmptyState, Skeleton, Drawer, Alert } = LU;
+  const { useState, useMemo } = React;
+
+  /* ---- type tag config (icon + label — never color alone) ---- */
+  const TYPE_META = {
+    learning:   { icon: "book-open",      label: "Learning" },
+    practice:   { icon: "dumbbell",       label: "Practice" },
+    assessment: { icon: "clipboard-check",label: "Assessment" },
+    hybrid:     { icon: "layers",         label: "Hybrid" },
+  };
+  const DIFF_META = {
+    Beginner:     { icon: "sprout" },
+    Intermediate: { icon: "trending-up" },
+    Advanced:     { icon: "mountain" },
+  };
+
+  function masteryBand(pct){
+    if (pct >= 100) return { cls: "ring--m-done", icon: "check-circle", word: "Completed", aria: "100% mastered" };
+    if (pct > 0)    return { cls: "ring--m-prog", icon: "circle-dot", word: "In progress", aria: pct + "% mastered" };
+    return { cls: "ring--m-not", icon: "circle", word: "Ready when you are", aria: "Ready when you are" };
+  }
+
+  /* ---- seed data ---- */
+  const SPACES = [
+    { id:"calc",  title:"Calculus Foundations",      subject:"Mathematics", type:"learning",   diff:"Intermediate", points:12, pct:60, rating:4.8, last:"2 days ago",  desc:"Limits, derivatives, and the building blocks of change — paced for steady mastery." },
+    { id:"dsa",   title:"Data Structures & Algorithms", subject:"Computer Science", type:"practice", diff:"Advanced", points:18, pct:100, rating:4.9, last:"yesterday", desc:"Arrays to graphs, with timed drills that sharpen your problem-solving instincts." },
+    { id:"cell",  title:"Cell Biology Essentials",   subject:"Biology",     type:"hybrid",     diff:"Beginner",     points:9,  pct:35, rating:4.6, last:"5 days ago",  desc:"Membranes, organelles, and energy — read, practice, and check what stuck." },
+    { id:"world", title:"World History: 1900–Now",   subject:"History",     type:"learning",   diff:"Intermediate", points:14, pct:0,  rating:null, last:"not yet", desc:"A century of upheaval and progress, told through people and turning points." },
+    { id:"chem",  title:"Organic Chemistry Lab Prep",subject:"Chemistry",   type:"assessment", diff:"Advanced",     points:7,  pct:80, rating:4.7, last:"3 hours ago", desc:"Get exam-ready: mechanisms, naming, and the reactions that always show up." },
+    { id:"writ",  title:"Persuasive Writing Studio", subject:"English",     type:"practice",   diff:"Beginner",     points:10, pct:15, rating:4.5, last:"1 week ago",  desc:"Build arguments that land — claims, evidence, and a voice that's yours." },
+  ];
+  const SUBJECTS = ["All", ...Array.from(new Set(SPACES.map(s => s.subject)))];
+
+  /* ================= SpaceCard ================= */
+  function SpaceCard({ s, progressMode }){
+    // progressMode: "ready" | "syncing"
+    const band = masteryBand(s.pct);
+    const tm = TYPE_META[s.type];
+    const dm = DIFF_META[s.diff];
+    const ariaName = s.title + ", " + band.aria + ", " + tm.label.toLowerCase() + " space";
+    return (
+      <a className="space-card sc card--interactive" href={"#/spaces/" + s.id}
+         aria-label={ariaName}
+         style={{ textDecoration:"none", color:"inherit", display:"flex", flexDirection:"column" }}>
+        <div className={"space-card__banner" + (s.pct >= 100 ? " space-card__banner--spark" : "")}></div>
+        <div className="sc__body">
+          <div className="sc__tags">
+            <Badge><Icon name={tm.icon} size={12}/> {tm.label}</Badge>
+            <Chip><Icon name={dm.icon} size={12}/> {s.diff}</Chip>
+            {s.pct >= 100 &&
+              <Badge variant="success"><Icon name="check-circle" size={12}/> Completed</Badge>}
+          </div>
+          <h3 className="sc__title">{s.title}</h3>
+          <p className="sc__desc">{s.desc}</p>
+          <div className="sc__meta">
+            <span>{s.subject}</span>
+            <span className="dot"></span>
+            <span><span className="u-num">{s.points}</span> story points</span>
+            {s.rating != null && <><span className="dot"></span>
+              <span><Icon name="star" size={11} style={{verticalAlign:"-1px", color:"var(--spark-hover)"}}/> <span className="u-num">{s.rating}</span></span></>}
+          </div>
+        </div>
+        <div className="sc__foot">
+          <div className="sc__last">
+            <Icon name="history" size={14}/>
+            <span>Last opened <span className="u-num">{s.last}</span></span>
+          </div>
+          <div className="sc__ringwrap">
+            <span className="sc__ringside" title={band.aria}>
+              <Icon name={band.icon} size={13}/> {band.word}
+            </span>
+            {progressMode === "syncing"
+              ? <ProgressRing value={0} size={48} label={<Icon name="loader" size={16}/>}
+                              className="ring--syncing" />
+              : <span role="img" aria-label={band.aria}>
+                  <ProgressRing value={s.pct} size={48}
+                    label={s.pct === 0 ? "—" : s.pct + "%"}
+                    className={band.cls} />
+                </span>}
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  /* ================= Sidebar (AppShell frame) ================= */
+  function Sidebar(){
+    const nav = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"book-open", label:"My Spaces", active:true },
+      { icon:"clipboard-list", label:"Assignments", badge:"3" },
+      { icon:"bar-chart-3", label:"Progress" },
+    ];
+    const play = [
+      { icon:"flame", label:"Streak" },
+      { icon:"trophy", label:"Leaderboard" },
+      { icon:"award", label:"Achievements" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <nav className="sidebar__nav">
+          <span className="sidebar__section-label">Learn</span>
+          {nav.map((n,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={n.active ? "page" : undefined}>
+              <Icon name={n.icon} size={18}/><span>{n.label}</span>
+              {n.badge && <span className="nav-item__badge"><Badge variant="brand">{n.badge}</Badge></span>}
+            </a>
+          ))}
+          <span className="sidebar__section-label">Momentum</span>
+          {play.map((n,i)=>(
+            <a key={i} className="nav-item" href="#"><Icon name={n.icon} size={18}/><span>{n.label}</span></a>
+          ))}
+        </nav>
+        <div style={{marginTop:"auto", padding:"var(--space-3)"}}>
+          <a className="nav-item" href="#"><Icon name="settings" size={18}/><span>Settings</span></a>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenSort }){
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search">
+          <Input placeholder="Search spaces…  ⌘K" aria-label="Search" />
+        </div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications" />
+        <span className="avatar avatar--sm" aria-label="Maya Chen">MC</span>
+      </header>
+    );
+  }
+
+  /* ================= Screen ================= */
+  function Screen(){
+    const [activeSubject, setActiveSubject] = useState("All");
+    const [sort, setSort] = useState("recent");
+    const [sortOpen, setSortOpen] = useState(false);
+
+    const filtered = useMemo(()=>{
+      let list = SPACES.filter(s => activeSubject === "All" || s.subject === activeSubject);
+      if (sort === "az") list = [...list].sort((a,b)=> a.title.localeCompare(b.title));
+      else if (sort === "progress") list = [...list].sort((a,b)=> b.pct - a.pct);
+      // "recent" keeps seed order (most-recent-active first)
+      return list;
+    }, [activeSubject, sort]);
+
+    const SORT_OPTS = [
+      { value:"recent", label:"Recently active" },
+      { value:"progress", label:"Progress" },
+      { value:"az", label:"A–Z" },
+    ];
+
+    return (
+      <div className="appshell frame">
+        <Sidebar/>
+        <Topbar onOpenSort={()=>setSortOpen(true)} />
+        <main className="appshell__main" role="main" aria-label="My Spaces">
+          <div className="page">
+
+            {/* Page header */}
+            <div className="page-head">
+              <div>
+                <div className="head-title-row">
+                  <h1>My Spaces</h1>
+                  <Badge variant="brand">{SPACES.length} spaces</Badge>
+                </div>
+                <p className="page-sub">Pick up where you left off, Maya. ✦</p>
+              </div>
+            </div>
+
+            {/* Filter / sort bar */}
+            <div className="toolbar" role="region" aria-label="Filter and sort">
+              <div className="toolbar__chips" role="group" aria-label="Filter by subject">
+                {SUBJECTS.map(subj => (
+                  <button key={subj} className="chip-btn" onClick={()=>setActiveSubject(subj)}
+                          aria-pressed={activeSubject === subj}>
+                    <Chip active={activeSubject === subj}>{subj}</Chip>
+                  </button>
+                ))}
+              </div>
+              <div className="toolbar__right">
+                <div className="toolbar__sort">
+                  <label htmlFor="sortsel">Sort</label>
+                  <Select id="sortsel" value={sort} onChange={(e)=>setSort(e.target.value)} options={SORT_OPTS} />
+                </div>
+                {/* B2C-only affordance */}
+                <Button variant="secondary" leadingIcon={<Icon name="store" size={16}/>}>Browse Store</Button>
+                {/* mobile sort fallback trigger -> Sheet/Drawer */}
+                <IconButton icon={<Icon name="sliders-horizontal" size={18}/>} label="Sort options"
+                            onClick={()=>setSortOpen(true)} />
+              </div>
+            </div>
+
+            {/* Success grid (primary populated state) */}
+            {filtered.length > 0 ? (
+              <div className="grid">
+                {filtered.map(s => <SpaceCard key={s.id} s={s} progressMode="ready" />)}
+              </div>
+            ) : (
+              <div className="state-box">
+                <EmptyState icon="filter" title="No spaces match this filter."
+                  body="Try ‘All’ to see everything you're learning."
+                  action={<Button variant="ghost" leadingIcon={<Icon name="x" size={16}/>}
+                            onClick={()=>setActiveSubject("All")}>Clear filter</Button>} />
+              </div>
+            )}
+
+            {/* ---------- Secondary spec'd states ---------- */}
+            <div className="eyebrow">Spec states (reference)</div>
+
+            <div className="states">
+
+              {/* Partial — progress syncing */}
+              <div className="state-box state-box--full">
+                <div className="eyebrow" style={{margin:"0 0 var(--space-3)"}}>State: partial · progress syncing</div>
+                <Alert variant="info" title="Progress syncing…">
+                  Spaces loaded — your mastery rings are catching up. We never block the grid on progress.
+                </Alert>
+                <div className="grid" style={{marginTop:"var(--space-4)"}}>
+                  {SPACES.slice(0,3).map(s => <SpaceCard key={s.id} s={s} progressMode="syncing" />)}
+                </div>
+              </div>
+
+              {/* Loading skeleton */}
+              <div className="state-box state-box--full">
+                <div className="eyebrow" style={{margin:"0 0 var(--space-3)"}}>State: loading skeleton</div>
+                <div className="grid">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="skelcard">
+                      <div className="skelcard__banner"></div>
+                      <div className="skelcard__body">
+                        <Skeleton width="40%" height="18px"/>
+                        <Skeleton width="80%" height="14px"/>
+                        <Skeleton width="65%" height="14px"/>
+                        <Skeleton width="50%" height="12px"/>
+                      </div>
+                      <div className="skelcard__foot">
+                        <Skeleton width="120px" height="12px"/>
+                        <Skeleton variant="circle" width="48px" height="48px"/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Empty — B2B */}
+              <div className="state-box">
+                <div className="eyebrow" style={{margin:"0 0 var(--space-3)"}}>State: empty · B2B student</div>
+                <EmptyState icon="book-open" title="No spaces yet"
+                  body="Your teacher hasn't assigned any learning spaces to your class yet. Check back soon — they'll show up here the moment they do." />
+              </div>
+
+              {/* Empty — B2C */}
+              <div className="state-box">
+                <div className="eyebrow" style={{margin:"0 0 var(--space-3)"}}>State: empty · B2C consumer</div>
+                <EmptyState icon="compass" title="Start your first space"
+                  body="You haven't added any learning spaces yet. Browse the store to find something that excites you."
+                  action={<Button variant="spark" leadingIcon={<Icon name="store" size={16}/>}>Explore the Store</Button>} />
+              </div>
+
+              {/* Error (distinct from empty) */}
+              <div className="state-box state-box--full">
+                <div className="eyebrow" style={{margin:"0 0 var(--space-3)"}}>State: error · load failure</div>
+                <EmptyState icon="cloud-off" title="We couldn't load your spaces"
+                  body="Check your connection and try again."
+                  action={<Button variant="ghost" leadingIcon={<Icon name="refresh-cw" size={16}/>}>Retry</Button>} />
+              </div>
+
+            </div>
+          </div>
+
+          {/* Mobile sort fallback — Sheet via Drawer */}
+          <Drawer open={sortOpen} onClose={()=>setSortOpen(false)} title="Sort spaces">
+            <div style={{display:"flex", flexDirection:"column", gap:"var(--space-2)"}}>
+              {SORT_OPTS.map(o => (
+                <button key={o.value} className="chip-btn"
+                        onClick={()=>{ setSort(o.value); setSortOpen(false); }}
+                        style={{textAlign:"left"}}>
+                  <div className="nav-item" aria-current={sort === o.value ? "page" : undefined}>
+                    <Icon name={sort === o.value ? "check" : "arrow-down-up"} size={18}/>
+                    <span>{o.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Drawer>
+        </main>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

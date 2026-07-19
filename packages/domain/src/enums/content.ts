@@ -116,7 +116,7 @@ export const RUBRIC_PRESET_CATEGORIES = [
 export type RubricPresetCategory = (typeof RUBRIC_PRESET_CATEGORIES)[number];
 export const zRubricPresetCategory = zEnum(RUBRIC_PRESET_CATEGORIES);
 
-export const AGENT_TYPES = ["tutor", "evaluator"] as const;
+export const AGENT_TYPES = ["tutor", "interviewer", "evaluator"] as const;
 export type AgentType = (typeof AGENT_TYPES)[number];
 export const zAgentType = zEnum(AGENT_TYPES);
 

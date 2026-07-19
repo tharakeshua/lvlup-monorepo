@@ -7,9 +7,12 @@
  *   - Keys are NEVER stored in Firestore or client bundles
  */
 
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 let client: SecretManagerServiceClient | null = null;
+
+/** Project-wide key used by current LLM operations before tenant fallback. */
+export const PLATFORM_GEMINI_SECRET_NAME = "levelup-default-gemini";
 
 function getClient(): SecretManagerServiceClient {
   if (!client) {
@@ -34,43 +37,45 @@ export function getSecretName(tenantId: string): string {
  * @returns The plaintext API key
  * @throws If the secret does not exist or cannot be accessed
  */
-export async function getGeminiApiKey(
-  tenantId: string,
-  projectId?: string,
-): Promise<string> {
+export async function getGeminiApiKey(tenantId: string, projectId?: string): Promise<string> {
   // 1. Check environment variable first (simplest, no IAM needed)
-  const envKey = process.env['GEMINI_API_KEY'];
+  const envKey = process.env["LEVELUP_AI_KEY"] ?? process.env["GEMINI_API_KEY"];
   if (envKey?.trim()) {
     return envKey.trim();
   }
 
   // 2. Fall back to Secret Manager
-  const project = projectId ?? process.env['GCLOUD_PROJECT'] ?? process.env['GCP_PROJECT'];
+  const project = projectId ?? process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"];
   if (!project) {
     throw new Error(
-      '[SecretManager] No GEMINI_API_KEY env var and no GCP project ID. Set GEMINI_API_KEY or GCLOUD_PROJECT.',
+      "[SecretManager] No GCP project ID or default Gemini environment key. Set LEVELUP_AI_KEY, GEMINI_API_KEY, or GCLOUD_PROJECT."
     );
   }
 
-  const secretName = getSecretName(tenantId);
-  const versionPath = `projects/${project}/secrets/${secretName}/versions/latest`;
-
   const smClient = getClient();
-  const [version] = await smClient.accessSecretVersion({ name: versionPath });
+  const readSecret = async (secretName: string): Promise<string> => {
+    const versionPath = `projects/${project}/secrets/${secretName}/versions/latest`;
+    const [version] = await smClient.accessSecretVersion({ name: versionPath });
+    const payload = version.payload?.data;
+    if (!payload) {
+      throw new Error(`[SecretManager] Secret "${secretName}" has no payload data.`);
+    }
+    const key = typeof payload === "string" ? payload : new TextDecoder().decode(payload);
+    if (!key.trim()) {
+      throw new Error(`[SecretManager] Secret "${secretName}" is empty.`);
+    }
+    return key.trim();
+  };
 
-  const payload = version.payload?.data;
-  if (!payload) {
-    throw new Error(`[SecretManager] Secret "${secretName}" has no payload data.`);
+  // The project-wide key is the current default. A missing default falls back to
+  // the existing per-tenant secret so deployments remain backwards compatible.
+  try {
+    return await readSecret(PLATFORM_GEMINI_SECRET_NAME);
+  } catch (error: unknown) {
+    const code = (error as { code?: number } | null)?.code;
+    if (code !== 5 && !/NOT_FOUND/i.test(String(error))) throw error;
+    return readSecret(getSecretName(tenantId));
   }
-
-  // payload can be string | Uint8Array
-  const key = typeof payload === 'string' ? payload : new TextDecoder().decode(payload);
-
-  if (!key.trim()) {
-    throw new Error(`[SecretManager] Secret "${secretName}" is empty.`);
-  }
-
-  return key.trim();
 }
 
 /**
@@ -80,12 +85,12 @@ export async function getGeminiApiKey(
 export async function setGeminiApiKey(
   tenantId: string,
   apiKey: string,
-  projectId?: string,
+  projectId?: string
 ): Promise<void> {
-  const project = projectId ?? process.env['GCLOUD_PROJECT'] ?? process.env['GCP_PROJECT'];
+  const project = projectId ?? process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"];
   if (!project) {
     throw new Error(
-      '[SecretManager] No GCP project ID provided. Set GCLOUD_PROJECT or GCP_PROJECT env var.',
+      "[SecretManager] No GCP project ID provided. Set GCLOUD_PROJECT or GCP_PROJECT env var."
     );
   }
 
@@ -109,21 +114,18 @@ export async function setGeminiApiKey(
   // Add a new version with the key payload
   await smClient.addSecretVersion({
     parent: `${parent}/secrets/${secretName}`,
-    payload: { data: Buffer.from(apiKey, 'utf-8') },
+    payload: { data: Buffer.from(apiKey, "utf-8") },
   });
 }
 
 /**
  * Delete a tenant's Gemini API key from Secret Manager entirely.
  */
-export async function deleteGeminiApiKey(
-  tenantId: string,
-  projectId?: string,
-): Promise<void> {
-  const project = projectId ?? process.env['GCLOUD_PROJECT'] ?? process.env['GCP_PROJECT'];
+export async function deleteGeminiApiKey(tenantId: string, projectId?: string): Promise<void> {
+  const project = projectId ?? process.env["GCLOUD_PROJECT"] ?? process.env["GCP_PROJECT"];
   if (!project) {
     throw new Error(
-      '[SecretManager] No GCP project ID provided. Set GCLOUD_PROJECT or GCP_PROJECT env var.',
+      "[SecretManager] No GCP project ID provided. Set GCLOUD_PROJECT or GCP_PROJECT env var."
     );
   }
 

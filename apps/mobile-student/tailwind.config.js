@@ -64,6 +64,10 @@ module.exports = {
         warning: "#B7791F",
         error: "#B23A36",
         info: "#2D6E8E",
+        // mastery scale (Lyceum §2.3) — the learning-journey status colors
+        "mastery-mastered": "#3EA876",
+        "mastery-in-progress": "#564BA6",
+        "mastery-not-started": "#D6C9B4",
       },
       borderRadius: {
         sm: "6px",
@@ -74,8 +78,15 @@ module.exports = {
       },
       fontFamily: {
         display: ["Fraunces", "Georgia", "serif"],
+        "display-regular": ["Fraunces-Regular", "Georgia", "serif"],
         ui: ["Schibsted Grotesk", "System", "sans-serif"],
+        "ui-medium": ["SchibstedGrotesk-Medium", "System", "sans-serif"],
+        "ui-bold": ["SchibstedGrotesk-Bold", "System", "sans-serif"],
         mono: ["Spline Sans Mono", "monospace"],
+        "mono-medium": ["SplineSansMono-Medium", "monospace"],
+      },
+      letterSpacing: {
+        caps: "1.5px",
       },
       fontSize: {
         "2xs": ["11px", "16px"],

@@ -8,38 +8,68 @@
  * request carries answers — authoritySensitive, NOT optimistic.
  */
 import { z } from "zod";
-import { zDifficulty } from "@levelup/domain";
+import { AgentAssessmentAnswerKeyDataSchema, UnifiedItemSchema } from "@levelup/domain";
 import { defineCallable } from "./_shared.js";
-import {
-  SaveOrDeleteResponseSchema,
-  ItemPayloadSchema,
-  ItemMetadataSchema,
-  zItemType,
-} from "./_shared.js";
+import { SaveOrDeleteResponseSchema } from "./_shared.js";
 
-export const SaveItemDataSchema = z
-  .object({
-    type: zItemType,
-    payload: ItemPayloadSchema,
-    title: z.string().optional(),
-    content: z.string().optional(),
-    difficulty: zDifficulty.optional(),
-    topics: z.array(z.string()).optional(),
-    labels: z.array(z.string()).optional(),
-    orderIndex: z.number().int().optional(),
-    sectionId: z.string().optional(),
-    meta: ItemMetadataSchema.optional(),
-    rubricId: z.string().optional(),
-    linkedQuestionId: z.string().optional(),
+/**
+ * Partial by design: create, edit, reorder/move, and soft-delete share this verb.
+ * The service requires type/payload on create. Inline `rubric` snapshots and
+ * `attachments` are explicitly persisted item fields (not client-only metadata).
+ */
+export const SaveItemDataSchema = UnifiedItemSchema.pick({
+  type: true,
+  payload: true,
+  title: true,
+  content: true,
+  difficulty: true,
+  topics: true,
+  labels: true,
+  orderIndex: true,
+  sectionId: true,
+  meta: true,
+  rubric: true,
+  rubricId: true,
+  linkedQuestionId: true,
+  attachments: true,
+})
+  .partial()
+  .extend({
+    /**
+     * Private chat-agent assessment data. It is written into the deny-all
+     * answer-key document by the service and never appears in learner ItemView.
+     */
+    answerKey: AgentAssessmentAnswerKeyDataSchema.optional(),
     deleted: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.type !== undefined && data.payload !== undefined && data.type !== data.payload.type) {
+      ctx.addIssue({
+        code: "custom",
+        message: "type must match payload.type",
+        path: ["type"],
+      });
+    }
+    if (
+      data.answerKey !== undefined &&
+      data.payload !== undefined &&
+      (data.payload.type !== "question" ||
+        data.payload.questionData.questionType !== "chat_agent_question")
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "answerKey is only valid for a chat_agent_question payload",
+        path: ["answerKey"],
+      });
+    }
+  });
 
 export const SaveItemRequestSchema = z
   .object({
-    id: z.string().optional(),
-    spaceId: z.string(),
-    storyPointId: z.string(),
+    id: UnifiedItemSchema.shape.id.optional(),
+    spaceId: UnifiedItemSchema.shape.spaceId,
+    storyPointId: UnifiedItemSchema.shape.storyPointId,
     data: SaveItemDataSchema,
   })
   .strict();

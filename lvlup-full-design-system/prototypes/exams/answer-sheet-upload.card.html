@@ -1,0 +1,857 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Answer Sheet Upload" subtitle="uploadAnswerSheets · creates Submission · auto-starts pipeline" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.as-shell{height:1024px}
+
+/* topbar bits */
+.as-topbar-pill{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);background:var(--bg-surface);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer}
+.as-search{flex:1;max-width:420px;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm)}
+.as-search .as-kbd{margin-left:auto}
+.as-icon-circle{width:36px;height:36px;border-radius:var(--radius-pill);display:grid;place-items:center;color:var(--text-secondary);position:relative;cursor:pointer}
+.as-icon-circle:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+.as-notif-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--status-error);border:1.5px solid var(--bg-surface)}
+
+/* page head */
+.as-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);margin:var(--space-4) 0 var(--space-2)}
+.as-h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:-0.02em;margin:0}
+.as-sub{font-size:var(--text-sm);color:var(--text-secondary);max-width:64ch;margin:0 0 var(--space-4)}
+
+/* state segmented control */
+.as-statebar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;background:var(--bg-surface-sunken);border:1px dashed var(--border-strong);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-5)}
+.as-statebar__label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.as-seg{display:inline-flex;flex-wrap:wrap;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px;gap:2px}
+.as-seg__btn{border:none;background:transparent;font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer}
+.as-seg__btn--active{background:var(--brand-primary);color:var(--text-on-accent)}
+
+/* dimmed submissions list under the drawer */
+.as-listwrap{position:relative;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.as-listwrap--dim{opacity:.5;filter:saturate(.9)}
+.as-list-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle)}
+.as-list-title{font-size:var(--text-base);font-weight:var(--weight-semibold)}
+.as-mono{font-family:var(--font-mono)}
+.as-pipe{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-mono);font-size:var(--text-2xs);padding:2px var(--space-2);border-radius:var(--radius-pill);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.as-pipe--scout{border-color:var(--brand-primary);background:var(--brand-subtle);color:var(--brand-primary)}
+.as-pipe--new{border-color:var(--status-success);background:var(--status-success-subtle);color:var(--status-success)}
+@keyframes as-rowin{from{opacity:0;background:var(--brand-subtle)}to{opacity:1}}
+.as-row-new td{animation:as-rowin var(--dur-slow) var(--ease-entrance) both}
+
+/* the drawer area is an absolute stage so the Drawer component can layer over the list */
+.as-stage{position:relative}
+
+/* drawer internals */
+.as-drawer-exam{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin:0 0 var(--space-4)}
+.as-step{margin-bottom:var(--space-5)}
+.as-step__label{display:flex;align-items:center;gap:var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 var(--space-3)}
+.as-step__num{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold)}
+.as-fields{display:flex;flex-direction:column;gap:var(--space-4)}
+
+/* combobox */
+.as-combo{position:relative}
+.as-combo__menu{position:absolute;z-index:5;top:calc(100% + 4px);left:0;right:0;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);max-height:208px;overflow:auto;padding:var(--space-1)}
+.as-combo__opt{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);cursor:pointer;font-size:var(--text-sm)}
+.as-combo__opt:hover,.as-combo__opt--active{background:var(--bg-surface-sunken)}
+.as-combo__roll{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.as-combo__sub{display:inline-flex;align-items:center;gap:var(--space-1);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* identity flag chip */
+.as-idflag{display:inline-flex;align-items:center;gap:var(--space-2);margin-top:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);animation:as-fade var(--dur-fast) var(--ease-standard) both}
+.as-idflag--ok{background:var(--status-success-subtle);color:var(--status-success);border:1px solid var(--status-success)}
+.as-idflag--dup{background:var(--status-warning-subtle);color:var(--status-warning);border:1px solid var(--status-warning)}
+@keyframes as-fade{from{opacity:0}to{opacity:1}}
+
+/* file drop + queue */
+.as-queue{display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-4)}
+.as-queue-head{display:flex;align-items:center;justify-content:space-between;margin:var(--space-3) 0 var(--space-1)}
+.as-queue-head__t{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+
+.as-uitem{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);animation:as-rise var(--dur-fast) var(--ease-entrance) both}
+.as-uitem--warn{border-color:var(--status-warning);background:var(--status-warning-subtle)}
+.as-uitem--err{border-color:var(--status-error);background:var(--status-error-subtle)}
+.as-uitem__grip{color:var(--text-muted);cursor:grab;display:grid;place-items:center}
+.as-thumb{width:38px;height:48px;border-radius:var(--radius-sm);background:var(--bg-inset);border:1px solid var(--border-subtle);display:grid;place-items:center;color:var(--text-muted);flex:0 0 auto;font-family:var(--font-mono);font-size:var(--text-2xs)}
+.as-uitem__body{flex:1;min-width:0}
+.as-uitem__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2)}
+.as-uitem__pg{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);padding:0 var(--space-1);border-radius:var(--radius-sm)}
+.as-uitem__meta{font-size:var(--text-xs);color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:var(--space-1)}
+.as-uitem__meta--done{color:var(--status-success)}
+.as-uitem__size{font-family:var(--font-mono)}
+.as-uitem__actions{display:flex;align-items:center;gap:2px;flex:0 0 auto}
+
+.as-scan{max-width:188px;margin:var(--space-4) auto 0}
+
+/* bulk accordion-ish session */
+.as-bulkstat{display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap;margin-bottom:var(--space-4)}
+.as-brow{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);overflow:hidden;margin-bottom:var(--space-3)}
+.as-brow__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);cursor:pointer}
+.as-brow__head:hover{background:var(--bg-surface-sunken)}
+.as-brow__name{font-size:var(--text-sm);font-weight:var(--weight-semibold);flex:1;min-width:0}
+.as-brow__roll{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.as-brow__body{padding:0 var(--space-4) var(--space-4);border-top:1px solid var(--border-subtle)}
+.as-brow--locked{background:var(--status-success-subtle)}
+
+/* drawer footer */
+.as-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.as-foot__right{display:flex;align-items:center;gap:var(--space-2)}
+.as-foot__hint{font-size:var(--text-xs);color:var(--text-muted);display:flex;align-items:center;gap:var(--space-1)}
+
+.as-divider{height:1px;background:var(--border-subtle);margin:var(--space-4) calc(-1 * var(--space-5))}
+.as-info{margin:var(--space-4) 0}
+.as-rel{position:relative}
+
+/* toast stack */
+.as-toaster{position:absolute;right:var(--space-5);bottom:var(--space-5);z-index:30;display:flex;flex-direction:column;gap:var(--space-2);max-width:380px}
+
+@keyframes as-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .as-uitem,.as-row-new td,.as-idflag{animation:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Icon, Button, IconButton, Panel, Card, Field, Input, Select, Switch,
+    FileDrop, ScanFrame, ProgressBar, Stat, Badge, Chip, Alert, Toast, Modal,
+    Drawer, EmptyState, Skeleton, Breadcrumb, NavItem, Avatar, Tooltip, Kbd,
+    Timeline, DataTable, AnswerKeyLock
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---------------------------------------------------------------------- */
+  /* Mock domain data — real entity / field names                          */
+  /* ---------------------------------------------------------------------- */
+  const EXAM = { title: "Midterm – Physics", totalMarks: 100, status: "published", classId: "10-A" };
+
+  const CLASSES = [
+    { value: "10-A", label: "10-A · Physics" },
+    { value: "10-B", label: "10-B · Physics" },
+  ];
+
+  // roster from students.listByClass(classId) — studentId, studentName, rollNumber
+  const ROSTER = [
+    { studentId: "stu_23", rollNumber: 23, studentName: "Aarav Mehta",  existing: false },
+    { studentId: "stu_24", rollNumber: 24, studentName: "Diya Sharma",  existing: false },
+    { studentId: "stu_25", rollNumber: 25, studentName: "Kabir Rao",    existing: true  },
+    { studentId: "stu_26", rollNumber: 26, studentName: "Ishita Nair",  existing: false },
+    { studentId: "stu_27", rollNumber: 27, studentName: "Rohan Gupta",  existing: false },
+  ];
+
+  // answerSheets.images[] queue — page order preserved
+  const PAGES_DONE = [
+    { id: "img_1", name: "scan_p1.jpg", status: "done",      progress: 100, size: "1.2 MB" },
+    { id: "img_2", name: "scan_p2.jpg", status: "done",      progress: 100, size: "1.1 MB" },
+    { id: "img_3", name: "scan_p3.jpg", status: "done",      progress: 100, size: "0.9 MB" },
+  ];
+  const PAGES_PARTIAL = [
+    { id: "img_1", name: "scan_p1.jpg", status: "done",      progress: 100, size: "1.2 MB" },
+    { id: "img_2", name: "scan_p2.jpg", status: "uploading", progress: 48,  size: "0.9 MB" },
+    { id: "img_3", name: "scan_p3.jpg", status: "warn",      progress: 100, size: "1.4 MB", readabilityIssue: true },
+  ];
+  const PAGES_ERR = [
+    { id: "img_1", name: "scan_p1.jpg", status: "done",   progress: 100, size: "1.2 MB" },
+    { id: "img_2", name: "scan_p2.jpg", status: "failed", progress: 0,   size: "1.0 MB" },
+    { id: "img_3", name: "scan_p3.jpg", status: "done",   progress: 100, size: "0.9 MB" },
+  ];
+
+  // bulk session rows
+  const BULK = [
+    { studentId: "stu_23", rollNumber: 23, studentName: "Aarav Mehta", state: "locked", submissionId: "sub_8fG2", pages: 3 },
+    { studentId: "stu_24", rollNumber: 24, studentName: "Diya Sharma", state: "locked", submissionId: "sub_9hK4", pages: 4 },
+    { studentId: "stu_26", rollNumber: 26, studentName: "Ishita Nair", state: "uploading", pages: 3, progress: 62 },
+    { studentId: "stu_27", rollNumber: 27, studentName: "Rohan Gupta", state: "failed", pages: 2 },
+    { studentId: "stu_28", rollNumber: 28, studentName: "Meera Iyer", state: "queued", pages: 3 },
+  ];
+
+  /* ---------------------------------------------------------------------- */
+  /* AppShell chrome                                                        */
+  /* ---------------------------------------------------------------------- */
+  function Sidebar() {
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">Lyceum</span>
+        </div>
+        <nav className="sidebar__nav">
+          <div className="sidebar__section-label">Teach</div>
+          <NavItem icon="layout-dashboard">Dashboard</NavItem>
+          <NavItem icon="book-open">Spaces</NavItem>
+          <NavItem icon="file-check-2" active>Exams</NavItem>
+          <NavItem icon="users">Students</NavItem>
+          <div className="sidebar__section-label">Insight</div>
+          <NavItem icon="bar-chart-3">Analytics</NavItem>
+          <NavItem icon="sparkles" badge={<Badge variant="info">AI</Badge>}>AI Usage</NavItem>
+          <div className="sidebar__section-label">Admin</div>
+          <NavItem icon="settings">Settings</NavItem>
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar() {
+    return (
+      <header className="appshell__topbar">
+        <button className="as-topbar-pill">
+          <Icon name="building-2" size={16} />
+          <span>Subhang Academy</span>
+          <Icon name="chevrons-up-down" size={14} />
+        </button>
+        <label className="as-search">
+          <Icon name="search" size={16} />
+          <span>Search exams, students…</span>
+          <span className="as-kbd"><Kbd>⌘K</Kbd></span>
+        </label>
+        <div className="topbar__spacer" />
+        <span className="as-icon-circle"><Icon name="help-circle" size={20} /></span>
+        <span className="as-icon-circle"><Icon name="bell" size={20} /><span className="as-notif-dot" /></span>
+        <Avatar initials="SK" />
+      </header>
+    );
+  }
+
+  function ExamChip({ skeleton }) {
+    if (skeleton) return <Skeleton width="240px" height="26px" />;
+    return (
+      <Badge variant="success" icon={<Icon name="circle-check" size={12} />}>
+        {EXAM.title} · <span className="as-mono">/{EXAM.totalMarks}</span> · {EXAM.status}
+      </Badge>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Dimmed submissions list (under drawer)                                 */
+  /* ---------------------------------------------------------------------- */
+  function SubmissionsList({ dim, showNew }) {
+    const rows = [
+      { roll: 21, name: "Vivaan Joshi", pipe: "graded",  score: "78 / 100", isNew: false },
+      { roll: 22, name: "Anaya Reddy",  pipe: "grading", score: "—",        isNew: false },
+      ...(showNew ? [{ roll: 23, name: "Aarav Mehta", pipe: "scouting", score: "—", isNew: true }] : []),
+      { roll: 24, name: "Diya Sharma",  pipe: "uploaded", score: "—",       isNew: false },
+    ];
+    const pipeBadge = (p, isNew) => {
+      if (p === "graded") return <span className="as-pipe"><Icon name="check" size={11} /> graded</span>;
+      if (p === "scouting") return <span className={"as-pipe " + (isNew ? "as-pipe--new" : "as-pipe--scout")}><Icon name="radar" size={11} /> scouting</span>;
+      if (p === "grading") return <span className="as-pipe as-pipe--scout"><Icon name="sparkles" size={11} /> grading</span>;
+      return <span className="as-pipe"><Icon name="upload" size={11} /> uploaded</span>;
+    };
+    return (
+      <div className={"as-listwrap" + (dim ? " as-listwrap--dim" : "")} aria-hidden={dim ? "true" : undefined}>
+        <div className="as-list-head">
+          <div className="as-list-title">Submissions · {EXAM.title}</div>
+          <Button variant="primary" size="sm" leadingIcon={<Icon name="upload" size={14} />}>Upload answer sheets</Button>
+        </div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th className="as-mono">roll</th>
+              <th>student</th>
+              <th>pipelineStatus</th>
+              <th>score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.roll} className={r.isNew ? "as-row-new" : ""}>
+                <td className="as-mono">#{r.roll}</td>
+                <td>{r.name}</td>
+                <td>{pipeBadge(r.pipe, r.isNew)}</td>
+                <td className="as-mono">{r.score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Identify step (Class + Student combobox)                               */
+  /* ---------------------------------------------------------------------- */
+  function StepLabel({ n, children }) {
+    return <div className="as-step__label"><span className="as-step__num">{n}</span>{children}</div>;
+  }
+
+  function StudentCombobox({ student, onPick }) {
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState("");
+    const ref = useRef(null);
+    useEffect(() => {
+      function away(e){ if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+      document.addEventListener("mousedown", away);
+      return () => document.removeEventListener("mousedown", away);
+    }, []);
+    const filtered = ROSTER.filter(r =>
+      !q || String(r.rollNumber).includes(q) || r.studentName.toLowerCase().includes(q.toLowerCase()));
+    return (
+      <Field label="Student" hint="Search roll number or name…" htmlFor="as-student">
+        <div className="as-combo" ref={ref}>
+          <Input
+            id="as-student"
+            value={student ? "#" + student.rollNumber + " · " + student.studentName : q}
+            placeholder="Search roll number or name…"
+            onFocus={() => setOpen(true)}
+            onChange={(e) => { onPick(null); setQ(e.target.value); setOpen(true); }}
+            aria-expanded={open}
+            aria-controls="as-student-menu"
+            role="combobox"
+          />
+          {open && (
+            <div className="as-combo__menu" id="as-student-menu" role="listbox">
+              {filtered.length === 0 ? (
+                <div className="as-combo__opt" style={{ color: "var(--text-muted)" }}>No students found in 10-A</div>
+              ) : filtered.map(r => (
+                <div
+                  key={r.studentId}
+                  className="as-combo__opt"
+                  role="option"
+                  aria-selected={student && student.studentId === r.studentId}
+                  onClick={() => { onPick(r); setOpen(false); setQ(""); }}
+                >
+                  <span><span className="as-combo__roll">#{r.rollNumber}</span> · {r.studentName}</span>
+                  {r.existing
+                    ? <span className="as-combo__sub" style={{ color: "var(--status-warning)" }}><Icon name="alert-triangle" size={11} /> submitted</span>
+                    : <span className="as-combo__sub"><Icon name="check" size={11} /> none</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Field>
+    );
+  }
+
+  function IdentifyStep({ student, onPick, noClasses }) {
+    if (noClasses) {
+      return (
+        <div className="as-step">
+          <StepLabel n="1">Identify</StepLabel>
+          <EmptyState
+            icon="users"
+            title="This exam has no classes assigned"
+            body="Assign classes in Settings to upload sheets — the student picker reads the roster from Exam.classIds."
+            action={<Button variant="secondary" leadingIcon={<Icon name="settings" size={16} />}>Open exam Settings</Button>}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="as-step">
+        <StepLabel n="1">Identify</StepLabel>
+        <div className="as-fields">
+          <Field label="Class" htmlFor="as-class">
+            <Select id="as-class" options={CLASSES} defaultValue="10-A" />
+          </Field>
+          <div>
+            <StudentCombobox student={student} onPick={onPick} />
+            {student && (
+              student.existing ? (
+                <span className="as-idflag as-idflag--dup" role="status">
+                  <Icon name="alert-triangle" size={13} />
+                  Already submitted — uploading creates a separate submission
+                </span>
+              ) : (
+                <span className="as-idflag as-idflag--ok" role="status">
+                  <Icon name="check-circle" size={13} />
+                  No existing submission
+                </span>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Pages step                                                             */
+  /* ---------------------------------------------------------------------- */
+  function PageRow({ page, idx, onRemove }) {
+    const cls =
+      page.status === "warn" ? "as-uitem as-uitem--warn" :
+      page.status === "failed" ? "as-uitem as-uitem--err" : "as-uitem";
+    const ariaLabel =
+      page.status === "uploading" ? "Page " + (idx + 1) + ", uploading " + page.progress + " percent" :
+      page.status === "failed" ? "Page " + (idx + 1) + ", upload failed" :
+      page.status === "warn" ? "Page " + (idx + 1) + ", low image quality" :
+      "Page " + (idx + 1) + ", uploaded";
+    return (
+      <div className={cls} aria-label={ariaLabel}>
+        <span className="as-uitem__grip" aria-hidden="true"><Icon name="grip-vertical" size={15} /></span>
+        <span className="as-thumb">P{idx + 1}</span>
+        <div className="as-uitem__body">
+          <div className="as-uitem__name">
+            {page.name}
+            <span className="as-uitem__pg">page {idx + 1}</span>
+          </div>
+          {page.status === "uploading" ? (
+            <div style={{ marginTop: 5 }}><ProgressBar value={page.progress} /></div>
+          ) : page.status === "failed" ? (
+            <div className="as-uitem__meta" style={{ color: "var(--status-error)" }}>
+              <Icon name="x-circle" size={13} /> Couldn't upload — check the file and retry.
+            </div>
+          ) : page.status === "warn" ? (
+            <Tooltip label="AI may struggle to read this page; routing may push it to needs_review.">
+              <div className="as-uitem__meta" style={{ color: "var(--status-warning)" }}>
+                <Icon name="alert-triangle" size={13} /> Low image quality — may be unreadable
+              </div>
+            </Tooltip>
+          ) : (
+            <div className="as-uitem__meta as-uitem__meta--done">
+              <Icon name="check-circle" size={13} /> <span className="as-uitem__size">{page.size}</span> · readable
+            </div>
+          )}
+        </div>
+        <div className="as-uitem__actions">
+          {page.status === "failed" && (
+            <IconButton size="sm" label={"Retry page " + (idx + 1)} icon={<Icon name="rotate-cw" size={15} />} />
+          )}
+          <IconButton size="sm" label={"Move page " + (idx + 1) + " up"} icon={<Icon name="arrow-up" size={15} />} />
+          <IconButton size="sm" label={"Move page " + (idx + 1) + " down"} icon={<Icon name="arrow-down" size={15} />} />
+          <IconButton size="sm" label={"Remove page " + (idx + 1)} icon={<Icon name="x" size={15} />} onClick={() => onRemove(page.id)} />
+        </div>
+      </div>
+    );
+  }
+
+  function PagesStep({ pages, empty, onRemove }) {
+    return (
+      <div className="as-step">
+        <StepLabel n="2">Pages</StepLabel>
+        <FileDrop
+          icon="scan-line"
+          title="Drop scanned pages or browse"
+          hint="JPG, PNG, or PDF · multiple pages · keep pages in reading order."
+        />
+        <div className="as-scan">
+          <ScanFrame hint="Align the page within the frame · flat, well-lit, full margins visible." />
+        </div>
+        {empty ? null : pages.length > 0 && (
+          <div className="as-queue">
+            <div className="as-queue-head">
+              <span className="as-queue-head__t">Upload queue · {pages.length} pages</span>
+              <Button variant="secondary" size="sm" leadingIcon={<Icon name="plus" size={14} />}>Add pages</Button>
+            </div>
+            {pages.map((p, i) => (
+              <PageRow key={p.id} page={p} idx={i} onRemove={onRemove} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Bulk session                                                           */
+  /* ---------------------------------------------------------------------- */
+  function BulkRow({ row, open, onToggle }) {
+    const locked = row.state === "locked";
+    const stateChip =
+      row.state === "locked"   ? <span className="as-pipe as-pipe--new"><Icon name="radar" size={11} /> scouting started</span> :
+      row.state === "uploading"? <span className="as-pipe as-pipe--scout"><Icon name="loader" size={11} /> uploading {row.progress}%</span> :
+      row.state === "failed"   ? <Badge variant="error" icon={<Icon name="x-circle" size={11} />}>failed</Badge> :
+                                 <span className="as-pipe"><Icon name="clock" size={11} /> queued</span>;
+    return (
+      <div className={"as-brow" + (locked ? " as-brow--locked" : "")}>
+        <div className="as-brow__head" role="button" aria-expanded={open} onClick={onToggle}>
+          <Icon name={open ? "chevron-down" : "chevron-right"} size={16} />
+          <Avatar initials={row.studentName.split(" ").map(s => s[0]).join("")} size="sm" />
+          <span className="as-brow__name">{row.studentName} <span className="as-brow__roll">#{row.rollNumber}</span></span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>{row.pages} pages</span>
+          {stateChip}
+          {locked && <span className="as-mono" style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>{row.submissionId}</span>}
+          {row.state === "failed" && <Button variant="ghost" size="sm" leadingIcon={<Icon name="rotate-cw" size={13} />}>Retry</Button>}
+        </div>
+        {open && !locked && (
+          <div className="as-brow__body">
+            <div style={{ marginTop: "var(--space-3)" }}>
+              <PageRow page={{ id: "b1", name: "scan_p1.jpg", status: "done", size: "1.1 MB" }} idx={0} onRemove={() => {}} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function BulkSession() {
+    const [openId, setOpenId] = useState("stu_28");
+    const uploaded = BULK.filter(b => b.state === "locked").length;
+    const failed = BULK.filter(b => b.state === "failed").length;
+    const agg = Math.round((uploaded / BULK.length) * 100);
+    return (
+      <div>
+        <div className="as-bulkstat" aria-live="polite">
+          <Stat label="Students queued" value={<span className="as-mono">{BULK.length}</span>} />
+          <Stat label="Uploaded" value={<span className="as-mono" style={{ color: "var(--status-success)" }}>{uploaded}</span>} />
+          <Stat label="Failed" value={<span className="as-mono" style={{ color: failed ? "var(--status-error)" : "var(--text-primary)" }}>{failed}</span>} />
+        </div>
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--text-secondary)", marginBottom: 4 }}>
+            <span>Session progress</span><span className="as-mono">{agg}%</span>
+          </div>
+          <ProgressBar value={agg} />
+        </div>
+        {BULK.map(b => (
+          <BulkRow key={b.studentId} row={b} open={openId === b.studentId} onToggle={() => setOpenId(o => o === b.studentId ? null : b.studentId)} />
+        ))}
+        <Button variant="secondary" size="sm" leadingIcon={<Icon name="user-plus" size={14} />}>Add another student</Button>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Drawer body — per state                                                */
+  /* ---------------------------------------------------------------------- */
+  function IdentifySkeleton() {
+    return (
+      <div className="as-step">
+        <StepLabel n="1">Identify</StepLabel>
+        <div className="as-fields">
+          <div><Skeleton width="56px" height="12px" /><div style={{ marginTop: 6 }}><Skeleton height="40px" /></div></div>
+          <div><Skeleton width="64px" height="12px" /><div style={{ marginTop: 6 }}><Skeleton height="40px" /></div></div>
+        </div>
+      </div>
+    );
+  }
+
+  function DrawerBody({ state, student, onPick, pages, onRemove }) {
+    if (state === "loading") {
+      return (
+        <div>
+          <div className="as-drawer-exam"><ExamChip skeleton /></div>
+          <IdentifySkeleton />
+          <div className="as-divider" />
+          <div className="as-step"><StepLabel n="2">Pages</StepLabel><Skeleton height="120px" /></div>
+        </div>
+      );
+    }
+
+    if (state === "bulk") {
+      return (
+        <div>
+          <div className="as-drawer-exam">
+            <ExamChip />
+            <Badge variant="info" icon={<Icon name="hard-drive" size={11} />}>uploadSource: web</Badge>
+          </div>
+          <BulkSession />
+          <div className="as-info">
+            <Alert variant="info" title="Grading starts automatically after upload">
+              Each student's submission fires the pipeline as it resolves. You'll review flagged questions on the Submissions tab.
+            </Alert>
+          </div>
+        </div>
+      );
+    }
+
+    const noClasses = state === "no-classes";
+
+    return (
+      <div>
+        <div className="as-drawer-exam">
+          <ExamChip />
+          <Badge variant="info" icon={<Icon name="hard-drive" size={11} />}>uploadSource: web</Badge>
+        </div>
+
+        <IdentifyStep student={student} onPick={onPick} noClasses={noClasses} />
+
+        {!noClasses && (
+          <>
+            <div className="as-divider" />
+            <PagesStep pages={pages} empty={state === "empty"} onRemove={onRemove} />
+
+            {state === "error" && (
+              <div className="as-info">
+                <Alert variant="error" title="Couldn't create the submission">
+                  Network error reaching <span className="as-mono">uploadAnswerSheets</span>. Nothing was half-created — the server create is atomic. Retry below.
+                </Alert>
+              </div>
+            )}
+
+            {state === "quota" && (
+              <div className="as-info">
+                <Alert variant="warning" title="Tenant grading budget at 84%">
+                  Uploads continue; grading may queue. (EvaluationSettings.usageQuota warningThresholdPercent reached.)
+                </Alert>
+              </div>
+            )}
+
+            <div className="as-info">
+              <Alert variant="info" title="Grading starts automatically after upload">
+                Creating the submission triggers Panopticon scouting → RELMS grading. You'll review flagged questions on the Submissions tab.
+              </Alert>
+            </div>
+
+            <AnswerKeyLockNote />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // pure intake — no answer key / rubric / model answer ever shown here
+  function AnswerKeyLockNote() {
+    return (
+      <div className="as-info">
+        <AnswerKeyLock title="Staff only — not shown to students">
+          This is pure intake. No <strong>modelAnswer</strong>, <strong>rubric</strong>, score, or AI confidence is read or written here — and none is ever shown to students or parents.
+        </AnswerKeyLock>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Drawer footer — per state                                              */
+  /* ---------------------------------------------------------------------- */
+  function DrawerFooter({ state, canUpload, busy, onUpload, onClose, onAddAnother }) {
+    if (state === "bulk") {
+      return (
+        <div className="as-foot">
+          <Button variant="secondary" leadingIcon={<Icon name="user-plus" size={16} />}>Add another student</Button>
+          <div className="as-foot__right">
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" loading={busy} trailingIcon={!busy && <Icon name="arrow-right" size={16} />}>
+              {busy ? "Uploading…" : "Upload all (5) & start"}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="as-foot">
+        <Button variant="secondary" leadingIcon={<Icon name="user-plus" size={16} />} onClick={onAddAnother}>Add another student</Button>
+        <div className="as-foot__right">
+          {state === "partial" && (
+            <span className="as-foot__hint"><Icon name="loader" size={13} /> Waiting for uploads to finish</span>
+          )}
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          {!canUpload && state !== "error" ? (
+            <Tooltip label={state === "no-classes" ? "Assign classes before uploading." : "Pick a student and add at least one fully-uploaded page."}>
+              <span><Button variant="primary" disabled trailingIcon={<Icon name="arrow-right" size={16} />}>Upload &amp; start</Button></span>
+            </Tooltip>
+          ) : (
+            <Button
+              variant="primary"
+              loading={busy}
+              onClick={onUpload}
+              trailingIcon={!busy && <Icon name="arrow-right" size={16} />}
+            >
+              {busy ? "Creating submission…" : (state === "error" ? "Retry upload & start" : "Upload & start")}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* App                                                                    */
+  /* ---------------------------------------------------------------------- */
+  const STATES = [
+    { id: "populated",  label: "Populated" },
+    { id: "loading",    label: "Loading" },
+    { id: "empty",      label: "Empty (no pages)" },
+    { id: "no-classes", label: "Empty (no classes)" },
+    { id: "partial",    label: "Partial" },
+    { id: "error",      label: "Callable error" },
+    { id: "quota",      label: "Quota warning" },
+    { id: "bulk",       label: "Bulk" },
+  ];
+
+  function pagesForState(state, populatedPages) {
+    if (state === "empty" || state === "no-classes") return [];
+    if (state === "partial") return PAGES_PARTIAL;
+    if (state === "error") return PAGES_ERR;
+    return populatedPages;
+  }
+
+  function App() {
+    const [state, setState] = useState("populated");
+    const [bulk, setBulk] = useState(false);
+    const [student, setStudent] = useState(ROSTER[0]); // Aarav Mehta — no existing submission
+    const [pages, setPages] = useState(PAGES_DONE);
+    const [busy, setBusy] = useState(false);
+    const [toasts, setToasts] = useState([]);
+    const [discard, setDiscard] = useState(false);
+    const [dupConfirm, setDupConfirm] = useState(false);
+
+    // bulk toggle = a state, but keep them in sync
+    const effState = bulk ? "bulk" : state;
+
+    // keyboard: number keys 1-8 jump states (disabled while typing)
+    useEffect(() => {
+      function onKey(e) {
+        const t = e.target;
+        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+        const n = parseInt(e.key, 10);
+        if (!isNaN(n) && n >= 1 && n <= STATES.length) {
+          const id = STATES[n - 1].id;
+          setBulk(id === "bulk");
+          setState(id === "bulk" ? "populated" : id);
+        }
+      }
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const livePages = pagesForState(effState, pages);
+    const allDone = livePages.length > 0 && livePages.every(p => p.status === "done" || p.status === "warn");
+    const canUpload = effState !== "no-classes" && effState !== "loading" && !!student && allDone;
+
+    const removePage = (id) => setPages(ps => ps.filter(p => p.id !== id));
+
+    const pushToast = (t) => {
+      setToasts(ts => [...ts, { ...t, id: Date.now() + Math.random() }]);
+      setTimeout(() => setToasts(ts => ts.slice(1)), 4200);
+    };
+
+    const doUpload = () => {
+      // duplicate guard if the picked student already has a submission
+      if (student && student.existing) { setDupConfirm(true); return; }
+      runUpload();
+    };
+    const runUpload = () => {
+      setDupConfirm(false);
+      setBusy(true);
+      // NOT optimistic — wait for server { submissionId }
+      setTimeout(() => {
+        setBusy(false);
+        pushToast({
+          variant: "success",
+          title: "Submission created — grading started",
+          body: (student ? student.studentName : "Student") + " (#" + (student ? student.rollNumber : "") + ") · pipelineStatus: uploaded → scouting",
+        });
+      }, 1100);
+    };
+
+    const drawerTitle = (
+      <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        Upload answer sheets
+        <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-medium)", color: "var(--text-secondary)" }}>
+          Bulk <Switch checked={bulk} onChange={(e) => { setBulk(e.target.checked); }} />
+        </label>
+      </span>
+    );
+
+    return (
+      <div className="appshell as-shell">
+        <Sidebar />
+        <Topbar />
+        <main className="appshell__main">
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <Breadcrumb items={[
+              { label: "Exams", href: "#" },
+              { label: EXAM.title, href: "#" },
+              { label: "Submissions", href: "#" },
+              { label: "Upload" },
+            ]} />
+          </div>
+
+          <div className="as-head">
+            <div>
+              <h2 className="as-h2">Upload answer sheets</h2>
+            </div>
+            <ExamChip />
+          </div>
+          <p className="as-sub">
+            Attach a student's scanned pages to <strong>{EXAM.title}</strong>. Creating a submission fires
+            <span className="as-mono"> uploadAnswerSheets</span> and auto-starts the AutoGrade pipeline — you never click "start grading".
+          </p>
+
+          {/* prototype state switcher */}
+          <div className="as-statebar" role="group" aria-label="Preview state">
+            <span className="as-statebar__label">State</span>
+            <div className="as-seg">
+              {STATES.map((s, i) => {
+                const active = (s.id === "bulk" && bulk) || (s.id !== "bulk" && !bulk && state === s.id);
+                return (
+                  <button
+                    key={s.id}
+                    className={"as-seg__btn" + (active ? " as-seg__btn--active" : "")}
+                    aria-pressed={active}
+                    title={"Press " + (i + 1)}
+                    onClick={() => { setBulk(s.id === "bulk"); setState(s.id === "bulk" ? "populated" : s.id); }}
+                  >{s.label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* two-layer stage: dimmed list under the right-side drawer */}
+          <div className="as-stage">
+            <SubmissionsList dim showNew={false} />
+
+            <Drawer open onClose={() => setDiscard(true)} title={drawerTitle}>
+              <DrawerBody
+                state={effState}
+                student={student}
+                onPick={setStudent}
+                pages={livePages}
+                onRemove={removePage}
+              />
+              <div className="as-divider" />
+              <DrawerFooter
+                state={effState}
+                canUpload={canUpload}
+                busy={busy}
+                onUpload={doUpload}
+                onClose={() => setDiscard(true)}
+                onAddAnother={() => { setStudent(null); setPages([]); }}
+              />
+            </Drawer>
+          </div>
+        </main>
+
+        {/* discard guard */}
+        <Modal
+          open={discard}
+          onClose={() => setDiscard(false)}
+          title="Discard queued pages?"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setDiscard(false)}>Keep editing</Button>
+              <Button variant="danger" leadingIcon={<Icon name="trash-2" size={16} />} onClick={() => setDiscard(false)}>Discard</Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            You have un-uploaded pages in the queue. Closing now discards them — no submission is created.
+          </p>
+        </Modal>
+
+        {/* duplicate confirm */}
+        <Modal
+          open={dupConfirm}
+          onClose={() => setDupConfirm(false)}
+          title="Already has a submission"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setDupConfirm(false)}>Cancel</Button>
+              <Button variant="primary" leadingIcon={<Icon name="copy-plus" size={16} />} onClick={runUpload}>Add another submission</Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            <strong>{student ? student.studentName : "This student"}</strong> already has a submission for {EXAM.title}.
+            Uploading creates a <strong>separate</strong> submission with a new <span className="as-mono">submissionId</span>.
+          </p>
+        </Modal>
+
+        {/* toast stack (sonner-style) */}
+        <div className="as-toaster" aria-live="polite">
+          {toasts.map(t => (
+            <Toast key={t.id} variant={t.variant} title={t.title} body={t.body} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body></html>

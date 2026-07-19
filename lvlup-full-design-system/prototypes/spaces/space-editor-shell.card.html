@@ -1,0 +1,694 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Space Editor Shell" subtitle="Tabbed authoring shell · autosave + status gate" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.sx-uc:hover{background:var(--bg-surface-sunken);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc a{color:var(--text-muted);text-decoration:none;cursor:pointer;}
+.sx-bc a:hover{color:var(--brand-primary);}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+/* ---- editor header (sticky) ---- */
+.eh{position:sticky;top:0;z-index:15;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0;}
+.eh-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;}
+.eh-back{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);background:none;border:none;cursor:pointer;}
+.eh-back:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.eh-back i{width:18px;height:18px;}
+/* inline-editable title */
+.eh-title-wrap{display:flex;align-items:center;gap:var(--space-2);min-width:0;}
+.eh-title{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);line-height:1.1;background:none;border:1px solid transparent;border-radius:var(--radius-md);padding:var(--space-1) var(--space-2);margin:0;color:var(--text-primary);cursor:text;max-width:480px;}
+.eh-title:hover{background:var(--bg-surface-sunken);}
+.eh-title:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);background:var(--bg-surface);}
+.eh-title.empty{color:var(--text-muted);}
+.eh-edit-i{width:15px;height:15px;color:var(--text-muted);flex:none;}
+/* status pill — icon + text, never color alone */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);flex:none;}
+.pill i{width:12px;height:12px;}
+.pill.draft{background:var(--bg-surface-sunken);color:var(--text-secondary);border-color:var(--border-subtle);}
+.pill.published{background:var(--status-success-subtle);color:var(--status-success);border-color:var(--status-success);}
+.pill.archived{background:var(--status-warning-subtle);color:var(--status-warning);border-color:var(--status-warning);}
+.typechip{display:inline-flex;align-items:center;gap:5px;padding:3px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);background:var(--brand-subtle);color:var(--brand-primary);flex:none;}
+.typechip i{width:12px;height:12px;}
+.eh-spacer{flex:1;min-width:var(--space-4);}
+/* autosave indicator */
+.autosave{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-secondary);flex:none;cursor:default;}
+.autosave i{width:14px;height:14px;}
+.autosave.saving{color:var(--text-secondary);}
+.autosave.saved{color:var(--status-success);}
+.autosave.dirty{color:var(--spark);}
+.autosave.failed{color:var(--status-error);cursor:pointer;}
+.autosave.failed:hover{text-decoration:underline;}
+.spin{width:13px;height:13px;border:2px solid var(--text-secondary);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* action cluster */
+.eh-actions{display:flex;align-items:center;gap:var(--space-2);flex:none;}
+.btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:background var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.btn i{width:16px;height:16px;}
+.btn--secondary{background:var(--bg-surface);border-color:var(--border-subtle);color:var(--text-primary);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:none;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--danger{background:var(--bg-surface);border-color:var(--status-error);color:var(--status-error);}
+.btn--danger:hover{background:var(--status-error-subtle);}
+.btn--danger.solid{background:var(--status-error);color:var(--text-on-accent);border-color:transparent;}
+.btn--danger.solid:hover{background:var(--status-error);opacity:.9;}
+.btn--publish{background:var(--status-success);color:var(--text-on-accent);}
+.btn--publish:hover{background:var(--status-success);opacity:.92;}
+.btn--restore{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--restore:hover{background:var(--brand-primary-hover);}
+.btn[disabled]{opacity:.55;cursor:not-allowed;}
+/* tab bar */
+.eh-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-3);overflow-x:auto;}
+.tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:color var(--dur-fast) var(--ease-standard);}
+.tab i{width:15px;height:15px;}
+.tab:hover{color:var(--text-primary);}
+.tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.tab .badge{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);border-radius:var(--radius-pill);padding:0 6px;}
+/* body */
+.sx-scroll{flex:1;overflow-y:auto;position:relative;}
+.sx-col{max-width:1200px;margin:0 auto;padding:var(--space-5) var(--space-6) var(--space-12);display:flex;flex-direction:column;gap:var(--space-4);}
+/* archived / publish banners */
+.banner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);font-size:var(--text-sm);}
+.banner i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.banner .bt{font-weight:var(--weight-semibold);}
+.banner .bb{color:var(--text-secondary);font-size:var(--text-xs);margin-top:2px;}
+.banner.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.banner.warn i.lead{color:var(--status-warning);}
+.banner.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.banner.err i.lead{color:var(--status-error);}
+.banner .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;background:none;border:none;font-size:var(--text-sm);font-family:var(--font-ui);}
+.banner ul{margin:var(--space-2) 0 0;padding-left:var(--space-5);color:var(--text-secondary);font-size:var(--text-xs);display:flex;flex-direction:column;gap:3px;}
+/* tab-body placeholder card */
+.bodycard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);min-height:340px;display:flex;flex-direction:column;}
+.bodycard .bhead{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.bodycard .bhead .bic{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;flex:none;}
+.bodycard .bhead .bic i{width:18px;height:18px;}
+.bodycard .bhead h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.bodycard .bhead .bd{font-size:var(--text-xs);color:var(--text-muted);margin-top:1px;}
+.bodycard .bhead .ba{margin-left:auto;display:flex;gap:var(--space-2);}
+.bodycard .bwrap{flex:1;display:grid;place-items:center;padding:var(--space-8) var(--space-6);}
+.ph{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-3);max-width:460px;}
+.ph .pic{width:48px;height:48px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-muted);display:grid;place-items:center;}
+.ph .pic i{width:22px;height:22px;}
+.ph .pt{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.ph .pb{font-size:var(--text-sm);color:var(--text-muted);line-height:var(--leading-sm);}
+.ph .pmono{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);background:var(--bg-surface-sunken);border-radius:var(--radius-pill);padding:3px var(--space-3);}
+/* skeleton */
+.sk{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);position:relative;overflow:hidden;}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--bg-surface),transparent);animation:shim 1.3s infinite;}
+@keyframes shim{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+.sk-row{display:flex;align-items:center;gap:var(--space-3);}
+/* empty / not-found */
+.nf{max-width:520px;margin:var(--space-16) auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-4);padding:var(--space-10) var(--space-6);}
+.nf .nic{width:60px;height:60px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-muted);display:grid;place-items:center;}
+.nf .nic i{width:28px;height:28px;}
+.nf h2{margin:0;font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);}
+.nf p{margin:0;font-size:var(--text-sm);color:var(--text-muted);line-height:var(--leading-sm);max-width:400px;}
+/* overlays */
+.scrim{position:fixed;inset:0;background:rgba(20,18,15,.46);z-index:40;animation:fin var(--dur-base) var(--ease-standard);}
+@keyframes fin{from{opacity:0;}to{opacity:1;}}
+/* right sheet */
+.sheet{position:fixed;top:0;right:0;height:100vh;width:min(640px,94vw);background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:50;display:flex;flex-direction:column;animation:slidein var(--dur-base) var(--ease-entrance);}
+@keyframes slidein{from{transform:translateX(24px);opacity:.4;}to{transform:translateX(0);opacity:1;}}
+.sheet-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.sheet-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.sheet-head .sub{font-size:var(--text-xs);color:var(--text-muted);}
+.sheet-body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);}
+.sheet-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+/* dialog (preview + confirm) */
+.dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);display:flex;flex-direction:column;animation:dpop var(--dur-base) var(--ease-entrance);}
+@keyframes dpop{from{transform:translate(-50%,-46%);opacity:0;}to{transform:translate(-50%,-50%);opacity:1;}}
+.dialog.preview{width:min(820px,94vw);max-height:86vh;}
+.dialog.confirm{width:min(460px,94vw);}
+.dialog-head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.dialog-head h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);flex:1;}
+.dialog-body{padding:var(--space-5);overflow-y:auto;}
+.dialog-foot{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+.confirm-body{padding:var(--space-5);display:flex;gap:var(--space-3);}
+.confirm-body .cic{width:38px;height:38px;border-radius:var(--radius-pill);background:var(--spark-subtle);color:var(--spark);display:grid;place-items:center;flex:none;}
+.confirm-body .cic i{width:19px;height:19px;}
+.confirm-body .ct{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.confirm-body .cb{font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;line-height:var(--leading-sm);}
+/* preview content */
+.pv-meta{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);font-size:var(--text-xs);color:var(--text-muted);}
+.pv-card{border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-5);background:var(--bg-surface-sunken);}
+.pv-card h3{margin:0 0 var(--space-3);font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.pv-card p{margin:0 0 var(--space-3);font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);}
+.pv-q{margin-top:var(--space-4);}
+.pv-q .ql{font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+.pv-q .qp{font-size:var(--text-sm);font-weight:var(--weight-medium);margin:var(--space-2) 0 var(--space-3);}
+.pv-opt{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-sm);margin-bottom:var(--space-2);}
+.pv-opt .mk{width:22px;height:22px;border-radius:var(--radius-pill);border:1.5px solid var(--border-strong);display:grid;place-items:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);flex:none;}
+/* answer-key lock note in preview */
+.keylock{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-4);padding:var(--space-3) var(--space-4);border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface-sunken);font-size:var(--text-xs);color:var(--text-muted);}
+.keylock i{width:15px;height:15px;color:var(--text-muted);flex:none;}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:60;display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);max-width:360px;animation:tin var(--dur-base) var(--ease-entrance);}
+.toast i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.toast.ok{border-color:var(--status-success);}
+.toast.ok i.lead{color:var(--status-success);}
+.toast.bad{border-color:var(--status-error);}
+.toast.bad i.lead{color:var(--status-error);}
+.toast .tt{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.toast .tb{font-size:var(--text-xs);color:var(--text-muted);}
+.toast .retry{margin-left:auto;color:var(--brand-primary);font-weight:var(--weight-medium);font-size:var(--text-xs);background:none;border:none;cursor:pointer;}
+@keyframes tin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* demo state switcher (card-only chrome, not part of screen) */
+.demo{position:fixed;left:var(--space-4);bottom:var(--space-4);z-index:70;display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:5px;flex-wrap:wrap;max-width:60vw;}
+.demo .dl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding:0 var(--space-2);}
+.demo button{font-family:var(--font-ui);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:none;background:none;color:var(--text-secondary);border-radius:var(--radius-pill);padding:5px var(--space-3);cursor:pointer;}
+.demo button.on{background:var(--brand-primary);color:var(--text-on-accent);}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const {
+  Icon, Button, IconButton, Badge, Kbd, Skeleton, EmptyState,
+  Toast, Alert, Breadcrumb, NavItem, AnswerKeyLock, ContentRenderer
+} = window.LvlupV0DesignSystem_5d0725;
+
+/* lucide icon via the core Icon component (no raw <i data-lucide>) */
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ---------- app chrome ---------- */
+function Nav({icon,label,active,count}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Sidebar(){
+  return <aside className="sx-side">
+    <div className="sx-brand"><div className="mk">L</div>
+      <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+    <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+      <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+        <Nav icon="layout-dashboard" label="Dashboard"/>
+        <Nav icon="school" label="Classes" count="6"/>
+        <Nav icon="layers" label="Spaces" count="9" active/>
+        <Nav icon="file-check" label="Exams" count="4"/>
+        <Nav icon="graduation-cap" label="Students"/></div>
+      <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+        <Nav icon="bar-chart-3" label="Analytics"/>
+        <Nav icon="sparkles" label="AI tutor"/></div>
+    </nav>
+    <div className="foot">
+      <div className="sx-uc"><div className="av">RM</div>
+        <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div>
+    </div>
+  </aside>;
+}
+function Topbar({title,onCrumb}){
+  return <header className="sx-top">
+    <nav className="sx-bc" aria-label="Breadcrumb">
+      <a onClick={onCrumb}>Spaces</a>{I("chevron-right",14)}<b aria-current="page">{title}</b>
+    </nav>
+    <div className="sp"></div>
+    <div className="sx-search">{I("search",15)}<span>Search spaces…</span><Kbd>⌘K</Kbd></div>
+    <button className="sx-icbtn" aria-label="Notifications, 2 unread">{I("bell",18)}</button>
+  </header>;
+}
+
+/* ---------- status config ---------- */
+const STATUS = {
+  draft:     {label:"Draft",     icon:"circle-dashed", cls:"draft"},
+  published: {label:"Published", icon:"globe",         cls:"published"},
+  archived:  {label:"Archived",  icon:"archive",       cls:"archived"},
+};
+
+/* ---------- autosave indicator (aria-live) ---------- */
+function Autosave({save,onRetry}){
+  let body;
+  if(save==="saving") body=<><span className="spin" aria-hidden="true"></span>Saving…</>;
+  else if(save==="dirty") body=<>{I("dot",14)}Unsaved changes</>;
+  else if(save==="failed") body=<>{I("alert-circle",14)}Save failed — retry</>;
+  else body=<>{I("check",14)}Saved just now</>;
+  const cls = save==="saving"?"saving":save==="dirty"?"dirty":save==="failed"?"failed":"saved";
+  return <span className={"autosave "+cls} role="status" aria-live="polite"
+      title={save==="failed"?"Click to retry":"Autosaves on edit · ⌘S to save now"}
+      onClick={save==="failed"?onRetry:undefined}
+      tabIndex={save==="failed"?0:undefined}>
+    {body}</span>;
+}
+
+/* ---------- tab bar ---------- */
+const TABS = [
+  {id:"settings", label:"Settings", icon:"settings"},
+  {id:"content",  label:"Content",  icon:"list-tree", badge:"4"},
+  {id:"rubric",   label:"Rubric",   icon:"table-properties"},
+  {id:"agents",   label:"Agents",   icon:"bot"},
+  {id:"history",  label:"History",  icon:"history"},
+];
+function TabBar({tab,onTab}){
+  return <div className="eh-tabs" role="tablist" aria-label="Space editor sections">
+    {TABS.map(t=>
+      <button key={t.id} role="tab" id={"tab-"+t.id} aria-selected={tab===t.id}
+        aria-controls="tabpanel" className={"tab"+(tab===t.id?" on":"")}
+        onClick={()=>onTab(t.id)}>
+        {I(t.icon,15)}{t.label}
+        {t.badge && <span className="badge">{t.badge}</span>}
+      </button>)}
+  </div>;
+}
+
+/* ---------- tab body placeholders (bodies own real content; shell = mount point) ---------- */
+const BODY = {
+  settings:{icon:"settings", title:"Settings", desc:"Space metadata, classification, access, AI & assessment defaults.",
+    pic:"sliders-horizontal", pt:"Settings tab body composes here",
+    pb:"Identity, type, access, and default tutor / evaluator agents. Edits bubble to the shell save bus (2s debounce).",
+    mono:"space-editor-settings"},
+  content:{icon:"list-tree", title:"Content", desc:"Story-point tree and items. Structural edits are versioned.",
+    pic:"list-tree", pt:"Content tab body composes here",
+    pb:"4 story points · 28 items. Opening an item or story point mounts a right Sheet at shell level.",
+    mono:"space-content-structure", actions:[{icon:"folder-plus",label:"Add story point"}]},
+  rubric:{icon:"table-properties", title:"Rubric", desc:"The space-level grading default in the inheritance chain.",
+    pic:"table-properties", pt:"Rubric tab body composes here",
+    pb:"Edits the space default — tenant → space → storyPoint → item. Framed as the default, not the only rubric.",
+    mono:"resolveRubric · scope=space"},
+  agents:{icon:"bot", title:"Agents", desc:"AI tutor and evaluator agents attached to this space.",
+    pic:"bot", pt:"Agents tab body composes here",
+    pb:"2 agents configured · Socratic Tutor, Rubric Evaluator v2. Per-item overrides resolve nearest-scope-wins.",
+    mono:"space.agents"},
+  history:{icon:"history", title:"History", desc:"Append-only version log. Restore writes a new forward version.",
+    pic:"history", pt:"History tab body composes here",
+    pb:"v7 · 9 versions. Server-written on publish / archive / edit. Authors never hand-author versions.",
+    mono:"listVersions · append-only"},
+};
+function TabPanel({tab,loading}){
+  const b = BODY[tab];
+  return <section className="bodycard" role="tabpanel" id="tabpanel" tabIndex={0} aria-labelledby={"tab-"+tab}>
+    <div className="bhead">
+      <div className="bic">{I(b.icon,18)}</div>
+      <div><h2>{b.title}</h2><div className="bd">{b.desc}</div></div>
+      {b.actions && <div className="ba">{b.actions.map(a=>
+        <Button key={a.label} variant="secondary" leadingIcon={I(a.icon)}>{a.label}</Button>)}</div>}
+    </div>
+    <div className="bwrap">
+      {loading
+        ? <div style={{width:"100%",maxWidth:680,display:"flex",flexDirection:"column",gap:"var(--space-4)"}}>
+            <div className="sk-row"><div className="sk" style={{width:34,height:34,borderRadius:"var(--radius-md)"}}></div>
+              <div style={{flex:1}}><div className="sk" style={{width:160,height:14,marginBottom:6}}></div>
+                <div className="sk" style={{width:240,height:11}}></div></div></div>
+            <div className="sk" style={{width:"100%",height:48}}></div>
+            <div className="sk" style={{width:"100%",height:48}}></div>
+            <div className="sk" style={{width:"72%",height:48}}></div>
+          </div>
+        : <div className="ph">
+            <div className="pic">{I(b.pic,22)}</div>
+            <div className="pt">{b.pt}</div>
+            <div className="pb">{b.pb}</div>
+            <div className="pmono">{b.mono}</div>
+          </div>}
+    </div>
+  </section>;
+}
+
+/* ---------- loading skeleton (whole shell, getSpace pending) ---------- */
+function LoadingShell(){
+  return <>
+    <div className="eh">
+      <div className="eh-row">
+        <div className="sk" style={{width:34,height:34,borderRadius:"var(--radius-md)"}}></div>
+        <div className="sk" style={{width:300,height:30,borderRadius:"var(--radius-md)"}}></div>
+        <div className="sk" style={{width:92,height:22,borderRadius:"var(--radius-pill)"}}></div>
+        <div className="eh-spacer"></div>
+        <div className="sk" style={{width:120,height:18}}></div>
+        <div className="sk" style={{width:88,height:34,borderRadius:"var(--radius-md)"}}></div>
+        <div className="sk" style={{width:96,height:34,borderRadius:"var(--radius-md)"}}></div>
+      </div>
+      <div className="eh-tabs" aria-hidden="true">
+        {[64,72,68,64,72].map((w,i)=><div key={i} className="sk" style={{width:w,height:30,margin:"var(--space-2) 0",borderRadius:"var(--radius-sm)"}}></div>)}
+      </div>
+    </div>
+    <div className="sx-scroll"><div className="sx-col">
+      <div className="bodycard"><div className="bwrap">
+        <div style={{width:"100%",maxWidth:680,display:"flex",flexDirection:"column",gap:"var(--space-4)"}}>
+          <div className="sk" style={{width:200,height:18}}></div>
+          <div className="sk" style={{width:"100%",height:54}}></div>
+          <div className="sk" style={{width:"100%",height:54}}></div>
+          <div className="sk" style={{width:"60%",height:54}}></div>
+        </div>
+      </div></div>
+    </div></div>
+  </>;
+}
+
+/* ---------- not-found (EmptyState) ---------- */
+function NotFound({onBack}){
+  return <div className="sx-scroll"><div className="nf">
+    <EmptyState icon="file-question" title="Space not found"
+      body="It may have been deleted, archived, or it belongs to another workspace."
+      action={<Button variant="secondary" leadingIcon={I("arrow-left")} onClick={onBack}>Back to Spaces</Button>}/>
+  </div></div>;
+}
+
+/* ---------- demo state switcher ---------- */
+function DemoBar({variant,set,openSheet,openPreview,simDirty}){
+  const opts=[["draft","Draft"],["published","Published"],["archived","Archived"],
+    ["loading","Loading"],["notfound","Not found"],["failed","Save failed"]];
+  return <div className="demo" role="group" aria-label="Preview states">
+    <span className="dl">state</span>
+    {opts.map(([v,l])=>
+      <button key={v} className={variant===v?"on":""} onClick={()=>set(v)}>{l}</button>)}
+    {openSheet && <><span className="dl">·</span>
+      <button onClick={openSheet}>Item sheet</button>
+      <button onClick={openPreview}>Preview</button>
+      <button onClick={simDirty}>Edit (dirty)</button></>}
+  </div>;
+}
+
+/* ---------- main screen ---------- */
+function Screen(){
+  // demo selectable variants
+  const [variant,setVariant]=useState("draft"); // draft | published | archived | loading | notfound | failed
+
+  const [tab,setTab]=useState("content");
+  const [bodyLoading,setBodyLoading]=useState(false);
+  const [title,setTitle]=useState("Algebra I — Linear Equations");
+  const [draftTitle,setDraftTitle]=useState(title);
+  const [editingTitle,setEditingTitle]=useState(false);
+  const titleRef=useRef(null);
+
+  const [save,setSave]=useState("saved"); // saved | saving | dirty | failed
+  const [sheet,setSheet]=useState(false);
+  const [preview,setPreview]=useState(false);
+  const [confirm,setConfirm]=useState(null); // 'unsaved' | 'archive' | null
+  const [publishBlock,setPublishBlock]=useState(false);
+  const [toast,setToast]=useState(null);
+  const saveTimer=useRef(null);
+
+  const status = (variant==="published")?"published":(variant==="archived")?"archived":"draft";
+  const isArchived = status==="archived";
+  const effectiveSave = variant==="failed" ? "failed" : save;
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(editingTitle && titleRef.current){ titleRef.current.focus(); titleRef.current.select(); } },[editingTitle]);
+
+  // ⌘/Ctrl+S flushes save; Escape closes the topmost overlay
+  useEffect(()=>{
+    const h=(e)=>{ if((e.metaKey||e.ctrlKey)&&(e.key==="s"||e.key==="S")){ e.preventDefault(); flushSave(); }
+      if(e.key==="Escape"){ setSheet(false); setPreview(false); setConfirm(null); } };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  });
+
+  const markDirty=()=>{ setSave("dirty");
+    clearTimeout(saveTimer.current);
+    saveTimer.current=setTimeout(()=>doSave(),2000); };
+  const flushSave=()=>{ clearTimeout(saveTimer.current); if(save!=="saved") doSave(); };
+  const doSave=()=>{ setSave("saving"); setTimeout(()=>setSave("saved"),700); };
+
+  const commitTitle=()=>{ setEditingTitle(false);
+    const t=draftTitle.trim(); setTitle(t||""); if(t!==title) markDirty(); };
+  const cancelTitle=()=>{ setEditingTitle(false); setDraftTitle(title); };
+
+  const switchTab=(id)=>{ if(id===tab) return; setBodyLoading(true); setTab(id);
+    setTimeout(()=>setBodyLoading(false),520); };
+
+  const onPublish=()=>{ // gated by validatePublish — first surface the block, then allow
+    if(!publishBlock){ setPublishBlock(true); return; }
+    setPublishBlock(false); setVariant("published");
+    setToast({k:"ok",t:"Space published",b:"Students in 11-A and 11-C can now access it."});
+    setTimeout(()=>setToast(null),3000); };
+  const onUnpublish=()=>{ setVariant("draft"); setToast({k:"ok",t:"Moved to draft",b:"Students no longer see this space."}); setTimeout(()=>setToast(null),3000); };
+  const onRestore=()=>{ setVariant("draft"); setToast({k:"ok",t:"Restored to draft",b:"You can edit this space again."}); setTimeout(()=>setToast(null),3000); };
+  const onArchiveConfirm=()=>{ setConfirm(null); setVariant("archived"); setToast({k:"ok",t:"Space archived",b:"Students have lost access. Restore to draft to edit."}); setTimeout(()=>setToast(null),3000); };
+  const retrySave=()=>{ setVariant("draft"); doSave(); };
+  const tryLeave=()=>{ if(effectiveSave==="dirty"||effectiveSave==="failed"){ setConfirm("unsaved"); } else { setVariant("notfound"); } };
+
+  if(variant==="loading"){
+    return <div className="sx"><Sidebar/><div className="sx-main">
+      <Topbar title="Loading…" onCrumb={()=>{}}/><LoadingShell/></div>
+      <DemoBar variant={variant} set={setVariant}/></div>;
+  }
+  if(variant==="notfound"){
+    return <div className="sx"><Sidebar/><div className="sx-main">
+      <Topbar title="Space not found" onCrumb={()=>setVariant("draft")}/>
+      <NotFound onBack={()=>setVariant("draft")}/></div>
+      <DemoBar variant={variant} set={setVariant}/></div>;
+  }
+
+  const st = STATUS[status];
+
+  return <div className="sx">
+    <Sidebar/>
+    <div className="sx-main">
+      <Topbar title={title||"Untitled space"} onCrumb={tryLeave}/>
+
+      {/* ---- sticky editor header ---- */}
+      <div className="eh">
+        <div className="eh-row">
+          <button className="eh-back" aria-label="Back to Spaces" onClick={tryLeave}>{I("arrow-left",18)}</button>
+
+          <div className="eh-title-wrap">
+            {editingTitle
+              ? <input ref={titleRef} className="eh-title" aria-label="Space title" value={draftTitle}
+                  placeholder="Untitled space"
+                  onChange={e=>setDraftTitle(e.target.value)}
+                  onBlur={commitTitle}
+                  onKeyDown={e=>{ if(e.key==="Enter"){e.preventDefault();commitTitle();} if(e.key==="Escape"){cancelTitle();} }}/>
+              : <h1 className={"eh-title"+(title?"":" empty")} tabIndex={isArchived?-1:0}
+                  aria-label="Space title — activate to edit"
+                  onClick={()=>{ if(!isArchived){ setDraftTitle(title); setEditingTitle(true); } }}
+                  onKeyDown={e=>{ if(!isArchived&&(e.key==="Enter")){ setDraftTitle(title); setEditingTitle(true); } }}>
+                  {title||"Untitled space"}</h1>}
+            {!editingTitle && !isArchived && <span className="eh-edit-i" aria-hidden="true">{I("pencil",15)}</span>}
+          </div>
+
+          {/* status pill (icon + text, never color alone) + type chip */}
+          <span className={"pill "+st.cls}>{I(st.icon,12)}{st.label}</span>
+          <span className="typechip">{I("book-open",12)}Learning</span>
+
+          <div className="eh-spacer"></div>
+
+          <Autosave save={effectiveSave} onRetry={retrySave}/>
+
+          {/* action cluster — only the legal transitions for the current status */}
+          <div className="eh-actions">
+            <Button variant="ghost" leadingIcon={I("eye")} onClick={()=>setPreview(true)}>Preview</Button>
+
+            {status==="draft" && <button className="btn btn--publish" type="button" onClick={onPublish}>
+              {I("rocket")}Publish</button>}
+
+            {status==="published" && <>
+              <Button variant="secondary" leadingIcon={I("circle-slash")} onClick={onUnpublish}>Unpublish</Button>
+              <Button variant="danger" leadingIcon={I("archive")} onClick={()=>setConfirm("archive")}>Archive</Button>
+            </>}
+
+            {status==="archived" && <button className="btn btn--restore" type="button" onClick={onRestore}>
+              {I("rotate-ccw")}Restore to Draft</button>}
+          </div>
+        </div>
+
+        <TabBar tab={tab} onTab={switchTab}/>
+      </div>
+
+      {/* ---- scroll body ---- */}
+      <div className="sx-scroll">
+        <div className="sx-col">
+
+          {/* archived read-only banner */}
+          {isArchived && <div className="banner warn" role="status">
+            <span className="lead">{I("archive",18)}</span>
+            <div style={{flex:1}}>
+              <div className="bt">This space is archived and read-only</div>
+              <div className="bb">Restore to Draft to make changes. Students cannot access archived spaces.</div>
+            </div>
+            <button className="lnk" onClick={onRestore}>Restore to Draft</button>
+          </div>}
+
+          {/* published-while-live reminder */}
+          {status==="published" && <div className="banner" role="status">
+            <span className="lead" style={{color:"var(--status-info)"}}>{I("info",18)}</span>
+            <div style={{flex:1}}>
+              <div className="bt">This space is live</div>
+              <div className="bb">Edits are versioned and reach students immediately. Structural changes affect active learners.</div>
+            </div>
+          </div>}
+
+          {/* publish-blocked InlineAlert (validatePublish failures) */}
+          {publishBlock && status==="draft" && <div className="banner err" role="alert">
+            <span className="lead">{I("alert-circle",18)}</span>
+            <div style={{flex:1}}>
+              <div className="bt">Can't publish yet</div>
+              <ul>
+                <li>Story Point 3 “Solving for x” has no items.</li>
+                <li>Add at least one graded item to enable assessment.</li>
+              </ul>
+            </div>
+            <button className="lnk" onClick={()=>{setPublishBlock(false);setVariant("published");setToast({k:"ok",t:"Space published",b:"Students in 11-A and 11-C can now access it."});setTimeout(()=>setToast(null),3000);}}>Publish anyway</button>
+          </div>}
+
+          {/* save-failed banner (failed variant) */}
+          {variant==="failed" && <div className="banner err" role="alert">
+            <span className="lead">{I("cloud-off",18)}</span>
+            <div style={{flex:1}}>
+              <div className="bt">Couldn't save changes</div>
+              <div className="bb">Check your connection and try again. Your edits are kept locally and won't be lost.</div>
+            </div>
+            <button className="lnk" onClick={retrySave}>Retry</button>
+          </div>}
+
+          <TabPanel tab={tab} loading={bodyLoading}/>
+        </div>
+      </div>
+    </div>
+
+    {/* ===== overlays (mounted by shell) ===== */}
+
+    {/* item editor right Sheet (Content tab overlay) */}
+    {sheet && <>
+      <div className="scrim" onClick={()=>setSheet(false)}></div>
+      <aside className="sheet" role="dialog" aria-modal="true" aria-label="Edit item">
+        <div className="sheet-head">
+          <div style={{flex:1}}>
+            <h2>Edit item</h2>
+            <div className="sub">Story Point 2 · Item 04 · multiple choice</div>
+          </div>
+          <button className="sx-icbtn" aria-label="Close" onClick={()=>setSheet(false)}>{I("x",18)}</button>
+        </div>
+        <div className="sheet-body">
+          <div className="banner" role="status">
+            <span className="lead" style={{color:"var(--status-info)"}}>{I("shield-check",18)}</span>
+            <div><div className="bt" style={{fontSize:"var(--text-xs)"}}>Answer key is server-only</div>
+              <div className="bb">Correct answers are re-merged via getItemForEdit and never sent to a preview or student.</div></div>
+          </div>
+          <div className="ph" style={{margin:"var(--space-6) auto"}}>
+            <div className="pic">{I("square-pen",22)}</div>
+            <div className="pt">Item editor body composes here</div>
+            <div className="pb">Prompt, options, and (teacher-only) answer key. Dirty content triggers the unsaved-changes guard on close.</div>
+            <div className="pmono">getItemForEdit · answerKeyLooksStripped: false</div>
+          </div>
+        </div>
+        <div className="sheet-foot">
+          <Button variant="ghost" onClick={()=>setSheet(false)}>Cancel</Button>
+          <button className="btn btn--publish" type="button" onClick={()=>setSheet(false)}>Save item</button>
+        </div>
+      </aside>
+    </>}
+
+    {/* student preview Modal — NO answer keys */}
+    {preview && <>
+      <div className="scrim" onClick={()=>setPreview(false)}></div>
+      <div className="dialog preview" role="dialog" aria-modal="true" aria-label={"Student preview — "+(title||"Untitled space")}>
+        <div className="dialog-head">
+          <span style={{color:"var(--text-secondary)",display:"inline-flex"}}>{I("eye",18)}</span>
+          <h2>Student preview — {title||"Untitled space"}</h2>
+          <button className="sx-icbtn" aria-label="Close preview" onClick={()=>setPreview(false)}>{I("x",18)}</button>
+        </div>
+        <div className="dialog-body">
+          <div className="pv-meta">{I("user",14)}
+            Rendered exactly as a student sees it · ContentRenderer (Markdown + KaTeX)</div>
+          <div className="pv-card">
+            <ContentRenderer math>
+              <h3>Story Point 2 — Solving Linear Equations</h3>
+              <p>A linear equation in one variable can be written as <span style={{fontFamily:"var(--font-mono)"}}>ax + b = 0</span>, where a ≠ 0. Isolate the variable by applying inverse operations to both sides.</p>
+              <div className="pv-q">
+                <span className="ql">Question · Item 04 · 2 pts</span>
+                <div className="qp">Solve for x:  3x − 7 = 11</div>
+                <div className="pv-opt"><span className="mk">A</span>x = 4</div>
+                <div className="pv-opt"><span className="mk">B</span>x = 6</div>
+                <div className="pv-opt"><span className="mk">C</span>x = 9</div>
+                <div className="pv-opt"><span className="mk">D</span>x = 18</div>
+              </div>
+            </ContentRenderer>
+            {/* answer-key boundary — never printed on a preview/student path */}
+            <AnswerKeyLock title="Answer key withheld.">
+              Correct answers live in the server-only answerKeys subcollection and never reach the client.
+            </AnswerKeyLock>
+          </div>
+        </div>
+        <div className="dialog-foot">
+          <Button variant="secondary" onClick={()=>setPreview(false)}>Close preview</Button>
+        </div>
+      </div>
+    </>}
+
+    {/* ConfirmDialog — unsaved guard / archive */}
+    {confirm && <>
+      <div className="scrim"></div>
+      <div className="dialog confirm" role="alertdialog" aria-modal="true"
+        aria-labelledby="cf-t" aria-describedby="cf-b">
+        <div className="confirm-body">
+          <div className="cic">{I(confirm==="archive"?"archive":"alert-triangle",19)}</div>
+          <div>
+            {confirm==="unsaved"
+              ? <><div className="ct" id="cf-t">Unsaved changes</div>
+                  <div className="cb" id="cf-b">Your latest edits haven't been saved yet.</div></>
+              : <><div className="ct" id="cf-t">Archive space</div>
+                  <div className="cb" id="cf-b">Students will no longer be able to access this space. You can restore it to draft later.</div></>}
+          </div>
+        </div>
+        <div className="dialog-foot">
+          {confirm==="unsaved" ? <>
+            <Button variant="ghost" autoFocus onClick={()=>setConfirm(null)}>Keep editing</Button>
+            <Button variant="danger" onClick={()=>{setConfirm(null);setSave("saved");}}>Discard changes</Button>
+            <button className="btn btn--publish" type="button" onClick={()=>{setConfirm(null);flushSave();}}>Save and leave</button>
+          </> : <>
+            <Button variant="ghost" autoFocus onClick={()=>setConfirm(null)}>Cancel</Button>
+            <button className="btn btn--danger solid" type="button" onClick={onArchiveConfirm}>{I("archive")}Archive</button>
+          </>}
+        </div>
+      </div>
+    </>}
+
+    {/* toast */}
+    {toast && <div className={"toast "+(toast.k==="ok"?"ok":"bad")} role="status">
+      <span className="lead">{I(toast.k==="ok"?"check-circle-2":"alert-circle",18)}</span>
+      <div><div className="tt">{toast.t}</div><div className="tb">{toast.b}</div></div>
+      {toast.k!=="ok" && <button className="retry" onClick={retrySave}>Retry</button>}
+    </div>}
+
+    {/* demo state switcher + quick overlay openers */}
+    <DemoBar variant={variant} set={(v)=>{setVariant(v);setPublishBlock(false);}}
+      openSheet={()=>setSheet(true)} openPreview={()=>setPreview(true)}
+      simDirty={()=>{setVariant("draft");markDirty();}}/>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

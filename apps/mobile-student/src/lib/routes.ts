@@ -22,6 +22,17 @@
  */
 import type { Href } from "expo-router";
 
+export type TutorRouteParams =
+  | { scope: "space"; spaceId: string; sessionId?: string }
+  | { scope: "story_point"; spaceId: string; storyPointId: string; sessionId?: string }
+  | {
+      scope: "item";
+      spaceId: string;
+      storyPointId: string;
+      itemId: string;
+      sessionId?: string;
+    };
+
 const href = (path: string): Href => path as Href;
 
 export const routes = {
@@ -58,6 +69,8 @@ export const routes = {
   testRun: (storyPointId: string) => href(`/run/${storyPointId}`),
   testResults: (storyPointId: string) => href(`/learner/tests/${storyPointId}/results`),
   testAnalytics: (storyPointId: string) => href(`/learner/tests/${storyPointId}/analytics`),
+  /** Physical / AutoGrade exams list — the learner's exams + submission status (B2B). */
+  exams: () => href("/learner/tests/exams"),
   /** Physical / AutoGrade exam results (B2B). */
   examResults: (examId: string) => href(`/learner/tests/exams/${examId}/results`),
 
@@ -76,8 +89,21 @@ export const routes = {
 
   // ── modals / drawers (root-level, present over the active tab) ──
   notifications: () => href("/notifications"),
-  /** AI tutor chat panel. */
-  tutor: () => href("/tutor"),
+  /** Scope picker; select a valid space before a tutor session can begin. */
+  tutorPicker: () => href("/tutor"),
+  /** AI tutor chat panel, always scoped to an authorized learning context. */
+  tutor: (params: TutorRouteParams) => {
+    const query = [
+      `scope=${encodeURIComponent(params.scope)}`,
+      `spaceId=${encodeURIComponent(params.spaceId)}`,
+      ...(params.scope !== "space"
+        ? [`storyPointId=${encodeURIComponent(params.storyPointId)}`]
+        : []),
+      ...(params.scope === "item" ? [`itemId=${encodeURIComponent(params.itemId)}`] : []),
+      ...(params.sessionId ? [`sessionId=${encodeURIComponent(params.sessionId)}`] : []),
+    ].join("&");
+    return href(`/tutor?${query}`);
+  },
 
   // ── store (B2C purchase flow, root-level) ───────────────────────
   store: () => href("/store"),

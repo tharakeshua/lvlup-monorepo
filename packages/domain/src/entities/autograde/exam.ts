@@ -26,6 +26,8 @@ import { UnifiedRubricSchema } from "../content/rubric.js";
 export const ExamQuestionPaperSchema = zObject({
   images: z.array(z.string()),
   extractedAt: zTimestamp.nullable(),
+  /** Set when Pass-2 rubric generation completes (live extraction pipeline). */
+  rubricsGeneratedAt: zTimestamp.optional(),
   questionCount: z.number().int(),
   examType: z.literal("standard"),
 });

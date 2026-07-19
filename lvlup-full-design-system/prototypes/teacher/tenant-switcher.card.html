@@ -1,0 +1,442 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Tenant Switcher" subtitle="Topbar + Cmd-K control · switch active tenant · multi-membership" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* screen-local layout only — Lyceum vars only, NO raw hex, NO :root redefinition */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+.page{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+.pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2)}
+
+/* ===== Topbar trigger (the RoleSwitcher composite) ===== */
+.ts-trigger{display:inline-flex;align-items:center;gap:var(--space-3);min-height:44px;padding:var(--space-2) var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer;color:inherit;font-family:var(--font-ui);text-align:left;transition:border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard)}
+.ts-trigger:hover,.ts-trigger[aria-expanded="true"]{border-color:var(--border-strong);box-shadow:var(--shadow-e1)}
+.ts-trigger:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.ts-trigger__lines{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ts-trigger__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
+.ts-trigger__role{display:flex;align-items:center}
+.ts-trigger__chev{flex:0 0 auto;color:var(--text-muted)}
+.ts-trigger.is-busy{opacity:.85}
+
+/* static (single-membership) variant */
+.ts-static{display:inline-flex;align-items:center;gap:var(--space-3);min-height:44px;padding:var(--space-2) var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+
+/* ===== Switcher surface (Popover) ===== */
+.ts-anchor{position:relative;display:inline-block}
+.ts-surface{position:absolute;top:calc(100% + var(--space-2));left:0;width:340px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);z-index:40;overflow:hidden;animation:ts-pop var(--dur-base) var(--ease-entrance)}
+@keyframes ts-pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.ts-surface{animation:ts-fade var(--dur-base) var(--ease-standard)}@keyframes ts-fade{from{opacity:0}to{opacity:1}}}
+.ts-surface__head{padding:var(--space-3) var(--space-4) var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--text-muted)}
+.ts-list{display:flex;flex-direction:column;padding:0 var(--space-2) var(--space-2)}
+
+.ts-row{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:52px;padding:var(--space-2) var(--space-3);background:transparent;border:none;border-radius:var(--radius-md);cursor:pointer;color:inherit;font-family:var(--font-ui);text-align:left;transition:background-color var(--dur-fast) var(--ease-standard)}
+.ts-row:hover{background:var(--bg-surface-sunken)}
+.ts-row:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.ts-row--active{background:var(--bg-surface-sunken);border-left:2px solid var(--border-focus);cursor:default;padding-left:calc(var(--space-3) - 2px)}
+.ts-row--active:hover{background:var(--bg-surface-sunken)}
+.ts-row--disabled{cursor:not-allowed;opacity:.7}
+.ts-row--disabled:hover{background:transparent}
+.ts-row--dim{opacity:.45;pointer-events:none}
+.ts-row__main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ts-row__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ts-row__name--muted{color:var(--text-muted)}
+.ts-row__sub{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary)}
+.ts-row__mark{flex:0 0 auto;display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.ts-row__mark--active{color:var(--status-success)}
+.ts-row__mark--busy{color:var(--text-secondary)}
+.ts-status-chip{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted)}
+
+.ts-surface__foot{padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);font-size:var(--text-2xs);color:var(--text-muted)}
+.ts-surface__body{padding:var(--space-2) var(--space-4) var(--space-3);font-size:var(--text-xs);color:var(--text-secondary)}
+.ts-surface__alert{padding:var(--space-3) var(--space-3) var(--space-3)}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border-strong);border-top-color:var(--status-info);border-radius:var(--radius-pill);animation:ts-spin var(--dur-slow) linear infinite}
+@keyframes ts-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* ===== mock topbar fragment for the demo ===== */
+.demo-topbar{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-3) var(--space-4)}
+.demo-topbar__spacer{flex:1 1 auto}
+.demo-cap{font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:var(--space-2);font-family:var(--font-mono)}
+
+/* ===== command palette mock ===== */
+.cmdk-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e2);overflow:hidden;max-width:560px}
+.cmdk-input{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);color:var(--text-secondary);font-size:var(--text-sm)}
+.cmdk-sec{padding:var(--space-3) var(--space-4) var(--space-1);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--text-muted)}
+.cmdk-item{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-2) var(--space-4);background:transparent;border:none;cursor:pointer;color:inherit;font-family:var(--font-ui);font-size:var(--text-sm);text-align:left;transition:background-color var(--dur-fast) var(--ease-standard)}
+.cmdk-item:hover,.cmdk-item.is-sel{background:var(--bg-surface-sunken)}
+.cmdk-item:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.cmdk-item__txt{flex:1 1 auto;min-width:0}
+.cmdk-item__role{color:var(--text-muted)}
+.cmdk-foot{padding:var(--space-2) var(--space-4);border-top:1px solid var(--border-subtle);display:flex;gap:var(--space-3);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* ===== layout grid for the three live states ===== */
+.state-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:start}
+.scard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.scard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.scard__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:-6px}
+.scard__demo{min-height:200px}
+
+/* ===== states rail ===== */
+.rail{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+.mini{flex:1 1 260px;min-width:260px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.mini__panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden}
+.mini__panel-head{padding:var(--space-2) var(--space-3);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--text-muted)}
+.u-caption{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+.avatar-logo{flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-md);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-sm);background:var(--brand-subtle);color:var(--brand-primary)}
+.avatar-logo--alt{background:var(--status-info-subtle);color:var(--status-info)}
+.avatar-logo--alt2{background:var(--bg-inset);color:var(--text-secondary)}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, IconButton, Avatar, Badge, Kbd, Skeleton, Section, Toast } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+/* tenant logo monogram */
+function Logo({mono, variant}){
+  return <div className={"avatar-logo"+(variant?" avatar-logo--"+variant:"")} aria-hidden="true">{mono}</div>;
+}
+
+/* ---- Topbar trigger ---- */
+function Trigger({name, role, open, onClick, busy}){
+  return (
+    <button className={"ts-trigger"+(busy?" is-busy":"")} aria-haspopup="menu" aria-expanded={open}
+      aria-label={"Current workspace: "+name+", "+role+". Switch workspace."} onClick={onClick}>
+      <Logo mono="N"/>
+      <span className="ts-trigger__lines">
+        <span className="ts-trigger__name">{name}</span>
+        <span className="ts-trigger__role"><Badge variant="info">{role}</Badge></span>
+      </span>
+      {busy ? <span className="spin ts-trigger__chev" aria-hidden="true"></span>
+            : <Icon name="chevron-down" size={16} className="ts-trigger__chev"/>}
+    </button>
+  );
+}
+
+/* ---- one membership row ---- */
+function Row({mono, logoVariant, name, role, state, dim, loading, onSelect}){
+  // state: 'active' | 'select' | 'suspended' | 'switching'
+  const cls = "ts-row"
+    + (state==='active'?" ts-row--active":"")
+    + (state==='suspended'?" ts-row--disabled":"")
+    + (dim?" ts-row--dim":"");
+  const interactive = state==='select';
+  const Tag = interactive ? 'button' : 'div';
+  return (
+    <Tag className={cls} role="menuitemradio"
+      aria-checked={state==='active'} aria-disabled={state==='suspended'||undefined}
+      onClick={interactive?onSelect:undefined}
+      tabIndex={interactive?0:-1}>
+      <Logo mono={mono} variant={logoVariant}/>
+      <span className="ts-row__main">
+        {loading
+          ? <Skeleton variant="text" width="120px" height="14px"/>
+          : <span className={"ts-row__name"+(state==='suspended'?" ts-row__name--muted":"")}>{name}</span>}
+        <span className="ts-row__sub">
+          <Badge variant={role==='Admin'?'brand':'info'}>{role}</Badge>
+          {state==='suspended' &&
+            <span className="ts-status-chip"><Icon name="ban" size={11}/>Suspended</span>}
+        </span>
+      </span>
+      {state==='active' &&
+        <span className="ts-row__mark ts-row__mark--active"><Icon name="check" size={14}/>Active</span>}
+      {state==='switching' &&
+        <span className="ts-row__mark ts-row__mark--busy"><span className="spin" aria-hidden="true"></span>Switching…</span>}
+    </Tag>
+  );
+}
+
+/* memberships dataset (filtered to teacher/tenantAdmin, server-authoritative) */
+const MEMBERSHIPS = [
+  {id:'tn_north',  mono:'N', logoVariant:null,   name:'Northwood Academy',  role:'Teacher', status:'active'},
+  {id:'tn_river',  mono:'R', logoVariant:'alt',  name:'Riverside School',    role:'Admin',   status:'active'},
+  {id:'tn_east',   mono:'E', logoVariant:'alt2', name:'Eastgate Institute',  role:'Teacher', status:'suspended'},
+];
+
+/* ---- Surface bodies (the three sub-states of the popover) ---- */
+function SurfaceDefault({onPick, loadingNames}){
+  return (
+    <div className="ts-surface" role="menu" aria-label="Switch workspace">
+      <div className="ts-surface__head">Switch workspace</div>
+      <div className="ts-list">
+        <Row mono="N" name="Northwood Academy" role="Teacher" state="active"/>
+        <Row mono="R" logoVariant="alt" name="Riverside School" role="Admin" state="select"
+          loading={loadingNames} onSelect={()=>onPick('tn_river')}/>
+        <Row mono="E" logoVariant="alt2" name="Eastgate Institute" role="Teacher" state="suspended"
+          loading={loadingNames}/>
+      </div>
+      <div className="ts-surface__foot">Switching reloads all data for the selected workspace.</div>
+    </div>
+  );
+}
+
+function SurfaceSwitching(){
+  return (
+    <div className="ts-surface" role="menu" aria-label="Switching workspace" aria-busy="true">
+      <div className="ts-surface__head">Switching…</div>
+      <div className="ts-list">
+        <Row mono="N" name="Northwood Academy" role="Teacher" state="active" dim/>
+        <Row mono="R" logoVariant="alt" name="Riverside School" role="Admin" state="switching"/>
+        <Row mono="E" logoVariant="alt2" name="Eastgate Institute" role="Teacher" state="suspended" dim/>
+      </div>
+      <div className="ts-surface__body" aria-live="polite">Rebuilding your access for this workspace.</div>
+    </div>
+  );
+}
+
+function SurfaceError({onRetry}){
+  return (
+    <div className="ts-surface" role="menu" aria-label="Switch workspace">
+      <div className="ts-surface__head">Switch workspace</div>
+      <div className="ts-list">
+        <Row mono="N" name="Northwood Academy" role="Teacher" state="active"/>
+        <Row mono="R" logoVariant="alt" name="Riverside School" role="Admin" state="select"/>
+      </div>
+      <div className="ts-surface__alert" role="alert">
+        <div className="alert alert--error">
+          <Icon name="alert-triangle" size={16}/>
+          <div>
+            <div style={{fontWeight:'var(--weight-semibold)',fontSize:'var(--text-sm)'}}>Couldn't switch workspace</div>
+            <div style={{fontSize:'var(--text-xs)',color:'var(--text-secondary)',marginTop:'2px'}}>You no longer have access to that workspace.</div>
+            <div style={{marginTop:'var(--space-2)'}}>
+              <button className="btn btn--secondary btn--sm" onClick={onRetry}><Icon name="rotate-ccw" size={13}/>Try again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- the canonical Shell ---- */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+const { NavItem } = window.LvlupV0DesignSystem_5d0725;
+
+function App(){
+  // (a) the topbar dropdown — open at rest, cycles through its sub-states
+  const [phase, setPhase] = useState('default'); // default | switching | error
+  const [open, setOpen] = useState(true);
+
+  const pick = (id)=>{ setPhase('switching'); setTimeout(()=>setPhase('error'), 1400); };
+
+  return (
+    <Shell active="dashboard">
+      <div className="page">
+
+        <div className="pagehead">
+          <h1>Tenant switcher</h1>
+          <div className="pagehead__sub">
+            A <span className="u-mono">headerRight</span> Topbar control (and a ⌘K command) that switches your active workspace.
+            Switching is server-authoritative — claims rebuild, the token refreshes, then the whole app re-subscribes.
+          </div>
+        </div>
+
+        {/* ===== Live state A: topbar dropdown OPEN as a popover ===== */}
+        <Section title="In the Topbar — switcher open">
+          <div className="demo-cap">RoleSwitcher composite · headerRight slot · multi-membership user</div>
+          <div className="demo-topbar">
+            <div className="ts-anchor">
+              <Trigger name="Northwood Academy" role="Teacher" open={open}
+                busy={phase==='switching'} onClick={()=>{setOpen(o=>!o);}}/>
+              {open && phase==='default' && <SurfaceDefault onPick={pick} loadingNames={false}/>}
+              {open && phase==='switching' && <SurfaceSwitching/>}
+              {open && phase==='error' && <SurfaceError onRetry={()=>setPhase('default')}/>}
+            </div>
+            <div className="demo-topbar__spacer"></div>
+            <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+            <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+            <Avatar initials="TS"/>
+          </div>
+          <div style={{marginTop:'var(--space-3)',display:'flex',gap:'var(--space-2)',flexWrap:'wrap'}}>
+            <button className="btn btn--secondary btn--sm" onClick={()=>{setPhase('default');setOpen(true);}}><Icon name="list" size={13}/>List</button>
+            <button className="btn btn--secondary btn--sm" onClick={()=>{setPhase('switching');setOpen(true);}}><Icon name="loader" size={13}/>Switching…</button>
+            <button className="btn btn--secondary btn--sm" onClick={()=>{setPhase('error');setOpen(true);}}><Icon name="alert-triangle" size={13}/>Error</button>
+          </div>
+        </Section>
+
+        {/* ===== Live state B & C side by side ===== */}
+        <div className="state-grid">
+
+          {/* B: command palette */}
+          <div className="scard">
+            <h2 className="scard__title">Command palette (⌘K)</h2>
+            <div className="scard__sub">A “Switch tenant” section — parent command opens the popover; a per-tenant command switches directly.</div>
+            <div className="scard__demo">
+              <div className="cmdk-wrap" role="dialog" aria-label="Command palette">
+                <div className="cmdk-input"><Icon name="search" size={16}/><span>switch…</span></div>
+                <div className="cmdk-sec">Workspace</div>
+                <button className="cmdk-item is-sel" role="option" aria-selected="true">
+                  <Icon name="repeat" size={16}/>
+                  <span className="cmdk-item__txt">Switch tenant…</span>
+                  <Kbd>⌘K</Kbd>
+                </button>
+                <button className="cmdk-item" role="option">
+                  <Logo mono="R" variant="alt"/>
+                  <span className="cmdk-item__txt">Switch to Riverside School <span className="cmdk-item__role">(Admin)</span></span>
+                  <Icon name="corner-down-left" size={14}/>
+                </button>
+                <button className="cmdk-item" role="option" aria-disabled="true" style={{opacity:.5,cursor:'not-allowed'}}>
+                  <Logo mono="E" variant="alt2"/>
+                  <span className="cmdk-item__txt">Switch to Eastgate Institute <span className="cmdk-item__role">(Teacher · Suspended)</span></span>
+                  <Icon name="ban" size={13}/>
+                </button>
+                <div className="cmdk-foot"><span>↑↓ navigate</span><span>↵ select</span><span>esc dismiss</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* C: single-membership degraded static label */}
+          <div className="scard">
+            <h2 className="scard__title">Single membership</h2>
+            <div className="scard__sub">One accessible workspace → a static labeled region. No chevron, not focusable, no popover, no ⌘K command.</div>
+            <div className="scard__demo">
+              <div className="demo-cap">degraded · read-only context label</div>
+              <div className="ts-static" role="region" aria-label="Current workspace: Northwood Academy, Teacher">
+                <Logo mono="N"/>
+                <span className="ts-trigger__lines">
+                  <span className="ts-trigger__name">Northwood Academy</span>
+                  <span className="ts-trigger__role"><Badge variant="info">Teacher</Badge></span>
+                </span>
+              </div>
+              <div style={{marginTop:'var(--space-4)',fontSize:'var(--text-xs)',color:'var(--text-secondary)',display:'flex',alignItems:'flex-start',gap:'var(--space-2)'}}>
+                <Icon name="info" size={14}/>
+                <span>No switch affordance is offered because there's exactly one accessible workspace — the control degrades quietly rather than presenting a dead action.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ===== STATES RAIL ===== */}
+        <Section title="States">
+          <div className="rail">
+
+            {/* Loading — unresolved names */}
+            <div className="mini">
+              <div className="u-caption">Loading · names unresolved</div>
+              <div className="mini__panel">
+                <div className="mini__panel-head">Switch workspace</div>
+                <div className="ts-list">
+                  <Row mono="N" name="Northwood Academy" role="Teacher" state="active"/>
+                  <Row mono="R" logoVariant="alt" name="" role="Admin" state="select" loading/>
+                  <Row mono="E" logoVariant="alt2" name="" role="Teacher" state="suspended" loading/>
+                </div>
+              </div>
+            </div>
+
+            {/* In-flight */}
+            <div className="mini">
+              <div className="u-caption">In-flight · switching</div>
+              <div className="mini__panel" aria-busy="true">
+                <div className="mini__panel-head">Switching…</div>
+                <div className="ts-list">
+                  <Row mono="N" name="Northwood Academy" role="Teacher" state="active" dim/>
+                  <Row mono="R" logoVariant="alt" name="Riverside School" role="Admin" state="switching"/>
+                </div>
+                <div className="ts-surface__body" aria-live="polite">Rebuilding your access for this workspace.</div>
+              </div>
+            </div>
+
+            {/* Error */}
+            <div className="mini">
+              <div className="u-caption">Error · switch rejected</div>
+              <div className="alert alert--error" role="alert">
+                <Icon name="alert-triangle" size={16}/>
+                <div>
+                  <div style={{fontWeight:'var(--weight-semibold)',fontSize:'var(--text-sm)'}}>Couldn't switch workspace</div>
+                  <div style={{fontSize:'var(--text-xs)',color:'var(--text-secondary)',marginTop:'2px'}}>That workspace isn't active right now. Contact your administrator.</div>
+                  <div style={{marginTop:'var(--space-2)'}}>
+                    <button className="btn btn--secondary btn--sm"><Icon name="rotate-ccw" size={13}/>Try again</button>
+                  </div>
+                </div>
+              </div>
+              <div className="u-caption">code · TENANT_SUSPENDED · context unchanged</div>
+            </div>
+
+            {/* Session-refresh failure */}
+            <div className="mini">
+              <div className="u-caption">Edge · token refresh failed</div>
+              <div className="alert alert--warning" role="alert">
+                <Icon name="refresh-cw" size={16}/>
+                <div>
+                  <div style={{fontWeight:'var(--weight-semibold)',fontSize:'var(--text-sm)'}}>Session needs a refresh</div>
+                  <div style={{fontSize:'var(--text-xs)',color:'var(--text-secondary)',marginTop:'2px'}}>Your workspace changed but we couldn't refresh your session. Please reload.</div>
+                  <div style={{marginTop:'var(--space-2)'}}>
+                    <button className="btn btn--secondary btn--sm"><Icon name="rotate-cw" size={13}/>Reload</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Single-membership degraded */}
+            <div className="mini">
+              <div className="u-caption">Single membership · degraded</div>
+              <div className="ts-static" role="region" aria-label="Current workspace: Northwood Academy, Teacher">
+                <Logo mono="N"/>
+                <span className="ts-trigger__lines">
+                  <span className="ts-trigger__name">Northwood Academy</span>
+                  <span className="ts-trigger__role"><Badge variant="info">Teacher</Badge></span>
+                </span>
+              </div>
+              <div className="u-caption">no chevron · not a button · no ⌘K</div>
+            </div>
+
+            {/* Success toast */}
+            <div className="mini">
+              <div className="u-caption">Success · confirmation toast</div>
+              <Toast variant="success" title="Switched to Riverside School." />
+            </div>
+
+          </div>
+        </Section>
+
+      </div>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

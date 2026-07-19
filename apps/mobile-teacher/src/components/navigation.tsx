@@ -22,20 +22,27 @@ export function Tabbar({ items = [], activeKey, onTabPress, className }: TabbarP
     >
       {items.map((it) => {
         const active = activeKey != null ? it.key === activeKey : it.active;
+        const isCreate = it.key === "create";
         return (
           <Pressable
             key={it.key}
             onPress={() => onTabPress?.(it.key)}
-            className="flex-1 items-center gap-1 py-1"
+            className="min-h-12 flex-1 items-center gap-1 py-1"
             accessibilityRole="tab"
             accessibilityState={{ selected: !!active }}
           >
-            <View>
+            <View
+              className={cx(
+                "rounded-pill h-8 min-w-10 items-center justify-center px-2",
+                active && !isCreate && "bg-brand-subtle",
+                isCreate && "bg-spark shadow-sm"
+              )}
+            >
               <Icon
                 name={it.icon}
-                size={22}
-                color={active ? colors.brand : colors.textMuted}
-                strokeWidth={active ? 2.4 : 2}
+                size={isCreate ? 20 : 21}
+                color={isCreate ? colors.textPrimary : active ? colors.brand : colors.textMuted}
+                strokeWidth={active || isCreate ? 2.5 : 2}
               />
               {it.badge != null && it.badge > 0 && (
                 <View
@@ -51,7 +58,11 @@ export function Tabbar({ items = [], activeKey, onTabPress, className }: TabbarP
             <Text
               className={cx(
                 "font-ui text-2xs",
-                active ? "text-brand font-semibold" : "text-text-muted"
+                isCreate
+                  ? "text-text-primary font-semibold"
+                  : active
+                    ? "text-brand font-semibold"
+                    : "text-text-muted"
               )}
             >
               {it.label}

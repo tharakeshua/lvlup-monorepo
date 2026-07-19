@@ -63,6 +63,10 @@ export function projectRubric(rubric: unknown, authoring: boolean): unknown {
   const r = { ...(rubric as Doc) };
   delete r["modelAnswer"];
   delete r["evaluatorGuidance"];
+  // ⚷ holisticGuidance is the holistic-mode scoring guidance ("award full marks
+  // when…") — an answer hint for non-authoring roles. Strip it like the other
+  // grading secrets (G13; getEvaluationConfig is student-callable via space.read).
+  delete r["holisticGuidance"];
   if (Array.isArray(r["dimensions"])) {
     r["dimensions"] = (r["dimensions"] as Doc[]).map((d) => {
       const copy = { ...d };

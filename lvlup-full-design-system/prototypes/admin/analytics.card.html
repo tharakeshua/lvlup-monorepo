@@ -1,0 +1,556 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Analytics" subtitle="Tenant performance · progress · at-risk · mastery · class drill-down (read-only)" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);text-decoration:none;}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-secondary);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.ax-tenant i{width:14px;height:14px;color:var(--brand-primary);}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1264px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-grid{display:grid;gap:var(--space-4);}
+.ax-g2{grid-template-columns:1fr 1fr;}
+.ax-g4{grid-template-columns:repeat(4,1fr);}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-wrap{flex-wrap:wrap;}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;border:1px solid transparent;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.btn i{width:15px;height:15px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--secondary{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-strong);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);}
+.btn--ghost{background:transparent;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--sm{padding:var(--space-1) var(--space-3);font-size:var(--text-xs);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+.icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.icon-btn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.icon-btn i{width:17px;height:17px;}
+/* cards & panels */
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);}
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.panel .ph{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.panel .ph .pt{font-size:var(--text-base);font-weight:var(--weight-semibold);margin-right:auto;}
+.panel .ph .psub{font-size:var(--text-xs);color:var(--text-muted);}
+.panel .pb{padding:var(--space-5);}
+.panel .pf{padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:var(--text-xs);}
+/* KPI */
+.kpi{display:flex;flex-direction:column;gap:var(--space-2);}
+.kpi .lh{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.kpi .lh i{width:15px;height:15px;}
+.kpi .vv{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;line-height:1.1;}
+.kpi .sl{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);}
+.kpi .sl i{width:13px;height:13px;}
+.kpi .asof{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+/* mini bar chart */
+.chart{display:flex;align-items:flex-end;gap:var(--space-3);height:172px;padding-top:var(--space-4);border-bottom:1px solid var(--border-subtle);position:relative;}
+.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);height:100%;justify-content:flex-end;cursor:pointer;}
+.chart .bar{width:100%;max-width:42px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-primary);transition:filter var(--dur-fast) var(--ease-standard);}
+.chart .col:hover .bar,.chart .col:focus-visible .bar{filter:brightness(.92);}
+.chart .col:focus-visible{outline:none;}
+.chart .bar.err{background:var(--status-error);}
+.chart .vl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);}
+.chart .xl{font-size:var(--text-2xs);color:var(--text-muted);text-align:center;}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:172px;border-bottom:1px solid var(--border-subtle);color:var(--text-muted);font-size:var(--text-sm);}
+/* mastery segmented bar */
+.mseg{display:flex;height:18px;border-radius:var(--radius-pill);overflow:hidden;background:var(--bg-inset);}
+.mseg span{height:100%;}
+.mseg .ns{background:var(--mastery-not-started);}
+.mseg .ip{background:var(--mastery-in-progress);}
+.mseg .ms{background:var(--mastery-mastered);}
+.mleg{display:flex;flex-direction:column;gap:var(--space-3);}
+.mleg .li{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);}
+.mleg .dot{width:11px;height:11px;border-radius:var(--radius-sm);flex:none;}
+.mleg .dot.ns{background:var(--mastery-not-started);}
+.mleg .dot.ip{background:var(--mastery-in-progress);}
+.mleg .dot.ms{background:var(--mastery-mastered);}
+.mleg .ll{color:var(--text-secondary);}
+.mleg .lv{margin-left:auto;font-family:var(--font-mono);color:var(--text-primary);font-variant-numeric:tabular-nums;}
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.err{background:var(--status-error-subtle);color:var(--status-error);}
+.badge.warn{background:var(--status-warning-subtle);color:var(--status-warning);}
+.badge.inf{background:var(--status-info-subtle);color:var(--status-info);}
+/* insight cards */
+.insight{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-4) var(--space-5);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);box-shadow:var(--shadow-e1);}
+.insight .ic{width:38px;height:38px;border-radius:var(--radius-md);display:grid;place-items:center;flex:none;}
+.insight .ic i{width:19px;height:19px;}
+.insight .ic.err{background:var(--status-error-subtle);color:var(--status-error);}
+.insight .ic.warn{background:var(--status-warning-subtle);color:var(--status-warning);}
+.insight .ic.inf{background:var(--status-info-subtle);color:var(--status-info);}
+.insight .ib{flex:1;display:flex;flex-direction:column;gap:var(--space-1);}
+.insight .it{font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.insight .id{font-size:var(--text-sm);color:var(--text-secondary);}
+.insight .ir{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-1);}
+/* chips (class selector) */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),box-shadow var(--dur-fast) var(--ease-standard);}
+.chip:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.chip[aria-pressed="true"]{background:var(--brand-subtle);border-color:var(--brand-primary);color:var(--brand-primary);box-shadow:var(--shadow-e1);}
+.chip:focus-visible{outline:none;box-shadow:var(--ring-focus);}
+/* ring */
+.ring{position:relative;width:84px;height:84px;border-radius:var(--radius-pill);display:grid;place-items:center;background:conic-gradient(var(--brand-primary) var(--pct),var(--bg-inset) 0);}
+.ring::before{content:"";position:absolute;inset:9px;border-radius:var(--radius-pill);background:var(--bg-surface);}
+.ring .rv{position:relative;font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums;}
+/* drill stat */
+.dstat{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.dstat .dl{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:var(--weight-semibold);}
+.dstat .dv{font-family:var(--font-mono);font-size:var(--text-xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;}
+/* performer rows */
+.prow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border-subtle);font-size:var(--text-sm);}
+.prow:last-child{border-bottom:none;}
+.prow .av-sm{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-2xs);font-weight:var(--weight-semibold);flex:none;}
+.prow .pn{font-weight:var(--weight-medium);}
+.prow .pv{margin-left:auto;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.prow .pv.lo{color:var(--status-error);}
+.prow .pv.hi{color:var(--status-success);}
+/* at-risk roster */
+.rrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard);}
+.rrow:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong);}
+.rrow .rn{font-size:var(--text-sm);font-weight:var(--weight-medium);}
+.rrow .rr{font-size:var(--text-2xs);color:var(--text-muted);}
+.rrow .rar{margin-left:auto;display:flex;align-items:center;gap:var(--space-3);}
+.atrisk{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.atrisk i{width:12px;height:12px;}
+.atrisk.r{background:var(--status-error-subtle);color:var(--status-error);}
+.atrisk.o{background:var(--status-success-subtle);color:var(--status-success);}
+/* alerts */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:var(--text-sm);background:var(--bg-surface);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert.err i.lead{color:var(--status-error);}
+.alert.info{border-color:var(--status-info);background:var(--status-info-subtle);}
+.alert.info i.lead{color:var(--status-info);}
+.alert .lnk{color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap;}
+/* section heading */
+.sec-h{display:flex;align-items:baseline;gap:var(--space-3);}
+.sec-h .st{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.sec-h .sca{font-size:var(--text-xs);color:var(--text-muted);margin-right:auto;}
+.sec-label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-semibold);letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-top:var(--space-2);}
+.sec-label i{width:14px;height:14px;}
+.lnk{color:var(--brand-primary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;}
+/* empty / skeleton */
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-10) var(--space-6);text-align:center;}
+.empty .ei{width:48px;height:48px;border-radius:var(--radius-lg);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);}
+.empty .ei i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:38ch;}
+.skl{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);animation:shim 1.3s var(--ease-standard) infinite;}
+@keyframes shim{0%,100%{opacity:1}50%{opacity:.5}}
+/* popover menu */
+.menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:208px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-2);display:flex;flex-direction:column;gap:var(--space-1);}
+.menu .ml{font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);padding:var(--space-1) var(--space-2);}
+.menu button{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;}
+.menu button:hover{background:var(--bg-surface-sunken);}
+.menu button i{width:15px;height:15px;}
+.menu .div{height:1px;background:var(--border-subtle);margin:var(--space-1) 0;}
+.relpos{position:relative;}
+/* toast */
+.toast{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);font-size:var(--text-sm);}
+.toast i.lead{width:18px;height:18px;flex:none;}
+.toast.suc i.lead{color:var(--status-success);}
+.toast .tt{font-weight:var(--weight-medium);}
+.toast .ta{margin-left:var(--space-2);color:var(--brand-primary);font-weight:var(--weight-medium);cursor:pointer;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+const Button = ({children,leadingIcon,trailingIcon,variant,size,disabled,onClick})=>
+  <button className={"btn btn--"+(variant||"primary")+(size?" btn--"+size:"")} disabled={disabled} onClick={onClick}>
+    {leadingIcon&&<i data-lucide={leadingIcon}></i>}{children}{trailingIcon&&<i data-lucide={trailingIcon}></i>}</button>;
+
+/* ---- Reusable admin shell (tokens-only frame; TENANT surface) ---- */
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined} href="#">
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood Academy · Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Overview</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active={active}/>
+          <Nav icon="rocket" label="Onboarding" route="/onboarding" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Management</div>
+          <Nav icon="users" label="Users" route="/users" active={active}/>
+          <Nav icon="school" label="Classes" route="/classes" active={active}/>
+          <Nav icon="shield-check" label="Staff & Permissions" route="/staff" active={active}/>
+          <Nav icon="file-check" label="Exams" route="/exams" active={active}/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active={active}/>
+          <Nav icon="book-open" label="Courses" route="/courses" active={active}/>
+          <Nav icon="calendar-range" label="Academic Sessions" route="/academic-sessions" active={active}/>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Analytics</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active={active}/>
+          <Nav icon="file-text" label="Reports" route="/reports" active={active}/>
+          <Nav icon="sparkles" label="AI Usage" route="/ai-usage" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Configuration</div>
+          <Nav icon="bell" label="Notifications" route="/notifications" active={active}/>
+          <Nav icon="download" label="Data Export" route="/data-export" active={active}/>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="building"></i><span>Switch tenant</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">AK</div>
+          <div><div className="nm">Anita Kapoor</div><div className="rl">Tenant Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">{crumb.map((c,i)=>(
+          <React.Fragment key={i}>{i>0&&<i data-lucide="chevron-right" style={{width:14,height:14}}></i>}{i===crumb.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>))}</nav>
+        <div className="sp"></div>
+        {/* single-tenant context label — tenantAdmin belongs to ONE tenant, NOT a cross-tenant switcher */}
+        <div className="ax-tenant"><i data-lucide="building-2"></i>Northwood Academy</div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn" aria-label="Toggle theme"><i data-lucide="sun"></i></button>
+        <button className="icon-btn" aria-label="Notifications, 3 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- sample data (server-authoritative ClassProgressSummary rollups; render-only) ---- */
+const CLASSES=[
+  {id:"10A",label:"10-A",exam:84,completion:71,atRisk:1,students:34},
+  {id:"10B",label:"10-B",exam:78,completion:66,atRisk:2,students:31},
+  {id:"9C", label:"9-C", exam:72,completion:58,atRisk:3,students:29},
+  {id:"9A", label:"9-A", exam:69,completion:54,atRisk:2,students:33},
+  {id:"8B", label:"8-B", exam:61,completion:47,atRisk:4,students:28},
+];
+const MASTERY=[
+  {key:"ns",label:"Not started",count:412,pct:40,icon:"circle-dashed"},
+  {key:"ip",label:"In progress",count:391,pct:38,icon:"loader"},
+  {key:"ms",label:"Mastered",count:227,pct:22,icon:"check-circle-2"},
+];
+const INSIGHTS=[
+  {id:"i1",priority:"high",tone:"err",picon:"alert-triangle",icon:"git-branch",
+    title:"12 students struggling with Recursion",
+    desc:"In the Data Structures space, completion stalls at the Recursion story point across 9-C and 8-B.",
+    action:"Open space",aicon:"layers"},
+  {id:"i2",priority:"medium",tone:"warn",picon:"alert-circle",icon:"trending-up",
+    title:"Class 10-B improving week over week",
+    desc:"Average exam score rose 6 points over the last two graded exams. Worth a follow-up review.",
+    action:"Review exam",aicon:"file-check"},
+  {id:"i3",priority:"low",tone:"inf",picon:"info",icon:"clock",
+    title:"4 students inactive for over 7 days",
+    desc:"No space activity or exam attempts recorded this week in 8-B. Consider a check-in.",
+    action:"View students",aicon:"users"},
+];
+const DRILL={
+  "10A":{exam:84,students:34,atRisk:1,completion:71,
+    top:[["Asha Verma","AV",94],["Liam Carter","LC",91],["Nina Roy","NR",88]],
+    bottom:[["Rohan Das","RD",52],["Tara Singh","TS",58],["Ivan Petrov","IP",61]],
+    roster:[["Rohan Das","RD","NWA-3142",["Low exam score","Declining performance"]]]},
+  "10B":{exam:78,students:31,atRisk:2,completion:66,
+    top:[["Maya Iyer","MI",92],["Sam Cole","SC",89],["Aria Khan","AK",86]],
+    bottom:[["Rahul Mehta","RM",41],["Leo Park","LP",55],["Zoe Wu","ZW",59]],
+    roster:[["Rahul Mehta","RM","NWA-3211",["Low exam score","Zero streak"]],
+            ["Leo Park","LP","NWA-3219",["Low space completion"]]]},
+  "9C":{exam:72,students:29,atRisk:3,completion:58,
+    top:[["Ben Adeyemi","BA",90],["Sofia Ruiz","SR",85],["Kai Tan","KT",83]],
+    bottom:[["Ella Brooks","EB",44],["Omar Aziz","OA",49],["Jay Patel","JP",54]],
+    roster:[["Ella Brooks","EB","NWA-3303",["Low exam score","Low space completion"]],
+            ["Omar Aziz","OA","NWA-3318",["Declining performance"]],
+            ["Jay Patel","JP","NWA-3327",["Zero streak"]]]},
+};
+
+function ClassBarChart({title,sub,field,err,domId}){
+  const max=Math.max(...CLASSES.map(c=>c[field]));
+  const hi=CLASSES.reduce((a,c)=>c[field]>a[field]?c:a,CLASSES[0]);
+  const lo=CLASSES.reduce((a,c)=>c[field]<a[field]?c:a,CLASSES[0]);
+  const unit=field==="atRisk"?"":"%";
+  return <div className="panel">
+    <div className="ph"><span className="pt">{title}</span><span className="psub">{sub}</span></div>
+    <div className="pb">
+      <div className="chart" role="img"
+        aria-label={title+". Highest "+hi.label+" "+hi[field]+unit+", lowest "+lo.label+" "+lo[field]+unit+"."}>
+        {CLASSES.map(c=>(
+          <div className="col" key={c.id} tabIndex="0" aria-label={c.label+", "+c[field]+unit}>
+            <span className="vl">{c[field]}{unit}</span>
+            <div className={"bar"+(err?" err":"")} style={{height:Math.round(c[field]/max*100)+"%"}}></div>
+            <span className="xl">{c.label}</span>
+          </div>))}
+      </div>
+      <table className="ax-sr"><caption>{title}</caption><thead><tr><th>Class</th><th>Value</th></tr></thead>
+        <tbody>{CLASSES.map(c=><tr key={c.id}><td>{c.label}</td><td>{c[field]}{unit}</td></tr>)}</tbody></table>
+    </div>
+  </div>;
+}
+
+function Screen(){
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  const [sel,setSel]=React.useState("10B");          // drill-down class (toggle, aria-pressed)
+  const [exportOpen,setExportOpen]=React.useState(false);
+  const [toast,setToast]=React.useState(null);       // null | "preparing" | "ready"
+  const d=DRILL[sel];
+
+  const doExport=(scope)=>{
+    setExportOpen(false);
+    setToast("preparing");
+    setTimeout(()=>setToast("ready"),900);
+  };
+  const selectClass=(id)=> setSel(s=> s===id ? null : id);  // re-click deselects
+
+  return <Shell active="/analytics" crumb={["Academy","Analytics"]}>
+
+    {/* Page header */}
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Analytics</h1>
+        <div className="ax-sub">Student performance, progress, and at-risk indicators for Northwood Academy.</div></div>
+      <div className="ac">
+        <div className="relpos">
+          <Button variant="secondary" leadingIcon="download" trailingIcon="chevron-down" onClick={()=>setExportOpen(o=>!o)}>Export</Button>
+          {exportOpen && <div className="menu" role="menu">
+            <div className="ml">Export report (PDF)</div>
+            <button role="menuitem" onClick={()=>doExport("academy")}><i data-lucide="building-2"></i>Whole academy</button>
+            <button role="menuitem" onClick={()=>doExport("class")}><i data-lucide="school"></i>Current class ({sel||"none selected"})</button>
+            <div className="div"></div>
+            <div className="ml" style={{textTransform:"none",letterSpacing:0}}><i data-lucide="shield" style={{width:12,height:12,verticalAlign:"-2px",marginRight:4}}></i>Audited · expires in 1 hour</div>
+          </div>}
+        </div>
+        <button className="icon-btn" aria-label="Refresh analytics"><i data-lucide="refresh-cw"></i></button>
+      </div>
+    </div>
+
+    {/* KPI ROW — 4 headline cards; values server-authoritative, labeled "as of" (§8 honest numbers) */}
+    <div className="ax-grid ax-g4">
+      <div className="card kpi"><div className="lh"><i data-lucide="file-check"></i><span>Avg Exam Score</span></div>
+        <div className="vv">78%</div><div className="asof">as of 09:40, 20 Jun</div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="layers"></i><span>Avg Space Completion</span></div>
+        <div className="vv">64%</div><div className="asof">as of 09:40, 20 Jun</div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="alert-triangle"></i><span>At-Risk Students</span></div>
+        <div className="vv">12</div>
+        <div className="sl" style={{color:"var(--status-error)"}}><i data-lucide="alert-triangle"></i><span>Needs attention</span></div></div>
+      <div className="card kpi"><div className="lh"><i data-lucide="graduation-cap"></i><span>Total Students</span></div>
+        <div className="vv">1,030</div><div className="asof">across 5 classes</div></div>
+    </div>
+
+    {/* CHARTS — exam performance + space completion by class */}
+    <div className="ax-grid ax-g2">
+      <ClassBarChart title="Exam performance by class" sub="Average exam score" field="exam"/>
+      <ClassBarChart title="Space completion by class" sub="Average space completion" field="completion"/>
+    </div>
+
+    {/* AT-RISK & MASTERY */}
+    <div className="ax-grid ax-g2">
+      <ClassBarChart title="At-risk students by class" sub="Count of flagged students" field="atRisk" err={true}/>
+      <div className="panel">
+        <div className="ph"><span className="pt">Mastery distribution</span><span className="psub">1,030 story points tracked</span></div>
+        <div className="pb ax-col">
+          <div className="mseg" role="img" aria-label="Mastery distribution: not started 40%, in progress 38%, mastered 22%.">
+            <span className="ns" style={{width:"40%"}}></span>
+            <span className="ip" style={{width:"38%"}}></span>
+            <span className="ms" style={{width:"22%"}}></span>
+          </div>
+          <div className="mleg">
+            {MASTERY.map(m=>(
+              <div className="li" key={m.key}>
+                <span className={"dot "+m.key}></span>
+                <i data-lucide={m.icon} style={{width:14,height:14,color:"var(--text-muted)"}}></i>
+                <span className="ll">{m.label}</span>
+                <span className="lv">{m.count} · {m.pct}%</span>
+              </div>))}
+          </div>
+          <table className="ax-sr"><caption>Mastery distribution</caption><tbody>
+            {MASTERY.map(m=><tr key={m.key}><td>{m.label}</td><td>{m.count}</td><td>{m.pct}%</td></tr>)}</tbody></table>
+        </div>
+      </div>
+    </div>
+
+    {/* INSIGHTS */}
+    <div className="ax-col" style={{gap:"var(--space-3)"}}>
+      <div className="sec-h"><span className="st">Insights</span>
+        <span className="sca">Top active signals · server-derived · read-only</span></div>
+      {INSIGHTS.map(n=>(
+        <div className="insight" key={n.id}>
+          <div className={"ic "+n.tone}><i data-lucide={n.icon}></i></div>
+          <div className="ib">
+            <div className="ir" style={{marginTop:0}}>
+              <span className="it">{n.title}</span>
+              <span className={"badge "+n.tone}><i data-lucide={n.picon}></i>{n.priority==="high"?"High":n.priority==="medium"?"Medium":"Low"}</span>
+            </div>
+            <div className="id">{n.desc}</div>
+            <div className="ir"><Button variant="ghost" size="sm" leadingIcon={n.aicon}>{n.action}</Button></div>
+          </div>
+        </div>))}
+    </div>
+
+    {/* CLASS DRILL-DOWN */}
+    <div className="ax-col" style={{gap:"var(--space-3)"}}>
+      <div className="sec-h"><span className="st">Class detail</span>
+        <span className="sca">Select a class to view detailed analytics.</span></div>
+      <div className="panel">
+        <div className="ph"><span className="pt" style={{fontSize:"var(--text-sm)",marginRight:0}}>Class</span>
+          <div className="ax-row ax-wrap" role="group" aria-label="Class selector" style={{flex:1,flexWrap:"wrap"}}>
+            {CLASSES.map(c=>(
+              <button key={c.id} className="chip" aria-pressed={sel===c.id} onClick={()=>selectClass(c.id)}>
+                {sel===c.id && <i data-lucide="check" style={{width:13,height:13}}></i>}{c.label}</button>))}
+          </div>
+        </div>
+
+        {d ? <div className="pb ax-col" style={{gap:"var(--space-5)"}}>
+          {/* 4-up stat block with ProgressRing */}
+          <div className="ax-grid ax-g4">
+            <div className="dstat" style={{alignItems:"center",textAlign:"center"}}>
+              <div className="dl">Exam Avg</div>
+              <div className="ring" style={{"--pct":d.exam+"%"}}><span className="rv">{d.exam}%</span></div>
+            </div>
+            <div className="dstat"><div className="dl">Students</div><div className="dv">{d.students}</div></div>
+            <div className="dstat"><div className="dl">At-Risk</div>
+              <div className="dv" style={{color:d.atRisk>0?"var(--status-error)":"var(--status-success)"}}>{d.atRisk}</div>
+              <span className={"atrisk "+(d.atRisk>0?"r":"o")} style={{alignSelf:"flex-start"}}>
+                <i data-lucide={d.atRisk>0?"alert-triangle":"check-circle-2"}></i>{d.atRisk>0?"Needs attention":"All on track"}</span></div>
+            <div className="dstat"><div className="dl">Completion Rate</div><div className="dv">{d.completion}%</div></div>
+          </div>
+
+          {/* top / bottom performers */}
+          <div className="ax-grid ax-g2">
+            <div><div className="sec-label" style={{marginTop:0,marginBottom:"var(--space-2)"}}><i data-lucide="trophy"></i>Top performers</div>
+              {d.top.map(([nm,in_,v])=>(
+                <div className="prow" key={nm}><div className="av-sm">{in_}</div><span className="pn">{nm}</span><span className="pv hi">{v}%</span></div>))}
+            </div>
+            <div><div className="sec-label" style={{marginTop:0,marginBottom:"var(--space-2)"}}><i data-lucide="trending-down"></i>Needs improvement</div>
+              {d.bottom.map(([nm,in_,v])=>(
+                <div className="prow" key={nm}><div className="av-sm">{in_}</div><span className="pn">{nm}</span><span className="pv lo">{v}%</span></div>))}
+            </div>
+          </div>
+
+          {/* at-risk roster — each row deep-links to /students/:id */}
+          <div>
+            <div className="sec-label" style={{marginTop:0,marginBottom:"var(--space-2)"}}><i data-lucide="user-x"></i>At-risk roster</div>
+            <div className="ax-col" style={{gap:"var(--space-2)"}}>
+              {d.roster.map(([nm,in_,roll,reasons])=>(
+                <a className="rrow" key={nm} href="#" aria-label={"Open student "+nm}>
+                  <div className="av-sm">{in_}</div>
+                  <div><div className="rn">{nm}</div><div className="rr ax-mono">{roll}</div></div>
+                  <div className="rar">
+                    <span className="ax-sec" style={{fontSize:"var(--text-2xs)"}} title={reasons.join(", ")}>{reasons.join(" · ")}</span>
+                    <span className="atrisk r" role="status"><i data-lucide="alert-triangle"></i>At Risk</span>
+                    <i data-lucide="chevron-right" style={{width:16,height:16,color:"var(--text-muted)"}}></i>
+                  </div>
+                </a>))}
+            </div>
+          </div>
+        </div>
+        : <div className="empty">
+            <div className="ei"><i data-lucide="mouse-pointer-click"></i></div>
+            <div className="et">Select a class above to view detailed analytics</div>
+            <div className="eb">Pick a class from the selector to see its top and bottom performers, completion rate, and at-risk roster.</div>
+          </div>}
+      </div>
+    </div>
+
+    {/* ===== Secondary stacked examples: the spec's other §5 states ===== */}
+    <div className="sec-label"><i data-lucide="layers-2"></i>Other states (reference)</div>
+
+    {/* PARTIAL — a class summary is stale / recomputing (§5 Partial · §8 honest numbers) */}
+    <div className="alert info" role="status">
+      <i data-lucide="clock" className="lead"></i>
+      <div className="ab"><span className="at">This class summary is being recomputed — last updated 6 minutes ago. </span>
+        <span className="ax-sec">Headline KPIs are labeled "as of" their snapshot time; stale values are never shown as live.</span></div>
+    </div>
+
+    {/* ERROR — query isError (§5 Error) */}
+    <div className="alert err" role="alert">
+      <i data-lucide="alert-circle" className="lead"></i>
+      <div className="ab"><span className="at">Failed to load analytics. </span>
+        <span className="ax-sec">An unexpected error occurred while loading analytics.</span></div>
+      <span className="lnk">Try again →</span>
+    </div>
+
+    {/* PERMISSION-GATED — server re-checks membership; client gate never trusted alone (§5 · §8) */}
+    <div className="alert err" role="alert">
+      <i data-lucide="lock" className="lead"></i>
+      <div className="ab"><span className="at">Analytics are restricted to academy administrators. </span>
+        <span className="ax-sec">The server independently verifies your tenant-admin membership for this academy.</span></div>
+    </div>
+
+    {/* EMPTY — no insights yet (§5 Empty) */}
+    <div className="panel"><div className="empty">
+      <div className="ei"><i data-lucide="lightbulb"></i></div>
+      <div className="et">No insights yet</div>
+      <div className="eb">They appear as students complete exams and spaces.</div>
+    </div></div>
+
+    {/* LOADING skeleton — mirrors KPI + chart layout (§5 Loading) */}
+    <div className="ax-grid ax-g4" aria-busy="true" aria-label="Loading analytics">
+      {[0,1,2,3].map(i=>(
+        <div className="card kpi" key={i}>
+          <div className="skl" style={{width:120,height:11}}></div>
+          <div className="skl" style={{width:84,height:26}}></div>
+          <div className="skl" style={{width:96,height:10}}></div>
+        </div>))}
+    </div>
+    <div className="ax-grid ax-g2" aria-hidden="true">
+      {[0,1].map(i=>(
+        <div className="panel" key={i}><div className="ph"><div className="skl" style={{width:180,height:13}}></div></div>
+          <div className="pb"><div className="skl" style={{width:"100%",height:172,borderRadius:"var(--radius-md)"}}></div></div></div>))}
+    </div>
+
+    {/* Export toast (success path of the audited export side-effect) */}
+    {toast && <div style={{position:"fixed",right:"var(--space-8)",bottom:"var(--space-8)",zIndex:60}}>
+      {toast==="preparing"
+        ? <div className="toast"><i data-lucide="loader" className="lead" style={{color:"var(--brand-primary)"}}></i>
+            <span className="tt">Preparing report…</span></div>
+        : <div className="toast suc"><i data-lucide="check-circle-2" className="lead"></i>
+            <span className="tt">Report ready</span><span className="ta" onClick={()=>setToast(null)}>Download</span></div>}
+    </div>}
+
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

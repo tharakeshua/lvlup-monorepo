@@ -22,6 +22,7 @@ export { processAnswerMappingService } from "./pipeline/process-answer-mapping.j
 export { processAnswerGradingService } from "./pipeline/process-answer-grading.js";
 export { finalizeSubmissionService, gradeFor } from "./pipeline/finalize-submission.js";
 export { resolveRubricService } from "./pipeline/resolve-rubric.js";
+export { getAutogradeEvaluationConfigService } from "./get-evaluation-config.js";
 // AG-5 live grading ticker — the RTDB projection port (FIX-2 wires the concrete
 // Admin-RTDB adapter onto `ctx.repos.gradingProjections`) + the pure count reducer
 // the adapter's exam-aggregate transaction reuses.
@@ -36,6 +37,15 @@ export type {
   ExamGradingAggregate,
   ExamBucket,
 } from "./pipeline/grading-projection.js";
+
+// Live question-extraction ticker — the RTDB projection port (composition root
+// wires the concrete Admin-RTDB adapter onto `ctx.repos.extractionProjections`).
+export { projectExtractionStatus, bumpRubricsGenerated } from "./pipeline/extraction-projection.js";
+export type {
+  ExtractionProjectionPort,
+  ExtractionStatusProjection,
+  ExtractionPhase,
+} from "./pipeline/extraction-projection.js";
 
 // reads
 export {

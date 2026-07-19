@@ -15,34 +15,38 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { useApi } from "../provider/useApi.js";
-import { chatKeys } from "../keys/registry.js";
+import { chatKeys, conversationKeys } from "../keys/registry.js";
 import { useSubscription, type UseSubscriptionResult } from "../realtime/useSubscription.js";
 
 /** Trailing debounce before the bump-triggered refetch (coalesces bump bursts). */
 export const CHAT_BUMP_DEBOUNCE_MS = 250;
+/** Conversation uses the same RTDB bump node and deliberately the same debounce. */
+export const CONVERSATION_BUMP_DEBOUNCE_MS = CHAT_BUMP_DEBOUNCE_MS;
+
+interface BumpHandlerOptions {
+  debounceMs?: number;
+  onPayload?: (payload: unknown, qc: QueryClient) => void;
+}
 
 /**
- * Pure bump-handler factory (exported for unit tests). Each bump payload is
- * forwarded to the optional caller `onPayload`, then a TRAILING debounce
- * invalidates the session-detail key — the user+assistant double-bump of one
- * tutor turn coalesces into a single `getChatSession` refetch.
+ * Common signal-only handler for RTDB bumps. The payload is never cached as
+ * conversation/chat data: the callback may observe it, then the authoritative
+ * callable query is invalidated after a trailing debounce.
  */
-export function createChatBumpHandler(
-  sessionId: string,
-  opts?: {
-    debounceMs?: number;
-    onPayload?: (payload: unknown, qc: QueryClient) => void;
-  }
+export function createBumpRefetchHandler(
+  queryKey: readonly unknown[],
+  opts?: BumpHandlerOptions
 ): { handle: (payload: unknown, qc: QueryClient) => void; cancel: () => void } {
   const delay = opts?.debounceMs ?? CHAT_BUMP_DEBOUNCE_MS;
   let timer: ReturnType<typeof setTimeout> | null = null;
+
   return {
     handle(payload: unknown, qc: QueryClient): void {
       opts?.onPayload?.(payload, qc);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         timer = null;
-        void qc.invalidateQueries({ queryKey: chatKeys.detail(sessionId) });
+        void qc.invalidateQueries({ queryKey });
       }, delay);
     },
     cancel(): void {
@@ -52,6 +56,19 @@ export function createChatBumpHandler(
       }
     },
   };
+}
+
+/**
+ * Pure bump-handler factory (exported for unit tests). Each bump payload is
+ * forwarded to the optional caller `onPayload`, then a TRAILING debounce
+ * invalidates the session-detail key — the user+assistant double-bump of one
+ * tutor turn coalesces into a single `getChatSession` refetch.
+ */
+export function createChatBumpHandler(
+  sessionId: string,
+  opts?: BumpHandlerOptions
+): { handle: (payload: unknown, qc: QueryClient) => void; cancel: () => void } {
+  return createBumpRefetchHandler(chatKeys.detail(sessionId), opts);
 }
 
 /**
@@ -76,6 +93,28 @@ export function useChatStream(
       }),
     [sessionId]
   );
+  useEffect(() => () => handler.cancel(), [handler]);
+  return useSubscription("v1.levelup.chatStream", { sessionId } as never, handler.handle as never);
+}
+
+/**
+ * Conversation's RTDB integration is a bump/refetch signal only. It listens to
+ * the existing owner-scoped `chatBump/{tenant}/{owner}/{session}` transport
+ * channel and invalidates the session-detail prefix, which also covers every
+ * transcript-page child key. Status/messages/results remain callable data.
+ */
+export function createConversationBumpHandler(
+  sessionId: string,
+  opts?: BumpHandlerOptions
+): { handle: (payload: unknown, qc: QueryClient) => void; cancel: () => void } {
+  return createBumpRefetchHandler(conversationKeys.detail(sessionId), {
+    debounceMs: opts?.debounceMs ?? CONVERSATION_BUMP_DEBOUNCE_MS,
+    onPayload: opts?.onPayload,
+  });
+}
+
+export function useConversationBump(sessionId: string): UseSubscriptionResult {
+  const handler = useMemo(() => createConversationBumpHandler(sessionId), [sessionId]);
   useEffect(() => () => handler.cancel(), [handler]);
   return useSubscription("v1.levelup.chatStream", { sessionId } as never, handler.handle as never);
 }

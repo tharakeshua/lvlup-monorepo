@@ -47,6 +47,7 @@ import {
   type GetLeaderboardRequest,
   type GetLeaderboardResponse,
   type GetPerformanceTrendsRequest,
+  type GetSpaceAnalyticsResponse,
   type HealthSummary,
   type ListInsightsRequest,
   type ListLinkedChildrenRequest,
@@ -108,6 +109,16 @@ export function useExamAnalytics(examId: ExamId): UseQueryResult<ExamAnalytics> 
     queryKey: analyticsQueryKeys.examAnalytics(String(examId)),
     queryFn: () => analyticsRepos(repos).examAnalyticsRepo.get(examId),
     enabled: Boolean(examId),
+  });
+}
+
+/** Canonical per-space completion and engagement projection (teacher/admin). */
+export function useSpaceAnalytics(spaceId: string): UseQueryResult<GetSpaceAnalyticsResponse> {
+  const { repos } = useApi();
+  return useQuery({
+    queryKey: analyticsQueryKeys.spaceAnalytics(spaceId),
+    queryFn: () => analyticsRepos(repos).spaceAnalyticsRepo.get(spaceId),
+    enabled: Boolean(spaceId),
   });
 }
 

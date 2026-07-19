@@ -1,0 +1,537 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Student Home Dashboard ★" subtitle="Warm B2B front door · momentum · next best action" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Home Dashboard ★</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  #root, .appshell { height: 100%; }
+  html, body { height: 100%; }
+
+  .greet__title { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); margin: 0; letter-spacing: var(--tracking-display); }
+  .greet__sub { color: var(--text-secondary); font-size: var(--text-base); margin-top: var(--space-1); }
+
+  .home { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1200px; }
+
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .kpi-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); }
+  .kpi-card__top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); }
+  .kpi-card__icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .kpi-card__icon--spark { background: var(--spark-subtle); color: var(--spark); }
+
+  .row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-6); align-items: stretch; }
+  .row-even { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+
+  .resume { display: flex; flex-direction: column; gap: var(--space-4); height: 100%; }
+  .resume__eyebrow { font-size: var(--text-2xs); font-weight: var(--weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  .resume__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); margin: 0; }
+  .resume__media { display: flex; gap: var(--space-4); align-items: center; }
+  .resume__ring { flex: 0 0 auto; }
+  .resume__cta-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; margin-top: auto; }
+
+  .gami { display: flex; flex-direction: column; gap: var(--space-4); }
+  .gami__head { display: flex; align-items: center; gap: var(--space-3); }
+  .gami__ach-row { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .chip-block { display: flex; flex-direction: column; gap: var(--space-3); }
+  .chip-block__label { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); }
+
+  .quick-stats { display: flex; flex-direction: column; gap: var(--space-4); }
+  .quick-stats__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+  .list-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid transparent; transition: background-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); text-decoration: none; color: inherit; cursor: pointer; }
+  .list-row:hover { background: var(--bg-surface-sunken); }
+  .list-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .list-row__title { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-primary); }
+  .list-row__sub { font-size: var(--text-xs); color: var(--text-muted); }
+  .list-row__chev { color: var(--text-muted); display: inline-flex; transition: transform var(--dur-fast) var(--ease-standard); }
+  .list-row:hover .list-row__chev { transform: translateX(3px); color: var(--text-secondary); }
+
+  .insights-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+  .spaces-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .space-wrap { position: relative; }
+  .space-wrap .space-card { transition: box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard); }
+  .space-wrap:hover .space-card { box-shadow: var(--shadow-e2); transform: translateY(-2px); }
+  .space-prog { position: absolute; right: var(--space-4); bottom: var(--space-4); }
+
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-transform: none; letter-spacing: 0.02em; margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-band__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+
+  .divider { height: 1px; background: var(--border-subtle); border: none; margin: var(--space-2) 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .list-row, .space-wrap .space-card, .list-row__chev { transition: none !important; }
+    .countup { animation: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Card, Section, Panel, Avatar, Badge, Chip,
+    ProgressRing, ProgressBar, SpaceCard, XPMeter, LevelBadge, StreakFlame,
+    Achievement, AtRiskBadge, InsightCard, GradePill, EmptyState, Skeleton,
+    Alert, Drawer, Tooltip, CommandPalette, NavItem
+  } = LU;
+
+  const { useState, useEffect, useRef } = React;
+
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- CountUp for KPI mono numerics (mount only, reduced-motion safe) ---- */
+  function CountUp({ end, suffix, decimals }) {
+    const [val, setVal] = useState(reduceMotion ? end : 0);
+    useEffect(() => {
+      if (reduceMotion) return;
+      let raf, start;
+      const dur = 700;
+      const step = (t) => {
+        if (start == null) start = t;
+        const p = Math.min(1, (t - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setVal(end * eased);
+        if (p < 1) raf = requestAnimationFrame(step);
+        else setVal(end);
+      };
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }, [end]);
+    const shown = decimals ? val.toFixed(decimals) : Math.round(val);
+    return <span className="countup">{shown}{suffix || ""}</span>;
+  }
+
+  function KpiCard({ icon, spark, label, value, suffix, decimals, sub, ariaText }) {
+    return (
+      <div className="kpi-card" role="group" aria-label={ariaText}>
+        <div className="kpi-card__top">
+          <span className={"kpi-card__icon" + (spark ? " kpi-card__icon--spark" : "")}>
+            <Icon name={icon} size={16}/>
+          </span>
+          <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>{label}</span>
+        </div>
+        <div className="stat__value" style={{ fontSize: "var(--text-3xl)" }} aria-hidden="true">
+          <CountUp end={value} suffix={suffix} decimals={decimals}/>
+        </div>
+        {sub && <div className="u-caption" style={{ color: "var(--text-muted)" }}>{sub}</div>}
+      </div>
+    );
+  }
+
+  function ListRow({ title, sub, trailing }) {
+    return (
+      <a className="list-row" href="#" onClick={(e)=>e.preventDefault()}>
+        <div className="list-row__main">
+          <span className="list-row__title">{title}</span>
+          <span className="list-row__sub">{sub}</span>
+        </div>
+        {trailing}
+        <span className="list-row__chev"><Icon name="chevron-right" size={18}/></span>
+      </a>
+    );
+  }
+
+  /* ---- Sidebar (composed from CSS classes — no AppShell component) ---- */
+  function Sidebar() {
+    const nav = [
+      { icon: "layout-dashboard", label: "Dashboard", active: true },
+      { icon: "book-open", label: "My Spaces" },
+      { icon: "trending-up", label: "Progress" },
+      { icon: "file-check", label: "Exams" },
+      { icon: "award", label: "Achievements" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map((n) => (
+            <NavItem key={n.label} icon={n.icon} active={n.active} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div className="sidebar__section-label">School</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="users" href="#">Class · Grade 10-B</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+            <Avatar initials="AK" size="sm"/>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)" }}>Aisha Khan</div>
+              <div className="u-caption" style={{ color:"var(--text-muted)" }}>SUB001 · Student</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenPalette, onOpenAchievements }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          <Input placeholder="Search spaces, exams…  ⌘K" onFocus={onOpenPalette}/>
+        </div>
+        <div className="topbar__spacer"/>
+        <Tooltip><IconButton icon={<Icon name="command" size={18}/>} label="Command palette (⌘K)" onClick={onOpenPalette}/></Tooltip>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <button className="list-row" style={{ padding:"var(--space-1) var(--space-2)" }} onClick={onOpenAchievements}>
+          <Avatar initials="AK" size="sm"/>
+          <Icon name="chevron-down" size={16}/>
+        </button>
+      </header>
+    );
+  }
+
+  /* ====================== STATE PREVIEW BLOCKS ====================== */
+  function LoadingState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your dashboard">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading skeleton — “Loading your dashboard…”</div>
+        <div className="skel-kpi" style={{ marginBottom: "var(--space-4)" }}>
+          {[0,1,2,3].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="60%" height="0.7rem"/>
+              <Skeleton width="40%" height="1.6rem"/>
+              <Skeleton width="70%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+        <div className="row-even">
+          <div className="skel-card">
+            <Skeleton width="50%" height="1rem"/>
+            <Skeleton width="100%" height="0.7rem"/>
+            <Skeleton width="90%" height="0.7rem"/>
+            <Skeleton variant="text" width="35%" height="2.2rem"/>
+          </div>
+          <div className="skel-card">
+            <div style={{ display:"flex", gap:"var(--space-3)", alignItems:"center" }}>
+              <Skeleton variant="circle" width="48px" height="48px"/>
+              <Skeleton width="55%" height="1rem"/>
+            </div>
+            <Skeleton width="100%" height="0.6rem"/>
+            <Skeleton width="80%" height="0.6rem"/>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function EmptyStateBlock() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="sparkles" size={13}/> State: empty (new learner) — warm, never blank</div>
+        <h2 className="greet__title" style={{ fontSize:"var(--text-2xl)" }}>Welcome back, Aisha 👋</h2>
+        <div className="greet__sub" style={{ marginBottom:"var(--space-4)" }}>Ready to pick up where you left off?</div>
+        <div className="state-band__grid" style={{ marginBottom:"var(--space-4)" }}>
+          <Panel title="Active Spaces"><div className="stat__value">0</div></Panel>
+          <Panel title="School Code"><div className="stat__value" style={{ fontSize:"var(--text-2xl)" }}>SUB001</div></Panel>
+        </div>
+        <EmptyState
+          icon="book-open"
+          title="No spaces yet"
+          body="Your learning spaces will appear here once your teacher assigns them. In the meantime, explore your profile."
+          action={<Button variant="secondary" leadingIcon={<Icon name="user" size={16}/>}>Explore your profile</Button>}
+        />
+      </div>
+    );
+  }
+
+  function PartialState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="layers" size={13}/> State: partial — spaces loaded, stats didn’t</div>
+        <Alert variant="warning" title="We couldn’t load your stats just now">
+          Your spaces are still here. <a href="#" onClick={(e)=>e.preventDefault()} style={{ color:"var(--brand-primary)", fontWeight:"var(--weight-semibold)" }}>Retry</a>
+        </Alert>
+        <div className="spaces-grid" style={{ marginTop:"var(--space-4)" }}>
+          <div className="space-wrap">
+            <SpaceCard title="Data Structures & Algorithms" description="Arrays, trees, recursion & graphs." points={12} progress={64}/>
+            <div className="space-prog"><ProgressRing value={64} size={48}/></div>
+          </div>
+          <div className="space-wrap">
+            <SpaceCard title="System Design" description="Scalability, caching & trade-offs." points={9} progress={28} spark/>
+            <div className="space-prog"><ProgressRing value={28} size={48}/></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ErrorState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: error (whole summary)</div>
+        <EmptyState
+          icon="cloud-off"
+          title="We’re having trouble loading your dashboard"
+          body="Let’s try again — this one’s on us, not you."
+          action={<Button variant="primary" leadingIcon={<Icon name="rotate-cw" size={16}/>}>Retry</Button>}
+        />
+      </div>
+    );
+  }
+
+  /* ====================== SUCCESS (primary) ====================== */
+  function SuccessHome({ onOpenAchievements }) {
+    return (
+      <div className="home">
+        {/* GREETING */}
+        <div>
+          <h1 className="greet__title">Good morning, Aisha 👋</h1>
+          <p className="greet__sub">You’re on a 6-day streak — let’s keep it going 🔥</p>
+        </div>
+
+        {/* KPI STRIP */}
+        <section aria-label="Your key stats" className="kpi-strip">
+          <KpiCard icon="gauge" label="Overall Score" value={82} suffix="%" ariaText="Overall score: 82 percent" sub="across learning + exams"/>
+          <KpiCard icon="file-check" label="Avg Exam Score" value={78} suffix="%" ariaText="Average exam score: 78 percent" sub="9 exams completed"/>
+          <KpiCard icon="book-open" label="Space Completion" value={47} suffix="%" ariaText="Space completion: 47 percent" sub="2 / 4 spaces done"/>
+          <KpiCard icon="flame" spark label="Current Streak" value={6} suffix="d" ariaText="Current streak: 6 days" sub="best: 11d"/>
+        </section>
+
+        {/* NEXT ACTION + GAMIFICATION */}
+        <div className="row-2">
+          <Card>
+            <div className="resume">
+              <div className="resume__eyebrow">Next best action</div>
+              <h2 className="resume__title">Pick up where you left off</h2>
+              <div className="resume__media">
+                <div className="resume__ring"><ProgressRing value={64} size={72} label="64%"/></div>
+                <div>
+                  <div style={{ fontWeight:"var(--weight-semibold)", fontSize:"var(--text-base)" }}>Data Structures &amp; Algorithms</div>
+                  <div className="u-caption" style={{ color:"var(--text-muted)", marginTop:2 }}>Story point 5 of 12 · Recursion</div>
+                  <div style={{ display:"flex", gap:"var(--space-2)", marginTop:"var(--space-2)" }}>
+                    <Badge variant="brand" icon={<Icon name="zap" size={12}/>}>In progress</Badge>
+                    <Badge icon={<Icon name="clock" size={12}/>}>~15 min left</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="resume__cta-row">
+                <Button variant="spark" size="lg" trailingIcon={<Icon name="arrow-right" size={18}/>}>Continue: Recursion</Button>
+                <Button variant="ghost" trailingIcon={<Icon name="chevron-right" size={16}/>}>View full progress</Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="gami">
+              <div className="gami__head">
+                <LevelBadge level={7} spark/>
+                <div style={{ flex:1 }}><XPMeter level={7} xp={640} next={900}/></div>
+              </div>
+              <div className="divider"/>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)", color:"var(--text-secondary)" }}>Streak</span>
+                <StreakFlame days={6}/>
+              </div>
+              <div className="divider"/>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)", color:"var(--text-secondary)" }}>Recent badges</span>
+                <Button variant="ghost" size="sm" onClick={onOpenAchievements} trailingIcon={<Icon name="chevron-right" size={14}/>}>View all</Button>
+              </div>
+              <div className="gami__ach-row" role="list">
+                <div role="listitem"><Achievement icon="flame" name="6-day streak"/></div>
+                <div role="listitem"><Achievement icon="target" name="First 100%"/></div>
+                <div role="listitem"><Achievement icon="lock" name="Top of class" locked/></div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* STRENGTHS / GROWTH  +  AT-RISK / QUICK STATS */}
+        <div className="row-even">
+          <Card>
+            <div className="chip-block">
+              <div className="chip-block__label"><Icon name="thumbs-up" size={15}/> You’re strong in</div>
+              <div className="chips">
+                <Chip active><Icon name="check" size={12}/> Arrays</Chip>
+                <Chip active><Icon name="check" size={12}/> Dynamic Programming</Chip>
+                <Chip active><Icon name="check" size={12}/> Sorting</Chip>
+              </div>
+              <div className="divider"/>
+              <div className="chip-block__label"><Icon name="sprout" size={15}/> Let’s revisit</div>
+              <div className="chips">
+                <Badge variant="warning" icon={<Icon name="rotate-ccw" size={12}/>}>Graphs</Badge>
+                <Badge variant="warning" icon={<Icon name="rotate-ccw" size={12}/>}>Big-O analysis</Badge>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="quick-stats">
+              <div style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+                <Badge variant="success" icon={<Icon name="target" size={13}/>}>You’re on track 🎯</Badge>
+              </div>
+              <AtRiskBadge level="watch">A couple of exams are coming up — want to review?</AtRiskBadge>
+              <div className="quick-stats__grid">
+                <div className="stat">
+                  <div className="stat__label">Total points earned</div>
+                  <div className="stat__value" style={{ fontSize:"var(--text-2xl)" }}>1,840</div>
+                </div>
+                <div className="stat">
+                  <div className="stat__label">Exams completed</div>
+                  <div className="stat__value" style={{ fontSize:"var(--text-2xl)" }}>9</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* INSIGHTS */}
+        <Section title="Suggested for you" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="chevron-right" size={14}/>}>View all</Button>}>
+          <div className="insights-list">
+            <InsightCard icon="lightbulb" title="Review Graphs before Friday">
+              Your Graphs accuracy dipped to 61%. A 15-min refresher in DSA could lift it before your next exam.
+            </InsightCard>
+            <InsightCard icon="calendar-clock" title="Algebra Test is in 3 days">
+              You haven’t opened the Algebra space this week. A short warm-up keeps your streak — and your scores — strong.
+            </InsightCard>
+          </div>
+        </Section>
+
+        {/* RECENT RESULTS + UPCOMING */}
+        <div className="row-even">
+          <Section title="Recent results" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="chevron-right" size={14}/>}>View all</Button>}>
+            <Card>
+              <ListRow title="DSA · Mid-unit Quiz" sub="Released Wed, Jun 18" trailing={<GradePill grade="A"/>}/>
+              <hr className="divider"/>
+              <ListRow title="System Design · Caching" sub="Released Mon, Jun 16" trailing={<GradePill grade="B"/>}/>
+              <hr className="divider"/>
+              <ListRow title="Behavioral · STAR Practice" sub="Released Fri, Jun 13" trailing={<GradePill grade="A"/>}/>
+            </Card>
+          </Section>
+
+          <Section title="Coming up" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="chevron-right" size={14}/>}>View all</Button>}>
+            <Card>
+              <ListRow title="Algebra Test" sub="Mon, Jun 23 · 10:00" trailing={<Badge icon={<Icon name="calendar" size={12}/>}>3 days</Badge>}/>
+              <hr className="divider"/>
+              <ListRow title="DSA · Graphs Exam" sub="Thu, Jun 26 · 14:30" trailing={<Badge icon={<Icon name="calendar" size={12}/>}>6 days</Badge>}/>
+              <hr className="divider"/>
+              <ListRow title="System Design · Final" sub="Tue, Jul 1 · 09:00" trailing={<Badge icon={<Icon name="calendar" size={12}/>}>11 days</Badge>}/>
+            </Card>
+          </Section>
+        </div>
+
+        {/* MY SPACES */}
+        <Section title="My Spaces" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="chevron-right" size={14}/>}>View all</Button>}>
+          <div className="spaces-grid">
+            <div className="space-wrap">
+              <SpaceCard title="Data Structures & Algorithms" description="Arrays, trees, recursion & graphs." points={12} progress={64}/>
+              <div className="space-prog"><ProgressRing value={64} size={48}/></div>
+            </div>
+            <div className="space-wrap">
+              <SpaceCard title="System Design" description="Scalability, caching & trade-offs." points={9} progress={28} spark/>
+              <div className="space-prog"><ProgressRing value={28} size={48}/></div>
+            </div>
+            <div className="space-wrap">
+              <SpaceCard title="Low-Level Design" description="OOP, SOLID & design patterns." points={10} progress={100}/>
+              <div className="space-prog"><ProgressRing value={100} size={48} label="✓"/></div>
+            </div>
+            <div className="space-wrap">
+              <SpaceCard title="Behavioral Interview" description="STAR stories & communication." points={6} progress={42}/>
+              <div className="space-prog"><ProgressRing value={42} size={48}/></div>
+            </div>
+          </div>
+        </Section>
+
+        {/* ---- Secondary: other spec'd states surfaced for review ---- */}
+        <Section title="Other states (for review)">
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-6)" }}>
+            <LoadingState/>
+            <div className="state-band__grid">
+              <EmptyStateBlock/>
+              <ErrorState/>
+            </div>
+            <PartialState/>
+          </div>
+        </Section>
+
+        <div style={{ height: "var(--space-6)" }}/>
+      </div>
+    );
+  }
+
+  function Screen() {
+    const [palette, setPalette] = useState(false);
+    const [achOpen, setAchOpen] = useState(false);
+
+    useEffect(() => {
+      const onKey = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette(true); }
+        if (e.key === "Escape") { setPalette(false); }
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    return (
+      <div className="appshell" style={{ position:"relative" }}>
+        <Sidebar/>
+        <Topbar onOpenPalette={() => setPalette(true)} onOpenAchievements={() => setAchOpen(true)}/>
+        <main className="appshell__main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <SuccessHome onOpenAchievements={() => setAchOpen(true)}/>
+        </main>
+
+        {/* Achievements drawer (View all) */}
+        <Drawer open={achOpen} onClose={() => setAchOpen(false)} title="Your achievements">
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-4)" }}>
+            <div className="u-caption" style={{ color:"var(--text-muted)" }}>3 earned · 12 to unlock</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-3)" }}>
+              <Achievement icon="flame" name="6-day streak"/>
+              <Achievement icon="target" name="First 100%"/>
+              <Achievement icon="rocket" name="Fast starter"/>
+              <Achievement icon="lock" name="Top of class" locked/>
+              <Achievement icon="lock" name="Perfect week" locked/>
+              <Achievement icon="lock" name="Mastery x5" locked/>
+            </div>
+            <Button variant="secondary" block trailingIcon={<Icon name="external-link" size={16}/>}>Go to /achievements</Button>
+          </div>
+        </Drawer>
+
+        {/* Command palette modal (⌘K) */}
+        {palette && (
+          <div className="modal-scrim" onClick={() => setPalette(false)}>
+            <div onClick={(e)=>e.stopPropagation()} style={{ position:"absolute", top:"14%", left:"50%", transform:"translateX(-50%)", width:"min(560px, 90%)" }}>
+              <CommandPalette
+                placeholder="Search or jump to…"
+                selected={0}
+                items={[
+                  { icon:"book-open", label:"Continue: Recursion (DSA)", kbd:"↵" },
+                  { icon:"trending-up", label:"View full progress", kbd:"P" },
+                  { icon:"file-check", label:"Upcoming: Algebra Test", kbd:"E" },
+                  { icon:"award", label:"Achievements", kbd:"A" },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

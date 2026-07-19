@@ -1,0 +1,388 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Class Detail / Roster" subtitle="Single class · roster · assigned content · light enroll admin" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body { margin: 0; padding: 0; }
+  .page { max-width: var(--content-max); margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8); }
+  .page-head h1 { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-3xl); line-height: var(--leading-3xl); color: var(--text-primary); margin: 0; letter-spacing: var(--tracking-display); }
+  .page-head p { font-family: var(--font-ui); font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-2) 0 0; }
+  .u-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .u-caption { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: var(--space-2); }
+  .classhdr { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; padding: var(--space-6); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); }
+  .classhdr__meta { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-3); font-family: var(--font-ui); font-size: var(--text-sm); color: var(--text-secondary); }
+  .classhdr__teachers { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-4); flex-wrap: wrap; font-family: var(--font-ui); font-size: var(--text-sm); color: var(--text-secondary); }
+  .classhdr__right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-3); }
+  .classhdr__count { font-family: var(--font-ui); font-size: var(--text-sm); color: var(--text-secondary); }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); flex-wrap: wrap; }
+  .toolbar__search { flex: 1; max-width: 360px; }
+  .rowname { display: flex; align-items: center; gap: var(--space-3); }
+  .rowname__sub { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-muted); }
+  .updated { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-muted); display: inline-flex; align-items: center; gap: var(--space-1); }
+  .grid-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+  .grid-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .assign-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .assign-head h3 { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--text-lg); color: var(--text-primary); margin: 0; }
+  .snap-teaser { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); margin-top: var(--space-6); flex-wrap: wrap; }
+  .states-rail { display: flex; flex-wrap: wrap; gap: var(--space-5); }
+  .states-rail > div { flex: 1 1 280px; min-width: 260px; padding: var(--space-4); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+  .skelrow { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle); }
+  .ring-wrap { display: flex; align-items: center; gap: var(--space-4); }
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Checkbox, Switch, Field,
+  Tabs, Modal, DataTable, Stat, EmptyState, Skeleton, Pagination, Avatar, AvatarGroup, Badge, Chip,
+  Alert, NavItem, Breadcrumb, SpaceCard, GradePill, AtRiskBadge, InsightCard, AnswerKeyLock, ProgressRing } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+const ROSTER = [
+  { name:'Aanya Rao',     initials:'AR', roll:'12', status:'Active',  score:84, grade:'B', risk:false, last:'2d ago' },
+  { name:'Dev Kumar',     initials:'DK', roll:'07', status:'Active',  score:41, grade:'F', risk:true,  reasons:'Low quiz scores, 11d inactive', last:'11d ago' },
+  { name:'Ishaan Mehta',  initials:'IM', roll:'19', status:'Active',  score:76, grade:'C', risk:false, last:'1d ago' },
+  { name:'Priya Nair',    initials:'PN', roll:'03', status:'Active',  score:91, grade:'A', risk:false, last:'5h ago' },
+  { name:'Rahul Bose',    initials:'RB', roll:'22', status:'Active',  score:null, grade:null, risk:false, last:'—', pending:true },
+  { name:'Sana Qureshi',  initials:'SQ', roll:'15', status:'Active',  score:58, grade:'D', risk:true,  reasons:'2 missed exams, declining mastery', last:'4d ago' },
+  { name:'Vikram Shetty', initials:'VS', roll:'09', status:'Inactive',score:67, grade:'C', risk:false, last:'18d ago' },
+];
+
+const SPACES = [
+  { title:'Kinematics & Motion', description:'1D & 2D motion, graphs, projectiles.', points:9, progress:72, spark:false },
+  { title:'Newton’s Laws',     description:'Forces, free-body diagrams, friction.', points:7, progress:54, spark:false },
+  { title:'Work, Energy & Power', description:'Conservation, collisions, systems.', points:6, progress:38, spark:false },
+];
+
+const EXAMS = [
+  { title:'Unit Test 2 — Kinematics', subject:'Physics', marks:40, status:'Graded' },
+  { title:'Mid-Term — Mechanics',     subject:'Physics', marks:80, status:'Grading' },
+  { title:'Quiz — Newton’s Laws',    subject:'Physics', marks:20, status:'Scheduled' },
+];
+
+function statusBadge(s){
+  if (s === 'Active') return <Badge variant="success" icon={<Icon name="check-circle" size={12}/>}>Active</Badge>;
+  if (s === 'Inactive') return <Badge icon={<Icon name="moon" size={12}/>}>Inactive</Badge>;
+  return <Badge variant="warning" icon={<Icon name="circle-dashed" size={12}/>}>Draft</Badge>;
+}
+function examStatusBadge(s){
+  if (s === 'Graded') return <Badge variant="success" icon={<Icon name="check-circle" size={12}/>}>Graded</Badge>;
+  if (s === 'Grading') return <Badge variant="info" icon={<Icon name="loader" size={12}/>}>Grading</Badge>;
+  return <Badge variant="warning" icon={<Icon name="calendar-clock" size={12}/>}>Scheduled</Badge>;
+}
+
+function RosterTab(){
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="toolbar__search">
+          <Input placeholder="Search by name or roll number" aria-label="Search by name or roll number" />
+        </div>
+        <Button variant="primary" leadingIcon={<Icon name="user-plus" size={16}/>} onClick={()=>window.__openEnroll && window.__openEnroll()}>Enroll students</Button>
+      </div>
+      <DataTable
+        columns={[
+          { label:'Name', key:'name', render:(r)=>(
+            <a href="/students/s_aanya" className="rowname" style={{textDecoration:'none', color:'var(--text-primary)'}}>
+              <Avatar initials={r.initials} size="sm"/>
+              <span style={{fontWeight:'var(--weight-medium)'}}>{r.name}</span>
+            </a>) },
+          { label:'Roll no.', key:'roll', numeric:true, render:(r)=><span className="u-mono">{r.roll}</span> },
+          { label:'Status', key:'status', render:(r)=>statusBadge(r.status) },
+          { label:'Overall score', key:'score', numeric:true, render:(r)=> r.score==null
+              ? <span className="u-mono" style={{color:'var(--text-muted)'}}>—</span>
+              : <GradePill grade={r.grade} score={r.score + '%'} /> },
+          { label:'Risk', key:'risk', render:(r)=> r.risk
+              ? <span title={'Flagged by nightly review: ' + r.reasons}><AtRiskBadge>At risk</AtRiskBadge></span>
+              : <span style={{color:'var(--text-muted)'}}>—</span> },
+          { label:'Last active', key:'last', render:(r)=><span className="u-mono" style={{color:'var(--text-secondary)'}}>{r.last}</span> },
+          { label:'', key:'actions', render:(r)=>(
+            <Button variant="ghost" size="sm" onClick={(e)=>e.stopPropagation()} aria-label={'Remove ' + r.name + ' from class'}>Remove</Button>) },
+        ]}
+        rows={ROSTER}
+      />
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'var(--space-5)'}}>
+        <span className="updated"><Icon name="refresh-cw" size={12}/> Last updated 6 min ago · server</span>
+        <Pagination pages={3} current={1}/>
+      </div>
+    </div>
+  );
+}
+
+function AssignedTab(){
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:'var(--space-8)'}}>
+      <div>
+        <div className="assign-head">
+          <h3>Spaces</h3>
+          <Button variant="secondary" trailingIcon={<Icon name="arrow-up-right" size={16}/>} onClick={()=>{}}>Assign content</Button>
+        </div>
+        <div className="grid-cards">
+          {SPACES.map((s,i)=>(
+            <a key={i} href={'/spaces/sp' + i + '/edit'} style={{textDecoration:'none'}}><SpaceCard {...s} /></a>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="assign-head"><h3>Exams</h3></div>
+        <DataTable
+          columns={[
+            { label:'Title', key:'title', render:(r)=>(
+              <a href="/exams/ex1" style={{color:'var(--text-primary)', fontWeight:'var(--weight-medium)', textDecoration:'none'}}>{r.title}</a>) },
+            { label:'Subject', key:'subject' },
+            { label:'Marks', key:'marks', numeric:true, render:(r)=><span className="u-mono">{r.marks}</span> },
+            { label:'Status', key:'status', render:(r)=>examStatusBadge(r.status) },
+            { label:'', key:'view', render:()=>(
+              <a href="/exams/ex1" style={{color:'var(--brand-primary)', fontWeight:'var(--weight-medium)', textDecoration:'none', display:'inline-flex', alignItems:'center', gap:4}}>View <Icon name="arrow-up-right" size={14}/></a>) },
+          ]}
+          rows={EXAMS}
+        />
+        <div style={{marginTop:'var(--space-5)'}}>
+          <AnswerKeyLock title="Answer keys hidden">Keys and grading live in the Exams area — never exposed on this screen.</AnswerKeyLock>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SnapshotTab(){
+  return (
+    <div>
+      <div className="grid-stats">
+        <Stat label="Students" value="28" delta="+2 this term" trend="up"/>
+        <Stat label="Avg exam score" value="71%" delta="+4 pts" trend="up"/>
+        <Stat label="Avg space completion" value="55%" delta="+6 pts" trend="up"/>
+        <Stat label="At-risk students" value="4" delta="+1 this week" trend="down"/>
+      </div>
+      <div className="snap-teaser">
+        <div className="ring-wrap">
+          <ProgressRing value={55} size={72}/>
+          <div>
+            <div style={{fontFamily:'var(--font-display)', fontWeight:'var(--weight-semibold)', fontSize:'var(--text-base)', color:'var(--text-primary)'}}>Space completion</div>
+            <div className="updated"><Icon name="refresh-cw" size={12}/> Last updated 6 min ago · server-authoritative</div>
+          </div>
+        </div>
+        <div style={{flex:'1 1 340px', minWidth:300}}>
+          <InsightCard icon="trending-down" title="Kinematics mastery is lagging">
+            Median mastery on Kinematics dropped 9 points after Unit Test 2. 4 students are flagged by nightly review.
+          </InsightCard>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="arrow-up-right" size={16}/>} onClick={()=>{}}>Open class analytics</Button>
+      </div>
+    </div>
+  );
+}
+
+function EnrollModal(props){
+  const eligible = [
+    { name:'Meera Iyer', initials:'MI', roll:'31' },
+    { name:'Arjun Pillai', initials:'AP', roll:'34' },
+    { name:'Tara Menon', initials:'TM', roll:'36' },
+  ];
+  return (
+    <Modal open={props.open} onClose={props.onClose} title="Enroll students"
+      footer={<>
+        <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
+        <Button variant="primary" onClick={props.onClose}>Enroll 2 students</Button>
+      </>}>
+      <p style={{margin:'0 0 var(--space-4)', fontFamily:'var(--font-ui)', fontSize:'var(--text-sm)', color:'var(--text-secondary)'}}>
+        Add existing students to Grade 10 — Physics A. They keep their records and any other class enrollments.
+      </p>
+      <div style={{marginBottom:'var(--space-4)'}}>
+        <Input placeholder="Search your tenant directory" aria-label="Search your tenant directory"/>
+      </div>
+      <div style={{display:'flex', flexDirection:'column', gap:'var(--space-2)'}}>
+        {eligible.map((e,i)=>(
+          <label key={i} style={{display:'flex', alignItems:'center', gap:'var(--space-3)', padding:'var(--space-2) var(--space-3)', border:'1px solid var(--border-subtle)', borderRadius:'var(--radius-md)'}}>
+            <Checkbox defaultChecked={i<2}/>
+            <Avatar initials={e.initials} size="sm"/>
+            <span style={{fontFamily:'var(--font-ui)', fontSize:'var(--text-sm)', color:'var(--text-primary)'}}>{e.name}</span>
+            <span className="u-mono" style={{marginLeft:'auto', color:'var(--text-muted)', fontSize:'var(--text-xs)'}}>Roll {e.roll}</span>
+          </label>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function EditClassModal(props){
+  return (
+    <Modal open={props.open} onClose={props.onClose} title="Edit class"
+      footer={<>
+        <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
+        <Button variant="primary" onClick={props.onClose}>Save changes</Button>
+      </>}>
+      <div style={{display:'flex', flexDirection:'column', gap:'var(--space-4)'}}>
+        <Field label="Class name" required><Input defaultValue="Grade 10 — Physics A"/></Field>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'var(--space-4)'}}>
+          <Field label="Grade"><Select options={[{value:'10',label:'Grade 10'},{value:'9',label:'Grade 9'},{value:'11',label:'Grade 11'}]} defaultValue="10"/></Field>
+          <Field label="Section"><Select options={[{value:'A',label:'Section A'},{value:'B',label:'Section B'}]} defaultValue="A"/></Field>
+        </div>
+        <Field label="Status" hint="Archived classes stay read-only for analytics.">
+          <Select options={[{value:'active',label:'Active'},{value:'draft',label:'Draft'},{value:'archived',label:'Archived'}]} defaultValue="active"/>
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+function App(){
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  window.__openEnroll = ()=>setEnrollOpen(true);
+
+  return (
+    <Shell active="classes">
+      <div className="page">
+        <Breadcrumb items={[{label:'Classes', href:'/classes'}, {label:'Grade 10 — Physics A'}]} />
+
+        <div className="page-head">
+          <h1>Grade 10 — Physics A</h1>
+          <p>Single class operational hub — roster, assigned content, and a server-authoritative snapshot.</p>
+        </div>
+
+        <div className="classhdr">
+          <div>
+            <div style={{fontFamily:'var(--font-display)', fontWeight:'var(--weight-semibold)', fontSize:'var(--text-2xl)', color:'var(--text-primary)'}}>Grade 10 — Physics A</div>
+            <div className="classhdr__meta">
+              <span>Grade <span className="u-mono">10</span></span>
+              <span aria-hidden="true">·</span>
+              <span>Section A</span>
+              <span aria-hidden="true">·</span>
+              {statusBadge('Active')}
+            </div>
+            <div className="classhdr__teachers">
+              <span>Taught by</span>
+              <AvatarGroup><Avatar initials="TS" size="sm"/><Avatar initials="RV" size="sm"/></AvatarGroup>
+              <Chip>Tara Singh</Chip>
+              <Chip>Rohan Verma</Chip>
+            </div>
+          </div>
+          <div className="classhdr__right">
+            <span className="classhdr__count"><span className="u-mono">28</span> students</span>
+            <Button variant="secondary" leadingIcon={<Icon name="pencil" size={16}/>} onClick={()=>setEditOpen(true)}>Edit class</Button>
+          </div>
+        </div>
+
+        <Tabs items={[
+          { label:'Roster', content:<RosterTab/> },
+          { label:'Assigned content', content:<AssignedTab/> },
+          { label:'Snapshot', content:<SnapshotTab/> },
+        ]} />
+
+        <section>
+          <div className="u-caption" style={{textTransform:'none', fontSize:'var(--text-base)', fontFamily:'var(--font-display)', color:'var(--text-primary)', letterSpacing:'normal', marginBottom:'var(--space-5)'}}>States</div>
+          <div className="states-rail">
+            <div>
+              <span className="u-caption">Loading · roster</span>
+              {[0,1,2,3].map(i=>(
+                <div key={i} className="skelrow">
+                  <Skeleton variant="circle" width="28px" height="28px"/>
+                  <Skeleton width="32%" height="0.8rem"/>
+                  <Skeleton width="14%" height="0.8rem"/>
+                  <Skeleton width="18%" height="0.8rem"/>
+                </div>
+              ))}
+            </div>
+            <div>
+              <span className="u-caption">Empty · no students</span>
+              <EmptyState icon="users" title="No students enrolled yet"
+                body="Enroll students from your tenant directory to start tracking this class."
+                action={<Button variant="primary" size="sm" leadingIcon={<Icon name="user-plus" size={14}/>}>Enroll students</Button>} />
+            </div>
+            <div>
+              <span className="u-caption">Empty · no spaces</span>
+              <EmptyState icon="orbit" title="No spaces assigned to this class"
+                body="Assign content to give this class story points to work through."
+                action={<Button variant="secondary" size="sm" trailingIcon={<Icon name="arrow-up-right" size={14}/>}>Assign content</Button>} />
+            </div>
+            <div>
+              <span className="u-caption">Empty · no analytics</span>
+              <EmptyState icon="bar-chart-3" title="No analytics yet"
+                body="Figures appear after exams are graded and spaces are used." />
+            </div>
+            <div>
+              <span className="u-caption">Error · tab read failed</span>
+              <Alert variant="error" title="Couldn't load snapshot">
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'var(--space-3)'}}>
+                  <span>The rest of the page stays usable.</span>
+                  <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button>
+                </div>
+              </Alert>
+            </div>
+            <div>
+              <span className="u-caption">Error · class out of scope</span>
+              <EmptyState icon="lock" title="Class unavailable"
+                body="It may not exist, or it isn't one of the classes you manage."
+                action={<Button variant="secondary" size="sm" leadingIcon={<Icon name="arrow-left" size={14}/>}>Back to Classes</Button>} />
+            </div>
+            <div>
+              <span className="u-caption">Permission-gated · read-only roster</span>
+              <Alert variant="info" title="Read-only roster">
+                You don't have manage-students permission for this class, so Enroll and Remove are hidden.
+              </Alert>
+            </div>
+            <div>
+              <span className="u-caption">Partial · score pending</span>
+              <div className="skelrow" style={{borderBottom:'none'}}>
+                <Avatar initials="RB" size="sm"/>
+                <span style={{fontFamily:'var(--font-ui)', fontSize:'var(--text-sm)'}}>Rahul Bose</span>
+                <span className="u-mono" style={{marginLeft:'auto', color:'var(--text-muted)'}}>—</span>
+              </div>
+              <span className="u-caption" style={{marginTop:'var(--space-2)', marginBottom:0}}>Absence ≠ safe · no false-green</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <EnrollModal open={enrollOpen} onClose={()=>setEnrollOpen(false)} />
+      <EditClassModal open={editOpen} onClose={()=>setEditOpen(false)} />
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+if (window.lucide) window.lucide.createIcons();
+</script></body></html>

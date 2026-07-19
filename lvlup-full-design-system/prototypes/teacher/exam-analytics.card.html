@@ -1,0 +1,567 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Exam Analytics" subtitle="Post-exam analysis · histogram · A-F grade spread · per-question" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* screen-local layout only — Lyceum vars only, NO raw hex, NO :root redefinition */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+
+.ax{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+
+/* page header */
+.pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.pickrow{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;margin-top:var(--space-4)}
+.pickrow__picker{flex:1 1 380px;max-width:520px}
+.subline{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-3);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.subline .dot{color:var(--border-strong)}
+.subline .u-mono,.subline .muted{color:var(--text-muted)}
+.subline strong{font-weight:var(--weight-semibold);color:var(--text-primary)}
+
+/* kpi strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.kpi{position:relative}
+.kpi .stat{height:100%}
+.kpi__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.kpi__cap .u-mono{font-family:var(--font-mono)}
+
+/* card chrome */
+.dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.dcard__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.dcard__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.dcard__body{padding:0 var(--space-5) var(--space-5)}
+.dcard__stamp{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted);white-space:nowrap}
+.dcard__stamp .u-mono{font-family:var(--font-mono)}
+
+/* two column region */
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:start}
+
+/* histogram */
+.hist{display:flex;align-items:flex-end;gap:var(--space-2);height:188px;padding-top:var(--space-4);position:relative}
+.hist__col{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);height:100%;justify-content:flex-end}
+.hist__bar{width:100%;max-width:46px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-muted);position:relative;transition:background-color var(--dur-fast) var(--ease-standard)}
+.hist__col:hover .hist__bar{background:var(--brand-primary)}
+.hist__bar--fail{background:var(--status-error-subtle)}
+.hist__col:hover .hist__bar--fail{background:var(--status-error)}
+.hist__count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary)}
+.hist__x{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.hist__axis{display:flex;gap:var(--space-2);margin-top:var(--space-1)}
+.hist__axis .hist__col{height:auto}
+.passline{position:absolute;top:var(--space-4);bottom:24px;border-left:2px dashed var(--status-warning);display:flex;align-items:flex-start}
+.passline__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--status-warning);background:var(--bg-surface);padding:0 var(--space-1);transform:translate(-50%,-100%);white-space:nowrap}
+.legend{display:flex;gap:var(--space-4);margin-top:var(--space-3);flex-wrap:wrap}
+.legend__item{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);color:var(--text-secondary)}
+.legend__sw{width:12px;height:12px;border-radius:var(--radius-sm)}
+.legend__sw--pass{background:var(--brand-muted)}
+.legend__sw--fail{background:var(--status-error-subtle)}
+
+/* grade distribution */
+.grades{display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2)}
+.grade-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--space-3)}
+.grade-row__bar-wrap{height:24px;background:var(--bg-surface-sunken);border-radius:var(--radius-pill);overflow:hidden}
+.grade-row__bar{height:100%;border-radius:var(--radius-pill);transition:background-color var(--dur-fast) var(--ease-standard)}
+.grade-row__bar--a{background:var(--grade-a)}
+.grade-row__bar--b{background:var(--grade-b)}
+.grade-row__bar--c{background:var(--grade-c)}
+.grade-row__bar--d{background:var(--grade-d)}
+.grade-row__bar--f{background:var(--grade-f)}
+.grade-row__num{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);white-space:nowrap;min-width:96px;text-align:right}
+.grade-row__num .pct{color:var(--text-muted);font-size:var(--text-2xs)}
+
+/* difficulty progression chart */
+.diffchart{display:flex;align-items:flex-end;gap:var(--space-2);height:120px;padding-top:var(--space-2)}
+.diffchart__col{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-1);height:100%;justify-content:flex-end}
+.diffchart__bar{width:100%;max-width:34px;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.diffchart__bar--hard{background:var(--status-error-subtle)}
+.diffchart__bar--mid{background:var(--status-warning-subtle)}
+.diffchart__bar--easy{background:var(--status-success-subtle)}
+.diffchart__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* difficulty cell in table */
+.diffcell{display:flex;align-items:center;gap:var(--space-2);min-width:120px}
+.diffcell .progress{flex:1 1 auto}
+.diffcell__n{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary);min-width:30px}
+.qprompt{display:block;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary)}
+.qnum{font-family:var(--font-mono);color:var(--text-muted)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-1)}
+
+.classlink{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--brand-primary);background:none;border:none;cursor:pointer;font-family:var(--font-ui);padding:0}
+.classlink:hover{text-decoration:underline}
+.classlink:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+
+/* footer */
+.footnote{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);font-size:var(--text-sm);color:var(--text-secondary)}
+.footnote__ico{color:var(--text-muted)}
+
+/* states rail */
+.staterail{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+.statemini{flex:1 1 300px;min-width:280px;display:flex;flex-direction:column;gap:var(--space-2)}
+.statemini__body{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);min-height:150px;display:flex;flex-direction:column;gap:var(--space-3)}
+.sk-row{display:flex;align-items:center;gap:var(--space-3)}
+.sk-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+
+.u-mono{font-family:var(--font-mono)}
+.u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+@media (prefers-reduced-motion: reduce){.hist__bar,.grade-row__bar{transition:none}}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Badge, Chip, Skeleton, Alert, EmptyState, Toast,
+  Stat, Select, ProgressBar, GradePill, DataTable, AnswerKeyLock, NavItem } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+/* ---------- App shell (canonical) ---------- */
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButtonShim/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+function IconButtonShim(){
+  return (<React.Fragment>
+    <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+    <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+  </React.Fragment>);
+}
+
+/* ---------- sample data (server-authoritative, read-only ExamAnalytics) ---------- */
+/* selected exam meta (exams.get) */
+const EXAM = {
+  title: 'Midterm — Data Structures & Algorithms',
+  totalMarks: 80,
+  passingMarks: 40,
+  classes: ['DSA · Grade 11-A', 'DSA · Grade 12-B', 'LLD · Grade 11-C'],
+  releasedOn: 'Jun 14, 2026',
+  computed: '2 days ago',
+};
+
+/* picker options (released-only) */
+const EXAM_OPTIONS = [
+  { value:'ex_4471', label:'Midterm — Data Structures & Algorithms · released Jun 14 · 3 classes' },
+  { value:'ex_4288', label:'Unit Test — Graph Algorithms · released Jun 6 · 2 classes' },
+  { value:'ex_4102', label:'Quiz 3 — Recursion & Backtracking · released May 28 · 1 class' },
+  { value:'ex_3990', label:'System Design Foundations · released May 19 · 2 classes' },
+];
+
+/* examAnalytics doc */
+const A = {
+  avgScore: 62, avgPercentage: 78, medianScore: 64,
+  passRate: 71, totalSubmissions: 134, gradedSubmissions: 128,
+  buckets: [
+    { min:0,  max:10, count:1  },
+    { min:10, max:20, count:3  },
+    { min:20, max:30, count:6  },
+    { min:30, max:40, count:13 },
+    { min:40, max:50, count:21 },
+    { min:50, max:60, count:28 },
+    { min:60, max:70, count:32 },
+    { min:70, max:80, count:24 },
+  ],
+  gradeDistribution: { A:31, B:38, C:34, D:16, F:9 },
+};
+
+const GRADE_META = [
+  { g:'A', cls:'a', count:31 },
+  { g:'B', cls:'b', count:38 },
+  { g:'C', cls:'c', count:34 },
+  { g:'D', cls:'d', count:16 },
+  { g:'F', cls:'f', count:9  },
+];
+
+const QUESTIONS = [
+  { n:1, prompt:'Define the time complexity of binary search and justify the bound.', avgPct:91, diff:0.91, mistakes:[] },
+  { n:2, prompt:'Implement an in-order traversal of a binary tree (iterative).', avgPct:74, diff:0.74, mistakes:['Stack underflow','Missed left subtree'] },
+  { n:3, prompt:'Given a graph, detect a cycle using DFS colouring.', avgPct:58, diff:0.58, mistakes:['Grey/black confusion','Recursion depth'] },
+  { n:4, prompt:'Explain amortised analysis of a dynamic array push.', avgPct:46, diff:0.46, mistakes:['Confused with worst-case','Skipped doubling'] },
+  { n:5, prompt:'Design a min-heap and analyse sift-down complexity.', avgPct:69, diff:0.69, mistakes:['Off-by-one in indices'] },
+  { n:6, prompt:'Shortest path on a weighted DAG — choose and justify an algorithm.', avgPct:38, diff:0.38, mistakes:['Used Dijkstra w/ negatives','No topo sort'] },
+];
+
+const CLASS_BREAKDOWN = [
+  { id:'cls_dsa_11a', name:'DSA · Grade 11-A', subs:48, avg:66, total:80, pass:79 },
+  { id:'cls_dsa_12b', name:'DSA · Grade 12-B', subs:46, avg:63, total:80, pass:72 },
+  { id:'cls_lld_11c', name:'LLD · Grade 11-C', subs:40, avg:55, total:80, pass:60 },
+];
+
+function go(href){ /* navigation deep-link (no-op in prototype) */ }
+function diffClass(d){ return d < 0.5 ? 'hard' : d < 0.75 ? 'mid' : 'easy'; }
+function pbVariant(d){ return d < 0.5 ? 'warning' : d < 0.75 ? undefined : 'success'; }
+
+/* ---------- histogram ---------- */
+function Histogram(){
+  const max = Math.max(...A.buckets.map(b=>b.count));
+  // pass mark 40 sits at the boundary of bucket index 4 (the 40-50 bucket starts a passing zone)
+  const passIdx = A.buckets.findIndex(b=>b.min >= EXAM.passingMarks);
+  const cols = A.buckets.length;
+  const passLeftPct = (passIdx / cols) * 100;
+  return (
+    <div>
+      <div className="hist" role="img" aria-label={'Score distribution histogram over '+cols+' buckets. Pass mark at '+EXAM.passingMarks+' marks.'}>
+        <div className="passline" style={{left:'calc('+passLeftPct+'% )'}}>
+          <span className="passline__lab">Pass mark {EXAM.passingMarks}</span>
+        </div>
+        {A.buckets.map((b,i)=>(
+          <div className="hist__col" key={i} title={b.min+'–'+b.max+' marks: '+b.count+' students'}>
+            <span className="hist__count">{b.count}</span>
+            <div className={'hist__bar'+(b.max<=EXAM.passingMarks?' hist__bar--fail':'')}
+              style={{height:Math.max(4,(b.count/max)*148)+'px'}}
+              aria-label={b.min+'–'+b.max+' marks: '+b.count+' students'}></div>
+            <span className="hist__x">{b.min}</span>
+          </div>
+        ))}
+      </div>
+      <div className="legend">
+        <span className="legend__item"><span className="legend__sw legend__sw--fail"></span> Below pass mark</span>
+        <span className="legend__item"><span className="legend__sw legend__sw--pass"></span> At or above pass mark</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- grade distribution ---------- */
+function GradeDistribution(){
+  const total = GRADE_META.reduce((s,g)=>s+g.count,0);
+  const max = Math.max(...GRADE_META.map(g=>g.count));
+  return (
+    <div className="grades">
+      {GRADE_META.map(g=>{
+        const pct = Math.round((g.count/total)*100);
+        return (
+          <div className="grade-row" key={g.g} aria-label={'Grade '+g.g+': '+g.count+' students, '+pct+' percent'}>
+            <GradePill grade={g.g}/>
+            <div className="grade-row__bar-wrap">
+              <div className={'grade-row__bar grade-row__bar--'+g.cls} style={{width:Math.max(4,(g.count/max)*100)+'%'}}></div>
+            </div>
+            <div className="grade-row__num">{g.count} <span className="pct">· {pct}%</span></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- difficulty progression ---------- */
+function DifficultyChart(){
+  return (
+    <div className="diffchart" role="img" aria-label="Difficulty index across questions Q1 to Q6. Lower bars are harder questions.">
+      {QUESTIONS.map(q=>(
+        <div className="diffchart__col" key={q.n} title={'Q'+q.n+': difficulty index '+q.diff.toFixed(2)}>
+          <div className={'diffchart__bar diffchart__bar--'+diffClass(q.diff)}
+            style={{height:Math.max(6,q.diff*92)+'px'}}
+            aria-label={'Q'+q.n+' difficulty '+q.diff.toFixed(2)}></div>
+          <span className="diffchart__lab">Q{q.n}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- page ---------- */
+function App(){
+  const [examId,setExamId] = useState('ex_4471');
+  const [toast,setToast] = useState(null); // null | 'progress' | 'success'
+  const [generating,setGenerating] = useState(false);
+
+  const generate = ()=>{
+    setGenerating(true);
+    setToast('progress');
+    setTimeout(()=>{ setGenerating(false); setToast('success'); }, 1400);
+  };
+
+  return (
+    <Shell active="analytics-exams">
+      <div className="ax">
+
+        {/* header */}
+        <div className="pagehead">
+          <h1>Exam analytics</h1>
+          <div className="pickrow">
+            <div className="pickrow__picker">
+              <label htmlFor="exam-picker" className="u-caption" style={{display:'block',marginBottom:'var(--space-2)'}}>Released exam</label>
+              <Select id="exam-picker" value={examId} onChange={e=>setExamId(e.target.value)}
+                aria-label="Select a released exam"
+                options={EXAM_OPTIONS}/>
+            </div>
+            <Button variant="spark" loading={generating}
+              leadingIcon={!generating && <Icon name="file-down" size={16}/>}
+              onClick={generate}>
+              {generating ? 'Generating…' : 'Generate report'}
+            </Button>
+          </div>
+          <div className="subline">
+            <strong>{EXAM.title}</strong>
+            <span className="dot">·</span>
+            <span>Released <span className="u-mono">{EXAM.releasedOn}</span></span>
+            <span className="dot">·</span>
+            <span>{EXAM.classes.join(', ')}</span>
+            <span className="dot">·</span>
+            <span className="muted"><Icon name="server" size={12}/> Computed <span className="u-mono">{EXAM.computed}</span></span>
+          </div>
+        </div>
+
+        {/* KPI strip */}
+        <div className="kpis" role="group" aria-label="Exam key metrics">
+          <div className="kpi" aria-label={'Average score: '+A.avgScore+' of '+EXAM.totalMarks+', '+A.avgPercentage+' percent'}>
+            <Stat label="Average score" value={A.avgScore+' / '+EXAM.totalMarks}/>
+            <div className="kpi__cap"><Icon name="percent" size={12}/> <span className="u-mono">{A.avgPercentage}%</span> of total marks</div>
+          </div>
+          <div className="kpi" aria-label={'Median score: '+A.medianScore+' of '+EXAM.totalMarks}>
+            <Stat label="Median score" value={A.medianScore+' / '+EXAM.totalMarks}/>
+            <div className="kpi__cap"><Icon name="minus" size={12}/> mid-cohort</div>
+          </div>
+          <div className="kpi" aria-label={'Pass rate: '+A.passRate+' percent'}>
+            <Stat label="Pass rate" value={A.passRate+'%'}/>
+            <div className="kpi__cap"><Icon name="flag" size={12}/> pass mark <span className="u-mono">{EXAM.passingMarks} / {EXAM.totalMarks}</span></div>
+          </div>
+          <div className="kpi" aria-label={'Submissions graded: '+A.gradedSubmissions+' of '+A.totalSubmissions}>
+            <Stat label="Submissions graded" value={A.gradedSubmissions+' / '+A.totalSubmissions}/>
+            <div className="kpi__cap"><Icon name="inbox" size={12}/> <span className="u-mono">{A.totalSubmissions}</span> submitted</div>
+          </div>
+        </div>
+
+        {/* two-column charts */}
+        <div className="cols2">
+          <section className="dcard" aria-labelledby="score-dist-title">
+            <div className="dcard__head">
+              <div>
+                <h2 className="dcard__title" id="score-dist-title">Score distribution</h2>
+                <div className="dcard__sub">How the cohort's scores spread across the marks range.</div>
+              </div>
+              <span className="dcard__stamp"><Icon name="server" size={12}/> <span className="u-mono">134</span> graded</span>
+            </div>
+            <div className="dcard__body">
+              <Histogram/>
+            </div>
+          </section>
+
+          <section className="dcard" aria-labelledby="grade-dist-title">
+            <div className="dcard__head">
+              <div>
+                <h2 className="dcard__title" id="grade-dist-title">Grade distribution</h2>
+                <div className="dcard__sub">Students per grade band (A–F).</div>
+              </div>
+            </div>
+            <div className="dcard__body">
+              <GradeDistribution/>
+            </div>
+          </section>
+        </div>
+
+        {/* per-question difficulty */}
+        <section className="dcard" aria-labelledby="qdiff-title">
+          <div className="dcard__head">
+            <div>
+              <h2 className="dcard__title" id="qdiff-title">Question difficulty</h2>
+              <div className="dcard__sub">Lower difficulty index = harder question (fewer marks earned on average).</div>
+            </div>
+            <AnswerKeyLock title="Answer keys hidden"/>
+          </div>
+          <div className="dcard__body">
+            <DifficultyChart/>
+            <div style={{marginTop:'var(--space-5)'}}>
+              <DataTable
+                columns={[
+                  { label:'#', key:'n', render:(r)=><span className="qnum">Q{r.n}</span> },
+                  { label:'Question', key:'prompt', render:(r)=><span className="qprompt" title={r.prompt}>{r.prompt}</span> },
+                  { label:'Avg %', key:'avgPct', numeric:true, sortable:true, render:(r)=><span className="u-mono">{r.avgPct}%</span> },
+                  { label:'Difficulty', key:'diff', numeric:true, sortable:true, render:(r)=>(
+                    <div className="diffcell" title={'Difficulty index '+r.diff.toFixed(2)+' — share of available marks earned on average.'}>
+                      <ProgressBar value={Math.round(r.diff*100)} variant={pbVariant(r.diff)}/>
+                      <span className="diffcell__n">{r.diff.toFixed(2)}</span>
+                    </div>
+                  )},
+                  { label:'Common mistakes', key:'mistakes', render:(r)=>(
+                    r.mistakes.length
+                      ? <span className="chips">{r.mistakes.map((m,i)=><Chip key={i}>{m}</Chip>)}</span>
+                      : <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>—</span>
+                  )},
+                ]}
+                rows={QUESTIONS}/>
+            </div>
+            <div className="dcard__stamp" style={{marginTop:'var(--space-3)'}}>
+              <Icon name="info" size={12}/> Discrimination index omitted — not yet computed for this exam.
+            </div>
+          </div>
+        </section>
+
+        {/* per-class breakdown */}
+        <section className="dcard" aria-labelledby="byclass-title">
+          <div className="dcard__head">
+            <div>
+              <h2 className="dcard__title" id="byclass-title">By class</h2>
+              <div className="dcard__sub">Performance for each class that took this exam.</div>
+            </div>
+          </div>
+          <div className="dcard__body">
+            <DataTable
+              columns={[
+                { label:'Class', key:'name', sortable:true, render:(r)=><span style={{fontWeight:'var(--weight-medium)'}}>{r.name}</span> },
+                { label:'Submissions', key:'subs', numeric:true, sortable:true, render:(r)=><span className="u-mono">{r.subs}</span> },
+                { label:'Avg score', key:'avg', numeric:true, sortable:true, render:(r)=><span className="u-mono">{r.avg} / {r.total}</span> },
+                { label:'Pass rate', key:'pass', numeric:true, sortable:true, render:(r)=>(
+                  <div style={{display:'flex',alignItems:'center',gap:'var(--space-2)',minWidth:130}}>
+                    <ProgressBar value={r.pass} variant={r.pass>=65?'success':'warning'}/>
+                    <span className="u-mono" style={{fontSize:'var(--text-xs)'}}>{r.pass}%</span>
+                  </div>
+                )},
+                { label:'', key:'go', render:(r)=>(
+                  <button className="classlink" onClick={()=>go('/analytics/classes?classId='+r.id)}
+                    aria-label={'View class analytics for '+r.name}>
+                    View class analytics <Icon name="arrow-right" size={14}/>
+                  </button>
+                )},
+              ]}
+              rows={CLASS_BREAKDOWN}/>
+          </div>
+        </section>
+
+        {/* footer link-out */}
+        <div className="footnote">
+          <Icon name="scale" size={18} className="footnote__ico"/>
+          <span>Need to review or change grades? Grading lives in the Exams area.</span>
+          <span style={{marginLeft:'auto'}}>
+            <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-up-right" size={15}/>}
+              onClick={()=>go('/exams/ex_4471/submissions')}>Open this exam in Grading</Button>
+          </span>
+        </div>
+
+        {/* ---------- States rail ---------- */}
+        <section aria-labelledby="states-title">
+          <h2 className="dcard__title" id="states-title" style={{fontSize:'var(--text-xl)',marginBottom:'var(--space-2)'}}>States</h2>
+          <div className="dcard__sub" style={{marginBottom:'var(--space-5)'}}>Every spec'd readiness, empty, error and role-gated variant in one place.</div>
+          <div className="staterail">
+
+            <div className="statemini">
+              <span className="u-caption">Loading (skeleton)</span>
+              <div className="statemini__body">
+                <Skeleton variant="text" width="60%" height={16}/>
+                <div className="sk-kpis">
+                  <Skeleton variant="text" width="100%" height={40}/>
+                  <Skeleton variant="text" width="100%" height={40}/>
+                  <Skeleton variant="text" width="100%" height={40}/>
+                  <Skeleton variant="text" width="100%" height={40}/>
+                </div>
+                <Skeleton variant="text" width="100%" height={56}/>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Empty — no released exams</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <EmptyState icon="file-text" title="No released exams yet"
+                  body="Exam analytics appear here once an exam is graded and its results are released."
+                  action={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>Go to Exams</Button>}/>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Empty — analytics computing</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <EmptyState icon="loader" title="Analytics are still being computed"
+                  body="We're crunching this exam's results. This usually takes a moment after release — check back shortly."
+                  action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Refresh</Button>}/>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Empty — no submissions</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <EmptyState icon="inbox" title="No submissions to analyze"
+                  body="This exam was released but nobody submitted. KPIs render as “—” and charts stay empty."/>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Error — load failed</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <Alert variant="error" title="Couldn't load exam analytics">
+                  Something went wrong fetching this data.
+                  <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Role-gated — teacher, no report permission</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <EmptyState icon="eye-off" title="Generate report hidden"
+                  body="A teacher without report permission simply has the CTA omitted (not disabled). Read-only analytics remain."/>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Report toast — failure</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <Alert variant="error" title="Couldn't generate the report">
+                  Please try again.
+                  <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="statemini">
+              <span className="u-caption">Hidden — single-class exam</span>
+              <div className="statemini__body" style={{justifyContent:'center'}}>
+                <EmptyState icon="minimize-2" title="“By class” omitted"
+                  body="When the exam targets a single class, the breakdown equals the overall figures, so the card is hidden."/>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      {/* report progress / success live region */}
+      <div aria-live="polite" style={{position:'absolute',right:'var(--space-6)',bottom:'var(--space-6)',display:'flex',flexDirection:'column',gap:'var(--space-3)',maxWidth:340,zIndex:50}}>
+        {toast==='progress' && (
+          <Toast variant="info" title="Preparing your report…" body="Generating a class-summary PDF for this exam."/>
+        )}
+        {toast==='success' && (
+          <Toast variant="success" title="Report ready" body="Your class-summary PDF opened in a new tab. The link is valid for 1 hour."/>
+        )}
+      </div>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

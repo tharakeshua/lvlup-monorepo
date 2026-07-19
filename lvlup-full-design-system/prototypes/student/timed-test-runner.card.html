@@ -1,0 +1,512 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Timed Test — Runner ★" subtitle="Focus mode · server-authoritative timer · sealed answers" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timed Test — Runner ★</title>
+<link rel="stylesheet" href="../../styles.css">
+<style> /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  /* Focus-mode shell frame (no AppShell sidebar/topbar) */
+  .runner { max-width: 1280px; margin: 0 auto; min-height: 820px; display: flex; flex-direction: column; }
+
+  /* Sticky top band */
+  .runner__band {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: var(--space-5);
+    padding: var(--space-3) var(--space-6);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-e1);
+  }
+  .runner__band-left { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  .runner__crumb { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .runner__crumb-title { font-family: var(--font-display); font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .runner__crumb-meta { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); letter-spacing: var(--tracking-caption); }
+  .runner__band-timer { flex: 1; display: flex; justify-content: center; min-width: 0; }
+  .runner__band-right { display: flex; align-items: center; gap: var(--space-2); }
+
+  /* the timer cluster inside the band */
+  .timerwrap { display: flex; flex-direction: column; gap: var(--space-1); min-width: 360px; max-width: 460px; width: 100%; }
+  .timerwrap__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+  .timerwrap__remaining { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); }
+  .timerwrap__warn { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); font-weight: var(--weight-medium); }
+  .timerwrap__warn--warning { color: var(--status-warning); }
+  .timerwrap__warn--error { color: var(--status-error); }
+
+  /* main 2-col */
+  .runner__main { flex: 1; display: grid; grid-template-columns: 1fr 304px; gap: var(--space-6); padding: var(--space-6); align-items: start; }
+  .qcol { display: flex; flex-direction: column; gap: var(--space-4); max-width: 760px; margin: 0 auto; width: 100%; }
+  .qcol__chips { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .qcol__actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); }
+  .qcol__save-aff { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); }
+
+  .answers { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-2); }
+
+  /* navigator rail */
+  .navrail { position: sticky; top: 84px; display: flex; flex-direction: column; gap: var(--space-4); }
+  .nav-sec-label { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-caption); margin-bottom: var(--space-2); }
+  .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); }
+  .qnode {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-surface);
+    font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: transform var(--dur-instant) var(--ease-standard), box-shadow var(--dur-instant) var(--ease-standard);
+  }
+  .qnode:hover { transform: translateY(-1px); }
+  .qnode:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .qnode__glyph { position: absolute; top: 3px; right: 4px; display: inline-flex; }
+  .qnode--not-answered { color: var(--text-muted); border-color: var(--border-strong); }
+  .qnode--answered { background: var(--status-success-subtle); border-color: var(--status-success); color: var(--text-primary); }
+  .qnode--marked { background: var(--status-info-subtle); border-color: var(--status-info); color: var(--text-primary); }
+  .qnode--answered-marked { background: var(--status-info-subtle); border-color: var(--status-info); color: var(--text-primary); }
+  .qnode--current { box-shadow: 0 0 0 2px var(--border-focus); border-color: var(--border-focus); }
+
+  .legend { display: flex; flex-direction: column; gap: var(--space-2); }
+  .legend__row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); }
+  .legend__swatch { width: 18px; height: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .legend__swatch--answered { background: var(--status-success-subtle); border-color: var(--status-success); }
+  .legend__swatch--marked { background: var(--status-info-subtle); border-color: var(--status-info); }
+  .legend__swatch--answered-marked { background: var(--status-info-subtle); border-color: var(--status-info); }
+  .legend__swatch--not-answered { background: var(--bg-surface); border-color: var(--text-muted); }
+  .legend__swatch--not-seen { background: var(--bg-surface); border-color: var(--border-strong); }
+
+  .counts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-4); }
+  .counts__item { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-xs); color: var(--text-secondary); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border-subtle); }
+  .counts__num { font-family: var(--font-mono); font-weight: var(--weight-semibold); color: var(--text-primary); }
+
+  /* state gallery */
+  .gallery { padding: var(--space-6); border-top: 1px solid var(--border-subtle); background: var(--bg-surface-sunken); display: flex; flex-direction: column; gap: var(--space-5); }
+  .gallery__title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+  .gallery__sub { font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-1); }
+  .gallery__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: var(--tracking-caption); color: var(--text-muted); margin-bottom: var(--space-2); }
+  .tile { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .skel-band { display: flex; align-items: center; gap: var(--space-4); }
+  .skel-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); }
+  .saverow { display: flex; align-items: center; gap: var(--space-3); }
+  .mono { font-family: var(--font-mono); }
+  .center-pop { display: flex; align-items: center; gap: var(--space-3); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Radio, Field,
+    Panel, Section, Modal, Drawer,
+    Alert, Toast, Chip, Badge, Tooltip,
+    QuestionCard, Option, AnswerKeyLock, ContentRenderer, TimerBar, Skeleton
+  } = LU;
+  const { useState } = React;
+
+  // ---- realistic session data ----------------------------------------
+  const STORY_TITLE = "Functions & Graphs · Timed Test";
+  const TOTAL = 20;
+
+  // 5-status taxonomy: not_seen | not_answered | answered | marked | answered_marked
+  const initialNodes = [
+    "answered","answered","marked","answered","answered_marked",
+    "answered","current","not_answered","not_seen","not_seen",
+    "not_seen","not_seen","not_seen","not_seen","not_seen",
+    "not_seen","not_seen","not_seen","not_seen","not_seen"
+  ];
+
+  const GLYPH = {
+    answered:        { icon: "dot", label: "Answered" },
+    marked:          { icon: "flag", label: "Marked for review" },
+    answered_marked: { icon: "flag", label: "Answered & marked" },
+    not_answered:    { icon: "circle", label: "Not answered" },
+    not_seen:        { icon: "circle-dashed", label: "Not seen" },
+  };
+  const NODE_CLASS = {
+    answered: "qnode--answered",
+    marked: "qnode--marked",
+    answered_marked: "qnode--answered-marked",
+    not_answered: "qnode--not-answered",
+    not_seen: "",
+  };
+
+  // ---- Question Navigator ---------------------------------------------
+  function QuestionNavigator({ nodes, current, onJump }){
+    const counts = nodes.reduce((a,s)=>{ a[s]=(a[s]||0)+1; return a; },{});
+    const answeredTotal = (counts.answered||0)+(counts.answered_marked||0);
+    const markedTotal = (counts.marked||0)+(counts.answered_marked||0);
+    const notAnswered = (counts.not_answered||0);
+    const notSeen = (counts.not_seen||0);
+
+    return (
+      <Panel title="Questions">
+        <div className="nav-sec-label">Section · Functions &amp; Graphs</div>
+        <div className="nav-grid" role="grid" aria-label="Question navigator">
+          {nodes.map((s,i)=>{
+            const isCur = i===current;
+            const g = GLYPH[s] || GLYPH.not_seen;
+            const ans = s==="answered"||s==="answered_marked" ? "answered" : s==="not_answered" ? "not answered" : s==="not_seen" ? "not seen" : "marked for review";
+            const mk = (s==="marked"||s==="answered_marked");
+            const aria = "Question "+(i+1)+", "+ans+(mk && s!=="marked" ? " and marked for review":"")+(isCur?", current question":"");
+            return (
+              <button
+                key={i}
+                role="gridcell"
+                tabIndex={isCur?0:-1}
+                aria-label={aria}
+                aria-current={isCur ? "true" : undefined}
+                className={["qnode", NODE_CLASS[s], isCur && "qnode--current"].filter(Boolean).join(" ")}
+                onClick={()=>onJump(i)}
+              >
+                <span className="qnode__glyph"><Icon name={g.icon} size={11} /></span>
+                {i+1}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{height:"var(--space-4)"}} />
+        <div className="nav-sec-label">Legend</div>
+        <div className="legend">
+          <div className="legend__row"><span className="legend__swatch legend__swatch--answered"><Icon name="dot" size={12}/></span> Answered</div>
+          <div className="legend__row"><span className="legend__swatch legend__swatch--marked"><Icon name="flag" size={11}/></span> Marked for review</div>
+          <div className="legend__row"><span className="legend__swatch legend__swatch--answered-marked"><Icon name="flag" size={11}/></span> Answered &amp; marked</div>
+          <div className="legend__row"><span className="legend__swatch legend__swatch--not-answered"><Icon name="circle" size={11}/></span> Not answered</div>
+          <div className="legend__row"><span className="legend__swatch legend__swatch--not-seen"><Icon name="circle-dashed" size={11}/></span> Not seen</div>
+        </div>
+
+        <div style={{height:"var(--space-4)"}} />
+        <div className="nav-sec-label">Your progress</div>
+        <div className="counts">
+          <div className="counts__item">Answered <span className="counts__num">{answeredTotal}</span></div>
+          <div className="counts__item">Marked <span className="counts__num">{markedTotal}</span></div>
+          <div className="counts__item">Not answered <span className="counts__num">{notAnswered}</span></div>
+          <div className="counts__item">Not seen <span className="counts__num">{notSeen}</span></div>
+        </div>
+      </Panel>
+    );
+  }
+
+  // ---- Sticky band w/ server-authoritative timer ----------------------
+  function RunnerBand({ qIndex, onSubmit, onExit, tone }){
+    // tone: "" | "warning" | "error" ; here we render normal (active) state
+    const remaining = "24:13";
+    return (
+      <div className="runner__band">
+        <div className="runner__band-left">
+          <Tooltip>
+            <IconButton icon={<Icon name="arrow-left" size={18}/>} label="Exit test" onClick={onExit} />
+          </Tooltip>
+          <div className="runner__crumb">
+            <span className="runner__crumb-title">{STORY_TITLE}</span>
+            <span className="runner__crumb-meta">QUESTION {qIndex+1} OF {TOTAL}</span>
+          </div>
+        </div>
+
+        <div className="runner__band-timer">
+          <div className="timerwrap" role="timer" aria-live="off" aria-label={remaining+" remaining"}>
+            <div className="timerwrap__row">
+              <span className="mono" style={{fontWeight:"var(--weight-medium)"}}>{remaining} remaining</span>
+              <span className="timerwrap__remaining" style={{display:"inline-flex",alignItems:"center",gap:"var(--space-1)"}}>
+                <Icon name="server" size={11}/> server clock
+              </span>
+            </div>
+            <TimerBar time={remaining} percent={72} />
+          </div>
+        </div>
+
+        <div className="runner__band-right">
+          <Button variant="primary" onClick={onSubmit} leadingIcon={<Icon name="send" size={16}/>}>Submit</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Active question content ----------------------------------------
+  function ActiveQuestion({ marked, onToggleMark, onSaveNext, saving }){
+    const [choice, setChoice] = useState("b");
+    const opts = [
+      { v:"a", marker:"A", text:"The graph shifts 3 units to the right." },
+      { v:"b", marker:"B", text:"The graph shifts 3 units to the left." },
+      { v:"c", marker:"C", text:"The graph shifts 3 units upward." },
+      { v:"d", marker:"D", text:"The graph is reflected across the y-axis." },
+    ];
+    return (
+      <div className="qcol">
+        <div className="qcol__chips">
+          <Chip>Multiple choice</Chip>
+          <Badge variant="info">Medium</Badge>
+          <span style={{flex:1}} />
+          <AnswerKeyLock title="Answers are sealed">Hidden until you submit — scored fairly.</AnswerKeyLock>
+        </div>
+
+        <QuestionCard type="Q7 · Multiple choice" points={2} prompt={
+          <ContentRenderer math>
+            <div>
+              <p style={{margin:"0 0 var(--space-3)"}}>
+                Consider the function <span className="mono">f(x) = (x + 3)²</span> obtained from the parent
+                function <span className="mono">g(x) = x²</span>.
+              </p>
+              <p style={{margin:0}}>Which transformation correctly describes the relationship between the two graphs?</p>
+            </div>
+          </ContentRenderer>
+        }>
+          <div className="answers" role="radiogroup" aria-label="Answer choices">
+            {opts.map(o=>(
+              <div key={o.v} onClick={()=>setChoice(o.v)} style={{cursor:"pointer"}}>
+                <Option selected={choice===o.v} marker={o.marker}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-3)"}}>
+                    <Radio name="q7" checked={choice===o.v} onChange={()=>setChoice(o.v)} />
+                    {o.text}
+                  </span>
+                </Option>
+              </div>
+            ))}
+          </div>
+        </QuestionCard>
+
+        <div className="qcol__actions">
+          <Button
+            variant={marked ? "secondary" : "ghost"}
+            onClick={onToggleMark}
+            leadingIcon={<Icon name="flag" size={16}/>}
+          >
+            {marked ? "Marked — I'll come back" : "Mark for review"}
+          </Button>
+
+          <div style={{display:"flex",alignItems:"center",gap:"var(--space-4)"}}>
+            {saving && (
+              <span className="qcol__save-aff"><Icon name="loader" size={13}/> Saving…</span>
+            )}
+            <Button variant="primary" onClick={onSaveNext} trailingIcon={<Icon name="arrow-right" size={16}/>}>
+              Save &amp; Next
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- State gallery (all spec'd secondary states) --------------------
+  function LowTimeTimer({ tone, time, percent, text, icon }){
+    return (
+      <div className="timerwrap" role="timer" aria-label={time+" remaining"}>
+        <div className="timerwrap__row">
+          <span className={"timerwrap__warn timerwrap__warn--"+tone}>
+            <Icon name={icon} size={14}/> {text}
+          </span>
+          <span className="timerwrap__remaining" style={{display:"inline-flex",alignItems:"center",gap:"var(--space-1)"}}>
+            <Icon name="server" size={11}/> server clock
+          </span>
+        </div>
+        <TimerBar time={time} percent={percent} tone={tone==="error"?"critical":"warning"} />
+      </div>
+    );
+  }
+
+  function Gallery(){
+    return (
+      <div className="gallery">
+        <div>
+          <div className="gallery__title">All runner states</div>
+          <div className="gallery__sub">Every state the spec calls for — the active runner above is the primary view.</div>
+        </div>
+
+        <div className="gallery__grid">
+          {/* Loading skeleton */}
+          <div className="tile">
+            <div className="eyebrow">State: loading (start / resume)</div>
+            <div className="skel-band">
+              <Skeleton variant="text" width="180px" height="14px" />
+              <span style={{flex:1}} />
+              <Skeleton variant="text" width="110px" height="14px" />
+            </div>
+            <Skeleton width="100%" height="6px" />
+            <Skeleton width="100%" height="120px" />
+            <div className="skel-grid">
+              {Array.from({length:10}).map((_,i)=>(<Skeleton key={i} width="100%" height="38px" />))}
+            </div>
+            <div className="mono" style={{fontSize:"var(--text-xs)",color:"var(--text-muted)"}}>Setting up your test… (no clock until the server deadline loads)</div>
+          </div>
+
+          {/* Low-time warning ≤5 min */}
+          <div className="tile">
+            <div className="eyebrow">State: low-time warning (≤5 min · status.warning)</div>
+            <LowTimeTimer tone="warning" time="04:52" percent={18} icon="alarm-clock" text="5 minutes remaining — finish strong." />
+            <div style={{fontSize:"var(--text-xs)",color:"var(--text-secondary)"}}>Announced once (polite aria-live) at the threshold. Icon + text + color — never color alone.</div>
+
+            <div className="eyebrow" style={{marginTop:"var(--space-2)"}}>State: low-time critical (≤1 min · status.error)</div>
+            <LowTimeTimer tone="error" time="00:47" percent={3} icon="alarm-clock" text="Under a minute left. Anything you've entered is already being saved." />
+          </div>
+
+          {/* Saving / partial */}
+          <div className="tile">
+            <div className="eyebrow">State: saving (non-blocking, partial)</div>
+            <div className="saverow">
+              <span className="qcol__save-aff"><Icon name="loader" size={14}/> Saving…</span>
+              <Button variant="primary" size="sm" trailingIcon={<Icon name="arrow-right" size={14}/>}>Save &amp; Next</Button>
+            </div>
+            <Toast variant="info" title="Answer saved" body="Question 6 stored. We won't keep nagging you on success." />
+
+            <div className="eyebrow" style={{marginTop:"var(--space-2)"}}>State: save failure (degraded — keeps retrying)</div>
+            <Alert variant="warning" title="Still saving in the background">
+              We're having trouble saving your last answer, so we'll keep retrying. Your work isn't lost.
+            </Alert>
+          </div>
+
+          {/* Auto-submit (timeout) */}
+          <div className="tile">
+            <div className="eyebrow">State: auto-submit (timer reached zero · non-dismissible)</div>
+            <LowTimeTimer tone="error" time="00:00" percent={0} icon="alarm-clock-off" text="Time's up." />
+            <Alert variant="info" title="Time's up — we're submitting your answers now">
+              Hang tight. The server reconciles a 30-second grace window, so nothing you entered is lost.
+            </Alert>
+            <div className="saverow"><span className="qcol__save-aff"><Icon name="loader" size={14}/> Submitting…</span></div>
+          </div>
+
+          {/* Locked / answer key */}
+          <div className="tile">
+            <div className="eyebrow">State: locked (answer key sealed — domain rule)</div>
+            <AnswerKeyLock title="Answers are sealed until you submit">
+              No right/wrong colouring, no score, no explanations during the test. The answer key is server-only and the
+              client physically can't read it. You'll see your results once you submit.
+            </AnswerKeyLock>
+          </div>
+
+          {/* Error / empty (load fault) */}
+          <div className="tile">
+            <div className="eyebrow">State: error / empty (load fault — clock not started)</div>
+            <Alert variant="error" title="This test couldn't load its questions">
+              Reach out to your teacher — your time hasn't started. Nothing is being counted against you.
+            </Alert>
+            <div style={{display:"flex",gap:"var(--space-3)"}}>
+              <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Try again</Button>
+              <Button variant="ghost" size="sm">Contact teacher</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Screen ----------------------------------------------------------
+  function Screen(){
+    const [nodes, setNodes] = useState(initialNodes);
+    const [current, setCurrent] = useState(6); // Q7
+    const [marked, setMarked] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [submitOpen, setSubmitOpen] = useState(false);
+    const [exitOpen, setExitOpen] = useState(false);
+
+    const jump = (i)=>{
+      setCurrent(i);
+      setNodes(prev=>{
+        const next = prev.slice();
+        if(next[i]==="not_seen") next[i]="not_answered";
+        return next;
+      });
+      setMarked(nodes[i]==="marked" || nodes[i]==="answered_marked");
+    };
+
+    const toggleMark = ()=> setMarked(m=>!m);
+
+    const saveNext = ()=>{
+      setSaving(true);
+      setNodes(prev=>{
+        const next = prev.slice();
+        next[current] = marked ? "answered_marked" : "answered";
+        return next;
+      });
+      setTimeout(()=>{
+        setSaving(false);
+        const ni = Math.min(current+1, TOTAL-1);
+        jump(ni);
+      }, 650);
+    };
+
+    const counts = nodes.reduce((a,s)=>{ a[s]=(a[s]||0)+1; return a; },{});
+    const answeredTotal = (counts.answered||0)+(counts.answered_marked||0);
+    const markedTotal = (counts.marked||0)+(counts.answered_marked||0);
+    const unanswered = TOTAL - answeredTotal;
+
+    return (
+      <div className="runner">
+        <RunnerBand
+          qIndex={current}
+          onSubmit={()=>setSubmitOpen(true)}
+          onExit={()=>setExitOpen(true)}
+        />
+
+        <div className="runner__main">
+          <ActiveQuestion
+            marked={marked}
+            onToggleMark={toggleMark}
+            onSaveNext={saveNext}
+            saving={saving}
+          />
+          <div className="navrail">
+            <QuestionNavigator nodes={nodes} current={current} onJump={jump} />
+          </div>
+        </div>
+
+        <Gallery />
+
+        {/* Submit confirm dialog */}
+        <Modal
+          open={submitOpen}
+          onClose={()=>setSubmitOpen(false)}
+          title="Ready to submit?"
+          footer={
+            <div style={{display:"flex",gap:"var(--space-3)",justifyContent:"flex-end"}}>
+              <Button variant="ghost" onClick={()=>setSubmitOpen(false)}>Keep working</Button>
+              <Button variant="primary" leadingIcon={<Icon name="send" size={16}/>} onClick={()=>setSubmitOpen(false)}>Submit test</Button>
+            </div>
+          }
+        >
+          <p style={{margin:"0 0 var(--space-4)"}}>
+            You've answered <strong>{answeredTotal} of {TOTAL}</strong> questions.
+            {markedTotal>0 ? <> <strong>{markedTotal}</strong> are marked for review.</> : null}
+            {unanswered>0 ? <> <strong>{unanswered}</strong> are still blank.</> : null}{" "}
+            Once you submit, the test is final and we'll score it for you.
+          </p>
+          <AnswerKeyLock title="Answers are sealed until you submit">
+            We score on the server right after — you'll get your results in a moment.
+          </AnswerKeyLock>
+        </Modal>
+
+        {/* Exit confirm dialog */}
+        <Modal
+          open={exitOpen}
+          onClose={()=>setExitOpen(false)}
+          title="Leave the test?"
+          footer={
+            <div style={{display:"flex",gap:"var(--space-3)",justifyContent:"flex-end"}}>
+              <Button variant="ghost" onClick={()=>setExitOpen(false)}>Stay</Button>
+              <Button variant="danger" onClick={()=>setExitOpen(false)}>Leave</Button>
+            </div>
+          }
+        >
+          <p style={{margin:0}}>
+            Your timer keeps running while you're away — it's on the server clock and doesn't pause.
+            Your answers stay saved, so you can come right back and pick up where you left off.
+          </p>
+        </Modal>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

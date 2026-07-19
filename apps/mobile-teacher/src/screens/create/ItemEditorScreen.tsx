@@ -17,6 +17,7 @@ import {
   useSaveItem,
   useItemForEdit,
   validateQuestionPayload,
+  type QuestionType,
 } from "@levelup/query";
 
 import { Button, Card, Divider, Icon, Screen } from "../../components";
@@ -62,14 +63,18 @@ const QT_ICONS: Record<string, string> = {
   chat_agent_question: "bot",
 };
 
+const MOBILE_AUTHORABLE_QUESTION_TYPES = QUESTION_TYPES.filter(
+  (questionType) => questionType !== "chat_agent_question"
+);
+
 // ─── TypePicker ──────────────────────────────────────────────────────────────
 
-function TypePicker({ onSelect }: { onSelect: (qt: string) => void }) {
+function TypePicker({ onSelect }: { onSelect: (qt: QuestionType) => void }) {
   return (
     <Screen contentClassName="gap-3">
       <Text className="font-display text-text-primary text-xl font-bold">Choose question type</Text>
       <Text className="text-text-muted text-sm">Select the type of question to create.</Text>
-      {QUESTION_TYPES.map((qt) => (
+      {MOBILE_AUTHORABLE_QUESTION_TYPES.map((qt) => (
         <Pressable
           key={qt}
           onPress={() => onSelect(qt)}
@@ -86,6 +91,13 @@ function TypePicker({ onSelect }: { onSelect: (qt: string) => void }) {
           <Icon name="chevron-right" size={16} color={colors.textMuted} />
         </Pressable>
       ))}
+      <Card className="gap-1 border-amber-300 bg-amber-50">
+        <Text className="text-text-primary text-sm font-semibold">Chat-agent assessments</Text>
+        <Text className="text-text-secondary text-xs">
+          Create and edit these in Teacher Web. Mobile keeps them read-only to protect their private
+          answer-key schema.
+        </Text>
+      </Card>
     </Screen>
   );
 }
@@ -105,14 +117,17 @@ export default function ItemEditorScreen() {
   const storyPointId = params.storyPointId ?? "";
   const itemId = typeof params.itemId === "string" && params.itemId ? params.itemId : undefined;
   const initialType =
-    typeof params.questionType === "string" && params.questionType ? params.questionType : null;
+    typeof params.questionType === "string" &&
+    QUESTION_TYPES.includes(params.questionType as QuestionType)
+      ? (params.questionType as QuestionType)
+      : null;
 
   const [title, setTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [basePoints, setBasePoints] = useState(1);
   const [difficulty, setDifficulty] = useState("medium");
   const [explanation, setExplanation] = useState("");
-  const [questionType, setQuestionType] = useState<string | null>(initialType);
+  const [questionType, setQuestionType] = useState<QuestionType | null>(initialType);
   const [payload, setPayload] = useState<Record<string, unknown>>({});
   const [populated, setPopulated] = useState(false);
   const [saveErrors, setSaveErrors] = useState<{ field: string; message: string }[]>([]);
@@ -129,10 +144,14 @@ export default function ItemEditorScreen() {
     setBasePoints((d.basePoints as number) ?? 1);
     setDifficulty((d.difficulty as string) ?? "medium");
     setExplanation((d.explanation as string) ?? "");
-    const qt =
+    const qtValue =
       (d.questionType as string) ??
       ((d.payload as Record<string, unknown>)?.questionType as string) ??
       null;
+    const qt =
+      qtValue && QUESTION_TYPES.includes(qtValue as QuestionType)
+        ? (qtValue as QuestionType)
+        : null;
     setQuestionType(qt);
     setPayload((d.payload as Record<string, unknown>) ?? {});
     setPopulated(true);
@@ -193,6 +212,15 @@ export default function ItemEditorScreen() {
 
   async function handleSave() {
     if (!questionType) return;
+    if (questionType === "chat_agent_question") {
+      setSaveErrors([
+        {
+          field: "_",
+          message: "Chat-agent assessments are read-only on mobile. Open Teacher Web to edit them.",
+        },
+      ]);
+      return;
+    }
     const errors = validateQuestionPayload(questionType, payload);
     if (errors.length > 0) {
       setSaveErrors(errors);
@@ -222,10 +250,11 @@ export default function ItemEditorScreen() {
   }
 
   const typeLabel = QT_LABELS[questionType] ?? questionType;
+  const isChatAssessment = questionType === "chat_agent_question";
   const globalError = saveErrors.find((e) => e.field === "_");
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="bg-canvas flex-1">
       <View className="bg-surface border-border-subtle flex-row items-center gap-3 border-b px-4 py-3">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="arrow-left" size={22} color={colors.textPrimary} />
@@ -240,9 +269,10 @@ export default function ItemEditorScreen() {
           variant="primary"
           size="sm"
           loading={saveItem.isPending}
+          disabled={isChatAssessment}
           onPress={() => void handleSave()}
         >
-          Save
+          {isChatAssessment ? "Web only" : "Save"}
         </Button>
       </View>
 
@@ -258,31 +288,43 @@ export default function ItemEditorScreen() {
           </View>
         )}
 
-        <CommonItemFields
-          title={title}
-          onTitleChange={setTitle}
-          prompt={prompt}
-          onPromptChange={setPrompt}
-          difficulty={difficulty}
-          onDifficultyChange={setDifficulty}
-          basePoints={basePoints}
-          onPointsChange={setBasePoints}
-          explanation={explanation}
-          onExplanationChange={setExplanation}
-        />
+        {isChatAssessment ? (
+          <Card className="gap-2 border-amber-300 bg-amber-50">
+            <Text className="text-text-primary font-semibold">Read-only chat-agent assessment</Text>
+            <Text className="text-text-secondary text-sm">
+              Mobile cannot safely edit the public/private assessment split. Use Teacher Web to
+              change this item; no changes from this screen will be saved.
+            </Text>
+          </Card>
+        ) : (
+          <>
+            <CommonItemFields
+              title={title}
+              onTitleChange={setTitle}
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
+              basePoints={basePoints}
+              onPointsChange={setBasePoints}
+              explanation={explanation}
+              onExplanationChange={setExplanation}
+            />
 
-        <Divider />
+            <Divider />
 
-        <View className="gap-3">
-          <Text className="font-display text-text-primary text-base font-semibold">
-            {typeLabel} settings
-          </Text>
-          <QuestionPayloadEditor
-            questionType={questionType}
-            payload={payload}
-            onChange={setPayload}
-          />
-        </View>
+            <View className="gap-3">
+              <Text className="font-display text-text-primary text-base font-semibold">
+                {typeLabel} settings
+              </Text>
+              <QuestionPayloadEditor
+                questionType={questionType}
+                payload={payload}
+                onChange={setPayload}
+              />
+            </View>
+          </>
+        )}
 
         {saveErrors.filter((e) => e.field !== "_").length > 0 && (
           <Card className="gap-1 border-red-200 bg-red-50">
@@ -301,9 +343,10 @@ export default function ItemEditorScreen() {
           variant="primary"
           block
           loading={saveItem.isPending}
+          disabled={isChatAssessment}
           onPress={() => void handleSave()}
         >
-          {itemId ? "Save changes" : "Create item"}
+          {isChatAssessment ? "Edit in Teacher Web" : itemId ? "Save changes" : "Create item"}
         </Button>
       </ScrollView>
     </View>

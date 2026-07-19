@@ -2,13 +2,11 @@
  * itemRepo (SDK-LAYERS-PLAN §4.1, levelup-content.md).
  *
  *   list(spaceId,storyPointId)  — listItems (paginated, ANSWER-STRIPPED)
- *   get(id)                     — getSpace-scoped item read (answer-stripped)
  *   getForEdit(input)           — authoring-only; returns the re-merged item AND
  *                                 the isolated non-persisted cache key so answer
  *                                 keys never leak into a shared/offline store
  *                                 (§4.2 / SDK-SERVER §7.1.3)
- *   getMany(ids)                — batched
- *   save(input)                 — metadata only; D2: never injects tenantId
+ *   save(input)                 — maps ergonomic delete to data.deleted
  *   saveFromBank(input)         — idempotent bank → items (the `importFromBank`
  *                                 callable; named with the sanctioned `save*` IO
  *                                 prefix per the method-naming convention)
@@ -17,76 +15,78 @@ import {
   type ApiClientLike,
   type Page,
   type PageBag,
-  type PageRequest,
   EDIT_ITEM_SCOPE,
-  batchGetMany,
   editItemKey,
+  invokeCallable,
   makePaginator,
   toPage,
 } from "./_kit";
+import type { ReqOf, ResOf } from "@levelup/api-contract";
+import type { UnifiedItem } from "@levelup/domain";
 
-export interface ItemFilter extends PageRequest {
-  spaceId: string;
-  storyPointId: string;
-}
+type ListItemsRequest = ReqOf<"v1.levelup.listItems">;
+export type ItemFilter = Omit<ListItemsRequest, "limit"> & {
+  limit?: ListItemsRequest["limit"];
+};
 
-export interface SaveItemInput {
-  id?: string;
-  spaceId: string;
-  storyPointId: string;
-  data?: Record<string, unknown>;
+export type SaveItemInput = ReqOf<"v1.levelup.saveItem"> & {
+  /** Ergonomic soft-delete flag; mapped to the canonical data.deleted field. */
   delete?: boolean;
-}
+};
 
-export interface GetForEditInput {
-  spaceId: string;
-  storyPointId: string;
-  itemId: string;
-}
+export type GetForEditInput = ReqOf<"v1.levelup.getItemForEdit">;
 
 /** The authoring read result, carrying the isolated (sensitive) cache key. */
 export interface ItemEditResult {
-  item: unknown;
+  item: ResOf<"v1.levelup.getItemForEdit">["item"];
   /** Non-persisted, answer-key-isolated cache key (§4.2). */
   cacheKey: readonly unknown[];
 }
 
-export interface ImportFromBankInput {
-  spaceId: string;
-  storyPointId: string;
-  bankItemIds: string[];
-  targetType?: string;
-}
+export type ImportFromBankInput = ReqOf<"v1.levelup.importFromBank">;
 
 export interface ItemRepo {
-  list(filter: ItemFilter): Promise<Page<unknown>>;
-  paginate(filter: ItemFilter): Promise<PageBag<unknown>>;
-  get(input: { spaceId: string; storyPointId: string; itemId: string }): Promise<unknown>;
+  list(filter: ItemFilter): Promise<Page<UnifiedItem>>;
+  paginate(filter: ItemFilter): Promise<PageBag<UnifiedItem>>;
   getForEdit(input: GetForEditInput): Promise<ItemEditResult>;
-  getMany(
-    ids: readonly string[],
-    scope: { spaceId: string; storyPointId: string }
-  ): Promise<unknown[]>;
-  save(input: SaveItemInput): Promise<unknown>;
-  saveFromBank(input: ImportFromBankInput): Promise<unknown>;
+  save(input: SaveItemInput): Promise<ResOf<"v1.levelup.saveItem">>;
+  saveFromBank(input: ImportFromBankInput): Promise<ResOf<"v1.levelup.importFromBank">>;
 }
 
 export function createItemRepo(api: ApiClientLike): ItemRepo {
   const lv = api.levelup;
   return {
-    list: (filter) => lv["listItems"]!(filter).then((r) => toPage(r)),
-    paginate: (filter) => makePaginator((req) => lv["listItems"]!(req), filter),
-    get: (input) => lv["getItem"]!(input),
+    list: (filter) =>
+      invokeCallable<"v1.levelup.listItems">(lv["listItems"]!, {
+        ...filter,
+        limit: filter.limit ?? 20,
+      }).then((r) => toPage<UnifiedItem>(r)),
+    paginate: (filter) =>
+      makePaginator<UnifiedItem, ItemFilter>(
+        (req) =>
+          invokeCallable<"v1.levelup.listItems">(lv["listItems"]!, {
+            ...req,
+            limit: req.limit ?? 20,
+          }),
+        { ...filter, limit: filter.limit ?? 20 }
+      ),
     getForEdit: async (input) => {
       // ⚷ authoring-only — re-merges the AnswerKey server-side. We never persist
       // this under a shared key; the caller binds it to `editItemKey(itemId)`
       // (gcTime:0/staleTime:0) so answer keys cannot leak into offline cache.
-      const res = (await lv["getItemForEdit"]!(input)) as { item?: unknown };
-      return { item: res?.item ?? res, cacheKey: editItemKey(input.itemId) };
+      const response = await invokeCallable<"v1.levelup.getItemForEdit">(
+        lv["getItemForEdit"]!,
+        input
+      );
+      return { item: response.item, cacheKey: editItemKey(input.itemId) };
     },
-    getMany: (ids, scope) => batchGetMany((req) => lv["listItems"]!(req), ids, scope),
-    save: (input) => lv["saveItem"]!(input),
-    saveFromBank: (input) => lv["importFromBank"]!(input),
+    save: ({ delete: shouldDelete, ...input }) =>
+      invokeCallable<"v1.levelup.saveItem">(lv["saveItem"]!, {
+        ...input,
+        data: { ...input.data, ...(shouldDelete ? { deleted: true } : {}) },
+      }),
+    saveFromBank: (input) =>
+      invokeCallable<"v1.levelup.importFromBank">(lv["importFromBank"]!, input),
   };
 }
 

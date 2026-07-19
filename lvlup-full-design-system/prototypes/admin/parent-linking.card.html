@@ -1,0 +1,518 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Parent–Student Linking" subtitle="Users · Parents tab · guardian access scope · link drawer · confirm" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:280px;max-width:32vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1264px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-wrap{flex-wrap:wrap;}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* tabs */
+.ptabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle);}
+.ptab{padding:var(--space-3) var(--space-4);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.ptab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ptab .ct{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:6px;}
+/* toolbar */
+.toolbar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;}
+.tb-search{display:flex;align-items:center;gap:var(--space-2);flex:1;min-width:240px;max-width:380px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-secondary);font-size:var(--text-sm);}
+.tb-search i{width:16px;height:16px;color:var(--text-muted);}
+.tb-search input{border:none;outline:none;background:none;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);}
+.tb-sel{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.tb-sel i{width:15px;height:15px;color:var(--text-muted);}
+.tb-stat{display:flex;gap:var(--space-2);margin-left:auto;}
+.statpill{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);min-width:84px;}
+.statpill .l{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.statpill .v{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-medium);}
+/* table */
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.ptbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+.ptbl thead th{text-align:left;padding:var(--space-3) var(--space-5);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);}
+.ptbl tbody td{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);vertical-align:middle;}
+.ptbl tbody tr:last-child td{border-bottom:none;}
+.ptbl tbody tr.lk:hover{background:var(--bg-surface-sunken);}
+.pname{display:flex;align-items:center;gap:var(--space-3);}
+.pname .av{width:34px;height:34px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);flex:none;}
+.pname .nn{font-weight:var(--weight-medium);}
+.pname .em{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+.cellbtn{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:none;border:none;cursor:pointer;text-align:left;padding:0;font-family:var(--font-ui);}
+.rchip{display:inline-flex;align-items:center;gap:6px;padding:3px var(--space-2) 3px 3px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);font-size:var(--text-xs);color:var(--text-primary);}
+.rchip .ca{width:18px;height:18px;border-radius:var(--radius-pill);background:var(--indigo-50);color:var(--indigo-600);display:grid;place-items:center;font-size:9px;font-weight:var(--weight-semibold);}
+.rchip.more{color:var(--text-muted);font-family:var(--font-mono);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);border:1px solid transparent;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.inf{background:var(--status-info-subtle);color:var(--status-info);}
+.badge.neu{background:var(--bg-surface-sunken);color:var(--text-secondary);border-color:var(--border-subtle);}
+.iconbtn{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:1px solid var(--border-subtle);}
+.iconbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.iconbtn i{width:16px;height:16px;}
+.pag{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);font-size:var(--text-sm);color:var(--text-muted);}
+.pag .sp{flex:1;}
+/* skeleton */
+.sk{background:var(--bg-inset);border-radius:var(--radius-sm);height:12px;animation:shimmer 1.4s ease-in-out infinite;}
+@keyframes shimmer{0%,100%{opacity:.55}50%{opacity:.9}}
+/* inline alert */
+.ial{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);border:1px solid transparent;}
+.ial i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.ial .ab{flex:1;}.ial .at{font-weight:var(--weight-semibold);}
+.ial.inf{background:var(--status-info-subtle);border-color:var(--status-info);}
+.ial.inf i.lead{color:var(--status-info);}
+.ial.err{background:var(--status-error-subtle);border-color:var(--status-error);}
+.ial.err i.lead{color:var(--status-error);}
+.ial.warn{background:var(--status-warning-subtle);border-color:var(--status-warning);}
+.ial.warn i.lead{color:var(--status-warning);}
+.lnk{color:var(--brand-primary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;background:none;border:none;padding:0;font-family:var(--font-ui);}
+.empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:var(--space-12) var(--space-6);text-align:center;}
+.empty .ec{width:48px;height:48px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);}
+.empty .ec i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:340px;}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;border:1px solid transparent;transition:background var(--dur-fast) var(--ease-standard);}
+.btn i{width:15px;height:15px;}
+.btn.pri{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn.pri:hover{background:var(--brand-primary-hover);}
+.btn.pri:disabled{opacity:.5;cursor:not-allowed;}
+.btn.sec{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-strong);}
+.btn.sec:hover{background:var(--bg-surface-sunken);}
+.btn.ghost{background:none;color:var(--text-secondary);}
+.btn.ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn.dghost{background:none;color:var(--status-error);}
+.btn.dghost:hover{background:var(--status-error-subtle);}
+/* drawer */
+.scrim{position:fixed;inset:0;background:var(--ink-900);opacity:.42;z-index:40;animation:fade var(--dur-base) var(--ease-entrance);}
+@keyframes fade{from{opacity:0}to{opacity:.42}}
+.drw{position:fixed;top:0;right:0;height:100vh;width:480px;max-width:96vw;background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:41;display:flex;flex-direction:column;animation:slidein var(--dur-slow) var(--ease-entrance);}
+@keyframes slidein{from{transform:translateX(36px);opacity:.4}to{transform:translateX(0);opacity:1}}
+.drw-h{padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:var(--space-3);}
+.drw-h .top{display:flex;align-items:flex-start;gap:var(--space-3);}
+.drw-h .tt{font-size:var(--text-base);font-weight:var(--weight-semibold);line-height:1.2;}
+.drw-h .ss{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;}
+.stepper{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);}
+.step{display:flex;align-items:center;gap:6px;color:var(--text-muted);}
+.step .n{width:18px;height:18px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;}
+.step.on{color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.step.on .n{background:var(--brand-primary);color:var(--text-on-accent);border-color:var(--brand-primary);}
+.step .ln{width:18px;height:1px;background:var(--border-subtle);}
+.drw-b{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5);}
+.drw-sec{display:flex;flex-direction:column;gap:var(--space-2);}
+.drw-sec .sh{font-size:var(--text-xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);}
+.lrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);}
+.lrow .av{width:32px;height:32px;border-radius:var(--radius-pill);background:var(--indigo-50);color:var(--indigo-600);display:grid;place-items:center;font-size:var(--text-2xs);font-weight:var(--weight-semibold);flex:none;}
+.lrow .meta{flex:1;min-width:0;}
+.lrow .nn{font-size:var(--text-sm);font-weight:var(--weight-medium);}
+.lrow .mm{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+.lrow.add{background:var(--status-success-subtle);border-color:var(--status-success);}
+.lrow.rem{border-left:3px solid var(--status-error);background:var(--status-error-subtle);}
+.lrow.rem .nn{text-decoration:line-through;color:var(--text-muted);}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:1px var(--space-2);border-radius:var(--radius-pill);}
+.tag i{width:11px;height:11px;}
+.tag.add{background:var(--status-success);color:var(--text-on-accent);}
+.tag.rem{background:var(--status-error);color:var(--text-on-accent);}
+.combo{position:relative;}
+.combo-in{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--bg-surface);}
+.combo-in i{width:16px;height:16px;color:var(--text-muted);}
+.combo-in input{border:none;outline:none;background:none;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);}
+.combo-list{margin-top:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;}
+.cres{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);cursor:pointer;}
+.cres:last-child{border-bottom:none;}
+.cres:hover{background:var(--bg-surface-sunken);}
+.cres.dis{opacity:.6;cursor:not-allowed;}
+.cres .av{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--bg-inset);color:var(--text-secondary);display:grid;place-items:center;font-size:9px;font-weight:var(--weight-semibold);flex:none;}
+.cres .nn{font-size:var(--text-sm);font-weight:var(--weight-medium);}
+.cres .mm{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);}
+.drw-f{padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);position:relative;}
+.drw-f .sp{flex:1;}
+.field{display:flex;flex-direction:column;gap:var(--space-1);}
+.field label{font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);}
+.field input{padding:var(--space-2) var(--space-3);border:1px solid var(--border-strong);border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);background:var(--bg-surface);color:var(--text-primary);}
+.field input:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.overlay-mini{position:absolute;inset:0;background:var(--bg-surface);opacity:.7;display:grid;place-items:center;}
+/* modal */
+.mscrim{position:fixed;inset:0;background:var(--ink-900);opacity:.5;z-index:50;}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:94vw;background:var(--bg-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);z-index:51;overflow:hidden;}
+.modal .mh{padding:var(--space-5) var(--space-5) var(--space-3);display:flex;align-items:center;gap:var(--space-3);}
+.modal .mh .ic{width:36px;height:36px;border-radius:var(--radius-pill);background:var(--status-info-subtle);color:var(--status-info);display:grid;place-items:center;flex:none;}
+.modal .mt{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.modal .mb{padding:0 var(--space-5) var(--space-5);font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-base);}
+.modal .mf{padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);display:flex;justify-content:flex-end;gap:var(--space-3);background:var(--bg-surface-sunken);}
+.deltas{display:flex;flex-direction:column;gap:var(--space-1);margin:var(--space-3) 0;padding:var(--space-3);background:var(--bg-surface-sunken);border-radius:var(--radius-md);font-size:var(--text-sm);}
+.deltas .dl{display:flex;align-items:center;gap:var(--space-2);color:var(--text-primary);}
+.deltas .dl i{width:14px;height:14px;}
+.deltas .dl.a i{color:var(--status-success);}.deltas .dl.r i{color:var(--status-error);}
+.sec-h{display:flex;align-items:baseline;gap:var(--space-3);}
+.sec-h .st{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.gatebox{border:1px dashed var(--border-strong);border-radius:var(--radius-lg);padding:var(--space-5);background:var(--bg-surface-sunken);}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined}>
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,crumb,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood Academy · Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Overview</div>
+          <Nav icon="layout-dashboard" label="Dashboard" route="/" active={active}/>
+          <Nav icon="rocket" label="Onboarding" route="/onboarding" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Management</div>
+          <Nav icon="users" label="Users" route="/users" active={active}/>
+          <Nav icon="school" label="Classes" route="/classes" active={active}/>
+          <Nav icon="shield-check" label="Staff & Permissions" route="/staff" active={active}/>
+          <Nav icon="file-check" label="Exams" route="/exams" active={active}/>
+          <Nav icon="layers" label="Spaces" route="/spaces" active={active}/>
+          <Nav icon="book-open" label="Courses" route="/courses" active={active}/>
+          <Nav icon="calendar-range" label="Academic Sessions" route="/academic-sessions" active={active}/>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Analytics</div>
+          <Nav icon="bar-chart-3" label="Analytics" route="/analytics" active={active}/>
+          <Nav icon="file-text" label="Reports" route="/reports" active={active}/>
+          <Nav icon="sparkles" label="AI Usage" route="/ai-usage" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Configuration</div>
+          <Nav icon="bell" label="Notifications" route="/notifications" active={active}/>
+          <Nav icon="download" label="Data Export" route="/data-export" active={active}/>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="building"></i><span>Switch tenant</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">AK</div>
+          <div><div className="nm">Anita Kapoor</div><div className="rl">Tenant Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb">{crumb.map((c,i)=>(
+          <React.Fragment key={i}>{i>0&&<i data-lucide="chevron-right" style={{width:14,height:14}}></i>}{i===crumb.length-1?<b>{c}</b>:<span>{c}</span>}</React.Fragment>))}</nav>
+        <div className="sp"></div>
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="iconbtn" aria-label="Toggle theme" style={{border:"none"}}><i data-lucide="sun"></i></button>
+        <button className="iconbtn" aria-label="Notifications, 3 unread" style={{border:"none"}}><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+/* ---- sample data (server-authoritative; render-only) ---- */
+const STUDENTS = [
+  {id:"s1",name:"Maya Rao",cls:"Class 8-A",roll:"14"},
+  {id:"s2",name:"Arjun Rao",cls:"Class 6-B",roll:"09"},
+  {id:"s3",name:"Ishaan Rao",cls:"Class 4-A",roll:"22"},
+  {id:"s4",name:"Diya Mehta",cls:"Class 8-A",roll:"07"},
+  {id:"s5",name:"Kabir Shah",cls:"Class 7-C",roll:"31"},
+  {id:"s6",name:"Aanya Verma",cls:"Class 5-B",roll:"18"},
+];
+const PARENTS = [
+  {id:"p1",name:"Asha Rao",email:"asha.rao@email.com",status:"active",children:["s1","s2","s3"]},
+  {id:"p2",name:"Junaid Khan",email:"junaid.khan@email.com",status:"active",children:[]},
+  {id:"p3",name:"Priya Mehta",email:"priya.mehta@email.com",status:"active",children:["s4"]},
+  {id:"p4",name:"Vikram Shah",email:"vikram.shah@email.com",status:"archived",children:["s5"]},
+];
+const init = (n)=> n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+const sName = (id)=> (STUDENTS.find(s=>s.id===id)||{}).name||"—";
+
+function Drawer({parent, onClose}){
+  const linkedIds = parent.children;
+  const [staged, setStaged] = React.useState({add:[], remove:[]}); // arrays of student ids
+  const [q, setQ] = React.useState("");
+  const [confirm, setConfirm] = React.useState(false);
+  const [committing, setCommitting] = React.useState(false);
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+
+  const effLinked = linkedIds.filter(id=>!staged.remove.includes(id));
+  const isRem = (id)=> staged.remove.includes(id);
+  const addChild = (id)=> setStaged(s=>({...s, add:[...s.add, id]}));
+  const toggleRemove = (id)=> setStaged(s=> s.remove.includes(id)
+    ? {...s, remove:s.remove.filter(x=>x!==id)} : {...s, remove:[...s.remove, id]});
+  const undoAdd = (id)=> setStaged(s=>({...s, add:s.add.filter(x=>x!==id)}));
+
+  const stagedCount = staged.add.length + staged.remove.length;
+  const excluded = new Set([...linkedIds, ...staged.add]);
+  const results = STUDENTS.filter(s=> s.name.toLowerCase().includes(q.toLowerCase()) || s.roll.includes(q));
+
+  return (<>
+    <div className="scrim" onClick={onClose}></div>
+    <aside className="drw" role="dialog" aria-modal="true" aria-labelledby="drw-title" aria-describedby="drw-scope">
+      <div className="drw-h">
+        <div className="top">
+          <div style={{flex:1}}>
+            <div id="drw-title" className="tt">Link children to {parent.name}</div>
+            <div className="ss">{parent.email}</div>
+          </div>
+          <button className="iconbtn" aria-label="Close" onClick={onClose}><i data-lucide="x"></i></button>
+        </div>
+        <div id="drw-scope" className="ial inf">
+          <i data-lucide="shield" className="lead"></i>
+          <div className="ab"><span className="at">Guardian access scope. </span>
+            Linked parents can view these children's progress, exam results, and attendance in the parent portal. They cannot see other students.</div>
+        </div>
+      </div>
+      <div className="drw-b">
+        <div className="drw-sec">
+          <div className="sh">Currently linked ({effLinked.length})</div>
+          {linkedIds.length===0 && staged.add.length===0 && (
+            <div className="empty" style={{padding:"var(--space-6)"}}>
+              <div className="ec"><i data-lucide="users-round"></i></div>
+              <div className="eb">No children linked. Search below to add one.</div>
+            </div>)}
+          {linkedIds.map(id=>{ const s=STUDENTS.find(x=>x.id===id); return (
+            <div className={"lrow"+(isRem(id)?" rem":"")} key={id}>
+              <div className="av">{init(s.name)}</div>
+              <div className="meta"><div className="nn">{s.name}</div><div className="mm">{s.cls} · Roll {s.roll}</div></div>
+              {isRem(id)
+                ? (<><span className="tag rem"><i data-lucide="minus"></i>to remove</span>
+                    <button className="btn ghost" onClick={()=>toggleRemove(id)}>Undo</button></>)
+                : <button className="btn dghost" onClick={()=>toggleRemove(id)}><i data-lucide="link-2-off"></i>Unlink</button>}
+            </div>); })}
+          {staged.add.map(id=>{ const s=STUDENTS.find(x=>x.id===id); return (
+            <div className="lrow add" key={id}>
+              <div className="av">{init(s.name)}</div>
+              <div className="meta"><div className="nn">{s.name}</div><div className="mm">{s.cls} · Roll {s.roll}</div></div>
+              <span className="tag add"><i data-lucide="check"></i>to add</span>
+              <button className="btn ghost" onClick={()=>undoAdd(id)}>Undo</button>
+            </div>); })}
+        </div>
+
+        <div className="drw-sec">
+          <div className="sh">Add a child</div>
+          <div className="combo">
+            <div className="combo-in" role="combobox" aria-expanded="true" aria-controls="cl-list">
+              <i data-lucide="search"></i>
+              <input placeholder="Search students by name or roll number" value={q} onChange={e=>setQ(e.target.value)} aria-label="Search students"/>
+            </div>
+            <div className="combo-list" id="cl-list" role="listbox">
+              {results.length===0 && <div className="cres dis" style={{cursor:"default"}}>
+                <div className="meta" style={{flex:1}}><div className="mm">No students match "{q}". Check the Students tab.</div></div></div>}
+              {results.map(s=>{ const dis = excluded.has(s.id); return (
+                <div className={"cres"+(dis?" dis":"")} key={s.id} role="option" aria-disabled={dis}
+                     onClick={()=>!dis&&addChild(s.id)}>
+                  <div className="av">{init(s.name)}</div>
+                  <div className="meta" style={{flex:1}}><div className="nn">{s.name}</div><div className="mm">{s.cls} · Roll {s.roll}</div></div>
+                  {dis ? <span className="badge inf"><i data-lucide="link"></i>Linked</span>
+                       : <button className="btn sec" style={{padding:"4px 12px"}} onClick={()=>addChild(s.id)}>Add</button>}
+                </div>); })}
+            </div>
+          </div>
+        </div>
+
+        {stagedCount>0 && (
+          <div className="ial inf" role="status" aria-live="polite">
+            <i data-lucide="git-compare" className="lead"></i>
+            <div className="ab">Pending changes: {staged.add.length} to add · {staged.remove.length} to remove</div>
+          </div>)}
+      </div>
+      <div className="drw-f">
+        {committing && <div className="overlay-mini"><i data-lucide="loader-circle" style={{width:22,height:22,color:"var(--brand-primary)"}}></i></div>}
+        <button className="btn ghost" onClick={onClose}>Cancel</button>
+        <div className="sp"></div>
+        <button className="btn pri" disabled={stagedCount===0} onClick={()=>setConfirm(true)}>
+          Review &amp; confirm<i data-lucide="arrow-right"></i></button>
+      </div>
+    </aside>
+
+    {confirm && (<>
+      <div className="mscrim" onClick={()=>setConfirm(false)}></div>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="cf-title">
+        <div className="mh"><div className="ic"><i data-lucide="shield-question"></i></div>
+          <div id="cf-title" className="mt">Confirm guardian links</div></div>
+        <div className="mb">
+          You're about to update guardian access for <b style={{color:"var(--text-primary)"}}>{parent.name}</b>. Linked guardians can view these children's progress and results.
+          <div className="deltas">
+            {staged.add.map(id=> <div className="dl a" key={id}><i data-lucide="plus"></i>Grant access to {sName(id)}</div>)}
+            {staged.remove.map(id=> <div className="dl r" key={id}><i data-lucide="minus"></i>Remove access to {sName(id)}</div>)}
+          </div>
+          Unlink takes effect immediately server-side; a removed guardian is signed out and loses access. Continue?
+        </div>
+        <div className="mf">
+          <button className="btn sec" onClick={()=>setConfirm(false)}>Go back</button>
+          <button className="btn pri" onClick={()=>{setConfirm(false);setCommitting(true);setTimeout(onClose,650);}}>Confirm links</button>
+        </div>
+      </div>
+    </>)}
+  </>);
+}
+
+function Screen(){
+  const [drawer, setDrawer] = React.useState(null); // parent object or null
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+
+  const linkedCount = PARENTS.filter(p=>p.children.length>0).length;
+  const unlinkedCount = PARENTS.length - linkedCount;
+
+  return <Shell active="/users" crumb={["Users","Parents"]}>
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Users</h1>
+        <div className="ax-sub">Manage teachers, students, and parents in Northwood Academy <span className="ax-mono ax-muted">· NWA-0421</span></div></div>
+      <div className="ac">
+        <button className="btn sec"><i data-lucide="upload"></i>Import CSV</button>
+        <button className="btn pri" onClick={()=>setDrawer({id:"new",name:"new parent",email:"invite-then-link",status:"active",children:[]})}>
+          <i data-lucide="user-plus"></i>Invite parent</button>
+      </div>
+    </div>
+
+    {/* Parent portal feature-flag hint (§8.7) — icon + label, not color-only */}
+    <div className="ial warn" role="status">
+      <i data-lucide="triangle-alert" className="lead"></i>
+      <div className="ab"><span className="at">Parent portal is on for this tenant. </span>
+        <span className="ax-sec">Links grant parent-portal access as soon as claims re-sync (up to 1 hour).</span></div>
+      <button className="lnk">Open Settings →</button>
+    </div>
+
+    <div className="ptabs" role="tablist">
+      <div className="ptab" role="tab">Teachers<span className="ct">18</span></div>
+      <div className="ptab" role="tab">Students<span className="ct">142</span></div>
+      <div className="ptab on" role="tab" aria-selected="true">Parents<span className="ct">96</span></div>
+    </div>
+
+    <div className="toolbar">
+      <div className="tb-search"><i data-lucide="search"></i>
+        <input placeholder="Search parents by name, email, or phone" aria-label="Search parents"/></div>
+      <div className="tb-sel"><i data-lucide="circle-dot"></i>Status: All<i data-lucide="chevron-down"></i></div>
+      <div className="tb-sel"><i data-lucide="link"></i>Linked? All<i data-lucide="chevron-down"></i></div>
+      <div className="tb-stat">
+        <div className="statpill"><span className="l">Linked</span><span className="v">{linkedCount}</span></div>
+        <div className="statpill"><span className="l">Not linked</span><span className="v">{unlinkedCount}</span></div>
+      </div>
+    </div>
+
+    {/* Primary state — the Parents DataTable */}
+    <div className="panel">
+      <table className="ptbl">
+        <thead><tr><th>Name</th><th>Linked children</th><th>Status</th><th style={{textAlign:"right"}}>Actions</th></tr></thead>
+        <tbody>
+          {PARENTS.map(p=>{
+            const shown = p.children.slice(0,2), extra = p.children.length-shown.length;
+            return <tr className="lk" key={p.id}>
+              <td><div className="pname"><div className="av">{init(p.name)}</div>
+                <div><div className="nn">{p.name}</div><div className="em">{p.email}</div></div></div></td>
+              <td>
+                {p.children.length===0
+                  ? <span className="badge neu"><i data-lucide="circle-dashed"></i>Not linked</span>
+                  : <button className="cellbtn" onClick={()=>setDrawer(p)} aria-label={"Manage links for "+p.name}>
+                      {shown.map(id=>{ const s=STUDENTS.find(x=>x.id===id); return (
+                        <span className="rchip" key={id}><span className="ca">{init(s.name)}</span>{s.name}</span>); })}
+                      {extra>0 && <span className="rchip more">+{extra}</span>}
+                    </button>}
+              </td>
+              <td>{p.status==="active"
+                ? <span className="badge suc"><i data-lucide="check"></i>Active</span>
+                : <span className="badge neu"><i data-lucide="archive"></i>Archived</span>}</td>
+              <td style={{textAlign:"right"}}>
+                <div className="ax-row" style={{justifyContent:"flex-end"}}>
+                  <button className="iconbtn" aria-label={"Manage links for "+p.name} onClick={()=>setDrawer(p)}><i data-lucide="link"></i></button>
+                  <button className="iconbtn" aria-label="More actions"><i data-lucide="ellipsis-vertical"></i></button>
+                </div>
+              </td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+      <div className="pag"><span>Showing 1–4 of 96 parents</span><div className="sp"></div>
+        <button className="iconbtn" aria-label="Previous page"><i data-lucide="chevron-left"></i></button>
+        <span className="ax-mono">1 / 24</span>
+        <button className="iconbtn" aria-label="Next page"><i data-lucide="chevron-right"></i></button>
+      </div>
+    </div>
+
+    {/* ---- Secondary state examples (so each spec'd §5 state is present) ---- */}
+    <div className="sec-h"><span className="st">Other states</span><span className="ax-muted ax-sub">Loading · empty · error · access-denied · staged</span></div>
+
+    <div className="ax-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--space-4)"}}>
+      {/* Loading skeleton */}
+      <div className="panel">
+        <table className="ptbl"><thead><tr><th>Name</th><th>Linked children</th><th>Status</th><th></th></tr></thead>
+          <tbody>{[0,1,2].map(i=>(<tr key={i}>
+            <td><div className="pname"><div className="sk" style={{width:34,height:34,borderRadius:"var(--radius-pill)"}}></div><div className="sk" style={{width:120}}></div></div></td>
+            <td><div className="ax-row"><div className="sk" style={{width:64,height:20,borderRadius:"var(--radius-pill)"}}></div><div className="sk" style={{width:48,height:20,borderRadius:"var(--radius-pill)"}}></div></div></td>
+            <td><div className="sk" style={{width:56,height:18,borderRadius:"var(--radius-pill)"}}></div></td>
+            <td><div className="sk" style={{width:24,height:24,borderRadius:"var(--radius-md)"}}></div></td>
+          </tr>))}</tbody></table>
+      </div>
+      {/* Read error — must NOT look like empty state */}
+      <div className="panel" style={{padding:"var(--space-5)"}}>
+        <div className="ial err" role="alert">
+          <i data-lucide="circle-alert" className="lead"></i>
+          <div className="ab"><span className="at">We couldn't load parents. </span>
+            <span className="ax-sec">The request failed — your data is safe.</span>
+            <div style={{marginTop:"var(--space-3)"}}><button className="btn sec"><i data-lucide="rotate-cw"></i>Retry</button></div></div>
+        </div>
+      </div>
+      {/* Empty tab */}
+      <div className="panel">
+        <div className="empty">
+          <div className="ec"><i data-lucide="user-round-x"></i></div>
+          <div className="et">No parents yet</div>
+          <div className="eb">Invite a parent to link them with their children.</div>
+          <button className="btn pri"><i data-lucide="user-plus"></i>Invite parent</button>
+        </div>
+      </div>
+      {/* RBAC access-denied (staff without canManageUsers) */}
+      <div className="panel" style={{padding:"var(--space-5)"}}>
+        <div className="gatebox">
+          <div className="ax-row" style={{gap:"var(--space-3)",alignItems:"flex-start"}}>
+            <div style={{width:36,height:36,borderRadius:"var(--radius-pill)",background:"var(--bg-inset)",display:"grid",placeItems:"center",flex:"none",color:"var(--text-muted)"}}><i data-lucide="lock"></i></div>
+            <div><div style={{fontWeight:"var(--weight-semibold)"}}>Access denied</div>
+              <div className="ax-sub ax-sec" style={{marginTop:2}}>You don't have permission to manage guardian links. Invite and Unlink controls are hidden for staff without <span className="ax-mono">canManageUsers</span>.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {drawer && <Drawer parent={drawer} onClose={()=>setDrawer(null)}/>}
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

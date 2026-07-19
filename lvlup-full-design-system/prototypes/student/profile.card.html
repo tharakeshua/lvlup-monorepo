@@ -1,0 +1,567 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Profile" subtitle="Identity + momentum snapshot · quick edits" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+  html, body, #root, .appshell { height: 100%; }
+
+  /* reading column — identity surface, capped at 720, centered */
+  .reading { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+
+  .surface { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-e1); }
+
+  /* page entry stagger (reduced-motion safe) */
+  .enter { opacity: 0; transform: translateY(8px); animation: enterIn var(--dur-base) var(--ease-entrance) forwards; }
+  .enter.d1 { animation-delay: 40ms; } .enter.d2 { animation-delay: 90ms; }
+  .enter.d3 { animation-delay: 140ms; } .enter.d4 { animation-delay: 190ms; }
+  @keyframes enterIn { to { opacity: 1; transform: none; } }
+
+  /* IDENTITY HEADER */
+  .idhead { display: flex; gap: var(--space-5); align-items: center; padding: var(--space-6); }
+  .id-avatar { position: relative; flex: 0 0 auto; width: 80px; height: 80px; }
+  .id-avatar .avatar { width: 80px; height: 80px; font-size: var(--text-2xl); }
+  .id-cam {
+    position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px;
+    display: grid; place-items: center; border-radius: var(--radius-pill);
+    background: var(--brand-primary); color: var(--text-on-accent);
+    border: 2px solid var(--bg-surface); cursor: pointer; padding: 0;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+  }
+  .id-cam:hover { background: var(--brand-primary-hover); }
+  .id-cam:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .id-main { min-width: 0; flex: 1; }
+  .id-name { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-display); margin: 0; }
+  .id-email { color: var(--text-secondary); font-size: var(--text-base); margin-top: 2px; }
+  .id-chips { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+  .id-edit { margin-left: auto; align-self: flex-start; }
+
+  /* STAT GRID */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .stat-link {
+    display: flex; flex-direction: column; gap: var(--space-2);
+    background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-e1); padding: var(--space-4) var(--space-5);
+    text-decoration: none; color: inherit; cursor: pointer; min-height: 44px;
+    transition: box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard);
+  }
+  .stat-link:hover { box-shadow: var(--shadow-e2); transform: translateY(-2px); }
+  .stat-link:active { transform: translateY(0); }
+  .stat-link:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+  .stat-top { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); }
+  .stat-ic { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-md); background: var(--brand-subtle); color: var(--brand-primary); flex: 0 0 auto; }
+  .stat-ic--spark { background: var(--spark-subtle); color: var(--spark); }
+  .stat-lab { font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .stat-big { font-family: var(--font-mono); font-size: var(--text-3xl); line-height: 1.1; font-weight: var(--weight-semibold); }
+  .stat-sub { font-size: var(--text-2xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .stat-chev { color: var(--text-muted); display: inline-flex; transition: transform var(--dur-fast) var(--ease-standard); margin-left: auto; }
+  .stat-link:hover .stat-chev { transform: translateX(3px); color: var(--text-secondary); }
+
+  .card-pad { padding: var(--space-6); }
+  .card-title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-semibold); margin: 0 0 var(--space-4); }
+
+  .ctx-foot { margin-top: var(--space-4); display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+  .basics-foot { margin-top: var(--space-4); }
+
+  .roleswitch { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-subtle); }
+  .roleswitch__label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+
+  .divider { height: 1px; background: var(--border-subtle); border: none; margin: 0; }
+
+  /* edit form */
+  .edit-form { display: flex; flex-direction: column; gap: var(--space-4); }
+  .edit-avatar-row { display: flex; gap: var(--space-4); align-items: center; }
+  .edit-names { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .upload-live { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary); }
+
+  /* state preview scaffolding */
+  .eyebrow-state { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: var(--space-2); display: flex; align-items: center; gap: var(--space-2); }
+  .state-band { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--bg-surface); }
+  .state-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+  .skel-stat { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+  .skel-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enter { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .stat-link, .stat-chev, .id-cam { transition: none !important; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Input, Select, Field, FileDrop,
+    Card, Section, Modal, Drawer,
+    DefinitionList, Stat, Skeleton, EmptyState, Avatar, Badge, Chip, ProgressRing,
+    Toast, Alert, NavItem, LevelBadge, StreakFlame
+  } = LU;
+
+  const { useState, useEffect, useRef } = React;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- Shell: Sidebar + Topbar ---------------- */
+  function Sidebar() {
+    const nav = [
+      { icon: "layout-dashboard", label: "Dashboard" },
+      { icon: "book-open", label: "My Spaces" },
+      { icon: "trending-up", label: "Progress" },
+      { icon: "file-check", label: "Exams" },
+      { icon: "award", label: "Achievements" },
+      { icon: "user", label: "Profile", active: true },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">LevelUp</span>
+        </div>
+        <div className="sidebar__section-label">Learning</div>
+        <nav className="sidebar__nav">
+          {nav.map((n) => (
+            <NavItem key={n.label} icon={n.icon} active={n.active} href="#">{n.label}</NavItem>
+          ))}
+        </nav>
+        <div className="sidebar__section-label">School</div>
+        <nav className="sidebar__nav">
+          <NavItem icon="users" href="#">Class · Grade 10-B</NavItem>
+          <NavItem icon="life-buoy" href="#">Support</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--space-3)" }}>
+            <Avatar initials="MC" size="sm"/>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:"var(--text-sm)", fontWeight:"var(--weight-semibold)" }}>Maya Chen</div>
+              <div className="u-caption" style={{ color:"var(--text-muted)" }}>NBA-204 · Student</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar({ onOpenEdit }) {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__search" style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          <Input placeholder="Search spaces, exams…  ⌘K"/>
+        </div>
+        <div className="topbar__spacer"/>
+        <IconButton icon={<Icon name="bell" size={18}/>} label="Notifications"/>
+        <button className="stat-link" style={{ flexDirection:"row", alignItems:"center", padding:"var(--space-1) var(--space-2)", boxShadow:"none", border:"none", background:"transparent", minHeight:0 }} onClick={onOpenEdit} aria-label="Profile menu">
+          <Avatar initials="MC" size="sm"/>
+          <Icon name="chevron-down" size={16}/>
+        </button>
+      </header>
+    );
+  }
+
+  /* ---------------- Stat link tile ---------------- */
+  function StatLink({ icon, spark, label, value, sub, subIcon, ariaName, leading }) {
+    return (
+      <a className="stat-link" href="#" onClick={(e)=>e.preventDefault()} aria-label={ariaName}>
+        <div className="stat-top">
+          <span className={"stat-ic" + (spark ? " stat-ic--spark" : "")}><Icon name={icon} size={16}/></span>
+          <span className="stat-lab">{label}</span>
+          <span className="stat-chev"><Icon name="chevron-right" size={16}/></span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+          {leading}
+          <span className="stat-big" aria-hidden="true">{value}</span>
+        </div>
+        {sub && <div className="stat-sub">{subIcon && <Icon name={subIcon} size={12}/>}{sub}</div>}
+      </a>
+    );
+  }
+
+  /* ---------------- Edit profile form body (shared by Modal + Drawer) ---------------- */
+  function EditForm({ name, setName, first, setFirst, last, setLast, uploading, error, autoFocusName }) {
+    return (
+      <div className="edit-form">
+        {error && (
+          <Alert variant="error" title="That didn’t save. Give it another try?">
+            We couldn’t reach the server just now — your edits are still here.
+          </Alert>
+        )}
+        <div className="edit-avatar-row">
+          <div className="id-avatar">
+            <Avatar initials="MC" size="lg"/>
+            {uploading && (
+              <span className="id-cam" aria-hidden="true" style={{ background:"var(--bg-inset)", color:"var(--brand-primary)" }}>
+                <Icon name="loader" size={15}/>
+              </span>
+            )}
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <FileDrop title="Update your photo" hint="JPG or PNG, up to 2MB"/>
+            {uploading && (
+              <div className="upload-live" role="status" aria-live="polite" style={{ marginTop:"var(--space-2)" }}>
+                <Icon name="loader" size={14}/> Uploading…
+              </div>
+            )}
+          </div>
+        </div>
+        <Field label="Display name" required htmlFor="edit-name" hint="This is how your teacher and classmates see you.">
+          <Input id="edit-name" autoFocus={autoFocusName} value={name} onChange={(e)=>setName(e.target.value)} placeholder="Your name"/>
+        </Field>
+        <div className="edit-names">
+          <Field label="First name" htmlFor="edit-first">
+            <Input id="edit-first" value={first} onChange={(e)=>setFirst(e.target.value)} placeholder="Optional"/>
+          </Field>
+          <Field label="Last name" htmlFor="edit-last">
+            <Input id="edit-last" value={last} onChange={(e)=>setLast(e.target.value)} placeholder="Optional"/>
+          </Field>
+        </div>
+        <Field label="Email" htmlFor="edit-email" hint="Managed by your school.">
+          <Input id="edit-email" value="maya@northbridge.edu" disabled/>
+        </Field>
+      </div>
+    );
+  }
+
+  /* ================= MAIN PROFILE (B2B success — primary view) ================= */
+  function ProfileMain({ name, onOpenEdit }) {
+    return (
+      <div className="reading">
+        {/* HEADER — IDENTITY */}
+        <div className="surface idhead enter d1">
+          <div className="id-avatar">
+            <Avatar initials="MC" size="lg"/>
+            <button className="id-cam" aria-label="Change profile photo" onClick={onOpenEdit}>
+              <Icon name="camera" size={15}/>
+            </button>
+          </div>
+          <div className="id-main">
+            <h1 className="id-name">{name}</h1>
+            <div className="id-email">maya@northbridge.edu</div>
+            <div className="id-chips">
+              <Chip><Icon name="graduation-cap" size={13}/> Student</Chip>
+              <Badge variant="success" icon={<Icon name="check-circle" size={12}/>}>Active</Badge>
+            </div>
+          </div>
+          <div className="id-edit">
+            <Button variant="ghost" leadingIcon={<Icon name="pencil" size={16}/>} trailingIcon={<Icon name="chevron-right" size={16}/>} onClick={onOpenEdit}>
+              Edit profile
+            </Button>
+          </div>
+        </div>
+
+        {/* AT-A-GLANCE STATS */}
+        <section aria-label="Your momentum at a glance" className="stat-grid enter d2">
+          <StatLink
+            icon="award" spark label="Level" value="7"
+            leading={<LevelBadge level={7} spark/>} sub="Gold · 260 XP to Lv. 8" subIcon="arrow-up-right"
+            ariaName="Level 7, Gold, 260 XP to next level — view progress"/>
+          <StatLink
+            icon="flame" spark label="Day streak" value="12"
+            sub="Best: 18 days" subIcon="trending-up"
+            ariaName="12 day streak, best 18 days — view progress"/>
+          <StatLink
+            icon="medal" label="Badges earned" value="7"
+            sub="3 more to unlock" subIcon="sparkles"
+            ariaName="7 badges earned, 3 more to unlock — view achievements"/>
+          <StatLink
+            icon="check-circle" label="Spaces completed" value="4"
+            sub="of 6 enrolled" subIcon="book-open"
+            ariaName="4 of 6 spaces completed — view spaces"/>
+        </section>
+
+        {/* IDENTITY CONTEXT — B2B "Your school" */}
+        <div className="surface card-pad enter d3">
+          <h2 className="card-title">Your school</h2>
+          <DefinitionList items={[
+            { term: "School", value: "Northbridge Academy · NBA-204" },
+            { term: "Role", value: "Student" },
+            { term: "Joined", value: "March 2026" },
+          ]}/>
+          {/* RoleSwitcher — only when >1 active membership */}
+          <div className="roleswitch">
+            <div className="roleswitch__label"><Icon name="repeat" size={14}/> Switch school</div>
+            <Select
+              aria-label="Switch active school"
+              defaultValue="nba"
+              options={[
+                { value: "nba", label: "Northbridge Academy (NBA-204) · Student" },
+                { value: "sub", label: "Summer Bootcamp (SUB001) · Student" },
+              ]}
+            />
+            <div className="u-caption" style={{ color:"var(--text-muted)", marginTop:"var(--space-2)" }}>
+              You’re a member of 2 schools. Switching reloads your spaces under that school.
+            </div>
+          </div>
+        </div>
+
+        {/* ACCOUNT BASICS */}
+        <div className="surface card-pad enter d4">
+          <h2 className="card-title">Account basics</h2>
+          <DefinitionList items={[
+            { term: "Display name", value: name },
+            { term: "Email", value: <span style={{ color:"var(--text-muted)" }}>maya@northbridge.edu</span> },
+            { term: "Member since", value: "March 2026" },
+          ]}/>
+          <div className="basics-foot">
+            <Button variant="ghost" leadingIcon={<Icon name="settings" size={16}/>} trailingIcon={<Icon name="chevron-right" size={16}/>}>
+              Manage settings
+            </Button>
+          </div>
+        </div>
+
+        {/* ============ OTHER SPEC'd STATES (for review) ============ */}
+        <Section title="Other states (for review)">
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--space-6)" }}>
+            <LoadingPartialState/>
+            <div className="state-cols">
+              <EmptyStatsState/>
+              <StatsErrorState/>
+            </div>
+            <B2CVariantState/>
+            <ManagedIdentityState/>
+            <RoleSwitchingState/>
+          </div>
+        </Section>
+
+        <div style={{ height:"var(--space-6)" }}/>
+      </div>
+    );
+  }
+
+  /* ---------- State: loading skeleton (identity may resolve first → partial) ---------- */
+  function LoadingPartialState() {
+    return (
+      <div className="state-band" role="status" aria-busy="true" aria-label="Loading your profile">
+        <div className="eyebrow-state"><Icon name="loader" size={13}/> State: loading / partial — header live, stats still loading</div>
+        <div className="surface idhead" style={{ marginBottom:"var(--space-4)" }}>
+          <div className="id-avatar"><Avatar initials="MC" size="lg"/></div>
+          <div className="id-main">
+            <h1 className="id-name" style={{ fontSize:"var(--text-2xl)" }}>Maya Chen</h1>
+            <div className="id-email">maya@northbridge.edu</div>
+            <div className="id-chips"><Chip><Icon name="graduation-cap" size={13}/> Student</Chip></div>
+          </div>
+        </div>
+        <div className="u-sr-only">Loading your stats…</div>
+        <div className="skel-stat">
+          {[0,1,2,3].map(i => (
+            <div className="skel-card" key={i}>
+              <Skeleton width="55%" height="0.7rem"/>
+              <Skeleton width="40%" height="1.7rem"/>
+              <Skeleton width="70%" height="0.6rem"/>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: empty / new learner (kind zeros) ---------- */
+  function EmptyStatsState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="sparkles" size={13}/> State: empty (new learner) — kind zeros, never blank</div>
+        <div className="stat-grid" style={{ gridTemplateColumns:"1fr 1fr", marginBottom:"var(--space-4)" }}>
+          <div className="stat-link" style={{ cursor:"default" }}>
+            <div className="stat-top">
+              <span className="stat-ic stat-ic--spark"><Icon name="award" size={16}/></span>
+              <span className="stat-lab">Level</span>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:"var(--space-2)" }}>
+              <LevelBadge level={1}/><span className="stat-big">1</span>
+            </div>
+          </div>
+          <div className="stat-link" style={{ cursor:"default" }}>
+            <div className="stat-top">
+              <span className="stat-ic"><Icon name="flame" size={16}/></span>
+              <span className="stat-lab">Day streak</span>
+            </div>
+            <span className="stat-big" style={{ color:"var(--text-muted)" }}>0</span>
+            <div className="stat-sub"><Icon name="flame-kindling" size={12}/> Unlit — light it up soon</div>
+          </div>
+        </div>
+        <EmptyState
+          icon="sparkles"
+          title="Your stats start here"
+          body="Finish your first lesson to light up your streak."
+          action={<Button variant="spark" leadingIcon={<Icon name="play" size={16}/>}>Start your first lesson</Button>}
+        />
+      </div>
+    );
+  }
+
+  /* ---------- State: stats error (identity fine) ---------- */
+  function StatsErrorState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="alert-triangle" size={13}/> State: error — stats failed, identity OK</div>
+        <Alert variant="warning" title="We couldn’t load your stats just now">
+          Your progress is safe — try again.{" "}
+          <a href="#" onClick={(e)=>e.preventDefault()} style={{ color:"var(--brand-primary)", fontWeight:"var(--weight-semibold)" }}>Retry</a>
+        </Alert>
+        <div style={{ marginTop:"var(--space-3)" }}>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={15}/>}>Retry stats</Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: B2C consumer variant ("Your plan") ---------- */
+  function B2CVariantState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="user-round" size={13}/> State: B2C consumer (resolved by LearnerContext, not path) — “Your plan”</div>
+        <div className="surface card-pad">
+          <h2 className="card-title">Your plan</h2>
+          <DefinitionList items={[
+            { term: "Plan", value: <span style={{ display:"inline-flex", alignItems:"center", gap:"6px" }}><Badge variant="spark" icon={<Icon name="crown" size={12}/>}>Pro</Badge></span> },
+            { term: "Spaces", value: "6 enrolled" },
+            { term: "Total spent", value: <span style={{ fontFamily:"var(--font-mono)" }}>₹2,940</span> },
+          ]}/>
+          <div className="ctx-foot">
+            <Button variant="spark" trailingIcon={<Icon name="arrow-right" size={16}/>}>Explore the store</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: managed identity (display-name edit disabled) ---------- */
+  function ManagedIdentityState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="lock" size={13}/> State: permission-gated — school manages identity (name read-only)</div>
+        <div className="surface card-pad">
+          <Field label="Display name" htmlFor="mng-name" hint="Managed by your school.">
+            <Input id="mng-name" value="Maya Chen" disabled/>
+          </Field>
+          <div className="u-caption" style={{ color:"var(--text-muted)", marginTop:"var(--space-2)", display:"flex", alignItems:"center", gap:"6px" }}>
+            <Icon name="info" size={13}/> Email and name are set by Northbridge Academy and can’t be edited here.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- State: role switching (LoadingOverlay while claims rebuild) ---------- */
+  function RoleSwitchingState() {
+    return (
+      <div className="state-band">
+        <div className="eyebrow-state"><Icon name="repeat" size={13}/> State: switching school — claims rebuilding</div>
+        <div className="upload-live" role="status" aria-live="polite">
+          <Icon name="loader" size={16}/> Switching to Summer Bootcamp… reloading your spaces.
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================== SCREEN ============================== */
+  function Screen() {
+    const [editOpen, setEditOpen] = useState(false);     // md+ modal
+    const [drawerOpen, setDrawerOpen] = useState(false); // mobile drawer
+    const [toast, setToast] = useState(null);
+
+    const [name, setName] = useState("Maya Chen");
+    const [draftName, setDraftName] = useState("Maya Chen");
+    const [draftFirst, setDraftFirst] = useState("Maya");
+    const [draftLast, setDraftLast] = useState("Chen");
+    const [saving, setSaving] = useState(false);
+    const [saveErr, setSaveErr] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const openEdit = () => {
+      setDraftName(name); setDraftFirst("Maya"); setDraftLast("Chen"); setSaveErr(false);
+      setEditOpen(true);
+    };
+
+    useEffect(() => {
+      const onKey = (e) => { if (e.key === "Escape") { setEditOpen(false); setDrawerOpen(false); } };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    const doSave = () => {
+      if (!draftName.trim()) return;
+      setSaving(true); setSaveErr(false);
+      // optimistic header reflect
+      setName(draftName.trim());
+      setTimeout(() => {
+        setSaving(false);
+        setEditOpen(false);
+        setToast({ variant: "success", title: "Profile updated", body: "Your name is saved." });
+        setTimeout(() => setToast(null), 2600);
+      }, 700);
+    };
+
+    return (
+      <div className="appshell" style={{ position:"relative" }}>
+        <Sidebar/>
+        <Topbar onOpenEdit={openEdit}/>
+        <main className="appshell__main">
+          <a href="#main" className="u-sr-only">Skip to content</a>
+          <ProfileMain name={name} onOpenEdit={openEdit}/>
+        </main>
+
+        {/* EDIT — md+ Modal (default closed; opened from header / camera / topbar) */}
+        <Modal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          title="Edit your profile"
+          footer={
+            <div style={{ display:"flex", gap:"var(--space-3)", justifyContent:"flex-end", width:"100%" }}>
+              <Button variant="ghost" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
+              <Button variant="primary" loading={saving} disabled={!draftName.trim()} onClick={doSave}>Save</Button>
+            </div>
+          }
+        >
+          <EditForm
+            name={draftName} setName={setDraftName}
+            first={draftFirst} setFirst={setDraftFirst}
+            last={draftLast} setLast={setDraftLast}
+            uploading={uploading} error={saveErr} autoFocusName={editOpen}
+          />
+        </Modal>
+
+        {/* EDIT — mobile Drawer variant (default closed; surfaced for review) */}
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Edit your profile">
+          <EditForm
+            name={draftName} setName={setDraftName}
+            first={draftFirst} setFirst={setDraftFirst}
+            last={draftLast} setLast={setDraftLast}
+            uploading={uploading} error={saveErr} autoFocusName={false}
+          />
+          <div style={{ display:"flex", gap:"var(--space-3)", marginTop:"var(--space-5)" }}>
+            <Button variant="ghost" block onClick={() => setDrawerOpen(false)}>Cancel</Button>
+            <Button variant="primary" block onClick={() => setDrawerOpen(false)}>Save</Button>
+          </div>
+        </Drawer>
+
+        {/* Triggers for the secondary edit variants (so reviewers can open them) */}
+        <div style={{ position:"absolute", right:"var(--space-6)", bottom:"var(--space-6)", display:"flex", flexDirection:"column", gap:"var(--space-2)", zIndex:5 }}>
+          <Button variant="secondary" size="sm" leadingIcon={<Icon name="smartphone" size={15}/>} onClick={() => { setDraftName(name); setDrawerOpen(true); }}>
+            Preview mobile edit (Drawer)
+          </Button>
+        </div>
+
+        {/* Save / upload confirmation Toast */}
+        {toast && (
+          <div style={{ position:"absolute", right:"var(--space-6)", top:"var(--space-6)", zIndex:50, width:"min(360px, 90%)" }} aria-live="polite">
+            <Toast variant={toast.variant} title={toast.title} body={toast.body}/>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

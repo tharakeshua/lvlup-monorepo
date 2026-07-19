@@ -211,6 +211,7 @@ export {
   // realtime
   useGradingStatus,
   useExamGradingProgress,
+  useExtractionProgress,
   // keys + repos accessor
   autogradeKeys,
   autogradeRepos,
@@ -236,10 +237,12 @@ export {
   useChildSummary,
   useLeaderboard,
   useLeaderboardLive,
+  useSpaceAnalytics,
   useGenerateReport,
   analyticsQueryKeys,
   analyticsRepos,
 } from "./analytics/index.js";
+
 export type {
   AnalyticsDomainRepos,
   CostGranularity as AnalyticsCostGranularity,
@@ -247,6 +250,7 @@ export type {
   GetPerformanceTrendsRequest as AnalyticsTrendsRequest,
   GetLeaderboardRequest as AnalyticsLeaderboardRequest,
   ListInsightsRequest as AnalyticsListInsightsRequest,
+  GetSpaceAnalyticsResponse,
 } from "./analytics/index.js";
 
 // gamification (DERIVED/server-authoritative slice: achievements · levels/XP ·
@@ -318,6 +322,13 @@ export {
   useSpaceReviews,
   useChatSessions,
   useChatSession,
+  // conversation runtime
+  useConversations,
+  useConversation,
+  useStartConversation,
+  useSendConversationTurn,
+  useFinishConversation,
+  useAbandonConversation,
   // mutations
   useSaveSpace,
   useSaveStoryPoint,
@@ -333,6 +344,7 @@ export {
   useDuplicateSpace,
   // realtime
   useChatStream,
+  useConversationBump,
   useServerTime,
   // question form helpers (pure TS, RN-safe)
   QUESTION_TYPES,
@@ -371,4 +383,21 @@ export {
   qfRemoveTestCase,
   qfUpdateTestCase,
 } from "./levelup-content/index.js";
-export type { ServerTime, QuestionType, QuestionFormError } from "./levelup-content/index.js";
+export type {
+  ServerTime,
+  QuestionType,
+  QuestionFormError,
+  ConversationListFilter,
+  ConversationDetailInput,
+  ConversationMessagesPage,
+  ConversationResponse,
+  ConversationsResponse,
+  StartConversationVariables,
+  StartConversationResponse,
+  SendConversationTurnVariables,
+  SendConversationTurnResponse,
+  FinishConversationVariables,
+  FinishConversationResponse,
+  AbandonConversationVariables,
+  AbandonConversationResponse,
+} from "./levelup-content/index.js";

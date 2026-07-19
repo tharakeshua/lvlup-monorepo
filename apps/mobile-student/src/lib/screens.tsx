@@ -33,6 +33,7 @@ import PracticeModeScreenImpl from "../screens/learn/PracticeModeScreen";
 
 // ── tab: Tests  (lane: M-tests → src/screens/tests/*) — LANDED ✓ ─────
 import TestsListScreenImpl from "../screens/tests/TestsListScreen";
+import ExamsListScreenImpl from "../screens/tests/ExamsListScreen";
 import TimedTestLandingScreenImpl from "../screens/tests/TimedTestLandingScreen";
 import TimedTestRunnerScreenImpl from "../screens/tests/TimedTestRunnerScreen";
 import TestResultsReviewScreenImpl from "../screens/tests/TestResultsReviewScreen";
@@ -70,6 +71,7 @@ export const ContentViewerScreen = withScreenBoundary(ContentViewerScreenImpl);
 export const PracticeModeScreen = withScreenBoundary(PracticeModeScreenImpl);
 
 export const TestsListScreen = withScreenBoundary(TestsListScreenImpl);
+export const ExamsListScreen = withScreenBoundary(ExamsListScreenImpl);
 export const TimedTestLandingScreen = withScreenBoundary(TimedTestLandingScreenImpl);
 export const TimedTestRunnerScreen = withScreenBoundary(TimedTestRunnerScreenImpl);
 export const TestResultsReviewScreen = withScreenBoundary(TestResultsReviewScreenImpl);

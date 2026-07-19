@@ -87,7 +87,14 @@ export function makeCallable<N extends CallableName>(name: N, service: ServiceFn
   };
 
   return onCall(
-    { region: REGION, cors: true },
+    {
+      region: REGION,
+      cors: true,
+      // AI-tier callables (extraction, grading kicks) can run multi-pass LLM
+      // work far past the 60s default. The live extraction pipeline holds the
+      // request open while it streams RTDB progress across both passes.
+      ...(def.rateTier === "ai" ? { timeoutSeconds: 540, memory: "1GiB" as const } : {}),
+    },
     async (request: CallableRequest): Promise<ResOf<N>> => {
       try {
         const data = request.data as unknown;

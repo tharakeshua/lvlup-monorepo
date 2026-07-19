@@ -1,0 +1,506 @@
+<!-- @dsCard group="Admin" viewport="1280x860" name="Platform Analytics" subtitle="Super admin · cross-tenant users · growth · per-tenant compare" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+.ax-shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh;}
+.ax-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.ax-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.ax-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.ax-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.ax-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.ax-navgrp{display:flex;flex-direction:column;gap:2px;}
+.ax-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.ax-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.ax-nav i{width:18px;height:18px;}
+.ax-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.ax-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.ax-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.ax-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.ax-rs{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;}
+.ax-rs i:last-child{margin-left:auto;}
+.ax-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.ax-uc:hover{background:var(--bg-surface-sunken);}
+.ax-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.ax-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.ax-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.ax-main{display:flex;flex-direction:column;min-width:0;}
+.ax-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-8);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.ax-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.ax-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.ax-top .sp{flex:1;}
+.ax-search{display:flex;align-items:center;gap:var(--space-2);width:280px;max-width:32vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.ax-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.ax-body{flex:1;overflow-y:auto;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-6);width:100%;max-width:1264px;}
+.ax-head{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
+.ax-head .tx{display:flex;flex-direction:column;gap:var(--space-1);}
+.ax-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);}
+.ax-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+.ax-head .ac{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
+.ax-grid{display:grid;gap:var(--space-4);}
+.ax-g2{grid-template-columns:1fr 1fr;}
+.ax-g4{grid-template-columns:repeat(4,1fr);}
+.ax-row{display:flex;align-items:center;gap:var(--space-3);}
+.ax-col{display:flex;flex-direction:column;gap:var(--space-3);}
+.ax-wrap{flex-wrap:wrap;}
+.ax-mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.ax-muted{color:var(--text-muted);}
+.ax-sec{color:var(--text-secondary);}
+.ax-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* containers */
+.card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);}
+.panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;}
+.panel .ph{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.panel .ph .pt{font-size:var(--text-base);font-weight:var(--weight-semibold);margin-right:auto;}
+.panel .pb{padding:var(--space-5);}
+.panel .pf{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:var(--text-xs);}
+.sec-h{display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-3);}
+.sec-h .st{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.sec-h .sca{font-size:var(--text-xs);color:var(--text-muted);}
+/* KPI */
+.kpi{display:flex;flex-direction:column;gap:var(--space-2);}
+.kpi .lh{display:flex;align-items:center;gap:var(--space-2);color:var(--text-muted);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+.kpi .lh i{width:15px;height:15px;}
+.kpi .vv{font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--weight-medium);font-variant-numeric:tabular-nums;line-height:1.1;}
+.kpi .tr{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);}
+.kpi .tr i{width:13px;height:13px;}
+.kpi .sub{font-size:var(--text-xs);color:var(--text-muted);}
+/* area / line charts */
+.chartwrap{position:relative;height:184px;}
+.chartsvg{display:block;width:100%;height:100%;overflow:visible;}
+.gln{stroke:var(--border-subtle);stroke-width:1;}
+.axn{font-family:var(--font-mono);font-size:9px;fill:var(--text-muted);}
+.dot{fill:var(--bg-surface);stroke-width:2;}
+.xaxis{display:flex;justify-content:space-between;margin-top:var(--space-2);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.legend{display:flex;gap:var(--space-4);margin-top:var(--space-3);font-size:var(--text-xs);color:var(--text-secondary);}
+.legend .lg{display:inline-flex;align-items:center;gap:6px;}
+.legend .sw{width:14px;height:3px;border-radius:var(--radius-pill);}
+/* plan mix */
+.planrow{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;}
+.planrow .pl{font-size:var(--text-sm);color:var(--text-secondary);}
+.planrow .pv{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);min-width:108px;text-align:right;}
+.bar-track{height:10px;border-radius:var(--radius-pill);background:var(--bg-inset);overflow:hidden;}
+.bar-fill{height:100%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.bar-fill.alt{background:var(--brand-muted);}
+.bar-track.sm{height:7px;width:60px;}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+.tbl thead th{text-align:left;padding:var(--space-2) var(--space-4);color:var(--text-muted);font-size:var(--text-xs);font-weight:var(--weight-semibold);border-bottom:1px solid var(--border-subtle);white-space:nowrap;}
+.tbl thead th.num{text-align:right;}
+.tbl thead th.sortable{cursor:pointer;user-select:none;}
+.tbl thead th.sortable:hover{color:var(--text-primary);}
+.tbl thead th .ci{display:inline-flex;align-items:center;gap:4px;}
+.tbl thead th .ci i{width:13px;height:13px;}
+.tbl tbody td{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);}
+.tbl tbody td.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.tbl tbody tr.lk{cursor:pointer;transition:background var(--dur-fast) var(--ease-standard);}
+.tbl tbody tr.lk:hover{background:var(--bg-surface-sunken);}
+.tbl tbody tr.lk:hover .go{opacity:1;}
+.tbl .tn{font-weight:var(--weight-medium);color:var(--text-primary);}
+.tbl .go{opacity:0;color:var(--text-muted);transition:opacity var(--dur-fast) var(--ease-standard);}
+.codechip{display:inline-block;font-family:var(--font-mono);font-size:var(--text-2xs);padding:1px var(--space-2);border-radius:var(--radius-sm);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.actpct{display:inline-flex;align-items:center;gap:var(--space-2);justify-content:flex-end;}
+/* badge */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-medium);border:1px solid transparent;white-space:nowrap;}
+.badge i{width:12px;height:12px;}
+.badge.suc{background:var(--status-success-subtle);color:var(--status-success);}
+.badge.wrn{background:var(--status-warning-subtle);color:var(--status-warning);}
+.badge.err{background:var(--status-error-subtle);color:var(--status-error);}
+.badge.inf{background:var(--status-info-subtle);color:var(--status-info);}
+.badge.mut{background:var(--bg-surface-sunken);color:var(--text-muted);border-color:var(--border-subtle);}
+.badge.brd{background:var(--brand-subtle);color:var(--brand-primary);}
+/* controls */
+.ctl{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer;font-family:var(--font-ui);}
+.ctl:hover{border-color:var(--border-strong);}
+.ctl i{width:15px;height:15px;color:var(--text-muted);}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.chip i{width:12px;height:12px;}
+.tfilter{display:flex;align-items:center;gap:var(--space-2);width:240px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.tfilter input{border:none;background:none;outline:none;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);width:100%;}
+.tfilter i{width:15px;height:15px;color:var(--text-muted);}
+.pager{margin-left:auto;display:flex;align-items:center;gap:var(--space-3);}
+.pbtn{display:inline-flex;align-items:center;gap:var(--space-1);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);font-size:var(--text-xs);color:var(--text-primary);cursor:pointer;}
+.pbtn[aria-disabled="true"]{color:var(--text-muted);cursor:not-allowed;opacity:.6;}
+.pbtn i{width:13px;height:13px;}
+/* popover menu */
+.menu{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:180px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e2);padding:var(--space-1);}
+.menu .mi{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer;}
+.menu .mi:hover{background:var(--bg-surface-sunken);}
+.menu .mi i{width:15px;height:15px;color:var(--text-muted);}
+.menu .mh{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;padding:var(--space-2) var(--space-3) var(--space-1);}
+.rel{position:relative;}
+/* alert */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--border-subtle);font-size:var(--text-sm);}
+.alert i.lead{width:18px;height:18px;flex:none;margin-top:1px;}
+.alert .ab{flex:1;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert.warn{border-color:var(--status-warning);background:var(--status-warning-subtle);}
+.alert.warn i.lead{color:var(--status-warning);}
+.alert.info{border-color:var(--status-info);background:var(--status-info-subtle);}
+.alert.info i.lead{color:var(--status-info);}
+.alert.err{border-color:var(--status-error);background:var(--status-error-subtle);}
+.alert.err i.lead{color:var(--status-error);}
+.alert .x{background:none;border:none;color:var(--text-muted);cursor:pointer;display:grid;place-items:center;}
+.lnk{color:var(--brand-primary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;}
+.icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.icon-btn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+/* state examples */
+.statelbl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--space-2);display:block;}
+.sk{background:var(--bg-inset);border-radius:var(--radius-sm);}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-4);}
+.empty .gl{width:48px;height:48px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);display:grid;place-items:center;color:var(--text-muted);margin-bottom:var(--space-1);}
+.empty .gl i{width:22px;height:22px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-secondary);max-width:42ch;}
+.toast{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e2);font-size:var(--text-sm);}
+.toast i{width:16px;height:16px;}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important;}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const L = window.LvlupV0DesignSystem_5d0725 || {};
+const Button = L.Button || (({children,leadingIcon,trailingIcon,variant})=> <button className={"btn btn--"+(variant||"primary")}>{leadingIcon&&<i data-lucide={leadingIcon}></i>}{children}{trailingIcon&&<i data-lucide={trailingIcon}></i>}</button>);
+
+function Nav({icon,label,route,active,count}){
+  return <a className={"ax-nav"+(active===route?" on":"")} aria-current={active===route?"page":undefined}>
+    <i data-lucide={icon}></i><span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+function Shell({active,children}){
+  return <div className="ax-shell">
+    <aside className="ax-side">
+      <div className="ax-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Platform · Super Admin</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="ax-navgrp"><div className="ax-navlbl">Platform</div>
+          <Nav icon="layout-dashboard" label="Overview" route="/" active={active}/>
+          <Nav icon="building-2" label="Tenants" route="/tenants" active={active}/>
+          <Nav icon="users" label="Global Users" route="/users" active={active}/>
+          <Nav icon="bar-chart-3" label="Platform Analytics" route="/analytics" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Control</div>
+          <Nav icon="flag" label="Feature Flags" route="/feature-flags" active={active}/>
+          <Nav icon="sliders-horizontal" label="Evaluation Presets" route="/presets" active={active}/>
+          <Nav icon="cpu" label="LLM Usage" route="/llm-usage" active={active}/>
+          <Nav icon="activity" label="System Health" route="/system" active={active}/>
+          <Nav icon="credit-card" label="Billing" route="/billing" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Broadcast</div>
+          <Nav icon="megaphone" label="Announcements" route="/announcements" active={active}/></div>
+        <div className="ax-navgrp"><div className="ax-navlbl">Config</div>
+          <Nav icon="settings" label="Settings" route="/settings" active={active}/></div>
+      </nav>
+      <div className="foot">
+        <div className="ax-rs"><i data-lucide="globe"></i><span>All tenants</span><i data-lucide="chevrons-up-down"></i></div>
+        <div className="ax-uc"><div className="av">SA</div>
+          <div><div className="nm">Sam Avery</div><div className="rl">Super Admin</div></div></div>
+      </div>
+    </aside>
+    <div className="ax-main">
+      <header className="ax-top">
+        <nav className="ax-bc" aria-label="Breadcrumb"><span>Platform</span><i data-lucide="chevron-right" style={{width:14,height:14}}></i><b>Analytics</b></nav>
+        <div className="sp"></div>
+        {/* super-admin topbar has NO tenant switcher — operator is cross-tenant by definition */}
+        <div className="ax-search"><i data-lucide="search"></i><span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="icon-btn" aria-label="Toggle theme"><i data-lucide="sun"></i></button>
+        <button className="icon-btn" aria-label="Notifications, 2 unread"><i data-lucide="bell"></i></button>
+      </header>
+      <main id="main-content" className="ax-body">{children}</main>
+    </div>
+  </div>;
+}
+
+const RANGES = [["7d","Last 7 days"],["30d","Last 30 days"],["90d","Last 90 days"],["custom","Custom range…"]];
+
+const KPI=({icon,label,value,delta,sub})=> (
+  <div className="card kpi" role="group" aria-label={label+", "+value+(delta?", "+delta.aria:"")}>
+    <div className="lh"><i data-lucide={icon}></i><span>{label}</span></div>
+    <div className="vv">{value}</div>
+    {delta && <div className="tr" style={{color:delta.tone}}><i data-lucide={delta.icon}></i><span>{delta.label}</span></div>}
+    {sub && <div className="sub">{sub}</div>}
+  </div>);
+
+// signups area chart series (server-authoritative buckets, render-only)
+const SIGNUPS=[18,26,22,31,28,40,44,38,52,49,61,58,72,68];
+const ACTIVE=[3100,3260,3210,3380,3420,3540,3610,3580,3760,3700,3880,3920,4080,4210];
+const RETAIN=[58,60,59,62,63,64,63,65,66,65,67,68,69,71];
+
+function Area({data,stroke}){
+  const w=300,h=120,mx=Math.max(...data),mn=Math.min(...data);
+  const pts=data.map((v,i)=>[i/(data.length-1)*w, h-((v-mn)/(mx-mn||1))*h]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=line+` L ${w} ${h} L 0 ${h} Z`;
+  return <svg className="chartsvg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img"
+      aria-label="Signups over time, fourteen daily buckets, rising from 18 to 68 new signups per day.">
+    {[0,.25,.5,.75,1].map(g=><line key={g} className="gln" x1="0" x2={w} y1={h*g} y2={h*g}/>)}
+    <path d={area} fill={stroke} fillOpacity=".12"/>
+    <path d={line} fill="none" stroke={stroke} strokeWidth="2"/>
+    {pts.filter((_,i)=>i===pts.length-1).map((p,i)=><circle key={i} className="dot" cx={p[0]} cy={p[1]} r="3.5" stroke={stroke}/>)}
+  </svg>;
+}
+function Line({a,b,sa,sb}){
+  const w=300,h=120;
+  const norm=(d)=>{const mx=Math.max(...d),mn=Math.min(...d);return d.map((v,i)=>[i/(d.length-1)*w, h-((v-mn)/(mx-mn||1))*h]);};
+  const pa=norm(a),pb=norm(b);
+  const path=(p)=>p.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+  return <svg className="chartsvg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img"
+      aria-label="Active users and retention over time. Active users rising from 3,100 to 4,210; retention rising from 58 percent to 71 percent.">
+    {[0,.25,.5,.75,1].map(g=><line key={g} className="gln" x1="0" x2={w} y1={h*g} y2={h*g}/>)}
+    <path d={path(pa)} fill="none" stroke={sa} strokeWidth="2"/>
+    <path d={path(pb)} fill="none" stroke={sb} strokeWidth="2" strokeDasharray="4 3"/>
+  </svg>;
+}
+
+const PLANS=[["Enterprise",5200,42,false],["Premium",3100,25,false],["Basic",2480,20,true],["Trial",1180,9,true],["None",520,4,true]];
+
+const STATUS={
+  active:{cls:"suc",icon:"circle-check",label:"Active"},
+  trial:{cls:"inf",icon:"clock",label:"Trial"},
+  suspended:{cls:"wrn",icon:"pause",label:"Suspended"},
+  expired:{cls:"mut",icon:"circle-slash",label:"Expired"},
+};
+const TENANTS=[
+  {id:"t_acme",name:"Acme Academy",code:"ACME-0118",students:820,teachers:210,total:1030,active:41,status:"active"},
+  {id:"t_nwa",name:"Northwood Academy",code:"NWA-0421",students:712,teachers:148,total:860,active:38,status:"active"},
+  {id:"t_brt",name:"Brightpath Institute",code:"BRT-0309",students:640,teachers:132,total:772,active:36,status:"active"},
+  {id:"t_mer",name:"Meridian School",code:"MER-0512",students:498,teachers:96,total:594,active:29,status:"trial"},
+  {id:"t_oak",name:"Oakridge Learning",code:"OAK-0244",students:410,teachers:88,total:498,active:33,status:"active"},
+  {id:"t_sum",name:"Summit Tutorials",code:"SUM-0677",students:286,teachers:54,total:340,active:21,status:"suspended"},
+  {id:"t_vrd",name:"Verdant College Prep",code:"VRD-0801",students:204,teachers:41,total:245,active:18,status:"expired"},
+  {id:"t_lkv",name:"Lakeview Academy",code:"LKV-0356",students:178,teachers:36,total:214,active:27,status:"trial"},
+];
+
+function StatusBadge({s}){const c=STATUS[s];return <span className={"badge "+c.cls}><i data-lucide={c.icon}></i>{c.label}</span>;}
+
+function Screen(){
+  React.useEffect(()=>{ window.lucide && window.lucide.createIcons(); });
+  const [range,setRange]=React.useState("30d");
+  const [rangeOpen,setRangeOpen]=React.useState(false);
+  const [exportOpen,setExportOpen]=React.useState(false);
+  const [toast,setToast]=React.useState(null);
+  const [sort,setSort]=React.useState({key:"total",dir:"desc"});
+  const [filter,setFilter]=React.useState("");
+
+  const rangeLabel=RANGES.find(r=>r[0]===range)[1];
+  const rows=React.useMemo(()=>{
+    let r=TENANTS.filter(t=>(t.name+" "+t.code).toLowerCase().includes(filter.toLowerCase()));
+    r=[...r].sort((a,b)=>{const av=a[sort.key],bv=b[sort.key];const c=typeof av==="number"?av-bv:String(av).localeCompare(String(bv));return sort.dir==="asc"?c:-c;});
+    return r;
+  },[sort,filter]);
+  const onSort=(k)=>setSort(s=>({key:k,dir:s.key===k&&s.dir==="desc"?"asc":"desc"}));
+  const caret=(k)=> sort.key===k? <i data-lucide={sort.dir==="desc"?"chevron-down":"chevron-up"}></i> : null;
+  const doExport=(fmt)=>{setExportOpen(false);setToast({icon:"loader",tone:"var(--text-muted)",msg:"Preparing export… ("+fmt+", "+rangeLabel+")"});
+    setTimeout(()=>setToast({icon:"circle-check",tone:"var(--status-success)",msg:"Export ready",action:"Download"}),900);};
+
+  const col=(k,label,num)=> <th className={(num?"num ":"")+"sortable"} aria-sort={sort.key===k?(sort.dir==="asc"?"ascending":"descending"):"none"}
+     onClick={()=>onSort(k)} tabIndex="0" onKeyDown={e=>{(e.key==="Enter"||e.key===" ")&&(e.preventDefault(),onSort(k));}}>
+     <span className="ci">{label}{caret(k)}</span></th>;
+
+  return <Shell active="/analytics">
+    {/* PERF-NOTE banner — visible only on client-scan fallback builds (dev/staging); hidden in prod */}
+    <div className="alert warn" role="status">
+      <i data-lucide="triangle-alert" className="lead"></i>
+      <div className="ab"><span className="at">Analytics are computed client-side in this build and may be slow or capped. </span>
+        <span className="ax-sec">The server rollup is pending — counts shown are server-authoritative once it lands.</span></div>
+      <button className="x" aria-label="Dismiss perf notice"><i data-lucide="x" style={{width:15,height:15}}></i></button>
+    </div>
+
+    <div className="ax-head">
+      <div className="tx"><h1 className="ax-h1">Platform Analytics</h1>
+        <div className="ax-sub">Cross-tenant user and engagement analytics.</div></div>
+      <div className="ac">
+        <span className="chip"><i data-lucide="calendar"></i>{rangeLabel}</span>
+        <div className="rel">
+          <button className="ctl" aria-haspopup="listbox" aria-expanded={rangeOpen} onClick={()=>{setRangeOpen(o=>!o);setExportOpen(false);}}>
+            <i data-lucide="calendar-range"></i><span>{rangeLabel}</span><i data-lucide="chevron-down"></i></button>
+          {rangeOpen && <div className="menu" role="listbox" aria-label="Date range">
+            {RANGES.map(([v,l])=><div key={v} role="option" aria-selected={range===v} className="mi" onClick={()=>{setRange(v);setRangeOpen(false);}}>
+              <i data-lucide={range===v?"check":"circle"}></i>{l}</div>)}</div>}
+        </div>
+        <div className="rel">
+          <Button variant="secondary" leadingIcon="download" trailingIcon="chevron-down" onClick={()=>{setExportOpen(o=>!o);setRangeOpen(false);}}>Export</Button>
+          {exportOpen && <div className="menu" role="menu" aria-label="Export format">
+            <div className="mh">Export {rangeLabel}</div>
+            <div className="mi" role="menuitem" onClick={()=>doExport("CSV")}><i data-lucide="file-spreadsheet"></i>CSV</div>
+            <div className="mi" role="menuitem" onClick={()=>doExport("JSON")}><i data-lucide="file-json"></i>JSON</div>
+          </div>}
+        </div>
+        <button className="icon-btn" aria-label="Refresh analytics"><i data-lucide="refresh-cw"></i></button>
+      </div>
+    </div>
+
+    {/* KPI ROW — server-authoritative; deltas carry direction in words, never color-only */}
+    <div className="ax-grid ax-g4">
+      <KPI icon="users" label="Total Users" value="12,480"
+        delta={{icon:"trending-up",label:"▲ 6.2% vs last week",aria:"increased 6.2 percent versus last week",tone:"var(--status-success)"}}
+        sub="Across 38 active tenants · as of 20 Jun, 09:40"/>
+      <KPI icon="graduation-cap" label="Students" value="9,120"
+        delta={{icon:"trending-up",label:"▲ 5.4% vs last week",aria:"increased 5.4 percent versus last week",tone:"var(--status-success)"}}
+        sub="73% of users"/>
+      <KPI icon="presentation" label="Teachers" value="3,360"
+        delta={{icon:"trending-up",label:"▲ 1.1% vs last week",aria:"increased 1.1 percent versus last week",tone:"var(--status-success)"}}
+        sub="27% of users"/>
+      <KPI icon="building-2" label="Active Tenants" value="38"
+        delta={{icon:"trending-down",label:"▼ 1 vs last month",aria:"decreased by one versus last month",tone:"var(--status-warning)"}}
+        sub="of 44 total · 4,210 active 7d"/>
+    </div>
+
+    {/* TRENDS — two charts side by side; PARTIAL state shown on the second chart */}
+    <div>
+      <div className="sec-h"><span className="st">Trends</span><span className="sca">Signups & engagement over {rangeLabel.toLowerCase()}</span></div>
+      <div className="ax-grid ax-g2">
+        <div className="panel">
+          <div className="ph"><span className="pt">Signups over time</span></div>
+          <div className="pb">
+            <div className="chartwrap"><Area data={SIGNUPS} stroke="var(--brand-primary)"/></div>
+            <div className="xaxis"><span>22 May</span><span>05 Jun</span><span>20 Jun</span></div>
+            <div className="legend"><span className="lg"><span className="sw" style={{background:"var(--brand-primary)"}}></span>New signups / day</span></div>
+            <table className="ax-sr"><caption>New signups per day</caption><thead><tr><th>Day</th><th>Signups</th></tr></thead>
+              <tbody>{SIGNUPS.map((v,i)=><tr key={i}><td>Day {i+1}</td><td>{v}</td></tr>)}</tbody></table>
+          </div>
+        </div>
+        <div className="panel">
+          <div className="ph"><span className="pt">Active users & retention</span></div>
+          <div className="pb">
+            {/* PARTIAL state — trend series stale while platformDailyRollup recomputes */}
+            <div className="alert info" role="status" style={{marginBottom:"var(--space-3)"}}>
+              <i data-lucide="info" className="lead"></i>
+              <div className="ab"><span className="ax-sec">Trend data is being recomputed — last updated 14 minutes ago.</span></div>
+            </div>
+            <div className="chartwrap"><Line a={ACTIVE} b={RETAIN} sa="var(--brand-primary)" sb="var(--status-success)"/></div>
+            <div className="xaxis"><span>22 May</span><span>05 Jun</span><span>20 Jun</span></div>
+            <div className="legend">
+              <span className="lg"><span className="sw" style={{background:"var(--brand-primary)"}}></span>Active users</span>
+              <span className="lg"><span className="sw" style={{background:"var(--status-success)"}}></span>Retention %</span>
+            </div>
+            <table className="ax-sr"><caption>Active users and retention per day</caption><thead><tr><th>Day</th><th>Active users</th><th>Retention %</th></tr></thead>
+              <tbody>{ACTIVE.map((v,i)=><tr key={i}><td>Day {i+1}</td><td>{v}</td><td>{RETAIN[i]}%</td></tr>)}</tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* PLAN MIX */}
+    <div className="panel">
+      <div className="ph"><span className="pt">Users by subscription plan</span><span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>12,480 users · 44 tenants</span></div>
+      <div className="pb">
+        {PLANS.map(([name,n,pct,alt])=>
+          <div className="planrow" key={name}>
+            <span className="pl">{name}</span>
+            <div className="bar-track" role="progressbar" aria-label={name+" plan: "+n+" users, "+pct+" percent"} aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100">
+              <div className={"bar-fill"+(alt?" alt":"")} style={{width:pct+"%"}}></div></div>
+            <span className="pv ax-mono">{n.toLocaleString()} · {pct}%</span>
+          </div>)}
+      </div>
+    </div>
+
+    {/* PER-TENANT COMPARISON — read-only; each row deep-links into /tenants/:id (which tenant is named per row) */}
+    <div className="panel">
+      <div className="ph">
+        <span className="pt">Users by tenant</span>
+        <span className="ax-muted" style={{fontSize:"var(--text-xs)"}}>Sorted by total users, descending.</span>
+        <div className="tfilter" style={{marginLeft:"var(--space-3)"}}>
+          <i data-lucide="search"></i>
+          <input placeholder="Filter tenants…" aria-label="Filter tenants" value={filter} onChange={e=>setFilter(e.target.value)}/>
+        </div>
+      </div>
+      <div className="pb" style={{padding:0,overflowX:"auto"}}>
+        <table className="tbl">
+          <caption className="ax-sr">Cross-tenant user breakdown table.</caption>
+          <thead><tr>
+            {col("name","Tenant")}{col("code","Code")}{col("students","Students",true)}
+            {col("teachers","Teachers",true)}{col("total","Total",true)}{col("active","Active %",true)}
+            <th>Status</th><th aria-hidden="true"></th>
+          </tr></thead>
+          <tbody>
+            {rows.length===0 && <tr><td colSpan="8" style={{padding:"var(--space-6)",textAlign:"center",color:"var(--text-muted)"}}>No tenants found.</td></tr>}
+            {rows.map(t=>
+              <tr className="lk" key={t.id} tabIndex="0" role="link" aria-label={"Open "+t.name+", "+t.total+" users"}>
+                <td className="tn">{t.name}</td>
+                <td><span className="codechip">{t.code}</span></td>
+                <td className="num">{t.students.toLocaleString()}</td>
+                <td className="num">{t.teachers.toLocaleString()}</td>
+                <td className="num" style={{fontWeight:"var(--weight-semibold)"}}>{t.total.toLocaleString()}</td>
+                <td className="num"><span className="actpct"><div className="bar-track sm"><div className="bar-fill" style={{width:t.active+"%"}}></div></div>{t.active}%</span></td>
+                <td><StatusBadge s={t.status}/></td>
+                <td className="num"><i data-lucide="chevron-right" className="go" style={{width:15,height:15}}></i></td>
+              </tr>)}
+          </tbody>
+        </table>
+      </div>
+      <div className="pf">
+        <span>Showing {rows.length} of 44 tenants</span>
+        <div className="pager">
+          <span className="pbtn" aria-disabled="true" role="button"><i data-lucide="chevron-left"></i>Previous page</span>
+          <span className="ax-mono ax-muted">Page 1</span>
+          <span className="pbtn" role="button" tabIndex="0">Next page<i data-lucide="chevron-right"></i></span>
+        </div>
+      </div>
+    </div>
+
+    {/* ── Secondary state examples (spec §5: loading / empty / error / permission-gated) ── */}
+    <div className="sec-h" style={{marginTop:"var(--space-4)"}}><span className="st">States</span><span className="sca">Loading · empty · error · permission-gated</span></div>
+    <div className="ax-grid ax-g2">
+      <div className="panel">
+        <div className="ph"><span className="pt">Loading (skeleton)</span></div>
+        <div className="pb ax-col">
+          <div className="ax-row" style={{gap:"var(--space-3)"}}>
+            {[0,1,2,3].map(i=><div key={i} className="card kpi" style={{flex:1}}>
+              <div className="sk" style={{height:10,width:"60%"}}></div>
+              <div className="sk" style={{height:22,width:"50%"}}></div>
+              <div className="sk" style={{height:9,width:"70%"}}></div></div>)}
+          </div>
+          {[0,1,2].map(i=><div key={i} className="ax-row" style={{gap:"var(--space-3)"}}>
+            <div className="sk" style={{height:12,width:120}}></div>
+            <div className="sk" style={{height:10,flex:1}}></div>
+            <div className="sk" style={{height:12,width:80}}></div></div>)}
+        </div>
+      </div>
+      <div className="panel">
+        <div className="ph"><span className="pt">Empty</span></div>
+        <div className="empty">
+          <div className="gl"><i data-lucide="users"></i></div>
+          <div className="et">No platform users yet</div>
+          <div className="eb">Once tenants onboard students and teachers, signups, engagement, and per-tenant comparisons will appear here.</div>
+        </div>
+      </div>
+    </div>
+    <div className="ax-grid ax-g2">
+      <div className="panel">
+        <div className="ph"><span className="pt">Error</span></div>
+        <div className="pb">
+          <div className="alert err" role="alert">
+            <i data-lucide="circle-alert" className="lead"></i>
+            <div className="ab"><div className="at">Failed to load analytics</div>
+              <div className="ax-sec">An unexpected error occurred while loading platform analytics.</div>
+              <div style={{marginTop:"var(--space-2)"}}><Button variant="ghost" leadingIcon="rotate-cw">Try again</Button></div></div>
+          </div>
+        </div>
+      </div>
+      <div className="panel">
+        <div className="ph"><span className="pt">Permission-gated (server re-check)</span></div>
+        <div className="pb">
+          <div className="alert err" role="alert">
+            <i data-lucide="shield-x" className="lead"></i>
+            <div className="ab"><div className="at">Restricted</div>
+              <div className="ax-sec">Platform analytics are restricted to platform administrators. The server independently re-verifies super-admin; the client gate is never trusted alone.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Export toast (audited side-effect) */}
+    {toast && <div style={{position:"fixed",right:24,bottom:24,zIndex:50}}>
+      <div className="toast"><i data-lucide={toast.icon} style={{color:toast.tone}}></i><span>{toast.msg}</span>
+        {toast.action && <span className="lnk" style={{marginLeft:"var(--space-2)"}} onClick={()=>setToast(null)}>{toast.action}</span>}</div>
+    </div>}
+  </Shell>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body></html>

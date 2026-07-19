@@ -20,7 +20,6 @@ import type {
   AudioData,
   ImageEvaluationData,
   GroupOptionsData,
-  ChatAgentQuestionData,
   MCQOption,
   CodeTestCase,
   FillBlank,
@@ -50,7 +49,7 @@ import {
   AlertTriangle,
   ScanSearch,
 } from "lucide-react";
-import { uploadItemMedia, deleteItemMedia, callGetItemForEdit } from "@levelup/shared-services";
+import { uploadItemMedia, deleteItemMedia } from "@levelup/shared-services";
 import PdfPagePickerDialog, { type AttachedPageResult } from "./PdfPagePickerDialog";
 import {
   Button,
@@ -83,34 +82,25 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
-  { value: "mcq", label: "Multiple Choice (Single)" },
-  { value: "mcaq", label: "Multiple Choice (Multiple)" },
-  { value: "true-false", label: "True / False" },
-  { value: "numerical", label: "Numerical" },
-  { value: "text", label: "Short Text" },
-  { value: "paragraph", label: "Paragraph" },
-  { value: "code", label: "Code" },
-  { value: "fill-blanks", label: "Fill in the Blanks" },
-  { value: "fill-blanks-dd", label: "Fill Blanks (Dropdown)" },
-  { value: "matching", label: "Matching" },
-  { value: "jumbled", label: "Jumbled / Ordering" },
-  { value: "audio", label: "Audio Response" },
-  { value: "image_evaluation", label: "Image Evaluation" },
-  { value: "group-options", label: "Group Options" },
-  { value: "chat_agent_question", label: "Chat Agent" },
-];
-
-const MATERIAL_TYPES: { value: MaterialType; label: string }[] = [
-  { value: "text", label: "Text" },
-  { value: "video", label: "Video" },
-  { value: "pdf", label: "PDF" },
-  { value: "link", label: "Link" },
-  { value: "interactive", label: "Interactive" },
-  { value: "story", label: "Story" },
-  { value: "rich", label: "Rich Content" },
-];
+import {
+  MATERIAL_TYPES,
+  QUESTION_TYPES,
+  answerKeyLooksStripped as answerKeyLooksStrippedCanonical,
+  defaultQuestionData as canonicalDefaultQuestionData,
+  isValidItemUrl,
+  validateItem as validateCanonicalItem,
+} from "./item-authoring-model";
+import RubricEditor from "./RubricEditor";
+import {
+  AudioEvaluationFields,
+  ChatAgentAnswerFields,
+  CodeModelSolutionFields,
+  ImageEvaluationAnswerFields,
+  type AudioAuthoringData,
+  type ChatAuthoringData,
+  type CodeAuthoringData,
+  type ImageAuthoringData,
+} from "./item-type-editors/AiQuestionFields";
 
 interface Props {
   item: UnifiedItem;
@@ -153,14 +143,24 @@ const RICH_BLOCK_TYPES: RichContentBlockItem["type"][] = [
   "divider",
 ];
 
+interface RecoverableItemDraft {
+  savedAt: number;
+  title: string;
+  content: string;
+  difficulty: UnifiedItem["difficulty"];
+  payload: UnifiedItem["payload"];
+  topics: string[];
+  labels: string[];
+  sectionId?: string;
+  bloomsLevel?: BloomsLevel;
+  evaluatorAgentId?: string;
+  rubric?: UnifiedItem["rubric"];
+  rubricId?: UnifiedItem["rubricId"];
+  attachments: ItemAttachment[];
+}
+
 function isValidUrl(s: string): boolean {
-  if (!s) return false;
-  try {
-    const u = new URL(s);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return isValidItemUrl(s);
 }
 
 /**
@@ -169,46 +169,7 @@ function isValidUrl(s: string): boolean {
  * key with empty values (P0-1 mitigation).
  */
 function answerKeyLooksStripped(qPayload: QuestionPayload): boolean {
-  const qt = qPayload.questionType;
-  const qd = qPayload.questionData as Partial<QuestionTypeData> | undefined;
-  if (!qd) return false;
-  switch (qt) {
-    case "mcq":
-    case "mcaq": {
-      const opts = (qd as MCQData).options ?? [];
-      return opts.length > 0 && opts.every((o) => !o.isCorrect);
-    }
-    case "true-false":
-      return (qd as TrueFalseData).correctAnswer === undefined;
-    case "numerical":
-      return (qd as NumericalData).correctAnswer === undefined;
-    case "text":
-      return !(qd as TextData).correctAnswer && !(qd as TextData).acceptableAnswers?.length;
-    case "fill-blanks": {
-      const blanks = (qd as FillBlanksData).blanks ?? [];
-      return blanks.length > 0 && blanks.every((b) => !b.correctAnswer);
-    }
-    case "fill-blanks-dd": {
-      const blanks = (qd as FillBlanksDDData).blanks ?? [];
-      return blanks.length > 0 && blanks.every((b) => !b.correctOptionId);
-    }
-    case "matching": {
-      // After stripping, the right side may be intact but mappings are
-      // shuffled — hard to detect from the client. Skip.
-      return false;
-    }
-    case "jumbled": {
-      const correctOrder = (qd as JumbledData).correctOrder ?? [];
-      const items = (qd as JumbledData).items ?? [];
-      return items.length > 0 && correctOrder.length === 0;
-    }
-    case "group-options": {
-      const groups = (qd as GroupOptionsData).groups ?? [];
-      return groups.length > 0 && groups.every((g) => g.correctItems.length === 0);
-    }
-    default:
-      return false;
-  }
+  return answerKeyLooksStrippedCanonical(qPayload);
 }
 
 /**
@@ -221,188 +182,12 @@ function validateItem(args: {
   payload: unknown;
   attachments: ItemAttachment[];
 }): string[] {
-  const errors: string[] = [];
-  if (!args.title.trim()) errors.push("Title is required");
-
-  if (args.isQuestion) {
-    const p = args.payload as QuestionPayload;
-    const qt = p.questionType;
-    const qd = p.questionData as Partial<QuestionTypeData> | undefined;
-    if (!qt) errors.push("Question type is required");
-    if (!qd) {
-      errors.push("Question configuration is missing");
-      return errors;
-    }
-    switch (qt) {
-      case "mcq":
-      case "mcaq": {
-        const opts = (qd as MCQData).options ?? [];
-        if (opts.length < 2) errors.push("Add at least 2 options");
-        if (opts.some((o) => !o.text.trim())) errors.push("All options need text");
-        if (!opts.some((o) => o.isCorrect)) errors.push("Mark at least one option correct");
-        if (qt === "mcaq") {
-          const min = (qd as MCAQData).minSelections;
-          const max = (qd as MCAQData).maxSelections;
-          if (min != null && max != null && min > max) {
-            errors.push("Min selections cannot exceed max selections");
-          }
-        }
-        break;
-      }
-      case "true-false":
-        if ((qd as TrueFalseData).correctAnswer === undefined) errors.push("Pick True or False");
-        break;
-      case "numerical":
-        if (
-          (qd as NumericalData).correctAnswer === undefined ||
-          Number.isNaN(Number((qd as NumericalData).correctAnswer))
-        ) {
-          errors.push("Numerical answer is required");
-        }
-        if (((qd as NumericalData).tolerance ?? 0) < 0) errors.push("Tolerance cannot be negative");
-        break;
-      case "text":
-        if (
-          !((qd as TextData).correctAnswer ?? "").trim() &&
-          !(qd as TextData).acceptableAnswers?.length
-        )
-          errors.push("Provide a correct answer or acceptable answers");
-        break;
-      case "paragraph":
-        // AI-graded; modelAnswer + evaluationGuidance are recommended but optional.
-        break;
-      case "code": {
-        const cd = qd as CodeData;
-        if (!cd.language) errors.push("Choose a programming language");
-        if (!cd.testCases?.length) errors.push("Add at least one test case");
-        if (cd.testCases?.some((tc) => !tc.expectedOutput.trim()))
-          errors.push("All test cases need an expected output");
-        if ((cd.timeoutMs ?? 1) <= 0) errors.push("Timeout must be > 0 ms");
-        if ((cd.memoryLimitMb ?? 1) <= 0) errors.push("Memory limit must be > 0 MB");
-        break;
-      }
-      case "fill-blanks": {
-        const fbd = qd as FillBlanksData;
-        if (!fbd.textWithBlanks?.trim()) errors.push("Enter text with blanks");
-        if (!fbd.blanks?.length) errors.push("Add at least one blank");
-        if (fbd.blanks?.some((b) => !b.correctAnswer.trim()))
-          errors.push("All blanks need a correct answer");
-        break;
-      }
-      case "fill-blanks-dd": {
-        const fbdd = qd as FillBlanksDDData;
-        if (!fbdd.textWithBlanks?.trim()) errors.push("Enter text with blanks");
-        if (!fbdd.blanks?.length) errors.push("Add at least one blank");
-        fbdd.blanks?.forEach((b, i) => {
-          if (!b.options.length) errors.push(`Blank #${i + 1} needs options`);
-          if (b.options.some((o) => !o.text.trim()))
-            errors.push(`Blank #${i + 1}: all options need text`);
-          if (!b.correctOptionId) errors.push(`Blank #${i + 1}: pick a correct option`);
-        });
-        break;
-      }
-      case "matching": {
-        const md = qd as MatchingData;
-        if (!md.pairs?.length) errors.push("Add at least one matching pair");
-        if (md.pairs?.some((p) => !p.left.trim() || !p.right.trim()))
-          errors.push("All pairs need left and right text");
-        break;
-      }
-      case "jumbled": {
-        const jd = qd as JumbledData;
-        if ((jd.items?.length ?? 0) < 2) errors.push("Add at least 2 items to reorder");
-        if (jd.items?.some((it) => !it.text.trim())) errors.push("All items need text");
-        break;
-      }
-      case "audio": {
-        const ad = qd as AudioData;
-        if ((ad.maxDurationSeconds ?? 0) <= 0) errors.push("Max duration must be > 0 seconds");
-        break;
-      }
-      case "image_evaluation": {
-        const ied = qd as ImageEvaluationData;
-        if (!ied.instructions?.trim()) errors.push("Image-evaluation instructions are required");
-        if ((ied.maxImages ?? 0) < 1) errors.push("Max images must be at least 1");
-        break;
-      }
-      case "group-options": {
-        const god = qd as GroupOptionsData;
-        if ((god.groups?.length ?? 0) < 2) errors.push("Add at least 2 groups");
-        if ((god.items?.length ?? 0) < 2) errors.push("Add at least 2 items");
-        if (god.items?.some((i) => !i.text.trim())) errors.push("All items need text");
-        if (god.groups?.some((g) => !g.name.trim())) errors.push("All groups need a name");
-        const totalAssigned = god.groups?.reduce((n, g) => n + g.correctItems.length, 0) ?? 0;
-        if (totalAssigned < (god.items?.length ?? 0)) errors.push("Assign every item to a group");
-        break;
-      }
-      case "chat_agent_question": {
-        const cad = qd as ChatAgentQuestionData;
-        if (!cad.objectives?.length) errors.push("At least one objective is required");
-        if ((cad.maxTurns ?? 0) < 1) errors.push("Max turns must be at least 1");
-        break;
-      }
-    }
-  } else {
-    const p = args.payload as MaterialPayload;
-    switch (p.materialType) {
-      case "video":
-      case "pdf":
-      case "link":
-        if (!isValidUrl(p.url ?? "")) errors.push("A valid http(s) URL is required");
-        break;
-      case "interactive":
-        if (!isValidUrl(p.url ?? "")) errors.push("Interactive material needs a valid embed URL");
-        break;
-      case "story":
-      case "rich":
-        if (!(p.content ?? "").trim() && !p.richContent?.blocks?.length)
-          errors.push("Add narrative content or at least one block");
-        break;
-      case "text":
-        if (!(p.content ?? "").trim()) errors.push("Text content is required");
-        break;
-    }
-  }
-
-  return errors;
+  return validateCanonicalItem(args);
 }
 
 // Helper to get default question data for a given type
 function defaultQuestionData(qt: QuestionType): QuestionTypeData {
-  switch (qt) {
-    case "mcq":
-      return { options: [], shuffleOptions: false } satisfies MCQData;
-    case "mcaq":
-      return { options: [], minSelections: 1, shuffleOptions: false } satisfies MCAQData;
-    case "true-false":
-      return { correctAnswer: true } satisfies TrueFalseData;
-    case "numerical":
-      return { correctAnswer: 0, tolerance: 0 } satisfies NumericalData;
-    case "text":
-      return { correctAnswer: "", maxLength: 500 } satisfies TextData;
-    case "paragraph":
-      return { maxLength: 5000, minLength: 50 } satisfies ParagraphData;
-    case "code":
-      return { language: "python", testCases: [] } satisfies CodeData;
-    case "fill-blanks":
-      return { textWithBlanks: "", blanks: [] } satisfies FillBlanksData;
-    case "fill-blanks-dd":
-      return { textWithBlanks: "", blanks: [] } satisfies FillBlanksDDData;
-    case "matching":
-      return { pairs: [] } satisfies MatchingData;
-    case "jumbled":
-      return { correctOrder: [], items: [] } satisfies JumbledData;
-    case "audio":
-      return { maxDurationSeconds: 120 } satisfies AudioData;
-    case "image_evaluation":
-      return { instructions: "", maxImages: 1 } satisfies ImageEvaluationData;
-    case "group-options":
-      return { groups: [], items: [] } satisfies GroupOptionsData;
-    case "chat_agent_question":
-      return { objectives: [], maxTurns: 10 } satisfies ChatAgentQuestionData;
-    default:
-      return {} as QuestionTypeData;
-  }
+  return canonicalDefaultQuestionData(qt);
 }
 
 export default function ItemEditor({
@@ -426,6 +211,11 @@ export default function ItemEditor({
   const [bloomsLevel, setBloomsLevel] = useState<BloomsLevel | undefined>(
     item.meta?.bloomsLevel ?? undefined
   );
+  const [evaluatorAgentId, setEvaluatorAgentId] = useState<string>(
+    typeof item.meta?.evaluatorAgentId === "string" ? item.meta.evaluatorAgentId : ""
+  );
+  const [rubric, setRubric] = useState<UnifiedItem["rubric"]>(item.rubric);
+  const [rubricId, setRubricId] = useState<string>(item.rubricId ?? "");
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<ItemAttachment[]>(item.attachments ?? []);
   const [uploading, setUploading] = useState(false);
@@ -435,6 +225,7 @@ export default function ItemEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveInFlightRef = useRef(false);
+  const draftKey = `teacher-space-item-draft:${spaceId ?? item.spaceId}:${item.storyPointId}:${item.id}`;
 
   const isQuestion = type === "question";
   const qPayload = payload as QuestionPayload;
@@ -443,7 +234,7 @@ export default function ItemEditor({
   const questionType = isQuestion ? qPayload.questionType : null;
   const materialType = !isQuestion ? mPayload.materialType : null;
 
-  const isTimedTestSP = storyPointType === "timed_test" || storyPointType === "test";
+  const isTimedTestSP = storyPointType === "timed_test";
 
   // Re-sync state when the underlying item identity changes (P0-19).
   useEffect(() => {
@@ -455,42 +246,45 @@ export default function ItemEditor({
     setLabels(item.labels ?? []);
     setSectionId(item.sectionId ?? undefined);
     setBloomsLevel(item.meta?.bloomsLevel ?? undefined);
+    setEvaluatorAgentId(
+      typeof item.meta?.evaluatorAgentId === "string" ? item.meta.evaluatorAgentId : ""
+    );
+    setRubric(item.rubric);
+    setRubricId(item.rubricId ?? "");
     setAttachments(item.attachments ?? []);
     setHasUnsavedChanges(false);
     setSaveStatus("saved");
-  }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // For timed_test items, fetch the merged payload (with answer key) from
-  // the server so the editor doesn't display a stripped/empty answer key
-  // that would be silently overwritten on save (P0-1).
-  useEffect(() => {
-    if (!isTimedTestSP || !isQuestion) return;
-    if (!tenantId || !spaceId || !item.storyPointId) return;
-    let cancelled = false;
-    callGetItemForEdit({
-      tenantId,
-      spaceId,
-      storyPointId: item.storyPointId,
-      itemId: item.id,
-    })
-      .then((res) => {
-        if (cancelled) return;
-        if (res.item.payload) {
-          setPayload(res.item.payload);
-        }
-      })
-      .catch(() => {
-        // Best-effort — fall back to stripped payload + warning banner.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [item.id, isTimedTestSP, isQuestion, tenantId, spaceId, item.storyPointId]);
+    try {
+      const rawDraft = window.sessionStorage.getItem(draftKey);
+      const recovered = rawDraft ? (JSON.parse(rawDraft) as RecoverableItemDraft) : null;
+      const serverUpdatedAt = Date.parse(String(item.updatedAt ?? "")) || 0;
+      if (recovered && recovered.savedAt > serverUpdatedAt) {
+        setTitle(recovered.title);
+        setContent(recovered.content);
+        setDifficulty(recovered.difficulty ?? "medium");
+        setPayload(recovered.payload);
+        setTopics(recovered.topics);
+        setLabels(recovered.labels);
+        setSectionId(recovered.sectionId);
+        setBloomsLevel(recovered.bloomsLevel);
+        setEvaluatorAgentId(recovered.evaluatorAgentId ?? "");
+        setRubric(recovered.rubric);
+        setRubricId(recovered.rubricId ?? "");
+        setAttachments(recovered.attachments);
+        setHasUnsavedChanges(true);
+        setSaveStatus("unsaved");
+        sonnerToast.info("Recovered your unsaved item draft from this tab");
+      }
+    } catch {
+      window.sessionStorage.removeItem(draftKey);
+    }
+  }, [item.id, draftKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Validate the item against per-type rules. Returns array of error messages.
   const validationErrors = useMemo(
-    () => validateItem({ title, isQuestion, payload, attachments }),
-    [title, isQuestion, payload, attachments]
+    () => validateItem({ title, content, isQuestion, payload, attachments }),
+    [title, content, isQuestion, payload, attachments]
   );
   const isValid = validationErrors.length === 0;
 
@@ -506,13 +300,28 @@ export default function ItemEditor({
     setSaveStatus("unsaved");
   }, []);
 
+  const requestCancel = useCallback(() => {
+    if (
+      !hasUnsavedChanges ||
+      window.confirm("You have unsaved changes. Are you sure you want to close?")
+    ) {
+      onCancel();
+    }
+  }, [hasUnsavedChanges, onCancel]);
+
   const buildItemForSave = useCallback((): UnifiedItem => {
     // Mirror bloomsLevel into meta. Drop the field when cleared so saves
     // actually unset it.
     const baseMeta = item.meta ?? {};
-    const meta = bloomsLevel
-      ? { ...baseMeta, bloomsLevel }
-      : Object.fromEntries(Object.entries(baseMeta).filter(([k]) => k !== "bloomsLevel"));
+    const meta = {
+      ...Object.fromEntries(
+        Object.entries(baseMeta).filter(
+          ([key]) => key !== "bloomsLevel" && key !== "evaluatorAgentId"
+        )
+      ),
+      ...(bloomsLevel ? { bloomsLevel } : {}),
+      ...(evaluatorAgentId.trim() ? { evaluatorAgentId: evaluatorAgentId.trim() } : {}),
+    };
     return {
       ...item,
       title,
@@ -522,6 +331,8 @@ export default function ItemEditor({
       labels,
       sectionId: sectionId ?? undefined,
       meta,
+      rubric,
+      rubricId: rubricId.trim() || undefined,
       attachments,
       payload: isQuestion
         ? // Mirror the top-level content into the payload so server and student
@@ -539,6 +350,9 @@ export default function ItemEditor({
     labels,
     sectionId,
     bloomsLevel,
+    evaluatorAgentId,
+    rubric,
+    rubricId,
     attachments,
     isQuestion,
     qPayload,
@@ -556,6 +370,7 @@ export default function ItemEditor({
       await saver(buildItemForSave());
       setSaveStatus("saved");
       setHasUnsavedChanges(false);
+      window.sessionStorage.removeItem(draftKey);
     } catch (err) {
       setSaveStatus("unsaved");
       sonnerToast.error(
@@ -564,7 +379,54 @@ export default function ItemEditor({
     } finally {
       autoSaveInFlightRef.current = false;
     }
-  }, [onAutoSave, onSave, buildItemForSave, isValid]);
+  }, [onAutoSave, onSave, buildItemForSave, isValid, draftKey]);
+
+  // Recoverable tab-scoped draft. This survives refresh but is cleared when
+  // the tab closes, avoiding long-lived browser storage for protected answers.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const draft: RecoverableItemDraft = {
+      savedAt: Date.now(),
+      title,
+      content,
+      difficulty,
+      payload,
+      topics,
+      labels,
+      sectionId,
+      bloomsLevel,
+      evaluatorAgentId,
+      rubric,
+      rubricId: rubricId.trim() || undefined,
+      attachments,
+    };
+    window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [
+    hasUnsavedChanges,
+    draftKey,
+    title,
+    content,
+    difficulty,
+    payload,
+    topics,
+    labels,
+    sectionId,
+    bloomsLevel,
+    evaluatorAgentId,
+    rubric,
+    rubricId,
+    attachments,
+  ]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Auto-save debounce (2s after last edit)
   useEffect(() => {
@@ -607,7 +469,7 @@ export default function ItemEditor({
     markUnsaved();
   };
   const setDifficultyTracked = (v: string) => {
-    setDifficulty(v);
+    setDifficulty(v as NonNullable<UnifiedItem["difficulty"]>);
     markUnsaved();
   };
 
@@ -641,7 +503,7 @@ export default function ItemEditor({
   const updateQD = (updates: Partial<QuestionTypeData>) => {
     setPayload({
       ...qPayload,
-      questionData: { ...qPayload.questionData, ...updates },
+      questionData: { ...qPayload.questionData, ...updates } as QuestionTypeData,
     });
     markUnsaved();
   };
@@ -654,6 +516,7 @@ export default function ItemEditor({
         const result = await uploadItemMedia(tenantId, spaceId, item.id, file);
         setAttachments((prev) => [...prev, result]);
       }
+      markUnsaved();
       sonnerToast.success("Files uploaded");
     } catch (err) {
       sonnerToast.error(err instanceof Error ? err.message : "Upload failed");
@@ -667,6 +530,7 @@ export default function ItemEditor({
     try {
       await deleteItemMedia(tenantId, spaceId, item.id, attachment.fileName, attachment.id);
       setAttachments((prev) => prev.filter((a) => a.id !== attachment.id));
+      markUnsaved();
       sonnerToast.success("Attachment removed");
     } catch {
       sonnerToast.error("Failed to remove attachment");
@@ -689,7 +553,9 @@ export default function ItemEditor({
     setAttachments((prev) => [...prev, ...newAttachments]);
 
     if (questionType === "image_evaluation") {
-      const ied = qPayload.questionData as ImageEvaluationData;
+      const ied = qPayload.questionData as ImageEvaluationData & {
+        referenceImageUrls?: string[];
+      };
       const existing = ied.referenceImageUrls ?? [];
       setPayload({
         ...qPayload,
@@ -714,10 +580,11 @@ export default function ItemEditor({
       await onSave(buildItemForSave());
       setSaveStatus("saved");
       setHasUnsavedChanges(false);
+      window.sessionStorage.removeItem(draftKey);
     } finally {
       setSaving(false);
     }
-  }, [isValid, validationErrors, onSave, buildItemForSave]);
+  }, [isValid, validationErrors, onSave, buildItemForSave, draftKey]);
 
   // Keyboard: Cmd/Ctrl+Enter saves (P0-3 — was previously closing the sheet
   // without saving). Esc cancels.
@@ -736,26 +603,15 @@ export default function ItemEditor({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            if (hasUnsavedChanges) {
-              if (window.confirm("You have unsaved changes. Are you sure you want to close?")) {
-                onCancel();
-              }
-            } else {
-              onCancel();
-            }
-          }}
-          aria-label="Go back"
-        >
+        <Button variant="ghost" size="icon" onClick={requestCancel} aria-label="Go back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="font-display text-xl font-semibold">
           Edit {isQuestion ? "Question" : "Material"}
         </h1>
         <span
+          role="status"
+          aria-live="polite"
           className={`rounded-pill ml-auto px-2 py-1 text-xs ${
             saveStatus === "saved"
               ? "bg-success-subtle text-success"
@@ -787,7 +643,10 @@ export default function ItemEditor({
 
         {/* Validation errors */}
         {!isValid && validationErrors.length > 0 && (
-          <div className="border-error/40 bg-error-subtle text-error rounded-md border px-3 py-2 text-xs">
+          <div
+            role="alert"
+            className="border-error/40 bg-error-subtle text-error rounded-md border px-3 py-2 text-xs"
+          >
             <p className="mb-1 font-medium">Fix before saving:</p>
             <ul className="list-disc pl-4">
               {validationErrors.slice(0, 5).map((e) => (
@@ -892,6 +751,60 @@ export default function ItemEditor({
               onChange={updateQD}
             />
 
+            {questionType === "chat_agent_question" && (
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <div>
+                  <Label htmlFor="chat-rubric-id">Rubric preset ID</Label>
+                  <Input
+                    id="chat-rubric-id"
+                    value={rubricId}
+                    onChange={(event) => {
+                      setRubricId(event.target.value);
+                      markUnsaved();
+                    }}
+                    className="mt-1"
+                    placeholder="Optional rubric preset; blank uses the story point or space default"
+                  />
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    The server validates this reference and every private objective's rubric
+                    dimension.
+                  </p>
+                </div>
+                <details className="rounded-md border p-3" open={!rubric && !rubricId}>
+                  <summary className="cursor-pointer text-sm font-medium">
+                    {rubric ? "Edit inline rubric" : "Create an inline rubric"}
+                  </summary>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    An inline rubric is saved with this item. Leave it empty to resolve the selected
+                    preset or the story point/space default.
+                  </p>
+                  <div className="mt-3">
+                    <RubricEditor
+                      rubric={rubric}
+                      onSave={(nextRubric) => {
+                        setRubric(nextRubric);
+                        markUnsaved();
+                        sonnerToast.success("Inline rubric staged for this item");
+                      }}
+                    />
+                  </div>
+                </details>
+                {rubric && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRubric(undefined);
+                      markUnsaved();
+                    }}
+                  >
+                    Use referenced or inherited rubric
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Base points and explanation */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -899,12 +812,13 @@ export default function ItemEditor({
                 <Input
                   type="number"
                   value={qPayload.basePoints ?? 1}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setPayload({
                       ...qPayload,
                       basePoints: Number(e.target.value),
-                    })
-                  }
+                    });
+                    markUnsaved();
+                  }}
                   min={0}
                   className="mt-1 font-mono"
                 />
@@ -914,9 +828,10 @@ export default function ItemEditor({
               <Label>Explanation (shown after answering)</Label>
               <Textarea
                 value={qPayload.explanation ?? ""}
-                onChange={(e) =>
-                  setPayload({ ...qPayload, explanation: e.target.value || undefined })
-                }
+                onChange={(e) => {
+                  setPayload({ ...qPayload, explanation: e.target.value || undefined });
+                  markUnsaved();
+                }}
                 rows={2}
                 className="mt-1"
               />
@@ -995,6 +910,24 @@ export default function ItemEditor({
                 </Select>
               </div>
             )}
+            {questionType === "chat_agent_question" && (
+              <div>
+                <Label htmlFor="chat-evaluator-agent">Evaluator agent override ID</Label>
+                <Input
+                  id="chat-evaluator-agent"
+                  value={evaluatorAgentId}
+                  onChange={(event) => {
+                    setEvaluatorAgentId(event.target.value);
+                    markUnsaved();
+                  }}
+                  className="mt-1"
+                  placeholder="Optional active evaluator in this space"
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Optional. If blank, the space/default Evaluation Core policy is used.
+                </p>
+              </div>
+            )}
           </div>
           <ChipsInput
             label="Topics"
@@ -1038,6 +971,7 @@ export default function ItemEditor({
                     {(attachment.size / 1024).toFixed(0)}KB
                   </span>
                   <button
+                    type="button"
                     onClick={() => handleRemoveAttachment(attachment)}
                     className="text-muted-foreground hover:text-destructive"
                     aria-label="Remove attachment"
@@ -1101,7 +1035,7 @@ export default function ItemEditor({
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save Item"}
           </Button>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={requestCancel}>
             Cancel
           </Button>
           <span className="text-muted-foreground ml-auto self-center text-xs">
@@ -1224,7 +1158,12 @@ function QuestionDataEditor({
     case "group-options":
       return <GroupOptionsEditor data={data as GroupOptionsData} onChange={onChange} />;
     case "chat_agent_question":
-      return <ChatAgentEditor data={data as ChatAgentQuestionData} onChange={onChange} />;
+      return (
+        <ChatAgentEditor
+          data={data as ChatAuthoringData}
+          onChange={(updates) => onChange(updates as Partial<QuestionTypeData>)}
+        />
+      );
     default:
       return <p className="text-muted-foreground text-sm">No editor for this type</p>;
   }
@@ -1583,6 +1522,7 @@ function CodeEditor({
   data: CodeData;
   onChange: (u: Partial<CodeData>) => void;
 }) {
+  const authoringData = data as CodeAuthoringData;
   const testCases: CodeTestCase[] = data.testCases ?? [];
 
   const addTestCase = () => {
@@ -1593,7 +1533,7 @@ function CodeEditor({
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label>Language</Label>
           <Select value={data.language} onValueChange={(v) => onChange({ language: v })}>
@@ -1609,36 +1549,6 @@ function CodeEditor({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label>Timeout (ms)</Label>
-          <Input
-            type="number"
-            min={100}
-            max={60000}
-            value={data.timeoutMs ?? 5000}
-            onChange={(e) =>
-              onChange({
-                timeoutMs: Math.max(100, Math.min(60000, Number(e.target.value) || 5000)),
-              })
-            }
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label>Memory Limit (MB)</Label>
-          <Input
-            type="number"
-            min={16}
-            max={2048}
-            value={data.memoryLimitMb ?? 256}
-            onChange={(e) =>
-              onChange({
-                memoryLimitMb: Math.max(16, Math.min(2048, Number(e.target.value) || 256)),
-              })
-            }
-            className="mt-1"
-          />
-        </div>
       </div>
       <div>
         <Label>Starter Code</Label>
@@ -1649,6 +1559,10 @@ function CodeEditor({
           className="mt-1 font-mono"
         />
       </div>
+      <CodeModelSolutionFields
+        data={authoringData}
+        onChange={(updates) => onChange(updates as Partial<CodeData>)}
+      />
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>Test Cases</Label>
@@ -1660,44 +1574,7 @@ function CodeEditor({
           <div key={tc.id} className="border-subtle space-y-2 rounded border p-2">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground w-12 font-mono text-xs">#{idx + 1}</span>
-              <Input
-                value={tc.description ?? ""}
-                onChange={(e) => {
-                  const updated = [...testCases];
-                  updated[idx] = { ...tc, description: e.target.value || undefined };
-                  onChange({ testCases: updated });
-                }}
-                placeholder="Description (optional)"
-                className="h-7 flex-1 text-xs"
-              />
-              <Label className="text-xs">Points</Label>
-              <Input
-                type="number"
-                min={0}
-                value={tc.points ?? ""}
-                placeholder="auto"
-                onChange={(e) => {
-                  const v = e.target.value === "" ? undefined : Math.max(0, Number(e.target.value));
-                  const updated = [...testCases];
-                  updated[idx] = { ...tc, points: v };
-                  onChange({ testCases: updated });
-                }}
-                className="h-7 w-16 font-mono text-xs"
-              />
-              <div className="flex items-center gap-1">
-                <Switch
-                  checked={tc.isHidden ?? false}
-                  onCheckedChange={(v) => {
-                    const updated = [...testCases];
-                    updated[idx] = { ...tc, isHidden: v };
-                    onChange({ testCases: updated });
-                  }}
-                  id={`hidden-${tc.id}`}
-                />
-                <Label htmlFor={`hidden-${tc.id}`} className="cursor-pointer text-xs">
-                  Hidden
-                </Label>
-              </div>
+              <span className="text-muted-foreground flex-1 text-xs">Public input/output case</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1789,20 +1666,6 @@ function FillBlanksEditor({
                 placeholder="Correct answer"
                 className="h-8 flex-1"
               />
-              <div className="flex items-center gap-1">
-                <Switch
-                  checked={b.caseSensitive ?? false}
-                  onCheckedChange={(v) => {
-                    const updated = [...blanks];
-                    updated[idx] = { ...b, caseSensitive: v };
-                    onChange({ blanks: updated });
-                  }}
-                  id={`fb-cs-${b.id}`}
-                />
-                <Label htmlFor={`fb-cs-${b.id}`} className="cursor-pointer text-xs">
-                  Case
-                </Label>
-              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1938,6 +1801,7 @@ function FillBlanksDDEditor({
             </div>
           ))}
           <button
+            type="button"
             onClick={() => {
               const blanks = [...(data.blanks ?? [])];
               blanks[bIdx] = {
@@ -2128,6 +1992,7 @@ function JumbledRow({
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
       <button
+        type="button"
         {...attributes}
         {...listeners}
         className="text-muted-foreground hover:text-foreground cursor-grab"
@@ -2164,8 +2029,13 @@ function AudioEditor({
   data: AudioData;
   onChange: (u: Partial<AudioData>) => void;
 }) {
+  const authoringData = data as AudioAuthoringData;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <AudioEvaluationFields
+        data={authoringData}
+        onChange={(updates) => onChange(updates as Partial<AudioData>)}
+      />
       <div>
         <Label>Max Duration (seconds)</Label>
         <Input
@@ -2200,15 +2070,6 @@ function AudioEditor({
           </SelectContent>
         </Select>
       </div>
-      <div className="sm:col-span-2">
-        <Label>Evaluation Guidance</Label>
-        <Textarea
-          value={data.evaluationGuidance ?? ""}
-          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
-          rows={2}
-          className="mt-1"
-        />
-      </div>
     </div>
   );
 }
@@ -2222,6 +2083,7 @@ function ImageEvalEditor({
   data: ImageEvaluationData;
   onChange: (u: Partial<ImageEvaluationData>) => void;
 }) {
+  const authoringData = data as ImageAuthoringData;
   return (
     <div className="space-y-3">
       <div>
@@ -2246,15 +2108,10 @@ function ImageEvalEditor({
           className="mt-1 w-32"
         />
       </div>
-      <div>
-        <Label>Evaluation Guidance</Label>
-        <Textarea
-          value={data.evaluationGuidance ?? ""}
-          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
-          rows={2}
-          className="mt-1"
-        />
-      </div>
+      <ImageEvaluationAnswerFields
+        data={authoringData}
+        onChange={(updates) => onChange(updates as Partial<ImageEvaluationData>)}
+      />
     </div>
   );
 }
@@ -2405,66 +2262,156 @@ function ChatAgentEditor({
   data,
   onChange,
 }: {
-  data: ChatAgentQuestionData;
-  onChange: (u: Partial<ChatAgentQuestionData>) => void;
+  data: ChatAuthoringData;
+  onChange: (u: Partial<ChatAuthoringData>) => void;
 }) {
+  const publicObjectives = data.publicLearningObjectives ?? [];
+  const completionPolicy = data.completionPolicy ?? {
+    minLearnerTurns: 3,
+    maxLearnerTurns: 8,
+    allowEarlyFinish: true,
+    hardLimitAction: "auto_finalize" as const,
+  };
+  const updatePublicObjective = (
+    index: number,
+    updates: Partial<{ id: string; label: string }>
+  ) => {
+    onChange({
+      publicLearningObjectives: publicObjectives.map((objective, current) =>
+        current === index ? { ...objective, ...updates } : objective
+      ),
+    });
+  };
+  const updateCompletion = (updates: Partial<typeof completionPolicy>) =>
+    onChange({
+      completionPolicy: { ...completionPolicy, ...updates, hardLimitAction: "auto_finalize" },
+    });
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div>
-        <Label>Agent ID (optional)</Label>
-        <Input
-          type="text"
-          value={data.agentId ?? ""}
-          onChange={(e) => onChange({ agentId: e.target.value || undefined })}
-          className="mt-1 font-mono"
-          placeholder="leave blank to use the space's default agent"
-        />
-        <p className="text-muted-foreground mt-1 text-xs">
-          Configure agents in the &ldquo;Agent Config&rdquo; tab on the space, then paste the agent
-          ID here.
-        </p>
-      </div>
-      <div>
-        <Label>Objectives (one per line)</Label>
+        <Label htmlFor="chat-scenario">Interview scenario</Label>
         <Textarea
-          value={data.objectives?.join("\n") ?? ""}
-          onChange={(e) => onChange({ objectives: e.target.value.split("\n").filter(Boolean) })}
+          id="chat-scenario"
+          value={data.scenario ?? ""}
+          onChange={(event) => onChange({ scenario: event.target.value })}
           rows={3}
           className="mt-1"
+          placeholder="Describe the learner-visible interview scenario."
         />
       </div>
       <div>
-        <Label>Conversation Starters (one per line)</Label>
-        <Textarea
-          value={data.conversationStarters?.join("\n") ?? ""}
-          onChange={(e) =>
-            onChange({
-              conversationStarters: e.target.value.split("\n").filter(Boolean),
-            })
-          }
-          rows={2}
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <Label>Max Turns</Label>
+        <Label htmlFor="chat-interviewer-agent">Interviewer agent ID</Label>
         <Input
-          type="number"
-          value={data.maxTurns ?? 10}
-          onChange={(e) => onChange({ maxTurns: Number(e.target.value) })}
-          min={1}
-          className="mt-1 w-32"
+          id="chat-interviewer-agent"
+          value={data.interviewerAgentId ?? ""}
+          onChange={(event) => onChange({ interviewerAgentId: event.target.value })}
+          className="mt-1"
+          placeholder="Active interviewer agent for this space"
         />
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Label>Public learning objectives</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              onChange({
+                publicLearningObjectives: [
+                  ...publicObjectives,
+                  { id: `objective_${publicObjectives.length + 1}`, label: "" },
+                ],
+              })
+            }
+          >
+            <Plus className="h-3.5 w-3.5" /> Add objective
+          </Button>
+        </div>
+        {publicObjectives.map((objective, index) => (
+          <div key={`${objective.id}-${index}`} className="flex gap-2">
+            <Input
+              value={objective.id}
+              onChange={(event) => updatePublicObjective(index, { id: event.target.value })}
+              placeholder="Objective ID"
+              aria-label={`Public objective ${index + 1} ID`}
+              className="max-w-48"
+            />
+            <Input
+              value={objective.label}
+              onChange={(event) => updatePublicObjective(index, { label: event.target.value })}
+              placeholder="Learner-visible objective"
+              aria-label={`Public objective ${index + 1} label`}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() =>
+                onChange({
+                  publicLearningObjectives: publicObjectives.filter(
+                    (_, current) => current !== index
+                  ),
+                })
+              }
+              aria-label={`Remove public objective ${index + 1}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
       </div>
       <div>
-        <Label>Evaluation Guidance</Label>
+        <Label htmlFor="chat-conversation-starters">Conversation starters (one per line)</Label>
         <Textarea
-          value={data.evaluationGuidance ?? ""}
-          onChange={(e) => onChange({ evaluationGuidance: e.target.value || undefined })}
-          rows={2}
+          id="chat-conversation-starters"
+          value={(data.conversationStarters ?? []).join("\n")}
+          onChange={(event) => onChange({ conversationStarters: event.target.value.split("\n") })}
+          rows={3}
           className="mt-1"
+          placeholder="Optional learner-safe starters"
         />
       </div>
+      <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="chat-min-turns">Minimum learner turns</Label>
+          <Input
+            id="chat-min-turns"
+            type="number"
+            min={1}
+            max={12}
+            value={completionPolicy.minLearnerTurns}
+            onChange={(event) => updateCompletion({ minLearnerTurns: Number(event.target.value) })}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor="chat-max-turns">Maximum learner turns</Label>
+          <Input
+            id="chat-max-turns"
+            type="number"
+            min={1}
+            max={12}
+            value={completionPolicy.maxLearnerTurns}
+            onChange={(event) => updateCompletion({ maxLearnerTurns: Number(event.target.value) })}
+            className="mt-1"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 sm:col-span-2">
+          <div>
+            <Label htmlFor="chat-early-finish">Allow an early finish</Label>
+            <p className="text-muted-foreground text-xs">
+              Learners can request completion before the maximum turn limit.
+            </p>
+          </div>
+          <Switch
+            id="chat-early-finish"
+            checked={completionPolicy.allowEarlyFinish}
+            onCheckedChange={(allowEarlyFinish) => updateCompletion({ allowEarlyFinish })}
+          />
+        </div>
+      </div>
+      <ChatAgentAnswerFields data={data} onChange={onChange} />
     </div>
   );
 }
@@ -2528,15 +2475,34 @@ function MaterialDataEditor({
       );
     case "pdf":
       return (
+        <div>
+          <Label>
+            PDF URL <span className="text-error">*</span>
+          </Label>
+          <Input
+            type="url"
+            value={data.url ?? ""}
+            onChange={(e) => onChange({ url: e.target.value })}
+            className="mt-1"
+            aria-invalid={!isValidUrl(data.url ?? "")}
+          />
+          {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
+            <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
+          )}
+        </div>
+      );
+    case "link":
+      return (
         <div className="space-y-3">
           <div>
             <Label>
-              PDF URL <span className="text-error">*</span>
+              URL <span className="text-error">*</span>
             </Label>
             <Input
               type="url"
               value={data.url ?? ""}
               onChange={(e) => onChange({ url: e.target.value })}
+              placeholder="https://..."
               className="mt-1"
               aria-invalid={!isValidUrl(data.url ?? "")}
             />
@@ -2544,35 +2510,22 @@ function MaterialDataEditor({
               <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={data.downloadable ?? false}
-              onCheckedChange={(v) => onChange({ downloadable: v })}
-              id="allow-download"
+          <div>
+            <Label>Link Label</Label>
+            <Input
+              value={data.richContent?.title ?? ""}
+              onChange={(e) =>
+                onChange({
+                  richContent: {
+                    ...(data.richContent ?? { blocks: [] }),
+                    title: e.target.value || undefined,
+                  },
+                })
+              }
+              placeholder="Open resource"
+              className="mt-1"
             />
-            <Label htmlFor="allow-download" className="cursor-pointer text-sm">
-              Allow download
-            </Label>
           </div>
-        </div>
-      );
-    case "link":
-      return (
-        <div>
-          <Label>
-            URL <span className="text-error">*</span>
-          </Label>
-          <Input
-            type="url"
-            value={data.url ?? ""}
-            onChange={(e) => onChange({ url: e.target.value })}
-            placeholder="https://..."
-            className="mt-1"
-            aria-invalid={!isValidUrl(data.url ?? "")}
-          />
-          {!isValidUrl(data.url ?? "") && (data.url ?? "") !== "" && (
-            <p className="text-error mt-1 text-xs">Must be a valid http(s) URL</p>
-          )}
         </div>
       );
     case "interactive":

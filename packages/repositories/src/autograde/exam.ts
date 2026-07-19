@@ -31,7 +31,7 @@ import type {
   SaveExamInput,
   SaveResponse,
 } from "./api-types.js";
-import { listOnce, paginate, type PageBag } from "./paginate.js";
+import { listOnce, paginate, type PageBag, type Paged } from "./paginate.js";
 
 /** The publish-readiness pre-check verdict (mirrors server `validatePublish`). */
 export interface PublishCheck {
@@ -47,12 +47,12 @@ interface ExamLike {
 /** Minimal question shape the publish pre-check reads (rubric-sum check). */
 interface QuestionLike {
   maxMarks?: number;
-  rubric?: { criteria?: { points?: number; maxPoints?: number }[] } | null;
+  rubric?: { criteria?: { maxScore?: number; maxPoints?: number; points?: number }[] } | null;
 }
 
 export interface ExamRepo {
-  list(filter?: ExamFilter): Promise<PageResponse<ExamListView>>;
-  paginate(filter?: ExamFilter): Promise<PageBag<ExamListView>>;
+  list(filter?: Paged<ExamFilter>): Promise<PageResponse<ExamListView>>;
+  paginate(filter?: Paged<ExamFilter>): Promise<PageBag<ExamListView>>;
   get(id: string): Promise<ExamDetailView>;
   save(input: SaveExamInput): Promise<SaveResponse>;
   recordExtraction(input: ExtractQuestionsRequest): Promise<ExtractQuestionsResponse>;
@@ -72,13 +72,20 @@ export interface ExamRepo {
 
 function rubricCriteriaSum(q: QuestionLike): number {
   const criteria = q.rubric?.criteria ?? [];
-  return criteria.reduce((sum, c) => sum + (c.maxPoints ?? c.points ?? 0), 0);
+  return criteria.reduce((sum, c) => sum + (c.maxScore ?? c.maxPoints ?? c.points ?? 0), 0);
 }
 
 export function createExamRepo(api: ApiClient): ExamRepo {
   const ag = api.autograde;
 
-  const toReq = (filter: ExamFilter = {}): ListExamsRequest => ({ filter });
+  const toReq = (filter: Paged<ExamFilter> = {}): ListExamsRequest => {
+    const { cursor, limit, ...examFilter } = filter;
+    const req: ListExamsRequest = {};
+    if (cursor !== undefined) req.cursor = cursor;
+    if (limit !== undefined) req.limit = limit;
+    if (Object.keys(examFilter).length > 0) req.filter = examFilter;
+    return req;
+  };
 
   return {
     list: (filter = {}) =>

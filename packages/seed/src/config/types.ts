@@ -247,7 +247,7 @@ export interface StoryPointConfig {
  * The seed authors `payload` directly; the engine strips the answer into the server-only
  * `answerKeys` subcollection and stores `effectiveRubric` + `rubricId` on the item.
  */
-export type ItemConfig = QuestionItemConfig | MaterialItemConfig;
+export type ItemConfig = QuestionItemConfig | ChatAgentQuestionSeedConfig | MaterialItemConfig;
 
 export type QuestionType =
   | "mcq"
@@ -264,14 +264,19 @@ export type QuestionType =
   | "diagram"
   | "audio_response"
   | "file_upload"
-  | "oral";
+  | "oral"
+  /** Conversational assessment. Its public/private shape is intentionally distinct. */
+  | "chat_agent_question";
+
+/** Standard question types use the generic answer-key shape. */
+export type StandardQuestionType = Exclude<QuestionType, "chat_agent_question">;
 
 export type MaterialType = "reading" | "video" | "pdf" | "slides" | "link" | "image" | "audio";
 
 export interface QuestionItemConfig {
   key: string;
   kind: "question";
-  questionType: QuestionType;
+  questionType: StandardQuestionType;
   order?: number;
   prompt: string;
   /** Choices for mcq/msq/match/ordering. */
@@ -282,6 +287,35 @@ export interface QuestionItemConfig {
   /** Source rubric key (resolved + snapshotted into effectiveRubric + rubricId). */
   rubricPresetKey?: string;
   /** Inline rubric (used when no preset key is given). */
+  rubric?: UnifiedRubricInput;
+}
+
+/**
+ * Config-authoring surface for an assessment interview (§15.2).  Public fields
+ * are written to the item; `answer` is written only to its deny-all answer key.
+ * Logical keys are resolved by the pipeline before any document is written.
+ */
+export interface ChatAgentQuestionSeedConfig {
+  key: string;
+  kind: "question";
+  questionType: "chat_agent_question";
+  order?: number;
+  /** Learner-safe item prompt. */
+  prompt: string;
+  scenario: string;
+  publicLearningObjectives: Array<{ key: string; label: string }>;
+  conversationStarters?: string[];
+  interviewerAgentKey: string;
+  /** Optional evaluator override; resolved to item.meta.evaluatorAgentId. */
+  evaluatorAgentKey?: string;
+  completionPolicy: {
+    minLearnerTurns: number;
+    maxLearnerTurns: number;
+    allowEarlyFinish: boolean;
+  };
+  /** Server-only assessment key; never copied into item.questionData. */
+  answer: ChatAgentAnswerKeyInput;
+  rubricPresetKey?: string;
   rubric?: UnifiedRubricInput;
 }
 
@@ -304,6 +338,18 @@ export interface AnswerKeyInput {
   modelAnswer?: string;
 }
 
+/** Private assessment material stored only in `answerKeys/{itemId}`. */
+export interface ChatAgentAnswerKeyInput {
+  modelAnswer?: string;
+  evaluationGuidance?: string;
+  privateEvaluationObjectives: Array<{
+    key: string;
+    rubricDimensionKey: string;
+    description: string;
+    evidenceRequirement?: string;
+  }>;
+}
+
 export interface UnifiedRubricInput {
   /** Dimensions with weights; promptGuidance is ⚷ (authoring-only). */
   dimensions?: {
@@ -323,12 +369,28 @@ export interface AgentConfig {
   name: string;
   /** Owning space logical key — canonical Agent.spaceId is required (agents are space-scoped). */
   spaceKey: string;
-  /** Canonical agent type; derived from `purpose` when omitted. */
-  type?: "tutor" | "evaluator";
+  /** Canonical agent type; derived from `purpose` only for legacy configs. */
+  type?: "tutor" | "interviewer" | "evaluator";
   purpose?: string;
+  publicDescription?: string;
+  identity?: string;
   systemPrompt?: string; // ⚷
+  /** Static/config-derived learner-safe first message. */
+  openingMessage?: string;
+  supportedLanguages?: string[];
+  defaultLanguage?: string;
+  maxConversationTurns?: number;
   rules?: string[];
-  /** Written as the canonical `modelOverride`. */
+  /** Evaluator persona guidance; distinct from item-private assessment objectives. */
+  evaluationObjectives?: string[];
+  strictness?: number;
+  feedbackStyle?: string;
+  /** Opaque allowlisted policy ID; never a provider/model name. */
+  modelPolicyId?: "conversation.fast" | "conversation.quality" | "evaluation.quality";
+  temperatureOverride?: number;
+  /** Starting semantic version (the service owns later transactional increments). */
+  version?: number;
+  /** @deprecated Legacy input only. It is never written as a raw model override. */
   model?: string;
   isActive?: boolean;
 }
@@ -345,7 +407,7 @@ export interface RubricPresetConfig {
 
 export interface QuestionBankItemConfig {
   key: string;
-  questionType: QuestionType;
+  questionType: StandardQuestionType;
   prompt: string;
   options?: { id: string; text: string }[];
   points?: number;

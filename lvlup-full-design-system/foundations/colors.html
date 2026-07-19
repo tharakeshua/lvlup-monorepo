@@ -1,0 +1,97 @@
+<!-- @dsCard group="Colors" viewport="1000x680" name="Color Tokens" subtitle="Semantic + domain palette" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:var(--space-6)}
+  .ds-section{margin-bottom:var(--space-8)}
+  .ds-cap{font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--text-muted);width:100%;margin:0 0 var(--space-3)}
+  .ds-grid{display:flex;flex-wrap:wrap;gap:var(--space-4)}
+  .ds-swatch{width:148px}
+  .ds-chip{height:56px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e1)}
+  .ds-name{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary);margin-top:var(--space-2);line-height:var(--leading-xs)}
+  .ds-hex{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);line-height:var(--leading-2xs)}
+</style>
+</head><body>
+
+  <div class="ds-section">
+    <div class="ds-cap">Backgrounds</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--bg-canvas)"></div><div class="ds-name">--bg-canvas</div><div class="ds-hex">#FBF8F3</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--bg-surface)"></div><div class="ds-name">--bg-surface</div><div class="ds-hex">#FFFDFA</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--bg-surface-sunken)"></div><div class="ds-name">--bg-surface-sunken</div><div class="ds-hex">#F4EEE4</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--bg-inset)"></div><div class="ds-name">--bg-inset</div><div class="ds-hex">#F4EEE4</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Text</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--text-primary)"></div><div class="ds-name">--text-primary</div><div class="ds-hex">#1C1A16</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--text-secondary)"></div><div class="ds-name">--text-secondary</div><div class="ds-hex">#565046</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--text-muted)"></div><div class="ds-name">--text-muted</div><div class="ds-hex">#756E61</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--text-on-accent)"></div><div class="ds-name">--text-on-accent</div><div class="ds-hex">#FFFDFA</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Borders</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--border-subtle)"></div><div class="ds-name">--border-subtle</div><div class="ds-hex">#E8DFD0</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--border-strong)"></div><div class="ds-name">--border-strong</div><div class="ds-hex">#D6C9B4</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--border-focus)"></div><div class="ds-name">--border-focus</div><div class="ds-hex">#564BA6</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Brand &amp; Spark</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--brand-primary)"></div><div class="ds-name">--brand-primary</div><div class="ds-hex">#423A82</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--brand-primary-hover)"></div><div class="ds-name">--brand-primary-hover</div><div class="ds-hex">#322C63</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--brand-subtle)"></div><div class="ds-name">--brand-subtle</div><div class="ds-hex">#EEEBF8</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--brand-muted)"></div><div class="ds-name">--brand-muted</div><div class="ds-hex">#CFC9EC</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--spark)"></div><div class="ds-name">--spark</div><div class="ds-hex">#E8972B</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--spark-hover)"></div><div class="ds-name">--spark-hover</div><div class="ds-hex">#C97A14</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--spark-subtle)"></div><div class="ds-name">--spark-subtle</div><div class="ds-hex">#FDF4E3</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Status</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--status-success)"></div><div class="ds-name">--status-success</div><div class="ds-hex">#2F7D5B</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--status-warning)"></div><div class="ds-name">--status-warning</div><div class="ds-hex">#B7791F</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--status-error)"></div><div class="ds-name">--status-error</div><div class="ds-hex">#B23A36</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--status-info)"></div><div class="ds-name">--status-info</div><div class="ds-hex">#2D6E8E</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Domain &middot; Confidence</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--confidence-low)"></div><div class="ds-name">--confidence-low</div><div class="ds-hex">#D85650</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--confidence-med)"></div><div class="ds-name">--confidence-med</div><div class="ds-hex">#E0A12E</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--confidence-high)"></div><div class="ds-name">--confidence-high</div><div class="ds-hex">#3EA876</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Domain &middot; Grade</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--grade-a)"></div><div class="ds-name">--grade-a</div><div class="ds-hex">#2F7D5B</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--grade-b)"></div><div class="ds-name">--grade-b</div><div class="ds-hex">#3EA876</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--grade-c)"></div><div class="ds-name">--grade-c</div><div class="ds-hex">#E0A12E</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--grade-d)"></div><div class="ds-name">--grade-d</div><div class="ds-hex">#C97A14</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--grade-f)"></div><div class="ds-name">--grade-f</div><div class="ds-hex">#B23A36</div></div>
+    </div>
+  </div>
+
+  <div class="ds-section">
+    <div class="ds-cap">Domain &middot; Mastery</div>
+    <div class="ds-grid">
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--mastery-not-started)"></div><div class="ds-name">--mastery-not-started</div><div class="ds-hex">#D6C9B4</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--mastery-in-progress)"></div><div class="ds-name">--mastery-in-progress</div><div class="ds-hex">#564BA6</div></div>
+      <div class="ds-swatch"><div class="ds-chip" style="background:var(--mastery-mastered)"></div><div class="ds-name">--mastery-mastered</div><div class="ds-hex">#3EA876</div></div>
+    </div>
+  </div>
+
+</body></html>

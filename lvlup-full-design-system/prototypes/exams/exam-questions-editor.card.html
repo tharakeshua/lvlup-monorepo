@@ -1,0 +1,688 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Exam Questions Editor" subtitle="Correct AI-extracted questions · rubrics · publish via saveExam" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:100vh}
+.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5)}
+
+.topbar__brandsearch{display:flex;align-items:center;gap:var(--space-3);flex:1}
+.tenant-pill{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:var(--bg-surface)}
+.tenant-pill .u-code{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.topbar__icons{display:flex;align-items:center;gap:var(--space-2)}
+
+/* exam header */
+.examhead{display:flex;flex-direction:column;gap:var(--space-4)}
+.examhead__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.examhead__title{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.examhead__title h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0}
+.examhead__meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--text-secondary)}
+.examhead__meta .dot{width:3px;height:3px;border-radius:var(--radius-pill);background:var(--border-strong)}
+.examhead__meta .u-num{font-family:var(--font-mono);color:var(--text-primary)}
+.examhead__actions{display:flex;align-items:center;gap:var(--space-2);flex-shrink:0}
+.examhead__stats{display:flex;gap:var(--space-3)}
+
+/* state segmented control */
+.stateseg{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;font-size:var(--text-sm)}
+.stateseg__label{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px}
+.seg__btn{padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);transition:background-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.seg__btn[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+/* toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);box-shadow:var(--shadow-e1)}
+.toolbar__left{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.toolbar__kpi{font-size:var(--text-sm);color:var(--text-secondary)}
+.toolbar__kpi .u-num{font-family:var(--font-mono);color:var(--text-primary);font-weight:var(--weight-medium)}
+.toolbar__right{display:flex;align-items:center;gap:var(--space-2)}
+.review-chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);background:var(--status-warning-subtle);color:var(--status-warning);border:1px solid transparent;cursor:pointer}
+.review-chip:hover{border-color:var(--status-warning)}
+.mismatch{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--status-warning);font-weight:var(--weight-medium)}
+
+/* question cards */
+.qstack{display:flex;flex-direction:column;gap:var(--space-4)}
+.qcard{position:relative;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.qcard--flag{border-left:3px solid var(--status-warning)}
+.qcard--locked{opacity:0.96}
+.qcard__head{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);flex-wrap:wrap}
+.qhandle{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-md);color:var(--text-muted);cursor:grab}
+.qhandle:hover{background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.qhandle[aria-disabled="true"]{cursor:not-allowed;opacity:0.45}
+.qnum{font-family:var(--font-mono);font-weight:var(--weight-medium);font-size:var(--text-sm);color:var(--text-primary);min-width:30px}
+.qhead__spacer{flex:1}
+.marks-field{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);font-weight:var(--weight-medium)}
+.marks-field input{width:62px;text-align:center;font-family:var(--font-mono)}
+.qcard__body{display:grid;grid-template-columns:1fr 200px;gap:var(--space-5);padding:var(--space-5)}
+.qcard__main{min-width:0;max-width:720px;display:flex;flex-direction:column;gap:var(--space-3)}
+.qcard__rail{display:flex;flex-direction:column;gap:var(--space-2)}
+.thumb{border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;background:var(--bg-inset);position:relative;cursor:zoom-in}
+.thumb__img{height:130px;display:grid;place-items:center;color:var(--text-muted);background:repeating-linear-gradient(135deg,var(--bg-inset),var(--bg-inset) 10px,var(--bg-surface-sunken) 10px,var(--bg-surface-sunken) 20px)}
+.thumb__cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);padding:var(--space-1) var(--space-2);border-top:1px solid var(--border-subtle);background:var(--bg-surface);display:flex;align-items:center;justify-content:space-between}
+.qmeta-row{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.prov-chip{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-secondary);font-family:var(--font-mono)}
+.qcard__foot{display:flex;align-items:center;gap:var(--space-1);padding:var(--space-3) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken);flex-wrap:wrap}
+.qcard__foot .spacer{flex:1}
+.qbody-content{font-size:var(--text-base);line-height:var(--leading-base);color:var(--text-primary)}
+.qbody-content code{font-family:var(--font-mono);background:var(--bg-inset);padding:1px 5px;border-radius:var(--radius-sm);font-size:0.92em}
+.lockchip{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-muted)}
+
+/* subparts accordion rows */
+.subrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0}
+.subrow__label{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-secondary);min-width:28px}
+.subrow__text{flex:1;font-size:var(--text-sm);color:var(--text-primary)}
+.subrow__marks{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+
+/* editor textarea preview split */
+.editsplit{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);border:1px solid var(--border-focus);border-radius:var(--radius-md);padding:var(--space-3);background:var(--bg-surface-sunken)}
+.editsplit__pane{display:flex;flex-direction:column;gap:var(--space-2)}
+.editsplit__cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em}
+.editsplit textarea{min-height:120px;font-family:var(--font-mono);font-size:var(--text-sm);resize:vertical}
+.preview-box{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:var(--space-3);min-height:120px;font-size:var(--text-sm)}
+.editsplit__foot{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.editsplit__hint{font-size:var(--text-xs);color:var(--text-muted)}
+.kbd-hint{font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 4px;color:var(--text-secondary)}
+
+.banner-stack{display:flex;flex-direction:column;gap:var(--space-3)}
+.relrail{display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--text-sm)}
+.help-foot{font-size:var(--text-xs);color:var(--text-muted);text-align:center;padding:var(--space-2) 0 var(--space-6)}
+
+@media (prefers-reduced-motion: reduce){*{animation-duration:0.001ms!important;transition-duration:0.001ms!important}}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Icon, Button, IconButton, Input, Textarea, Select, Field,
+    Card, Section, Tabs, Accordion, Modal, Popover, Tooltip,
+    Stat, Badge, Chip, EmptyState, Skeleton, Alert, Toast, ProgressBar,
+    LoadingOverlay, NavItem, Breadcrumb, Avatar,
+    ContentRenderer, ConfidenceBadge, RubricBreakdown, AnswerKeyLock
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ---------- mock data (mirrors real entity/field names) ---------- */
+  const EXAM = {
+    title: "Algebra Mid-Term", subject: "Math", classes: "Class 9-A, 9-B",
+    durationMin: 60, totalMarks: 50, passMark: 18, status: "question_paper_extracted"
+  };
+
+  const QUESTIONS = [
+    {
+      id: "q_01", order: 1, questionType: "standard", maxMarks: 5,
+      html: 'Solve for x: <code>2x + 3 = 11</code>',
+      extractedBy: "ai", extractionConfidence: 0.96, readabilityIssue: false,
+      page: "p.1", rubric: [
+        { label: "Correct isolation of x", desc: "Subtract 3, divide by 2", score: 3, max: 3 },
+        { label: "Final value & working shown", desc: "x = 4 with steps", score: 2, max: 2 }
+      ], subQuestions: null
+    },
+    {
+      id: "q_02", order: 2, questionType: "multi-part", maxMarks: 10,
+      html: 'For the quadratic <code>x² − 5x + 6 = 0</code>:',
+      extractedBy: "ai", extractionConfidence: 0.42, readabilityIssue: true,
+      page: "p.1", rubric: null,
+      subQuestions: [
+        { label: "(a)", text: "Define the roots of a quadratic equation.", maxMarks: 4 },
+        { label: "(b)", text: "Prove the product of the roots equals c/a.", maxMarks: 6 }
+      ]
+    },
+    {
+      id: "q_03", order: 3, questionType: "diagram", maxMarks: 8,
+      html: 'On the grid provided, plot <code>y = 2x − 1</code> and state its gradient.',
+      extractedBy: "ai", extractionConfidence: 0.81, readabilityIssue: false,
+      page: "p.2", rubric: [
+        { label: "Line plotted accurately", desc: "Through (0,−1) and (1,1)", score: 5, max: 5 },
+        { label: "Gradient stated", desc: "m = 2", score: 3, max: 3 }
+      ], subQuestions: null
+    },
+    {
+      id: "q_04", order: 4, questionType: "standard", maxMarks: 6,
+      html: 'A shop offers a 15% discount. Find the sale price of an item marked <code>₹ 480</code>.',
+      extractedBy: "manual", extractionConfidence: null, readabilityIssue: false,
+      page: null, rubric: [
+        { label: "Discount computed", desc: "15% of 480 = 72", score: 4, max: 4 },
+        { label: "Sale price", desc: "480 − 72 = 408", score: 2, max: 2 }
+      ], subQuestions: null
+    }
+  ];
+
+  const TOTAL_MARKS = QUESTIONS.reduce((s, q) => s + q.maxMarks, 0); // 29 vs 50 → mismatch demo
+  const REVIEW_COUNT = QUESTIONS.filter(q => q.readabilityIssue || (q.extractionConfidence != null && q.extractionConfidence < 0.7)).length;
+
+  const confLevel = (c) => c == null ? null : (c < 0.7 ? "low" : (c <= 0.9 ? "med" : "high"));
+  const confLabel = { low: "Needs review", med: "Spot-check", high: "High confidence" };
+
+  /* ---------- AppShell chrome ---------- */
+  function Sidebar() {
+    const nav = [
+      { icon: "layout-dashboard", label: "Dashboard" },
+      { icon: "graduation-cap", label: "Spaces" },
+      { icon: "file-check-2", label: "Exams", active: true },
+      { icon: "users", label: "Students" },
+      { icon: "bar-chart-3", label: "Analytics" }
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <span className="sidebar__brand-mark">L</span>
+          <span className="sidebar__brand-name">Lyceum</span>
+        </div>
+        <nav className="sidebar__nav">
+          <div className="sidebar__section-label">Teach</div>
+          {nav.map((n, i) => (
+            <NavItem key={i} icon={n.icon} active={n.active}>{n.label}</NavItem>
+          ))}
+          <div className="sidebar__section-label">Manage</div>
+          <NavItem icon="settings">Settings</NavItem>
+          <NavItem icon="building-2">Tenant</NavItem>
+        </nav>
+        <div style={{ marginTop: "auto", padding: "var(--space-4)", display: "flex", alignItems: "center", gap: "var(--space-2)", borderTop: "1px solid var(--border-subtle)" }}>
+          <Avatar initials="RM" size="sm" />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-medium)" }}>Rao Mehta</div>
+            <div style={{ fontSize: "var(--text-2xs)", color: "var(--text-muted)" }}>Teacher</div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  function Topbar() {
+    return (
+      <header className="appshell__topbar">
+        <div className="topbar__brandsearch">
+          <span className="tenant-pill">
+            <Icon name="building-2" size={14} /> Subhang Academy
+            <span className="u-code">SUB001</span>
+            <Icon name="chevron-down" size={14} />
+          </span>
+          <div className="topbar__search">
+            <Input placeholder="Search exams, students, spaces…" aria-label="Search" />
+          </div>
+        </div>
+        <span className="topbar__spacer" />
+        <div className="topbar__icons">
+          <Tooltip><IconButton icon={<Icon name="command" size={18} />} label="Command palette (Cmd K)" /></Tooltip>
+          <IconButton icon={<Icon name="bell" size={18} />} label="Notifications" />
+          <Avatar initials="RM" size="sm" />
+        </div>
+      </header>
+    );
+  }
+
+  /* ---------- shared exam header ---------- */
+  function ExamHeader({ locked, extracting, onPublish, onReextractAll, marksSum }) {
+    const mismatch = marksSum !== EXAM.totalMarks;
+    return (
+      <Section>
+        <div className="examhead">
+          <div className="examhead__top">
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <div className="examhead__title">
+                <h1>{EXAM.title}</h1>
+                <Badge variant="info" icon={<Icon name="file-search" size={13} />}>question_paper_extracted</Badge>
+                {locked && <Badge variant="success" icon={<Icon name="lock" size={13} />}>published</Badge>}
+              </div>
+              <div className="examhead__meta">
+                <span>{EXAM.subject}</span><span className="dot" />
+                <span>{EXAM.classes}</span><span className="dot" />
+                <span><span className="u-num">{EXAM.durationMin}</span> min</span><span className="dot" />
+                <span><span className="u-num">{EXAM.totalMarks}</span> marks</span><span className="dot" />
+                <span>pass <span className="u-num">{EXAM.passMark}</span></span>
+              </div>
+            </div>
+            <div className="examhead__actions">
+              <Button variant="secondary" leadingIcon={<Icon name="refresh-cw" size={16} />} onClick={onReextractAll} disabled={locked}>Re-extract all</Button>
+              <Button variant="primary" trailingIcon={<Icon name="arrow-right" size={16} />} onClick={onPublish} disabled={locked || extracting}>Publish exam</Button>
+            </div>
+          </div>
+          <div className="examhead__stats">
+            <Stat label="Questions" value={QUESTIONS.length} />
+            <Stat label="Marks total" value={<span style={{ color: mismatch ? "var(--status-warning)" : undefined }}>{marksSum} / {EXAM.totalMarks}</span>} />
+            <Stat label="Need review" value={REVIEW_COUNT} />
+          </div>
+        </div>
+      </Section>
+    );
+  }
+
+  /* ---------- question card ---------- */
+  function SourceThumb({ q }) {
+    const [open, setOpen] = useState(false);
+    if (q.extractedBy === "manual") {
+      return (
+        <div className="qcard__rail">
+          <div className="thumb" style={{ cursor: "default" }}>
+            <div className="thumb__img"><Icon name="image-off" size={24} /></div>
+            <div className="thumb__cap"><span>no source</span><Icon name="pencil" size={12} /></div>
+          </div>
+          <span className="u-caption">Added by hand</span>
+        </div>
+      );
+    }
+    return (
+      <div className="qcard__rail">
+        <div className="thumb" onClick={() => setOpen(o => !o)} role="button" aria-label={"View source scan " + q.page} tabIndex={0}>
+          <div className="thumb__img"><Icon name="scan-text" size={26} /></div>
+          <div className="thumb__cap"><span>{q.page}</span><Icon name="maximize-2" size={12} /></div>
+        </div>
+        <span className="u-caption">Scanned region</span>
+        {open && (
+          <Popover>
+            <div style={{ width: 220 }}>
+              <div className="thumb__img" style={{ height: 180, borderRadius: "var(--radius-sm)" }}><Icon name="scan-text" size={36} /></div>
+              <div className="u-caption" style={{ marginTop: "var(--space-2)" }}>Full-res source · {q.page}</div>
+            </div>
+          </Popover>
+        )}
+      </div>
+    );
+  }
+
+  function QEditor({ q, onSave, onCancel }) {
+    const [text, setText] = useState(q.html.replace(/<\/?code>/g, "`").replace(/<[^>]+>/g, ""));
+    return (
+      <div className="editsplit" role="group" aria-label={"Edit text for question " + q.order}>
+        <div className="editsplit__pane">
+          <span className="editsplit__cap">Markdown · KaTeX</span>
+          <Textarea value={text} onChange={e => setText(e.target.value)} aria-label="Question text source" autoFocus />
+        </div>
+        <div className="editsplit__pane">
+          <span className="editsplit__cap">Live preview</span>
+          <div className="preview-box">
+            <ContentRenderer math html={text.replace(/`([^`]+)`/g, '<code>$1</code>')} />
+          </div>
+        </div>
+        <div className="editsplit__foot">
+          <span className="editsplit__hint"><span className="kbd-hint">Cmd</span> <span className="kbd-hint">Enter</span> save · <span className="kbd-hint">Esc</span> cancel</span>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+            <Button variant="primary" size="sm" onClick={() => onSave(text)}>Save text</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function QuestionEditorCard({ q, idx, total, locked, allowRubricEdit, onReextract, onRemove, onMarksMismatch, onToast }) {
+    const [editing, setEditing] = useState(false);
+    const [reextracting, setReextracting] = useState(false);
+    const [marks, setMarks] = useState(q.maxMarks);
+    const lvl = confLevel(q.extractionConfidence);
+    const flagged = q.readabilityIssue || lvl === "low";
+
+    const doReextract = () => {
+      setReextracting(true);
+      onReextract(q);
+      setTimeout(() => { setReextracting(false); onToast({ variant: "success", title: "Re-extraction complete", body: "Q" + q.order + " refreshed from the scan." }); }, 1400);
+    };
+
+    return (
+      <article className={"qcard" + (flagged ? " qcard--flag" : "") + (locked ? " qcard--locked" : "")}
+        role="article" aria-labelledby={"qh-" + q.id}>
+        {reextracting && <LoadingOverlay />}
+        <div className="qcard__head">
+          <span className="qhandle" aria-disabled={locked ? "true" : undefined} aria-label="Drag to reorder" role="button" tabIndex={locked ? -1 : 0}>
+            <Icon name="grip-vertical" size={18} />
+          </span>
+          <span className="qnum" id={"qh-" + q.id}>Q{q.order}</span>
+          <div style={{ width: 168 }}>
+            <Select aria-label="Question type" disabled={locked}
+              defaultValue={q.questionType}
+              options={[
+                { value: "standard", label: "Standard" },
+                { value: "diagram", label: "Diagram" },
+                { value: "multi-part", label: "Multi-part" }
+              ]} />
+          </div>
+          <span className="qhead__spacer" />
+          <label className="marks-field">
+            maxMarks
+            <Input type="number" value={marks} min={0} disabled={locked}
+              aria-describedby="marks-total-hint"
+              onChange={e => { const v = Number(e.target.value); setMarks(v); onMarksMismatch(); }} />
+          </label>
+          {locked && <span className="lockchip"><Icon name="lock" size={12} /> locked</span>}
+        </div>
+
+        <div className="qcard__body">
+          <div className="qcard__main">
+            {q.readabilityIssue && (
+              <Alert variant="warning" title="Readability issue">
+                The scan was hard to read here. Verify the text and marks before publishing.
+              </Alert>
+            )}
+            {editing
+              ? <QEditor q={q} onCancel={() => setEditing(false)}
+                  onSave={() => { setEditing(false); onToast({ variant: "success", title: "Saved", body: "Question text updated." }); }} />
+              : <div className="qbody-content"><ContentRenderer math html={q.html} /></div>}
+
+            {q.subQuestions && (
+              <Accordion defaultOpen={flagged ? 0 : -1} items={[{
+                title: <span>Sub-parts <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)", fontSize: "var(--text-xs)" }}>({q.subQuestions.length} · {q.subQuestions.reduce((s, sp) => s + sp.maxMarks, 0)} marks)</span></span>,
+                content: (
+                  <div>
+                    {q.subQuestions.map((sp, i) => (
+                      <div className="subrow" key={i}>
+                        <span className="subrow__label">{sp.label}</span>
+                        <span className="subrow__text">{sp.text}</span>
+                        <span className="subrow__marks">[{sp.maxMarks}]</span>
+                        <Tooltip>
+                          <Button variant="ghost" size="sm" disabled={locked || !allowRubricEdit}
+                            trailingIcon={<Icon name="chevron-right" size={14} />}>Edit rubric</Button>
+                        </Tooltip>
+                      </div>
+                    ))}
+                    <div style={{ paddingTop: "var(--space-2)" }}>
+                      <Button variant="ghost" size="sm" disabled={locked} leadingIcon={<Icon name="plus" size={14} />}>Add sub-part</Button>
+                    </div>
+                  </div>
+                )
+              }]} />
+            )}
+
+            {q.rubric && (
+              <div>
+                <div className="editsplit__cap" style={{ marginBottom: "var(--space-2)" }}>Attached rubric · UnifiedRubric</div>
+                <RubricBreakdown criteria={q.rubric} />
+                <div style={{ marginTop: "var(--space-2)" }}>
+                  <AnswerKeyLock title="Staff only — not shown to students">
+                    Model answers and rubric model-answers are sanitized out of every student or parent view.
+                  </AnswerKeyLock>
+                </div>
+              </div>
+            )}
+
+            <div className="qmeta-row">
+              {lvl
+                ? <span aria-label={confLabel[lvl] + ", confidence " + q.extractionConfidence}>
+                    <ConfidenceBadge level={lvl} value={
+                      <span><Icon name={lvl === "low" ? "alert-triangle" : lvl === "med" ? "search" : "check-circle"} size={12} /> {confLabel[lvl]} <span style={{ fontFamily: "var(--font-mono)" }}>{q.extractionConfidence.toFixed(2)}</span></span>
+                    } />
+                  </span>
+                : <Chip><Icon name="pencil" size={12} /> Added manually</Chip>}
+              <span className="prov-chip"><Icon name={q.extractedBy === "ai" ? "sparkles" : "hand"} size={12} /> extractedBy: {q.extractedBy}</span>
+            </div>
+          </div>
+
+          <SourceThumb q={q} />
+        </div>
+
+        <div className="qcard__foot">
+          <Button variant="ghost" size="sm" disabled={locked} leadingIcon={<Icon name="pencil" size={14} />}
+            onClick={() => setEditing(e => !e)}>{editing ? "Close editor" : "Edit text"}</Button>
+          {!q.subQuestions && (
+            <Tooltip>
+              <Button variant="ghost" size="sm" disabled={locked || !allowRubricEdit} trailingIcon={<Icon name="chevron-right" size={14} />}>Edit rubric</Button>
+            </Tooltip>
+          )}
+          <Button variant="ghost" size="sm" disabled={locked || q.extractedBy === "manual"} loading={reextracting}
+            leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={doReextract}>Re-extract</Button>
+          <span className="spacer" />
+          <Button variant="danger" size="sm" disabled={locked} leadingIcon={<Icon name="trash-2" size={14} />}
+            onClick={() => onRemove(q)}>Remove</Button>
+        </div>
+      </article>
+    );
+  }
+
+  /* ---------- main body region by state ---------- */
+  function LoadingBody() {
+    return (
+      <div className="qstack" aria-busy="true" aria-label="Loading questions">
+        {[0, 1, 2].map(i => (
+          <Card key={i}>
+            <div style={{ padding: "var(--space-5)", display: "grid", gridTemplateColumns: "1fr 200px", gap: "var(--space-5)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <Skeleton width="40%" height="1.25rem" />
+                <Skeleton width="92%" /><Skeleton width="84%" /><Skeleton width="60%" />
+                <Skeleton width="30%" height="1.5rem" />
+              </div>
+              <Skeleton height="130px" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  function App() {
+    const [state, setState] = useState("populated"); // populated | loading | extracting | empty | empty0 | error | partial
+    const [locked, setLocked] = useState(false);
+    const [allowRubricEdit, setAllowRubricEdit] = useState(true);
+    const [toast, setToast] = useState(null);
+    const [modal, setModal] = useState(null); // {kind, q}
+    const [, force] = useState(0);
+
+    const fireToast = (t) => { setToast(t); setTimeout(() => setToast(null), 3200); };
+
+    // keyboard: 'a' add question, '/' focus search — disabled while typing in a field
+    useEffect(() => {
+      const onKey = (e) => {
+        const tag = (e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select" || e.target.isContentEditable) return;
+        if (e.key === "a" && !locked && state === "populated") { e.preventDefault(); setModal({ kind: "add" }); }
+        if (e.key === "Escape") setModal(null);
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [locked, state]);
+
+    const marksSum = TOTAL_MARKS;
+    const showQuestions = state === "populated" || state === "partial";
+
+    const StateSeg = () => (
+      <div className="stateseg">
+        <span className="stateseg__label">State:</span>
+        <div className="seg" role="group" aria-label="Preview state">
+          {[
+            { key: "populated", label: "Populated" },
+            { key: "loading", label: "Loading" },
+            { key: "extracting", label: "Extracting" },
+            { key: "empty", label: "Empty" },
+            { key: "empty0", label: "0 extracted" },
+            { key: "error", label: "Error" },
+            { key: "partial", label: "Partial" }
+          ].map(s => (
+            <button key={s.key} className="seg__btn" aria-pressed={state === s.key} onClick={() => setState(s.key)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <span style={{ marginLeft: "var(--space-3)", display: "inline-flex", gap: "var(--space-3)", alignItems: "center" }}>
+          <label className="stateseg__label" style={{ display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
+            <input type="checkbox" className="checkbox" checked={locked} onChange={e => setLocked(e.target.checked)} /> Post-publish locked
+          </label>
+          <label className="stateseg__label" style={{ display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
+            <input type="checkbox" className="checkbox" checked={!allowRubricEdit} onChange={e => setAllowRubricEdit(!e.target.checked)} /> Rubric edit off
+          </label>
+        </span>
+      </div>
+    );
+
+    const Toolbar = () => (
+      <div className="toolbar">
+        <div className="toolbar__left">
+          <span className="toolbar__kpi"><span className="u-num">{QUESTIONS.length}</span> questions · <span className="u-num">{marksSum} / {EXAM.totalMarks}</span> marks</span>
+          {marksSum !== EXAM.totalMarks && (
+            <span className="mismatch" id="marks-total-hint"><Icon name="alert-triangle" size={13} /> Marks total {marksSum} of {EXAM.totalMarks}</span>
+          )}
+          {REVIEW_COUNT > 0 && (
+            <button className="review-chip" onClick={() => fireToast({ variant: "warning", title: "Filtered to flagged", body: REVIEW_COUNT + " question(s) need review." })}>
+              <Icon name="alert-triangle" size={13} /> {REVIEW_COUNT} need review
+            </button>
+          )}
+        </div>
+        <div className="toolbar__right">
+          <Button variant="ghost" size="sm" disabled={locked} leadingIcon={<Icon name="arrow-up-down" size={15} />}>Reorder</Button>
+          <Button variant="secondary" size="sm" disabled={locked} leadingIcon={<Icon name="plus" size={15} />} onClick={() => setModal({ kind: "add" })}>Add question</Button>
+        </div>
+      </div>
+    );
+
+    const Body = () => {
+      if (state === "loading") return <LoadingBody />;
+      if (state === "extracting") return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <Alert variant="info" title="Extracting questions from the uploaded paper…">
+            Gemini is reading the scanned paper. Questions stream in as they are found. Publishing is disabled until extraction finishes.
+            <div style={{ marginTop: "var(--space-3)" }}><ProgressBar value={62} /></div>
+          </Alert>
+          <LoadingBody />
+        </div>
+      );
+      if (state === "empty0") return (
+        <Alert variant="warning" title="We couldn't find any questions">
+          The paper may be blurry, rotated, or blank. Re-extract, add questions manually, or re-upload a clearer scan.
+          <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={() => setModal({ kind: "reextract-all" })}>Re-extract all</Button>
+            <Button variant="secondary" size="sm" leadingIcon={<Icon name="plus" size={14} />} onClick={() => setModal({ kind: "add" })}>Add manually</Button>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon name="image" size={14} />}>Check the uploaded image</Button>
+          </div>
+        </Alert>
+      );
+      if (state === "empty") return (
+        <Card>
+          <div style={{ padding: "var(--space-10) var(--space-6)" }}>
+            <EmptyState icon="file-search" title="No questions yet"
+              body="Upload a scanned question paper to extract questions automatically, or add them by hand."
+              action={<div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "center" }}>
+                <Button variant="primary" leadingIcon={<Icon name="upload" size={16} />}>Upload question paper</Button>
+                <Button variant="secondary" leadingIcon={<Icon name="plus" size={16} />} onClick={() => setModal({ kind: "add" })}>Add question manually</Button>
+              </div>} />
+          </div>
+        </Card>
+      );
+      if (state === "error") return (
+        <Alert variant="error" title="Couldn't load this exam's questions">
+          Check your connection and try again.
+          <div style={{ marginTop: "var(--space-3)" }}>
+            <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={() => setState("populated")}>Retry</Button>
+          </div>
+        </Alert>
+      );
+      // populated / partial
+      return (
+        <div className="qstack">
+          {QUESTIONS.map((q, i) => (
+            <QuestionEditorCard key={q.id} q={q} idx={i} total={QUESTIONS.length}
+              locked={locked} allowRubricEdit={allowRubricEdit}
+              onMarksMismatch={() => force(n => n + 1)}
+              onReextract={() => {}}
+              onRemove={(qq) => setModal({ kind: "remove", q: qq })}
+              onToast={fireToast} />
+          ))}
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: "var(--space-2)" }}>
+            <Button variant="secondary" disabled={locked} leadingIcon={<Icon name="plus" size={16} />} onClick={() => setModal({ kind: "add" })}>Add question</Button>
+          </div>
+        </div>
+      );
+    };
+
+    const banners = (
+      <div className="banner-stack">
+        {locked && (
+          <Alert variant="info" title="This exam is published">
+            Questions and marks are locked to protect grading already in progress. To change them, you'd need to unpublish (this re-grades affected submissions).
+          </Alert>
+        )}
+        {!allowRubricEdit && (
+          <Alert variant="warning" title="Rubric editing is turned off">
+            Rubric editing is disabled for this exam. Change it in Settings. Existing rubrics remain visible read-only.
+          </Alert>
+        )}
+        {state === "partial" && (
+          <Alert variant="warning" title={REVIEW_COUNT + " question(s) need review before publishing"}>
+            Low extraction confidence or readability issues were flagged. Verify the text and marks on the highlighted cards.
+          </Alert>
+        )}
+      </div>
+    );
+
+    const questionsTab = (
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+        {(showQuestions && (locked || !allowRubricEdit || state === "partial")) ? banners : null}
+        {showQuestions && <Toolbar />}
+        <Body />
+      </div>
+    );
+
+    return (
+      <div className="appshell shell">
+        <Sidebar />
+        <Topbar />
+        <main className="appshell__main">
+          <div className="page">
+            <Breadcrumb items={[{ label: "Exams", href: "#" }, { label: EXAM.title, href: "#" }, { label: "Questions" }]} />
+            <StateSeg />
+            <ExamHeader locked={locked} extracting={state === "extracting"} marksSum={marksSum}
+              onPublish={() => setModal({ kind: "publish" })}
+              onReextractAll={() => setModal({ kind: "reextract-all" })} />
+            <Tabs items={[
+              { label: "Questions", content: questionsTab },
+              { label: "Submissions", content: <div style={{ padding: "var(--space-8)", color: "var(--text-muted)" }}>Submissions tab (separate screen).</div> },
+              { label: "Settings", content: <div style={{ padding: "var(--space-8)", color: "var(--text-muted)" }}>Settings tab (separate screen).</div> }
+            ]} />
+            <div className="help-foot">All writes go through the <span style={{ fontFamily: "var(--font-mono)" }}>saveExam</span> callable · status is server-authoritative.</div>
+          </div>
+        </main>
+
+        {/* modals */}
+        <Modal open={modal && modal.kind === "add"} onClose={() => setModal(null)} title="Add question"
+          footer={<><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button>
+            <Button variant="primary" onClick={() => { setModal(null); fireToast({ variant: "success", title: "Question added", body: "Created with extractedBy: manual." }); }}>Add question</Button></>}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <Field label="Question text" hint="Markdown + KaTeX. Rendered with ContentRenderer."><Textarea placeholder={"e.g. Solve for x: $3x - 7 = 8$"} /></Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+              <Field label="maxMarks" required><Input type="number" defaultValue={5} min={1} /></Field>
+              <Field label="Question type"><Select options={[{ value: "standard", label: "Standard" }, { value: "diagram", label: "Diagram" }, { value: "multi-part", label: "Multi-part" }]} /></Field>
+            </div>
+            <Field label="Source image (optional)"><div className="filedrop"><Icon name="upload-cloud" size={24} /><div style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>Drop a scan or click to attach</div><div className="u-caption">Resolves to imageUrls · HTTPS from the API</div></div></Field>
+          </div>
+        </Modal>
+
+        <Modal open={modal && modal.kind === "remove"} onClose={() => setModal(null)} title={"Remove Q" + (modal && modal.q ? modal.q.order : "")}
+          footer={<><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => { setModal(null); fireToast({ variant: "success", title: "Question removed", body: "Trailing questions renumbered." }); }}>Remove question</Button></>}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--text-secondary)" }}>
+            Remove Q{modal && modal.q ? modal.q.order : ""}? This also deletes its rubric. This can't be undone.
+          </p>
+        </Modal>
+
+        <Modal open={modal && modal.kind === "publish"} onClose={() => setModal(null)} title="Publish exam"
+          footer={<><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button>
+            <Button variant="primary" onClick={() => { setModal(null); setLocked(true); fireToast({ variant: "success", title: "Exam published", body: "Status → published. Questions and marks are now locked." }); }}>Publish exam</Button></>}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--text-secondary)", marginBottom: "var(--space-3)" }}>
+            Publishing locks <span style={{ fontFamily: "var(--font-mono)" }}>text</span>, <span style={{ fontFamily: "var(--font-mono)" }}>maxMarks</span>, and <span style={{ fontFamily: "var(--font-mono)" }}>order</span> to protect grading. The server runs the status machine.
+          </p>
+          {marksSum !== EXAM.totalMarks && (
+            <Alert variant="warning" title="Marks mismatch">Questions total {marksSum} of {EXAM.totalMarks} declared marks. You can still publish — verify this is intended.</Alert>
+          )}
+        </Modal>
+
+        <Modal open={modal && modal.kind === "reextract-all"} onClose={() => setModal(null)} title="Re-extract all questions"
+          footer={<><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => { setModal(null); fireToast({ variant: "info", title: "Re-extraction queued", body: "Gemini is re-reading the uploaded paper." }); }}>Re-extract all</Button></>}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--text-secondary)" }}>
+            Re-extracting replaces <strong>all</strong> manual edits with a fresh AI extraction from the uploaded paper. This can't be undone.
+          </p>
+        </Modal>
+
+        {/* toast */}
+        {toast && (
+          <div style={{ position: "fixed", right: 24, bottom: 24, zIndex: 50 }}>
+            <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

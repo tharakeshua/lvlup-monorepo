@@ -1,0 +1,238 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Scanner Login" subtitle="Tenant code + username + password · public pre-auth" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Login</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  /* ── phone frame (shared shell) ── */
+  .ph { width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+        border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+        background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+  .ph__top { height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+        padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .ph__body { flex:1; overflow-y:auto; position:relative; }
+  .ph__brand { display:flex; align-items:center; gap:var(--space-2); }
+  .ph__mark { width:26px; height:26px; border-radius:var(--radius-sm); display:grid; place-items:center;
+        background:var(--brand-primary); color:var(--text-on-accent); }
+  .ph__name { font-family:var(--font-display); font-weight:var(--weight-semibold); font-size:var(--text-sm);
+        color:var(--text-primary); }
+  .ph__title { margin-left:auto; font-size:var(--text-2xs); font-family:var(--font-mono); letter-spacing:0.06em;
+        text-transform:uppercase; color:var(--text-muted); }
+
+  /* ── login view ── */
+  .scanner-login-wrap { min-height:100%; display:flex; flex-direction:column; padding:var(--space-6) var(--space-5) var(--space-5); }
+  .scanner-login-hero { display:flex; flex-direction:column; align-items:center; text-align:center;
+        gap:var(--space-3); padding:var(--space-6) 0 var(--space-5); }
+  .scanner-login-mark { width:56px; height:56px; border-radius:var(--radius-lg); display:grid; place-items:center;
+        background:var(--brand-primary); color:var(--text-on-accent); box-shadow:var(--shadow-e2); }
+  .scanner-login-wordmark { font-family:var(--font-display); font-size:var(--text-3xl); line-height:var(--leading-3xl);
+        font-weight:var(--weight-semibold); color:var(--text-primary); margin:0; }
+  .scanner-login-purpose { font-size:var(--text-sm); line-height:var(--leading-sm); color:var(--text-secondary);
+        max-width:30ch; margin:0; }
+  .scanner-login-eyebrow { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.1em;
+        text-transform:uppercase; color:var(--spark); font-weight:var(--weight-semibold); }
+
+  .scanner-login-card { background:var(--bg-surface); border:1px solid var(--border-subtle);
+        border-radius:var(--radius-lg); box-shadow:var(--shadow-e1); padding:var(--space-5);
+        display:flex; flex-direction:column; gap:var(--space-4); }
+  .scanner-login-mono input { font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; }
+  .scanner-login-pwrap { position:relative; }
+  .scanner-login-pwrap input { padding-right:var(--space-12); }
+  .scanner-login-eye { position:absolute; top:50%; right:var(--space-2); transform:translateY(-50%); }
+  .scanner-login-cta { margin-top:var(--space-1); }
+
+  .scanner-login-foot { margin-top:auto; padding-top:var(--space-6); text-align:center;
+        display:flex; align-items:center; justify-content:center; gap:var(--space-2);
+        font-size:var(--text-xs); color:var(--text-muted); }
+
+  /* state tiles */
+  .scanner-login-states { width:390px; margin:0 auto var(--space-12); display:flex; flex-direction:column; gap:var(--space-3); }
+  .scanner-login-tile { background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md);
+        padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-2); }
+  .scanner-login-tile h4 { margin:0; font-size:var(--text-2xs); font-family:var(--font-mono); letter-spacing:0.08em;
+        text-transform:uppercase; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Button, IconButton, Input, Field, Alert, Icon } = LU;
+  const { useState } = React;
+
+  /* ════════ SPA VIEW ════════ */
+  function LoginView({ nav, params, ctx }) {
+    const safeCtx = ctx || {};
+    const toast = safeCtx.toast || function(){};
+
+    const [code, setCode] = useState("");
+    const [user, setUser] = useState("");
+    const [pass, setPass] = useState("");
+    const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});   // { code, user, pass }
+    const [banner, setBanner] = useState(null);  // { title, body }
+
+    function clearErr(key) {
+      setErrors(function (e) { if (!e[key]) return e; var n = Object.assign({}, e); delete n[key]; return n; });
+      if (banner) setBanner(null);
+    }
+
+    function submit(ev) {
+      if (ev) ev.preventDefault();
+      var fieldErrs = {};
+      if (!code.trim()) fieldErrs.code = "Required";
+      if (!user.trim()) fieldErrs.user = "Required";
+      if (!pass.trim()) fieldErrs.pass = "Required";
+      if (Object.keys(fieldErrs).length) {
+        setErrors(fieldErrs);
+        setBanner({ title: "Invalid credentials", body: "Enter your school code, username, and password." });
+        return;
+      }
+      setErrors({});
+      setBanner(null);
+      setLoading(true);
+
+      // MOCK auth: any code accepted except 'BAD' → not-found
+      setTimeout(function () {
+        setLoading(false);
+        if (code.trim().toUpperCase() === "BAD") {
+          setErrors({ code: "No school matches this code" });
+          setBanner({ title: "School code not found", body: "Check the code with your admin and try again." });
+          return;
+        }
+        if (user.trim().toLowerCase() === "wrong" || pass === "wrong") {
+          setBanner({ title: "Invalid credentials", body: "That username or password didn't match." });
+          return;
+        }
+        if (safeCtx.setScanner) {
+          safeCtx.setScanner({ name: "Scan Desk", initials: "SD", school: "Crestford School", code: code.trim().toUpperCase() });
+        }
+        toast({ variant: "success", title: "Signed in", body: "Welcome back — ready to scan." });
+        if (nav && nav.go) nav.go("#/scan");
+      }, 1100);
+    }
+
+    return (
+      <form className="scanner-login-wrap" onSubmit={submit} noValidate>
+        <div className="scanner-login-hero">
+          <div className="scanner-login-mark"><Icon name="scan-line" size={30} /></div>
+          <div className="scanner-login-eyebrow">AutoGrade</div>
+          <h1 className="scanner-login-wordmark">AutoGrade Scanner</h1>
+          <p className="scanner-login-purpose">Capture answer sheets — grade in minutes.</p>
+        </div>
+
+        <div className="scanner-login-card">
+          {banner && (
+            <Alert variant="error" title={banner.title}>{banner.body}</Alert>
+          )}
+
+          <Field label="School code" htmlFor="sl-code" required
+                 hint={errors.code ? undefined : "Ask your admin"} error={errors.code}>
+            <div className="scanner-login-mono">
+              <Input id="sl-code" name="code" placeholder="CRST" autoComplete="off"
+                     value={code} error={!!errors.code} disabled={loading}
+                     onChange={function (e) { setCode(e.target.value); clearErr("code"); }} />
+            </div>
+          </Field>
+
+          <Field label="Username" htmlFor="sl-user" required error={errors.user}>
+            <Input id="sl-user" name="username" placeholder="scan.desk" autoComplete="username"
+                   value={user} error={!!errors.user} disabled={loading}
+                   onChange={function (e) { setUser(e.target.value); clearErr("user"); }} />
+          </Field>
+
+          <Field label="Password" htmlFor="sl-pass" required error={errors.pass}>
+            <div className="scanner-login-pwrap">
+              <Input id="sl-pass" name="password" type={showPass ? "text" : "password"}
+                     placeholder="••••••••" autoComplete="current-password"
+                     value={pass} error={!!errors.pass} disabled={loading}
+                     onChange={function (e) { setPass(e.target.value); clearErr("pass"); }} />
+              <span className="scanner-login-eye">
+                <IconButton size="sm"
+                  label={showPass ? "Hide password" : "Show password"}
+                  icon={<Icon name={showPass ? "eye-off" : "eye"} size={18} />}
+                  onClick={function () { setShowPass(function (v) { return !v; }); }}
+                  type="button" />
+              </span>
+            </div>
+          </Field>
+
+          <div className="scanner-login-cta">
+            <Button variant="spark" size="lg" block type="submit" loading={loading}
+                    leadingIcon={loading ? undefined : <Icon name="log-in" size={18} />}>
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="scanner-login-foot">
+          <Icon name="shield-check" size={14} />
+          <span>Scanner access only · ask your admin to enable.</span>
+        </div>
+      </form>
+    );
+  }
+
+  /* ════════ STANDALONE DEMO ════════ */
+  function Topbar() {
+    return (
+      <div className="ph__top">
+        <div className="ph__brand">
+          <div className="ph__mark"><Icon name="scan-line" size={16} /></div>
+          <span className="ph__name">AutoGrade Scan</span>
+        </div>
+        <span className="ph__title">Sign in</span>
+        <IconButton size="sm" label="Settings" icon={<Icon name="settings" size={18} />} />
+      </div>
+    );
+  }
+
+  function Demo() {
+    const mockNav = { go: function (h) { console.log("nav →", h); }, back: function () {} };
+    const mockCtx = {
+      online: true,
+      setScanner: function (s) { console.log("scanner set", s); },
+      toast: function (t) { console.log("toast", t); }
+    };
+    return (
+      <>
+        <div className="ph">
+          <Topbar />
+          <div className="ph__body">
+            {/* login is OUTSIDE the tab shell → no Tabbar */}
+            <LoginView nav={mockNav} params={{}} ctx={mockCtx} />
+          </div>
+        </div>
+
+        <div className="scanner-login-states">
+          <div className="scanner-login-tile">
+            <h4>State · school code not found</h4>
+            <Alert variant="error" title="School code not found">Check the code with your admin and try again.</Alert>
+          </div>
+          <div className="scanner-login-tile">
+            <h4>State · invalid credentials</h4>
+            <Alert variant="error" title="Invalid credentials">That username or password didn't match.</Alert>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  if (window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }
+</script>
+</body>
+</html>

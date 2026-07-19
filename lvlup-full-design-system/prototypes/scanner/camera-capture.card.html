@@ -1,0 +1,392 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Camera Capture" subtitle="Capture or upload answer-sheet pages · flow step 3" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Capture</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal. All classes prefixed camera- */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  /* phone frame */
+  .ph { width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+        border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+        background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+  .ph__top { height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+        padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .ph__brand { display:flex; align-items:center; gap:var(--space-2); }
+  .ph__mark { width:26px; height:26px; border-radius:var(--radius-sm); display:grid; place-items:center;
+        background:var(--brand-subtle); color:var(--brand-primary); }
+  .ph__brandtxt { font-family:var(--font-display); font-weight:var(--weight-semibold); font-size:var(--text-sm); }
+  .ph__title { margin-left:auto; font-size:var(--text-xs); color:var(--text-muted); font-family:var(--font-mono);
+        text-transform:uppercase; letter-spacing:0.06em; }
+  .ph__body { flex:1; overflow-y:auto; position:relative; }
+  .ph__tabs { flex:0 0 auto; }
+
+  /* view header strip */
+  .camera-header { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4);
+        background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); position:sticky; top:0; z-index:5; }
+  .camera-header__txt { min-width:0; }
+  .camera-header__exam { font-family:var(--font-display); font-size:var(--text-base); font-weight:var(--weight-semibold);
+        line-height:var(--leading-base); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .camera-header__stu { font-size:var(--text-xs); color:var(--text-muted); margin-top:2px;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .camera-header__lock { margin-left:auto; display:inline-flex; align-items:center; gap:4px; flex:0 0 auto;
+        font-size:var(--text-2xs); color:var(--text-muted); font-family:var(--font-mono); }
+
+  /* segmented control */
+  .camera-seg { display:flex; padding:3px; gap:3px; margin:var(--space-4); border-radius:var(--radius-pill);
+        background:var(--bg-surface-sunken); border:1px solid var(--border-subtle); }
+  .camera-seg__btn { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2);
+        min-height:40px; border:0; background:transparent; cursor:pointer; border-radius:var(--radius-pill);
+        font-family:var(--font-ui); font-size:var(--text-sm); font-weight:var(--weight-medium);
+        color:var(--text-secondary); transition:all var(--dur-fast) var(--ease-standard); }
+  .camera-seg__btn[aria-selected="true"] { background:var(--bg-surface); color:var(--text-primary);
+        box-shadow:var(--shadow-e1); font-weight:var(--weight-semibold); }
+
+  /* mode panel */
+  .camera-panel { padding:0 var(--space-4) var(--space-4); display:flex; flex-direction:column; gap:var(--space-4); }
+  .camera-frame-wrap { border-radius:var(--radius-lg); overflow:hidden; }
+
+  /* thumbnail strip + count */
+  .camera-strip-head { display:flex; align-items:center; justify-content:space-between; }
+  .camera-strip-label { font-size:var(--text-xs); font-weight:var(--weight-semibold); color:var(--text-secondary);
+        text-transform:uppercase; letter-spacing:0.04em; }
+  .camera-strip { display:flex; gap:var(--space-2); overflow-x:auto; padding-bottom:var(--space-1); }
+  .camera-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--space-2); }
+  .camera-thumb { position:relative; flex:0 0 auto; width:64px; height:84px; border-radius:var(--radius-md);
+        overflow:hidden; border:1px solid var(--border-subtle); background:var(--bg-surface-sunken);
+        display:grid; place-items:center; color:var(--text-muted); }
+  .camera-grid .camera-thumb { width:auto; height:96px; }
+  .camera-thumb__n { position:absolute; left:4px; top:4px; font-size:var(--text-2xs); font-family:var(--font-mono);
+        background:var(--bg-surface); color:var(--text-secondary); border-radius:var(--radius-sm); padding:0 4px;
+        line-height:1.5; }
+  .camera-thumb__x { position:absolute; right:3px; top:3px; width:22px; height:22px; border-radius:var(--radius-pill);
+        border:0; cursor:pointer; display:grid; place-items:center; background:var(--bg-surface);
+        color:var(--text-secondary); box-shadow:var(--shadow-e1); }
+  .camera-thumb--in { animation:camera-pop var(--dur-fast) var(--ease-entrance); }
+  @keyframes camera-pop { from { transform:scale(0.7); opacity:0; } to { transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion: reduce) { .camera-thumb--in { animation:none; } }
+
+  .camera-strip-empty { display:flex; align-items:center; gap:var(--space-2); padding:var(--space-4);
+        border:1px dashed var(--border-subtle); border-radius:var(--radius-md); color:var(--text-muted);
+        font-size:var(--text-xs); }
+
+  /* camera control bar */
+  .camera-controls { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4);
+        padding:var(--space-3) var(--space-2); }
+  .camera-shutter { width:72px; height:72px; border-radius:var(--radius-pill); border:0; cursor:pointer;
+        display:grid; place-items:center; background:var(--spark); color:var(--text-on-accent);
+        box-shadow:var(--shadow-e2); transition:transform var(--dur-fast) var(--ease-standard); }
+  .camera-shutter:hover { background:var(--spark-hover); }
+  .camera-shutter:active { transform:scale(0.92); }
+  .camera-shutter__ring { width:72px; height:72px; border-radius:var(--radius-pill); padding:5px;
+        background:var(--spark-subtle); display:grid; place-items:center; }
+  .camera-ctl-side { display:flex; flex-direction:column; align-items:center; gap:4px; width:56px;
+        font-size:var(--text-2xs); color:var(--text-muted); }
+
+  /* file mode note */
+  .camera-note { display:flex; gap:var(--space-2); align-items:flex-start; font-size:var(--text-xs);
+        color:var(--text-muted); }
+  .camera-note .lucide { flex:0 0 auto; margin-top:1px; }
+
+  .camera-denied-link { display:flex; justify-content:center; padding-bottom:var(--space-2); }
+
+  /* sticky submit bar */
+  .camera-submit { position:sticky; bottom:0; z-index:8; padding:var(--space-3) var(--space-4) var(--space-4);
+        background:var(--bg-surface); border-top:1px solid var(--border-strong); box-shadow:var(--shadow-e3);
+        display:flex; flex-direction:column; gap:var(--space-2); }
+  .camera-submit__cap { font-size:var(--text-2xs); color:var(--text-muted); text-align:center;
+        display:inline-flex; align-items:center; gap:4px; justify-content:center; }
+
+  .camera-modal-foot { display:flex; flex-direction:column; gap:var(--space-2); }
+
+  /* state tiles below frame */
+  .camera-tiles { width:390px; margin:0 auto var(--space-12); display:flex; flex-direction:column; gap:var(--space-4); }
+  .camera-tile { border:1px solid var(--border-subtle); border-radius:var(--radius-lg); background:var(--bg-surface);
+        padding:var(--space-4); }
+  .camera-tile__cap { font-size:var(--text-2xs); font-family:var(--font-mono); text-transform:uppercase;
+        letter-spacing:0.06em; color:var(--text-muted); margin-bottom:var(--space-3); }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+        clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Button, IconButton, Icon, Badge, Alert, Modal, ScanFrame, FileDrop, Tabbar } = LU;
+  const { useState } = React;
+
+  /* ---------- local helpers ---------- */
+  const MODES = [
+    { key: "camera", label: "Camera", icon: "camera" },
+    { key: "file", label: "File upload", icon: "upload-cloud" },
+  ];
+
+  function SegToggle({ mode, onChange }) {
+    return (
+      <div className="camera-seg" role="tablist" aria-label="Capture mode">
+        {MODES.map((m) => (
+          <button
+            key={m.key}
+            role="tab"
+            aria-selected={mode === m.key}
+            className="camera-seg__btn"
+            onClick={() => onChange(m.key)}
+          >
+            <Icon name={m.icon} size={16} />
+            {m.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function Thumb({ img, index, onRemove, justAdded }) {
+    return (
+      <div className={"camera-thumb" + (justAdded ? " camera-thumb--in" : "")}>
+        <span className="camera-thumb__n">{index + 1}</span>
+        <Icon name="file-image" size={22} />
+        <button className="camera-thumb__x" aria-label={"Remove page " + (index + 1)} onClick={() => onRemove(img.id)}>
+          <Icon name="x" size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  /* ---------- THE VIEW (lifted into SPA) ---------- */
+  function CaptureView({ nav, params, ctx }) {
+    ctx = ctx || {};
+    nav = nav || { go: () => {}, back: () => {} };
+    params = params || {};
+
+    const exam = ctx.selectedExam || { name: "Mid-term · Physics" };
+    const student = ctx.selectedStudent || { name: "Aarav Sharma", roll: "14" };
+
+    const [mode, setMode] = useState("camera");
+    const [images, setLocalImages] = useState(ctx.images && ctx.images.length ? ctx.images : []);
+    const [lastId, setLastId] = useState(null);
+    const [denied, setDenied] = useState(false);
+
+    const sync = (next) => {
+      setLocalImages(next);
+      if (typeof ctx.setImages === "function") ctx.setImages(() => next);
+    };
+
+    const addImage = (source) => {
+      const id = "img_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      const next = images.concat([{ id, name: "page-" + (images.length + 1) + ".jpg", source }]);
+      setLastId(id);
+      sync(next);
+      if (typeof ctx.toast === "function") ctx.toast({ variant: "success", title: "Page added", body: source === "camera" ? "Captured" : "Imported from file" });
+    };
+    const removeImage = (id) => sync(images.filter((i) => i.id !== id));
+
+    const count = images.length;
+    const reviewRoute = "#/scan/e/" + (params.examId || "EX1") + "/s/" + (params.studentId || "S1") + "/review";
+
+    return (
+      <>
+        <div className="camera-header">
+          <IconButton icon="chevron-left" label="Back to student list" size="sm" onClick={() => nav.back()} />
+          <div className="camera-header__txt">
+            <div className="camera-header__exam">{exam.name}</div>
+            <div className="camera-header__stu">{student.name} · Roll {student.roll}</div>
+          </div>
+          <span className="camera-header__lock" title="The answer key is never shown to scanners">
+            <Icon name="lock" size={12} /> Key hidden
+          </span>
+        </div>
+
+        <SegToggle mode={mode} onChange={setMode} />
+
+        {mode === "camera" ? (
+          <div className="camera-panel" role="tabpanel" aria-label="Camera capture">
+            <div className="camera-frame-wrap">
+              <ScanFrame hint="Align the answer sheet within the frame" />
+            </div>
+
+            <div className="camera-strip-head">
+              <span className="camera-strip-label">Captured pages</span>
+              <Badge variant={count ? "info" : "neutral"} icon="layers">{count} captured</Badge>
+            </div>
+
+            {count ? (
+              <div className="camera-strip">
+                {images.map((img, i) => (
+                  <Thumb key={img.id} img={img} index={i} onRemove={removeImage} justAdded={img.id === lastId} />
+                ))}
+              </div>
+            ) : (
+              <div className="camera-strip-empty">
+                <Icon name="image-off" size={16} />
+                No pages yet — tap the shutter to capture the answer sheet.
+              </div>
+            )}
+
+            <div className="camera-controls">
+              <div className="camera-ctl-side">
+                <IconButton icon="images" label="Open gallery" size="sm" onClick={() => setMode("file")} />
+                Gallery
+              </div>
+              <div className="camera-shutter__ring">
+                <button className="camera-shutter" aria-label="Capture page" onClick={() => addImage("camera")}>
+                  <Icon name="circle" size={30} />
+                </button>
+              </div>
+              <div className="camera-ctl-side">
+                <IconButton icon="rotate-ccw" label="Flip camera" size="sm" />
+                Flip
+              </div>
+            </div>
+
+            <div className="camera-denied-link">
+              <Button variant="ghost" size="sm" leadingIcon="camera-off" onClick={() => setDenied(true)}>
+                Simulate camera denied
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="camera-panel" role="tabpanel" aria-label="File upload">
+            <FileDrop title="Add answer-sheet images" hint="JPEG, PNG or PDF" active={false} />
+            <div className="camera-denied-link">
+              <Button variant="secondary" size="sm" block leadingIcon="plus" onClick={() => addImage("file")}>
+                Add a file
+              </Button>
+            </div>
+
+            <div className="camera-note">
+              <Icon name="info" size={14} />
+              Supported formats: JPEG, PNG or PDF. Multi-page PDFs are split into pages.
+            </div>
+
+            <div className="camera-strip-head">
+              <span className="camera-strip-label">Added images</span>
+              <Badge variant={count ? "info" : "neutral"} icon="layers">{count} images</Badge>
+            </div>
+
+            {count ? (
+              <div className="camera-grid">
+                {images.map((img, i) => (
+                  <Thumb key={img.id} img={img} index={i} onRemove={removeImage} justAdded={img.id === lastId} />
+                ))}
+              </div>
+            ) : (
+              <div className="camera-strip-empty">
+                <Icon name="image-off" size={16} />
+                No images added yet.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* sticky submit bar — part of the view */}
+        <div className="camera-submit">
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            disabled={count === 0}
+            trailingIcon="arrow-right"
+            onClick={() => count && nav.go(reviewRoute)}
+          >
+            {count ? "Review " + count + (count === 1 ? " image" : " images") : "Capture at least 1 page"}
+          </Button>
+          <span className="camera-submit__cap">
+            <Icon name="shield-check" size={12} />
+            Compressed to max 1920px at 85% JPEG before upload
+          </span>
+        </div>
+
+        {/* permission-denied modal */}
+        <Modal
+          open={denied}
+          onClose={() => setDenied(false)}
+          title="Camera permission"
+          footer={
+            <div className="camera-modal-foot">
+              <Button variant="primary" block leadingIcon="refresh-cw" onClick={() => setDenied(false)}>
+                Try again
+              </Button>
+              <Button variant="secondary" block leadingIcon="upload-cloud" onClick={() => { setDenied(false); setMode("file"); }}>
+                Use file upload instead
+              </Button>
+            </div>
+          }
+        >
+          <Alert variant="error" title="Camera access denied">
+            AutoGrade can't reach the camera. Enable camera access in your browser settings, or add pages from your gallery instead.
+          </Alert>
+        </Modal>
+      </>
+    );
+  }
+
+  /* ============ STANDALONE DEMO (not lifted into SPA) ============ */
+  const MOCK_CTX = {
+    scanner: { name: "Priya Nair", initials: "PN", school: "Crestwood Academy", code: "SUB001" },
+    selectedExam: { id: "EX1", name: "Mid-term · Physics" },
+    selectedStudent: { id: "S1", name: "Aarav Sharma", roll: "14" },
+    images: [],
+    setImages: () => {},
+    online: true,
+    toast: () => {},
+  };
+
+  const TABBAR_ITEMS = [
+    { icon: "camera", label: "Scan", active: true, href: "#/scan" },
+    { icon: "upload-cloud", label: "Queue", href: "#/queue" },
+    { icon: "history", label: "History", href: "#/history" },
+  ];
+
+  function Demo() {
+    const mockNav = { go: () => {}, back: () => {} };
+    return (
+      <>
+        <div className="ph">
+          <div className="ph__top">
+            <div className="ph__brand">
+              <span className="ph__mark"><Icon name="scan-line" size={16} /></span>
+              <span className="ph__brandtxt">AutoGrade Scan</span>
+            </div>
+            <span className="ph__title">Capture</span>
+            <IconButton icon="settings" label="Settings" size="sm" />
+          </div>
+          <div className="ph__body">
+            <CaptureView nav={mockNav} params={{ examId: "EX1", studentId: "S1" }} ctx={MOCK_CTX} />
+          </div>
+          <div className="ph__tabs"><Tabbar items={TABBAR_ITEMS} /></div>
+        </div>
+
+        <div className="camera-tiles">
+          <div className="camera-tile">
+            <div className="camera-tile__cap">State · camera permission denied</div>
+            <Alert variant="error" title="Camera access denied">
+              AutoGrade can't reach the camera. Enable camera access in your browser settings, or add pages from your gallery instead.
+            </Alert>
+          </div>
+          <div className="camera-tile">
+            <div className="camera-tile__cap">State · empty (0 pages)</div>
+            <div className="camera-strip-empty">
+              <Icon name="image-off" size={16} />
+              No pages yet — tap the shutter to capture the answer sheet.
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+  if (window.lucide && window.lucide.createIcons) { setTimeout(() => window.lucide.createIcons(), 0); }
+</script>
+</body>
+</html>

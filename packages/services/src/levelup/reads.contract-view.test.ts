@@ -291,7 +291,7 @@ describe("LVL-1 — levelup reads emit contract-canonical views (legacy + canoni
         storyPointId: "sp_1",
       });
       const res = (await getItemForEditService(
-        { spaceId: "space_1", itemId: "item_canonical" } as never,
+        { spaceId: "space_1", storyPointId: "sp_1", itemId: "item_canonical" } as never,
         teacher
       )) as unknown as Doc;
       expect(parseAs("v1.levelup.getItemForEdit", res).success).toBe(true);

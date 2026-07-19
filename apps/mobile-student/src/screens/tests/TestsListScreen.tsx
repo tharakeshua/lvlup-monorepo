@@ -145,6 +145,27 @@ export default function TestsListScreen() {
           <Text className="text-text-muted text-sm">Your scheduled tests across every space.</Text>
         </View>
 
+        {/* Written / physical exams entry (AutoGrade — separate surface) */}
+        <Pressable
+          onPress={nav.toExams}
+          accessibilityRole="button"
+          accessibilityLabel="Open written exams and their grading status"
+          className="border-border-subtle bg-surface flex-row items-center gap-3 rounded-lg border p-4 active:opacity-80"
+        >
+          <View className="bg-brand-subtle h-10 w-10 items-center justify-center rounded-full">
+            <Icon name="graduation-cap" size={20} color="#423A82" />
+          </View>
+          <View className="flex-1">
+            <Text className="font-display text-text-primary text-base font-semibold">
+              Written exams
+            </Text>
+            <Text className="text-text-muted text-xs">
+              Your class exams and results, once released by your teacher.
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={18} color="#756E61" />
+        </Pressable>
+
         {/* Filter chips */}
         <View className="flex-row flex-wrap gap-2">
           {LIST_FILTERS.map((f) => (

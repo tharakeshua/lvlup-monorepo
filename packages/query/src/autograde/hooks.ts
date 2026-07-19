@@ -37,6 +37,17 @@ interface CursorPage<T> {
   total?: number;
 }
 
+function withPageCursor<T extends object | undefined>(
+  filter: T,
+  pageParam: unknown
+): (T extends undefined ? Record<string, never> : NonNullable<T>) & { cursor?: string } {
+  const req = { ...((filter ?? {}) as object) } as (T extends undefined
+    ? Record<string, never>
+    : NonNullable<T>) & { cursor?: string };
+  if (typeof pageParam === "string") req.cursor = pageParam;
+  return req;
+}
+
 // ===========================================================================
 // Exams
 // ===========================================================================
@@ -49,11 +60,11 @@ export function useExams(
   const examRepo = autogradeRepos(repos).examRepo;
   return useInfiniteQuery({
     queryKey: autogradeKeys.examList(filter as object),
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      examRepo.list({ ...(filter as object), cursor: pageParam } as Arg0<
-        R["examRepo"]["list"]
-      >) as Promise<CursorPage<unknown>>,
+      examRepo.list(withPageCursor(filter, pageParam) as Arg0<R["examRepo"]["list"]>) as Promise<
+        CursorPage<unknown>
+      >,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 }
@@ -141,12 +152,11 @@ export function useSubmissions(
   const submissionRepo = autogradeRepos(repos).submissionRepo;
   return useInfiniteQuery({
     queryKey: autogradeKeys.submissionList(filter as object),
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      submissionRepo.list({
-        ...(filter as object),
-        cursor: pageParam,
-      } as unknown as Arg0<R["submissionRepo"]["list"]>) as Promise<CursorPage<unknown>>,
+      submissionRepo.list(
+        withPageCursor(filter as object, pageParam) as unknown as Arg0<R["submissionRepo"]["list"]>
+      ) as Promise<CursorPage<unknown>>,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 }

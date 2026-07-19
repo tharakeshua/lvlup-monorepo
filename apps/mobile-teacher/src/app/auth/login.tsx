@@ -11,14 +11,16 @@
  */
 import { Redirect, Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button, Icon, TextField } from "../../components";
+import { colors } from "../../theme";
 import { routes } from "../../lib/routes";
 import { useSession } from "../../sdk/session";
 
-const SEED_EMAIL = "nandini@learner.dev";
-const SEED_PASSWORD = "Student@123";
+const SEED_EMAIL = "latha.krishnan@demo.levelup.academy";
+const SEED_PASSWORD = "Demo@12345";
 
 const AUTO_LOGIN = (process.env.EXPO_PUBLIC_SMOKE_AUTOLOGIN ?? "").toLowerCase() === "true";
 
@@ -57,58 +59,70 @@ export default function LoginScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#423A82" />
+          <ActivityIndicator color={colors.brand} />
         </View>
       ) : (
-        <View className="flex-1 justify-center gap-6 px-8">
-          <View className="gap-2">
-            <Text className="font-display text-text-primary text-3xl font-bold">LevelUp</Text>
-            <Text className="text-text-muted text-base">Sign in to continue learning.</Text>
-          </View>
+        <View className="relative flex-1 justify-center overflow-hidden px-6">
+          <View className="border-brand-muted absolute -right-24 -top-20 h-72 w-72 rounded-full border" />
+          <View className="border-marigold-200 absolute -bottom-32 -left-24 h-72 w-72 rounded-full border" />
 
-          <View className="gap-3">
-            <View className="gap-1.5">
-              <Text className="text-text-muted text-xs font-semibold uppercase tracking-wide">
-                Email
-              </Text>
-              <TextInput
-                className="border-border-strong bg-surface text-text-primary rounded-md border px-4 py-3 text-base"
+          <View className="gap-7">
+            <View className="gap-5">
+              <View className="bg-brand h-12 w-12 items-center justify-center rounded-xl shadow-sm">
+                <Text className="font-display text-text-on-accent text-2xl">L</Text>
+              </View>
+              <View className="gap-2">
+                <Text className="font-ui text-brand tracking-caps text-2xs font-semibold uppercase">
+                  Lyceum for teachers
+                </Text>
+                <Text className="font-display text-text-primary text-3xl leading-[42px]">
+                  Your teaching studio, wherever you are.
+                </Text>
+                <Text className="font-ui text-text-secondary text-base leading-6">
+                  Plan, teach, review, and understand every class from one calm workspace.
+                </Text>
+              </View>
+            </View>
+
+            <View className="border-border-subtle bg-surface gap-4 rounded-xl border p-5 shadow-sm">
+              <TextField
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor="#9A9486"
-                value={email}
-                onChangeText={setEmail}
+                placeholder="teacher@school.com"
+                leadingIcon="mail"
               />
-            </View>
-            <View className="gap-1.5">
-              <Text className="text-text-muted text-xs font-semibold uppercase tracking-wide">
-                Password
-              </Text>
-              <TextInput
-                className="border-border-strong bg-surface text-text-primary rounded-md border px-4 py-3 text-base"
-                secureTextEntry
-                placeholder="••••••••"
-                placeholderTextColor="#9A9486"
+              <TextField
+                label="Password"
                 value={password}
                 onChangeText={setPassword}
+                secureTextEntry
+                placeholder="••••••••"
+                leadingIcon="lock"
               />
+
+              {error ? (
+                <View className="flex-row items-center gap-2 rounded-lg border border-red-200 bg-red-200/40 p-3">
+                  <Icon name="alert-circle" size={16} color={colors.error} />
+                  <Text className="font-ui text-error flex-1 text-sm">{error}</Text>
+                </View>
+              ) : null}
+
+              <Button block loading={busy} onPress={doLogin} trailingIcon="arrow-right">
+                {busy ? "Opening your workspace…" : "Sign in"}
+              </Button>
+            </View>
+
+            <View className="flex-row items-center justify-center gap-1.5">
+              <Icon name="shield-check" size={13} color={colors.textMuted} />
+              <Text className="font-ui text-text-muted text-xs">
+                Secure access to your school workspace
+              </Text>
             </View>
           </View>
-
-          {error ? <Text className="text-error text-sm">{error}</Text> : null}
-
-          <Pressable
-            accessibilityRole="button"
-            className="bg-brand items-center rounded-md px-6 py-3.5 active:opacity-90"
-            disabled={busy}
-            onPress={doLogin}
-          >
-            <Text className="text-text-on-accent text-base font-semibold">
-              {busy ? "Signing in…" : "Sign in"}
-            </Text>
-          </Pressable>
         </View>
       )}
     </SafeAreaView>

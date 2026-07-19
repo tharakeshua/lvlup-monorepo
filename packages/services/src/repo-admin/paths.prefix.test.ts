@@ -19,6 +19,15 @@ import {
   itemsPath,
   itemDoc,
   spaceProgressDoc,
+  conversationSessionDoc,
+  conversationSessionKeyDoc,
+  conversationSessionKeyId,
+  conversationMessageDoc,
+  conversationTurnDoc,
+  conversationEvidenceDoc,
+  itemSubmissionDoc,
+  itemSubmissionAttemptDoc,
+  progressApplicationDoc,
   usersCollection,
   usersDoc,
   userMembershipsCollection,
@@ -71,7 +80,34 @@ describe("repo-admin paths — default empty prefix (byte-identical baseline)", 
     expect(itemsPath("t1", "s1", "sp1")).toBe("tenants/t1/spaces/s1/storyPoints/sp1/items");
     expect(itemDoc("t1", "s1", "sp1", "i1")).toBe("tenants/t1/spaces/s1/storyPoints/sp1/items/i1");
     expect(spaceProgressDoc("t1", "u1", "s1")).toBe("tenants/t1/spaceProgress/u1_s1");
+    expect(conversationSessionDoc("t1", "c1")).toBe("tenants/t1/conversationSessions/c1");
+    expect(conversationMessageDoc("t1", "c1", "m1")).toBe(
+      "tenants/t1/conversationSessions/c1/messages/m1"
+    );
+    expect(conversationTurnDoc("t1", "c1", "turn1")).toBe(
+      "tenants/t1/conversationSessions/c1/turns/turn1"
+    );
+    expect(conversationEvidenceDoc("t1", "c1", "e1")).toBe(
+      "tenants/t1/conversationSessions/c1/privateEvidence/e1"
+    );
+    expect(itemSubmissionDoc("t1", "cis_1")).toBe("tenants/t1/itemSubmissions/cis_1");
+    expect(itemSubmissionAttemptDoc("t1", "cis_1", "attempt_1")).toBe(
+      "tenants/t1/itemSubmissions/cis_1/evaluationAttempts/attempt_1"
+    );
+    expect(progressApplicationDoc("t1", "u1", "s1", "cis_1")).toBe(
+      "tenants/t1/spaceProgress/u1_s1/applications/cis_1"
+    );
     expect(auditPath("t1")).toBe("tenants/t1/audit");
+  });
+
+  it("derives one opaque, stable session-key id per owner/mode/context tuple", () => {
+    const key = conversationSessionKeyId("u1", "tutor", "tutor:space:s1");
+    expect(key).toMatch(/^csk_[A-Za-z0-9_-]{26}$/);
+    expect(conversationSessionKeyId("u1", "tutor", "tutor:space:s1")).toBe(key);
+    expect(conversationSessionKeyId("u1", "question_help", "tutor:space:s1")).not.toBe(key);
+    expect(conversationSessionKeyDoc("t1", "u1", "tutor", "tutor:space:s1")).toBe(
+      `tenants/t1/conversationSessionKeys/${key}`
+    );
   });
 });
 
@@ -100,6 +136,17 @@ describe("repo-admin paths — LVLUP_COLLECTION_PREFIX=v2_", () => {
     expect(deep).toBe("v2_tenants/t1/spaces/s1/storyPoints/sp1/items/i1");
     expect(deep.match(/v2_/g)?.length).toBe(1);
     expect(spaceProgressDoc("t1", "u1", "s1")).toBe("v2_tenants/t1/spaceProgress/u1_s1");
+    expect(conversationSessionDoc("t1", "c1")).toBe("v2_tenants/t1/conversationSessions/c1");
+    expect(conversationSessionKeyDoc("t1", "u1", "tutor", "tutor:space:s1")).toMatch(
+      /^v2_tenants\/t1\/conversationSessionKeys\/csk_[A-Za-z0-9_-]{26}$/
+    );
+    expect(conversationMessageDoc("t1", "c1", "m1")).toBe(
+      "v2_tenants/t1/conversationSessions/c1/messages/m1"
+    );
+    expect(itemSubmissionDoc("t1", "cis_1")).toBe("v2_tenants/t1/itemSubmissions/cis_1");
+    expect(progressApplicationDoc("t1", "u1", "s1", "cis_1")).toBe(
+      "v2_tenants/t1/spaceProgress/u1_s1/applications/cis_1"
+    );
     expect(auditPath("t1")).toBe("v2_tenants/t1/audit");
   });
 });

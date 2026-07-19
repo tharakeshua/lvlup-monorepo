@@ -1,0 +1,797 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Story Point Editor" subtitle="Drawer · difficulty scale · item sections" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+#root{min-height:100vh;}
+*{box-sizing:border-box;}
+/* ---- app shell ---- */
+.sx{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+.sx-side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-5);background:var(--bg-surface);border-right:1px solid var(--border-subtle);padding:var(--space-5) var(--space-4);}
+.sx-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-1) var(--space-2);}
+.sx-brand .mk{width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+.sx-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);line-height:1.1;}
+.sx-brand .sc{font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;}
+.sx-navgrp{display:flex;flex-direction:column;gap:2px;}
+.sx-navlbl{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.11em;text-transform:uppercase;color:var(--text-muted);padding:var(--space-2) var(--space-2) var(--space-1);}
+.sx-nav{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;position:relative;text-decoration:none;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+.sx-nav i{width:18px;height:18px;}
+.sx-nav .ct{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-nav:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-nav.on{background:var(--brand-subtle);color:var(--brand-primary);font-weight:var(--weight-semibold);}
+.sx-nav.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;border-radius:var(--radius-pill);background:var(--brand-primary);}
+.sx-side .foot{margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);}
+.sx-uc{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;}
+.sx-uc:hover{background:var(--bg-surface-sunken);}
+.sx-uc .av{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;font-size:var(--text-xs);font-weight:var(--weight-semibold);}
+.sx-uc .nm{font-size:var(--text-sm);font-weight:var(--weight-medium);line-height:1.1;}
+.sx-uc .rl{font-size:var(--text-2xs);color:var(--text-muted);}
+.sx-main{display:flex;flex-direction:column;min-width:0;height:100vh;}
+.sx-top{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface);position:sticky;top:0;z-index:20;}
+.sx-bc{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-muted);}
+.sx-bc i{width:14px;height:14px;}
+.sx-bc b{color:var(--text-primary);font-weight:var(--weight-medium);}
+.sx-top .sp{flex:1;}
+.sx-search{display:flex;align-items:center;gap:var(--space-2);width:240px;max-width:28vw;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);color:var(--text-muted);font-size:var(--text-sm);}
+.sx-search i{width:15px;height:15px;}
+.sx-search kbd{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0 var(--space-1);}
+.sx-icbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;}
+.sx-icbtn:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-icbtn i{width:18px;height:18px;}
+/* editor sub-header (sticky) */
+.sx-sub{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:var(--space-4) var(--space-6) 0;}
+.sx-subrow{display:flex;align-items:center;gap:var(--space-3);}
+.sx-back{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;flex:none;}
+.sx-back:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.sx-back i{width:16px;height:16px;}
+.sx-titlewrap{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.sx-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);line-height:1.1;}
+.sx-titlemeta{display:flex;align-items:center;gap:var(--space-2);}
+.sx-stat{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.sx-stat i{width:12px;height:12px;}
+.sx-typelabel{font-size:var(--text-xs);color:var(--text-muted);}
+.sx-headact{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);}
+.sx-tabs{display:flex;gap:var(--space-1);margin-top:var(--space-4);}
+.sx-tab{padding:var(--space-2) var(--space-3);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;background:none;border-top:none;border-left:none;border-right:none;}
+.sx-tab i{width:15px;height:15px;}
+.sx-tab:hover{color:var(--text-primary);}
+.sx-tab.on{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold);}
+/* scroll body + reading column */
+.sx-scroll{flex:1;overflow-y:auto;}
+.sx-col{max-width:1100px;margin:0 auto;padding:var(--space-6) var(--space-6) calc(var(--space-24) + var(--space-8));display:flex;flex-direction:column;gap:var(--space-5);}
+/* content section head */
+.csh{display:flex;align-items:center;gap:var(--space-3);}
+.csh h2{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.csh .cnt{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);}
+.csh .act{margin-left:auto;display:flex;align-items:center;gap:var(--space-2);}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-semibold);border-radius:var(--radius-md);border:1px solid transparent;cursor:pointer;padding:var(--space-2) var(--space-3);transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);white-space:nowrap;}
+.btn i{width:15px;height:15px;}
+.btn--primary{background:var(--brand-primary);color:var(--text-on-accent);}
+.btn--primary:hover{background:var(--brand-primary-hover);}
+.btn--primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn--secondary{background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-subtle);}
+.btn--secondary:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--ghost{background:none;color:var(--text-secondary);}
+.btn--ghost:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.btn--danger{background:var(--status-error);color:var(--text-on-accent);}
+.btn--danger:hover{filter:brightness(.94);}
+.btn--outline{background:var(--bg-surface);color:var(--brand-primary);border-color:var(--brand-primary);}
+.btn--outline:hover{background:var(--brand-subtle);}
+.btn--sm{padding:5px var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);}
+/* parent content-tab story point list (dimmed behind scrim) */
+.track{display:flex;flex-direction:column;gap:var(--space-3);}
+.node{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);}
+.node.active{border-color:var(--brand-primary);box-shadow:var(--shadow-e2);}
+.noderow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);}
+.grip{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--radius-md);color:var(--text-muted);cursor:grab;background:none;border:none;flex:none;}
+.grip i{width:16px;height:16px;}
+.node-idx{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted);font-variant-numeric:tabular-nums;flex:none;}
+.node-title{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.node-type{display:inline-flex;align-items:center;gap:5px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);background:var(--bg-surface-sunken);color:var(--text-secondary);flex:none;}
+.node-type i{width:11px;height:11px;}
+.node-type.assess{background:var(--brand-subtle);color:var(--brand-primary);border-color:transparent;}
+.statbadges{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-left:var(--space-1);}
+.sb{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);font-variant-numeric:tabular-nums;}
+.sb i{width:11px;height:11px;color:var(--text-muted);}
+.sb.diff{font-family:var(--font-ui);text-transform:capitalize;color:var(--text-muted);}
+.node-spacer{flex:1;}
+.iact{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--radius-md);color:var(--text-muted);cursor:pointer;background:none;border:none;}
+.iact:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.iact i{width:16px;height:16px;}
+/* ---- overlay scrim ---- */
+.scrim{position:fixed;inset:0;background:rgba(20,18,16,.42);z-index:60;animation:fade var(--dur-fast) var(--ease-standard);}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+/* ---- drawer (lg right sheet) ---- */
+.sheet{position:fixed;top:0;right:0;height:100vh;width:600px;max-width:94vw;background:var(--bg-surface);border-left:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);z-index:70;display:flex;flex-direction:column;animation:slidein var(--dur-base) var(--ease-entrance);}
+@keyframes slidein{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.sheet-head{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--border-subtle);}
+.sheet-head .row{display:flex;align-items:center;gap:var(--space-3);}
+.sheet-head h3{margin:0;font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+.sheet-head .dbc{display:flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted);}
+.sheet-head .dbc i{width:12px;height:12px;}
+.sheet-head .dbc b{color:var(--text-secondary);font-weight:var(--weight-medium);}
+.sheet-head .sp{flex:1;}
+.dback{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);cursor:pointer;flex:none;}
+.dback:hover{background:var(--bg-surface-sunken);color:var(--text-primary);}
+.dback i{width:16px;height:16px;}
+.ddel{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-muted);cursor:pointer;flex:none;}
+.ddel:hover{background:var(--status-error-subtle);color:var(--status-error);border-color:var(--status-error-subtle);}
+.ddel i{width:16px;height:16px;}
+.sheet-body{flex:1;overflow-y:auto;padding:var(--space-5);}
+.formcol{max-width:520px;display:flex;flex-direction:column;gap:var(--space-6);}
+.sheet-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface);position:relative;}
+.sheet-foot .saved{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted);}
+.sheet-foot .saved i{width:13px;height:13px;}
+.sheet-foot .saved.dirty{color:var(--spark);}
+.sheet-foot .sp{flex:1;}
+/* fields */
+.fld{display:flex;flex-direction:column;gap:var(--space-1);}
+.fld>label{font-size:var(--text-sm);font-weight:var(--weight-medium);display:flex;align-items:center;gap:6px;}
+.fld>label .req{color:var(--status-error);}
+.fld .hint{font-size:var(--text-xs);color:var(--text-muted);}
+.fld .err{font-size:var(--text-xs);color:var(--status-error);display:flex;align-items:center;gap:5px;}
+.fld .err i{width:13px;height:13px;}
+.inp{width:100%;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);}
+.inp:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.inp.bad{border-color:var(--status-error);}
+.inp.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+textarea.inp{resize:vertical;min-height:84px;line-height:var(--leading-sm);}
+/* the 3-up row */
+.threeup{display:grid;grid-template-columns:1.1fr 1.4fr .8fr;gap:var(--space-4);align-items:start;}
+.selwrap{position:relative;}
+.sel{appearance:none;width:100%;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-2) var(--space-6) var(--space-2) var(--space-3);cursor:pointer;}
+.sel:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.selwrap>span{position:absolute;right:var(--space-2);top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+/* difficulty scale (4-detent slider) */
+.diffscale{display:flex;flex-direction:column;gap:var(--space-2);}
+.difftrack{display:flex;gap:4px;}
+.diffdot{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:0;}
+.diffdot .bar{width:100%;height:7px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);transition:background var(--dur-fast) var(--ease-standard);}
+.diffdot .lb{font-size:var(--text-2xs);color:var(--text-muted);font-weight:var(--weight-medium);}
+.diffdot.fill-success .bar{background:var(--status-success);border-color:transparent;}
+.diffdot.fill-spark .bar{background:var(--spark);border-color:transparent;}
+.diffdot.fill-warning .bar{background:var(--status-warning);border-color:transparent;}
+.diffdot.fill-error .bar{background:var(--status-error);border-color:transparent;}
+.diffdot.on .lb{color:var(--text-primary);font-weight:var(--weight-semibold);}
+.diffactive{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-secondary);}
+.diffactive i{width:13px;height:13px;}
+.diffactive .dot{width:9px;height:9px;border-radius:var(--radius-pill);flex:none;}
+.diffactive .dot.success{background:var(--status-success);}
+.diffactive .dot.spark{background:var(--spark);}
+.diffactive .dot.warning{background:var(--status-warning);}
+.diffactive .dot.error{background:var(--status-error);}
+/* panel (assessment / rubric) */
+.panel{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);overflow:hidden;}
+.panel-head{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border-bottom:1px solid var(--border-subtle);}
+.panel-head .ph-ic{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);flex:none;}
+.panel-head .ph-ic i{width:15px;height:15px;}
+.panel-head h4{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.panel-head .ph-sub{font-size:var(--text-2xs);color:var(--text-muted);}
+.panel-body{padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+/* assessment policy preview */
+.prevgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);}
+.prevcell{display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.prevcell .k{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+.prevcell .v{font-family:var(--font-mono);font-size:var(--text-base);font-weight:var(--weight-semibold);color:var(--text-primary);font-variant-numeric:tabular-nums;}
+/* inline alerts / banners */
+.banner{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-info);background:var(--status-info-subtle);font-size:var(--text-sm);}
+.banner .lead{color:var(--status-info);flex:none;margin-top:1px;display:inline-flex;}
+.banner.soft{border-color:var(--border-subtle);background:var(--bg-surface-sunken);}
+.banner.soft .lead{color:var(--text-muted);}
+.banner .sp{flex:1;}
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--status-error);background:var(--status-error-subtle);font-size:var(--text-sm);}
+.alert .lead{color:var(--status-error);flex:none;margin-top:1px;display:inline-flex;}
+.alert .at{font-weight:var(--weight-semibold);}
+.alert .sp{flex:1;}
+/* answer-key lock */
+.keylock{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);border:1px dashed var(--border-strong);background:var(--bg-surface);font-size:var(--text-xs);color:var(--text-secondary);}
+.keylock>span:first-child{color:var(--text-muted);flex:none;display:inline-flex;margin-top:1px;}
+.keylock b{color:var(--text-primary);font-weight:var(--weight-semibold);}
+/* section head + accordion */
+.sechd{display:flex;align-items:baseline;gap:var(--space-2);}
+.sechd h4{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);}
+.sechd .ct{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);}
+.secrow{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);overflow:hidden;}
+.secrow+.secrow{margin-top:var(--space-2);}
+.secrow.lifted{border-color:var(--border-focus);box-shadow:var(--shadow-e1);}
+.secrow-head{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-1);}
+.sgrip{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);color:var(--text-muted);cursor:grab;background:none;border:none;flex:none;}
+.sgrip:hover{background:var(--bg-surface-sunken);color:var(--text-secondary);}
+.sgrip i{width:15px;height:15px;}
+.schev{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;background:none;border:none;flex:none;transition:transform var(--dur-fast) var(--ease-standard);}
+.schev.open{transform:rotate(90deg);}
+.schev i{width:16px;height:16px;}
+.sectitle-inp{flex:1;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:none;border:1px solid transparent;border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);min-width:0;}
+.sectitle-inp:hover{background:var(--bg-surface-sunken);}
+.sectitle-inp:focus{outline:none;background:var(--bg-surface);border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.cntbadge{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border-radius:var(--radius-pill);font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);flex:none;font-variant-numeric:tabular-nums;}
+.cntbadge .sk-chip{width:34px;height:11px;border-radius:var(--radius-sm);background:var(--bg-inset);display:inline-block;}
+.sdel{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);color:var(--text-muted);cursor:pointer;background:none;border:none;flex:none;}
+.sdel:hover{background:var(--status-error-subtle);color:var(--status-error);}
+.sdel i{width:15px;height:15px;}
+.secrow-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur-base) var(--ease-standard);}
+.secrow-body.open{grid-template-rows:1fr;}
+.secrow-body>.in{overflow:hidden;}
+.secrow-body .pad{padding:0 var(--space-3) var(--space-3) calc(var(--space-6) + var(--space-2));display:flex;flex-direction:column;gap:var(--space-2);}
+.secdesc-inp{width:100%;font-family:var(--font-ui);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);}
+.secdesc-inp:focus{outline:none;border-color:var(--border-focus);box-shadow:var(--ring-focus);}
+.itemline{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);padding:var(--space-1) 0;}
+.itemline i{width:13px;height:13px;color:var(--text-muted);flex:none;}
+.itemline .pts{margin-left:auto;font-family:var(--font-mono);color:var(--text-muted);}
+/* empty state (sections) */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);padding:var(--space-8) var(--space-4);border:1.5px dashed var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface);}
+.empty .ec{width:44px;height:44px;border-radius:var(--radius-pill);background:var(--brand-subtle);color:var(--brand-primary);display:grid;place-items:center;}
+.empty .ec i{width:20px;height:20px;}
+.empty .et{font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.empty .eb{font-size:var(--text-sm);color:var(--text-muted);max-width:320px;}
+/* rubric inheritance */
+.deflist{display:flex;flex-direction:column;gap:var(--space-2);}
+.defrow{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);}
+.defrow .dt{color:var(--text-muted);}
+.defrow .dd{color:var(--text-primary);font-weight:var(--weight-medium);display:inline-flex;align-items:center;gap:6px;}
+.scopechip{display:inline-flex;align-items:center;gap:4px;padding:1px var(--space-2);border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);background:var(--brand-subtle);color:var(--brand-primary);}
+.scopechip i{width:11px;height:11px;}
+/* rubric popover */
+.pop{position:absolute;bottom:calc(100% + 8px);left:0;z-index:80;width:340px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);}
+.pop h5{margin:0;font-size:var(--text-sm);font-weight:var(--weight-semibold);display:flex;align-items:center;gap:6px;}
+.pop .lockline{font-size:var(--text-2xs);color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.pop .lockline i{width:12px;height:12px;}
+.rubric{display:flex;flex-direction:column;gap:var(--space-2);}
+.rcrit{display:flex;flex-direction:column;gap:2px;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+.rcrit .rt{font-size:var(--text-xs);font-weight:var(--weight-semibold);display:flex;justify-content:space-between;}
+.rcrit .rt .sc{font-family:var(--font-mono);color:var(--text-secondary);}
+.rcrit .rd{font-size:var(--text-2xs);color:var(--text-muted);}
+.relwrap{position:relative;}
+/* skeleton */
+.sk{background:var(--bg-surface-sunken);border-radius:var(--radius-sm);}
+.sk.line{height:12px;}
+.sk.block{height:38px;border-radius:var(--radius-md);}
+/* loading overlay on footer button */
+.savewrap{position:relative;}
+.savewrap .ovl{position:absolute;inset:0;display:grid;place-items:center;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);}
+.savewrap .ovl i{width:16px;height:16px;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* confirm modal */
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:92vw;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);z-index:90;display:flex;flex-direction:column;overflow:hidden;animation:pop var(--dur-base) var(--ease-entrance);}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-46%)}to{opacity:1;transform:translate(-50%,-50%)}}
+.modal-head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3);}
+.modal-head .wic{width:38px;height:38px;border-radius:var(--radius-md);display:grid;place-items:center;flex:none;background:var(--status-error-subtle);color:var(--status-error);}
+.modal-head .wic i{width:19px;height:19px;}
+.modal-head h3{margin:0;font-family:var(--font-display);font-size:var(--text-base);font-weight:var(--weight-semibold);}
+.modal-head p{margin:4px 0 0;font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm);}
+.modal-head p b{font-family:var(--font-mono);color:var(--text-primary);}
+.modal-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);}
+.modal-foot .sp{flex:1;}
+/* toast */
+.toast{position:fixed;bottom:var(--space-6);left:50%;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);font-size:var(--text-sm);animation:toastup var(--dur-base) var(--ease-entrance);}
+.toast>span:first-child{flex:none;}
+.toast.success>span:first-child{color:var(--status-success);}
+.toast.error>span:first-child{color:var(--status-error);}
+.toast .undo{margin-left:var(--space-2);background:none;border:none;color:var(--brand-primary);font-family:var(--font-ui);font-weight:var(--weight-semibold);font-size:var(--text-sm);cursor:pointer;}
+@keyframes toastup{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.srlive{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+/* variant captions for adjacent states */
+.vcap{font-family:var(--font-mono);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+.vgroup{display:flex;flex-direction:column;gap:var(--space-2);padding-top:var(--space-4);border-top:1px dashed var(--border-subtle);}
+@media (prefers-reduced-motion: reduce){
+  .sheet,.modal,.toast,.scrim{animation:none;}
+  .schev,.secrow-body,.savewrap .ovl i{transition:none;animation:none;}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { Icon } = window.LvlupV0DesignSystem_5d0725;
+const I = (name, size) => <Icon name={name} size={size || 16} />;
+
+/* ===== data ===== */
+const SP_TYPES = [
+  {value:"standard",   label:"Standard",   icon:"book-open"},
+  {value:"practice",   label:"Practice",   icon:"dumbbell"},
+  {value:"quiz",       label:"Quiz",       icon:"list-checks"},
+  {value:"timed_test", label:"Timed test", icon:"timer"},
+];
+const ASSESS = new Set(["quiz","timed_test"]);
+const DIFF = [
+  {value:"easy",   label:"Easy",   fill:"success"},
+  {value:"medium", label:"Medium", fill:"spark"},
+  {value:"hard",   label:"Hard",   fill:"warning"},
+  {value:"expert", label:"Expert", fill:"error"},
+];
+const diffMeta = v => DIFF.find(d=>d.value===v) || DIFF[1];
+
+const PARENT_SP = [
+  {id:"sp_01",title:"Linear Equations",type:"standard",diff:"easy",items:12,q:8,m:4,pts:40},
+  {id:"sp_02",title:"Quadratics",type:"timed_test",diff:"hard",items:14,q:13,m:1,pts:70},
+  {id:"sp_03",title:"Systems of Equations",type:"practice",diff:"medium",items:7,q:5,m:2,pts:25},
+  {id:"sp_04",title:"Inequalities",type:"standard",diff:"medium",items:9,q:6,m:3,pts:30},
+];
+/* the StoryPoint being edited (sp_02) */
+const SECTIONS_INIT = [
+  {id:"sec_warm",title:"Warm-up",desc:"Quick recall before the timed core.",count:4,
+   sample:[{t:"Factor x² − 9",pts:5},{t:"Identify the vertex",pts:5}]},
+  {id:"sec_core",title:"Core",desc:"",count:6,
+   sample:[{t:"Quadratic formula derivation",pts:10},{t:"Discriminant cases",pts:8}]},
+  {id:"sec_stretch",title:"Stretch",desc:"Optional challenge items.",count:4,
+   sample:[{t:"Word problem: projectile height",pts:12}]},
+];
+
+/* ===== difficulty scale (4-detent slider wrapper) ===== */
+function DifficultyScale({value,onChange}){
+  const idx = DIFF.findIndex(d=>d.value===value);
+  const m = diffMeta(value);
+  const onKey = e=>{
+    if(e.key==="ArrowRight"||e.key==="ArrowUp"){e.preventDefault();onChange(DIFF[Math.min(idx+1,3)].value);}
+    if(e.key==="ArrowLeft"||e.key==="ArrowDown"){e.preventDefault();onChange(DIFF[Math.max(idx-1,0)].value);}
+    if(e.key==="Home"){e.preventDefault();onChange(DIFF[0].value);}
+    if(e.key==="End"){e.preventDefault();onChange(DIFF[3].value);}
+  };
+  return <div className="diffscale">
+    <div className="difftrack" role="slider" tabIndex={0}
+      aria-label="Difficulty" aria-valuemin={1} aria-valuemax={4} aria-valuenow={idx+1}
+      aria-valuetext={m.label} onKeyDown={onKey}>
+      {DIFF.map((d,i)=>
+        <button key={d.value} className={"diffdot"+(i<=idx?" fill-"+d.fill:"")+(i===idx?" on":"")}
+          tabIndex={-1} aria-pressed={i===idx} onClick={()=>onChange(d.value)}>
+          <span className="bar"></span><span className="lb">{d.label}</span>
+        </button>)}
+    </div>
+    <span className="diffactive"><span className={"dot "+m.fill}></span>{I("activity",13)}Difficulty: {m.label}</span>
+  </div>;
+}
+
+/* ===== section row (drag handle · inline title · count badge · delete) ===== */
+function SectionRow({sec,open,onToggle,onDelete,countLoading}){
+  return <div className="secrow">
+    <div className="secrow-head">
+      <button className="sgrip" aria-label={"Reorder "+sec.title+" (Up/Down arrows)"}>{I("grip-vertical",15)}</button>
+      <button className={"schev"+(open?" open":"")} aria-expanded={open}
+        aria-label="Toggle section" onClick={onToggle}>{I("chevron-right",16)}</button>
+      <input className="sectitle-inp" defaultValue={sec.title} placeholder="Section title"
+        aria-label="Section title"/>
+      {/* item count is trigger-maintained — read only, never recomputed */}
+      <span className="cntbadge" aria-label={sec.count+" items"}>
+        {countLoading ? <span className="sk-chip"></span> : <>{I("layers",11)}{sec.count}</>}
+      </span>
+      <button className="sdel" aria-label={"Remove "+sec.title} onClick={onDelete}>{I("trash-2",15)}</button>
+    </div>
+    <div className={"secrow-body"+(open?" open":"")}>
+      <div className="in"><div className="pad">
+        <input className="secdesc-inp" defaultValue={sec.desc}
+          placeholder="Description (optional)" aria-label="Section description"/>
+        {sec.sample.map((it,i)=>
+          <div className="itemline" key={i}>{I("circle-dot",13)}{it.t}<span className="pts">{it.pts} pts</span></div>)}
+        {sec.count>sec.sample.length &&
+          <div className="itemline" style={{color:"var(--text-muted)"}}>{I("more-horizontal",13)}+{sec.count-sec.sample.length} more · edit items from the Content tab</div>}
+      </div></div>
+    </div>
+  </div>;
+}
+
+/* ===== rubric override popover ===== */
+function RubricPopover(){
+  return <div className="pop" role="dialog" aria-label="Override default rubric">
+    <h5>{I("clipboard-check",15)}Resolved rubric</h5>
+    <div className="lockline">{I("git-branch",12)}Effective for items without their own rubric.</div>
+    <div className="rubric">
+      <div className="rcrit"><div className="rt">Correctness<span className="sc">0 / 6</span></div>
+        <div className="rd">Final answer matches the expected result.</div></div>
+      <div className="rcrit"><div className="rt">Method<span className="sc">0 / 3</span></div>
+        <div className="rd">Steps are valid and clearly shown.</div></div>
+      <div className="rcrit"><div className="rt">Notation<span className="sc">0 / 1</span></div>
+        <div className="rd">Correct mathematical notation.</div></div>
+    </div>
+    <button className="btn btn--primary btn--sm" style={{alignSelf:"flex-start"}}>{I("pencil",14)}Override for this story point</button>
+  </div>;
+}
+
+/* ===== parent content-tab list (rendered dimmed behind the drawer) ===== */
+function ParentList({activeId}){
+  return <div className="sx-scroll" aria-hidden="true">
+    <div className="sx-col">
+      <div className="csh"><h2>Story Points</h2><span className="cnt">({PARENT_SP.length})</span>
+        <div className="act"><button className="btn btn--primary">{I("plus",15)}Add story point</button></div></div>
+      <div className="track">
+        {PARENT_SP.map((sp,i)=>{
+          const tm = SP_TYPES.find(t=>t.value===sp.type);
+          return <div className={"node"+(sp.id===activeId?" active":"")} key={sp.id}>
+            <div className="noderow">
+              <button className="grip" tabIndex={-1}>{I("grip-vertical",16)}</button>
+              <span className="node-idx">{i+1}.</span>
+              <span className="node-title">{sp.title}</span>
+              <span className={"node-type"+(ASSESS.has(sp.type)?" assess":"")}>{I(tm.icon,11)}{tm.label}</span>
+              <div className="statbadges">
+                <span className="sb">{I("layers",11)}{sp.items} items</span>
+                <span className="sb">{I("award",11)}{sp.pts} pts</span>
+                <span className="sb diff">{diffMeta(sp.diff).label}</span>
+              </div>
+              <span className="node-spacer"></span>
+              <button className="iact" tabIndex={-1} aria-hidden="true">{I("settings-2",16)}</button>
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ===== the editor drawer ===== */
+function EditorDrawer({onClose,onSaved,onDelete}){
+  const [title,setTitle] = useState("Quadratics");
+  const [desc,setDesc] = useState("Solve and analyse quadratic equations: factoring, the quadratic formula, and the discriminant.");
+  const [type,setType] = useState("timed_test");
+  const [diff,setDiff] = useState("hard");
+  const [mins,setMins] = useState("45");
+  const [dirty,setDirty] = useState(false);
+  const [saving,setSaving] = useState(false);
+  const [savedAt,setSavedAt] = useState("2m ago");
+  const [open,setOpen] = useState({sec_warm:true});
+  const [sections,setSections] = useState(SECTIONS_INIT);
+  const [rubricPop,setRubricPop] = useState(false);
+  const [titleErr,setTitleErr] = useState(false);
+  const [countLoading,setCountLoading] = useState(true); /* listItems in-flight (partial state) */
+
+  useEffect(()=>{ const t=setTimeout(()=>setCountLoading(false),1400); return ()=>clearTimeout(t); },[]);
+  const touch = ()=>{ setDirty(true); };
+
+  const assessment = ASSESS.has(type);
+  const isTimed = type==="timed_test";
+
+  const save = ()=>{
+    if(!title.trim()){ setTitleErr(true); onSaved("error","Add a title to save."); return; }
+    setSaving(true);
+    setTimeout(()=>{ setSaving(false); setDirty(false); setSavedAt("just now"); onSaved("success","Story point saved."); },900);
+  };
+
+  const toggleSec = id=>setOpen(o=>({...o,[id]:!o[id]}));
+  const removeSec = sec=>{
+    if(sec.count>0){
+      onDelete({
+        title:'Remove "'+sec.title+'"?',
+        body:"Items in this section will become unsectioned. They are not deleted.",
+        cta:"Remove section", icon:"folder-minus", danger:false,
+        done:()=>{ setSections(s=>s.filter(x=>x.id!==sec.id)); setDirty(true); onSaved("success","Section removed. Items moved to unsectioned.",true,()=>setSections(SECTIONS_INIT)); }
+      });
+    } else {
+      setSections(s=>s.filter(x=>x.id!==sec.id)); setDirty(true);
+      onSaved("success","Empty section removed.",true,()=>setSections(SECTIONS_INIT));
+    }
+  };
+  const addSec = ()=>{
+    const id="sec_"+Date.now();
+    setSections(s=>[...s,{id,title:"",desc:"",count:0,sample:[]}]);
+    setOpen(o=>({...o,[id]:true})); setDirty(true);
+  };
+  const totalItems = sections.reduce((a,s)=>a+s.count,0);
+
+  return <>
+    <div className="scrim" onClick={onClose}></div>
+    <aside className="sheet" role="dialog" aria-modal="true" aria-labelledby="spe-title">
+      {/* HEADER */}
+      <div className="sheet-head">
+        <div className="row">
+          <button className="dback" aria-label="Back to content" onClick={onClose}>{I("arrow-left",16)}</button>
+          <h3 id="spe-title">Edit story point</h3>
+          <span className="sp"></span>
+          <button className="ddel" aria-label="Delete story point" onClick={()=>onDelete({
+            title:'Delete "'+(title||"this story point")+'"?',
+            body:'This deletes the story point and its '+totalItems+' items. Answer keys are removed too. This can’t be undone.',
+            cta:"Delete story point", icon:"alert-triangle", danger:true,
+            done:()=>{ onClose(); onSaved("success","Story point deleted."); }
+          })}>{I("trash-2",16)}</button>
+        </div>
+        <div className="dbc">{I("layers",12)}<b>Algebra I — Foundations</b>{I("chevron-right",12)}<span>Quadratics</span></div>
+      </div>
+
+      {/* BODY */}
+      <div className="sheet-body">
+        <div className="formcol">
+
+          {/* title */}
+          <div className="fld">
+            <label htmlFor="f-title">Title <span className="req" aria-hidden="true">*</span></label>
+            <input id="f-title" className={"inp"+(titleErr?" bad":"")} value={title}
+              onChange={e=>{setTitle(e.target.value);touch();if(e.target.value.trim())setTitleErr(false);}}
+              placeholder="Story point title" aria-invalid={titleErr}/>
+            {titleErr && <span className="err">{I("alert-circle",13)}Add a title to save.</span>}
+          </div>
+
+          {/* description */}
+          <div className="fld">
+            <label htmlFor="f-desc">Description</label>
+            <textarea id="f-desc" className="inp" value={desc}
+              onChange={e=>{setDesc(e.target.value);touch();}} placeholder="What this unit covers (optional)"></textarea>
+          </div>
+
+          {/* 3-up: type · difficulty · time */}
+          <div className="threeup">
+            <div className="fld">
+              <label htmlFor="f-type">Type</label>
+              <div className="selwrap">
+                <select id="f-type" className="sel" value={type}
+                  onChange={e=>{setType(e.target.value);touch();}}>
+                  {SP_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>{I("chevron-down",15)}
+              </div>
+              <span className="hint">Standard = lesson. Practice = ungraded reps. Quiz / Timed test = scored.</span>
+            </div>
+            <div className="fld">
+              <label id="f-diff-lbl">Difficulty</label>
+              <DifficultyScale value={diff} onChange={v=>{setDiff(v);touch();}}/>
+            </div>
+            <div className="fld">
+              <label htmlFor="f-mins">Est. time (min)</label>
+              <input id="f-mins" className="inp mono" type="number" value={mins} min="0"
+                onChange={e=>{setMins(e.target.value);touch();}}/>
+            </div>
+          </div>
+
+          {/* assessment policy (only for quiz / timed_test) */}
+          {assessment ? (
+            <div className="panel">
+              <div className="panel-head">
+                <span className="ph-ic">{I("shield-check",15)}</span>
+                <div><h4>Assessment policy</h4>
+                  <div className="ph-sub">Preview · full control in Assessment Config</div></div>
+                <span className="sp" style={{flex:1}}></span>
+              </div>
+              <div className="panel-body">
+                <div className="banner">
+                  <span className="lead">{I("info",18)}</span>
+                  <span className="sp">This is an assessment. Set duration, attempts, scheduling, and retry rules in <b>Assessment Config</b>. The editor records intent; timing is enforced server-side at run time.</span>
+                </div>
+                <div className="prevgrid">
+                  <div className="prevcell"><span className="k">Duration</span><span className="v">45m</span></div>
+                  <div className="prevcell"><span className="k">Max attempts</span><span className="v">2</span></div>
+                  <div className="prevcell"><span className="k">Passing</span><span className="v">70%</span></div>
+                </div>
+                {/* answer-key isolation reminder (timed_test only) — aria-live */}
+                {isTimed &&
+                  <div className="keylock" aria-live="polite">
+                    <span>{I("lock",15)}</span>
+                    <span><b>Answer keys are server-only.</b> For timed tests, correct answers on child items are stored in a protected subcollection and are never sent to students.</span>
+                  </div>}
+                <button className="btn btn--outline" style={{alignSelf:"flex-start"}}>
+                  {I("settings-2",15)}Open Assessment Config{I("arrow-right",15)}</button>
+              </div>
+            </div>
+          ) : (
+            <div className="banner soft">
+              <span className="lead">{I("archive",18)}</span>
+              <span className="sp">Assessment settings are kept; they apply only to assessment types (Quiz / Timed test).</span>
+            </div>
+          )}
+
+          {/* sections */}
+          <div className="fld">
+            <div className="sechd"><h4>Sections</h4>
+              <span className="ct">({sections.length}) · {countLoading ? "…" : totalItems} items</span></div>
+            {sections.length===0 ? (
+              <div className="empty">
+                <div className="ec">{I("folder-open",20)}</div>
+                <div className="et">No sections yet</div>
+                <div className="eb">Group items into named sections, or leave them ungrouped.</div>
+                <button className="btn btn--secondary" onClick={addSec}>{I("plus",15)}Add section</button>
+              </div>
+            ) : (
+              <div>
+                {sections.map(sec=>
+                  <SectionRow key={sec.id} sec={sec} open={!!open[sec.id]}
+                    onToggle={()=>toggleSec(sec.id)} onDelete={()=>removeSec(sec)}
+                    countLoading={countLoading}/>)}
+                <button className="btn btn--secondary btn--sm" style={{marginTop:"var(--space-3)"}} onClick={addSec}>
+                  {I("plus",15)}Add section</button>
+              </div>
+            )}
+          </div>
+
+          {/* default rubric (inheritance + override) */}
+          <div className="fld">
+            <label>Default rubric</label>
+            <div className="panel"><div className="panel-body">
+              <div className="deflist">
+                <div className="defrow"><span className="dt">Inherited from</span>
+                  <span className="dd"><span className="scopechip">{I("layers",11)}Space default</span></span></div>
+                <div className="defrow"><span className="dt">Total points</span>
+                  <span className="dd" style={{fontFamily:"var(--font-mono)"}}>10</span></div>
+              </div>
+              <div className="relwrap" style={{alignSelf:"flex-start",marginTop:"var(--space-2)"}}>
+                <button className="btn btn--secondary btn--sm" aria-haspopup="dialog" aria-expanded={rubricPop}
+                  onClick={()=>setRubricPop(v=>!v)}>{I("sliders-horizontal",14)}Override rubric{I("chevron-down",14)}</button>
+                {rubricPop && <RubricPopover/>}
+              </div>
+              <span className="hint">Overriding sets this rubric for every item in this story point that doesn’t define its own. Nearest scope wins: tenant → space → story point → item.</span>
+            </div></div>
+          </div>
+
+          {/* ---- adjacent labelled states (spec §5) ---- */}
+          <div className="vgroup">
+            <span className="vcap">State · loading (skeleton on open)</span>
+            <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+              <div className="sk block" style={{width:"100%"}}></div>
+              <div className="sk block" style={{width:"100%",height:64}}></div>
+              <div style={{display:"grid",gridTemplateColumns:"1.1fr 1.4fr .8fr",gap:"var(--space-4)"}}>
+                <div className="sk block"></div><div className="sk block"></div><div className="sk block"></div>
+              </div>
+              <div className="sk block" style={{width:"100%",height:48}}></div>
+            </div>
+          </div>
+
+          <div className="vgroup">
+            <span className="vcap">State · error (load failed)</span>
+            <div className="alert" role="alert">
+              <span className="lead">{I("alert-circle",18)}</span>
+              <div className="sp"><span className="at">This story point could not be loaded.</span> It may have been deleted.</div>
+              <button className="btn btn--secondary btn--sm">{I("arrow-left",15)}Back to content</button>
+            </div>
+          </div>
+
+          <div className="vgroup">
+            <span className="vcap">State · empty (no items yet)</span>
+            <div className="banner">
+              <span className="lead">{I("info",18)}</span>
+              <span className="sp">Add items from the Content tab once this story point is saved.</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* FOOTER (sticky) */}
+      <div className="sheet-foot">
+        <span className={"saved"+(dirty?" dirty":"")} aria-live="polite">
+          {saving ? <>{I("loader",13)}Saving…</>
+            : dirty ? <>{I("dot",13)}Unsaved changes</>
+            : <>{I("check",13)}Last saved {savedAt}</>}
+        </span>
+        <span className="sp"></span>
+        <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
+        <span className="savewrap">
+          <button className="btn btn--primary" disabled={!title.trim()||saving} onClick={save}>
+            {I("check",15)}Save changes</button>
+          {saving && <span className="ovl" aria-hidden="true">{I("loader",16)}</span>}
+        </span>
+      </div>
+    </aside>
+  </>;
+}
+
+/* ===== confirm modal ===== */
+function ConfirmModal({cfg,onClose,onConfirm}){
+  return <>
+    <div className="scrim" style={{zIndex:85}} onClick={onClose}></div>
+    <div className="modal" role="alertdialog" aria-modal="true" aria-label={cfg.title}>
+      <div className="modal-head">
+        <div className="wic" style={cfg.danger?undefined:{background:"var(--brand-subtle)",color:"var(--brand-primary)"}}>
+          {I(cfg.icon||"alert-triangle",19)}</div>
+        <div><h3>{cfg.title}</h3><p>{cfg.body}</p></div>
+      </div>
+      <div className="modal-foot">
+        <span className="sp"></span>
+        <button className="btn btn--secondary" onClick={onClose}>Cancel</button>
+        <button className={"btn "+(cfg.danger?"btn--danger":"btn--primary")} onClick={onConfirm}>
+          {I(cfg.danger?"trash-2":"check",15)}{cfg.cta}</button>
+      </div>
+    </div>
+  </>;
+}
+
+/* ===== shell (parent context behind drawer) ===== */
+function Nav({icon,label,active,count}){
+  return <a className={"sx-nav"+(active?" on":"")} aria-current={active?"page":undefined}>
+    {I(icon,18)}<span>{label}</span>{count!=null&&<span className="ct">{count}</span>}</a>;
+}
+
+function Screen(){
+  const [drawer,setDrawer] = useState(true);
+  const [confirm,setConfirm] = useState(null);
+  const [toast,setToast] = useState(null);
+  const [live,setLive] = useState("");
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){const t=setTimeout(()=>setToast(null),3200);return ()=>clearTimeout(t);} },[toast]);
+  useEffect(()=>{
+    const h=e=>{ if(e.key==="Escape"){ setConfirm(null); } };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  },[]);
+
+  const flash=(variant,msg,undo,undoFn)=>{ setToast({variant,msg,undo,undoFn}); setLive(msg); };
+
+  return <div className="sx">
+    <aside className="sx-side">
+      <div className="sx-brand"><div className="mk">L</div>
+        <div><div className="nm">Auto-LevelUp</div><div className="sc">Northwood · Teacher</div></div></div>
+      <nav aria-label="Primary" style={{display:"flex",flexDirection:"column",gap:"var(--space-5)"}}>
+        <div className="sx-navgrp"><div className="sx-navlbl">Teach</div>
+          <Nav icon="layout-dashboard" label="Dashboard"/>
+          <Nav icon="school" label="Classes" count="6"/>
+          <Nav icon="layers" label="Spaces" active count="9"/>
+          <Nav icon="file-check" label="Exams" count="4"/>
+          <Nav icon="graduation-cap" label="Students"/></div>
+        <div className="sx-navgrp"><div className="sx-navlbl">Insights</div>
+          <Nav icon="bar-chart-3" label="Analytics"/>
+          <Nav icon="sparkles" label="AI tutor"/></div>
+      </nav>
+      <div className="foot">
+        <div className="sx-uc"><div className="av">RM</div>
+          <div><div className="nm">Rohan Mehta</div><div className="rl">Teacher · Owner</div></div></div>
+      </div>
+    </aside>
+
+    <div className="sx-main">
+      <header className="sx-top">
+        <nav className="sx-bc" aria-label="Breadcrumb">
+          <span>Spaces</span>{I("chevron-right",14)}<b>Algebra I — Foundations</b>{I("chevron-right",14)}<span>Edit</span>
+        </nav>
+        <div className="sp"></div>
+        <div className="sx-search">{I("search",15)}<span>Search…</span><kbd>⌘K</kbd></div>
+        <button className="sx-icbtn" aria-label="Notifications, 2 unread">{I("bell",18)}</button>
+      </header>
+
+      {/* Space Editor sub-header with Content tab active */}
+      <div className="sx-sub">
+        <div className="sx-subrow">
+          <button className="sx-back" aria-label="Back to Spaces">{I("arrow-left",16)}</button>
+          <div className="sx-titlewrap">
+            <h1 className="sx-title">Algebra I — Foundations</h1>
+            <div className="sx-titlemeta">
+              <span className="sx-stat">{I("circle-dashed",12)}Draft</span>
+              <span className="sx-typelabel">· learning path</span>
+            </div>
+          </div>
+          <div className="sx-headact">
+            <button className="btn btn--secondary">{I("eye",15)}Preview</button>
+          </div>
+        </div>
+        <div className="sx-tabs" role="tablist" aria-label="Space editor sections">
+          {[{id:"overview",l:"Overview",i:"home"},{id:"content",l:"Content",i:"book-open"},
+            {id:"versions",l:"Versions",i:"history"},{id:"settings",l:"Settings",i:"settings"},
+            {id:"agents",l:"Agents",i:"bot"}].map(t=>
+            <button key={t.id} role="tab" aria-selected={t.id==="content"}
+              className={"sx-tab"+(t.id==="content"?" on":"")}>{I(t.i,15)}{t.l}</button>)}
+        </div>
+      </div>
+
+      {/* parent Content-tab list (dimmed behind the open drawer) */}
+      <ParentList activeId="sp_02"/>
+    </div>
+
+    {/* drawer open by default; working close */}
+    {drawer && <EditorDrawer
+      onClose={()=>setDrawer(false)}
+      onSaved={flash}
+      onDelete={(cfg)=>setConfirm(cfg)}/>}
+
+    {!drawer &&
+      <div className="toast" role="status" style={{borderColor:"var(--brand-primary)"}}>
+        {I("info",18)}Editor closed.
+        <button className="undo" onClick={()=>setDrawer(true)}>Reopen</button>
+      </div>}
+
+    {confirm && <ConfirmModal cfg={confirm} onClose={()=>setConfirm(null)}
+      onConfirm={()=>{const d=confirm.done;setConfirm(null);d&&d();}}/>}
+
+    {toast && <div className={"toast "+toast.variant} role="status">
+      {I(toast.variant==="success"?"check-circle-2":"alert-circle",18)}{toast.msg}
+      {toast.undo && <button className="undo" onClick={()=>{toast.undoFn&&toast.undoFn();setToast(null);}}>Undo</button>}</div>}
+
+    <div className="srlive" aria-live="assertive">{live}</div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,898 @@
+<!-- @dsCard group="Exams" viewport="1280x820" name="Results Release" subtitle="Gated release · what-they-see preview · fans out notifications" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local layout ONLY — Lyceum vars only, NO raw hex, NO :root token redefinition */
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.scene{height:1024px;overflow:hidden}
+
+/* ----- AppShell sidebar nav ----- */
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-foot{padding:var(--space-3);border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3)}
+.sb-foot__meta{display:flex;flex-direction:column;line-height:1.2}
+.sb-foot__name{font-size:var(--text-sm);font-weight:var(--weight-medium)}
+.sb-foot__role{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+
+/* ----- Topbar ----- */
+.tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);font-size:var(--text-sm);font-weight:var(--weight-medium);cursor:pointer;background:var(--bg-surface)}
+.tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tbsearch{display:flex;align-items:center;gap:var(--space-2);flex:1;max-width:420px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-muted);background:var(--bg-surface-sunken);cursor:text}
+.tbsearch input{border:0;background:transparent;flex:1;font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);outline:none}
+.tbsearch .kbd{margin-left:auto}
+.tb-icons{display:flex;align-items:center;gap:var(--space-2)}
+.notif{position:relative}
+.notif__dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-error);border:2px solid var(--bg-surface)}
+
+/* ----- page layout ----- */
+.page{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* state segmented control */
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-4);flex-wrap:wrap}
+.segrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:2px}
+.seg button{font-family:var(--font-ui);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border:0;padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);cursor:pointer;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.seg-label{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* ----- exam header card ----- */
+.exhead{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.exhead__top{display:flex;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;padding:var(--space-5) var(--space-6)}
+.exhead__titlewrap{flex:1;min-width:0}
+.ex-title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-0.02em;margin:0;display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.ex-sub{margin:var(--space-2) 0 0;font-size:var(--text-sm);color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.ex-sub .mono{font-family:var(--font-mono);color:var(--text-primary)}
+.ex-sub__sep{color:var(--border-strong)}
+.exhead__rt{display:flex;align-items:center;gap:var(--space-3)}
+.exhead__tabs{border-top:1px solid var(--border-subtle);padding:0 var(--space-6);display:flex;gap:var(--space-2)}
+.extab{appearance:none;background:transparent;border:0;border-bottom:2px solid transparent;padding:var(--space-3) var(--space-3);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer}
+.extab[aria-current="page"]{color:var(--brand-primary);border-bottom-color:var(--brand-primary);font-weight:var(--weight-semibold)}
+
+/* status badge (icon + label, never color-only) */
+.statusbadge{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid transparent;white-space:nowrap}
+.statusbadge svg{width:14px;height:14px}
+.sb--neutral{background:var(--bg-inset);color:var(--text-secondary);border-color:var(--border-strong)}
+.sb--info{background:var(--status-info-subtle);color:var(--status-info)}
+.sb--brand{background:var(--brand-subtle);color:var(--brand-primary)}
+.sb--warning{background:var(--status-warning-subtle);color:var(--status-warning)}
+.sb--success{background:var(--status-success-subtle);color:var(--status-success)}
+.sb--error{background:var(--status-error-subtle);color:var(--status-error)}
+.statusbadge--spin svg{animation:spin 1.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ----- two-column split: table (left) + release panel (right) ----- */
+.split{display:grid;grid-template-columns:1fr 400px;gap:var(--space-5);align-items:start}
+
+/* ----- table ----- */
+.tbl-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;position:relative}
+.tbl-wrap .table{margin:0}
+.table thead th.col-check,.table tbody td.col-check{width:44px;text-align:center}
+.table thead th.col-sort{cursor:pointer;user-select:none}
+.sorth{display:inline-flex;align-items:center;gap:var(--space-1)}
+.sorth svg{width:13px;height:13px;color:var(--brand-primary)}
+.trow-released{background:color-mix(in srgb, var(--status-success-subtle) 50%, transparent)}
+.trow-flip{animation:flipwash var(--dur-slow) var(--ease-standard)}
+@keyframes flipwash{from{background:var(--brand-subtle)}to{background:color-mix(in srgb, var(--status-success-subtle) 50%, transparent)}}
+.student{display:flex;align-items:center;gap:var(--space-3)}
+.student__meta{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.student__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.student__roll{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.scorecell{display:flex;align-items:center;gap:var(--space-3);justify-content:flex-end}
+.scorecell__num{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);white-space:nowrap}
+.scorecell__pct{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.scorecell__dash{font-family:var(--font-mono);color:var(--text-muted)}
+.relstate{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-medium);white-space:nowrap}
+.relstate svg{width:13px;height:13px}
+.relstate--on{color:var(--status-success)}
+.relstate--off{color:var(--text-muted)}
+.relstate--auto{color:var(--brand-primary)}
+.eligible-off td{opacity:.55}
+.eligible-off td.col-check,.eligible-off td.col-act{opacity:1}
+.rowact{display:flex;align-items:center;gap:var(--space-2);justify-content:flex-end}
+
+/* row loading overlay (optimistic) */
+.rowoverlay{position:absolute;inset:0;background:color-mix(in srgb, var(--bg-surface) 55%, transparent);display:grid;place-items:center;z-index:4}
+
+/* selection bulk bar */
+.bulkbar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.bulkbar__count{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--brand-primary)}
+.bulkbar__count .mono{font-family:var(--font-mono)}
+
+/* pagination row */
+.pagrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle)}
+.pagrow__meta{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+
+/* ----- release panel ----- */
+.relpanel{position:sticky;top:0;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden;position:relative}
+.relpanel__head{padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.relpanel__title{font-family:var(--font-ui);font-size:var(--text-lg);font-weight:var(--weight-semibold);line-height:1.2;margin:0;display:flex;align-items:center;gap:var(--space-2)}
+.relpanel__title svg{width:18px;height:18px;color:var(--brand-primary)}
+.relpanel__lead{margin:var(--space-2) 0 0;font-size:var(--text-xs);color:var(--text-secondary);line-height:var(--leading-xs)}
+.relpanel__body{padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5)}
+.relpanel__sticky{padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface);display:flex;flex-direction:column;gap:var(--space-2)}
+.relpanel__note{font-size:var(--text-2xs);color:var(--text-muted);display:flex;align-items:center;gap:var(--space-1);line-height:1.4;font-family:var(--font-mono)}
+.relpanel__note svg{width:12px;height:12px}
+
+.relsec__label{font-size:var(--text-xs);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2)}
+
+/* checklist KPI trio + lines */
+.cl-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin-bottom:var(--space-3)}
+.cl-stat{background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3);text-align:center}
+.cl-stat__val{font-family:var(--font-mono);font-size:var(--text-2xl);line-height:1;font-weight:var(--weight-medium)}
+.cl-stat__lbl{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-1)}
+.cl-stat--ready .cl-stat__val{color:var(--status-success)}
+.cl-stat--review .cl-stat__val{color:var(--status-warning)}
+.cl-stat--ungraded .cl-stat__val{color:var(--text-secondary)}
+.cl-lines{display:flex;flex-direction:column;gap:var(--space-2)}
+.cl-line{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary)}
+.cl-line svg{width:14px;height:14px;flex:none}
+.cl-line .mono{font-family:var(--font-mono);color:var(--text-primary);font-weight:var(--weight-medium)}
+.cl-line--ready{color:var(--status-success)}
+.cl-line--warn{color:var(--status-warning)}
+.cl-line--released{color:var(--brand-primary)}
+
+/* will-see / wont-see preview */
+.willsee{background:var(--status-success-subtle);border:1px solid color-mix(in srgb, var(--status-success) 30%, transparent);border-radius:var(--radius-md);padding:var(--space-4)}
+.willsee .deflist dt{color:var(--text-secondary)}
+.willsee .deflist dd{margin-bottom:var(--space-2)}
+.willsee .deflist dd:last-child{margin-bottom:0}
+.wsrow{display:grid;grid-template-columns:max-content 1fr;gap:var(--space-2) var(--space-3);align-items:start}
+.wsrow__term{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.wsrow__term svg{width:15px;height:15px;color:var(--status-success)}
+.wsrow__desc{font-size:var(--text-xs);color:var(--text-secondary);line-height:1.4}
+.wontsee{display:flex;flex-direction:column;gap:var(--space-2)}
+.wontsee .keylock{flex-direction:column;align-items:flex-start;gap:var(--space-1)}
+.wontsee .keylock__icon{display:inline-flex;align-items:center;gap:var(--space-2)}
+
+/* switch row */
+.switchrow{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.switchrow__txt{flex:1}
+.switchrow__lbl{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.switchrow__hint{font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px;line-height:1.4}
+.switch-helper{margin-top:var(--space-2)}
+
+/* permission lock banner */
+.permbar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--bg-inset);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--text-secondary)}
+.permbar svg{width:14px;height:14px;color:var(--text-muted)}
+
+/* tooltip on disabled / hint */
+.tipwrap{position:relative;display:inline-flex}
+.tipwrap__bub{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:40;background:var(--text-primary);color:var(--text-on-accent);font-size:var(--text-2xs);line-height:1.4;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);width:max-content;max-width:220px;box-shadow:var(--shadow-e2);opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-standard)}
+.tipwrap:hover .tipwrap__bub,.tipwrap:focus-within .tipwrap__bub{opacity:1}
+
+/* confirm dialog */
+.cd-blurb{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-base)}
+.cd-blurb strong{color:var(--text-primary)}
+.cd-lock{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-4);font-size:var(--text-xs);color:var(--text-secondary)}
+.cd-lock svg{width:15px;height:15px;color:var(--text-muted)}
+.modal-actions{display:flex;gap:var(--space-3);justify-content:flex-end}
+.btn--danger-soft{background:var(--brand-primary);color:var(--text-on-accent)}
+
+/* toast host */
+.toasts{position:absolute;right:var(--space-6);bottom:var(--space-6);z-index:60;display:flex;flex-direction:column;gap:var(--space-3);max-width:380px}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .seg button{transition:none}
+  .statusbadge--spin svg{animation:none}
+  .trow-flip{animation:none}
+  .spinner{animation:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Switch, Checkbox,
+    Modal, Alert, EmptyState, Skeleton, Pagination,
+    NavItem, Breadcrumb, Avatar, Kbd, Toast,
+    GradePill, AnswerKeyLock, Badge
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* refresh lucide glyphs after every render */
+  function useLucide(){
+    useEffect(function(){ if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); });
+  }
+
+  /* ============================================================= */
+  /* Mock Exam doc (header context) — server-authoritative status  */
+  /* ============================================================= */
+  const EXAM = {
+    examId: "exm_8KQ2dR4mN",
+    title: "Midterm — Algebra II",
+    subject: "Mathematics",
+    status: "grading",            // mirrors Exam.status enum
+    totalMarks: 40,
+    passingMarks: 16,
+    date: "14 Mar",
+  };
+
+  /* SubmissionPipelineStatus → badge meta (icon + label, never color-only) */
+  const PIPELINE = {
+    uploaded:             { tone:"neutral", icon:"inbox",        label:"Uploaded" },
+    scouting:             { tone:"brand",   icon:"loader",       label:"Scouting",      spin:true },
+    scouting_complete:    { tone:"info",    icon:"scan-text",    label:"Scouted" },
+    grading:              { tone:"brand",   icon:"loader",       label:"Grading",       spin:true },
+    grading_partial:      { tone:"warning", icon:"flag",         label:"Partially graded" },
+    grading_complete:     { tone:"success", icon:"check-circle", label:"Grading complete" },
+    reviewed:             { tone:"success", icon:"check-circle", label:"Reviewed" },
+    manual_review_needed: { tone:"warning", icon:"flag",         label:"Needs review" },
+  };
+
+  /* readiness classification — drives the checklist + selectability */
+  const READY     = ["reviewed","grading_complete"];
+  const NEEDS_REV = ["manual_review_needed","grading_partial"];
+  const UNGRADED  = ["uploaded","scouting","scouting_complete","grading"];
+
+  function isReady(r){ return READY.indexOf(r.pipelineStatus) !== -1; }
+  function isEligible(r){ return !r.resultsReleased && isReady(r); }
+  function classOf(r){
+    if (r.resultsReleased) return "released";
+    if (isReady(r)) return "ready";
+    if (NEEDS_REV.indexOf(r.pipelineStatus) !== -1) return "review";
+    return "ungraded";
+  }
+
+  /* seed Submission docs (drives every row) */
+  function seed(){
+    return [
+      { id:"sub_01", name:"Asha Patel",   roll:"12", initials:"AP", pipelineStatus:"reviewed",             score:34, max:40, grade:"B", resultsReleased:false },
+      { id:"sub_02", name:"Ravi Kumar",   roll:"07", initials:"RK", pipelineStatus:"reviewed",             score:28, max:40, grade:"C", resultsReleased:false },
+      { id:"sub_03", name:"Mira Shah",    roll:"19", initials:"MS", pipelineStatus:"manual_review_needed", score:21, max:40, grade:"D", resultsReleased:false },
+      { id:"sub_04", name:"Dev Thomas",   roll:"04", initials:"DT", pipelineStatus:"grading",              resultsReleased:false },
+      { id:"sub_05", name:"Nina Rao",     roll:"22", initials:"NR", pipelineStatus:"grading_complete",     score:37, max:40, grade:"A", resultsReleased:false },
+      { id:"sub_06", name:"Omar Faruq",   roll:"15", initials:"OF", pipelineStatus:"reviewed",             score:31, max:40, grade:"C", resultsReleased:false },
+      { id:"sub_07", name:"Priya Nair",   roll:"02", initials:"PN", pipelineStatus:"grading_partial",      score:18, max:40, grade:"D", resultsReleased:false },
+      { id:"sub_08", name:"Sami Iqbal",   roll:"28", initials:"SI", pipelineStatus:"uploaded",             resultsReleased:false },
+      { id:"sub_09", name:"Tara Bose",    roll:"09", initials:"TB", pipelineStatus:"grading_complete",     score:39, max:40, grade:"A", resultsReleased:true,  released:"19 Jun" },
+      { id:"sub_10", name:"Vikram Sen",   roll:"31", initials:"VS", pipelineStatus:"reviewed",             score:26, max:40, grade:"C", resultsReleased:false },
+    ];
+  }
+
+  /* ============================================================= */
+  /* Small presentational pieces                                   */
+  /* ============================================================= */
+  function StatusBadge(props){
+    var m = PIPELINE[props.status] || PIPELINE.uploaded;
+    return (
+      <span className={"statusbadge sb--"+m.tone+(m.spin?" statusbadge--spin":"")} role="status">
+        <i data-lucide={m.icon}></i>{m.label}
+      </span>
+    );
+  }
+
+  function ScoreCell(props){
+    var r = props.row;
+    if (r.score == null) return <span className="scorecell__dash">—</span>;
+    var pct = Math.round(r.score / r.max * 100);
+    return (
+      <div className="scorecell">
+        <div style={{textAlign:"right"}}>
+          <div className="scorecell__num">{r.score} / {r.max}</div>
+          <div className="scorecell__pct">{pct}%</div>
+        </div>
+        <GradePill grade={r.grade} />
+      </div>
+    );
+  }
+
+  function ReleaseState(props){
+    var r = props.row;
+    if (r.resultsReleased) return (
+      <span className="relstate relstate--on" role="status"><i data-lucide="check-circle"></i>Released {r.released}</span>
+    );
+    if (props.autoOn && isEligible(r)) return (
+      <span className="relstate relstate--auto" role="status"><i data-lucide="zap"></i>Auto</span>
+    );
+    return <span className="relstate relstate--off" role="status"><i data-lucide="circle-dashed"></i>Not released</span>;
+  }
+
+  /* ============================================================= */
+  /* The Release Panel (right column)                              */
+  /* ============================================================= */
+  function ReleasePanel(props){
+    var counts = props.counts;       // {ready, review, ungraded, released}
+    var canRelease = props.canRelease;
+    var autoOn = props.autoOn;
+    var busy = props.busy;
+    var error = props.error;
+
+    return (
+      <div className="relpanel" aria-label="Release panel">
+        <div className="relpanel__head">
+          <h3 className="relpanel__title"><i data-lucide="megaphone"></i>Release results</h3>
+          <p className="relpanel__lead">Make graded submissions visible to students and their parents. Server stamps each release and fans out notifications.</p>
+        </div>
+
+        <div className="relpanel__body">
+
+          {!canRelease && (
+            <div className="permbar" role="status">
+              <i data-lucide="lock"></i>
+              You don't have permission to release results. This view is read-only.
+            </div>
+          )}
+
+          {error && (
+            <Alert variant="error" title="Couldn't release results">
+              No students were notified. Try again.
+            </Alert>
+          )}
+
+          {/* ---- Pre-release checklist ---- */}
+          <div>
+            <div className="relsec__label"><i data-lucide="list-checks" style={{width:14,height:14}}></i>Pre-release checklist</div>
+            <div className="cl-stats">
+              <div className="cl-stat cl-stat--ready">
+                <div className="cl-stat__val">{counts.ready}</div>
+                <div className="cl-stat__lbl">ready</div>
+              </div>
+              <div className="cl-stat cl-stat--review">
+                <div className="cl-stat__val">{counts.review}</div>
+                <div className="cl-stat__lbl">need review</div>
+              </div>
+              <div className="cl-stat cl-stat--ungraded">
+                <div className="cl-stat__val">{counts.ungraded}</div>
+                <div className="cl-stat__lbl">ungraded</div>
+              </div>
+            </div>
+            <div className="cl-lines">
+              <div className="cl-line cl-line--ready"><i data-lucide="check-circle"></i><span><span className="mono">{counts.ready}</span> reviewed &amp; ready to release</span></div>
+              {counts.review > 0 && (
+                <div className="cl-line cl-line--warn"><i data-lucide="alert-triangle"></i><span><span className="mono">{counts.review}</span> still need review — won't be released</span></div>
+              )}
+              {counts.ungraded > 0 && (
+                <div className="cl-line cl-line--warn"><i data-lucide="alert-triangle"></i><span><span className="mono">{counts.ungraded}</span> ungraded — won't be released</span></div>
+              )}
+              {counts.released > 0 && (
+                <div className="cl-line cl-line--released"><i data-lucide="circle-check-big"></i><span><span className="mono">{counts.released}</span> already released</span></div>
+              )}
+            </div>
+          </div>
+
+          {/* ---- WILL see ---- */}
+          <div>
+            <div className="relsec__label"><i data-lucide="eye" style={{width:14,height:14}}></i>What students will see</div>
+            <div className="willsee">
+              <div className="wsrow">
+                <span className="wsrow__term"><i data-lucide="check"></i>Score &amp; grade</span>
+                <span className="wsrow__desc">Their total, percentage, and letter grade.</span>
+                <span className="wsrow__term"><i data-lucide="check"></i>Written feedback</span>
+                <span className="wsrow__desc">Rubric feedback, strengths, and what to fix.</span>
+                <span className="wsrow__term"><i data-lucide="check"></i>Pass / fail</span>
+                <span className="wsrow__desc">Against this exam's passing marks ({EXAM.passingMarks}/{EXAM.totalMarks}).</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ---- WON'T see (AnswerKeyLock — staff only) ---- */}
+          <div>
+            <div className="relsec__label"><i data-lucide="lock" style={{width:14,height:14}}></i>What stays staff-only</div>
+            <div className="wontsee">
+              <AnswerKeyLock title="Model answer">The answer key is never shown to students.</AnswerKeyLock>
+              <AnswerKeyLock title="AI confidence">Grading confidence stays staff-only.</AnswerKeyLock>
+              <AnswerKeyLock title="AI cost &amp; tokens">Internal grading metrics are hidden.</AnswerKeyLock>
+            </div>
+          </div>
+
+          {/* ---- Auto-release switch ---- */}
+          <div className="switchrow">
+            <div className="switchrow__txt">
+              <div className="switchrow__lbl">Auto-release new results</div>
+              <div className="switchrow__hint">New submissions release automatically once they're reviewed.</div>
+              {autoOn && (
+                <div className="switch-helper">
+                  <Badge variant="brand" icon={<i data-lucide="zap" style={{width:12,height:12}}></i>}>On — backlog releases as it's reviewed</Badge>
+                </div>
+              )}
+            </div>
+            <Switch checked={autoOn} disabled={!canRelease}
+                    onChange={props.onToggleAuto} aria-label="Auto-release new results" />
+          </div>
+        </div>
+
+        {/* sticky release action */}
+        <div className="relpanel__sticky">
+          {canRelease ? (
+            <Button variant="primary" block loading={busy}
+                    disabled={busy || counts.ready === 0}
+                    trailingIcon={<i data-lucide="chevron-right"></i>}
+                    onClick={props.onRelease}>
+              {autoOn ? "Release current backlog" : "Release " + counts.ready + " results"}
+            </Button>
+          ) : (
+            <span className="tipwrap" style={{width:"100%"}}>
+              <Button variant="primary" block disabled
+                      trailingIcon={<i data-lucide="chevron-right"></i>}>
+                Release {counts.ready} results
+              </Button>
+              <span role="tooltip" className="tipwrap__bub" style={{left:"50%"}}>You don't have permission to release results.</span>
+            </span>
+          )}
+          <div className="relpanel__note"><i data-lucide="shield-check"></i>Notifications fan out server-side after the write confirms.</div>
+        </div>
+
+        {busy && <LoadingPanelOverlay />}
+      </div>
+    );
+  }
+
+  function LoadingPanelOverlay(){
+    return <div className="rowoverlay"><div className="spinner"></div></div>;
+  }
+
+  /* ============================================================= */
+  /* The body (table + panel + states)                             */
+  /* ============================================================= */
+  function Body(props){
+    var state = props.state;          // populated | loading | empty | partial | error
+    var canRelease = props.role !== "noperm";
+    useLucide();
+
+    var rowsRef = useRef(seed());
+    var st = useState(rowsRef.current); var rows = st[0], setRows = st[1];
+    var selSt = useState({}); var sel = selSt[0], setSel = selSt[1];
+    var sortSt = useState({ key:"roll", dir:"asc" }); var sort = sortSt[0], setSort = sortSt[1];
+    var confSt = useState(false); var confirmOpen = confSt[0], setConfirmOpen = confSt[1];
+    var busySt = useState(false); var busy = busySt[0], setBusy = busySt[1];
+    var autoSt = useState(false); var autoOn = autoSt[0], setAutoOn = autoSt[1];
+    var flipSt = useState({}); var flipped = flipSt[0], setFlipped = flipSt[1];
+    var toastSt = useState([]); var toasts = toastSt[0], setToasts = toastSt[1];
+
+    function pushToast(t){
+      var id = Date.now()+Math.random();
+      setToasts(function(prev){ return prev.concat([Object.assign({ _id:id }, t)]); });
+      setTimeout(function(){ setToasts(function(prev){ return prev.filter(function(x){ return x._id!==id; }); }); }, 4400);
+    }
+
+    /* live-derived counts from current rows */
+    var counts = (function(){
+      var c = { ready:0, review:0, ungraded:0, released:0 };
+      rows.forEach(function(r){
+        var k = classOf(r);
+        if (k === "released") c.released++;
+        else if (k === "ready") c.ready++;
+        else if (k === "review") c.review++;
+        else c.ungraded++;
+      });
+      return c;
+    })();
+
+    var eligibleIds = rows.filter(isEligible).map(function(r){ return r.id; });
+    var selIds = Object.keys(sel).filter(function(k){ return sel[k]; });
+    var selEligible = selIds.filter(function(id){ return eligibleIds.indexOf(id) !== -1; });
+
+    /* sorted view */
+    var view = rows.slice().sort(function(a,b){
+      var dir = sort.dir === "asc" ? 1 : -1;
+      if (sort.key === "roll") return a.roll.localeCompare(b.roll) * dir;
+      if (sort.key === "score") return ((a.score||0) - (b.score||0)) * dir;
+      return 0;
+    });
+
+    function toggleRow(id){ setSel(function(s){ var n = Object.assign({}, s); if (n[id]) delete n[id]; else n[id] = true; return n; }); }
+    function toggleAll(){
+      var allOn = eligibleIds.length > 0 && eligibleIds.every(function(id){ return sel[id]; });
+      if (allOn) setSel({});
+      else { var n = {}; eligibleIds.forEach(function(id){ n[id] = true; }); setSel(n); }
+    }
+    function clickSort(key){ setSort(function(s){ return { key:key, dir:(s.key===key && s.dir==="asc") ? "desc" : "asc" }; }); }
+
+    /* who gets released: selected eligible if any, else all ready */
+    function targetIds(){ return selEligible.length ? selEligible : eligibleIds; }
+    var releaseCount = targetIds().length;
+
+    /* ---- release write (optimistic flip → reconcile) ---- */
+    function doRelease(){
+      var ids = targetIds();
+      setConfirmOpen(false);
+      setBusy(true);
+      setTimeout(function(){
+        var fl = {}; ids.forEach(function(id){ fl[id] = true; });
+        setFlipped(fl);
+        setRows(function(prev){ return prev.map(function(r){ return ids.indexOf(r.id)!==-1 ? Object.assign({}, r, { resultsReleased:true, released:"20 Jun" }) : r; }); });
+        setBusy(false); setSel({});
+        pushToast({ variant:"success", title:"Results released to "+ids.length+" students.", body:"Parents notified." });
+      }, 950);
+    }
+
+    function toggleAuto(){
+      setAutoOn(function(v){
+        var nv = !v;
+        pushToast({ variant:"info", title: nv ? "Auto-release turned on." : "Auto-release turned off.",
+          body: nv ? "New submissions release automatically once reviewed." : "New submissions now require manual release." });
+        return nv;
+      });
+    }
+
+    /* ---- keyboard: 'r' opens the release confirm (disabled while typing/in dialog) ---- */
+    useEffect(function(){
+      function onKey(e){
+        var tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (confirmOpen || !canRelease) return;
+        if (e.key === "r" && releaseCount > 0){ e.preventDefault(); setConfirmOpen(true); }
+      }
+      window.addEventListener("keydown", onKey);
+      return function(){ window.removeEventListener("keydown", onKey); };
+    });
+
+    var allChecked = eligibleIds.length > 0 && eligibleIds.every(function(id){ return sel[id]; });
+
+    /* ===================== STATE: LOADING ===================== */
+    if (state === "loading"){
+      return (
+        <div className="page">
+          <ExamHeader loading />
+          <div className="split">
+            <div className="tbl-wrap">
+              <div style={{padding:"var(--space-4)"}}>
+                {[0,1,2,3,4,5].map(function(i){ return (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:"var(--space-4)",padding:"var(--space-2) 0"}}>
+                    <Skeleton width="22px" height="22px" />
+                    <Skeleton variant="circle" width="32px" height="32px" />
+                    <Skeleton width="140px" height="14px" />
+                    <Skeleton width="120px" height="22px" />
+                    <div style={{flex:1}} />
+                    <Skeleton width="70px" height="20px" />
+                  </div>
+                ); })}
+              </div>
+            </div>
+            <div className="relpanel">
+              <div className="relpanel__head">
+                <Skeleton width="60%" height="20px" />
+                <div style={{height:8}} />
+                <Skeleton width="90%" height="12px" />
+              </div>
+              <div className="relpanel__body">
+                <div className="cl-stats">
+                  {[0,1,2].map(function(i){ return <div className="cl-stat" key={i}><Skeleton width="40%" height="24px" /><div style={{height:6}}/><Skeleton width="70%" height="10px" /></div>; })}
+                </div>
+                <Skeleton width="100%" height="60px" />
+                <Skeleton width="100%" height="80px" />
+              </div>
+              <div className="relpanel__sticky">
+                <Button variant="primary" block disabled loading>Loading…</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ===================== STATE: EMPTY (nothing ready / all released) ===== */
+    if (state === "empty"){
+      var allReleased = props.emptyKind === "all-released";
+      return (
+        <div className="page">
+          <ExamHeader released={allReleased} />
+          <div className="split">
+            <div className="tbl-wrap" style={{gridColumn:"1 / -1"}}>
+              <div style={{padding:"var(--space-12) var(--space-6)"}}>
+                {allReleased ? (
+                  <EmptyState icon="party-popper"
+                    title="All results are released."
+                    body={<span>All <strong>{rows.length}</strong> submissions were released — last on <span style={{fontFamily:"var(--font-mono)"}}>20 Jun</span> by <span style={{fontFamily:"var(--font-mono)"}}>S. Verma</span>.</span>}
+                    action={<Button variant="secondary" leadingIcon={<i data-lucide="external-link"></i>}>View released results</Button>} />
+                ) : (
+                  <EmptyState icon="hourglass"
+                    title="No results ready to release."
+                    body="Submissions must reach Reviewed (or grading-complete) before they can be released to students and parents."
+                    action={<Button variant="primary" leadingIcon={<i data-lucide="check-square"></i>}>Go to grading</Button>} />
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="toasts">
+            {toasts.map(function(t){ return <Toast key={t._id} variant={t.variant} title={t.title} body={t.body} />; })}
+          </div>
+        </div>
+      );
+    }
+
+    /* ===================== POPULATED / PARTIAL / ERROR ===================== */
+    return (
+      <div className="page">
+        <ExamHeader onReleaseClick={canRelease ? function(){ if (releaseCount) setConfirmOpen(true); } : null}
+                    canRelease={canRelease} releaseCount={releaseCount} />
+
+        {state === "partial" && (
+          <Alert variant="warning" title="Some submissions aren't ready">
+            <span className="mono" style={{fontFamily:"var(--font-mono)"}}>{counts.review + counts.ungraded}</span> of {rows.length} submissions still need review or grading. Releasing now publishes only the <strong>{counts.ready} ready</strong> — the rest stay private until they're reviewed.
+          </Alert>
+        )}
+
+        <div className="split">
+          {/* ---- left: submissions table ---- */}
+          <div className="tbl-wrap">
+            <table className="table" role="table" aria-label="Submissions">
+              <thead>
+                <tr>
+                  <th className="col-check" scope="col">
+                    <Checkbox aria-label="Select all eligible" checked={allChecked}
+                              disabled={!canRelease || eligibleIds.length === 0} onChange={toggleAll} />
+                  </th>
+                  <th className="col-sort" scope="col"
+                      aria-sort={sort.key==="roll"?(sort.dir==="asc"?"ascending":"descending"):"none"}
+                      onClick={function(){clickSort("roll");}}>
+                    <span className="sorth">Student / Roll {sort.key==="roll" && <i data-lucide={sort.dir==="asc"?"arrow-up":"arrow-down"}></i>}</span>
+                  </th>
+                  <th scope="col">Status</th>
+                  <th className="col-sort num" scope="col"
+                      aria-sort={sort.key==="score"?(sort.dir==="asc"?"ascending":"descending"):"none"}
+                      onClick={function(){clickSort("score");}}>
+                    <span className="sorth" style={{justifyContent:"flex-end"}}>Score {sort.key==="score" && <i data-lucide={sort.dir==="asc"?"arrow-up":"arrow-down"}></i>}</span>
+                  </th>
+                  <th scope="col" style={{textAlign:"right"}}>Release</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.map(function(r){
+                  var eligible = isEligible(r);
+                  var selected = !!sel[r.id];
+                  var rowCls = (r.resultsReleased ? "trow-released " : "") + (flipped[r.id] ? "trow-flip " : "") + (!eligible && !r.resultsReleased ? "eligible-off" : "");
+                  return (
+                    <tr key={r.id} className={rowCls} aria-selected={selected || undefined}>
+                      <td className="col-check">
+                        {eligible && canRelease ? (
+                          <Checkbox aria-label={"Select "+r.name} checked={selected} onChange={function(){ toggleRow(r.id); }} />
+                        ) : r.resultsReleased ? (
+                          <span className="relstate relstate--on" aria-hidden="true"><i data-lucide="lock"></i></span>
+                        ) : (
+                          <span className="tipwrap">
+                            <Checkbox aria-label="Not eligible to release" disabled tabIndex={-1} />
+                            <span role="tooltip" className="tipwrap__bub">
+                              {classOf(r) === "review" ? "Still needs review — can't release." : "Not graded yet — can't release."}
+                            </span>
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="student">
+                          <Avatar size="sm" initials={r.initials} />
+                          <div className="student__meta">
+                            <span className="student__name">{r.name}</span>
+                            <span className="student__roll">Roll {r.roll}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td><StatusBadge status={r.pipelineStatus} /></td>
+                      <td className="num"><ScoreCell row={r} /></td>
+                      <td className="col-act" style={{textAlign:"right"}}>
+                        <ReleaseState row={r} autoOn={autoOn} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* bulk bar — shown when eligible rows are selected */}
+            {selEligible.length > 0 && (
+              <div className="bulkbar">
+                <span className="bulkbar__count" aria-live="polite"><span className="mono">{selEligible.length}</span> selected</span>
+                <span style={{flex:1}} />
+                <Button variant="ghost" onClick={function(){ setSel({}); }}>Clear</Button>
+                <Button variant="primary" disabled={!canRelease}
+                        trailingIcon={<i data-lucide="chevron-right"></i>}
+                        onClick={function(){ setConfirmOpen(true); }}>
+                  Release selected ({selEligible.length})
+                </Button>
+              </div>
+            )}
+
+            <div className="pagrow">
+              <span className="pagrow__meta">Showing {view.length} of {rows.length} submissions</span>
+              <Pagination pages={3} current={1} />
+            </div>
+
+            {busy && <div className="rowoverlay"><div className="spinner"></div></div>}
+          </div>
+
+          {/* ---- right: release panel ---- */}
+          <ReleasePanel
+            counts={counts}
+            canRelease={canRelease}
+            autoOn={autoOn}
+            busy={busy}
+            error={state === "error"}
+            onToggleAuto={toggleAuto}
+            onRelease={function(){ if (releaseCount) setConfirmOpen(true); }} />
+        </div>
+
+        {/* ---- ConfirmDialog (role alertdialog) ---- */}
+        <Modal open={confirmOpen} onClose={function(){ setConfirmOpen(false); }}
+               title={"Release results to " + releaseCount + " students?"}
+               footer={
+                 <div className="modal-actions">
+                   <Button variant="secondary" onClick={function(){ setConfirmOpen(false); }}>Cancel</Button>
+                   <Button variant="primary" className="btn--danger-soft"
+                           trailingIcon={<i data-lucide="chevron-right"></i>}
+                           onClick={doRelease}>Release {releaseCount} results</Button>
+                 </div>
+               }>
+          <p className="cd-blurb">
+            Students and their parents will be <strong>notified</strong> and can view their score, grade, and written feedback.
+          </p>
+          {(counts.review > 0 || counts.ungraded > 0) && (
+            <div style={{marginTop:"var(--space-4)"}}>
+              <Alert variant="warning" title="Some submissions are excluded">
+                <span style={{fontFamily:"var(--font-mono)"}}>{counts.review}</span> still need review and <span style={{fontFamily:"var(--font-mono)"}}>{counts.ungraded}</span> are ungraded — these will <strong>not</strong> be released.
+              </Alert>
+            </div>
+          )}
+          <div className="cd-lock">
+            <i data-lucide="lock"></i>
+            <span>Model answers, AI confidence, and cost stay staff-only.</span>
+          </div>
+        </Modal>
+
+        {/* toast host */}
+        <div className="toasts" aria-live="polite">
+          {toasts.map(function(t){ return <Toast key={t._id} variant={t.variant} title={t.title} body={t.body} />; })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* Exam header card (title + status + tabs + primary action)    */
+  /* ============================================================= */
+  function ExamHeader(props){
+    var status = props.released ? "results_released" : EXAM.status;
+    return (
+      <div className="exhead">
+        <div className="exhead__top">
+          <div className="exhead__titlewrap">
+            <h1 className="ex-title">{EXAM.title}</h1>
+            <div className="ex-sub">
+              {EXAM.subject}
+              <span className="ex-sub__sep">·</span>
+              <span className="mono">{EXAM.totalMarks}</span> marks
+              <span className="ex-sub__sep">·</span>
+              <span className="mono">{EXAM.date}</span>
+              <span className="ex-sub__sep">·</span>
+              <span className="mono">{EXAM.examId}</span>
+            </div>
+          </div>
+          <div className="exhead__rt">
+            {props.loading ? (
+              <Skeleton width="120px" height="28px" />
+            ) : props.released ? (
+              <span className="statusbadge sb--success" role="status"><i data-lucide="check-circle"></i>Results released</span>
+            ) : (
+              <span className="statusbadge sb--brand statusbadge--spin" role="status"><i data-lucide="loader"></i>Grading</span>
+            )}
+            {!props.loading && !props.released && (
+              props.canRelease ? (
+                <Button variant="primary" trailingIcon={<i data-lucide="chevron-right"></i>}
+                        disabled={!props.releaseCount}
+                        onClick={props.onReleaseClick || undefined}>
+                  Release results
+                </Button>
+              ) : (
+                <span className="tipwrap">
+                  <Button variant="primary" disabled trailingIcon={<i data-lucide="chevron-right"></i>}>Release results</Button>
+                  <span role="tooltip" className="tipwrap__bub">You don't have permission to release results.</span>
+                </span>
+              )
+            )}
+          </div>
+        </div>
+        <div className="exhead__tabs" role="tablist" aria-label="Exam sections">
+          <button className="extab" role="tab" aria-selected="false">Questions</button>
+          <button className="extab" role="tab" aria-selected="true" aria-current="page">Submissions</button>
+          <button className="extab" role="tab" aria-selected="false">Settings</button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================= */
+  /* AppShell chrome + state/role switcher                        */
+  /* ============================================================= */
+  function App(){
+    var STATES = ["populated","partial","loading","empty","error"];
+    var LABELS = { populated:"Populated", partial:"Partial", loading:"Loading", empty:"Empty", error:"Error" };
+    var s = useState("partial"); var state = s[0], setState = s[1];
+    var rSt = useState("teacher"); var role = rSt[0], setRole = rSt[1];
+    var eSt = useState("none"); var emptyKind = eSt[0], setEmptyKind = eSt[1];
+    useLucide();
+
+    return (
+      <div className="scene">
+        <div className="appshell">
+          {/* Sidebar */}
+          <aside className="appshell__sidebar">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">L</span>
+              <span className="sidebar__brand-name">Lyceum</span>
+            </div>
+            <nav className="sidebar__nav sb-scroll" aria-label="Primary">
+              <span className="sidebar__section-label">Teach</span>
+              <NavItem icon="layout-dashboard" href="#">Dashboard</NavItem>
+              <NavItem icon="users" href="#">Students</NavItem>
+              <NavItem icon="book-open" href="#">Spaces</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Assess</span>
+              <NavItem icon="file-check-2" href="#" active>Exams</NavItem>
+              <NavItem icon="scan-line" href="#">Scan intake</NavItem>
+              <NavItem icon="bar-chart-3" href="#">Analytics</NavItem>
+              <span className="sidebar__section-label" style={{marginTop:"var(--space-3)"}}>Admin</span>
+              <NavItem icon="settings" href="#">Settings</NavItem>
+            </nav>
+            <div className="sb-foot">
+              <Avatar size="sm" initials="SV" />
+              <div className="sb-foot__meta">
+                <span className="sb-foot__name">S. Verma</span>
+                <span className="sb-foot__role">{role === "noperm" ? "role: viewer" : "perm: canReleaseResults"}</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Topbar */}
+          <header className="appshell__topbar">
+            <div className="tenant" role="button" tabIndex={0}>
+              <i data-lucide="building-2" style={{width:15,height:15}}></i>
+              Subhang Academy
+              <span className="tenant__code">SUB001</span>
+              <i data-lucide="chevrons-up-down" style={{width:13,height:13,opacity:.6}}></i>
+            </div>
+            <div className="tbsearch">
+              <i data-lucide="search" style={{width:15,height:15}}></i>
+              <input placeholder="Search exams, students…" aria-label="Search" />
+              <Kbd>⌘K</Kbd>
+            </div>
+            <div className="tb-icons">
+              <span className="notif"><IconButton label="Notifications" icon={<i data-lucide="bell"></i>} /><span className="notif__dot"></span></span>
+              <IconButton label="Help" icon={<i data-lucide="circle-help"></i>} />
+              <Avatar size="sm" initials="SV" />
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="appshell__main">
+            <div style={{maxWidth:1200,margin:"0 auto"}}>
+              <div className="toprow">
+                <Breadcrumb items={[{label:"Exams",href:"#"},{label:EXAM.title,href:"#"},{label:"Release"}]} />
+                <div className="segrow">
+                  {role === "noperm" && (
+                    <span className="statusbadge sb--neutral" role="status"><i data-lucide="lock"></i>Read-only</span>
+                  )}
+                  <button className="seg" style={{cursor:"pointer"}}
+                          onClick={function(){ setRole(role === "teacher" ? "noperm" : "teacher"); }}
+                          aria-label="Toggle permission" title="Toggle canReleaseResults">
+                    <span style={{padding:"var(--space-1) var(--space-3)",fontSize:"var(--text-xs)",fontWeight:"var(--weight-medium)",color:"var(--text-secondary)"}}>
+                      {role === "teacher" ? "Teacher" : "No-perm"}
+                    </span>
+                  </button>
+                  {state === "empty" && (
+                    <div className="seg" role="group" aria-label="Empty variant">
+                      <button aria-pressed={emptyKind==="none"} onClick={function(){ setEmptyKind("none"); }}>None ready</button>
+                      <button aria-pressed={emptyKind==="all-released"} onClick={function(){ setEmptyKind("all-released"); }}>All released</button>
+                    </div>
+                  )}
+                  <span className="seg-label">State</span>
+                  <div className="seg" role="group" aria-label="Preview state">
+                    {STATES.map(function(x){
+                      return <button key={x} aria-pressed={state===x} onClick={function(){ setState(x); }}>{LABELS[x]}</button>;
+                    })}
+                  </div>
+                </div>
+              </div>
+              <Body state={state} role={role} emptyKind={emptyKind} key={state+role+emptyKind} />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

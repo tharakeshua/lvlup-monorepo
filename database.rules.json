@@ -45,6 +45,20 @@
         }
       }
     },
+    "extractionProgress": {
+      "$tenantId": {
+        ".read": false,
+        ".write": false,
+        "exam": {
+          "$examId": {
+            ".write": false,
+            "status": {
+              ".read": "auth != null && (auth.token.isSuperAdmin === true || (auth.token.tenantId === $tenantId && (auth.token.role === 'teacher' || auth.token.role === 'staff' || auth.token.role === 'tenantAdmin')))"
+            }
+          }
+        }
+      }
+    },
     "spaceProgressLive": {
       "$tenantId": {
         ".read": false,

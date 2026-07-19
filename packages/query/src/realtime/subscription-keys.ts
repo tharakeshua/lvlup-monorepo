@@ -52,6 +52,7 @@ export const SUBSCRIPTION_TARGET_KEYS: Record<string, TargetKeyFactory> = {
   // autograde
   "v1.autograde.gradingStatus": (p) => submissionKeys.detail(str(p.submissionId)),
   "v1.autograde.examGrading": (p) => examKeys.sub(str(p.examId), "grading"),
+  "v1.autograde.extractionStatus": (p) => examKeys.sub(str(p.examId), "extraction"),
 
   // notification (folded onto identity)
   "v1.notification.badge": () => notificationBadgeKeys.detail("me"),

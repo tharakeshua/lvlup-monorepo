@@ -3,7 +3,7 @@
  * Mirrors `@levelup/repository-admin/paths.ts`. Canonical decisions baked in:
  *
  * - D1: ONE nested item path `spaces/{s}/storyPoints/{sp}/items/{id}` (flat path deleted).
- * - §6.4: answer keys at `items/{itemId}/answerKeys/{keyId}` (server-only, deny-all subcollection).
+ * - §6.4: answer keys at `items/{itemId}/answerKeys/{itemId}` (server-only, deny-all subcollection).
  * - D6: test-session answers at `digitalTestSessions/{sid}/submissions/{itemId}` (always-subcollection).
  * - D11: scanners tenant-scoped at `tenants/{t}/scanners/{id}` (top-level `/scanners` deleted).
  * - D13: `spaceProgress/{userId}_{spaceId}`; `costSummaries/{daily|monthly}/{id}` flat.
@@ -72,9 +72,10 @@ export const Paths = {
     `${Paths.tenant(t)}/spaces/${s}/storyPoints/${sp}/items/${id}`,
   items: (t: string, s: string, sp: string) =>
     `${Paths.tenant(t)}/spaces/${s}/storyPoints/${sp}/items`,
-  // §6.4: answer keys server-only subcollection under the item.
-  answerKey: (t: string, s: string, sp: string, itemId: string, keyId: string) =>
-    `${Paths.tenant(t)}/spaces/${s}/storyPoints/${sp}/items/${itemId}/answerKeys/${keyId}`,
+  // §6.4: one deterministic answer key per item. Keeping the doc id equal to
+  // itemId means this path cannot accidentally diverge from `answerKeyDoc`.
+  answerKey: (t: string, s: string, sp: string, itemId: string) =>
+    `${Paths.tenant(t)}/spaces/${s}/storyPoints/${sp}/items/${itemId}/answerKeys/${itemId}`,
   answerKeys: (t: string, s: string, sp: string, itemId: string) =>
     `${Paths.tenant(t)}/spaces/${s}/storyPoints/${sp}/items/${itemId}/answerKeys`,
   agent: (t: string, id: string) => `${Paths.tenant(t)}/agents/${id}`,

@@ -1,0 +1,369 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Submit Confirm" subtitle="Submit pipeline → success · duplicate/offline/closed states" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Confirm</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal. all classes prefixed submit- */
+  body { margin:0; background:var(--bg-canvas); color:var(--text-primary); font-family:var(--font-ui); }
+
+  .ph { width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+        border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+        background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+  .ph__top { height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+        padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .ph__body { flex:1; overflow-y:auto; position:relative; }
+  .ph__tabs { flex:0 0 auto; }
+
+  .ph__brand { display:flex; align-items:center; gap:var(--space-2); }
+  .ph__mark { width:28px; height:28px; border-radius:var(--radius-md); background:var(--brand-primary);
+        color:var(--text-on-accent); display:flex; align-items:center; justify-content:center; }
+  .ph__title { font-family:var(--font-display); font-weight:var(--weight-semibold); font-size:var(--text-sm); }
+  .ph__spacer { flex:1; }
+
+  /* ── view layout ── */
+  .submit-wrap { padding:var(--space-5) var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-5); min-height:100%; box-sizing:border-box; }
+
+  /* progress overlay / stepper */
+  .submit-overlay { position:absolute; inset:0; z-index:20; background:var(--bg-canvas);
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:var(--space-6); padding:var(--space-6); box-sizing:border-box; }
+  .submit-overlay__halo { width:64px; height:64px; border-radius:var(--radius-pill); background:var(--spark-subtle);
+        color:var(--spark); display:flex; align-items:center; justify-content:center; }
+  .submit-overlay__cap { font-family:var(--font-display); font-size:var(--text-lg); font-weight:var(--weight-semibold);
+        color:var(--text-primary); text-align:center; }
+  .submit-overlay__sub { font-size:var(--text-sm); color:var(--text-muted); text-align:center; margin-top:calc(var(--space-1)*-1); }
+  .submit-steps { display:flex; flex-direction:column; gap:var(--space-3); width:100%; max-width:280px; }
+  .submit-step { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3);
+        border:1px solid var(--border-subtle); border-radius:var(--radius-lg); background:var(--bg-surface); }
+  .submit-step--active { border-color:var(--border-focus); box-shadow:var(--shadow-e1); }
+  .submit-step__dot { width:28px; height:28px; flex:0 0 auto; border-radius:var(--radius-pill);
+        display:flex; align-items:center; justify-content:center; }
+  .submit-step__dot--pending { background:var(--bg-inset); color:var(--text-muted); }
+  .submit-step__dot--active { background:var(--spark-subtle); color:var(--spark); }
+  .submit-step__dot--done { background:var(--status-success-subtle); color:var(--status-success); }
+  .submit-step__label { font-size:var(--text-sm); font-weight:var(--weight-medium); color:var(--text-primary); }
+  .submit-step--pending .submit-step__label { color:var(--text-muted); }
+  .submit-spin { animation:submit-rot 0.9s linear infinite; display:flex; }
+  @keyframes submit-rot { to { transform:rotate(360deg); } }
+
+  /* success panel */
+  .submit-hero { display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-3);
+        padding:var(--space-6) var(--space-4); border:1px solid var(--status-success-subtle);
+        border-radius:var(--radius-xl); background:var(--bg-surface); box-shadow:var(--shadow-e1); }
+  .submit-hero__ring { width:72px; height:72px; border-radius:var(--radius-pill); background:var(--status-success-subtle);
+        color:var(--status-success); display:flex; align-items:center; justify-content:center; }
+  .submit-hero__title { font-family:var(--font-display); font-size:var(--text-xl); font-weight:var(--weight-semibold);
+        color:var(--text-primary); }
+  .submit-hero__sub { font-size:var(--text-sm); color:var(--text-secondary); max-width:30ch; }
+
+  .submit-summary { border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
+        background:var(--bg-surface); overflow:hidden; }
+  .submit-srow { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4);
+        padding:var(--space-3) var(--space-4); }
+  .submit-srow + .submit-srow { border-top:1px solid var(--border-subtle); }
+  .submit-srow__k { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.06em;
+        text-transform:uppercase; color:var(--text-muted); }
+  .submit-srow__v { font-size:var(--text-sm); font-weight:var(--weight-medium); color:var(--text-primary);
+        text-align:right; }
+  .submit-srow__v--mono { font-family:var(--font-mono); }
+
+  .submit-actions { display:flex; flex-direction:column; gap:var(--space-3); margin-top:auto; }
+
+  /* error state container */
+  .submit-errwrap { display:flex; flex-direction:column; gap:var(--space-4); }
+  .submit-link { background:none; border:0; padding:var(--space-2) 0; min-height:44px; cursor:pointer;
+        font-family:var(--font-ui); font-size:var(--text-sm); font-weight:var(--weight-semibold);
+        color:var(--brand-primary); display:inline-flex; align-items:center; gap:var(--space-1); align-self:flex-start; }
+  .submit-link:hover { color:var(--brand-primary-hover); }
+
+  .submit-eyebrow { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.06em;
+        text-transform:uppercase; color:var(--text-muted); }
+
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+        clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+  /* dev state-flip tray */
+  .submit-tray { display:flex; flex-wrap:wrap; gap:var(--space-2); padding-top:var(--space-2);
+        border-top:1px dashed var(--border-subtle); }
+
+  /* below-frame doc tiles */
+  .submit-doc { width:390px; margin:0 auto var(--space-8); display:flex; flex-direction:column; gap:var(--space-3); }
+  .submit-doc__h { font-family:var(--font-mono); font-size:var(--text-2xs); letter-spacing:0.06em;
+        text-transform:uppercase; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725 || window.LvlUpV0; /* KIT namespace; defensive alias for standalone render */
+  const { useState, useEffect } = React;
+  const { Button, Icon, Alert, Badge, Chip, Tabbar } = LU;
+
+  /* ───────────────────────── VIEW (this is lifted into the SPA) ───────────────────────── */
+  const MOCK_EXAM = { id: 'EX1', title: 'Mid-term · Algebra II' };
+  const MOCK_STUDENT = { id: 'R-014', name: 'R. Sharma', roll: 'R-014' };
+  const MOCK_IMAGES = [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }, { id: 'p4' }];
+
+  const PIPELINE = [
+    { id: 'compress', label: 'Compressing images' },
+    { id: 'upload',   label: 'Uploading to storage' },
+    { id: 'create',   label: 'Creating submission' },
+  ];
+
+  function StepRow({ step, state }) {
+    const dotCls = 'submit-step__dot--' + state;
+    return (
+      <div className={'submit-step' + (state === 'active' ? ' submit-step--active' : '') + (state === 'pending' ? ' submit-step--pending' : '')}
+           aria-busy={state === 'active' || undefined}>
+        <span className={'submit-step__dot ' + dotCls}>
+          {state === 'done'
+            ? <Icon name="check" size={16} />
+            : state === 'active'
+              ? <span className="submit-spin"><Icon name="loader-2" size={16} /></span>
+              : <Icon name="circle" size={14} />}
+        </span>
+        <span className="submit-step__label">{step.label}</span>
+      </div>
+    );
+  }
+
+  function SummaryRow({ k, v, mono }) {
+    return (
+      <div className="submit-srow">
+        <span className="submit-srow__k">{k}</span>
+        <span className={'submit-srow__v' + (mono ? ' submit-srow__v--mono' : '')}>{v}</span>
+      </div>
+    );
+  }
+
+  function SubmitConfirmView({ nav, params, ctx }) {
+    ctx = ctx || {};
+    params = params || {};
+    nav = nav || { go: () => {}, back: () => {} };
+
+    const exam = ctx.selectedExam || MOCK_EXAM;
+    const student = ctx.selectedStudent || MOCK_STUDENT;
+    const images = (ctx.images && ctx.images.length) ? ctx.images : MOCK_IMAGES;
+    const pageCount = images.length;
+    const examId = params.examId || (exam && exam.id) || 'EX1';
+
+    // pipeline: index of current step; -1 = not started, PIPELINE.length = done
+    const [stepIdx, setStepIdx] = useState(0);
+    // outcome: 'pending' while running, then 'success' | 'duplicate' | 'offline' | 'failed'
+    const [outcome, setOutcome] = useState('pending');
+    const [submittedAt] = useState(() => {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    });
+
+    const toast = (ctx.toast) || (() => {});
+
+    useEffect(() => {
+      // if explicitly offline, short-circuit to the offline outcome after a beat
+      const offline = ctx.online === false;
+      const timers = [];
+      PIPELINE.forEach((s, i) => {
+        timers.push(setTimeout(() => {
+          setStepIdx(i + 1);
+          toast({ variant: 'info', title: s.label, body: 'Step ' + (i + 1) + ' of ' + PIPELINE.length });
+        }, 600 * (i + 1)));
+      });
+      timers.push(setTimeout(() => {
+        if (offline) {
+          setOutcome('offline');
+        } else {
+          setOutcome('success');
+          toast({ variant: 'success', title: 'Submitted for grading', body: student.name + ' · ' + pageCount + ' pages' });
+        }
+      }, 600 * (PIPELINE.length + 1)));
+      return () => timers.forEach(clearTimeout);
+      // eslint-disable-next-line
+    }, []);
+
+    const running = outcome === 'pending';
+
+    // ── progress overlay ──
+    const overlay = running && (
+      <div className="submit-overlay" role="status" aria-live="polite">
+        <div className="submit-overlay__halo"><Icon name="upload-cloud" size={30} /></div>
+        <div>
+          <div className="submit-overlay__cap">Submitting answer sheet</div>
+          <div className="submit-overlay__sub">{pageCount} pages · {student.name}</div>
+        </div>
+        <div className="submit-steps">
+          {PIPELINE.map((s, i) => (
+            <StepRow key={s.id} step={s}
+              state={i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'pending'} />
+          ))}
+        </div>
+      </div>
+    );
+
+    // ── success ──
+    const successBody = (
+      <>
+        <div className="submit-hero">
+          <span className="submit-hero__ring"><Icon name="check-circle" size={38} /></span>
+          <div className="submit-hero__title">Submitted for grading</div>
+          <div className="submit-hero__sub">The answer sheet is in the queue. Grading runs on the server — nothing else to do here.</div>
+          <Badge variant="success" icon={<Icon name="shield-check" size={12} />}>Server received · {pageCount} pages</Badge>
+        </div>
+
+        <div>
+          <div className="submit-eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Submission</div>
+          <div className="submit-summary">
+            <SummaryRow k="Exam" v={exam.title} />
+            <SummaryRow k="Student" v={student.name + ' · ' + (student.roll || student.id)} />
+            <SummaryRow k="Pages" v={pageCount + ' pages'} />
+            <SummaryRow k="Submitted" v={submittedAt} mono />
+          </div>
+        </div>
+
+        <div className="submit-actions">
+          <Button variant="primary" size="lg" block
+            leadingIcon={<Icon name="scan-line" size={18} />}
+            onClick={() => nav.go('#/scan/e/' + examId)}>Scan another student</Button>
+          <Button variant="secondary" size="lg" block
+            leadingIcon={<Icon name="arrow-left" size={18} />}
+            onClick={() => nav.go('#/scan')}>Back to exams</Button>
+        </div>
+      </>
+    );
+
+    // ── duplicate (already-exists) ──
+    const duplicateBody = (
+      <div className="submit-errwrap">
+        <Alert variant="warning" title="Already submitted">
+          This student was already scanned for this exam. No new copy was created.
+        </Alert>
+        <button className="submit-link" onClick={() => nav.go('#/history')}>
+          <Icon name="history" size={16} /> View in history
+        </button>
+        <div className="submit-actions">
+          <Button variant="secondary" size="lg" block
+            leadingIcon={<Icon name="arrow-left" size={18} />}
+            onClick={() => nav.go('#/scan')}>Back to exams</Button>
+        </div>
+      </div>
+    );
+
+    // ── offline (queued) ──
+    const offlineBody = (
+      <div className="submit-errwrap">
+        <Alert variant="info" title="You're offline">
+          Saved to the upload queue. It'll send automatically when you reconnect.
+        </Alert>
+        <button className="submit-link" onClick={() => nav.go('#/queue')}>
+          <Icon name="upload-cloud" size={16} /> View queue
+        </button>
+        <div className="submit-actions">
+          <Button variant="primary" size="lg" block
+            leadingIcon={<Icon name="scan-line" size={18} />}
+            onClick={() => nav.go('#/scan/e/' + examId)}>Scan another student</Button>
+        </div>
+      </div>
+    );
+
+    // ── failed-precondition (exam closed) ──
+    const failedBody = (
+      <div className="submit-errwrap">
+        <Alert variant="error" title="Exam isn't open">
+          This exam isn't open for scanning right now. Ask the teacher to publish it, then try again.
+        </Alert>
+        <div className="submit-actions">
+          <Button variant="secondary" size="lg" block
+            leadingIcon={<Icon name="arrow-left" size={18} />}
+            onClick={() => nav.go('#/scan')}>Back to exams</Button>
+        </div>
+      </div>
+    );
+
+    let body = null;
+    if (outcome === 'success') body = successBody;
+    else if (outcome === 'duplicate') body = duplicateBody;
+    else if (outcome === 'offline') body = offlineBody;
+    else if (outcome === 'failed') body = failedBody;
+
+    return (
+      <>
+        {overlay}
+        {!running && (
+          <div className="submit-wrap">
+            {body}
+
+            {/* dev-only state flip tray — documents the non-happy outcomes; harmless in SPA */}
+            <div className="submit-tray" role="group" aria-label="Preview outcome states">
+              <Chip active={outcome === 'success'} onClick={() => setOutcome('success')}>Success</Chip>
+              <Chip active={outcome === 'duplicate'} onClick={() => setOutcome('duplicate')}>Duplicate</Chip>
+              <Chip active={outcome === 'offline'} onClick={() => setOutcome('offline')}>Offline</Chip>
+              <Chip active={outcome === 'failed'} onClick={() => setOutcome('failed')}>Exam closed</Chip>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  /* ───────────────────────── DEMO (phone frame + mock shell — NOT lifted) ───────────────────────── */
+  function Demo() {
+    const mockNav = { go: (h) => console.log('nav', h), back: () => {} };
+    const mockCtx = {
+      scanner: { name: 'A. Operator', initials: 'AO', school: 'Subhang Academy', code: 'SUB001' },
+      selectedExam: { id: 'EX1', title: 'Mid-term · Algebra II' },
+      selectedStudent: { id: 'R-014', name: 'R. Sharma', roll: 'R-014' },
+      images: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }, { id: 'p4' }],
+      online: true,
+      toast: (t) => console.log('toast', t.title),
+    };
+    const tabs = [
+      { icon: 'scan-line', label: 'Scan', active: true },
+      { icon: 'upload-cloud', label: 'Queue' },
+      { icon: 'history', label: 'History' },
+    ];
+
+    useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
+
+    return (
+      <>
+        <div className="ph">
+          <div className="ph__top">
+            <span className="ph__brand">
+              <span className="ph__mark"><Icon name="scan-line" size={16} /></span>
+              <span className="ph__title">AutoGrade Scan</span>
+            </span>
+            <span className="ph__spacer" />
+            <Icon name="settings" size={18} />
+          </div>
+          <div className="ph__body">
+            <SubmitConfirmView nav={mockNav} params={{ examId: 'EX1', studentId: 'R-014' }} ctx={mockCtx} />
+          </div>
+          <div className="ph__tabs">
+            <Tabbar items={tabs} />
+          </div>
+        </div>
+
+        <div className="submit-doc">
+          <div className="submit-doc__h">States — flip via the tray inside the frame</div>
+          <Alert variant="warning" title="Duplicate (already-exists)">Student already scanned for this exam.</Alert>
+          <Alert variant="info" title="Offline (queued)">Saved to upload queue · auto-retries on reconnect.</Alert>
+          <Alert variant="error" title="Failed-precondition">Exam not published/grading.</Alert>
+        </div>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

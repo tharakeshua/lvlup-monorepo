@@ -12,7 +12,8 @@
  * answer key is never on the device) → prev/next.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   useItems,
@@ -31,14 +32,21 @@ import {
   Card,
   Chip,
   Drawer,
+  FeedbackPanel,
   Icon,
+  IconButton,
   MaterialBlock,
   ProgressBar,
+  QuestionNavBar,
   QuestionView,
   Screen,
   Skeleton,
   TextField,
+  colors,
+  toFeedbackProps,
+  type FeedbackVerdict,
 } from "../../components";
+import { asApiError } from "@levelup/query";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
 import { ErrorState } from "./_shared/states";
@@ -50,6 +58,7 @@ import {
   itemKindLabel,
   itemStatusOf,
   pct,
+  questionTypeOf,
   type ItemStatus,
 } from "./_shared/normalize";
 import type { ItemView, StoryPointProgressView, StoryPointView } from "./_shared/types";
@@ -64,33 +73,59 @@ type AttemptOutcome = {
 /** Pull a friendly outcome from the authoritative recordItemAttempt result. */
 function toOutcome(data: unknown): AttemptOutcome {
   const d = (data ?? {}) as { completed?: boolean; progress?: Record<string, unknown> };
+  // The authoritative shape is `progress.evaluation` (StoredEvaluation) plus the
+  // top-level `solved`/`percentage` roll-ups — NOT `questionData`/`lastEvaluation`
+  // (those were a stale guess that made every AI grade render as a blank
+  // "incorrect"). Verdict is derived from correctness/solved so a partial score
+  // reads as partial, not a flat wrong.
   const progress = (d.progress ?? {}) as {
-    questionData?: { status?: "correct" | "incorrect" | "partial" };
-    lastEvaluation?: { feedback?: string };
-    feedback?: string;
+    solved?: boolean;
+    percentage?: number;
+    evaluation?: {
+      correctness?: number;
+      percentage?: number;
+      summary?: { keyTakeaway?: string; overallComment?: string };
+    } | null;
   };
-  const status = progress.questionData?.status;
-  const feedback = progress.lastEvaluation?.feedback ?? progress.feedback;
+  const ev = progress.evaluation ?? undefined;
+  const correctness = typeof ev?.correctness === "number" ? ev.correctness : undefined;
+  const percentage =
+    typeof ev?.percentage === "number"
+      ? ev.percentage
+      : typeof progress.percentage === "number"
+        ? progress.percentage
+        : undefined;
+  const status: AttemptOutcome["status"] =
+    progress.solved === true || (correctness != null && correctness >= 1)
+      ? "correct"
+      : (correctness != null && correctness > 0) || (percentage != null && percentage > 0)
+        ? "partial"
+        : ev
+          ? "incorrect"
+          : undefined;
+  const feedback = ev?.summary?.overallComment ?? ev?.summary?.keyTakeaway;
   return { status, completed: Boolean(d.completed), feedback, raw: data };
 }
 
-function FeedbackBanner({ outcome }: { outcome: AttemptOutcome }) {
-  const good = outcome.status === "correct" || (outcome.completed && !outcome.status);
-  const partial = outcome.status === "partial";
-  const variant = good ? "success" : partial ? "warning" : "error";
-  const title = good
-    ? "Nice — that's right."
-    : partial
-      ? "You're close. Let's look again."
-      : "Not quite yet — let's work through it.";
-  const icon = good ? "check-circle" : partial ? "alert-triangle" : "rotate-ccw";
+/** The warm growth-framed verdict, hydrated from the raw attempt result. */
+function AttemptFeedback({ outcome }: { outcome: AttemptOutcome }) {
+  const verdict: FeedbackVerdict =
+    outcome.status === "partial"
+      ? "partial"
+      : outcome.status === "correct" || (outcome.completed && !outcome.status)
+        ? "correct"
+        : "incorrect";
+  const rich = toFeedbackProps(outcome.raw);
+  const fallback =
+    verdict === "correct"
+      ? "Great work — on to the next one."
+      : "Re-check your reasoning, then try again. The tutor can help.";
   return (
-    <Alert variant={variant} title={title} icon={<Icon name={icon} size={18} />}>
-      {outcome.feedback ??
-        (good
-          ? "Great work — on to the next one."
-          : "Re-check your reasoning, then try again. The tutor can help.")}
-    </Alert>
+    <FeedbackPanel
+      verdict={verdict}
+      {...rich}
+      comment={rich.comment ?? outcome.feedback ?? fallback}
+    />
   );
 }
 
@@ -122,6 +157,7 @@ export default function ContentViewerScreen() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [outcomes, setOutcomes] = useState<Record<string, AttemptOutcome>>({});
+  const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
   const [tutorOpen, setTutorOpen] = useState(false);
   const [tutorDraft, setTutorDraft] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -130,7 +166,12 @@ export default function ContentViewerScreen() {
   const item = items[current];
   const itemId = item?.id ?? "";
   const outcome = outcomes[itemId];
-  const submitted = Boolean(outcome);
+  const submitError = submitErrors[itemId];
+  const isAgentAssessment = questionTypeOf(item) === "chat_agent_question";
+  // Conversational assessments have their own immutable submission path. They
+  // must never become a generic item attempt just because this viewer renders
+  // all question types in one place.
+  const submitted = !isAgentAssessment && Boolean(outcome);
 
   // AttemptBar status strip over all items (current item overrides to "current").
   const barItems = useMemo<{ status: ItemStatus }[]>(
@@ -157,8 +198,15 @@ export default function ContentViewerScreen() {
 
   const submit = useCallback(
     (answer: unknown) => {
-      if (!item) return;
+      if (!item || questionTypeOf(item) === "chat_agent_question") return;
       const timeSpent = Math.round((Date.now() - startRef.current) / 1000);
+      // A fresh attempt clears any prior error banner for this item.
+      setSubmitErrors((m) => {
+        if (!m[item.id]) return m;
+        const next = { ...m };
+        delete next[item.id];
+        return next;
+      });
       recordAttempt.mutate(
         {
           spaceId: asSpaceId(spaceId),
@@ -169,6 +217,17 @@ export default function ContentViewerScreen() {
         },
         {
           onSuccess: (data) => setOutcomes((m) => ({ ...m, [item.id]: toOutcome(data) })),
+          // Never fail silently: surface an honest, retryable error card. A
+          // grading error (or a response the client can't parse) used to render
+          // as nothing at all — the learner tapped Check and saw no change.
+          onError: (err) => {
+            const e = asApiError(err);
+            const message =
+              e.code === "UNAUTHENTICATED"
+                ? "Your session expired. Pull to refresh and try again."
+                : "We couldn't check your answer just now. Please try again.";
+            setSubmitErrors((m) => ({ ...m, [item.id]: message }));
+          },
         }
       );
     },
@@ -178,6 +237,12 @@ export default function ContentViewerScreen() {
   const tryAgain = useCallback(() => {
     if (!itemId) return;
     setOutcomes((m) => {
+      const next = { ...m };
+      delete next[itemId];
+      return next;
+    });
+    setSubmitErrors((m) => {
+      if (!m[itemId]) return m;
       const next = { ...m };
       delete next[itemId];
       return next;
@@ -249,54 +314,254 @@ export default function ContentViewerScreen() {
   const sectionTitle = currentSp?.sections?.find((s) => s.id === item?.sectionId)?.title;
   const overall = pct(progress?.percentage);
 
+  // Bottom-bar stepping: within items first; at the boundary, cross lessons.
+  const prevStep =
+    current > 0
+      ? { onPress: () => goTo(Math.max(0, current - 1)) }
+      : prevSp
+        ? { onPress: () => router.push(routes.spaceContent(spaceId, prevSp.id)), crossing: true }
+        : { onPress: () => {}, disabled: true };
+  const nextStep =
+    current < items.length - 1
+      ? { onPress: () => goTo(Math.min(items.length - 1, current + 1)) }
+      : nextSp
+        ? { onPress: () => router.push(routes.spaceContent(spaceId, nextSp.id)), crossing: true }
+        : { onPress: () => {}, disabled: true };
+
   return (
-    <Screen className="bg-canvas" contentClassName="p-5 gap-4">
-      <Breadcrumb
-        items={[
-          { label: "Spaces", onPress: () => router.push(routes.spaces()) },
-          { label: spTitle, onPress: () => router.push(routes.space(spaceId)) },
-        ]}
-      />
-
-      {/* compact header: SP title + lesson counter + thin progress */}
-      <View className="gap-2">
-        <View className="flex-row items-baseline justify-between gap-2">
-          <Text className="font-display text-text-primary flex-1 text-lg" numberOfLines={1}>
-            {spTitle}
-          </Text>
-          {siblings.length > 0 ? (
-            <Text className="text-text-muted text-xs">
-              Lesson {spIndex >= 0 ? spIndex + 1 : 1} / {siblings.length}
+    <SafeAreaView edges={["top"]} className="bg-canvas flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pt-4 pb-6 gap-4"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* compact header: SP title + lesson counter + thin progress */}
+        <View className="gap-2">
+          <View className="flex-row items-baseline justify-between gap-2">
+            <Text className="font-display text-text-primary flex-1 text-lg" numberOfLines={1}>
+              {spTitle}
             </Text>
+            {siblings.length > 0 ? (
+              <Text className="text-text-muted text-xs">
+                Lesson {spIndex >= 0 ? spIndex + 1 : 1} / {siblings.length}
+              </Text>
+            ) : null}
+          </View>
+          <ProgressBar value={overall} variant={overall >= 100 ? "success" : "brand"} height={6} />
+        </View>
+
+        {/* numbered item navigator */}
+        <AttemptBar items={barItems} current={current} onSelect={goTo} />
+
+        {/* current item — the immersive one-at-a-time card */}
+        <Card className="gap-4 p-5">
+          <View className="border-border-subtle flex-row items-center justify-between border-b pb-3">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <View className="bg-brand-subtle h-7 w-7 items-center justify-center rounded-md">
+                <Icon
+                  name={isMaterial(item) ? "file-text" : "help-circle"}
+                  size={14}
+                  color={colors.brand}
+                />
+              </View>
+              <Text className="font-ui text-text-muted text-xs">
+                {itemKindLabel(item)}{" "}
+                <Text className="font-mono">
+                  {current + 1} of {items.length}
+                </Text>
+              </Text>
+            </View>
+            {/* difficulty renders inside QuestionView's chip row — no twin here */}
+          </View>
+
+          {sectionTitle ? <Chip className="px-2 py-0.5">{sectionTitle}</Chip> : null}
+
+          {item?.title ? (
+            <Text className="font-display text-text-primary text-lg leading-7">{item.title}</Text>
           ) : null}
-        </View>
-        <ProgressBar value={overall} variant="spark" />
-      </View>
 
-      {/* numbered item navigator */}
-      <AttemptBar items={barItems} current={current} onSelect={goTo} />
+          {/* MATERIAL */}
+          {isMaterial(item) ? (
+            <>
+              <MaterialBlock item={item} />
+              <View className="flex-row justify-start">
+                {submitted ? (
+                  <Badge variant="success" icon={<Icon name="check" size={12} />}>
+                    Read
+                  </Badge>
+                ) : (
+                  <Button
+                    variant="spark"
+                    size="sm"
+                    leadingIcon={<Icon name="check" size={16} />}
+                    loading={recordAttempt.isPending}
+                    onPress={() => submit({ read: true })}
+                  >
+                    Mark as read
+                  </Button>
+                )}
+              </View>
+            </>
+          ) : null}
 
-      {/* current item */}
-      <Card className="gap-4">
-        {/* the AttemptBar above already shows position — one slim chip row only */}
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Chip active={isMaterial(item)}>{itemKindLabel(item)}</Chip>
-          {sectionTitle ? <Chip>{sectionTitle}</Chip> : null}
-          {item?.difficulty ? <Chip>{`Difficulty: ${item.difficulty}`}</Chip> : null}
-        </View>
+          {/* QUESTION */}
+          {isQuestion(item) ? (
+            <>
+              <QuestionView
+                item={item}
+                spaceId={spaceId}
+                storyPointId={storyPointId}
+                value={answers[itemId]}
+                onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
+                disabled={submitted}
+                showResult={submitted}
+                hideBanner
+                result={
+                  outcome
+                    ? {
+                        correct:
+                          outcome.status === "correct" || (outcome.completed && !outcome.status),
+                      }
+                    : undefined
+                }
+              />
 
-        {item?.title ? (
-          <Text className="font-display text-text-primary text-lg">{item.title}</Text>
-        ) : null}
+              {submitted ? <AttemptFeedback outcome={outcome} /> : null}
 
-        {/* MATERIAL */}
-        {isMaterial(item) ? (
-          <>
-            <MaterialBlock item={item} />
-            <View className="flex-row justify-start">
+              {/* AI grading can take several seconds — keep the wait honest and
+                visible so the learner knows their answer is being read, not lost. */}
+              {!submitted && !isAgentAssessment && recordAttempt.isPending ? (
+                <Alert
+                  variant="brand"
+                  title="Evaluating your answer…"
+                  icon={<Icon name="sparkles" size={16} />}
+                >
+                  Our AI tutor is reading your response. This usually takes a few seconds.
+                </Alert>
+              ) : null}
+
+              {/* Honest, retryable failure — never a silent no-op. */}
+              {!submitted && !isAgentAssessment && submitError && !recordAttempt.isPending ? (
+                <Alert
+                  variant="error"
+                  title="That didn't go through"
+                  icon={<Icon name="alert-circle" size={16} />}
+                >
+                  <View className="gap-2">
+                    <Text className="font-ui text-text-secondary text-sm">{submitError}</Text>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={<Icon name="rotate-ccw" size={15} />}
+                      onPress={() => submit(answers[itemId])}
+                    >
+                      Retry
+                    </Button>
+                  </View>
+                </Alert>
+              ) : null}
+
+              {/* full-width stacked actions — big touch targets, one clear next step */}
+              {isAgentAssessment ? (
+                <Alert
+                  variant="info"
+                  title="Interview submission"
+                  icon={<Icon name="shield-check" size={16} />}
+                >
+                  Use the conversation above and choose{" "}
+                  <Text className="font-ui font-semibold">Finish interview</Text> when you are
+                  ready. This assessment is not checked through the normal answer flow.
+                </Alert>
+              ) : (
+                <View className="gap-2">
+                  {!submitted ? (
+                    <Button
+                      variant="primary"
+                      block
+                      disabled={answers[itemId] == null || recordAttempt.isPending}
+                      loading={recordAttempt.isPending}
+                      onPress={() => submit(answers[itemId])}
+                    >
+                      {recordAttempt.isPending ? "Reading your answer…" : "Check answer"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      block
+                      leadingIcon={<Icon name="rotate-ccw" size={16} />}
+                      onPress={tryAgain}
+                    >
+                      Try again
+                    </Button>
+                  )}
+                  <View className="flex-row gap-2">
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                      leadingIcon={<Icon name="message-circle" size={16} />}
+                      onPress={() => setTutorOpen(true)}
+                    >
+                      Ask tutor
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                      leadingIcon={<Icon name="history" size={16} />}
+                      onPress={() => setShowHistory((v) => !v)}
+                    >
+                      History
+                    </Button>
+                  </View>
+                </View>
+              )}
+
+              {showHistory && !isAgentAssessment ? (
+                <View className="border-border-subtle gap-1 border-t pt-3">
+                  {(() => {
+                    const attempts = (progressItems[itemId]?.attempts ?? []) as {
+                      attemptNumber?: number;
+                      score?: number;
+                      maxScore?: number;
+                    }[];
+                    if (attempts.length === 0)
+                      return (
+                        <Text className="text-text-muted text-xs">
+                          No attempts yet — give it a try when you're ready.
+                        </Text>
+                      );
+                    return attempts.map((a, i) => (
+                      <View key={i} className="flex-row items-center justify-between">
+                        <Text className="text-text-muted text-xs">
+                          Attempt {a.attemptNumber ?? i + 1}
+                        </Text>
+                        <Text className="text-text-secondary text-xs">
+                          {typeof a.score === "number" ? `${a.score}/${a.maxScore ?? "—"}` : "—"}
+                        </Text>
+                      </View>
+                    ));
+                  })()}
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* OTHER item types (interactive/assessment/discussion/project/checkpoint) */}
+          {!isMaterial(item) && !isQuestion(item) ? (
+            <View className="gap-3">
+              {item?.content ? (
+                <Text className="text-text-secondary text-sm leading-5">{item.content}</Text>
+              ) : null}
+              <Alert
+                variant="info"
+                title="Open this activity"
+                icon={<Icon name="external-link" size={16} />}
+              >
+                This item type is best completed in the full activity view.
+              </Alert>
               {submitted ? (
                 <Badge variant="success" icon={<Icon name="check" size={12} />}>
-                  Read
+                  Done
                 </Badge>
               ) : (
                 <Button
@@ -304,191 +569,32 @@ export default function ContentViewerScreen() {
                   size="sm"
                   leadingIcon={<Icon name="check" size={16} />}
                   loading={recordAttempt.isPending}
-                  onPress={() => submit({ read: true })}
+                  onPress={() => submit({ acknowledged: true })}
                 >
-                  Mark as read
+                  Mark complete
                 </Button>
               )}
             </View>
-          </>
-        ) : null}
+          ) : null}
+        </Card>
+      </ScrollView>
 
-        {/* QUESTION */}
-        {isQuestion(item) ? (
-          <>
-            <QuestionView
-              item={item}
-              spaceId={spaceId}
-              storyPointId={storyPointId}
-              value={answers[itemId]}
-              onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
-              disabled={submitted}
-              showResult={submitted}
-              result={
-                outcome
-                  ? {
-                      correct:
-                        outcome.status === "correct" || (outcome.completed && !outcome.status),
-                      feedback: outcome.feedback,
-                    }
-                  : undefined
-              }
-            />
-
-            {submitted ? <FeedbackBanner outcome={outcome} /> : null}
-
-            <View className="flex-row flex-wrap items-center gap-2">
-              {!submitted ? (
-                <Button
-                  variant="spark"
-                  leadingIcon={<Icon name="send" size={16} />}
-                  disabled={answers[itemId] == null || recordAttempt.isPending}
-                  loading={recordAttempt.isPending}
-                  onPress={() => submit(answers[itemId])}
-                >
-                  {recordAttempt.isPending ? "Reading your answer…" : "Submit answer"}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  leadingIcon={<Icon name="rotate-ccw" size={16} />}
-                  onPress={tryAgain}
-                >
-                  Try again
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                leadingIcon={<Icon name="sparkles" size={16} />}
-                onPress={() => setTutorOpen(true)}
-              >
-                Ask the tutor
-              </Button>
-              <Button
-                variant="ghost"
-                leadingIcon={<Icon name="history" size={16} />}
-                onPress={() => setShowHistory((v) => !v)}
-              >
-                History
-              </Button>
-            </View>
-
-            {showHistory ? (
-              <View className="border-border-subtle gap-1 border-t pt-3">
-                {(() => {
-                  const attempts = (progressItems[itemId]?.attempts ?? []) as {
-                    attemptNumber?: number;
-                    score?: number;
-                    maxScore?: number;
-                  }[];
-                  if (attempts.length === 0)
-                    return (
-                      <Text className="text-text-muted text-xs">
-                        No attempts yet — give it a try when you're ready.
-                      </Text>
-                    );
-                  return attempts.map((a, i) => (
-                    <View key={i} className="flex-row items-center justify-between">
-                      <Text className="text-text-muted text-xs">
-                        Attempt {a.attemptNumber ?? i + 1}
-                      </Text>
-                      <Text className="text-text-secondary text-xs">
-                        {typeof a.score === "number" ? `${a.score}/${a.maxScore ?? "—"}` : "—"}
-                      </Text>
-                    </View>
-                  ));
-                })()}
-              </View>
-            ) : null}
-          </>
-        ) : null}
-
-        {/* OTHER item types (interactive/assessment/discussion/project/checkpoint) */}
-        {!isMaterial(item) && !isQuestion(item) ? (
-          <View className="gap-3">
-            {item?.content ? (
-              <Text className="text-text-secondary text-sm leading-5">{item.content}</Text>
-            ) : null}
-            <Alert
-              variant="info"
-              title="Open this activity"
-              icon={<Icon name="external-link" size={16} />}
-            >
-              This item type is best completed in the full activity view.
-            </Alert>
-            {submitted ? (
-              <Badge variant="success" icon={<Icon name="check" size={12} />}>
-                Done
-              </Badge>
-            ) : (
-              <Button
-                variant="spark"
-                size="sm"
-                leadingIcon={<Icon name="check" size={16} />}
-                loading={recordAttempt.isPending}
-                onPress={() => submit({ acknowledged: true })}
-              >
-                Mark complete
-              </Button>
-            )}
-          </View>
-        ) : null}
-      </Card>
-
-      {/* per-item prev/next */}
-      <View className="flex-row items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          leadingIcon={<Icon name="chevron-left" size={16} />}
-          disabled={current === 0}
-          onPress={() => goTo(Math.max(0, current - 1))}
-        >
-          Previous
-        </Button>
-        <Text className="text-text-muted text-xs">
-          {current + 1} / {items.length}
-        </Text>
-        <Button
-          variant="ghost"
-          size="sm"
-          trailingIcon={<Icon name="chevron-right" size={16} />}
-          disabled={current === items.length - 1}
-          onPress={() => goTo(Math.min(items.length - 1, current + 1))}
-        >
-          Next
-        </Button>
-      </View>
-
-      {/* lesson-level nav + practice (kept below so the question owns the screen) */}
-      <View className="border-border-subtle flex-row flex-wrap items-center justify-between gap-2 border-t pt-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          leadingIcon={<Icon name="chevron-left" size={16} />}
-          disabled={!prevSp}
-          onPress={() => prevSp && router.push(routes.spaceContent(spaceId, prevSp.id))}
-        >
-          Prev lesson
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          leadingIcon={<Icon name="target" size={16} />}
-          onPress={() => router.push(routes.practice(spaceId, storyPointId))}
-        >
-          Practice
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          trailingIcon={<Icon name="chevron-right" size={16} />}
-          disabled={!nextSp}
-          onPress={() => nextSp && router.push(routes.spaceContent(spaceId, nextSp.id))}
-        >
-          Next lesson
-        </Button>
-      </View>
+      {/* question-scoped bottom nav — stepping + quick practice, off the card */}
+      <QuestionNavBar
+        onBack={() => router.push(routes.space(spaceId))}
+        prev={prevStep}
+        next={nextStep}
+        position={current + 1}
+        total={items.length}
+        actions={
+          <IconButton
+            icon="dumbbell"
+            label="Practice this lesson"
+            variant="subtle"
+            onPress={() => router.push(routes.practice(spaceId, storyPointId))}
+          />
+        }
+      />
 
       {/* Tutor drawer */}
       <Drawer open={tutorOpen} onClose={() => setTutorOpen(false)} title="Ask the tutor">
@@ -518,13 +624,20 @@ export default function ContentViewerScreen() {
             leadingIcon={<Icon name="send" size={16} />}
             onPress={() => {
               setTutorOpen(false);
-              router.push(routes.tutor());
+              router.push(
+                routes.tutor({
+                  scope: "item",
+                  spaceId,
+                  storyPointId,
+                  itemId,
+                })
+              );
             }}
           >
             Continue in tutor chat
           </Button>
         </View>
       </Drawer>
-    </Screen>
+    </SafeAreaView>
   );
 }

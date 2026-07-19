@@ -1,0 +1,62 @@
+<!-- @dsCard group="Forms" viewport="700x300" name="Input" subtitle="Default · focus · error · disabled" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:24px}
+.ds-row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;margin-bottom:20px}
+.ds-col{display:flex;flex-direction:column;gap:6px;min-width:220px}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:6px}
+.ds-search{position:relative}
+.ds-search .ds-search__icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);display:flex;pointer-events:none}
+.ds-search .input{padding-left:38px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { Input, Field, Icon } = window.LvlupV0DesignSystem_5d0725;
+  function Demo(){ return (<div>
+    <div className="ds-cap">States</div>
+    <div className="ds-row">
+      <div className="ds-col">
+        <Field label="Full name">
+          <Input placeholder="Ada Lovelace" defaultValue="Ada Lovelace" />
+        </Field>
+      </div>
+      <div className="ds-col">
+        <Field label="Email" hint="We'll never share it.">
+          <Input type="email" placeholder="ada@lyceum.edu" autoFocus defaultValue="ada@lyceum.edu" />
+        </Field>
+      </div>
+    </div>
+
+    <div className="ds-cap">Error &amp; disabled</div>
+    <div className="ds-row">
+      <div className="ds-col">
+        <Field label="Username" required error="That username is taken.">
+          <Input error defaultValue="ada" />
+        </Field>
+      </div>
+      <div className="ds-col">
+        <Field label="Tenant code">
+          <Input disabled defaultValue="SUB001" />
+        </Field>
+      </div>
+    </div>
+
+    <div className="ds-cap">With leading icon</div>
+    <div className="ds-row">
+      <div className="ds-col">
+        <Field label="Search">
+          <div className="ds-search">
+            <span className="ds-search__icon"><Icon name="search" size={16} /></span>
+            <Input type="search" placeholder="Search story points…" />
+          </div>
+        </Field>
+      </div>
+    </div>
+  </div>); }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  if (window.lucide) window.lucide.createIcons();
+</script></body></html>

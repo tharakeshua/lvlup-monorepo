@@ -1,0 +1,443 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Exams Overview" subtitle="Monitoring list · status · awaiting-review backlog · release state" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .page{max-width:var(--content-max);margin:0 auto;padding:var(--space-8) var(--space-10);display:flex;flex-direction:column;gap:var(--space-8)}
+  .page__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-6)}
+  .page__title{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0}
+  .page__sub{font-size:var(--text-md);color:var(--text-secondary);margin:var(--space-2) 0 0}
+  .page__sub .num{color:var(--text-muted)}
+  .toolbar{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+  .toolbar__search{flex:1 1 300px;min-width:240px}
+  .toolbar__count{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted)}
+  .toolbar__updated{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted)}
+  .chips-row{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-3)}
+  .chips-row__label{font-size:var(--text-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-caption);margin-right:var(--space-1)}
+  .tablecard{padding:0;overflow:hidden}
+  .tablecard .table{margin:0}
+  .tablecard .table thead th{position:sticky;top:0;background:var(--bg-surface);z-index:1}
+  .ex-title{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;cursor:pointer;font-family:var(--font-ui)}
+  .ex-title__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+  .ex-title__name:hover{color:var(--brand-primary)}
+  .ex-title__meta{font-size:var(--text-xs);color:var(--text-muted)}
+  .ex-classes{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap}
+  .ex-status{display:inline-flex;align-items:center;gap:6px}
+  .ex-status__dot{width:8px;height:8px;border-radius:var(--radius-pill);flex:none}
+  .ex-marks{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary);white-space:nowrap}
+  .ex-marks small{display:block;font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-ui)}
+  .ex-subs{display:flex;flex-direction:column;gap:4px;min-width:120px}
+  .ex-subs__frac{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+  .ex-await{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--text-sm);background:none;border:0;padding:0;cursor:pointer}
+  .ex-await--zero{color:var(--text-muted)}
+  .ex-await--na{color:var(--text-muted);cursor:default}
+  .ex-await--warn{color:var(--status-warning)}
+  .ex-results{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm)}
+  .ex-results--held{color:var(--text-muted)}
+  .ex-results--live{color:var(--status-success);font-weight:var(--weight-medium)}
+  .ex-results--na{color:var(--text-muted)}
+  .row-actions{position:relative;display:inline-block}
+  .menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:200px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-1);display:flex;flex-direction:column}
+  .menu button{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:var(--radius-sm);font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-primary);cursor:pointer}
+  .menu button:hover{background:var(--bg-surface-sunken)}
+  .menu button:disabled{color:var(--text-muted);cursor:not-allowed}
+  .menu__sep{height:1px;background:var(--border-subtle);margin:4px 0}
+  .pag-wrap{display:flex;justify-content:flex-end;padding:var(--space-3) var(--space-4)}
+  .states{display:flex;flex-wrap:wrap;gap:var(--space-6)}
+  .state-mini{flex:1 1 280px;min-width:260px;display:flex;flex-direction:column;gap:var(--space-2)}
+  .state-mini__box{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);padding:var(--space-4)}
+  .sk-row{display:flex;align-items:center;gap:var(--space-4);padding:10px 0;border-bottom:1px solid var(--border-subtle)}
+  .sk-row:last-child{border-bottom:0}
+  .u-caption{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Input, Select, Card, Section, Badge, Chip, ProgressBar,
+  EmptyState, Skeleton, Pagination, Avatar, Alert, Modal, Toast } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+const STATUS = {
+  draft:     { label:"Draft",      color:"var(--text-muted)",       dot:"var(--text-muted)" },
+  collecting:{ label:"Collecting", color:"var(--status-info)",      dot:"var(--status-info)" },
+  grading:   { label:"Grading",    color:"var(--status-warning)",   dot:"var(--status-warning)" },
+  graded:    { label:"Graded",     color:"var(--status-success)",   dot:"var(--status-success)" },
+  released:  { label:"Released",   color:"var(--status-success)",   dot:"var(--status-success)" },
+  archived:  { label:"Archived",   color:"var(--text-muted)",       dot:"var(--text-muted)" },
+};
+
+const EXAMS = [
+  { id:"e1", title:"Unit 3 Test — Quadratics", subject:"Mathematics", date:"in 2 days",
+    classes:["10-A"], status:"grading", total:40, pass:15, rec:28, exp:32, await:12, results:"held", auto:false },
+  { id:"e2", title:"Mid-term Examination", subject:"Mathematics", date:"in 5 days",
+    classes:["9-A","9-B","9-C"], status:"collecting", total:80, pass:30, rec:14, exp:56, await:null, results:"held", auto:false },
+  { id:"e3", title:"Quiz 1 — Linear Equations", subject:"Mathematics", date:"3 days ago",
+    classes:["10-B"], status:"released", total:20, pass:8, rec:30, exp:30, await:0, results:"live", auto:false },
+  { id:"e4", title:"Chapter 5 Assessment", subject:"Physics", date:"yesterday",
+    classes:["11-A"], status:"graded", total:50, pass:20, rec:34, exp:34, await:0, results:"auto", auto:true },
+  { id:"e5", title:"Pop Quiz — Trigonometry", subject:"Mathematics", date:"in 1 week",
+    classes:["10-A"], status:"draft", total:15, pass:6, rec:null, exp:null, await:null, results:"na", auto:false },
+  { id:"e6", title:"Practical Lab Review", subject:"Chemistry", date:"4 days ago",
+    classes:["11-B","11-C"], status:"grading", total:35, pass:14, rec:41, exp:42, await:0, results:"held", auto:false },
+  { id:"e7", title:"Reading Comprehension Set", subject:"English", date:"6 days ago",
+    classes:["9-A"], status:"released", total:25, pass:10, rec:27, exp:28, await:0, results:"live", auto:false },
+];
+
+function StatusBadge({ s }){
+  const m = STATUS[s];
+  return (
+    <span className="ex-status" style={{color:m.color}}>
+      <span className="ex-status__dot" style={{background:m.dot}} aria-hidden="true"></span>
+      <span style={{fontSize:"var(--text-sm)"}}>{m.label}</span>
+    </span>
+  );
+}
+
+function ClassChips({ classes }){
+  const shown = classes.slice(0,2), rest = classes.slice(2);
+  return (
+    <span className="ex-classes">
+      {shown.map(c => <Badge key={c} variant="info">{c}</Badge>)}
+      {rest.length > 0 && (
+        <span title={rest.join(", ")}><Badge>+{rest.length}</Badge></span>
+      )}
+    </span>
+  );
+}
+
+function SubmissionsCell({ rec, exp }){
+  if (rec == null) return <span className="ex-results--na" title="No submissions yet.">—</span>;
+  const pct = Math.round((rec/exp)*100);
+  return (
+    <div className="ex-subs">
+      <ProgressBar value={pct} />
+      <span className="ex-subs__frac">{rec}/{exp}
+        <span className="sr-only">{rec} of {exp} submissions received</span>
+      </span>
+    </div>
+  );
+}
+
+function AwaitingCell({ n, onReview }){
+  if (n == null) return <span className="ex-await ex-await--na" title="Not in a gradable state.">—</span>;
+  if (n === 0)   return <span className="ex-await ex-await--zero">0</span>;
+  return (
+    <button className="ex-await ex-await--warn" onClick={onReview} aria-label={n + " submissions awaiting review"}>
+      <Icon name="alert-triangle" size={14}/> {n}
+    </button>
+  );
+}
+
+function ResultsCell({ kind }){
+  if (kind === "live") return <span className="ex-results ex-results--live" title="Released — visible to students"><Icon name="check-circle" size={14}/> Live</span>;
+  if (kind === "auto") return <span title="Auto — results release automatically when grading completes"><Badge variant="info" icon={<Icon name="repeat" size={12}/>}>Auto</Badge></span>;
+  if (kind === "held") return <span className="ex-results ex-results--held" title="Held — results not yet visible to students"><Icon name="lock" size={14}/> Held</span>;
+  return <span className="ex-results ex-results--na">—</span>;
+}
+
+function RowMenu({ exam, onRelease }){
+  const [open, setOpen] = useState(false);
+  const releasable = (exam.status === "grading" || exam.status === "graded") && !exam.auto && exam.results !== "live";
+  const released = exam.results === "live";
+  return (
+    <span className="row-actions">
+      <IconButton icon={<Icon name="more-horizontal" size={18}/>} label={"Actions for " + exam.title} onClick={() => setOpen(o => !o)} />
+      {open && (
+        <div className="menu" role="menu" onMouseLeave={() => setOpen(false)}>
+          <button role="menuitem"><Icon name="external-link" size={15}/> Open</button>
+          <button role="menuitem"><Icon name="clipboard-check" size={15}/> Review submissions</button>
+          {releasable && <button role="menuitem" onClick={() => { setOpen(false); onRelease(exam); }}><Icon name="send" size={15}/> Release results</button>}
+          {released && <button role="menuitem"><Icon name="bar-chart-3" size={15}/> View analytics</button>}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function ExamsTable({ rows, onRelease }){
+  return (
+    <table className="table">
+      <thead><tr>
+        <th aria-sort="ascending"><button className="ex-title" style={{cursor:"pointer"}}>Exam <Icon name="chevron-up" size={12}/></button></th>
+        <th>Class(es)</th>
+        <th aria-sort="none">Status</th>
+        <th aria-sort="none">Marks</th>
+        <th aria-sort="none">Submissions</th>
+        <th aria-sort="none">Awaiting review</th>
+        <th aria-sort="none">Results</th>
+        <th><span className="sr-only">Actions</span></th>
+      </tr></thead>
+      <tbody>
+        {rows.map(e => (
+          <tr key={e.id}>
+            <td>
+              <button className="ex-title" aria-label={"Open " + e.title}>
+                <span className="ex-title__name">{e.title}</span>
+                <span className="ex-title__meta">{e.subject} · {e.date}</span>
+              </button>
+            </td>
+            <td><ClassChips classes={e.classes}/></td>
+            <td><StatusBadge s={e.status}/></td>
+            <td><span className="ex-marks">{e.total} / {e.pass}<small>pass {e.pass}</small><span className="sr-only">{e.pass} to pass</span></span></td>
+            <td><SubmissionsCell rec={e.rec} exp={e.exp}/></td>
+            <td><AwaitingCell n={e.await}/></td>
+            <td><ResultsCell kind={e.results}/></td>
+            <td style={{textAlign:"right"}}><RowMenu exam={e} onRelease={onRelease}/></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Shell(props){
+  const { Icon, IconButton, Avatar, NavItem, Badge } = window.LvlupV0DesignSystem_5d0725;
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+function App(){
+  const [search, setSearch] = useState("");
+  const [classF, setClassF] = useState("all");
+  const [statusF, setStatusF] = useState("all");
+  const [bannerOpen, setBannerOpen] = useState(true);
+  const [releaseExam, setReleaseExam] = useState(null);
+  const [releasing, setReleasing] = useState(false);
+  const [toast, setToast] = useState(false);
+
+  let rows = EXAMS.filter(e => {
+    const q = search.trim().toLowerCase();
+    if (q && !(e.title.toLowerCase().includes(q) || e.subject.toLowerCase().includes(q))) return false;
+    if (classF !== "all" && !e.classes.includes(classF)) return false;
+    if (statusF !== "all" && e.status !== statusF) return false;
+    return true;
+  });
+
+  const activeChips = [];
+  if (classF !== "all") activeChips.push({ key:"class", label:"Class: " + classF, clear:() => setClassF("all") });
+  if (statusF !== "all") activeChips.push({ key:"status", label:"Status: " + STATUS[statusF].label, clear:() => setStatusF("all") });
+
+  const readyCount = EXAMS.filter(e => e.status === "graded" && e.results !== "auto" && e.results !== "live").length
+    + EXAMS.filter(e => e.status === "grading" && e.await === 0).length;
+
+  function doRelease(){
+    setReleasing(true);
+    setTimeout(() => { setReleasing(false); setReleaseExam(null); setToast(true); setTimeout(() => setToast(false), 3200); }, 900);
+  }
+
+  return (
+    <Shell active="exams">
+      <div className="page">
+        <div className="page__head">
+          <div>
+            <h1 className="page__title">Exams</h1>
+            <p className="page__sub">Monitor status, submissions, and results across your classes. <span className="num">· {EXAMS.length} exams</span></p>
+          </div>
+          <Button variant="primary" leadingIcon={<Icon name="plus" size={16}/>}>New exam</Button>
+        </div>
+
+        {bannerOpen && readyCount > 0 && (
+          <Alert variant="info" title={readyCount + " exams are graded and ready to release."}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-4)"}}>
+              <span>Review the graded exams and release results to students when you're ready.</span>
+              <div style={{display:"flex",gap:"var(--space-2)",flex:"none"}}>
+                <Button variant="secondary" size="sm" onClick={() => setStatusF("graded")}>Review</Button>
+                <Button variant="ghost" size="sm" onClick={() => setBannerOpen(false)}>Dismiss</Button>
+              </div>
+            </div>
+          </Alert>
+        )}
+
+        <div>
+          <div className="toolbar">
+            <div className="toolbar__search">
+              <Input placeholder="Search by title or subject" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search by title or subject"/>
+            </div>
+            <div style={{width:170}}>
+              <Select aria-label="Filter by class" value={classF} onChange={e => setClassF(e.target.value)}
+                options={[{value:"all",label:"All classes"},{value:"10-A",label:"10-A"},{value:"10-B",label:"10-B"},{value:"9-A",label:"9-A"},{value:"9-B",label:"9-B"},{value:"11-A",label:"11-A"},{value:"11-B",label:"11-B"}]}/>
+            </div>
+            <div style={{width:180}}>
+              <Select aria-label="Filter by status" value={statusF} onChange={e => setStatusF(e.target.value)}
+                options={[{value:"all",label:"All statuses"},{value:"draft",label:"Draft"},{value:"collecting",label:"Collecting"},{value:"grading",label:"Grading"},{value:"graded",label:"Graded"},{value:"released",label:"Released"},{value:"archived",label:"Archived"}]}/>
+            </div>
+            <span className="toolbar__count">{rows.length} of {EXAMS.length}</span>
+            <span className="toolbar__updated" title="Submission and grading stats are server-maintained.">
+              <Icon name="refresh-cw" size={12}/> Stats updated 2 min ago
+            </span>
+          </div>
+          {activeChips.length > 0 && (
+            <div className="chips-row">
+              <span className="chips-row__label">Filters</span>
+              {activeChips.map(c => (
+                <span key={c.key} onClick={c.clear} style={{cursor:"pointer"}}><Chip active removable>{c.label}</Chip></span>
+              ))}
+              <Button variant="ghost" size="sm" onClick={() => { setClassF("all"); setStatusF("all"); }}>Clear all</Button>
+            </div>
+          )}
+        </div>
+
+        <Card className="tablecard">
+          {rows.length > 0 ? (
+            <React.Fragment>
+              <ExamsTable rows={rows} onRelease={setReleaseExam}/>
+              <div className="pag-wrap"><Pagination pages={3} current={1}/></div>
+            </React.Fragment>
+          ) : (
+            <div style={{padding:"var(--space-12)"}}>
+              <EmptyState icon="search-x" title="No exams match your filters"
+                body="Try a different search term or clear the class/status filters."
+                action={<Button variant="secondary" onClick={() => { setSearch(""); setClassF("all"); setStatusF("all"); }}>Clear filters</Button>}/>
+            </div>
+          )}
+        </Card>
+
+        <Section title="States">
+          <div className="states">
+            <div className="state-mini">
+              <span className="u-caption">Loading</span>
+              <div className="state-mini__box">
+                {[0,1,2,3].map(i => (
+                  <div className="sk-row" key={i}>
+                    <div style={{flex:"1 1 auto"}}><Skeleton width="60%" height="0.9rem"/><div style={{height:6}}/><Skeleton width="35%" height="0.7rem"/></div>
+                    <Skeleton width={48} height="1.4rem"/>
+                    <Skeleton width={90} height="0.7rem"/>
+                    <Skeleton width={32} height="0.9rem"/>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Partial — stats resolving</span>
+              <div className="state-mini__box">
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0"}}>
+                  <div><div className="ex-title__name">Mid-term Examination</div><div className="ex-title__meta">Mathematics · in 5 days</div></div>
+                  <StatusBadge s="collecting"/>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"var(--space-4)",marginTop:"var(--space-2)"}}>
+                  <div style={{flex:"1 1 auto"}}><span className="u-caption">Awaiting</span><div style={{height:4}}/><Skeleton width={64} height="0.8rem"/></div>
+                  <div style={{flex:"1 1 auto"}}><span className="u-caption">Expected</span><div style={{height:4}}/><Skeleton width={64} height="0.8rem"/></div>
+                </div>
+                <div className="u-caption" style={{marginTop:"var(--space-2)"}}>No submissions yet → shows “—”, never “0”.</div>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Empty — no exams</span>
+              <div className="state-mini__box">
+                <EmptyState icon="file-text" title="No exams yet"
+                  body="Exams assigned to your classes will appear here. Create one to get started."
+                  action={<Button variant="primary" size="sm" leadingIcon={<Icon name="plus" size={14}/>}>New exam</Button>}/>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Error</span>
+              <div className="state-mini__box">
+                <Alert variant="error" title="Couldn't load exams">
+                  <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                    <span>Something went wrong loading your exams. Check your connection and try again.</span>
+                    <div><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+                  </div>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Admin — Teacher / owner column</span>
+              <div className="state-mini__box">
+                <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)",padding:"6px 0"}}>
+                  <Avatar initials="RM" size="sm"/>
+                  <div><div className="ex-title__name">R. Menon</div><div className="ex-title__meta">tenantAdmin sees all exams + owner</div></div>
+                </div>
+                <div className="u-caption" style={{marginTop:"var(--space-2)"}}>Teachers see only their managed classes; no owner column.</div>
+              </div>
+            </div>
+
+            <div className="state-mini">
+              <span className="u-caption">Release affordance — Auto vs Held</span>
+              <div className="state-mini__box">
+                <div style={{display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)"}}><ResultsCell kind="auto"/><span className="u-caption">manual release hidden</span></div>
+                  <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)"}}><ResultsCell kind="held"/><span className="u-caption">release offered in ⋯ menu</span></div>
+                  <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)"}}><ResultsCell kind="live"/><span className="u-caption">replaced by View analytics</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </div>
+
+      <Modal open={!!releaseExam} onClose={() => !releasing && setReleaseExam(null)} title="Release results to students?"
+        footer={
+          <div style={{display:"flex",justifyContent:"flex-end",gap:"var(--space-2)"}}>
+            <Button variant="ghost" onClick={() => setReleaseExam(null)} disabled={releasing}>Cancel</Button>
+            <Button variant="primary" loading={releasing} onClick={doRelease}>Release results</Button>
+          </div>
+        }>
+        {releaseExam && (
+          <div style={{display:"flex",flexDirection:"column",gap:"var(--space-4)"}}>
+            <p style={{margin:0,color:"var(--text-secondary)",fontSize:"var(--text-md)",lineHeight:"var(--leading-md)"}}>
+              Students in {releaseExam.classes.join(", ")} will be able to see their scores and feedback for “{releaseExam.title}”. This is visible to students immediately and can't be quietly undone.
+            </p>
+            {releaseExam.await > 0 && (
+              <Alert variant="warning" title="Submissions still awaiting review">
+                {releaseExam.await} submissions are still awaiting review. Released results won't include grades for those until they're reviewed.
+              </Alert>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {toast && (
+        <div style={{position:"absolute",bottom:"var(--space-6)",right:"var(--space-6)",zIndex:50,maxWidth:360}}>
+          <Toast variant="success" title="Results released — now visible to students."/>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

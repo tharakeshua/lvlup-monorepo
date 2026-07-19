@@ -34,6 +34,7 @@ import {
   listItemsService,
   listSpacesService,
   getSpaceService,
+  getEvaluationConfigService,
   listStoryPointsService,
   getStoryPointService,
   listVersionsService,
@@ -69,6 +70,14 @@ import {
   sendChatMessageService,
   getChatSessionService,
   listChatSessionsService,
+  // server-authoritative conversations (T-D; finish + recovery owned by T-E)
+  startConversationService,
+  sendConversationTurnService,
+  getConversationService,
+  listConversationsService,
+  abandonConversationService,
+  finishConversationService,
+  resumeConversationFinalizationsService,
   // gamification slice
   getGamificationSummaryService,
   getStudentLevelService,
@@ -129,6 +138,10 @@ export const getItemForEdit = call("v1.levelup.getItemForEdit", getItemForEditSe
 export const listItems = call("v1.levelup.listItems", listItemsService);
 export const listSpaces = call("v1.levelup.listSpaces", listSpacesService);
 export const getSpace = call("v1.levelup.getSpace", getSpaceService);
+export const getEvaluationConfig = call(
+  "v1.levelup.getEvaluationConfig",
+  getEvaluationConfigService
+);
 export const listStoryPoints = call("v1.levelup.listStoryPoints", listStoryPointsService);
 export const getStoryPoint = call("v1.levelup.getStoryPoint", getStoryPointService);
 export const listVersions = call("v1.levelup.listVersions", listVersionsService);
@@ -179,6 +192,21 @@ export const sendChatMessage = call("v1.levelup.sendChatMessage", sendChatMessag
 export const getChatSession = call("v1.levelup.getChatSession", getChatSessionService);
 export const listChatSessions = call("v1.levelup.listChatSessions", listChatSessionsService);
 
+// ── durable conversations ──────────────────────────────────────────────────
+export const startConversation = call("v1.levelup.startConversation", startConversationService);
+export const sendConversationTurn = call(
+  "v1.levelup.sendConversationTurn",
+  sendConversationTurnService
+);
+export const getConversation = call("v1.levelup.getConversation", getConversationService);
+export const listConversations = call("v1.levelup.listConversations", listConversationsService);
+export const abandonConversation = call(
+  "v1.levelup.abandonConversation",
+  abandonConversationService
+);
+/** Learner-requested finalization; the server owns grading + progress application (T-E). */
+export const finishConversation = call("v1.levelup.finishConversation", finishConversationService);
+
 // ── gamification / insights (core-owned fold, v1.levelup.* namespace) ────────
 export const getGamificationSummary = call(
   "v1.levelup.getGamificationSummary",
@@ -215,3 +243,14 @@ export const dismissInsight = call("v1.levelup.dismissInsight", levelupDismissIn
 export const expireTestSessions = schedule("every 5 minutes", expireTestSessionsService);
 /** Abandon stale (>24h) in_progress sessions, skipping past-deadline ones (expire precedence). */
 export const cleanupStaleSessions = schedule("every 1 hours", cleanupStaleSessionsService);
+/**
+ * Tenant-scoped conversation finalization repair worker (LLD §13.2). Resumes
+ * hard-limit auto-finalizations, stale `finalizing` sessions, due `grading_failed`
+ * submissions, and post-evaluation crashes (evaluated/progress-applied submissions
+ * whose session never reached `completed`) via the replay-safe finalization path.
+ */
+export const resumeConversationFinalizations = schedule("every 5 minutes", async (ctx) => {
+  // The worker returns a per-tenant repair report for observability; the scheduler
+  // seam only needs completion, so the report is dropped here (logged upstream).
+  await resumeConversationFinalizationsService(ctx);
+});

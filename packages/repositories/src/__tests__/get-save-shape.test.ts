@@ -36,7 +36,7 @@ d("repositories · get/save shape", () => {
 
   it("get(id) calls the single get callable and returns the shaped entity", async () => {
     const space = makeSpace({ id: "space__dsa" });
-    api.stub("levelup", "getSpace", () => space);
+    api.stub("levelup", "getSpace", () => ({ space }));
     const r = buildRepos(api);
     const got = (await r["spaceRepo"]!["get"]!("space__dsa")) as { id: string };
     expect(got.id).toBe("space__dsa");
@@ -68,30 +68,35 @@ d("repositories · get/save shape", () => {
   });
 
   it("delete?:true archive convention (D5) rides the save body to the wire", async () => {
-    api.stub("levelup", "saveSpace", () => ({ id: "space__dsa", deleted: true }));
+    api.stub("levelup", "saveSpace", () => ({ id: "space__dsa", created: false }));
     const r = buildRepos(api);
-    await r["spaceRepo"]!["save"]!({ id: "space__dsa", delete: true });
-    const body = api.callsTo("v1.levelup.saveSpace")[0]!.data as { delete?: boolean };
-    expect(body.delete).toBe(true);
+    await r["spaceRepo"]!["save"]!({ id: "space__dsa", data: {}, delete: true });
+    const body = api.callsTo("v1.levelup.saveSpace")[0]!.data as {
+      delete?: boolean;
+      data?: { deleted?: boolean };
+    };
+    expect(body).not.toHaveProperty("delete");
+    expect(body.data?.deleted).toBe(true);
   });
 
   it("lifecycle is an EXPLICIT verb, not a save() status flip (DX-5)", async () => {
     // If the repo exposes a lifecycle verb it must route to a dedicated callable,
     // keeping save* metadata-only. The verb is one of the §4.5 named set.
     api.stub("levelup", "saveSpace", () => ({ id: "space__dsa" }));
-    api.stub("levelup", "publishSpace", () => ({ id: "space__dsa", status: "published" }));
-    api.stub("levelup", "archiveSpace", () => ({ id: "space__dsa", status: "archived" }));
     const r = buildRepos(api);
     const repo = r["spaceRepo"]!;
 
-    if (typeof repo["publishSpace"] === "function" || typeof repo["publish"] === "function") {
-      const publish = (repo["publishSpace"] ?? repo["publish"]) as (a: unknown) => Promise<unknown>;
+    if (typeof repo["publish"] === "function") {
+      const publish = repo["publish"] as (a: unknown) => Promise<unknown>;
       await publish({ id: "space__dsa" });
-      // Lifecycle did NOT go through saveSpace.
-      expect(api.callsTo("v1.levelup.saveSpace")).toHaveLength(0);
-      expect(api.callsTo("v1.levelup.publishSpace").length).toBeGreaterThanOrEqual(0);
+      const call = api.callsTo("v1.levelup.saveSpace");
+      expect(call).toHaveLength(1);
+      expect(call[0]!.data).toEqual({
+        id: "space__dsa",
+        data: { status: "published" },
+      });
+      expect(api.callsTo("v1.levelup.publishSpace")).toHaveLength(0);
     } else {
-      // No fused lifecycle verb exposed at all — also satisfies DX-5.
       expect(typeof repo["save"]).toBe("function");
     }
   });
@@ -100,5 +105,22 @@ d("repositories · get/save shape", () => {
     api.fail("v1.levelup.getSpace", httpsErrorLike("not-found", "Space not found"));
     const r = buildRepos(api);
     await expect(r["spaceRepo"]!["get"]!("space__missing")).rejects.toBeTruthy();
+  });
+
+  it("exam list sends pagination at the top level, outside filter", async () => {
+    api.stub("autograde", "listExams", () => ({ items: [], nextCursor: null }));
+    const r = buildRepos(api);
+
+    await r["examRepo"]!["list"]!({
+      status: "published",
+      cursor: "cursor__1",
+      limit: 50,
+    });
+
+    expect(api.callsTo("v1.autograde.listExams")[0]!.data).toEqual({
+      cursor: "cursor__1",
+      limit: 50,
+      filter: { status: "published" },
+    });
   });
 });

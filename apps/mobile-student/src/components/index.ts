@@ -49,6 +49,28 @@ export { XPChip, StreakChip, XPMeter, StreakFlame, LevelBadge } from "./gamifica
 // learning composites
 export { SpaceCard, StoryPointNode, StoryPointTrack } from "./learning";
 
+// lyceum learning-journey kit (web-parity primitives)
+export {
+  SpaceCover,
+  MasteryRing,
+  masteryColor,
+  TypeChip,
+  DifficultyChip,
+  MasteryBadge,
+  Kicker,
+  PointsChip,
+  NavNode,
+  ItemNavigatorRow,
+  FeedbackPanel,
+  toFeedbackProps,
+  SpaceTabbar,
+  QuestionNavBar,
+  TYPE_META,
+  type NavNodeState,
+  type FeedbackVerdict,
+  type SpaceNavItem,
+} from "./lyceum";
+
 // assessment (shared)
 export { TimerBar, GradePill } from "./assessment";
 
@@ -57,6 +79,16 @@ export { MaterialBlock } from "./material-block";
 export { QuestionView } from "./question-view";
 export { AttemptBar } from "./attempt-bar";
 export { getMaterialData, getQuestionData, getPrompt, getBasePoints } from "./item-data";
+
+// shared conversational AI composition
+export {
+  ConversationComposer,
+  ConversationModeHeader,
+  ConversationResult,
+  ConversationScaffold,
+  ConversationStatusCard,
+  ConversationTranscript,
+} from "./conversation";
 
 // theme re-exports (convenience for screens needing JS token values)
 export { theme, colors, palette } from "../theme";

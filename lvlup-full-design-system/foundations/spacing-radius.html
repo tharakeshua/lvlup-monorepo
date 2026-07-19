@@ -1,0 +1,54 @@
+<!-- @dsCard group="Spacing" viewport="920x560" name="Spacing & Radius" subtitle="4px scale + corner radii" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:var(--space-6)}
+  .ds-grid{display:flex;flex-wrap:wrap;gap:var(--space-10);align-items:flex-start}
+  .ds-col{flex:1 1 360px;min-width:340px}
+  .ds-title{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold);margin:0 0 var(--space-4)}
+  .ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);width:100%;margin-bottom:var(--space-3);letter-spacing:var(--tracking-caption)}
+  .ds-scale{display:flex;flex-direction:column;gap:var(--space-2)}
+  .ds-row{display:flex;align-items:center;gap:var(--space-3)}
+  .ds-name{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary);width:84px;flex:none}
+  .ds-bar{height:var(--space-4);border-radius:var(--radius-sm);background:var(--brand-primary)}
+  .ds-px{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+  .ds-radii{display:flex;flex-wrap:wrap;gap:var(--space-6)}
+  .ds-radius{display:flex;flex-direction:column;align-items:center;gap:var(--space-2)}
+  .ds-box{width:var(--space-20);height:var(--space-20);background:var(--brand-subtle);border:var(--space-1) solid var(--brand-primary)}
+  .ds-pill{width:calc(var(--space-24) + var(--space-12))}
+  .ds-rname{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary)}
+  .ds-rval{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+</style>
+</head><body>
+  <div class="ds-grid">
+    <section class="ds-col">
+      <h2 class="ds-title">Spacing</h2>
+      <div class="ds-cap">4px base scale · bar width = var(--space-*)</div>
+      <div class="ds-scale">
+        <div class="ds-row"><span class="ds-name">--space-1</span><span class="ds-bar" style="width:var(--space-1)"></span><span class="ds-px">4px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-2</span><span class="ds-bar" style="width:var(--space-2)"></span><span class="ds-px">8px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-3</span><span class="ds-bar" style="width:var(--space-3)"></span><span class="ds-px">12px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-4</span><span class="ds-bar" style="width:var(--space-4)"></span><span class="ds-px">16px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-5</span><span class="ds-bar" style="width:var(--space-5)"></span><span class="ds-px">20px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-6</span><span class="ds-bar" style="width:var(--space-6)"></span><span class="ds-px">24px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-8</span><span class="ds-bar" style="width:var(--space-8)"></span><span class="ds-px">32px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-10</span><span class="ds-bar" style="width:var(--space-10)"></span><span class="ds-px">40px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-12</span><span class="ds-bar" style="width:var(--space-12)"></span><span class="ds-px">48px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-16</span><span class="ds-bar" style="width:var(--space-16)"></span><span class="ds-px">64px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-20</span><span class="ds-bar" style="width:var(--space-20)"></span><span class="ds-px">80px</span></div>
+        <div class="ds-row"><span class="ds-name">--space-24</span><span class="ds-bar" style="width:var(--space-24)"></span><span class="ds-px">96px</span></div>
+      </div>
+    </section>
+    <section class="ds-col">
+      <h2 class="ds-title">Radius</h2>
+      <div class="ds-cap">corner radii · border-radius = var(--radius-*)</div>
+      <div class="ds-radii">
+        <div class="ds-radius"><span class="ds-box" style="border-radius:var(--radius-sm)"></span><span class="ds-rname">--radius-sm</span><span class="ds-rval">6px</span></div>
+        <div class="ds-radius"><span class="ds-box" style="border-radius:var(--radius-md)"></span><span class="ds-rname">--radius-md</span><span class="ds-rval">10px</span></div>
+        <div class="ds-radius"><span class="ds-box" style="border-radius:var(--radius-lg)"></span><span class="ds-rname">--radius-lg</span><span class="ds-rval">14px</span></div>
+        <div class="ds-radius"><span class="ds-box" style="border-radius:var(--radius-xl)"></span><span class="ds-rname">--radius-xl</span><span class="ds-rval">20px</span></div>
+        <div class="ds-radius"><span class="ds-box ds-pill" style="border-radius:var(--radius-pill)"></span><span class="ds-rname">--radius-pill</span><span class="ds-rval">999px</span></div>
+      </div>
+    </section>
+  </div>
+</body></html>

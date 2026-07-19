@@ -57,6 +57,36 @@ d("repositories · derived fields + sensitive-key scope", () => {
     expect(api.calls).toHaveLength(0);
   });
 
+  it("autograde rubric pre-checks accept canonical criteria.maxScore (no wire call)", () => {
+    const r = buildRepos(api);
+    const examRepo = r["examRepo"]!;
+    const questionRepo = r["examQuestionRepo"]!;
+    const question = {
+      maxMarks: 10,
+      rubric: {
+        criteria: [
+          { id: "c1", name: "Setup", maxScore: 4 },
+          { id: "c2", name: "Answer", maxScore: 6 },
+        ],
+      },
+    };
+
+    const publish = examRepo["canPublish"] as (
+      exam: { status: string },
+      questions: unknown[]
+    ) => { ok: boolean; reasons: string[] };
+    const sum = questionRepo["computeRubricCriteriaSum"] as (q: unknown) => number;
+    const matches = questionRepo["isRubricMatchingMaxMarks"] as (q: unknown) => boolean;
+
+    expect(sum(question)).toBe(10);
+    expect(matches(question)).toBe(true);
+    expect(publish({ status: "question_paper_extracted" }, [question])).toEqual({
+      ok: true,
+      reasons: [],
+    });
+    expect(api.calls).toHaveLength(0);
+  });
+
   it("isSensitiveKey excludes the answer-key edit-item scope from persisted/offline cache", () => {
     if (!R.isSensitiveKey) return;
     expect(R.isSensitiveKey(["__edit_item__", "item__arrays.q1"])).toBe(true);

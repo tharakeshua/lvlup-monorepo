@@ -1,0 +1,616 @@
+<!-- @dsCard group="Student" viewport="1280x820" name="Settings" subtitle="Notification toggles · theme · password/account" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  /* card-local LAYOUT ONLY — never redefine tokens, never a hex literal */
+  body { margin:0; background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+
+  .stage { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .eyebrow { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-2); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* live desktop shell — positioned ancestor for Modal/sticky bar */
+  .shell-frame { position: relative; height: 760px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-e1); background: var(--bg-surface); }
+  .shell-frame .appshell { height: 100%; }
+
+  /* sidebar footer */
+  .sb-foot { margin-top: auto; padding: var(--space-3); border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  .sb-avatar-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md); }
+  .sb-meta { display: flex; flex-direction: column; min-width: 0; }
+  .sb-meta b { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-meta span { font-size: var(--text-2xs); color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  /* topbar pieces */
+  .tb-kbd { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-muted);
+    font-size: var(--text-sm); cursor: pointer; background: var(--bg-surface-sunken); }
+  .tb-kbd:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+  /* reading-width content column */
+  .reading { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+  .page-h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-3xl);
+    font-weight: var(--weight-semibold); margin: 0; }
+  .page-sub { color: var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); }
+
+  /* card head with icon + optional action */
+  .card-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+  .card-head__icon { width: 36px; height: 36px; border-radius: var(--radius-md); flex: 0 0 auto;
+    display: grid; place-items: center; background: var(--bg-surface-sunken); color: var(--text-secondary); }
+  .card-head__txt { flex: 1; min-width: 0; }
+  .card-title { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-semibold); margin: 0; }
+  .card-desc { color: var(--text-secondary); font-size: var(--text-sm); margin-top: 2px; }
+
+  .group-label { font-size: var(--text-2xs); font-weight: var(--weight-semibold); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-secondary); margin: var(--space-4) 0 var(--space-2); }
+  .card-pad { padding: var(--space-5); }
+
+  /* preference row */
+  .pref-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    padding: var(--space-3) 0; }
+  .pref-row + .pref-row { border-top: 1px solid var(--border-subtle); }
+  .pref-row__body { min-width: 0; }
+  .pref-row__label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-primary);
+    display: flex; align-items: center; gap: var(--space-2); }
+  .pref-row__desc { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+  .pref-state { font-size: var(--text-2xs); font-family: var(--font-mono); color: var(--text-muted);
+    display: inline-flex; align-items: center; gap: 4px; }
+
+  .divider { height: 1px; background: var(--border-subtle); margin: var(--space-4) 0; border: 0; }
+
+  .theme-toggle { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radius-md);
+    background: var(--bg-surface-sunken); border: 1px solid var(--border-subtle); }
+  .theme-opt { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: var(--weight-medium);
+    color: var(--text-secondary); cursor: pointer; border: 0; background: transparent; font-family: var(--font-ui); }
+  .theme-opt[aria-pressed="true"] { background: var(--bg-surface); color: var(--text-primary);
+    box-shadow: var(--shadow-e1); font-weight: var(--weight-semibold); }
+
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+  .stack-sm { display: flex; flex-direction: column; gap: var(--space-2); }
+
+  /* sticky save bar (mobile variant host) */
+  .save-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 40; padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface); border-top: 1px solid var(--border-strong); box-shadow: var(--shadow-e3);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+  /* toast host */
+  .toast-host { position: absolute; right: var(--space-5); bottom: var(--space-5); z-index: 60; width: 360px; }
+
+  /* state tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--bg-surface);
+    padding: var(--space-5); }
+  .tile-tall { grid-column: span 2; }
+
+  /* mobile mini */
+  .mini { position: relative; width: 320px; margin: 0 auto; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); overflow: hidden; height: 420px; background: var(--bg-canvas); }
+  .mini-main { padding: var(--space-4); height: calc(100% - 56px); overflow: hidden; }
+  .mini-save { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface); border-top: 1px solid var(--border-strong); box-shadow: var(--shadow-e3);
+    display: flex; gap: var(--space-3); align-items: center; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const {
+    Button, IconButton, Icon, Avatar, Badge, Breadcrumb, Kbd,
+    Card, Panel, Section, Modal, Switch, Select,
+    Alert, Toast, Skeleton, DefinitionList
+  } = LU;
+  const { useState } = React;
+
+  const STUDENT = { name: "Rohan Kapoor", email: "rohan.k@crestwood.edu", initials: "RK" };
+
+  const NAV = [
+    { icon: "layout-dashboard", label: "Dashboard", key: "dashboard" },
+    { icon: "book-open", label: "My Spaces", key: "spaces" },
+    { icon: "file-check", label: "Tests", key: "tests" },
+    { icon: "trophy", label: "Leaderboard", key: "leaderboard" },
+    { icon: "user", label: "Profile", key: "profile" },
+    { icon: "settings", label: "Settings", key: "settings" },
+  ];
+
+  function NavLink({ icon, label, active }) {
+    return (
+      <a className="nav-item" href="#" aria-current={active ? "page" : undefined}
+         onClick={(e) => e.preventDefault()}>
+        <Icon name={icon} size={18} />
+        <span>{label}</span>
+      </a>
+    );
+  }
+
+  /* A labeled, accessible preference row with a Switch (state shown as icon + label, never color alone) */
+  function PrefRow({ id, label, desc, checked, onChange }) {
+    const descId = id + "-desc";
+    return (
+      <div className="pref-row">
+        <div className="pref-row__body">
+          <label className="pref-row__label" htmlFor={id}>{label}</label>
+          <div className="pref-row__desc" id={descId}>{desc}</div>
+        </div>
+        <div className="row-between" style={{ gap: "var(--space-3)" }}>
+          <span className="pref-state" aria-hidden="true">
+            <Icon name={checked ? "check" : "minus"} size={12} />
+            {checked ? "On" : "Off"}
+          </span>
+          <Switch id={id} checked={checked} aria-describedby={descId}
+            aria-label={label + (checked ? " — on" : " — off")} onChange={onChange} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================ PRIMARY: LG · POPULATED / DIRTY ============================ */
+  function PrimaryScreen() {
+    const [prefs, setPrefs] = useState({
+      email: true, push: false,
+      examResults: true, achievements: true, leaderboard: false, streak: true,
+    });
+    const [isDirty, setDirty] = useState(true);     // shown dirty so Save affordance is visible
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState(null);       // {variant,title,body}
+    const [pushBlocked, setPushBlocked] = useState(false);
+    const [theme, setTheme] = useState("system");
+    const [installed, setInstalled] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const toggle = (key) => {
+      // Push coupling: simulate a browser that's blocking notifications
+      if (key === "push" && !prefs.push) { setPushBlocked(true); return; }
+      if (key === "push") setPushBlocked(false);
+      setPrefs((p) => ({ ...p, [key]: !p[key] }));
+      setDirty(true);
+    };
+
+    const save = () => {
+      setSaving(true);
+      setTimeout(() => {
+        setSaving(false); setDirty(false);
+        setToast({ variant: "success", title: "You're all set — preferences saved." });
+      }, 700);
+    };
+
+    const sendReset = () => {
+      setToast({ variant: "info", title: "Check your inbox",
+        body: "We sent a reset link to " + STUDENT.email + "." });
+    };
+
+    const install = () => {
+      setInstalled(true);
+      setToast({ variant: "success", title: "Lyceum installed — find it on your home screen." });
+    };
+
+    return (
+      <div className="shell-frame">
+        <div className="appshell">
+          {/* SIDEBAR */}
+          <nav className="appshell__sidebar" role="navigation" aria-label="Primary">
+            <div className="sidebar__brand">
+              <span className="sidebar__brand-mark">C</span>
+              <span className="sidebar__brand-name">Crestwood Academy</span>
+            </div>
+            <div className="sidebar__nav" style={{ flex: 1 }}>
+              <div className="sidebar__section-label">Learn</div>
+              {NAV.map((n) => (
+                <NavLink key={n.key} icon={n.icon} label={n.label} active={n.key === "settings"} />
+              ))}
+            </div>
+            <div className="sb-foot">
+              <div className="sb-avatar-row">
+                <Avatar initials={STUDENT.initials} />
+                <div className="sb-meta" style={{ flex: 1 }}>
+                  <b>{STUDENT.name}</b>
+                  <span>{STUDENT.email}</span>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          {/* TOPBAR */}
+          <header className="appshell__topbar">
+            <Breadcrumb items={[{ label: "Home", href: "#" }, { label: "Settings" }]} />
+            <div className="topbar__spacer" />
+            <div className="tb-kbd" role="button" aria-label="Search, command menu">
+              <Icon name="search" size={16} /> Search <Kbd>⌘K</Kbd>
+            </div>
+            <IconButton icon={<Icon name="sun" size={20} />} label="Toggle theme" />
+            <IconButton icon={<Icon name="bell" size={20} />} label="Updates" />
+            <Avatar initials={STUDENT.initials} />
+          </header>
+
+          {/* MAIN — reading-width column */}
+          <main className="appshell__main" id="main-content" style={{ paddingBottom: 96 }}>
+            <div className="reading">
+              <div>
+                <h1 className="page-h1">Settings</h1>
+                <div className="page-sub">Tune how Lyceum reaches you, and how it looks.</div>
+              </div>
+
+              {/* NOTIFICATIONS */}
+              <Section title="Notifications">
+                <Card>
+                  <div className="card-pad">
+                    <div className="card-head">
+                      <span className="card-head__icon"><Icon name="bell" size={20} /></span>
+                      <div className="card-head__txt">
+                        <h2 className="card-title">Notifications</h2>
+                        <div className="card-desc">Choose how and when we reach you. You're in control — change these anytime.</div>
+                      </div>
+                      {isDirty && (
+                        <Button variant="primary" size="sm" loading={saving}
+                          leadingIcon={!saving && <Icon name="check" size={14} />} onClick={save}>
+                          {saving ? "Saving…" : "Save changes"}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="group-label">Channels</div>
+                    <PrefRow id="pf-email" label="Email" desc="Get updates in your inbox."
+                      checked={prefs.email} onChange={() => toggle("email")} />
+                    <PrefRow id="pf-push" label="Push (browser)" desc="Get a nudge right in your browser."
+                      checked={prefs.push} onChange={() => toggle("push")} />
+
+                    {pushBlocked && (
+                      <div style={{ marginTop: "var(--space-3)" }}>
+                        <Alert variant="warning" title="Your browser is blocking notifications">
+                          Enable them in your browser settings to turn this on.
+                          <span style={{ display: "inline-block", marginLeft: "var(--space-3)" }}>
+                            <Button variant="ghost" size="sm" onClick={() => setPushBlocked(false)}>Got it</Button>
+                          </span>
+                        </Alert>
+                      </div>
+                    )}
+
+                    <div className="group-label">What to notify me about</div>
+                    <PrefRow id="pf-exam" label="Exam results" desc="When your results are ready to view."
+                      checked={prefs.examResults} onChange={() => toggle("examResults")} />
+                    <PrefRow id="pf-ach" label="Achievements" desc="When you unlock a new badge — worth celebrating."
+                      checked={prefs.achievements} onChange={() => toggle("achievements")} />
+                    <PrefRow id="pf-lead" label="Leaderboard" desc="When your rank moves."
+                      checked={prefs.leaderboard} onChange={() => toggle("leaderboard")} />
+                    <PrefRow id="pf-streak" label="Streak reminders" desc="A friendly daily nudge to keep your streak alive."
+                      checked={prefs.streak} onChange={() => toggle("streak")} />
+                  </div>
+                </Card>
+              </Section>
+
+              {/* APPEARANCE */}
+              <Section title="Appearance">
+                <Card>
+                  <div className="card-pad">
+                    <div className="card-head">
+                      <span className="card-head__icon"><Icon name="palette" size={20} /></span>
+                      <div className="card-head__txt">
+                        <h2 className="card-title">Appearance</h2>
+                        <div className="card-desc">Make Lyceum easy on your eyes.</div>
+                      </div>
+                    </div>
+                    <hr className="divider" />
+                    <div className="row-between">
+                      <div className="pref-row__body">
+                        <div className="pref-row__label">Theme</div>
+                        <div className="pref-row__desc">Follows your device by default.</div>
+                      </div>
+                      <div className="theme-toggle" role="group" aria-label="Theme">
+                        {[
+                          { v: "system", label: "System", icon: "monitor" },
+                          { v: "light", label: "Light", icon: "sun" },
+                          { v: "dark", label: "Dark", icon: "moon" },
+                        ].map((o) => (
+                          <button key={o.v} className="theme-opt" aria-pressed={theme === o.v}
+                            onClick={() => setTheme(o.v)}>
+                            <Icon name={o.icon} size={16} />{o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Section>
+
+              {/* INSTALL (conditional · spark CTA) */}
+              {!installed && (
+                <Section title="Install the app">
+                  <Card>
+                    <div className="card-pad">
+                      <div className="card-head">
+                        <span className="card-head__icon"><Icon name="smartphone" size={20} /></span>
+                        <div className="card-head__txt">
+                          <h2 className="card-title">Install Lyceum</h2>
+                          <div className="card-desc">Add Lyceum to your home screen for one-tap access — works offline, too.</div>
+                        </div>
+                        <Button variant="spark" size="sm" leadingIcon={<Icon name="download" size={14} />}
+                          onClick={install}>Install</Button>
+                      </div>
+                    </div>
+                  </Card>
+                </Section>
+              )}
+
+              {/* ACCOUNT */}
+              <Section title="Account">
+                <Card>
+                  <div className="card-pad">
+                    <div className="card-head">
+                      <span className="card-head__icon"><Icon name="user-circle" size={20} /></span>
+                      <div className="card-head__txt">
+                        <h2 className="card-title">Account</h2>
+                        <div className="card-desc">Sign-in and password basics.</div>
+                      </div>
+                    </div>
+                    <hr className="divider" />
+                    <DefinitionList items={[{ term: "Signed in as", value: STUDENT.email }]} />
+                    <div style={{ marginTop: "var(--space-4)" }}>
+                      <Button variant="secondary" leadingIcon={<Icon name="mail" size={16} />} onClick={sendReset}>
+                        Send password reset email
+                      </Button>
+                    </div>
+                    <hr className="divider" />
+                    <Button variant="danger" leadingIcon={<Icon name="log-out" size={16} />}
+                      onClick={() => setConfirmOpen(true)}>Sign out</Button>
+                  </div>
+                </Card>
+              </Section>
+            </div>
+          </main>
+        </div>
+
+        {/* DIRTY → save affordance also lives in a desktop footer bar so it's always reachable */}
+        {isDirty && (
+          <div className="save-bar" role="region" aria-label="Unsaved changes">
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)",
+              display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <Icon name="circle-dot" size={16} /> You have unsaved preferences.
+            </span>
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+              <Button variant="ghost" size="sm" onClick={() => setDirty(false)}>Discard</Button>
+              <Button variant="primary" size="sm" loading={saving} onClick={save}>
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* SIGN-OUT CONFIRM (default closed; danger) */}
+        <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Sign out of Lyceum?"
+          footer={
+            <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end" }}>
+              <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Stay signed in.</Button>
+              <Button variant="danger" leadingIcon={<Icon name="log-out" size={16} />}
+                onClick={() => setConfirmOpen(false)}>Sign out</Button>
+            </div>
+          }>
+          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+            You can always come right back.
+          </p>
+        </Modal>
+
+        {/* TOAST host (success / info confirmations — calm, no celebration) */}
+        {toast && (
+          <div className="toast-host">
+            <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+            <div style={{ textAlign: "right", marginTop: "var(--space-1)" }}>
+              <Button variant="ghost" size="sm" onClick={() => setToast(null)}>Dismiss</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================ SECONDARY STATE TILES ============================ */
+  function StateTiles() {
+    return (
+      <div className="tiles">
+        {/* Loading — notification rows skeleton */}
+        <div className="tile">
+          <div className="eyebrow">State: loading (notification rows skeleton)</div>
+          <div role="status" aria-live="polite">
+            <span className="sr-only">Loading your preferences…</span>
+            <div className="card-head" style={{ marginBottom: "var(--space-4)" }}>
+              <span className="card-head__icon"><Icon name="bell" size={20} /></span>
+              <div className="card-head__txt">
+                <h2 className="card-title">Notifications</h2>
+                <div className="card-desc">Choose how and when we reach you.</div>
+              </div>
+            </div>
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="pref-row" style={{ borderTop: i ? "1px solid var(--border-subtle)" : 0 }}>
+                <div className="pref-row__body" style={{ flex: 1 }}>
+                  <Skeleton width="38%" />
+                  <div style={{ marginTop: 6 }}><Skeleton width="62%" height="0.6rem" /></div>
+                </div>
+                <Skeleton width="44px" height="24px" style={{ borderRadius: "var(--radius-pill)" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Error (load) — recoverable warning, other cards stay usable */}
+        <div className="tile">
+          <div className="eyebrow">State: error on load (warning, recoverable · other cards still work)</div>
+          <Alert variant="warning" title="We couldn't load your notification settings">
+            Everything else still works — try again?
+            <div style={{ marginTop: "var(--space-3)" }}>
+              <Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />}>Try again</Button>
+            </div>
+          </Alert>
+        </div>
+
+        {/* Saving + Success toast */}
+        <div className="tile">
+          <div className="eyebrow">State: saving → success toast (calm, no celebration)</div>
+          <div className="stack-sm">
+            <Button variant="primary" size="sm" loading>Saving…</Button>
+            <Toast variant="success" title="You're all set — preferences saved." />
+          </div>
+        </div>
+
+        {/* Error (save) — edits retained */}
+        <div className="tile">
+          <div className="eyebrow">State: error on save (edits & dirty flag retained)</div>
+          <div className="stack-sm">
+            <Toast variant="error" title="We couldn't save that — give it another go." />
+            <div className="save-bar" style={{ position: "static", boxShadow: "none",
+              border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)" }}>
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+                Your changes are kept — retry when ready.
+              </span>
+              <Button variant="primary" size="sm">Save changes</Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Push blocked permission */}
+        <div className="tile">
+          <div className="eyebrow">State: push permission blocked (toggle reverts to off)</div>
+          <PrefRow id="tile-push" label="Push (browser)" desc="Get a nudge right in your browser."
+            checked={false} onChange={() => {}} />
+          <div style={{ marginTop: "var(--space-3)" }}>
+            <Alert variant="warning" title="Your browser is blocking notifications">
+              Enable them in your browser settings to turn this on.
+            </Alert>
+          </div>
+        </div>
+
+        {/* Permission / role: B2C consumer variation */}
+        <div className="tile">
+          <div className="eyebrow">State: B2C consumer (platform_public · Leaderboard row flag-hidden)</div>
+          <div className="card-pad" style={{ padding: 0 }}>
+            <div className="group-label" style={{ marginTop: 0 }}>What to notify me about</div>
+            <PrefRow id="b2c-exam" label="Exam results" desc="When your results are ready to view."
+              checked={true} onChange={() => {}} />
+            <PrefRow id="b2c-ach" label="Achievements" desc="When you unlock a new badge."
+              checked={true} onChange={() => {}} />
+            <div className="pref-row" style={{ borderTop: "1px solid var(--border-subtle)", opacity: 0.55 }}>
+              <div className="pref-row__body">
+                <div className="pref-row__label">
+                  <Icon name="eye-off" size={14} /> Leaderboard
+                </div>
+                <div className="pref-row__desc">Hidden for consumer learners (feature flag), not by path.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Language (flag-gated) + Install collapsed */}
+        <div className="tile">
+          <div className="eyebrow">State: language section (flag-gated · rendered only when enabled)</div>
+          <div className="card-head" style={{ marginBottom: "var(--space-3)" }}>
+            <span className="card-head__icon"><Icon name="globe" size={20} /></span>
+            <div className="card-head__txt">
+              <h2 className="card-title">Language</h2>
+              <div className="card-desc">Pick the language Lyceum speaks to you in.</div>
+            </div>
+          </div>
+          <Select options={[
+            { value: "", label: "Choose your language" },
+            { value: "en", label: "English" },
+            { value: "hi", label: "हिन्दी (Hindi)" },
+            { value: "es", label: "Español" },
+          ]} />
+        </div>
+
+        {/* Sign-out confirm + install-done */}
+        <div className="tile">
+          <div className="eyebrow">State: sign-out confirm (only confirm-gated action) · install done</div>
+          <div className="stack-sm">
+            <div className="card-pad" style={{ padding: "var(--space-4)", border: "1px solid var(--border-strong)",
+              borderRadius: "var(--radius-md)", background: "var(--bg-surface)" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-base)",
+                fontWeight: "var(--weight-semibold)" }}>Sign out of Lyceum?</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)",
+                margin: "var(--space-2) 0 var(--space-3)" }}>You can always come right back.</div>
+              <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end" }}>
+                <Button variant="ghost" size="sm">Stay signed in.</Button>
+                <Button variant="danger" size="sm" leadingIcon={<Icon name="log-out" size={14} />}>Sign out</Button>
+              </div>
+            </div>
+            <Toast variant="success" title="Lyceum installed — find it on your home screen." />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================ MOBILE: STICKY SAVE BAR ============================ */
+  function MobileMini() {
+    const [on, setOn] = useState(true);
+    const [dirty, setDirty] = useState(true);
+    return (
+      <div className="tile tile-tall">
+        <div className="eyebrow">State: sm &lt;640 (sticky bottom save bar · full-width Sign out · ConfirmDialog → bottom sheet)</div>
+        <div className="mini">
+          <div className="mini-main">
+            <h1 className="page-h1" style={{ fontSize: "var(--text-xl)" }}>Settings</h1>
+            <div className="page-sub" style={{ marginBottom: "var(--space-3)" }}>Tune how Lyceum reaches you.</div>
+            <div className="group-label" style={{ marginTop: "var(--space-2)" }}>Channels</div>
+            <PrefRow id="m-email" label="Email" desc="Get updates in your inbox."
+              checked={on} onChange={() => { setOn((v) => !v); setDirty(true); }} />
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <Button variant="danger" block leadingIcon={<Icon name="log-out" size={16} />}>Sign out</Button>
+            </div>
+          </div>
+          {dirty && (
+            <div className="mini-save">
+              <Button variant="primary" block onClick={() => setDirty(false)}>Save changes</Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function Screen() {
+    return (
+      <div className="stage">
+        <div>
+          <div className="eyebrow">Primary · lg ≥1024 · B2B student · populated + dirty (unsaved) state</div>
+          <PrimaryScreen />
+        </div>
+        <StateTiles />
+        <div className="tiles">
+          <MobileMini />
+          <div className="tile">
+            <div className="eyebrow">Domain note: utility surface — no gamification, no celebration burst</div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
+              <span className="card-head__icon"><Icon name="shield-check" size={20} /></span>
+              <div className="u-caption" style={{ marginTop: 4 }}>
+                Settings sits outside the XP/streak/mastery surfaces. Saving preferences gets a quiet Toast — never a
+                CelebrationBurst. The single spark accent is the Install CTA (no glow). Preferences are per-user;
+                tenantId / platform_public is derived server-side, never sent in the body. Theme defaults to System
+                and respects prefers-reduced-motion. Every Switch is labeled (on/off shown by icon + text, never color
+                alone) and keyboard-operable; the sign-out ConfirmDialog traps focus.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>

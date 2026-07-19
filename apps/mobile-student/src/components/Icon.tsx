@@ -19,6 +19,7 @@ type LucideComponent = ComponentType<{
   size?: number;
   color?: string;
   strokeWidth?: number;
+  fill?: string;
   className?: string;
 }>;
 
@@ -43,10 +44,13 @@ export function Icon({
   size = 20,
   color = colors.textPrimary,
   strokeWidth = 2,
+  fill = "none",
   className,
 }: IconProps) {
   const Cmp = registry[toPascal(name)] ?? Fallback;
-  return <Cmp size={size} color={color} strokeWidth={strokeWidth} className={className} />;
+  return (
+    <Cmp size={size} color={color} strokeWidth={strokeWidth} fill={fill} className={className} />
+  );
 }
 
 /**

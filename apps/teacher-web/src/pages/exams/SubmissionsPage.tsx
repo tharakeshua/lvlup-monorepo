@@ -99,6 +99,15 @@ export default function SubmissionsPage() {
   const firebaseUser = useAuthSession((s) => s.firebaseUser);
   const { data: examData } = useExam(examId ?? "");
   const exam = examData as Exam | undefined;
+  // Rubric-completion GATE (ARCHITECTURE-PLAN §3.4): answer-sheet upload is
+  // grading-eligible ONLY once Pass-2 rubric generation completes, recorded on the
+  // exam as `questionPaper.rubricsGeneratedAt` (typed optional on the domain schema;
+  // not yet on the shared-types Exam, so read via a narrow cast). The server also
+  // rejects uploads with FAILED_PRECONDITION when it's absent — this is the matching
+  // client gate so teachers see it before hitting an error.
+  const rubricsReady = !!(exam?.questionPaper as { rubricsGeneratedAt?: unknown } | undefined)
+    ?.rubricsGeneratedAt;
+  const gateBlocked = !!exam && !rubricsReady;
   const { data: submissionsData, refetch } = useSubmissions({ examId });
   const submissions = useMemo(() => asArray<Submission>(submissionsData), [submissionsData]);
   const { data: classesData } = useClasses();
@@ -108,10 +117,22 @@ export default function SubmissionsPage() {
   const uploadImage = useUploadImage();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  // When a submission already exists for the picked student, the server rejects the
+  // upload (FAILED_PRECONDITION / meta.reason='submission_exists') so released results
+  // are never silently overwritten. We stash the already-uploaded storage paths here
+  // and prompt the teacher to confirm an explicit replace (no re-upload needed).
+  const [replacePrompt, setReplacePrompt] = useState<{
+    studentId: string;
+    classId: string;
+    imageUrls: string[];
+    resultsReleased: boolean;
+    pipelineStatus: string;
+  } | null>(null);
 
   // Only show classes assigned to this exam.
   const examClasses = useMemo(
@@ -139,6 +160,70 @@ export default function SubmissionsPage() {
     }
   }, [classId, examClasses]);
 
+  /**
+   * Send the answer-sheet write. On a re-upload for a student who already has a
+   * submission the server returns FAILED_PRECONDITION with meta.reason
+   * 'submission_exists' — we surface that as an explicit replace confirmation instead
+   * of a silent no-op (the old bug) or a raw error. `replace:true` overwrites the
+   * existing submission and re-runs grading.
+   */
+  const submitAnswerSheets = async (args: {
+    studentId: string;
+    classId: string;
+    imageUrls: string[];
+    replace?: boolean;
+  }) => {
+    if (!examId) return;
+    setUploadError(null);
+    setUploadNotice(null);
+    setUploading(true);
+    try {
+      const res = await uploadAnswerSheets.mutateAsync({
+        examId: asExamId(examId),
+        studentId: asStudentId(args.studentId),
+        classId: asClassId(args.classId),
+        imageUrls: args.imageUrls,
+        ...(args.replace ? { replace: true } : {}),
+      });
+      // Honest outcome: replaced (grading restarted) vs created.
+      const replaced = (res as { replaced?: boolean } | undefined)?.replaced === true;
+      setUploadNotice(
+        replaced
+          ? "Answer sheets replaced — the previous grade was cleared and re-grading has started."
+          : "Answer sheets uploaded — grading has started."
+      );
+      setReplacePrompt(null);
+      setStudentId("");
+      setSelectedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      refetch();
+    } catch (err) {
+      const apiErr = err as {
+        code?: string;
+        message?: string;
+        meta?: {
+          reason?: string;
+          resultsReleased?: boolean;
+          pipelineStatus?: string;
+        };
+      };
+      if (apiErr?.meta?.reason === "submission_exists") {
+        // Existing submission — offer an explicit replace (paths already uploaded).
+        setReplacePrompt({
+          studentId: args.studentId,
+          classId: args.classId,
+          imageUrls: args.imageUrls,
+          resultsReleased: apiErr.meta.resultsReleased === true,
+          pipelineStatus: apiErr.meta.pipelineStatus ?? "",
+        });
+      } else {
+        setUploadError(err instanceof Error ? err.message : "Upload failed");
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUploadSubmission = async () => {
     if (!examId || !firebaseUser) return;
     if (selectedFiles.length === 0) {
@@ -155,6 +240,8 @@ export default function SubmissionsPage() {
     }
 
     setUploadError(null);
+    setUploadNotice(null);
+    setReplacePrompt(null);
     setUploading(true);
     try {
       // Each answer sheet is PUT to a server-owned, scoped path via v1
@@ -171,21 +258,9 @@ export default function SubmissionsPage() {
         });
         storagePaths.push(path);
       }
-
-      await uploadAnswerSheets.mutateAsync({
-        examId: asExamId(examId),
-        studentId: asStudentId(studentId),
-        classId: asClassId(classId),
-        imageUrls: storagePaths,
-      });
-
-      setStudentId("");
-      setSelectedFiles([]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      refetch();
+      await submitAnswerSheets({ studentId, classId, imageUrls: storagePaths });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
       setUploading(false);
     }
   };
@@ -384,6 +459,19 @@ export default function SubmissionsPage() {
       <Card>
         <CardContent className="space-y-4 p-5">
           <h3 className="font-medium">Upload Answer Sheet</h3>
+          {gateBlocked && (
+            <div className="border-warning/30 bg-warning-subtle text-warning flex items-start gap-2 rounded border p-3 text-xs">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                Rubrics are still being generated — finish extraction first. Answer sheets can't be
+                uploaded until every question has a rubric.{" "}
+                <Link to={`/exams/${examId}`} className="font-medium underline underline-offset-2">
+                  Generate missing rubrics on the exam page
+                </Link>
+                .
+              </span>
+            </div>
+          )}
           {examClasses.length === 0 ? (
             <div className="border-warning/30 bg-warning-subtle text-warning flex items-start gap-2 rounded border p-3 text-xs">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -477,6 +565,67 @@ export default function SubmissionsPage() {
               <span className="break-all">{uploadError}</span>
             </div>
           )}
+          {uploadNotice && (
+            <div className="border-success/30 bg-success-subtle text-success flex items-start gap-2 rounded border p-2 text-xs">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{uploadNotice}</span>
+            </div>
+          )}
+          {replacePrompt && (
+            <div className="border-warning/40 bg-warning-subtle text-warning flex flex-col gap-2 rounded border p-3 text-xs">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {replacePrompt.resultsReleased ? (
+                    <>
+                      This student's results were already <strong>released</strong>. Replacing will{" "}
+                      <strong>discard the released grade</strong> and re-grade the new answer sheets
+                      — the student will lose access until you review and release again.
+                    </>
+                  ) : (
+                    <>
+                      This student already has a submission for this exam
+                      {replacePrompt.pipelineStatus
+                        ? ` (${replacePrompt.pipelineStatus.replace(/_/g, " ")})`
+                        : ""}
+                      . Replacing will overwrite it with the new answer sheets and re-run grading.
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() =>
+                    submitAnswerSheets({
+                      studentId: replacePrompt.studentId,
+                      classId: replacePrompt.classId,
+                      imageUrls: replacePrompt.imageUrls,
+                      replace: true,
+                    })
+                  }
+                  disabled={uploading}
+                  size="sm"
+                  className="bg-error text-fg-on-accent hover:bg-error/90"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Replacing...
+                    </>
+                  ) : (
+                    <>Replace submission</>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setReplacePrompt(null)}
+                  disabled={uploading}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
           <Button
             onClick={handleUploadSubmission}
             disabled={
@@ -484,7 +633,8 @@ export default function SubmissionsPage() {
               selectedFiles.length === 0 ||
               !classId ||
               !studentId ||
-              examClasses.length === 0
+              examClasses.length === 0 ||
+              gateBlocked
             }
             size="sm"
           >

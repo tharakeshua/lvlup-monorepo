@@ -1,0 +1,2649 @@
+<!-- @dsCard group="App-Parent" viewport="1440x940" name="Parent Portal — App" subtitle="Interactive SPA · hash-routed" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* ---- global / body reset (from teacher shell) ---- */
+body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.appshell__main{overflow:auto}
+
+/* ============================ SPA-STYLE: parent-login ============================ */
+.v-parent-login{width:100%;max-width:440px}
+.v-parent-login .auth-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);box-shadow:var(--shadow-e2);padding:var(--space-8)}
+.v-parent-login .lockup{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-2);margin-bottom:var(--space-6)}
+.v-parent-login .lockup__crest{width:52px;height:52px;border-radius:var(--radius-lg);display:grid;place-items:center;background:var(--brand-subtle);color:var(--brand-primary);box-shadow:var(--shadow-e1)}
+.v-parent-login .lockup__school{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.02em;margin:0;color:var(--text-primary)}
+.v-parent-login .lockup__portal{font-size:var(--text-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono)}
+.v-parent-login .stepper{display:flex;align-items:center;justify-content:center;gap:var(--space-2);margin-bottom:var(--space-6)}
+.v-parent-login .stepper__node{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-parent-login .stepper__dot{width:18px;height:18px;border-radius:var(--radius-pill);display:grid;place-items:center;border:1px solid var(--border-strong);font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-muted);background:var(--bg-surface)}
+.v-parent-login .stepper__node--active .stepper__dot{background:var(--brand-primary);border-color:var(--brand-primary);color:var(--text-on-accent)}
+.v-parent-login .stepper__node--active{color:var(--text-primary);font-weight:var(--weight-medium)}
+.v-parent-login .stepper__node--done .stepper__dot{background:var(--status-success-subtle);border-color:var(--status-success);color:var(--status-success)}
+.v-parent-login .stepper__bar{width:28px;height:1px;background:var(--border-strong)}
+.v-parent-login .auth-form{display:flex;flex-direction:column;gap:var(--space-4)}
+.v-parent-login .ctx-chip{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md)}
+.v-parent-login .ctx-chip__ico{flex:0 0 auto;width:28px;height:28px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--status-success-subtle);color:var(--status-success)}
+.v-parent-login .ctx-chip__main{flex:1 1 auto;min-width:0}
+.v-parent-login .ctx-chip__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-login .ctx-chip__code{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono)}
+.v-parent-login .auth-foot{display:flex;align-items:center;justify-content:center;margin-top:var(--space-2)}
+.v-parent-login .reassure{display:flex;align-items:center;justify-content:center;gap:var(--space-2);margin-top:var(--space-6);font-size:var(--text-2xs);color:var(--text-muted);text-align:center}
+.v-parent-login .reassure .u-mono{font-family:var(--font-mono)}
+
+/* ============================ SPA-STYLE: parent-dashboard ============================ */
+.v-parent-dashboard{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+.v-parent-dashboard .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-parent-dashboard .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-parent-dashboard .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-dashboard .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-parent-dashboard .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.v-parent-dashboard .kpi{position:relative}
+.v-parent-dashboard .kpi .stat{height:100%}
+.v-parent-dashboard .kpi__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.v-parent-dashboard .kpi__cap--warn{color:var(--status-warning)}
+.v-parent-dashboard .kpi__cap .u-mono{font-family:var(--font-mono)}
+.v-parent-dashboard .quickrow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.v-parent-dashboard .sechead{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
+.v-parent-dashboard .sechead__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);line-height:var(--leading-xl);letter-spacing:-.01em;margin:0}
+.v-parent-dashboard .sechead__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-dashboard .sechead__sub .u-mono{font-family:var(--font-mono)}
+.v-parent-dashboard .kidgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-5)}
+.v-parent-dashboard .kidcard{display:flex;flex-direction:column;gap:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5)}
+.v-parent-dashboard .kidcard--risk{border-color:var(--status-warning)}
+.v-parent-dashboard .kidcard__top{display:flex;align-items:flex-start;gap:var(--space-3)}
+.v-parent-dashboard .kidcard__id{flex:1 1 auto;min-width:0}
+.v-parent-dashboard .kidcard__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;color:var(--text-primary)}
+.v-parent-dashboard .kidcard__meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-dashboard .kidcard__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-parent-dashboard .kidcard__stats{display:flex;align-items:center;gap:var(--space-6)}
+.v-parent-dashboard .kidstat{display:flex;flex-direction:column;gap:2px}
+.v-parent-dashboard .kidstat__lab{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.v-parent-dashboard .kidstat__val{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-dashboard .kidcard__progrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.v-parent-dashboard .kidcard__proglab{font-size:var(--text-xs);color:var(--text-secondary)}
+.v-parent-dashboard .kidcard__progval{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-parent-dashboard .kidcard__cta{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-1)}
+.v-parent-dashboard .kidcard__risk{display:flex}
+.v-parent-dashboard .dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.v-parent-dashboard .dcard__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.v-parent-dashboard .dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-parent-dashboard .dcard__foot{padding:var(--space-3) var(--space-5) var(--space-4);border-top:1px solid var(--border-subtle)}
+.v-parent-dashboard .act-list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.v-parent-dashboard .act-row{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-3) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-parent-dashboard .act-row:first-child{border-top:none}
+.v-parent-dashboard .act-row:hover{background:var(--bg-surface-sunken)}
+.v-parent-dashboard .act-row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-parent-dashboard .act-row__ico{flex:0 0 auto;width:30px;height:30px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.v-parent-dashboard .act-row__ico--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.v-parent-dashboard .act-row__ico--info{background:var(--status-info-subtle);color:var(--status-info)}
+.v-parent-dashboard .act-row__ico--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.v-parent-dashboard .act-row__main{flex:1 1 auto;min-width:0}
+.v-parent-dashboard .act-row__title{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-parent-dashboard .act-row__time{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+.v-parent-dashboard .u-mono{font-family:var(--font-mono)}
+@media (max-width:1100px){.v-parent-dashboard .kpis{grid-template-columns:repeat(2,1fr)}.v-parent-dashboard .kidgrid{grid-template-columns:1fr}}
+
+/* ============================ SPA-STYLE: performance-alerts ============================ */
+.v-performance-alerts{display:flex;flex-direction:column;gap:var(--space-8);max-width:var(--content-max);margin:0 auto}
+.v-performance-alerts .pa-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-performance-alerts .pa-head__title{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0}
+.v-performance-alerts .pa-head__sub{font-size:var(--text-base);color:var(--text-secondary);margin:var(--space-2) 0 0}
+.v-performance-alerts .pa-head__meta{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-3);flex-wrap:wrap}
+.v-performance-alerts .pa-lastupd{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted)}
+.v-performance-alerts .pa-lastupd .u-mono{font-family:var(--font-mono)}
+.v-performance-alerts .pa-servertag{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-caption);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:1px var(--space-2)}
+.v-performance-alerts .pa-dot{color:var(--text-muted)}
+.v-performance-alerts .pa-filters{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-performance-alerts .pa-filters__lbl{font-size:var(--text-2xs);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:var(--tracking-caption);color:var(--text-muted);margin-right:var(--space-1)}
+.v-performance-alerts .pa-list{display:flex;flex-direction:column;gap:var(--space-3);list-style:none;margin:0;padding:0}
+.v-performance-alerts .pa-row{display:flex;align-items:center;gap:var(--space-4);width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-4) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+.v-performance-alerts .pa-row:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong)}
+.v-performance-alerts .pa-row:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-performance-alerts .pa-row__ico{flex:0 0 auto;width:40px;height:40px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.v-performance-alerts .pa-row__ico--err{background:var(--status-error-subtle);color:var(--status-error)}
+.v-performance-alerts .pa-row__ico--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.v-performance-alerts .pa-row__ico--info{background:var(--status-info-subtle);color:var(--status-info)}
+.v-performance-alerts .pa-row__ico--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.v-performance-alerts .pa-row__main{flex:1 1 auto;min-width:0}
+.v-performance-alerts .pa-row__title{font-size:var(--text-base);font-weight:var(--weight-medium);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;line-height:var(--leading-base)}
+.v-performance-alerts .pa-row__meta{font-size:var(--text-sm);color:var(--text-secondary);margin-top:2px}
+.v-performance-alerts .pa-row__meta .u-mono{font-family:var(--font-mono);color:var(--text-primary)}
+.v-performance-alerts .pa-row__sev{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-2xs);font-weight:var(--weight-medium);padding:1px var(--space-2);border-radius:var(--radius-pill);text-transform:uppercase;letter-spacing:var(--tracking-caption)}
+.v-performance-alerts .pa-row__sev--err{color:var(--status-error);background:var(--status-error-subtle)}
+.v-performance-alerts .pa-row__sev--warn{color:var(--status-warning);background:var(--status-warning-subtle)}
+.v-performance-alerts .pa-row__sev--info{color:var(--status-info);background:var(--status-info-subtle)}
+.v-performance-alerts .pa-row__sev--ok{color:var(--status-success);background:var(--status-success-subtle)}
+.v-performance-alerts .pa-row__act{flex:0 0 auto}
+.v-performance-alerts .pa-row__chev{flex:0 0 auto;color:var(--text-muted)}
+.v-performance-alerts .pa-empty{background:var(--bg-surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);padding:var(--space-6);display:flex;justify-content:center}
+.v-performance-alerts .pa-states__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5)}
+.v-performance-alerts .pa-states__mini{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.v-performance-alerts .pa-skelrow{display:flex;align-items:center;gap:var(--space-3)}
+.v-performance-alerts .pa-skelrow__col{flex:1;display:flex;flex-direction:column;gap:var(--space-2)}
+.v-performance-alerts .u-caption{font-size:var(--text-2xs);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:var(--tracking-caption);color:var(--text-muted)}
+@media (prefers-reduced-motion: reduce){.v-performance-alerts .pa-row{transition:none}}
+
+/* ============================ SPA-STYLE: announcements ============================ */
+.v-announcements{max-width:var(--reading-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.v-announcements .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-announcements .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-announcements .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2)}
+.v-announcements .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-announcements .filters{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.v-announcements .acard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.v-announcements .feat{border:1px solid var(--border-strong);box-shadow:var(--shadow-e2);position:relative;overflow:hidden}
+.v-announcements .feat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand-primary)}
+.v-announcements .feat__pad{padding:var(--space-5) var(--space-6)}
+.v-announcements .feat__tags{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3)}
+.v-announcements .feat__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.01em;margin:0}
+.v-announcements .feat__meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-2)}
+.v-announcements .feat__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-announcements .feat__body{font-size:var(--text-sm);line-height:var(--leading-base);color:var(--text-secondary);margin-top:var(--space-4);max-width:var(--reading-max)}
+.v-announcements .grouplabel{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin:var(--space-2) 0 var(--space-2) var(--space-1)}
+.v-announcements .feed{display:flex;flex-direction:column}
+.v-announcements .acc-item{border-top:1px solid var(--border-subtle)}
+.v-announcements .acc-item:first-child{border-top:none}
+.v-announcements .acc-trigger{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;padding:var(--space-4) var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-announcements .acc-trigger:hover{background:var(--bg-surface-sunken)}
+.v-announcements .acc-trigger:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-announcements .acc-cat{flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-md);display:grid;place-items:center;margin-top:2px}
+.v-announcements .acc-cat--school{background:var(--status-info-subtle);color:var(--status-info)}
+.v-announcements .acc-cat--class{background:var(--brand-subtle);color:var(--brand-primary)}
+.v-announcements .acc-cat--exam{background:var(--status-success-subtle);color:var(--status-success)}
+.v-announcements .acc-main{flex:1 1 auto;min-width:0}
+.v-announcements .acc-tags{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-1)}
+.v-announcements .acc-title{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-announcements .acc-meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-announcements .acc-meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-announcements .acc-excerpt{font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.v-announcements .acc-chev{flex:0 0 auto;color:var(--text-muted);margin-top:var(--space-1);transition:transform var(--dur-fast) var(--ease-standard)}
+.v-announcements .acc-chev--open{transform:rotate(90deg)}
+.v-announcements .acc-panel{padding:0 var(--space-5) var(--space-5) calc(var(--space-5) + 32px + var(--space-3));font-size:var(--text-sm);line-height:var(--leading-base);color:var(--text-secondary)}
+.v-announcements .acc-panel p{margin:0 0 var(--space-3)}
+.v-announcements .acc-panel__cta{margin-top:var(--space-2)}
+.v-announcements .staterail{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-top:var(--space-4)}
+.v-announcements .statemini{flex:1 1 300px;min-width:280px;display:flex;flex-direction:column;gap:var(--space-2)}
+.v-announcements .statemini__body{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);min-height:140px;display:flex;flex-direction:column;gap:var(--space-3);justify-content:center}
+.v-announcements .sk-row{display:flex;align-items:center;gap:var(--space-3)}
+.v-announcements .u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.v-announcements .u-mono{font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.v-announcements .acc-trigger,.v-announcements .acc-chev{transition:none}}
+
+/* ============================ SPA-STYLE: children-roster ============================ */
+.v-children-roster{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+.v-children-roster .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-children-roster .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-children-roster .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-children-roster .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-children-roster .pagehead__sub .dot{width:3px;height:3px;border-radius:var(--radius-pill);background:var(--border-strong)}
+.v-children-roster .roster{display:flex;flex-direction:column;gap:var(--space-6)}
+.v-children-roster .ccard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.v-children-roster .ccard--watch{border-color:var(--status-warning);box-shadow:var(--shadow-e1),inset 4px 0 0 var(--status-warning)}
+.v-children-roster .ccard__head{display:flex;align-items:flex-start;gap:var(--space-4);padding:var(--space-5) var(--space-6) var(--space-4)}
+.v-children-roster .ccard__id{flex:1 1 auto;min-width:0}
+.v-children-roster .ccard__namerow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.v-children-roster .ccard__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.01em;color:var(--text-primary);margin:0}
+.v-children-roster .ccard__meta{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-1);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-children-roster .ccard__meta .dot{width:3px;height:3px;border-radius:var(--radius-pill);background:var(--border-strong)}
+.v-children-roster .ccard__avgpill{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1)}
+.v-children-roster .ccard__avgcap{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.v-children-roster .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);padding:0 var(--space-6) var(--space-5)}
+.v-children-roster .metric{display:flex;flex-direction:column;gap:var(--space-2)}
+.v-children-roster .metric__label{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.v-children-roster .metric__val{font-family:var(--font-mono);font-size:var(--text-xl);font-weight:var(--weight-medium);color:var(--text-primary);line-height:1}
+.v-children-roster .metric__prog{margin-top:var(--space-1)}
+.v-children-roster .metric__flame{display:flex;align-items:center;gap:var(--space-2)}
+.v-children-roster .recent{padding:0 var(--space-6) var(--space-5);border-top:1px solid var(--border-subtle);margin-top:var(--space-1);padding-top:var(--space-4)}
+.v-children-roster .recent__cap{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);margin-bottom:var(--space-3)}
+.v-children-roster .examrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-subtle)}
+.v-children-roster .examrow:first-of-type{border-top:none}
+.v-children-roster .examrow__name{font-size:var(--text-sm);color:var(--text-primary);min-width:0}
+.v-children-roster .examrow__sub{font-size:var(--text-2xs);color:var(--text-muted);margin-top:1px}
+.v-children-roster .ccard__foot{display:flex;flex-wrap:wrap;gap:var(--space-3);padding:var(--space-4) var(--space-6) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.v-children-roster .u-mono{font-family:var(--font-mono)}
+
+/* ============================ SPA-STYLE: child-progress ============================ */
+.v-child-progress{display:flex;flex-direction:column;gap:var(--space-6);max-width:var(--content-max);margin:0 auto}
+.v-child-progress .cp-selector{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.v-child-progress .cp-selector__label{font-size:var(--text-xs);font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.v-child-progress .cp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-child-progress .cp-head__id{display:flex;align-items:center;gap:var(--space-3)}
+.v-child-progress .cp-head__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-child-progress .cp-head__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-progress .cp-head__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-progress .cp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.v-child-progress .cp-stat{position:relative}
+.v-child-progress .cp-stat .stat{height:100%}
+.v-child-progress .cp-stat__cap{font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-1)}
+.v-child-progress .cp-stat__cap--warn{color:var(--status-warning)}
+.v-child-progress .cp-stat__cap .u-mono{font-family:var(--font-mono)}
+.v-child-progress .cp-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.v-child-progress .cp-card__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.v-child-progress .cp-card__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-child-progress .cp-card__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-child-progress .cp-card__body{padding:var(--space-2) var(--space-5) var(--space-5)}
+.v-child-progress .cp-two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:stretch}
+.v-child-progress .cp-sw{display:flex;flex-direction:column;gap:var(--space-3)}
+.v-child-progress .cp-sw__label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-secondary)}
+.v-child-progress .cp-sw__label--strong{color:var(--status-success)}
+.v-child-progress .cp-sw__label--weak{color:var(--status-warning)}
+.v-child-progress .cp-chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.v-child-progress .cp-chart{padding:var(--space-2) var(--space-5) var(--space-5)}
+.v-child-progress .cp-bars{display:flex;align-items:flex-end;gap:var(--space-3);height:180px;padding:var(--space-4);background:var(--bg-surface-sunken);border-radius:var(--radius-md)}
+.v-child-progress .cp-bars__col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:var(--space-2);height:100%}
+.v-child-progress .cp-bars__stack{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:var(--space-1)}
+.v-child-progress .cp-bars__bar{width:50%;max-width:22px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-primary);transition:height var(--dur-slow) var(--ease-entrance)}
+.v-child-progress .cp-bars__bar--spark{background:var(--spark)}
+.v-child-progress .cp-bars__lbl{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);text-align:center}
+.v-child-progress .cp-bars__val{font-size:var(--text-2xs);font-family:var(--font-mono);color:var(--text-secondary)}
+.v-child-progress .cp-legend{display:flex;gap:var(--space-4);flex-wrap:wrap;margin-top:var(--space-3);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-child-progress .cp-legend__item{display:inline-flex;align-items:center;gap:var(--space-2)}
+.v-child-progress .cp-legend__swatch{width:12px;height:12px;border-radius:var(--radius-sm)}
+.v-child-progress .cp-legend__swatch--brand{background:var(--brand-primary)}
+.v-child-progress .cp-legend__swatch--spark{background:var(--spark)}
+.v-child-progress .cp-subjects{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-2) var(--space-5) var(--space-5)}
+.v-child-progress .cp-subj{display:grid;grid-template-columns:1.4fr 3fr auto;gap:var(--space-4);align-items:center}
+.v-child-progress .cp-subj__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-child-progress .cp-subj__num{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-secondary);min-width:42px;text-align:right}
+.v-child-progress .cp-recs{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-2) var(--space-5) var(--space-5)}
+.v-child-progress .cp-rec{display:flex;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken)}
+.v-child-progress .cp-rec__ico{flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--brand-subtle);color:var(--brand-primary)}
+.v-child-progress .cp-rec__main{flex:1;min-width:0}
+.v-child-progress .cp-rec__title{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.v-child-progress .cp-rec__body{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;line-height:var(--leading-sm)}
+.v-child-progress .cp-acts{display:flex;flex-direction:column;padding:0 var(--space-5) var(--space-3)}
+.v-child-progress .cp-act{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-4) var(--space-2);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-child-progress .cp-act:first-child{border-top:none}
+.v-child-progress .cp-act:hover{background:var(--bg-surface-sunken)}
+.v-child-progress .cp-act:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-child-progress .cp-act__ico{flex:0 0 auto;width:30px;height:30px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.v-child-progress .cp-act__ico--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.v-child-progress .cp-act__ico--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.v-child-progress .cp-act__main{flex:1;min-width:0}
+.v-child-progress .cp-act__label{font-size:var(--text-sm);color:var(--text-primary)}
+.v-child-progress .cp-act__time{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+.v-child-progress .cp-act__chev{flex:0 0 auto;color:var(--text-muted)}
+.v-child-progress .u-mono{font-family:var(--font-mono)}
+.v-child-progress .cp-srtable{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion: reduce){.v-child-progress .cp-bars__bar,.v-child-progress .cp-act{transition:none}}
+
+/* ============================ SPA-STYLE: child-exam-results-released ============================ */
+.v-child-exam-results-released{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.v-child-exam-results-released .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-child-exam-results-released .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-child-exam-results-released .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-exam-results-released .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-exam-results-released .domainbar{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--bg-surface-sunken)}
+.v-child-exam-results-released .domainbar__ico{flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface);color:var(--text-secondary);border:1px solid var(--border-subtle)}
+.v-child-exam-results-released .domainbar__txt{font-size:var(--text-sm);color:var(--text-secondary)}
+.v-child-exam-results-released .domainbar__txt b{color:var(--text-primary);font-weight:var(--weight-semibold)}
+.v-child-exam-results-released .filters{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-exam-results-released .filters__lab{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;margin-right:var(--space-1)}
+.v-child-exam-results-released .listcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.v-child-exam-results-released .listcard__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.v-child-exam-results-released .listcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-child-exam-results-released .listcard__count{font-size:var(--text-xs);color:var(--text-secondary);font-family:var(--font-mono)}
+.v-child-exam-results-released .listcard__body{padding:0 var(--space-4) var(--space-4)}
+.v-child-exam-results-released .exhead{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);width:100%}
+.v-child-exam-results-released .exhead__left{display:flex;align-items:center;gap:var(--space-3);min-width:0;flex-wrap:wrap}
+.v-child-exam-results-released .exhead__name{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-child-exam-results-released .exhead__date{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.v-child-exam-results-released .exhead__right{display:flex;align-items:center;gap:var(--space-4);flex:0 0 auto}
+.v-child-exam-results-released .exhead__bar{width:120px}
+.v-child-exam-results-released .exhead__bar .u-pct{display:block;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-top:2px;text-align:right}
+.v-child-exam-results-released .exsum{display:flex;flex-direction:column;gap:var(--space-4)}
+.v-child-exam-results-released .exsum__scores{display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap}
+.v-child-exam-results-released .exsum__marks{font-family:var(--font-mono);font-size:var(--text-base);color:var(--text-secondary)}
+.v-child-exam-results-released .exsum__marks b{color:var(--text-primary);font-weight:var(--weight-semibold)}
+.v-child-exam-results-released .exsum__div{color:var(--border-strong);margin:0 var(--space-2)}
+.v-child-exam-results-released .exsum__comment{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);padding:var(--space-4) var(--space-5)}
+.v-child-exam-results-released .exsum__comment-head{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:var(--space-2)}
+.v-child-exam-results-released .exsum__comment-body{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-child-exam-results-released .exsum__eyebrow{font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:var(--space-2)}
+.v-child-exam-results-released .exsum__foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;padding-top:var(--space-1)}
+.v-child-exam-results-released .exsum__source{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-exam-results-released .staterail{display:flex;flex-wrap:wrap;gap:var(--space-5)}
+.v-child-exam-results-released .statemini{flex:1 1 320px;min-width:300px;display:flex;flex-direction:column;gap:var(--space-2)}
+.v-child-exam-results-released .statemini__body{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);min-height:140px;display:flex;flex-direction:column;gap:var(--space-3);justify-content:center}
+.v-child-exam-results-released .sk-row{display:flex;align-items:center;gap:var(--space-3)}
+.v-child-exam-results-released .u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.v-child-exam-results-released .u-mono{font-family:var(--font-mono)}
+
+/* ============================ SPA-STYLE: child-exam-result-detail ============================ */
+.v-child-exam-result-detail{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.v-child-exam-result-detail .erd-back{display:inline-flex;align-items:center;gap:var(--space-2);align-self:flex-start;padding:var(--space-1) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-ui);font-size:var(--text-sm);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard)}
+.v-child-exam-result-detail .erd-back:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.v-child-exam-result-detail .erd-back:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-child-exam-result-detail .erd-head{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-6)}
+.v-child-exam-result-detail .erd-head__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.v-child-exam-result-detail .erd-head__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.01em;margin:0}
+.v-child-exam-result-detail .erd-head__meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2)}
+.v-child-exam-result-detail .erd-head__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-exam-result-detail .erd-head__dot{color:var(--border-strong)}
+.v-child-exam-result-detail .erd-overall{margin-top:var(--space-5)}
+.v-child-exam-result-detail .erd-overall__row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-2)}
+.v-child-exam-result-detail .erd-overall__lab{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-exam-result-detail .erd-overall__val{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-child-exam-result-detail .erd-head__cta{margin-top:var(--space-5);display:flex;gap:var(--space-3);flex-wrap:wrap}
+.v-child-exam-result-detail .erd-note{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--status-info-subtle);border:1px solid var(--status-info);color:var(--text-secondary);font-size:var(--text-sm)}
+.v-child-exam-result-detail .erd-note__ico{color:var(--status-info);flex:0 0 auto}
+.v-child-exam-result-detail .erd-q{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.v-child-exam-result-detail .erd-q__head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.v-child-exam-result-detail .erd-q__headL{display:flex;align-items:center;gap:var(--space-2);min-width:0}
+.v-child-exam-result-detail .erd-q__no{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-muted)}
+.v-child-exam-result-detail .erd-q__type{display:inline-flex}
+.v-child-exam-result-detail .erd-q__prompt{font-size:var(--text-base);line-height:var(--leading-base);color:var(--text-primary)}
+.v-child-exam-result-detail .erd-ans{padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle)}
+.v-child-exam-result-detail .erd-ans__lbl{font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:var(--space-1)}
+.v-child-exam-result-detail .erd-ans__val{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-child-exam-result-detail .erd-score__row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-2)}
+.v-child-exam-result-detail .erd-score__lab{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-child-exam-result-detail .erd-score__nums{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+.v-child-exam-result-detail .erd-rubric__cap{font-size:var(--text-2xs);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:var(--space-2)}
+.v-child-exam-result-detail .erd-sw{display:flex;flex-direction:column;gap:var(--space-3)}
+.v-child-exam-result-detail .erd-sw__group{display:flex;flex-direction:column;gap:var(--space-2)}
+.v-child-exam-result-detail .erd-sw__lab{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary)}
+.v-child-exam-result-detail .erd-sw__lab--good{color:var(--status-success)}
+.v-child-exam-result-detail .erd-sw__lab--work{color:var(--status-warning)}
+.v-child-exam-result-detail .erd-sw__chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.v-child-exam-result-detail .erd-q__foot{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding-top:var(--space-3);border-top:1px solid var(--border-subtle)}
+.v-child-exam-result-detail .erd-confnote{font-size:var(--text-xs);color:var(--text-secondary);display:inline-flex;align-items:center;gap:var(--space-2)}
+.v-child-exam-result-detail .u-mono{font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.v-child-exam-result-detail .erd-back{transition:none}}
+
+/* ============================ SPA-STYLE: child-space-progress ============================ */
+.v-child-space-progress{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+.v-child-space-progress .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-child-space-progress .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-child-space-progress .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-space-progress .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-space-progress .releasednote{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-mono)}
+.v-child-space-progress .childsec{display:flex;flex-direction:column;gap:var(--space-5)}
+.v-child-space-progress .childsec__head{display:flex;align-items:center;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.v-child-space-progress .childsec__head--risk{border-bottom-color:var(--status-warning)}
+.v-child-space-progress .childsec__id{flex:1 1 auto;min-width:0}
+.v-child-space-progress .childsec__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-2xl);line-height:var(--leading-2xl);letter-spacing:-.01em;color:var(--text-primary)}
+.v-child-space-progress .childsec__meta{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-space-progress .childsec__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-space-progress .childsec__dot{width:3px;height:3px;border-radius:50%;background:var(--border-strong);display:inline-block}
+.v-child-space-progress .childsec__actions{display:flex;align-items:center;gap:var(--space-2)}
+.v-child-space-progress .spgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-5)}
+.v-child-space-progress .spcard{display:flex;flex-direction:column;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);text-decoration:none;color:inherit;cursor:pointer;transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard),transform var(--dur-fast) var(--ease-standard)}
+.v-child-space-progress .spcard:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong);transform:translateY(-2px)}
+.v-child-space-progress .spcard:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-child-space-progress .spcard__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.v-child-space-progress .spcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-child-space-progress .spcard__sub{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+.v-child-space-progress .spcard__progrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-2)}
+.v-child-space-progress .spcard__proglab{font-size:var(--text-xs);color:var(--text-secondary)}
+.v-child-space-progress .spcard__progval{font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-child-space-progress .spcard__facts{display:flex;align-items:center;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;margin-top:auto}
+.v-child-space-progress .spcard__fact{display:inline-flex;align-items:center;gap:var(--space-1)}
+.v-child-space-progress .spcard__fact .u-mono{font-family:var(--font-mono);color:var(--text-secondary)}
+.v-child-space-progress .spcard__track{padding-top:var(--space-1)}
+.v-child-space-progress .statebox{border:1px dashed var(--border-strong);border-radius:var(--radius-lg);padding:var(--space-5);background:var(--bg-surface)}
+.v-child-space-progress .eyebrow{font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:var(--space-4) 0 var(--space-2);display:flex;align-items:center;gap:var(--space-2)}
+.v-child-space-progress .eyebrow::before{content:"";height:1px;width:var(--space-6);background:var(--border-subtle)}
+.v-child-space-progress .u-mono{font-family:var(--font-mono)}
+@media (max-width:1100px){.v-child-space-progress .spgrid{grid-template-columns:1fr}}
+
+/* ============================ SPA-STYLE: child-comparison ============================ */
+.v-child-comparison{max-width:var(--content-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8)}
+.v-child-comparison .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-child-comparison .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-child-comparison .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-child-comparison .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-child-comparison .dcard{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1)}
+.v-child-comparison .dcard__head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-3)}
+.v-child-comparison .dcard__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em;margin:0}
+.v-child-comparison .dcard__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-child-comparison .dcard__body{padding:0 var(--space-5) var(--space-5)}
+.v-child-comparison .kids{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:stretch}
+.v-child-comparison .kid{display:flex;flex-direction:column;gap:var(--space-4);align-items:flex-start;text-align:left;width:100%;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);padding:var(--space-5);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:box-shadow var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+.v-child-comparison .kid:hover{box-shadow:var(--shadow-e2);border-color:var(--border-strong)}
+.v-child-comparison .kid:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-child-comparison .kid__id{display:flex;align-items:center;gap:var(--space-3);width:100%}
+.v-child-comparison .kid__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);line-height:var(--leading-xl);letter-spacing:-.01em;color:var(--text-primary)}
+.v-child-comparison .kid__grade{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+.v-child-comparison .kid__flag{margin-left:auto}
+.v-child-comparison .kid__ring{display:flex;align-items:center;gap:var(--space-5);width:100%}
+.v-child-comparison .kid__ringmeta{display:flex;flex-direction:column;gap:var(--space-1)}
+.v-child-comparison .kid__ringlab{font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.v-child-comparison .kid__ringnote{font-size:var(--text-xs);color:var(--text-secondary);display:flex;align-items:center;gap:var(--space-1)}
+.v-child-comparison .kid__chev{margin-left:auto;color:var(--text-muted)}
+.v-child-comparison .cmpcell{display:inline-flex;align-items:center;gap:var(--space-2);font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-primary)}
+.v-child-comparison .cmpcell--best{background:var(--status-success-subtle);color:var(--status-success);border-radius:var(--radius-pill);padding:2px var(--space-3);font-weight:var(--weight-semibold)}
+.v-child-comparison .cmpcell--best .lucide{color:var(--status-success)}
+.v-child-comparison .cmprow-lab{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+.v-child-comparison .cmprow-lab .lucide{color:var(--text-muted)}
+.v-child-comparison .legend{display:flex;align-items:center;gap:var(--space-4);font-size:var(--text-xs);color:var(--text-secondary)}
+.v-child-comparison .legend__item{display:inline-flex;align-items:center;gap:var(--space-2)}
+.v-child-comparison .legend__sw{width:12px;height:12px;border-radius:var(--radius-sm)}
+.v-child-comparison .legend__sw--a{background:var(--brand-primary)}
+.v-child-comparison .legend__sw--b{background:var(--spark)}
+.v-child-comparison .barchart{display:flex;flex-direction:column;gap:var(--space-5);padding-top:var(--space-4)}
+.v-child-comparison .barrow{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:var(--space-4)}
+.v-child-comparison .barrow__name{font-size:var(--text-sm);color:var(--text-primary);font-weight:var(--weight-medium)}
+.v-child-comparison .bargroup{display:flex;flex-direction:column;gap:var(--space-2)}
+.v-child-comparison .barline{display:flex;align-items:center;gap:var(--space-3)}
+.v-child-comparison .barline__who{flex:0 0 44px;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-child-comparison .barline__track{flex:1 1 auto;height:14px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);overflow:hidden}
+.v-child-comparison .barline__fill{height:100%;border-radius:var(--radius-pill)}
+.v-child-comparison .barline__fill--a{background:var(--brand-primary)}
+.v-child-comparison .barline__fill--b{background:var(--spark)}
+.v-child-comparison .barline__val{flex:0 0 40px;text-align:right;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-primary);font-weight:var(--weight-medium)}
+.v-child-comparison .dcard__stamp{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-child-comparison .dcard__stamp .u-mono{font-family:var(--font-mono)}
+.v-child-comparison .u-mono{font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.v-child-comparison .kid{transition:none}}
+
+/* ============================ SPA-STYLE: notifications ============================ */
+.v-notifications{max-width:var(--reading-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-6)}
+.v-notifications .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.v-notifications .pagehead__l{min-width:0}
+.v-notifications .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0;display:flex;align-items:center;gap:var(--space-3)}
+.v-notifications .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-notifications .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-notifications .filterrow{display:flex;align-items:center;gap:var(--space-2)}
+.v-notifications .fchip{display:inline-flex;align-items:center;gap:var(--space-2);border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);padding:var(--space-2) var(--space-4);border-radius:var(--radius-pill);cursor:pointer;transition:background-color var(--dur-fast) var(--ease-standard),border-color var(--dur-fast) var(--ease-standard)}
+.v-notifications .fchip:hover{color:var(--text-primary);border-color:var(--border-strong)}
+.v-notifications .fchip:focus-visible{outline:none;box-shadow:var(--ring-focus)}
+.v-notifications .fchip--on{background:var(--brand-subtle);border-color:var(--brand-primary);color:var(--text-primary)}
+.v-notifications .feed{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:hidden}
+.v-notifications .nrow{display:flex;align-items:flex-start;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-4) var(--space-5) var(--space-4) var(--space-3);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-notifications .nrow:first-child{border-top:none}
+.v-notifications .nrow:hover{background:var(--bg-surface-sunken)}
+.v-notifications .nrow:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-notifications .nrow--unread{background:var(--bg-surface-sunken)}
+.v-notifications .nrow__dotcol{flex:0 0 auto;width:10px;display:flex;justify-content:center;padding-top:14px}
+.v-notifications .ndot{width:8px;height:8px;border-radius:var(--radius-pill);background:var(--brand-primary)}
+.v-notifications .nrow__chip{flex:0 0 auto;width:34px;height:34px;border-radius:var(--radius-md);display:grid;place-items:center;background:var(--bg-surface-sunken);color:var(--text-secondary)}
+.v-notifications .nrow__chip--warn{background:var(--status-warning-subtle);color:var(--status-warning)}
+.v-notifications .nrow__chip--info{background:var(--status-info-subtle);color:var(--status-info)}
+.v-notifications .nrow__chip--ok{background:var(--status-success-subtle);color:var(--status-success)}
+.v-notifications .nrow__main{flex:1 1 auto;min-width:0}
+.v-notifications .nrow__title{font-size:var(--text-sm);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-notifications .nrow--read .nrow__title{font-weight:var(--weight-regular);color:var(--text-secondary)}
+.v-notifications .nrow--unread .nrow__title{font-weight:var(--weight-semibold)}
+.v-notifications .nrow__meta{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-1);flex-wrap:wrap}
+.v-notifications .nrow__time{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.v-notifications .nrow__act{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--brand-primary)}
+.v-notifications .nrow__right{flex:0 0 auto;display:flex;align-items:center;padding-top:var(--space-1);color:var(--text-muted)}
+.v-notifications .feed__empty{padding:var(--space-10) var(--space-5)}
+@media (prefers-reduced-motion: reduce){.v-notifications .nrow{transition:none}}
+
+/* ============================ SPA-STYLE: parent-settings ============================ */
+.v-parent-settings{max-width:var(--reading-max);margin:0 auto;display:flex;flex-direction:column;gap:var(--space-8);position:relative}
+.v-parent-settings .pagehead h1{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-4xl);line-height:var(--leading-4xl);letter-spacing:-.02em;margin:0}
+.v-parent-settings .pagehead__sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-settings .pagehead__sub .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-parent-settings .pintro{font-size:var(--text-sm);color:var(--text-secondary);margin:0 0 var(--space-5)}
+.v-parent-settings .idrow{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-5)}
+.v-parent-settings .idrow__name{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);line-height:var(--leading-lg);letter-spacing:-.01em}
+.v-parent-settings .idrow__sub{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-settings .frow{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) 0;border-top:1px solid var(--border-subtle)}
+.v-parent-settings .frow:first-of-type{border-top:none}
+.v-parent-settings .frow__main{min-width:0;flex:1 1 auto}
+.v-parent-settings .frow__label{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .frow__label svg{color:var(--text-muted)}
+.v-parent-settings .frow__desc{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-settings .frow__ctrl{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-3)}
+.v-parent-settings .pfoot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--border-subtle)}
+.v-parent-settings .pfoot__hint{font-size:var(--text-xs);color:var(--text-muted)}
+.v-parent-settings .kids{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:767px){.v-parent-settings .kids{grid-template-columns:1fr}}
+.v-parent-settings .kid{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+.v-parent-settings .kid__id{min-width:0;flex:1 1 auto}
+.v-parent-settings .kid__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .kid__meta{font-size:var(--text-2xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-parent-settings .kid__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-parent-settings .acctrow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.v-parent-settings .acctrow__txt{min-width:0}
+.v-parent-settings .acctrow__lab{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+.v-parent-settings .acctrow__desc{font-size:var(--text-xs);color:var(--text-secondary);margin-top:2px}
+.v-parent-settings .states__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:767px){.v-parent-settings .states__grid{grid-template-columns:1fr}}
+.v-parent-settings .mini{border:1px dashed var(--border-subtle);border-radius:var(--radius-lg);padding:var(--space-4);background:var(--bg-surface)}
+.v-parent-settings .u-caption{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-3);display:block}
+.v-parent-settings .sk-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0}
+.v-parent-settings .toast-host{position:absolute;right:var(--space-4);bottom:calc(-1 * var(--space-2));z-index:50;width:360px}
+.v-parent-settings .u-mono{font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.v-parent-settings *{transition:none!important}}
+
+/* ============================ SPA-STYLE: multi-child-switcher ============================ */
+.v-multi-child-switcher{width:320px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);overflow:hidden;font-family:var(--font-ui)}
+.v-multi-child-switcher .mcs__head{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-4) var(--space-3)}
+.v-multi-child-switcher .mcs__title{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-sm);line-height:var(--leading-sm);letter-spacing:-.01em;color:var(--text-primary);margin:0}
+.v-multi-child-switcher .mcs__count{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);margin-left:auto}
+.v-multi-child-switcher .mcs__list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.v-multi-child-switcher .mcs__row{display:flex;align-items:center;gap:var(--space-3);width:100%;text-align:left;background:transparent;border:none;border-top:1px solid var(--border-subtle);padding:var(--space-3) var(--space-4);cursor:pointer;color:inherit;font-family:var(--font-ui);transition:background-color var(--dur-fast) var(--ease-standard)}
+.v-multi-child-switcher .mcs__row:hover{background:var(--bg-surface-sunken)}
+.v-multi-child-switcher .mcs__row:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:var(--radius-sm)}
+.v-multi-child-switcher .mcs__row--active{background:var(--brand-subtle)}
+.v-multi-child-switcher .mcs__row--active:hover{background:var(--brand-subtle)}
+.v-multi-child-switcher .mcs__main{flex:1 1 auto;min-width:0}
+.v-multi-child-switcher .mcs__name{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);line-height:var(--leading-sm)}
+.v-multi-child-switcher .mcs__meta{font-size:var(--text-2xs);color:var(--text-secondary);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.v-multi-child-switcher .mcs__meta .u-mono{font-family:var(--font-mono);color:var(--text-muted)}
+.v-multi-child-switcher .mcs__risk{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--status-warning);font-weight:var(--weight-medium)}
+.v-multi-child-switcher .mcs__risk-dot{width:7px;height:7px;border-radius:var(--radius-pill);background:var(--status-warning);flex:0 0 auto}
+.v-multi-child-switcher .mcs__check{flex:0 0 auto;width:22px;height:22px;border-radius:var(--radius-pill);display:grid;place-items:center;background:var(--brand-primary);color:var(--text-on-accent)}
+.v-multi-child-switcher .mcs__check-empty{flex:0 0 auto;width:22px;height:22px}
+.v-multi-child-switcher .mcs__foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-top:1px solid var(--border-subtle);background:var(--bg-surface-sunken)}
+.v-multi-child-switcher .mcs__foot .btn{flex:1 1 auto;justify-content:center}
+
+/* ============================ SPA-only chrome: right drawer + topbar child-switcher popover ============================ */
+.spa-bare{min-height:100vh;display:grid;place-items:center;padding:var(--space-8);background:var(--bg-canvas)}
+.spa-childpop{position:absolute;top:calc(var(--topbar-h, 60px) + var(--space-1));left:var(--space-4);z-index:120}
+.spa-childpop__scrim{position:fixed;inset:0;z-index:110;background:transparent}
+.spa-topchip{position:relative}
+.spa-topchip__wrap{position:relative}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const {
+  Icon, IconButton, Avatar, Badge, Chip, Button, Stat, ProgressBar, ProgressRing,
+  GradePill, RubricBreakdown, ConfidenceBadge, AtRiskBadge, StreakFlame, Alert, EmptyState,
+  Tabs, Accordion, DataTable, DefinitionList, Switch, Select, Field, Input, Card, Panel,
+  Timeline, NavItem, Drawer, SpaceCard, StoryPointTrack, Skeleton, Toast
+} = window.LvlupV0DesignSystem_5d0725;
+
+const { useState, useEffect } = React;
+const go = (h)=>{ window.location.hash = h; };
+
+/* =====================================================================
+   VIEW MODULES — each card's helpers/data + view, isolated in an IIFE
+   so per-card consts (CHILDREN, FILTERS, SUBJECTS, KIDS, QuestionCard…)
+   never collide. Each IIFE returns the marker-delimited *View function.
+   ===================================================================== */
+
+/* ---------------------------- parent-login ---------------------------- */
+const ParentLoginView = (function(){
+/* ==SPA-VIEW:parent-login== */
+function ParentLoginView(){
+  const [step,setStep]=useState('code');      // 'code' | 'creds'
+  const [code,setCode]=useState('BHA-204');
+  const [codeErr,setCodeErr]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [email,setEmail]=useState('anita.sharma@beaconhill.edu');
+  const [password,setPassword]=useState('');
+
+  const onContinue=()=>{
+    if(!code.trim() || code.trim().toUpperCase()!=='BHA-204'){
+      setCodeErr("We couldn't find that school code. Check your welcome email.");
+      return;
+    }
+    setCodeErr('');
+    setBusy(true);
+    setTimeout(()=>{ setBusy(false); setStep('creds'); }, 450);
+  };
+  const onSignIn=()=>{
+    setBusy(true);
+    setTimeout(()=>{ setBusy(false); go('#/'); }, 600);
+  };
+
+  return (
+    <div className="v-parent-login">
+      <Card>
+        <div className="auth-card">
+
+          <div className="lockup">
+            <span className="lockup__crest"><Icon name="graduation-cap" size={26}/></span>
+            <h1 className="lockup__school">Beacon Hill Academy</h1>
+            <span className="lockup__portal">Parent Portal</span>
+          </div>
+
+          <div className="stepper" role="group" aria-label={'Step '+(step==='code'?'1 of 2: school code':'2 of 2: sign in')}>
+            <span className={'stepper__node '+(step==='code'?'stepper__node--active':'stepper__node--done')}>
+              <span className="stepper__dot">{step==='code'?'1':<Icon name="check" size={11}/>}</span>
+              School
+            </span>
+            <span className="stepper__bar" aria-hidden="true"></span>
+            <span className={'stepper__node '+(step==='creds'?'stepper__node--active':'')}>
+              <span className="stepper__dot">2</span>
+              Sign in
+            </span>
+          </div>
+
+          {step==='code' ? (
+            <form className="auth-form" onSubmit={(e)=>{e.preventDefault();onContinue();}}>
+              <Field label="School code" required
+                hint="Found in your welcome email from the school."
+                error={codeErr || undefined}>
+                <Input
+                  value={code}
+                  onChange={(e)=>{setCode(e.target.value); if(codeErr) setCodeErr('');}}
+                  placeholder="BHA-204"
+                  autoComplete="off"
+                  error={!!codeErr}
+                  aria-invalid={!!codeErr}/>
+              </Field>
+              <Button variant="primary" block loading={busy} type="submit"
+                trailingIcon={<Icon name="arrow-right" size={16}/>}
+                onClick={onContinue}>Continue</Button>
+            </form>
+          ) : (
+            <form className="auth-form" onSubmit={(e)=>{e.preventDefault();onSignIn();}}>
+              <div className="ctx-chip">
+                <span className="ctx-chip__ico"><Icon name="check" size={16}/></span>
+                <span className="ctx-chip__main">
+                  <div className="ctx-chip__name">Beacon Hill Academy</div>
+                  <div className="ctx-chip__code">{code.trim().toUpperCase()}</div>
+                </span>
+                <Button variant="ghost" size="sm" onClick={()=>setStep('code')}>Change</Button>
+              </div>
+              <Field label="Email" required>
+                <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)}
+                  placeholder="you@example.com" autoComplete="email"/>
+              </Field>
+              <Field label="Password" required>
+                <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)}
+                  placeholder="••••••••" autoComplete="current-password"/>
+              </Field>
+              <Button variant="primary" block loading={busy} type="submit"
+                leadingIcon={<Icon name="log-in" size={16}/>}
+                onClick={onSignIn}>Sign in</Button>
+              <div className="auth-foot">
+                <Button variant="ghost" size="sm" onClick={()=>go('#/login')}>Forgot password?</Button>
+              </div>
+            </form>
+          )}
+
+          <div className="reassure">
+            <Icon name="shield-check" size={13}/>
+            Released grades only · answer keys never shown
+          </div>
+
+        </div>
+      </Card>
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ParentLoginView;
+})();
+
+/* ---------------------------- parent-dashboard ---------------------------- */
+const DashboardView = (function(){
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', avg:82, streak:12, completion:78, atRisk:false, subjects:'DSA · Mathematics · Physics' },
+  { id:'diya',  name:'Diya Sharma',  initials:'DS', grade:'Grade 7', avg:61, streak:0,  completion:44, atRisk:true,  subjects:'Mathematics · Science · English' },
+];
+const ACTIVITY = [
+  { id:'ac1', tone:'warn', ico:'alert-triangle', title:'Diya Sharma was flagged at-risk by the nightly review.', time:'2h ago' },
+  { id:'ac2', tone:'ok',   ico:'clipboard-check', title:'Results released for Aarav — "Midterm · Data Structures".', time:'5h ago' },
+  { id:'ac3', tone:'info', ico:'trending-up',     title:'Aarav reached a 12-day learning streak.', time:'Yesterday' },
+  { id:'ac4', tone:'info', ico:'megaphone',       title:'Beacon Hill Academy posted a new announcement.', time:'2 days ago' },
+];
+/* ==SPA-VIEW:parent-dashboard== */
+function DashboardView(){
+  return (
+    <div className="v-parent-dashboard">
+
+      <div className="pagehead">
+        <div>
+          <h1>Good morning, Anita.</h1>
+          <div className="pagehead__sub">
+            <Icon name="server" size={14}/> Updated · <span className="u-mono">Saturday, June 20</span>
+          </div>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="bell" size={16}/>} onClick={()=>go('#/notifications')}>Notifications</Button>
+      </div>
+
+      <div className="kpis" role="group" aria-label="Key metrics">
+        <div className="kpi" aria-label="Children linked: 2">
+          <Stat label="Children" value="2"/>
+          <div className="kpi__cap"><Icon name="users" size={12}/> linked to you</div>
+        </div>
+        <div className="kpi" aria-label="Average performance: 72 percent">
+          <Stat label="Avg performance" value="72%"/>
+          <div className="kpi__cap"><Icon name="server" size={12}/> released results only</div>
+        </div>
+        <div className="kpi" aria-label="At-risk children: 1">
+          <Stat label="At-risk" value="1"/>
+          <div className="kpi__cap kpi__cap--warn"><Icon name="alert-triangle" size={12}/> needs attention</div>
+        </div>
+        <div className="kpi" aria-label="School code BHA-204">
+          <Stat label="School code" value="BHA-204"/>
+          <div className="kpi__cap"><Icon name="school" size={12}/> Beacon Hill Academy</div>
+        </div>
+      </div>
+
+      <Alert variant="warning" title="Diya Sharma flagged at-risk">
+        Recent scores and inactivity triggered an at-risk flag.{' '}
+        <button className="btn btn--ghost btn--sm" style={{padding:0,height:'auto',color:'var(--status-warning)'}} onClick={()=>go('#/alerts')}>View alerts</button>
+      </Alert>
+
+      <div className="quickrow" role="group" aria-label="Quick actions">
+        <Button variant="secondary" leadingIcon={<Icon name="alert-triangle" size={16}/>} onClick={()=>go('#/alerts')}>View alerts</Button>
+        <Button variant="secondary" leadingIcon={<Icon name="git-compare" size={16}/>} onClick={()=>go('#/compare')}>Compare children</Button>
+        <Button variant="ghost" leadingIcon={<Icon name="bell" size={16}/>} onClick={()=>go('#/notifications')}>Notifications</Button>
+      </div>
+
+      <section aria-labelledby="kids-title">
+        <div className="sechead">
+          <div>
+            <h2 className="sechead__title" id="kids-title">Your children</h2>
+            <div className="sechead__sub"><span className="u-mono">2</span> linked · released scores only</div>
+          </div>
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children')}>All children</Button>
+        </div>
+        <div className="kidgrid" role="list">
+          {CHILDREN.map(k=>(
+            <article key={k.id} className={'kidcard'+(k.atRisk?' kidcard--risk':'')} role="listitem"
+              aria-label={k.name+', '+k.grade+', average '+k.avg+' percent'+(k.atRisk?', at risk':'')}>
+              <div className="kidcard__top">
+                <Avatar initials={k.initials} size="lg"/>
+                <div className="kidcard__id">
+                  <div className="kidcard__name">{k.name}</div>
+                  <div className="kidcard__meta">
+                    <span>{k.grade}</span>
+                    <span className="u-mono">·</span>
+                    <span>{k.subjects}</span>
+                  </div>
+                </div>
+                {k.atRisk && <div className="kidcard__risk"><AtRiskBadge level="watch">Watch</AtRiskBadge></div>}
+              </div>
+
+              <div className="kidcard__stats">
+                <div className="kidstat">
+                  <span className="kidstat__lab">Avg</span>
+                  <span className="kidstat__val">{k.avg}%</span>
+                </div>
+                <div className="kidstat">
+                  <span className="kidstat__lab">Streak</span>
+                  <span className="kidstat__val">{k.streak>0 ? <StreakFlame days={k.streak}/> : <Chip><Icon name="flame" size={12}/> 0 days</Chip>}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="kidcard__progrow">
+                  <span className="kidcard__proglab">Space completion</span>
+                  <span className="kidcard__progval">{k.completion}%</span>
+                </div>
+                <ProgressBar value={k.completion} variant={k.atRisk ? 'warning' : 'success'}/>
+              </div>
+
+              <div className="kidcard__cta">
+                <Button variant="secondary" size="sm" leadingIcon={<Icon name="trending-up" size={15}/>} onClick={()=>go('#/children/'+k.id+'/progress')}>Progress</Button>
+                <Button variant="ghost" size="sm" leadingIcon={<Icon name="clipboard-check" size={15}/>} onClick={()=>go('#/children/'+k.id+'/results')}>Results</Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="dcard" aria-labelledby="act-title">
+        <div className="dcard__head">
+          <h2 className="dcard__title" id="act-title">Recent activity</h2>
+          <Badge variant="brand">{ACTIVITY.length} new</Badge>
+        </div>
+        <ul className="act-list" role="list">
+          {ACTIVITY.map(a=>(
+            <li key={a.id} role="listitem">
+              <button className="act-row" onClick={()=>go('#/notifications')} aria-label={a.title+' '+a.time}>
+                <span className={'act-row__ico act-row__ico--'+a.tone}><Icon name={a.ico} size={15}/></span>
+                <span className="act-row__main">
+                  <span className="act-row__title">{a.title}</span>
+                  <span className="act-row__time">{a.time}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="dcard__foot">
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/notifications')}>View all notifications</Button>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return DashboardView;
+})();
+
+/* ---------------------------- performance-alerts ---------------------------- */
+const AlertsView = (function(){
+const ALERTS = [
+  { id:'al1', child:'diya', sev:'err', ico:'alert-triangle', sevLabel:'At risk',
+    title:'Diya is at risk', badge:'watch',
+    meta:'Declining scores · 0-day streak · 44% space completion',
+    actLabel:'View progress', actIco:'trending-up', href:'#/children/diya/progress' },
+  { id:'al2', child:'diya', sev:'warn', ico:'circle-alert', sevLabel:'Low score',
+    title:'Diya — Mathematics', badge:null,
+    meta:'Released exam score 48% · below 60% threshold',
+    actLabel:'View results', actIco:'clipboard-check', href:'#/children/diya/results' },
+  { id:'al3', child:'diya', sev:'warn', ico:'bar-chart-2', sevLabel:'Low completion',
+    title:'Diya — Science space', badge:null,
+    meta:'44% complete · pace behind class average',
+    actLabel:'View space', actIco:'orbit', href:'#/progress' },
+  { id:'al4', child:'diya', sev:'info', ico:'clock', sevLabel:'No activity',
+    title:'Diya — 0-day streak', badge:null,
+    meta:'No learning activity recorded in the last 7 days',
+    actLabel:'View progress', actIco:'trending-up', href:'#/children/diya/progress' },
+  { id:'al5', child:'aarav', sev:'ok', ico:'check-circle', sevLabel:'On track',
+    title:'Aarav is on track', badge:null,
+    meta:'82% average · 12-day streak · 78% space completion',
+    actLabel:'View progress', actIco:'trending-up', href:'#/children/aarav/progress' },
+];
+const FILTERS = [
+  { id:'all',   label:'All' },
+  { id:'aarav', label:'Aarav' },
+  { id:'diya',  label:'Diya' },
+];
+/* ==SPA-VIEW:performance-alerts== */
+function AlertsView(){
+  const [filter, setFilter] = useState('all');
+  const rows = ALERTS.filter(function(r){ return filter==='all' || r.child===filter; });
+  const actionable = ALERTS.filter(function(r){ return r.sev!=='ok'; }).length;
+
+  return (
+    <div className="v-performance-alerts">
+
+      <header className="pa-head">
+        <div>
+          <h1 className="pa-head__title">Alerts</h1>
+          <p className="pa-head__sub">Performance alerts across your children, derived from the nightly review.</p>
+          <div className="pa-head__meta">
+            <span className="pa-lastupd"><Icon name="clock" size={13}/>Updated <span className="u-mono">6 hours ago</span></span>
+            <span className="pa-dot">·</span>
+            <span className="pa-servertag"><Icon name="server" size={10}/>Nightly</span>
+            <span className="pa-dot">·</span>
+            <Badge variant="error"><Icon name="alert-triangle" size={12}/> {actionable} need attention</Badge>
+          </div>
+        </div>
+        <Button variant="secondary" leadingIcon={<Icon name="refresh-cw" size={16}/>} onClick={function(){ go('#/alerts'); }}>Refresh</Button>
+      </header>
+
+      <div className="pa-filters" role="group" aria-label="Filter alerts by child">
+        <span className="pa-filters__lbl">Child</span>
+        {FILTERS.map(function(f){
+          return <Chip key={f.id} active={filter===f.id} aria-pressed={filter===f.id}
+            onClick={function(){ setFilter(f.id); }}>{f.label}</Chip>;
+        })}
+      </div>
+
+      {rows.length>0 ? (
+        <ul className="pa-list" role="list">
+          {rows.map(function(r){
+            return (
+              <li key={r.id} role="listitem">
+                <button className="pa-row" onClick={function(){ go(r.href); }}
+                  aria-label={r.title+' — '+r.sevLabel+'. '+r.meta}>
+                  <span className={'pa-row__ico pa-row__ico--'+r.sev} aria-hidden="true"><Icon name={r.ico} size={20}/></span>
+                  <span className="pa-row__main">
+                    <span className="pa-row__title">
+                      {r.title}
+                      {r.badge==='watch' && <AtRiskBadge level="watch">At-risk</AtRiskBadge>}
+                      <span className={'pa-row__sev pa-row__sev--'+r.sev}><Icon name={r.ico} size={11}/>{r.sevLabel}</span>
+                    </span>
+                    <span className="pa-row__meta">{r.meta}</span>
+                  </span>
+                  <span className="pa-row__act">
+                    <Button variant="ghost" size="sm" trailingIcon={<Icon name={r.actIco} size={15}/>}
+                      onClick={function(e){ e.stopPropagation(); go(r.href); }}>{r.actLabel}</Button>
+                  </span>
+                  <span className="pa-row__chev" aria-hidden="true"><Icon name="chevron-right" size={18}/></span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="pa-empty">
+          <EmptyState icon="shield-check"
+            title={'No alerts for '+(filter==='aarav'?'Aarav':'Diya')}
+            body="Nothing flagged right now. We'll surface anything the nightly review picks up."/>
+        </div>
+      )}
+
+      <section aria-labelledby="pa-states-title">
+        <h2 className="pa-head__title" id="pa-states-title" style={{fontSize:'var(--text-xl)',marginBottom:'var(--space-2)'}}>States</h2>
+        <div className="pa-states__grid">
+
+          <div className="pa-states__mini">
+            <span className="u-caption">Loading · skeleton</span>
+            <div className="pa-skelrow"><Skeleton variant="circle" width="40px" height="40px"/><div className="pa-skelrow__col"><Skeleton width="48%"/><Skeleton width="68%" height="0.6rem"/></div><Skeleton width="96px"/></div>
+            <div className="pa-skelrow"><Skeleton variant="circle" width="40px" height="40px"/><div className="pa-skelrow__col"><Skeleton width="40%"/><Skeleton width="56%" height="0.6rem"/></div><Skeleton width="96px"/></div>
+          </div>
+
+          <div className="pa-states__mini">
+            <span className="u-caption">Empty · no alerts (happy path)</span>
+            <EmptyState icon="shield-check" title="All clear — no alerts"
+              body="Neither child is flagged by the nightly review right now."/>
+          </div>
+
+          <div className="pa-states__mini">
+            <span className="u-caption">Empty · filtered child on track</span>
+            <EmptyState icon="check-circle" title="No alerts for Aarav"
+              body="Aarav is on track. Nothing needs your attention."/>
+          </div>
+
+          <div className="pa-states__mini">
+            <span className="u-caption">Error · alerts read failed</span>
+            <Alert variant="error" title="Couldn't load alerts">
+              Something went wrong fetching alerts.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>} onClick={function(){ go('#/alerts'); }}>Retry</Button></div>
+            </Alert>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return AlertsView;
+})();
+
+/* ---------------------------- announcements ---------------------------- */
+const AnnouncementsView = (function(){
+const FEATURED = {
+  id:'ann_ptm', cat:'school', catLabel:'School',
+  title:'Parent-Teacher Meeting — June 28',
+  author:"Principal's Office", date:'12 Jun 2026',
+  body:"You're invited to the term-end Parent-Teacher Meeting on Saturday, June 28, from 9:00 AM to 1:00 PM in the main academic block. Slots are allotted per class; your assigned time will appear under Notifications. Please bring your school code BHA-204 for check-in. Teachers will discuss released results and term progress only — no new assessments are scheduled during this window."
+};
+const FEED = [
+  { id:'ann_dsa', group:'This week', cat:'exam', catLabel:'Exam',
+    title:'Grade 9 DSA unit exam results released',
+    author:'Mr. Rao', date:'18 Jun 2026',
+    excerpt:'Results for the Data Structures unit test are now available for your child.',
+    body:[
+      "Results for the Grade 9 Data Structures & Algorithms unit test have been released and are now visible on each child's Exam Results page.",
+      "Only released, summary-level scores are shown to parents. Answer keys and per-question solutions remain with the class teacher and are not published here."
+    ],
+    cta:{ label:'View released results', hash:'#/children/aarav/results/ex_midterm' } },
+  { id:'ann_annualday', group:'This week', cat:'class', catLabel:'Class',
+    title:'Annual Day rehearsals',
+    author:'Ms. Kapoor', date:'17 Jun 2026',
+    excerpt:'Rehearsals begin next week; participation is optional and after school hours.',
+    body:[
+      "Annual Day rehearsals for Grade 9 sections begin Monday and run after regular school hours through the week.",
+      "Participation is optional. Students taking part should be picked up by 5:30 PM. No academic sessions are affected."
+    ] },
+  { id:'ann_library', group:'Earlier', cat:'school', catLabel:'School',
+    title:'Library timings updated for summer term',
+    author:'Library Desk', date:'10 Jun 2026',
+    excerpt:'The library will now open 8:00 AM–4:00 PM on all working days.',
+    body:[
+      "The school library has revised its hours for the summer term and will operate from 8:00 AM to 4:00 PM on all working days.",
+      "Borrowed titles may be renewed once at the front desk."
+    ] },
+  { id:'ann_fees', group:'Earlier', cat:'school', catLabel:'School',
+    title:'Fee receipt portal maintenance window',
+    author:'Accounts Office', date:'06 Jun 2026',
+    excerpt:'The receipts portal will be briefly unavailable this Sunday morning.',
+    body:[
+      "The online fee receipt portal will be unavailable for scheduled maintenance this Sunday from 6:00 AM to 8:00 AM.",
+      "No action is required from parents. Existing receipts remain valid."
+    ] }
+];
+const FILTERS = [
+  { key:'all', label:'All', icon:'list' },
+  { key:'school', label:'School', icon:'school' },
+  { key:'class', label:'Class', icon:'users' },
+  { key:'exam', label:'Exam', icon:'clipboard-check' }
+];
+const CAT_ICON = { school:'school', class:'users', exam:'clipboard-check' };
+const CAT_BADGE = { school:'info', class:'brand', exam:'success' };
+function FilterChips({active, onChange}){
+  return (
+    <div className="filters" role="group" aria-label="Filter announcements by category">
+      {FILTERS.map(f=>(
+        <Chip key={f.key} active={active===f.key} aria-pressed={active===f.key}
+          onClick={()=>onChange(f.key)}>
+          <Icon name={f.icon} size={13}/> {f.label}
+        </Chip>
+      ))}
+    </div>
+  );
+}
+function FeaturedCard(){
+  return (
+    <section className="acard feat" aria-labelledby="feat-title">
+      <div className="feat__pad">
+        <div className="feat__tags">
+          <Badge variant="spark" icon={<Icon name="pin" size={12}/>}>Pinned</Badge>
+          <Badge variant={CAT_BADGE[FEATURED.cat]} icon={<Icon name={CAT_ICON[FEATURED.cat]} size={12}/>}>{FEATURED.catLabel}</Badge>
+        </div>
+        <h2 className="feat__title" id="feat-title">{FEATURED.title}</h2>
+        <div className="feat__meta">
+          <Icon name="user" size={13}/> {FEATURED.author}
+          <span aria-hidden="true">·</span>
+          <span className="u-mono">{FEATURED.date}</span>
+        </div>
+        <p className="feat__body">{FEATURED.body}</p>
+      </div>
+    </section>
+  );
+}
+function FeedAccordion({items, openId, onToggle}){
+  let lastGroup = null;
+  const out = [];
+  items.forEach(it=>{
+    if(it.group !== lastGroup){
+      lastGroup = it.group;
+      out.push(<div key={'g_'+it.group} className="grouplabel">{it.group}</div>);
+    }
+    const isOpen = openId === it.id;
+    const panelId = 'panel_'+it.id;
+    out.push(
+      <div className="acard" key={it.id}>
+        <div className="acc-item">
+          <button className="acc-trigger" aria-expanded={isOpen} aria-controls={panelId}
+            onClick={()=>onToggle(it.id)}>
+            <span className={'acc-cat acc-cat--'+it.cat}><Icon name={CAT_ICON[it.cat]} size={16}/></span>
+            <span className="acc-main">
+              <span className="acc-tags">
+                <Badge variant={CAT_BADGE[it.cat]} icon={<Icon name={CAT_ICON[it.cat]} size={11}/>}>{it.catLabel}</Badge>
+              </span>
+              <span className="acc-title">{it.title}</span>
+              <span className="acc-meta"><Icon name="user" size={11}/> {it.author} <span aria-hidden="true">·</span> <span className="u-mono">{it.date}</span></span>
+              {!isOpen && <span className="acc-excerpt">{it.excerpt}</span>}
+            </span>
+            <span className={'acc-chev'+(isOpen?' acc-chev--open':'')}><Icon name="chevron-right" size={18}/></span>
+          </button>
+          {isOpen && (
+            <div className="acc-panel" id={panelId} role="region" aria-label={it.title}>
+              {it.body.map((p,i)=><p key={i}>{p}</p>)}
+              {it.cta && (
+                <div className="acc-panel__cta">
+                  <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>}
+                    onClick={()=>go(it.cta.hash)}>{it.cta.label}</Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  });
+  return <div className="feed">{out}</div>;
+}
+function StatesRail(){
+  return (
+    <section aria-labelledby="states-title">
+      <h2 className="grouplabel" id="states-title" style={{fontSize:'var(--text-2xs)'}}>States reference</h2>
+      <div className="staterail">
+        <div className="statemini">
+          <span className="u-caption">Loading</span>
+          <div className="statemini__body">
+            <Skeleton variant="text" width="50%" height={14}/>
+            <div className="sk-row"><Skeleton variant="circle" width={28} height={28}/><Skeleton variant="text" width="70%" height={12}/></div>
+            <div className="sk-row"><Skeleton variant="circle" width={28} height={28}/><Skeleton variant="text" width="60%" height={12}/></div>
+          </div>
+        </div>
+        <div className="statemini">
+          <span className="u-caption">Empty — none</span>
+          <div className="statemini__body">
+            <EmptyState icon="megaphone" title="No announcements yet"
+              body="When Beacon Hill posts updates, they'll appear here."/>
+          </div>
+        </div>
+        <div className="statemini">
+          <span className="u-caption">Empty — filtered</span>
+          <div className="statemini__body">
+            <EmptyState icon="filter" title="No Exam announcements"
+              body="Try a different category or clear the filter."/>
+          </div>
+        </div>
+        <div className="statemini">
+          <span className="u-caption">Error</span>
+          <div className="statemini__body">
+            <Alert variant="error" title="Couldn't load announcements">
+              Something went wrong fetching this feed.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+/* ==SPA-VIEW:announcements== */
+function AnnouncementsView(){
+  const [filter, setFilter] = useState('all');
+  const [openId, setOpenId] = useState('ann_dsa');
+
+  const featVisible = filter==='all' || filter===FEATURED.cat;
+  const feed = FEED.filter(it => filter==='all' || it.cat===filter);
+  const toggle = (id)=> setOpenId(prev=> prev===id ? null : id);
+  const isEmpty = !featVisible && feed.length===0;
+
+  return (
+    <div className="v-announcements">
+      <div className="pagehead">
+        <div>
+          <h1>Announcements</h1>
+          <div className="pagehead__sub">Updates from Beacon Hill Academy · <span className="u-mono">BHA-204</span></div>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="arrow-right" size={16}/>} onClick={()=>go('#/notifications')}>Notifications</Button>
+      </div>
+
+      <FilterChips active={filter} onChange={setFilter}/>
+
+      {isEmpty ? (
+        <div className="acard" style={{padding:'var(--space-8)'}}>
+          <EmptyState icon="filter" title="No announcements in this category"
+            body="Try a different category or clear the filter."
+            action={<Button variant="secondary" size="sm" leadingIcon={<Icon name="x" size={14}/>} onClick={()=>setFilter('all')}>Clear filter</Button>}/>
+        </div>
+      ) : (
+        <React.Fragment>
+          {featVisible && <FeaturedCard/>}
+          <FeedAccordion items={feed} openId={openId} onToggle={toggle}/>
+        </React.Fragment>
+      )}
+
+      <StatesRail/>
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return AnnouncementsView;
+})();
+
+/* ---------------------------- children-roster ---------------------------- */
+const ChildrenView = (function(){
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', school:'Beacon Hill Academy',
+    avg:82, completion:78, streak:12, examsTaken:14, atRisk:false,
+    exams:[
+      { id:'ex_midterm', name:'Midterm — DSA', grade:'A', score:'88%' },
+      { id:'ex_unit_m',  name:'Unit Test — Mathematics', grade:'B', score:'79%' },
+      { id:'ex_quiz_p',  name:'Quiz — Physics', grade:'B', score:'81%' },
+    ] },
+  { id:'diya', name:'Diya Sharma', initials:'DS', grade:'Grade 7', school:'Beacon Hill Academy',
+    avg:61, completion:44, streak:0, examsTaken:9, atRisk:true,
+    exams:[
+      { id:'ex_unit_sci', name:'Unit Test — Science', grade:'D', score:'58%' },
+      { id:'ex_quiz_m',   name:'Quiz — Mathematics', grade:'C', score:'66%' },
+      { id:'ex_essay_en', name:'Essay — English', grade:'C', score:'63%' },
+    ] },
+];
+function ChildCard({ c }){
+  const headingId = 'child-'+c.id;
+  return (
+    <section className={'ccard'+(c.atRisk?' ccard--watch':'')} aria-labelledby={headingId}>
+      <div className="ccard__head">
+        <Avatar initials={c.initials} size="lg"/>
+        <div className="ccard__id">
+          <div className="ccard__namerow">
+            <h2 className="ccard__name" id={headingId}>{c.name}</h2>
+            {c.atRisk && <AtRiskBadge level="watch">Watch</AtRiskBadge>}
+          </div>
+          <div className="ccard__meta">
+            <span>{c.grade}</span><span className="dot" aria-hidden="true"></span>
+            <span>{c.school}</span>
+          </div>
+        </div>
+        <div className="ccard__avgpill">
+          <span className="ccard__avgcap">Exam avg</span>
+          <GradePill grade={c.avg>=85?'A':c.avg>=75?'B':c.avg>=65?'C':'D'} score={c.avg+'%'}/>
+        </div>
+      </div>
+
+      <div className="metrics" role="group" aria-label={c.name+' performance metrics'}>
+        <div className="metric">
+          <span className="metric__label">Exam average</span>
+          <span className="metric__val">{c.avg}%</span>
+        </div>
+        <div className="metric">
+          <span className="metric__label">Spaces complete</span>
+          <span className="metric__val">{c.completion}%</span>
+          <div className="metric__prog"><ProgressBar value={c.completion} variant={c.completion>=70?'success':undefined}/></div>
+        </div>
+        <div className="metric">
+          <span className="metric__label">Current streak</span>
+          <span className="metric__flame"><StreakFlame days={c.streak}/></span>
+        </div>
+        <div className="metric">
+          <span className="metric__label">Exams taken</span>
+          <span className="metric__val">{c.examsTaken}</span>
+        </div>
+      </div>
+
+      <div className="recent">
+        <div className="recent__cap">Recent exams · released only</div>
+        {c.exams.map(e=>(
+          <div className="examrow" key={e.id}>
+            <div className="examrow__name">
+              {e.name}
+              <div className="examrow__sub">Score released by teacher</div>
+            </div>
+            <GradePill grade={e.grade} score={e.score}/>
+          </div>
+        ))}
+      </div>
+
+      <div className="ccard__foot">
+        <Button variant="primary" size="sm" leadingIcon={<Icon name="trending-up" size={15}/>}
+          onClick={()=>go('#/children/'+c.id+'/progress')}>Progress</Button>
+        <Button variant="secondary" size="sm" leadingIcon={<Icon name="clipboard-check" size={15}/>}
+          onClick={()=>go('#/children/'+c.id+'/results')}>Results</Button>
+        <Button variant="ghost" size="sm" leadingIcon={<Icon name="orbit" size={15}/>}
+          onClick={()=>go('#/progress')}>Space progress</Button>
+      </div>
+    </section>
+  );
+}
+/* ==SPA-VIEW:children-roster== */
+function ChildrenView(){
+  return (
+    <div className="v-children-roster">
+      <div className="pagehead">
+        <div>
+          <h1>My Children</h1>
+          <div className="pagehead__sub">
+            <span className="u-mono">{CHILDREN.length}</span> linked
+            <span className="dot" aria-hidden="true"></span>
+            Beacon Hill Academy
+            <span className="dot" aria-hidden="true"></span>
+            <span className="u-mono">BHA-204</span>
+          </div>
+        </div>
+        <Button variant="secondary" leadingIcon={<Icon name="git-compare" size={16}/>}
+          onClick={()=>go('#/compare')}>Compare children</Button>
+      </div>
+
+      <div className="roster" role="list">
+        {CHILDREN.map(c=> <ChildCard key={c.id} c={c}/> )}
+      </div>
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ChildrenView;
+})();
+
+/* ---------------------------- child-progress ---------------------------- */
+const ChildProgressView = (function(){
+const CHILDREN = {
+  aarav: {
+    id:'aarav', name:'Aarav Sharma', initials:'AS', grade:9, avg:82, streak:12,
+    spaces:78, examsTaken:9, spacesDone:'2 / 3', atRisk:false,
+    strengths:['Arrays & Hashing','Dynamic Programming','Linear Equations'],
+    weaknesses:['Graph Traversal','Trigonometry'],
+    trend:{ labels:['Feb','Mar','Apr','May','Jun','Jul'], values:[71,74,78,76,80,84],
+            summary:'Last 6 released exam scores for Aarav Sharma, trending up from 71 to 84 percent.' },
+    subjects:[ {name:'DSA',pct:84}, {name:'Mathematics',pct:80}, {name:'Physics',pct:79} ],
+    activity:[
+      {id:'e1',kind:'exam',ico:'clipboard-check',tone:'ok',label:'Scored 84% on DSA · Mid-term',time:'Jul 12, 2026',href:'#/children/aarav/results/ex_midterm'},
+      {id:'e2',kind:'space',ico:'orbit',tone:'',label:'Completed Mathematics · Quadratics story point',time:'Jul 9, 2026',href:'#/children/aarav/results'},
+      {id:'e3',kind:'exam',ico:'clipboard-check',tone:'ok',label:'Scored 79% on Physics · Unit Test',time:'Jul 4, 2026',href:'#/children/aarav/results/ex_midterm'},
+    ],
+  },
+  diya: {
+    id:'diya', name:'Diya Sharma', initials:'DS', grade:7, avg:61, streak:0,
+    spaces:44, examsTaken:6, spacesDone:'1 / 3', atRisk:true,
+    riskReasons:['Average dropped below 65% over the last 3 released exams','No activity streak — inactive 8 days','Space completion stalled at 44%'],
+    strengths:['Fractions','Reading Comprehension'],
+    weaknesses:['Algebra Basics','Chemical Reactions','Grammar'],
+    trend:{ labels:['Feb','Mar','Apr','May','Jun','Jul'], values:[68,64,61,59,62,58],
+            summary:'Last 6 released exam scores for Diya Sharma, trending down from 68 to 58 percent.' },
+    subjects:[ {name:'Mathematics',pct:54}, {name:'Science',pct:61}, {name:'English',pct:67} ],
+    activity:[
+      {id:'e1',kind:'exam',ico:'clipboard-check',tone:'warn',label:'Scored 58% on Mathematics · Mid-term',time:'Jul 11, 2026',href:'#/children/diya/results/ex_midterm'},
+      {id:'e2',kind:'exam',ico:'clipboard-check',tone:'',label:'Scored 67% on English · Unit Test',time:'Jul 3, 2026',href:'#/children/diya/results/ex_midterm'},
+      {id:'e3',kind:'space',ico:'orbit',tone:'',label:'Paused Science · Acids & Bases space',time:'Jun 28, 2026',href:'#/children/diya/results'},
+    ],
+  },
+};
+const GUIDANCE = {
+  aarav:[
+    { ico:'trending-up', title:'Keep the momentum on DSA', body:'Aarav is above class average. A short weekly practice set helps consolidate Graph Traversal, the one soft spot.' },
+    { ico:'flame', title:'Protect the streak', body:'A 12-day streak correlates with steady scores. A 15-minute daily session keeps it alive over the holidays.' },
+  ],
+  diya:[
+    { ico:'life-buoy', title:'Prioritise Algebra Basics', body:'Released results show Algebra as the largest gap. A focused revision block before the next unit can lift the average.' },
+    { ico:'calendar-clock', title:'Re-establish a routine', body:'Activity has paused for 8 days. Short, regular sessions tend to recover momentum faster than long catch-ups.' },
+    { ico:'message-circle', title:'Consider a check-in with the teacher', body:'When average dips below 65%, a quick conversation with the subject teacher often surfaces a specific fix.' },
+  ],
+};
+function TrendChart({ series, spark }){
+  const max = Math.max(...series.values, 100);
+  return (
+    <div className="cp-chart">
+      <div className="cp-bars" role="img" aria-label={series.summary}>
+        {series.values.map((v,i)=>(
+          <div className="cp-bars__col" key={series.labels[i]+i}>
+            <span className="cp-bars__val" aria-hidden="true">{v}%</span>
+            <div className="cp-bars__stack">
+              <div className={"cp-bars__bar"+(spark?" cp-bars__bar--spark":"")}
+                   style={{height:(v/max*100)+'%'}} title={series.labels[i]+': '+v+'%'}/>
+            </div>
+            <span className="cp-bars__lbl">{series.labels[i]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="cp-legend">
+        <span className="cp-legend__item"><span className={"cp-legend__swatch "+(spark?"cp-legend__swatch--spark":"cp-legend__swatch--brand")}/> Released exam score</span>
+        <span className="cp-legend__item"><Icon name="info" size={12}/> Released results only · last 6 exams</span>
+      </div>
+      <table className="cp-srtable">
+        <caption>{series.summary}</caption>
+        <thead><tr><th>Exam period</th><th>Score</th></tr></thead>
+        <tbody>{series.values.map((v,i)=>(<tr key={i}><td>{series.labels[i]}</td><td>{v}%</td></tr>))}</tbody>
+      </table>
+    </div>
+  );
+}
+function ProgressBody({ c, guidance }){
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:'var(--space-6)',marginTop:'var(--space-5)'}}>
+
+      <div className="cp-head">
+        <div className="cp-head__id">
+          <Avatar initials={c.initials} size="lg"/>
+          <div>
+            <h1 className="cp-head__name">{c.name}</h1>
+            <div className="cp-head__sub">
+              Grade {c.grade} · Beacon Hill Academy <span className="u-mono">BHA-204</span>
+              {c.atRisk
+                ? <Badge variant="warning" icon={<Icon name="alert-triangle" size={12}/>}>Watch</Badge>
+                : <Badge variant="success" icon={<Icon name="check" size={12}/>}>On track</Badge>}
+            </div>
+          </div>
+        </div>
+        <Button variant="secondary" leadingIcon={<Icon name="download" size={16}/>} onClick={()=>go('#/children/'+c.id+'/results')}>Download report</Button>
+      </div>
+
+      {c.atRisk && (
+        <Alert variant="error" title={c.name + ' needs attention'}>
+          <div style={{marginBottom:'var(--space-2)'}}>The nightly review flagged this child based on released results and activity:</div>
+          <ul style={{margin:0,paddingLeft:'var(--space-5)',display:'flex',flexDirection:'column',gap:'var(--space-1)'}}>
+            {c.riskReasons.map((r,i)=>(<li key={i} style={{fontSize:'var(--text-sm)'}}>{r}</li>))}
+          </ul>
+        </Alert>
+      )}
+
+      <div className="cp-stats" role="group" aria-label="Key metrics for this child">
+        <div className="cp-stat" aria-label={"Overall score: "+c.avg+" percent"}>
+          <Stat label="Overall score" value={c.avg+'%'}/>
+          <div className="cp-stat__cap"><Icon name="server" size={12}/> released results only</div>
+        </div>
+        <div className="cp-stat" aria-label={"Exams taken: "+c.examsTaken}>
+          <Stat label="Exams taken" value={String(c.examsTaken)}/>
+          <div className="cp-stat__cap"><Icon name="clipboard-check" size={12}/> graded &amp; released</div>
+        </div>
+        <div className="cp-stat" aria-label={"Spaces completed: "+c.spacesDone}>
+          <Stat label="Spaces completed" value={c.spacesDone}/>
+          <div className="cp-stat__cap"><Icon name="orbit" size={12}/> <span className="u-mono">{c.spaces}%</span> overall</div>
+        </div>
+        <div className="cp-stat" aria-label={"Current streak: "+c.streak+" days"}>
+          <Stat label="Current streak" value={c.streak+'d'}/>
+          <div className={"cp-stat__cap"+(c.streak===0?" cp-stat__cap--warn":"")}>
+            {c.streak===0 ? <><Icon name="alert-triangle" size={12}/> inactive — no streak</> : <><Icon name="flame" size={12}/> active daily</>}
+          </div>
+        </div>
+      </div>
+
+      <section className="cp-card" aria-labelledby={"sw-"+c.id}>
+        <div className="cp-card__head">
+          <div>
+            <h2 className="cp-card__title" id={"sw-"+c.id}>Strengths &amp; areas to watch</h2>
+            <div className="cp-card__sub">Derived from released exam topics — answer keys are never shown to parents.</div>
+          </div>
+        </div>
+        <div className="cp-card__body cp-two">
+          <div className="cp-sw">
+            <div className="cp-sw__label cp-sw__label--strong"><Icon name="thumbs-up" size={15}/> Strong in</div>
+            <div className="cp-chips">
+              {c.strengths.map(s=>(<Chip key={s} active><Icon name="check" size={12}/> {s}</Chip>))}
+            </div>
+          </div>
+          <div className="cp-sw">
+            <div className="cp-sw__label cp-sw__label--weak"><Icon name="target" size={15}/> Needs work</div>
+            <div className="cp-chips">
+              {c.weaknesses.map(w=>(<Badge key={w} variant="warning" icon={<Icon name="x" size={12}/>}>{w}</Badge>))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="cp-card" aria-labelledby={"tr-"+c.id}>
+        <div className="cp-card__head">
+          <div>
+            <h2 className="cp-card__title" id={"tr-"+c.id}>Performance trends</h2>
+            <div className="cp-card__sub">Last 6 released exam scores</div>
+          </div>
+          <Badge variant={c.atRisk?'warning':'success'} icon={<Icon name={c.atRisk?'trending-down':'trending-up'} size={12}/>}>
+            {c.atRisk?'Trending down':'Trending up'}
+          </Badge>
+        </div>
+        <TrendChart series={c.trend} spark={c.atRisk}/>
+      </section>
+
+      <section className="cp-card" aria-labelledby={"sb-"+c.id}>
+        <div className="cp-card__head">
+          <div>
+            <h2 className="cp-card__title" id={"sb-"+c.id}>Subject breakdown</h2>
+            <div className="cp-card__sub">Released exam average per subject</div>
+          </div>
+        </div>
+        <div className="cp-subjects">
+          {c.subjects.map(s=>(
+            <div className="cp-subj" key={s.name} aria-label={s.name+': '+s.pct+' percent'}>
+              <span className="cp-subj__name">{s.name}</span>
+              <ProgressBar value={s.pct} variant={s.pct>=80?'success':s.pct<60?'warning':undefined}/>
+              <span className="cp-subj__num">{s.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="cp-card" aria-labelledby={"rec-"+c.id}>
+        <div className="cp-card__head">
+          <div>
+            <h2 className="cp-card__title" id={"rec-"+c.id}>Recommendations</h2>
+            <div className="cp-card__sub">Generic guidance · rule-based, not personalised AI advice</div>
+          </div>
+          <Badge variant="info" icon={<Icon name="info" size={12}/>}>Generic guidance</Badge>
+        </div>
+        <div className="cp-recs">
+          {guidance.map((g,i)=>(
+            <div className="cp-rec" key={i}>
+              <span className="cp-rec__ico"><Icon name={g.ico} size={16}/></span>
+              <div className="cp-rec__main">
+                <div className="cp-rec__title">{g.title}</div>
+                <div className="cp-rec__body">{g.body}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="cp-card" aria-labelledby={"act-"+c.id}>
+        <div className="cp-card__head">
+          <div>
+            <h2 className="cp-card__title" id={"act-"+c.id}>Recent activity</h2>
+            <div className="cp-card__sub">Released results &amp; space milestones</div>
+          </div>
+          <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children/'+c.id+'/results')}>All results</Button>
+        </div>
+        <div className="cp-acts">
+          {c.activity.map(a=>(
+            <button className="cp-act" key={a.id} onClick={()=>go(a.href)} aria-label={a.label+' · '+a.time}>
+              <span className={"cp-act__ico"+(a.tone?" cp-act__ico--"+a.tone:"")}><Icon name={a.ico} size={15}/></span>
+              <span className="cp-act__main">
+                <span className="cp-act__label">{a.label}</span>
+                <span className="cp-act__time">{a.time}</span>
+              </span>
+              <span className="cp-act__chev"><Icon name="chevron-right" size={18}/></span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==SPA-VIEW:child-progress== */
+function ChildProgressView(props){
+  const initial = (props && props.childId && CHILDREN[props.childId]) ? props.childId : 'aarav';
+  const [childId,setChildId] = useState(initial);
+  useEffect(()=>{ if(props && props.childId && CHILDREN[props.childId]) setChildId(props.childId); }, [props && props.childId]);
+  const c = CHILDREN[childId];
+  const guidance = GUIDANCE[childId];
+
+  return (
+    <div className="v-child-progress">
+      <div className="cp-selector">
+        <span className="cp-selector__label">Viewing</span>
+        <Tabs
+          pill
+          defaultIndex={childId==='diya'?1:0}
+          onChange={(i)=>setChildId(i===0?'aarav':'diya')}
+          items={[
+            { label:'Aarav', content:<ProgressBody c={CHILDREN.aarav} guidance={GUIDANCE.aarav}/> },
+            { label:'Diya',  content:<ProgressBody c={CHILDREN.diya}  guidance={GUIDANCE.diya}/> },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ChildProgressView;
+})();
+
+/* ---------------------------- child-exam-results-released ---------------------------- */
+const ExamResultsView = (function(){
+const SUBJECTS = ['All','DSA','Mathematics','Physics'];
+const RESULTS = [
+  { id:'ex_midterm', title:'Mid-term · Data Structures', subject:'DSA', date:'12 Jun 2026',
+    grade:'B', pct:78, score:39, max:50, gradedBy:'med',
+    comment:'A confident paper — recursion and traversal questions were strong. A couple of complexity-analysis steps slipped; reviewing Big-O on tree operations will tidy those up.',
+    rubric:[
+      { label:'Concepts', desc:'Core data-structure reasoning', score:16, max:20 },
+      { label:'Application', desc:'Applied to traversal problems', score:14, max:18 },
+      { label:'Analysis', desc:'Complexity / Big-O steps', score:9, max:12 },
+    ]},
+  { id:'ex_algebra', title:'Unit Test · Algebra', subject:'Mathematics', date:'04 Jun 2026',
+    grade:'A', pct:88, score:44, max:50, gradedBy:'high',
+    comment:'Strong, methodical work — clean working shown on every multi-step question and accurate throughout. A standout paper.',
+    rubric:[
+      { label:'Method', desc:'Sets up each problem correctly', score:18, max:20 },
+      { label:'Accuracy', desc:'Final answers correct', score:14, max:15 },
+      { label:'Presentation', desc:'Clear, legible working', score:12, max:15 },
+    ]},
+  { id:'ex_kinematics', title:'Quiz · Kinematics', subject:'Physics', date:'28 May 2026',
+    grade:'C', pct:64, score:16, max:25, gradedBy:'review',
+    comment:'A fair effort — equations of motion are understood. Watch unit conversions; a few answers were right in method but off by a factor from cm/m mixups.',
+    rubric:[
+      { label:'Setup', desc:'Chooses the right equation', score:8, max:10 },
+      { label:'Units & accuracy', desc:'Conversion and final values', score:8, max:15 },
+    ]},
+];
+const GRADED_BY = {
+  high:   'Auto-graded',
+  med:    'Auto-graded · teacher spot-checked',
+  review: 'Reviewed by the teacher',
+};
+const GRADE_PROGRESS_VARIANT = (pct)=> pct>=85 ? 'success' : pct>=70 ? undefined : 'warning';
+function ExamSummary({ r }){
+  return (
+    <div className="exsum">
+      <div className="exsum__scores">
+        <GradePill grade={r.grade} score={r.pct + '%'}/>
+        <span className="exsum__marks"><b>{r.score}</b> / {r.max} marks<span className="exsum__div">·</span>Released {r.date}</span>
+      </div>
+
+      <div className="exsum__comment">
+        <div className="exsum__comment-head"><Icon name="message-square-text" size={12}/> Overall comment</div>
+        <div className="exsum__comment-body">{r.comment}</div>
+      </div>
+
+      <div>
+        <div className="exsum__eyebrow">Rubric breakdown</div>
+        <RubricBreakdown criteria={r.rubric}/>
+      </div>
+
+      <div className="exsum__foot">
+        <div className="exsum__source">
+          <ConfidenceBadge level={r.gradedBy} value={GRADED_BY[r.gradedBy]}/>
+          <span style={{display:'inline-flex',alignItems:'center',gap:'var(--space-1)',fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>
+            <Icon name="lock" size={12}/> Answer key not shown
+          </span>
+        </div>
+        <Button variant="secondary" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>}
+          onClick={()=>go('#/children/aarav/results/' + r.id)}>View full feedback</Button>
+      </div>
+    </div>
+  );
+}
+/* ==SPA-VIEW:child-exam-results-released== */
+function ExamResultsView(props){
+  const childId = (props && props.childId) || 'aarav';
+  const [subject,setSubject]=useState('All');
+  const filtered = subject==='All' ? RESULTS : RESULTS.filter(r=>r.subject===subject);
+
+  const accItems = filtered.map(r=>({
+    title:(
+      <div className="exhead">
+        <div className="exhead__left">
+          <span className="exhead__name">{r.title}</span>
+          <Badge variant="info" icon={<Icon name="book" size={12}/>}>{r.subject}</Badge>
+          <span className="exhead__date">{r.date}</span>
+        </div>
+        <div className="exhead__right">
+          <div className="exhead__bar">
+            <ProgressBar value={r.pct} variant={GRADE_PROGRESS_VARIANT(r.pct)}/>
+            <span className="u-pct">{r.pct}%</span>
+          </div>
+          <GradePill grade={r.grade} score={r.pct + '%'}/>
+        </div>
+      </div>
+    ),
+    content: <ExamSummary r={r}/>,
+  }));
+
+  return (
+    <div className="v-child-exam-results-released">
+
+      <div className="pagehead">
+        <div>
+          <h1>Exam Results — Aarav Sharma</h1>
+          <div className="pagehead__sub">
+            Released results only · Grade 9 · <span className="u-mono">DSA · Mathematics · Physics</span>
+          </div>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="arrow-right" size={16}/>}
+          onClick={()=>go('#/children/'+childId+'/progress')}>View progress</Button>
+      </div>
+
+      <div className="domainbar" role="note">
+        <span className="domainbar__ico"><Icon name="shield-check" size={16}/></span>
+        <span className="domainbar__txt">
+          <b>Answer keys are never shown to parents.</b> You see only released grades, scores and the teacher's comments — unreleased work stays hidden.
+        </span>
+      </div>
+
+      <div className="filters" role="group" aria-label="Filter by subject">
+        <span className="filters__lab">Subjects</span>
+        {SUBJECTS.map(s=>(
+          <Chip key={s} active={subject===s} onClick={()=>setSubject(s)}
+            aria-pressed={subject===s}>{s}</Chip>
+        ))}
+      </div>
+
+      <section className="listcard" aria-labelledby="exres-title">
+        <div className="listcard__head">
+          <h2 className="listcard__title" id="exres-title">Released submissions</h2>
+          <span className="listcard__count" aria-live="polite">{filtered.length} result{filtered.length===1?'':'s'}</span>
+        </div>
+        <div className="listcard__body">
+          {filtered.length > 0 ? (
+            <Accordion defaultOpen={0} items={accItems}/>
+          ) : (
+            <EmptyState icon="clipboard-x" title="No released results yet"
+              body={'No released ' + (subject==='All'?'':subject+' ') + "results for Aarav yet. Results appear here the moment a teacher releases them — nothing is shown before then."}
+              action={<Button variant="ghost" leadingIcon={<Icon name="trending-up" size={16}/>}
+                onClick={()=>go('#/children/'+childId+'/progress')}>See progress instead</Button>}/>
+          )}
+        </div>
+      </section>
+
+      <section aria-labelledby="states-title">
+        <h2 className="listcard__title" id="states-title" style={{marginBottom:'var(--space-3)'}}>States</h2>
+        <div className="staterail">
+          <div className="statemini">
+            <span className="u-caption">Loading (skeleton)</span>
+            <div className="statemini__body">
+              <div className="sk-row"><Skeleton variant="text" width="45%" height={14}/><div style={{flex:1}}/><Skeleton variant="text" width="64px" height={22}/></div>
+              <div className="sk-row"><Skeleton variant="text" width="55%" height={14}/><div style={{flex:1}}/><Skeleton variant="text" width="64px" height={22}/></div>
+              <div className="sk-row"><Skeleton variant="text" width="40%" height={14}/><div style={{flex:1}}/><Skeleton variant="text" width="64px" height={22}/></div>
+            </div>
+          </div>
+
+          <div className="statemini">
+            <span className="u-caption">Empty — no released results</span>
+            <div className="statemini__body">
+              <EmptyState icon="clipboard-x" title="No released results yet"
+                body="Results appear here the moment a teacher releases them — nothing is shown before then."/>
+            </div>
+          </div>
+
+          <div className="statemini">
+            <span className="u-caption">Error — per section, with retry</span>
+            <div className="statemini__body">
+              <Alert variant="error" title="Couldn't load exam results">
+                Something went wrong fetching released results.
+                <div style={{marginTop:'var(--space-3)'}}><Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+              </Alert>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ExamResultsView;
+})();
+
+/* ---------------------------- child-exam-result-detail ---------------------------- */
+const ExamResultDetailView = (function(){
+const EXAM = {
+  title: "Midterm — Data Structures",
+  subject: "DSA",
+  child: "Aarav Sharma",
+  releasedOn: "Jun 12, 2026",
+  grade: "B+",
+  score: 41, total: 50, percent: 82,
+};
+const QUESTIONS = [
+  {
+    n: 1, type: "Multiple choice", score: 6, max: 6,
+    prompt: "Which data structure gives O(1) average-case lookup by key?",
+    your: "Hash table",
+    verdict: "correct",
+    rubric: [
+      { label: "Correct selection", desc: "Identifies hash table", score: 4, max: 4 },
+      { label: "Justification", desc: "Average-case reasoning", score: 2, max: 2 },
+    ],
+    strengths: ["Right concept", "Clear reasoning"],
+    weaknesses: [],
+    mistake: "none",
+    confidence: "high",
+  },
+  {
+    n: 2, type: "Short answer", score: 4, max: 6,
+    prompt: "Explain when a balanced BST is preferable to a hash table.",
+    your: "When you need sorted order or range queries, a BST keeps keys ordered so you can traverse ranges, which a hash table can't do efficiently.",
+    verdict: "partial",
+    rubric: [
+      { label: "Identifies ordering benefit", desc: "Sorted traversal / range", score: 2, max: 2 },
+      { label: "Notes worst-case bounds", desc: "Guaranteed O(log n)", score: 1, max: 2 },
+      { label: "Precise terminology", desc: "balanced / amortized", score: 1, max: 2 },
+    ],
+    strengths: ["Range-query insight", "Concrete example"],
+    weaknesses: ["Missed worst-case guarantee"],
+    mistake: "incomplete",
+    confidence: "high",
+  },
+  {
+    n: 3, type: "Free response", score: 5, max: 8,
+    prompt: "Trace the steps to detect a cycle in a directed graph and state the time complexity.",
+    your: "Use DFS and if you revisit a node that's still on the stack there's a cycle. It's O(n).",
+    verdict: "partial",
+    rubric: [
+      { label: "Correct algorithm", desc: "DFS + recursion stack", score: 3, max: 3 },
+      { label: "Complexity stated", desc: "O(V + E), not O(n)", score: 1, max: 3 },
+      { label: "Edge handling", desc: "Back-edge definition", score: 1, max: 2 },
+    ],
+    strengths: ["Right approach (DFS)"],
+    weaknesses: ["Complexity imprecise", "Edge cases thin"],
+    mistake: "conceptual",
+    confidence: "low",
+  },
+  {
+    n: 4, type: "Multiple choice", score: 6, max: 6,
+    prompt: "What is the worst-case time to insert into a binary heap of n elements?",
+    your: "O(log n)",
+    verdict: "correct",
+    rubric: [
+      { label: "Correct selection", desc: "Identifies O(log n)", score: 4, max: 4 },
+      { label: "Reasoning", desc: "Sift-up height argument", score: 2, max: 2 },
+    ],
+    strengths: ["Accurate", "Good height intuition"],
+    weaknesses: [],
+    mistake: "none",
+    confidence: "high",
+  },
+];
+function pctOf(got, max){ return Math.round((got / max) * 100); }
+const VERDICT = {
+  correct: { variant: "success", icon: "check-circle", label: "Correct" },
+  partial: { variant: "warning", icon: "circle-dashed", label: "Partial credit" },
+  review:  { variant: "error",   icon: "compass",       label: "Needs review" },
+};
+const MISTAKE = {
+  none:        { variant: "success", icon: "check",        label: "No mistake" },
+  incomplete:  { variant: "warning", icon: "minus-circle", label: "Incomplete" },
+  conceptual:  { variant: "error",   icon: "brain",        label: "Conceptual gap" },
+  calculation: { variant: "warning", icon: "calculator",   label: "Calculation slip" },
+};
+function QuestionCard({ q }){
+  const v = VERDICT[q.verdict];
+  const m = MISTAKE[q.mistake];
+  const p = pctOf(q.score, q.max);
+  return (
+    <section className="erd-q" aria-labelledby={"q"+q.n+"-h"}>
+      <div className="erd-q__head">
+        <div className="erd-q__headL">
+          <span className="erd-q__no">Q{q.n}</span>
+          <span className="erd-q__type"><Chip>{q.type}</Chip></span>
+        </div>
+        <Badge variant={v.variant} icon={<Icon name={v.icon} size={12}/>}>{v.label}</Badge>
+      </div>
+
+      <h3 className="erd-q__prompt" id={"q"+q.n+"-h"}>{q.prompt}</h3>
+
+      <div className="erd-ans">
+        <div className="erd-ans__lbl">Your child's answer</div>
+        <div className="erd-ans__val">{q.your}</div>
+      </div>
+
+      <div>
+        <div className="erd-score__row">
+          <span className="erd-score__lab"><Icon name="target" size={15}/> Score</span>
+          <span className="erd-score__nums">{q.score} / {q.max} · {p}%</span>
+        </div>
+        <ProgressBar value={p} variant={p>=80?'success':undefined}
+          aria-label={"Question "+q.n+" score "+q.score+" of "+q.max+", "+p+" percent"}/>
+      </div>
+
+      <div>
+        <div className="erd-rubric__cap">Rubric breakdown</div>
+        <RubricBreakdown criteria={q.rubric}/>
+      </div>
+
+      <div className="erd-sw">
+        {q.strengths.length>0 && (
+          <div className="erd-sw__group">
+            <span className="erd-sw__lab erd-sw__lab--good"><Icon name="sparkles" size={14}/> Strengths</span>
+            <div className="erd-sw__chips">
+              {q.strengths.map((s,i)=><Chip key={i}><Icon name="check" size={12}/> {s}</Chip>)}
+            </div>
+          </div>
+        )}
+        {q.weaknesses.length>0 && (
+          <div className="erd-sw__group">
+            <span className="erd-sw__lab erd-sw__lab--work"><Icon name="compass" size={14}/> To improve</span>
+            <div className="erd-sw__chips">
+              {q.weaknesses.map((w,i)=><Chip key={i}><Icon name="arrow-up-right" size={12}/> {w}</Chip>)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="erd-q__foot">
+        <Badge variant={m.variant} icon={<Icon name={m.icon} size={12}/>}>{m.label}</Badge>
+        <ConfidenceBadge level={q.confidence}
+          value={q.confidence==='high' ? 'High confidence' :
+                 q.confidence==='med' ? 'Medium confidence' : 'Low confidence'}/>
+        {q.confidence==='low' && (
+          <span className="erd-confnote"><Icon name="user-check" size={14}/> A teacher reviews low-confidence items.</span>
+        )}
+      </div>
+    </section>
+  );
+}
+/* ==SPA-VIEW:child-exam-result-detail== */
+function ExamResultDetailView(props){
+  const childId = (props && props.childId) || 'aarav';
+  return (
+    <div className="v-child-exam-result-detail">
+      <button className="erd-back" onClick={()=>go('#/children/'+childId+'/results')}>
+        <Icon name="arrow-left" size={16}/> Back to Aarav's results
+      </button>
+
+      <header className="erd-head">
+        <div className="erd-head__top">
+          <div>
+            <h1 className="erd-head__title">{EXAM.title}</h1>
+            <div className="erd-head__meta">
+              <span>{EXAM.child}</span>
+              <span className="erd-head__dot">·</span>
+              <span>{EXAM.subject}</span>
+              <span className="erd-head__dot">·</span>
+              <span>Released <span className="u-mono">{EXAM.releasedOn}</span></span>
+            </div>
+          </div>
+          <GradePill grade={EXAM.grade} score={EXAM.percent + "%"}/>
+        </div>
+
+        <div className="erd-overall">
+          <div className="erd-overall__row">
+            <span className="erd-overall__lab">Overall score</span>
+            <span className="erd-overall__val">{EXAM.score} / {EXAM.total} · {EXAM.percent}%</span>
+          </div>
+          <ProgressBar value={EXAM.percent} variant="success"
+            aria-label={"Overall score "+EXAM.score+" of "+EXAM.total+", "+EXAM.percent+" percent"}/>
+        </div>
+
+        <div className="erd-head__cta">
+          <Button variant="secondary" leadingIcon={<Icon name="download" size={16}/>}
+            onClick={()=>go('#/children/'+childId+'/results/ex_midterm')}>Download PDF</Button>
+          <Button variant="ghost" trailingIcon={<Icon name="arrow-right" size={16}/>}
+            onClick={()=>go('#/children/'+childId+'/progress')}>View Aarav's progress</Button>
+        </div>
+      </header>
+
+      <div className="erd-note" role="note">
+        <span className="erd-note__ico"><Icon name="shield-check" size={18}/></span>
+        <span>Scores are server-graded and shown only after release. <strong>Answer key is not shown to parents.</strong></span>
+      </div>
+
+      {QUESTIONS.map(q => <QuestionCard key={q.n} q={q}/>)}
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ExamResultDetailView;
+})();
+
+/* ---------------------------- child-space-progress ---------------------------- */
+const SpaceProgressView = (function(){
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', atRisk:false, avg:78,
+    spaces:[
+      { id:'dsa',  title:'Data Structures & Algorithms', subject:'Computer Science', pct:78, pts:420, mastered:6, total:8 },
+      { id:'math', title:'Mathematics',                  subject:'Algebra & Geometry', pct:64, pts:300, mastered:4, total:7 },
+      { id:'phys', title:'Physics',                      subject:'Mechanics',         pct:30, pts:150, mastered:2, total:6 },
+    ] },
+  { id:'diya', name:'Diya Sharma', initials:'DS', grade:'Grade 7', atRisk:true, avg:44,
+    spaces:[
+      { id:'dmath', title:'Mathematics', subject:'Fractions & Ratios', pct:44, pts:180, mastered:3, total:7 },
+      { id:'dsci',  title:'Science',     subject:'Life Science',       pct:20, pts:90,  mastered:1, total:6 },
+      { id:'deng',  title:'English',     subject:'Reading & Writing',  pct:50, pts:200, mastered:4, total:8 },
+    ] },
+];
+function statusMeta(pct, mastered, total){
+  if(pct >= 100 || mastered >= total) return { variant:'success', icon:'check-circle', label:'Mastered' };
+  if(pct > 0)                         return { variant:'info',    icon:'circle-dot',   label:'In progress' };
+  return { variant:'neutral', icon:'circle', label:'Not started' };
+}
+function trackNodes(pct, mastered, total){
+  const nodes = [];
+  for(let i=0;i<total;i++){
+    if(i < mastered) nodes.push({ state:'mastered', label:'SP '+(i+1) });
+    else if(i === mastered && pct > 0 && mastered < total) nodes.push({ state:'in-progress', label:'SP '+(i+1) });
+    else nodes.push({ state:'not-started', label:'SP '+(i+1) });
+  }
+  return nodes;
+}
+function SpaceTile({ childId, s }){
+  const st = statusMeta(s.pct, s.mastered, s.total);
+  const aria = s.title+' for this child, '+st.label+', '+s.pct+' percent complete, '+s.mastered+' of '+s.total+' story points mastered. Open progress detail.';
+  return (
+    <a className="spcard" href={'#/children/'+childId+'/progress'} role="listitem" aria-label={aria}
+       onClick={(e)=>{ e.preventDefault(); go('#/children/'+childId+'/progress'); }}>
+      <div className="spcard__top">
+        <div style={{minWidth:0}}>
+          <h3 className="spcard__title">{s.title}</h3>
+          <div className="spcard__sub">{s.subject}</div>
+        </div>
+        <Badge variant={st.variant}><Icon name={st.icon} size={12}/> {st.label}</Badge>
+      </div>
+
+      <div>
+        <div className="spcard__progrow">
+          <span className="spcard__proglab">Completion</span>
+          <span className="spcard__progval">{s.pct}%</span>
+        </div>
+        <ProgressBar value={s.pct} variant={st.variant==='success' ? 'success' : 'spark'}/>
+      </div>
+
+      <div className="spcard__facts">
+        <span className="spcard__fact"><Icon name="star" size={12}/> <span className="u-mono">{s.pts}</span> pts</span>
+        <span className="spcard__fact"><Icon name="git-commit-horizontal" size={12}/> <span className="u-mono">{s.mastered}/{s.total}</span> mastered</span>
+      </div>
+
+      <div className="spcard__track" role="img" aria-label={s.mastered+' of '+s.total+' story points mastered'}>
+        <StoryPointTrack nodes={trackNodes(s.pct, s.mastered, s.total)}/>
+      </div>
+    </a>
+  );
+}
+/* ==SPA-VIEW:child-space-progress== */
+function SpaceProgressView(){
+  const totalSpaces = CHILDREN.reduce((a,c)=>a+c.spaces.length,0);
+  return (
+    <div className="v-child-space-progress">
+
+      <div className="pagehead">
+        <div>
+          <h1>Space Progress</h1>
+          <div className="pagehead__sub">
+            <Icon name="orbit" size={14}/> LevelUp progress grouped by child ·{' '}
+            <span className="u-mono">{CHILDREN.length}</span> children ·{' '}
+            <span className="u-mono">{totalSpaces}</span> spaces ·{' '}
+            <span className="u-mono">BHA-204</span>
+          </div>
+        </div>
+        <Button variant="secondary" leadingIcon={<Icon name="git-compare" size={16}/>} onClick={()=>go('#/compare')}>Compare children</Button>
+      </div>
+
+      <div className="releasednote">
+        <Icon name="lock" size={13}/> Released progress only — answer keys are never shown.
+      </div>
+
+      {CHILDREN.map(c=>(
+        <section key={c.id} className="childsec" aria-labelledby={'child-'+c.id}>
+          <div className={'childsec__head'+(c.atRisk?' childsec__head--risk':'')}>
+            <Avatar initials={c.initials} size="lg"/>
+            <div className="childsec__id">
+              <div className="childsec__name" id={'child-'+c.id}>{c.name}</div>
+              <div className="childsec__meta">
+                <span>{c.grade}</span>
+                <span className="childsec__dot"></span>
+                <span><span className="u-mono">{c.spaces.length}</span> spaces</span>
+                <span className="childsec__dot"></span>
+                <span><span className="u-mono">{c.avg}%</span> avg completion</span>
+              </div>
+            </div>
+            <div className="childsec__actions">
+              {c.atRisk && <AtRiskBadge level="watch">Watch</AtRiskBadge>}
+              <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children/'+c.id+'/progress')}>View progress</Button>
+            </div>
+          </div>
+
+          <div className="spgrid" role="list" aria-label={c.name+' learning spaces'}>
+            {c.spaces.map(s=> <SpaceTile key={s.id} childId={c.id} s={s}/>)}
+          </div>
+        </section>
+      ))}
+
+      <div className="eyebrow">Spec state (reference)</div>
+      <div className="statebox">
+        <EmptyState icon="orbit" title="No spaces assigned yet"
+          body="When the school assigns a learning space to this child, its progress will appear here — released figures only."
+          action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="git-compare" size={15}/>} onClick={()=>go('#/compare')}>Compare children</Button>}/>
+      </div>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return SpaceProgressView;
+})();
+
+/* ---------------------------- child-comparison ---------------------------- */
+const CompareView = (function(){
+const KIDS = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', avg:82, atRisk:false },
+  { id:'diya',  name:'Diya Sharma',  initials:'DS', grade:'Grade 7', avg:61, atRisk:true  },
+];
+const METRICS = [
+  { key:'avg',     icon:'percent',          label:'Avg score',        aarav:'82%', diya:'61%',   best:'aarav' },
+  { key:'exams',   icon:'clipboard-check',  label:'Exams taken',      aarav:'6',   diya:'4',     best:null    },
+  { key:'spaces',  icon:'orbit',            label:'Spaces completed', aarav:'78%', diya:'44%',   best:'aarav' },
+  { key:'streak',  icon:'flame',            label:'Streak (days)',    aarav:'12',  diya:'0',     best:'aarav' },
+  { key:'risk',    icon:'shield-check',     label:'At-risk',          aarav:'No',  diya:'Watch', best:'aarav' },
+];
+const SUBJECTS = [
+  { name:'Mathematics', aarav:79, diya:58 },
+  { name:'Science',     aarav:84, diya:63 },
+  { name:'English',     aarav:80, diya:66 },
+];
+function Cmp(props){
+  if(props.best){
+    return <span className="cmpcell cmpcell--best"><Icon name="check" size={14}/>{props.children}<span style={{fontSize:'var(--text-2xs)',fontWeight:'var(--weight-medium)'}}>Best</span></span>;
+  }
+  return <span className="cmpcell">{props.children}</span>;
+}
+/* ==SPA-VIEW:child-comparison== */
+function CompareView(){
+  const columns = [
+    { label:'Metric', key:'label', render:(row)=>(<span className="cmprow-lab"><Icon name={row.icon} size={15}/>{row.label}</span>) },
+    { label:'Aarav', key:'aarav', numeric:true, render:(row)=>(<Cmp best={row.best==='aarav'}>{row.aarav}</Cmp>) },
+    { label:'Diya',  key:'diya',  numeric:true, render:(row)=>(<Cmp best={row.best==='diya'}>{row.diya}</Cmp>) },
+  ];
+  return (
+    <div className="v-child-comparison">
+
+      <div className="pagehead">
+        <div>
+          <h1>Compare Children</h1>
+          <div className="pagehead__sub">
+            <span>Side-by-side · released results only · answer keys never shown.</span>
+            <span className="dcard__stamp"><Icon name="server" size={12}/> Updated <span className="u-mono">2h ago</span></span>
+          </div>
+        </div>
+        <Button variant="ghost" trailingIcon={<Icon name="arrow-right" size={16}/>} onClick={()=>go('#/children')}>View all children</Button>
+      </div>
+
+      <div className="kids" role="group" aria-label="Children being compared">
+        {KIDS.map(k=>(
+          <button key={k.id} className="kid"
+            onClick={()=>go('#/children/'+k.id+'/progress')}
+            aria-label={k.name + ', ' + k.grade + ', average ' + k.avg + ' percent' + (k.atRisk?', watch — needs attention':', not at risk') + '. View progress.'}>
+            <div className="kid__id">
+              <Avatar initials={k.initials} size="lg"/>
+              <div>
+                <div className="kid__name">{k.name}</div>
+                <div className="kid__grade">{k.grade}</div>
+              </div>
+              {k.atRisk
+                ? <span className="kid__flag"><AtRiskBadge level="watch">Watch</AtRiskBadge></span>
+                : <span className="kid__flag"><Badge variant="success" icon={<Icon name="check" size={12}/>}>On track</Badge></span>}
+            </div>
+            <div className="kid__ring">
+              <ProgressRing value={k.avg} label={k.avg+'%'} size={120}/>
+              <div className="kid__ringmeta">
+                <span className="kid__ringlab">Avg score</span>
+                <span className="kid__ringnote"><Icon name="server" size={12}/> released results</span>
+              </div>
+              <span className="kid__chev"><Icon name="chevron-right" size={18}/></span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <section className="dcard" aria-labelledby="cmp-title">
+        <div className="dcard__head">
+          <div>
+            <h2 className="dcard__title" id="cmp-title">Metric comparison</h2>
+            <div className="dcard__sub">Best performer per metric is highlighted · server-computed, not recalculated here</div>
+          </div>
+          <span className="dcard__stamp"><Icon name="git-compare" size={12}/> Aarav vs Diya</span>
+        </div>
+        <div className="dcard__body">
+          <DataTable columns={columns} rows={METRICS}/>
+          <div className="legend" style={{marginTop:'var(--space-4)'}}>
+            <span className="legend__item"><span className="cmpcell cmpcell--best" style={{padding:'2px 8px'}}><Icon name="check" size={12}/>Best</span> leading child</span>
+            <span className="legend__item"><Icon name="server" size={12}/> released-only metrics</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="dcard" aria-labelledby="subj-title">
+        <div className="dcard__head">
+          <div>
+            <h2 className="dcard__title" id="subj-title">Subject averages</h2>
+            <div className="dcard__sub">Average across released graded activity · per subject</div>
+          </div>
+          <div className="legend">
+            <span className="legend__item"><span className="legend__sw legend__sw--a"></span> Aarav</span>
+            <span className="legend__item"><span className="legend__sw legend__sw--b"></span> Diya</span>
+          </div>
+        </div>
+        <div className="dcard__body">
+          <div className="barchart" role="img" aria-label="Subject averages, Aarav vs Diya. Mathematics: Aarav 79 percent, Diya 58. Science: Aarav 84, Diya 63. English: Aarav 80, Diya 66. Aarav leads in every subject.">
+            {SUBJECTS.map((s,i)=>(
+              <div className="barrow" key={i}>
+                <span className="barrow__name">{s.name}</span>
+                <div className="bargroup">
+                  <div className="barline">
+                    <span className="barline__who">Aarav</span>
+                    <span className="barline__track"><span className="barline__fill barline__fill--a" style={{width:s.aarav+'%'}}></span></span>
+                    <span className="barline__val">{s.aarav}%</span>
+                  </div>
+                  <div className="barline">
+                    <span className="barline__who">Diya</span>
+                    <span className="barline__track"><span className="barline__fill barline__fill--b" style={{width:s.diya+'%'}}></span></span>
+                    <span className="barline__val">{s.diya}%</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="dcard__stamp" style={{marginTop:'var(--space-4)'}}>
+            <Icon name="info" size={12}/> Requires <span className="u-mono">≥2</span> children — satisfied. View per-child detail via
+            <Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-up-right" size={13}/>} onClick={()=>go('#/children/aarav/results')}>Exam results</Button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return CompareView;
+})();
+
+/* ---------------------------- notifications ---------------------------- */
+const NotificationsView = (function(){
+const TYPE = {
+  'exam-result':  { icon:'graduation-cap', tone:'ok',   action:'View results',      href:'#/children/aarav/results/ex_midterm' },
+  'at-risk':      { icon:'alert-triangle', tone:'warn',  action:'View alerts',       href:'#/alerts' },
+  'announcement': { icon:'megaphone',      tone:'info',  action:'View announcement', href:'#/announcements' },
+  'digest':       { icon:'mail',           tone:'info',  action:'Open progress',     href:'#/progress' },
+};
+const SEED = [
+  { id:'n1', type:'exam-result',  read:false, title:'Midterm results released for Aarav — "Data Structures".', time:'2h ago' },
+  { id:'n2', type:'at-risk',      read:false, title:'Diya Sharma was flagged at-risk by the nightly review.',   time:'5h ago', risk:true },
+  { id:'n3', type:'announcement', read:false, title:'Parent–Teacher Meeting announced for Grade 9.',            time:'1d ago' },
+  { id:'n4', type:'exam-result',  read:true,  title:'Unit Test results released for Diya — "Mathematics".',     time:'2d ago' },
+  { id:'n5', type:'digest',       read:true,  title:'Your weekly progress digest for Aarav and Diya is ready.', time:'3d ago' },
+  { id:'n6', type:'announcement', read:true,  title:'Beacon Hill Academy posted a holiday calendar update.',    time:'5d ago' },
+];
+/* ==SPA-VIEW:notifications== */
+function NotificationsView(){
+  const [items,setItems] = useState(SEED);
+  const [filter,setFilter] = useState('all'); // all | unread
+
+  const unread = items.filter(n=>!n.read).length;
+  const markRead = (id)=> setItems(prev=>prev.map(n=> n.id===id ? {...n, read:true} : n));
+  const markAll  = ()=> setItems(prev=>prev.map(n=> ({...n, read:true})));
+  const openRow  = (n)=>{ markRead(n.id); go(TYPE[n.type].href); };
+
+  const shown = filter==='unread' ? items.filter(n=>!n.read) : items;
+
+  return (
+    <div className="v-notifications">
+
+      <div className="pagehead">
+        <div className="pagehead__l">
+          <h1>Notifications {unread>0 && <Badge variant="brand">{unread} new</Badge>}</h1>
+          <div className="pagehead__sub">
+            <Icon name="server" size={14}/> Updates about Aarav and Diya · released results only · school <span className="u-mono">BHA-204</span>
+          </div>
+        </div>
+        <Button variant="ghost" leadingIcon={<Icon name="check-check" size={16}/>} disabled={unread===0} onClick={markAll}>Mark all read</Button>
+      </div>
+
+      <div className="filterrow" role="group" aria-label="Filter notifications">
+        <button type="button" className={'fchip'+(filter==='all'?' fchip--on':'')} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>
+          <Icon name="inbox" size={14}/> All <span className="u-mono" style={{fontFamily:'var(--font-mono)',color:'var(--text-muted)'}}>{items.length}</span>
+        </button>
+        <button type="button" className={'fchip'+(filter==='unread'?' fchip--on':'')} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>
+          <Icon name="circle-dot" size={14}/> Unread {unread>0 && <Badge variant="brand">{unread}</Badge>}
+        </button>
+      </div>
+
+      <div className="feed" aria-live="polite">
+        {shown.length===0 ? (
+          <div className="feed__empty">
+            <EmptyState icon="check-circle-2" title="You're all caught up"
+              body="No unread notifications about Aarav or Diya right now."/>
+          </div>
+        ) : (
+          <ul role="list" style={{margin:0,padding:0,listStyle:'none'}}>
+            {shown.map(n=>{
+              const t = TYPE[n.type];
+              const label = (n.read?'':'Unread — ')+n.title+' '+t.action+'. '+n.time;
+              return (
+                <li key={n.id} role="listitem">
+                  <button type="button" className={'nrow '+(n.read?'nrow--read':'nrow--unread')} aria-label={label} onClick={()=>openRow(n)}>
+                    <span className="nrow__dotcol" aria-hidden="true">{!n.read && <span className="ndot"/>}</span>
+                    <span className={'nrow__chip nrow__chip--'+t.tone} aria-hidden="true"><Icon name={t.icon} size={17}/></span>
+                    <span className="nrow__main">
+                      <span className="nrow__title">{n.title}</span>
+                      <span className="nrow__meta">
+                        {n.risk && <AtRiskBadge level="watch">Watch</AtRiskBadge>}
+                        <span className="nrow__time">{n.time}</span>
+                        <span className="nrow__act">{t.action} <Icon name="arrow-right" size={13}/></span>
+                      </span>
+                    </span>
+                    <span className="nrow__right" aria-hidden="true"><Icon name="chevron-right" size={18}/></span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return NotificationsView;
+})();
+
+/* ---------------------------- parent-settings ---------------------------- */
+const SettingsView = (function(){
+const PROFILE = [
+  { term:'Name',   value:'Anita Sharma' },
+  { term:'Email',  value:<span>anita.sharma@example.com <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>· managed by your school</span></span> },
+  { term:'Role',   value:<Badge variant="brand">Parent</Badge> },
+  { term:'School', value:<span>Beacon Hill Academy <span className="u-mono" style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>BHA-204</span></span> },
+];
+const NOTIF_ROWS = [
+  { key:'exam_results_released', icon:'clipboard-check', label:'Exam results released', desc:"When a child's exam results are released to you." },
+  { key:'student_at_risk',       icon:'alert-triangle',  label:'At-risk alerts',        desc:'When a child is flagged at risk by the nightly review.' },
+  { key:'weekly_digest',         icon:'calendar',        label:'Weekly digest',         desc:'A weekly email summarising each child’s progress.' },
+  { key:'announcements',         icon:'megaphone',       label:'Announcements',         desc:'Announcements posted by Beacon Hill Academy.' },
+];
+const KIDS = [
+  { id:'aarav', initials:'AS', name:'Aarav Sharma', grade:'Grade 9', atRisk:false },
+  { id:'diya',  initials:'DS', name:'Diya Sharma',  grade:'Grade 7', atRisk:true  },
+];
+const THEME_OPTS = [
+  { value:'light',  label:'Light' },
+  { value:'dark',   label:'Dark' },
+  { value:'system', label:'System' },
+];
+/* ==SPA-VIEW:parent-settings== */
+function SettingsView(){
+  const [enabled,setEnabled] = useState({ exam_results_released:true, student_at_risk:true, weekly_digest:false, announcements:true });
+  const [dirty,setDirty] = useState(false);
+  const [theme,setTheme] = useState('system');
+  const [toast,setToast] = useState(null);
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ if(toast){ const id=setTimeout(()=>setToast(null),2600); return ()=>clearTimeout(id); } },[toast]);
+
+  const toggle = (k)=>{ setEnabled({...enabled,[k]:!enabled[k]}); setDirty(true); };
+  const save = (e)=>{ e.preventDefault(); setToast({variant:'success', title:'Preferences saved'}); setDirty(false); };
+
+  return (
+    <div className="v-parent-settings">
+
+      <div className="pagehead">
+        <h1>Settings</h1>
+        <div className="pagehead__sub">
+          <Icon name="server" size={14}/> Your account ·
+          <span className="u-mono">Beacon Hill Academy</span> ·
+          <span className="u-mono">BHA-204</span>
+        </div>
+      </div>
+
+      <Panel title="Profile">
+        <p className="pintro">Your identity is managed by your school and shown here for reference. It can’t be edited.</p>
+        <div className="idrow">
+          <Avatar initials="AS" size="lg"/>
+          <div>
+            <div className="idrow__name">Anita Sharma</div>
+            <div className="idrow__sub">Parent · Beacon Hill Academy</div>
+          </div>
+        </div>
+        <DefinitionList items={PROFILE}/>
+      </Panel>
+
+      <form onSubmit={save}>
+        <Panel title="Notification preferences">
+          <p className="pintro">Choose which alerts you receive about your linked children.</p>
+          {NOTIF_ROWS.map(r=>(
+            <div className="frow" key={r.key}>
+              <div className="frow__main">
+                <label className="frow__label" id={'lbl-'+r.key} htmlFor={'sw-'+r.key}>
+                  <Icon name={r.icon} size={15}/> {r.label}
+                </label>
+                <div className="frow__desc" id={'desc-'+r.key}>{r.desc}</div>
+              </div>
+              <div className="frow__ctrl">
+                <Switch id={'sw-'+r.key} checked={enabled[r.key]}
+                  aria-labelledby={'lbl-'+r.key} aria-describedby={'desc-'+r.key}
+                  onChange={()=>toggle(r.key)}/>
+              </div>
+            </div>
+          ))}
+          <div className="pfoot">
+            <span className="pfoot__hint">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+            <Button type="submit" variant="primary" disabled={!dirty} leadingIcon={<Icon name="check" size={16}/>}>Save preferences</Button>
+          </div>
+        </Panel>
+      </form>
+
+      <Panel title="Appearance">
+        <p className="pintro">Theme applies instantly across the portal — no save needed.</p>
+        <div className="frow">
+          <div className="frow__main">
+            <label className="frow__label" htmlFor="theme"><Icon name="palette" size={15}/> Theme</label>
+            <div className="frow__desc">Use a light or dark theme, or follow your device setting.</div>
+          </div>
+          <div className="frow__ctrl">
+            <Select id="theme" value={theme} options={THEME_OPTS} onChange={e=>setTheme(e.target.value)} aria-label="Theme"/>
+          </div>
+        </div>
+      </Panel>
+
+      <Panel title="Linked children" actions={<Button variant="ghost" size="sm" trailingIcon={<Icon name="arrow-right" size={15}/>} onClick={()=>go('#/children')}>View all</Button>}>
+        <p className="pintro">Children connected to your account at Beacon Hill Academy.</p>
+        <div className="kids">
+          {KIDS.map(k=>(
+            <div className="kid" key={k.id}>
+              <Avatar initials={k.initials}/>
+              <div className="kid__id">
+                <div className="kid__name">{k.name}</div>
+                <div className="kid__meta">
+                  <span>{k.grade}</span>
+                  {k.atRisk
+                    ? <AtRiskBadge level="watch">Watch</AtRiskBadge>
+                    : <Badge variant="success" icon={<Icon name="check" size={11}/>}>On track</Badge>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel title="Account">
+        <div className="acctrow">
+          <div className="acctrow__txt">
+            <div className="acctrow__lab">Log out</div>
+            <div className="acctrow__desc">End your session on this device and return to sign-in.</div>
+          </div>
+          <Button variant="danger" leadingIcon={<Icon name="log-out" size={16}/>} onClick={()=>go('#/login')}>Log out</Button>
+        </div>
+      </Panel>
+
+      <Panel title="States">
+        <div className="states__grid">
+          <div className="mini">
+            <span className="u-caption">Default · preferences saved</span>
+            <Button variant="primary" size="sm" disabled leadingIcon={<Icon name="check" size={14}/>}>Save preferences</Button>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Dirty · unsaved changes</span>
+            <Button variant="primary" size="sm" leadingIcon={<Icon name="check" size={14}/>}>Save preferences</Button>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Success · save confirmed</span>
+            <Toast variant="success" title="Preferences saved"/>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Error · save failed</span>
+            <Alert variant="error" title="Couldn’t save your changes">
+              Something went wrong.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="rotate-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Loading · per-row skeleton</span>
+            <div role="status" aria-label="Loading preferences">
+              {[0,1,2].map(i=>(
+                <div key={i} className="sk-row">
+                  <div style={{flex:1}}>
+                    <Skeleton variant="text" width="45%" height={12}/>
+                    <div style={{height:6}}/>
+                    <Skeleton variant="text" width="72%" height={10}/>
+                  </div>
+                  <Skeleton variant="circle" width={36} height={20}/>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mini">
+            <span className="u-caption">Read-only · identity from claims</span>
+            <DefinitionList items={[
+              {term:'Role', value:<Badge variant="brand">Parent</Badge>},
+              {term:'School', value:<span>Beacon Hill Academy <span className="u-mono" style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>BHA-204</span></span>},
+            ]}/>
+          </div>
+        </div>
+      </Panel>
+
+      {toast && (
+        <div className="toast-host">
+          <Toast variant={toast.variant} title={toast.title}/>
+        </div>
+      )}
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return SettingsView;
+})();
+
+/* ---------------------------- multi-child-switcher ---------------------------- */
+const ChildSwitcherView = (function(){
+const CHILDREN = [
+  { id:'aarav', name:'Aarav Sharma', initials:'AS', grade:'Grade 9', avg:82, atRisk:false },
+  { id:'diya',  name:'Diya Sharma',  initials:'DS', grade:'Grade 7', avg:61, atRisk:true  },
+];
+function ChildRow({ kid, active, onPick }){
+  return (
+    <li role="none">
+      <button
+        className={'mcs__row'+(active?' mcs__row--active':'')}
+        role="menuitemradio" aria-checked={active}
+        onClick={onPick}
+        aria-label={kid.name+', '+kid.grade+', average '+kid.avg+' percent'+(kid.atRisk?', at risk — on watch':'')+(active?', active child':'')}>
+        <Avatar initials={kid.initials} size="sm"/>
+        <span className="mcs__main">
+          <span className="mcs__name">{kid.name}</span>
+          <span className="mcs__meta">
+            <span>{kid.grade}</span>
+            <span className="u-mono">·</span>
+            <span>Avg <span className="u-mono">{kid.avg}%</span></span>
+            {kid.atRisk && (
+              <span className="mcs__risk">
+                <span className="mcs__risk-dot" aria-hidden="true"></span>
+                <Icon name="alert-triangle" size={11}/> Watch
+              </span>
+            )}
+          </span>
+        </span>
+        {active
+          ? <span className="mcs__check" aria-hidden="true"><Icon name="check" size={14}/></span>
+          : <span className="mcs__check-empty" aria-hidden="true"></span>}
+      </button>
+    </li>
+  );
+}
+/* ==SPA-VIEW:multi-child-switcher== */
+function ChildSwitcherView(props){
+  const activeId = (props && props.activeChildId) || 'aarav';
+  const onPick = (props && props.onPick) || (()=>{});
+  return (
+    <div className="v-multi-child-switcher" role="menu" aria-label="Switch child">
+
+      <div className="mcs__head">
+        <h2 className="mcs__title">Switch child</h2>
+        <span className="mcs__count"><Badge variant="brand">{CHILDREN.length} linked</Badge></span>
+      </div>
+
+      <ul className="mcs__list" role="none">
+        {CHILDREN.map(k=>(
+          <ChildRow key={k.id} kid={k} active={k.id===activeId} onPick={()=>onPick(k.id)}/>
+        ))}
+      </ul>
+
+      <div className="mcs__foot">
+        <Button variant="secondary" size="sm" leadingIcon={<Icon name="git-compare" size={15}/>} onClick={()=>go('#/compare')}>Compare all</Button>
+        <Button variant="ghost" size="sm" leadingIcon={<Icon name="users-round" size={15}/>} onClick={()=>go('#/children')}>Manage children</Button>
+      </div>
+
+    </div>
+  );
+}
+/* ==/SPA-VIEW== */
+return ChildSwitcherView;
+})();
+
+/* =====================================================================
+   ROUTER — parse window.location.hash → {name, childId, examId}
+   ===================================================================== */
+function parseHash(){
+  let h = (window.location.hash || '').replace(/^#/,'');
+  if(h==='' || h==='/') return { name:'dashboard' };
+  const parts = h.split('/').filter(Boolean);   // strip leading slash → segments
+  const p0 = parts[0];
+
+  if(p0==='login')         return { name:'login' };
+  if(p0==='alerts')        return { name:'alerts' };
+  if(p0==='announcements') return { name:'announcements' };
+  if(p0==='progress')      return { name:'spaces' };
+  if(p0==='compare')       return { name:'compare' };
+  if(p0==='notifications') return { name:'notifications' };
+  if(p0==='settings')      return { name:'settings' };
+
+  if(p0==='children'){
+    if(parts.length===1) return { name:'children' };
+    const childId = parts[1];
+    const sub = parts[2];
+    if(sub==='progress') return { name:'progress', childId };
+    if(sub==='results'){
+      if(parts[3]) return { name:'resultDetail', childId, examId:parts[3] };
+      return { name:'results', childId };
+    }
+    return { name:'children' };
+  }
+  return { name:'dashboard' };
+}
+
+/* =====================================================================
+   ROUTER-ENABLED PARENT SHELL — sidebar + topbar; active from route name;
+   Progress/Results deep-link the active child; bell → notifications;
+   active-child chip toggles a popover rendering ChildSwitcherView.
+   ===================================================================== */
+function ParentShell(props){
+  const a = props.active;
+  const activeChildId = props.activeChildId || 'aarav';
+  const [popOpen,setPopOpen] = useState(false);
+  const activeName = activeChildId==='diya' ? 'Diya Sharma' : 'Aarav Sharma';
+  const activeInitials = activeChildId==='diya' ? 'DS' : 'AS';
+
+  const pick = (id)=>{ if(props.onPickChild) props.onPickChild(id); setPopOpen(false); };
+
+  return (
+    <div className="appshell" style={{height:'100vh',position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">B</div><div className="sidebar__brand-name">Beacon Hill</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="#/" active={a==='dashboard'}>Dashboard</NavItem>
+          <NavItem icon="alert-triangle" href="#/alerts" active={a==='alerts'} badge={<Badge variant="error">1</Badge>}>Alerts</NavItem>
+          <NavItem icon="megaphone" href="#/announcements" active={a==='announcements'}>Announcements</NavItem>
+          <div className="sidebar__section-label">My Children</div>
+          <NavItem icon="users" href="#/children" active={a==='children'}>Children</NavItem>
+          <NavItem icon="trending-up" href={'#/children/'+activeChildId+'/progress'} active={a==='progress'}>Progress</NavItem>
+          <NavItem icon="clipboard-check" href={'#/children/'+activeChildId+'/results'} active={a==='results' || a==='resultDetail'}>Exam Results</NavItem>
+          <NavItem icon="orbit" href="#/progress" active={a==='spaces'}>Space Progress</NavItem>
+          <NavItem icon="git-compare" href="#/compare" active={a==='compare'}>Compare</NavItem>
+          <div className="sidebar__section-label">Account</div>
+          <NavItem icon="bell" href="#/notifications" active={a==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="#/settings" active={a==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="BH" size="sm"/>Beacon Hill Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="spa-topchip__wrap">
+          <button className="chip" aria-haspopup="menu" aria-expanded={popOpen}
+            onClick={()=>setPopOpen(o=>!o)}>
+            <Avatar initials={activeInitials} size="sm"/>{activeName}<Icon name="chevron-down" size={14}/>
+          </button>
+        </div>
+        <div style={{flex:1}}></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications" onClick={()=>go('#/notifications')}/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="AS"/>
+      </header>
+      {popOpen && (
+        <React.Fragment>
+          <div className="spa-childpop__scrim" onClick={()=>setPopOpen(false)} aria-hidden="true"></div>
+          <div className="spa-childpop">
+            <ChildSwitcherView activeChildId={activeChildId} onPick={pick}/>
+          </div>
+        </React.Fragment>
+      )}
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* =====================================================================
+   APP — route state + hashchange listener; switch <main> by route name.
+   ===================================================================== */
+function App(){
+  const [route,setRoute] = useState(parseHash());
+  const [activeChildId,setActiveChildId] = useState('aarav');
+
+  useEffect(()=>{
+    const onHash = ()=> setRoute(parseHash());
+    window.addEventListener('hashchange', onHash);
+    return ()=> window.removeEventListener('hashchange', onHash);
+  },[]);
+
+  /* keep active child synced with child-scoped deep links */
+  useEffect(()=>{
+    if(route.childId && route.childId!==activeChildId) setActiveChildId(route.childId);
+  },[route.childId]);
+
+  const pickChild = (id)=>{ setActiveChildId(id); go('#/children/'+id+'/progress'); };
+
+  if(route.name==='login'){
+    return (
+      <div className="spa-bare"><ParentLoginView/></div>
+    );
+  }
+
+  const childId = route.childId || activeChildId;
+  let main = null;
+  switch(route.name){
+    case 'dashboard':     main = <DashboardView/>; break;
+    case 'alerts':        main = <AlertsView/>; break;
+    case 'announcements': main = <AnnouncementsView/>; break;
+    case 'children':      main = <ChildrenView/>; break;
+    case 'progress':      main = <ChildProgressView childId={childId}/>; break;
+    case 'results':       main = <ExamResultsView childId={childId}/>; break;
+    case 'resultDetail':  main = <ExamResultsView childId={childId}/>; break;
+    case 'spaces':        main = <SpaceProgressView/>; break;
+    case 'compare':       main = <CompareView/>; break;
+    case 'notifications': main = <NotificationsView/>; break;
+    case 'settings':      main = <SettingsView/>; break;
+    default:              main = <DashboardView/>;
+  }
+
+  return (
+    <ParentShell active={route.name} activeChildId={activeChildId} onPickChild={pickChild}>
+      {main}
+      {route.name==='resultDetail' && (
+        <Drawer open title="Exam result" onClose={()=>go('#/children/'+childId+'/results')}>
+          <ExamResultDetailView childId={childId}/>
+        </Drawer>
+      )}
+    </ParentShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+if(!window.location.hash) window.location.hash='#/';
+</script>
+</body></html>

@@ -70,6 +70,10 @@ export const colors = {
   warning: "#B7791F",
   error: "#B23A36",
   info: "#2D6E8E",
+
+  masteryMastered: "#3EA876",
+  masteryInProgress: "#564BA6",
+  masteryNotStarted: "#D6C9B4",
 } as const;
 
 export type SemanticColor = keyof typeof colors;

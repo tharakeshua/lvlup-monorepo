@@ -1,0 +1,410 @@
+<!-- @dsCard group="Scanner" viewport="390x844" name="Scanner Settings" subtitle="Profile, capture prefs, storage, theme & sign-out" -->
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Settings</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* card-local LAYOUT ONLY — slug-prefixed, no token redefs, no hex */
+body{ margin:0; background:var(--bg-canvas); color:var(--text-primary); font-family:var(--font-ui); }
+
+.scanner-settings-scroll{ position:absolute; inset:0; overflow-y:auto; padding:var(--space-4);
+  display:flex; flex-direction:column; gap:var(--space-4); }
+.scanner-settings-title{ font-family:var(--font-display); font-size:var(--text-2xl); line-height:var(--leading-tight);
+  font-weight:var(--weight-semibold); color:var(--text-primary); margin:0; }
+
+.scanner-settings-card{ display:flex; flex-direction:column; gap:var(--space-4); }
+.scanner-settings-head{ display:flex; align-items:center; gap:var(--space-2); }
+.scanner-settings-head-ico{ width:30px; height:30px; flex:0 0 auto; border-radius:var(--radius-md);
+  display:grid; place-items:center; background:var(--brand-subtle); color:var(--brand-primary); }
+.scanner-settings-head-title{ font-family:var(--font-display); font-size:var(--text-base);
+  font-weight:var(--weight-semibold); color:var(--text-primary); line-height:var(--leading-tight); }
+
+/* profile */
+.scanner-settings-id{ display:flex; align-items:center; gap:var(--space-3); }
+.scanner-settings-id-name{ font-family:var(--font-display); font-size:var(--text-base);
+  font-weight:var(--weight-semibold); color:var(--text-primary); }
+.scanner-settings-id-sub{ font-size:var(--text-xs); color:var(--text-secondary); margin-top:2px; }
+
+/* switch rows */
+.scanner-settings-row{ display:flex; align-items:center; gap:var(--space-3); min-height:44px; }
+.scanner-settings-row-text{ flex:1; min-width:0; }
+.scanner-settings-row-label{ font-size:var(--text-sm); color:var(--text-primary); line-height:var(--leading-snug); }
+.scanner-settings-row-hint{ font-size:var(--text-xs); color:var(--text-muted); margin-top:2px; }
+
+.scanner-settings-note{ display:flex; align-items:flex-start; gap:var(--space-2);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle);
+  font-size:var(--text-xs); color:var(--text-secondary); line-height:var(--leading-normal); }
+.scanner-settings-note-ico{ color:var(--text-muted); flex:0 0 auto; margin-top:1px; }
+
+/* storage stats */
+.scanner-settings-stats{ display:flex; gap:var(--space-3); }
+.scanner-settings-stat{ flex:1; min-width:0; padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle); }
+.scanner-settings-stat-label{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.06em; }
+.scanner-settings-stat-value{ font-family:var(--font-display); font-size:var(--text-xl);
+  font-weight:var(--weight-semibold); color:var(--text-primary); line-height:var(--leading-tight); margin-top:var(--space-1); }
+
+/* theme segmented control */
+.scanner-settings-theme{ display:flex; gap:var(--space-2); padding:var(--space-1); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle); }
+.scanner-settings-theme button{ flex:1; min-height:40px; cursor:pointer; border:1px solid transparent;
+  border-radius:var(--radius-sm); background:transparent; color:var(--text-secondary);
+  font-family:var(--font-ui); font-size:var(--text-sm); font-weight:var(--weight-medium);
+  display:flex; align-items:center; justify-content:center; gap:var(--space-2);
+  transition:background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.scanner-settings-theme button:focus-visible{ outline:none; box-shadow:var(--ring-focus); }
+.scanner-settings-theme button[aria-pressed="true"]{ background:var(--bg-surface); color:var(--text-primary);
+  border-color:var(--border-subtle); box-shadow:var(--shadow-e1); }
+
+.scanner-settings-actions{ display:flex; flex-direction:column; gap:var(--space-3); }
+
+/* sign-out modal body */
+.scanner-settings-signout{ display:flex; flex-direction:column; gap:var(--space-3); width:min(300px,76vw); }
+.scanner-settings-signout-body{ font-size:var(--text-sm); color:var(--text-secondary); line-height:var(--leading-normal); }
+.scanner-settings-signout-note{ display:flex; align-items:flex-start; gap:var(--space-2);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  background:var(--bg-surface-sunken); border:1px solid var(--border-subtle);
+  font-size:var(--text-xs); color:var(--text-secondary); line-height:var(--leading-normal); }
+.scanner-settings-signout-note-ico{ color:var(--text-muted); flex:0 0 auto; margin-top:1px; }
+
+/* phone frame (shared shell) */
+.ph{ width:390px; margin:24px auto; height:844px; position:relative; display:flex; flex-direction:column;
+  border:1px solid var(--border-strong); border-radius:var(--radius-xl); overflow:hidden;
+  background:var(--bg-canvas); box-shadow:var(--shadow-e2); }
+.ph__top{ height:52px; flex:0 0 auto; display:flex; align-items:center; gap:var(--space-3);
+  padding:0 var(--space-4); background:var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+.ph__brand{ display:flex; align-items:center; gap:var(--space-2); }
+.ph__mark{ width:26px; height:26px; border-radius:var(--radius-sm); background:var(--brand-primary);
+  color:var(--text-on-accent); display:flex; align-items:center; justify-content:center; }
+.ph__title{ font-family:var(--font-display); font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  color:var(--text-primary); }
+.ph__spacer{ flex:1; }
+.ph__body{ flex:1; overflow:hidden; position:relative; }
+.ph__tabs{ flex:0 0 auto; }
+
+.scanner-settings-statesrow{ display:flex; flex-wrap:wrap; gap:var(--space-4); justify-content:center;
+  padding:0 var(--space-4) var(--space-12); }
+.scanner-settings-statecap{ font-family:var(--font-mono); font-size:var(--text-2xs); color:var(--text-muted);
+  text-align:center; margin-bottom:var(--space-2); text-transform:uppercase; letter-spacing:.06em; }
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+const LU = window.LvlupV0DesignSystem_5d0725;
+const { Button, IconButton, Icon, Card, Avatar, DefinitionList, Switch, Select, Field, Stat, Modal, Tabbar } = LU;
+
+const SCANNER_MOCK = { name:'Scan Desk', initials:'SD', school:'Crestford School', code:'CRST' };
+
+function SettingCard({ icon, title, children }){
+  return (
+    <Card>
+      <div className="scanner-settings-card">
+        <div className="scanner-settings-head">
+          <span className="scanner-settings-head-ico"><Icon name={icon} size={17} /></span>
+          <h2 className="scanner-settings-head-title">{title}</h2>
+        </div>
+        {children}
+      </div>
+    </Card>
+  );
+}
+
+function SwitchRow({ id, label, hint, checked, onChange }){
+  return (
+    <div className="scanner-settings-row">
+      <div className="scanner-settings-row-text">
+        <label className="scanner-settings-row-label" htmlFor={id}>{label}</label>
+        {hint && <div className="scanner-settings-row-hint">{hint}</div>}
+      </div>
+      <Switch id={id} checked={checked} onChange={onChange} aria-label={label} />
+    </div>
+  );
+}
+
+const THEME_OPTS = [
+  { value:'system', label:'System', icon:'monitor' },
+  { value:'light',  label:'Light',  icon:'sun' },
+  { value:'dark',   label:'Dark',   icon:'moon' },
+];
+
+function ThemeToggle({ value, onChange }){
+  return (
+    <div className="scanner-settings-theme" role="group" aria-label="App theme">
+      {THEME_OPTS.map(o => (
+        <button key={o.value} type="button" aria-pressed={value===o.value}
+          onClick={()=>onChange(o.value)}>
+          <Icon name={o.icon} size={15} />{o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SignOutModal({ open, onClose, onConfirm }){
+  return (
+    <Modal open={open} onClose={onClose}
+      title={<span style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+        <Icon name="log-out" size={16} /> Sign out of the scanner?
+      </span>}
+      footer={
+        <span style={{display:'flex',gap:'var(--space-2)',width:'100%'}}>
+          <Button variant="ghost" size="sm" onClick={onClose}>Stay</Button>
+          <span style={{flex:1}} />
+          <Button variant="danger" size="sm" leadingIcon={<Icon name="log-out" size={15}/>}
+            onClick={onConfirm}>Sign out</Button>
+        </span>
+      }>
+      <div className="scanner-settings-signout">
+        <p className="scanner-settings-signout-body">
+          You'll be returned to the sign-in screen. You'll need your school code, username,
+          and password to scan again.
+        </p>
+        <div className="scanner-settings-signout-note">
+          <Icon name="hard-drive" size={15} className="scanner-settings-signout-note-ico" />
+          <span>Any captures still waiting in the upload queue stay saved on this device and
+            resume after you sign back in.</span>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ════════ SPA VIEW ════════ */
+function SettingsView({ nav, params, ctx }){
+  const safeCtx = ctx || {};
+  const toast = safeCtx.toast || function(){};
+  const scanner = safeCtx.scanner || SCANNER_MOCK;
+
+  const queue = safeCtx.queue || [];
+  const nQueued = queue.length;
+  const nDone = queue.filter(q => q && q.status === 'done').length;
+
+  const [rearCam, setRearCam] = useState(true);
+  const [guides, setGuides] = useState(true);
+  const [quality, setQuality] = useState('standard');
+  const [theme, setTheme] = useState('system');
+  const [signOutOpen, setSignOutOpen] = useState(false);
+
+  function toggleRear(e){
+    const v = e.target.checked; setRearCam(v);
+    toast({ variant:'success', title:'Preference saved', body:'Default camera: ' + (v?'rear':'front') + '.' });
+  }
+  function toggleGuides(e){
+    const v = e.target.checked; setGuides(v);
+    toast({ variant:'success', title:'Preference saved', body:'Alignment guides ' + (v?'on':'off') + '.' });
+  }
+  function changeQuality(e){
+    const v = e.target.value; setQuality(v);
+    toast({ variant:'success', title:'Saved', body:'Image quality: ' + (v==='high'?'High':'Standard') + '.' });
+  }
+  function changeTheme(v){
+    setTheme(v);
+    const root = document.documentElement;
+    if (v === 'system') root.setAttribute('data-theme','light'); else root.setAttribute('data-theme', v);
+    toast({ variant:'success', title:'Theme updated', body:THEME_OPTS.find(o=>o.value===v).label + ' theme.' });
+  }
+  function clearCompleted(){
+    if (nDone === 0) return;
+    if (safeCtx.setQueue) safeCtx.setQueue(list => (list||[]).filter(q => q.status !== 'done'));
+    toast({ variant:'success', title:'Cleared', body:nDone + ' completed upload' + (nDone===1?'':'s') + ' removed.' });
+  }
+  function sendReset(){
+    toast({ variant:'info', title:'Reset link sent', body:'Check the inbox tied to this scanner account.' });
+  }
+  function confirmSignOut(){
+    setSignOutOpen(false);
+    if (safeCtx.clearSession) safeCtx.clearSession();
+    if (nav && nav.go) nav.go('#/login');
+  }
+
+  const storageUsed = nQueued > 0 ? (nQueued * 1.4).toFixed(1) + ' MB' : '0 MB';
+
+  return (
+    <>
+      <div className="scanner-settings-scroll">
+        <h1 className="scanner-settings-title">Settings</h1>
+
+        {/* 1 · Profile */}
+        <SettingCard icon="user-round" title="Profile">
+          <div className="scanner-settings-id">
+            <Avatar initials={scanner.initials || 'SD'} size="lg" />
+            <div>
+              <div className="scanner-settings-id-name">{scanner.name || 'Scan Desk'}</div>
+              <div className="scanner-settings-id-sub">{scanner.school || 'Crestford School'} · {scanner.code || 'CRST'}</div>
+            </div>
+          </div>
+          <DefinitionList items={[
+            { term:'Signed in as', value:(scanner.code ? (scanner.code.toLowerCase()+'.scan') : 'scan.desk') },
+            { term:'School', value:scanner.school || 'Crestford School' },
+            { term:'Role', value:'Scanner' },
+          ]} />
+        </SettingCard>
+
+        {/* 2 · Capture preferences */}
+        <SettingCard icon="camera" title="Capture preferences">
+          <SwitchRow id="ss-rear" label="Default to rear camera"
+            hint="Open the back camera when you start a scan."
+            checked={rearCam} onChange={toggleRear} />
+          <SwitchRow id="ss-guides" label="Show alignment guides"
+            hint="Overlay edges to line up the sheet."
+            checked={guides} onChange={toggleGuides} />
+          <Field label="Image quality" htmlFor="ss-quality">
+            <Select id="ss-quality" value={quality} onChange={changeQuality}
+              options={[{ value:'standard', label:'Standard' },{ value:'high', label:'High' }]} />
+          </Field>
+          <div className="scanner-settings-note">
+            <Icon name="image" size={15} className="scanner-settings-note-ico" />
+            <span>Compressed to max 1920px, 85% before upload — smaller, faster, still readable.</span>
+          </div>
+        </SettingCard>
+
+        {/* 3 · Offline storage */}
+        <SettingCard icon="hard-drive" title="Offline storage">
+          <div className="scanner-settings-stats">
+            <div className="scanner-settings-stat">
+              <div className="scanner-settings-stat-label">Queued uploads</div>
+              <div className="scanner-settings-stat-value">{nQueued}</div>
+            </div>
+            <div className="scanner-settings-stat">
+              <div className="scanner-settings-stat-label">On-device storage</div>
+              <div className="scanner-settings-stat-value">{storageUsed}</div>
+            </div>
+          </div>
+          <Button variant="secondary" block disabled={nDone===0}
+            leadingIcon={<Icon name="trash-2" size={16}/>} onClick={clearCompleted}>
+            Clear completed{nDone>0 ? ' ('+nDone+')' : ''}
+          </Button>
+        </SettingCard>
+
+        {/* 4 · Appearance */}
+        <SettingCard icon="palette" title="Appearance">
+          <ThemeToggle value={theme} onChange={changeTheme} />
+        </SettingCard>
+
+        {/* 5 · Account */}
+        <SettingCard icon="key-round" title="Account">
+          <div className="scanner-settings-actions">
+            <Button variant="secondary" block
+              leadingIcon={<Icon name="mail" size={16}/>} onClick={sendReset}>
+              Send password reset
+            </Button>
+            <Button variant="danger" block
+              leadingIcon={<Icon name="log-out" size={16}/>} onClick={()=>setSignOutOpen(true)}>
+              Sign out
+            </Button>
+          </div>
+        </SettingCard>
+      </div>
+
+      <SignOutModal open={signOutOpen} onClose={()=>setSignOutOpen(false)} onConfirm={confirmSignOut} />
+    </>
+  );
+}
+
+/* ════════ STANDALONE DEMO ════════ */
+function Topbar(){
+  return (
+    <div className="ph__top">
+      <div className="ph__brand">
+        <span className="ph__mark"><Icon name="scan-line" size={16} /></span>
+        <span className="ph__title">AutoGrade Scan</span>
+      </div>
+      <span className="ph__spacer" />
+      <IconButton icon={<Icon name="arrow-left" size={18} />} label="Back" size="sm" />
+      <IconButton icon={<Icon name="settings" size={18} />} label="Settings" size="sm" solid />
+    </div>
+  );
+}
+
+const DEMO_QUEUE = [
+  { id:'q1', status:'uploading' },
+  { id:'q2', status:'queued' },
+  { id:'q3', status:'done' },
+  { id:'q4', status:'done' },
+];
+
+function Demo(){
+  const [queue, setQueue] = useState(DEMO_QUEUE);
+  const ctx = {
+    scanner: SCANNER_MOCK,
+    queue,
+    setQueue:(fn)=>setQueue(prev=>fn(prev)),
+    online:true,
+    clearSession:()=>console.log('session cleared'),
+    toast:(t)=>console.log('toast', t),
+  };
+  const nav = { go:(h)=>console.log('go', h), back:()=>console.log('back') };
+
+  return (
+    <div>
+      <div className="ph">
+        <Topbar />
+        <div className="ph__body">
+          <SettingsView nav={nav} params={{}} ctx={ctx} />
+        </div>
+        <div className="ph__tabs">
+          <Tabbar items={[
+            { icon:'camera', label:'Scan' },
+            { icon:'list', label:'Queue' },
+            { icon:'history', label:'History' },
+          ]} />
+        </div>
+      </div>
+
+      <div className="scanner-settings-statesrow">
+        <div>
+          <div className="scanner-settings-statecap">State · sign-out confirm</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body" style={{overflow:'hidden'}}>
+              <div className="scanner-settings-scroll" style={{filter:'blur(1px)'}}>
+                <h1 className="scanner-settings-title">Settings</h1>
+              </div>
+              <Modal open={true} onClose={()=>{}}
+                title={<span style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+                  <Icon name="log-out" size={16} /> Sign out of the scanner?
+                </span>}
+                footer={
+                  <span style={{display:'flex',gap:'var(--space-2)',width:'100%'}}>
+                    <Button variant="ghost" size="sm">Stay</Button>
+                    <span style={{flex:1}} />
+                    <Button variant="danger" size="sm" leadingIcon={<Icon name="log-out" size={15}/>}>Sign out</Button>
+                  </span>
+                }>
+                <div className="scanner-settings-signout">
+                  <p className="scanner-settings-signout-body">
+                    You'll be returned to the sign-in screen.
+                  </p>
+                  <div className="scanner-settings-signout-note">
+                    <Icon name="hard-drive" size={15} className="scanner-settings-signout-note-ico" />
+                    <span>Queued captures stay saved on this device.</span>
+                  </div>
+                </div>
+              </Modal>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="scanner-settings-statecap">State · empty queue (nothing to clear)</div>
+          <div className="ph" style={{height:'440px'}}>
+            <div className="ph__body">
+              <SettingsView nav={nav} params={{}}
+                ctx={{ ...ctx, queue:[], setQueue:()=>{} }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+if (window.lucide && window.lucide.createIcons) { window.lucide.createIcons(); }
+</script>
+</body></html>

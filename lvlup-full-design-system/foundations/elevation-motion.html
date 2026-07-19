@@ -1,0 +1,58 @@
+<!-- @dsCard group="Spacing" viewport="920x460" name="Elevation & Motion" subtitle="Shadows + easing" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);padding:var(--space-6)}
+.ds-grid{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:flex-start}
+.ds-col{display:flex;flex-direction:column;gap:var(--space-3)}
+.ds-row{display:flex;flex-wrap:wrap;gap:var(--space-5);align-items:flex-end;margin-bottom:var(--space-2)}
+.ds-cap{font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--text-muted);width:100%;margin-bottom:var(--space-1)}
+.ds-tile{display:flex;flex-direction:column;justify-content:flex-end;width:128px;height:80px;padding:var(--space-3);border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border-subtle)}
+.ds-tile .ds-name{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary)}
+.ds-tile .ds-tok{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.ds-e1{box-shadow:var(--shadow-e1)}
+.ds-e2{box-shadow:var(--shadow-e2)}
+.ds-e3{box-shadow:var(--shadow-e3)}
+.ds-focus{box-shadow:var(--ring-focus);border-color:var(--border-focus)}
+.ds-spark{box-shadow:var(--glow-spark);border-color:var(--spark)}
+.ds-chip{display:inline-flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:var(--text-2xs)}
+.ds-chip .ds-k{color:var(--text-primary);font-weight:var(--weight-semibold)}
+.ds-chip .ds-v{color:var(--text-muted)}
+.ds-chip--ease{background:var(--brand-subtle);border-color:var(--brand-muted)}
+.ds-chip--ease .ds-k{color:var(--brand-primary)}
+</style>
+</head>
+<body>
+  <div class="ds-grid">
+    <div class="ds-col">
+      <div class="ds-cap">Elevation — box-shadow</div>
+      <div class="ds-row">
+        <div class="ds-tile ds-e1"><span class="ds-name">Raised</span><span class="ds-tok">--shadow-e1</span></div>
+        <div class="ds-tile ds-e2"><span class="ds-name">Overlay</span><span class="ds-tok">--shadow-e2</span></div>
+        <div class="ds-tile ds-e3"><span class="ds-name">Floating</span><span class="ds-tok">--shadow-e3</span></div>
+      </div>
+      <div class="ds-cap">Focus ring &amp; spark glow</div>
+      <div class="ds-row">
+        <div class="ds-tile ds-focus"><span class="ds-name">Focus</span><span class="ds-tok">--ring-focus</span></div>
+        <div class="ds-tile ds-spark"><span class="ds-name">Spark</span><span class="ds-tok">--glow-spark</span></div>
+      </div>
+    </div>
+
+    <div class="ds-col">
+      <div class="ds-cap">Motion — durations</div>
+      <div class="ds-row">
+        <div class="ds-chip"><span class="ds-k">instant</span><span class="ds-v">--dur-instant · 100ms</span></div>
+        <div class="ds-chip"><span class="ds-k">fast</span><span class="ds-v">--dur-fast · 160ms</span></div>
+        <div class="ds-chip"><span class="ds-k">base</span><span class="ds-v">--dur-base · 220ms</span></div>
+        <div class="ds-chip"><span class="ds-k">slow</span><span class="ds-v">--dur-slow · 320ms</span></div>
+        <div class="ds-chip"><span class="ds-k">page</span><span class="ds-v">--dur-page · 420ms</span></div>
+      </div>
+      <div class="ds-cap">Motion — easings</div>
+      <div class="ds-row">
+        <div class="ds-chip ds-chip--ease"><span class="ds-k">standard</span><span class="ds-v">--ease-standard</span></div>
+        <div class="ds-chip ds-chip--ease"><span class="ds-k">entrance</span><span class="ds-v">--ease-entrance</span></div>
+        <div class="ds-chip ds-chip--ease"><span class="ds-k">exit</span><span class="ds-v">--ease-exit</span></div>
+      </div>
+    </div>
+  </div>
+</body></html>

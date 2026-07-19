@@ -7,13 +7,23 @@
  *
  * Value shapes by questionType:
  *   mcq → optionId(string) · mcaq → optionId[] · true-false → boolean
- *   numerical/text/paragraph/code/audio/image_evaluation/chat_agent_question → string
+ *   numerical/text/paragraph/code/audio/image_evaluation → string
+ *   chat_agent_question → server-owned conversation session reference
  *   fill-blanks/fill-blanks-dd → { [blankId]: string }
  *   matching → { [left]: right } · group-options → { [itemId]: group }
  *   jumbled → number[] (token order)
  */
 import { useRef, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Audio } from "expo-av";
 
@@ -23,9 +33,11 @@ import { cx } from "./cx";
 import { Icon } from "./Icon";
 import { Badge } from "./data";
 import { Chip } from "./data";
+import { DifficultyChip } from "./lyceum";
 import { ContentRenderer } from "./containers";
 import { asArray, asString, getBasePoints, getPrompt, getQuestionData } from "./item-data";
 import { ChatAgentQuestion } from "./questions/ChatAgentQuestion";
+import { QuestionHelpSheet } from "./questions/QuestionHelpSheet";
 import type { QuestionViewProps } from "./_types";
 
 type Dict = Record<string, unknown>;
@@ -75,56 +87,102 @@ export function QuestionView({
   disabled,
   showResult,
   result,
+  hideBanner,
   className,
   spaceId,
   storyPointId,
 }: QuestionViewProps) {
   const data = getQuestionData(item, questionData);
   const qType = asString(data?.questionType, "mcq");
-  const prompt = getPrompt(item, data);
+  const rawPrompt = getPrompt(item, data);
   const points = getBasePoints(item, data);
+  const difficulty = typeof item?.difficulty === "string" ? item.difficulty : undefined;
+  const { width: screenWidth } = useWindowDimensions();
+  const [questionHelpOpen, setQuestionHelpOpen] = useState(false);
+  const [draftRevision, setDraftRevision] = useState(0);
+  const handleChange = (next: unknown) => {
+    setDraftRevision((revision) => revision + 1);
+    onChange?.(next);
+  };
+
+  // Extract markdown-embedded images (`![alt](url)`) so we can render them as
+  // real <Image> tiles below the question text instead of raw markdown. The
+  // subhang v2_ migration injects diagrams this way (marker: `<!-- imgs:auto -->`)
+  // because the deployed backend strips top-level `attachments` from questions.
+  const IMG_MD_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+  const promptImages: Array<{ url: string; alt: string }> = [];
+  for (const m of rawPrompt.matchAll(IMG_MD_RE)) {
+    promptImages.push({ url: m[2], alt: m[1] || "diagram" });
+  }
+  const cleanPrompt = rawPrompt
+    .replace(/<!--\s*imgs:auto\s*-->/g, "")
+    .replace(IMG_MD_RE, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  // Cap image height at ~55% of viewport so it never squeezes the question below the fold
+  const imgMaxHeight = Math.min(360, Math.round(screenWidth * 0.9));
 
   return (
-    <View className={cx("gap-4", className)}>
-      {/* header */}
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <View className="mb-2 flex-row items-center gap-2">
-            <Badge variant="brand">{LABELS[qType] ?? qType}</Badge>
-            {points != null && (
-              <Text className="font-ui text-text-muted text-xs">{points} pts</Text>
-            )}
-          </View>
-          {prompt ? (
-            <ContentRenderer
-              body={prompt}
-              math
-              textClassName="font-ui text-text-primary text-lg font-medium leading-7"
-            />
-          ) : null}
+    <View className={cx("gap-5", className)}>
+      {/* header — chips row + the serif question stem (foregrounded, larger) */}
+      <View className="gap-3">
+        <View className="flex-row flex-wrap items-center gap-2">
+          <Badge variant="brand">{LABELS[qType] ?? qType}</Badge>
+          <DifficultyChip difficulty={difficulty} />
+          {points != null && (
+            <View className="bg-marigold-50 border-marigold-200 rounded-pill flex-row items-center border px-2 py-0.5">
+              <Text className="text-marigold-600 text-2xs font-mono font-medium">{points} pts</Text>
+            </View>
+          )}
         </View>
+        {cleanPrompt ? (
+          <ContentRenderer
+            body={cleanPrompt}
+            math
+            textClassName="font-display text-text-primary text-xl leading-8"
+          />
+        ) : null}
+        {promptImages.length > 0 ? (
+          <View className="gap-2">
+            {promptImages.map((img, i) => (
+              <Pressable
+                key={`${img.url}-${i}`}
+                onPress={() => Linking.openURL(img.url).catch(() => {})}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={img.alt}
+              >
+                <Image
+                  source={{ uri: img.url }}
+                  resizeMode="contain"
+                  style={{ width: "100%", height: imgMaxHeight, borderRadius: 8 }}
+                  className="border-border-subtle border"
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
 
-      {/* result banner */}
-      {showResult && result && (
+      {/* result banner — warm growth framing */}
+      {showResult && result && !hideBanner && (
         <View
           className={cx(
-            "flex-row items-center gap-2 rounded-md p-3",
-            result.correct ? "bg-green-200/50" : "bg-red-200/50"
+            "flex-row items-center gap-2 rounded-lg border p-3",
+            result.correct ? "border-success/30 bg-green-200/30" : "border-error/30 bg-red-200/30"
           )}
         >
           <Icon
-            name={result.correct ? "check-circle" : "alert-triangle"}
+            name={result.correct ? "check-circle" : "alert-circle"}
             size={18}
             color={result.correct ? colors.success : colors.error}
           />
           <Text
             className={cx(
-              "font-ui flex-1 text-sm font-semibold",
+              "font-display flex-1 text-base",
               result.correct ? "text-success" : "text-error"
             )}
           >
-            {result.correct ? "Correct" : "Not quite"}
+            {result.correct ? "Got it!" : "Not quite yet — let's work through it"}
             {result.earnedPoints != null ? ` · ${result.earnedPoints} pts` : ""}
           </Text>
         </View>
@@ -135,7 +193,7 @@ export function QuestionView({
         qType={qType}
         data={data ?? {}}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         disabled={disabled || showResult}
         showResult={showResult}
         result={result}
@@ -143,6 +201,33 @@ export function QuestionView({
         spaceId={spaceId}
         storyPointId={storyPointId}
       />
+
+      {/* Guidance is a separate, question-scoped conversation. It receives a
+          draft snapshot but has no route to submit/evaluate this question. */}
+      {qType !== "chat_agent_question" && !showResult ? (
+        <Pressable
+          onPress={() => setQuestionHelpOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Get guidance for this question"
+          className="border-brand/30 bg-brand-subtle min-h-11 flex-row items-center gap-2 self-start rounded-md border px-3 py-2 active:opacity-80"
+        >
+          <Icon name="message-circle-question" size={17} color={colors.brand} />
+          <Text className="font-ui text-brand text-sm font-semibold">Need a hint?</Text>
+        </Pressable>
+      ) : null}
+
+      {qType !== "chat_agent_question" ? (
+        <QuestionHelpSheet
+          open={questionHelpOpen}
+          onClose={() => setQuestionHelpOpen(false)}
+          spaceId={spaceId}
+          storyPointId={storyPointId}
+          itemId={item?.id}
+          itemTitle={cleanPrompt || item?.title}
+          draft={value}
+          draftRevision={draftRevision}
+        />
+      ) : null}
 
       {showResult && result?.feedback ? (
         <Text className="font-ui text-text-muted text-sm italic">{result.feedback}</Text>
@@ -211,7 +296,15 @@ function QuestionBody({
     case "mcaq":
       return <MultiChoice data={data} value={value} onChange={onChange} disabled={disabled} />;
     case "true-false":
-      return <TrueFalse value={value} onChange={onChange} disabled={disabled} />;
+      return (
+        <TrueFalse
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          showResult={showResult}
+          result={result}
+        />
+      );
     case "numerical":
       return (
         <FreeText
@@ -281,9 +374,10 @@ function QuestionBody({
   }
 }
 
-// --- option row -------------------------------------------------------------
+// --- option row (A/B/C letter badge — the Lyceum choice idiom) ---------------
 function OptionRow({
   opt,
+  index,
   selected,
   multi,
   state,
@@ -291,44 +385,52 @@ function OptionRow({
   onPress,
 }: {
   opt: McqOption;
+  index: number;
   selected: boolean;
   multi?: boolean;
   state?: "correct" | "incorrect";
   disabled?: boolean;
   onPress: () => void;
 }) {
-  const border =
+  const letter = String.fromCharCode(65 + index);
+  const frame =
     state === "correct"
       ? "border-success bg-green-200/40"
       : state === "incorrect"
         ? "border-error bg-red-200/40"
         : selected
-          ? "border-brand bg-brand-subtle"
-          : "border-border-strong bg-surface";
-  const markShape = multi ? "rounded" : "rounded-full";
+          ? "border-brand bg-brand-subtle/60"
+          : "border-border-subtle bg-surface active:border-border-strong active:bg-surface-sunken/60";
+  const badge =
+    state === "correct"
+      ? "bg-success border-transparent"
+      : state === "incorrect"
+        ? "bg-error border-transparent"
+        : selected
+          ? "bg-brand border-transparent"
+          : "bg-surface-sunken border-border-subtle";
+  const badgeText =
+    state === "correct" || state === "incorrect" || selected
+      ? "text-text-on-accent"
+      : "text-text-secondary";
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className={cx("flex-row items-center gap-3 rounded-md border p-3", border)}
+      accessibilityRole={multi ? "checkbox" : "radio"}
+      accessibilityState={{ selected, disabled }}
+      className={cx("min-h-[52px] flex-row items-start gap-3 rounded-lg border p-3.5", frame)}
     >
-      <View
-        className={cx(
-          "h-5 w-5 items-center justify-center border-2",
-          markShape,
-          selected ? "border-brand bg-brand" : "border-border-strong"
-        )}
-      >
-        {selected && (
-          <Icon
-            name={multi ? "check" : "circle"}
-            size={multi ? 13 : 8}
-            color={colors.textOnAccent}
-            strokeWidth={3}
-          />
+      <View className={cx("h-7 w-7 items-center justify-center rounded-md border", badge)}>
+        {multi && selected && !state ? (
+          <Icon name="check" size={14} color={colors.textOnAccent} strokeWidth={3} />
+        ) : (
+          <Text className={cx("font-ui text-xs font-semibold", badgeText)}>{letter}</Text>
         )}
       </View>
-      <Text className="font-ui text-text-primary flex-1 text-base">{opt.text}</Text>
+      <Text className="font-ui text-text-primary flex-1 pt-0.5 text-base leading-6">
+        {opt.text}
+      </Text>
       {state === "correct" && <Icon name="check" size={16} color={colors.success} />}
     </Pressable>
   );
@@ -338,8 +440,8 @@ function SingleChoice({ data, value, onChange, disabled, showResult, result }: B
   const options = asArray<McqOption>(data.options);
   const correctId = showResult ? asString((result as Dict | undefined)?.correctAnswer) : "";
   return (
-    <View className="gap-2">
-      {options.map((opt) => {
+    <View className="gap-2" accessibilityRole="radiogroup">
+      {options.map((opt, idx) => {
         const selected = value === opt.id;
         let state: "correct" | "incorrect" | undefined;
         if (showResult) {
@@ -350,6 +452,7 @@ function SingleChoice({ data, value, onChange, disabled, showResult, result }: B
           <OptionRow
             key={opt.id}
             opt={opt}
+            index={idx}
             selected={selected}
             state={state}
             disabled={disabled}
@@ -370,10 +473,11 @@ function MultiChoice({ data, value, onChange, disabled }: BodyProps) {
   };
   return (
     <View className="gap-2">
-      {options.map((opt) => (
+      {options.map((opt, idx) => (
         <OptionRow
           key={opt.id}
           opt={opt}
+          index={idx}
           selected={selected.includes(opt.id)}
           multi
           disabled={disabled}
@@ -388,7 +492,9 @@ function TrueFalse({
   value,
   onChange,
   disabled,
-}: Pick<BodyProps, "value" | "onChange" | "disabled">) {
+  showResult,
+  result,
+}: Pick<BodyProps, "value" | "onChange" | "disabled" | "showResult" | "result">) {
   return (
     <View className="flex-row gap-3">
       {[
@@ -396,25 +502,43 @@ function TrueFalse({
         { label: "False", val: false, icon: "x" },
       ].map((o) => {
         const on = value === o.val;
+        const wrong = showResult && on && result && !result.correct;
+        const right = showResult && on && result?.correct;
+        const frame = wrong
+          ? "border-error bg-red-200/40"
+          : right
+            ? "border-success bg-green-200/40"
+            : on
+              ? "border-brand bg-brand-subtle/60"
+              : "border-border-subtle bg-surface active:border-border-strong active:bg-surface-sunken/60";
+        const tint = wrong
+          ? colors.error
+          : right
+            ? colors.success
+            : on
+              ? colors.brand
+              : colors.textMuted;
+        const textTone = wrong
+          ? "text-error"
+          : right
+            ? "text-success"
+            : on
+              ? "text-brand"
+              : "text-text-secondary";
         return (
           <Pressable
             key={o.label}
             onPress={() => onChange?.(o.val)}
             disabled={disabled}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on, disabled }}
             className={cx(
-              "flex-1 flex-row items-center justify-center gap-2 rounded-md border p-3.5",
-              on ? "border-brand bg-brand-subtle" : "border-border-strong bg-surface"
+              "min-h-[52px] flex-1 flex-row items-center justify-center gap-2 rounded-lg border px-6 py-3.5",
+              frame
             )}
           >
-            <Icon name={o.icon} size={18} color={on ? colors.brand : colors.textMuted} />
-            <Text
-              className={cx(
-                "font-ui text-base font-semibold",
-                on ? "text-brand" : "text-text-secondary"
-              )}
-            >
-              {o.label}
-            </Text>
+            <Icon name={o.icon} size={18} color={tint} />
+            <Text className={cx("font-ui text-base font-semibold", textTone)}>{o.label}</Text>
           </Pressable>
         );
       })}

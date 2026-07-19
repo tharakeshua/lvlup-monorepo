@@ -56,7 +56,8 @@ import {
   qfMoveTokenDown,
 } from "@levelup/query";
 
-import { Button, Card, Divider, IconButton, TextField } from "./primitives";
+import { Button, Card, Divider, IconButton } from "./primitives";
+import { TextField } from "./forms";
 import { colors } from "../theme";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -545,7 +546,7 @@ export function CodeEditorPayload({ payload, onChange }: CodeEditorPayloadProps)
       <View className="gap-2">
         <SectionLabel>Test cases</SectionLabel>
         {testCases.map((tc, idx) => (
-          <Card key={tc.id} className="gap-2 p-3">
+          <Card key={idx} className="gap-2 p-3">
             <View className="flex-row items-center justify-between">
               <Text className="text-text-secondary text-sm font-semibold">Case {idx + 1}</Text>
               <IconButton
@@ -553,20 +554,20 @@ export function CodeEditorPayload({ payload, onChange }: CodeEditorPayloadProps)
                 size="sm"
                 variant="danger"
                 label="Remove test case"
-                onPress={() => onChange(qfRemoveTestCase(payload, tc.id))}
+                onPress={() => onChange(qfRemoveTestCase(payload, idx))}
               />
             </View>
             <TextField
               label="Input"
               value={tc.input}
-              onChangeText={(v) => onChange(qfUpdateTestCase(payload, tc.id, { input: v }))}
+              onChangeText={(v) => onChange(qfUpdateTestCase(payload, idx, { input: v }))}
               placeholder="stdin or function argument"
               multiline
             />
             <TextField
               label="Expected output"
               value={tc.output}
-              onChangeText={(v) => onChange(qfUpdateTestCase(payload, tc.id, { output: v }))}
+              onChangeText={(v) => onChange(qfUpdateTestCase(payload, idx, { output: v }))}
               placeholder="expected stdout or return value"
               multiline
             />
@@ -657,11 +658,9 @@ export type FillBlanksDdEditorProps = {
 };
 
 type FillBlankDd = { id: string; correctAnswer: string };
-type PoolOption = { id: string; text: string };
-
 export function FillBlanksDdEditor({ payload, onChange }: FillBlanksDdEditorProps) {
   const blanks = (payload.blanks as FillBlankDd[] | undefined) ?? [];
-  const pool = (payload.optionPool as PoolOption[] | undefined) ?? [];
+  const pool = (payload.optionPool as string[] | undefined) ?? [];
 
   return (
     <View className="gap-4">
@@ -707,11 +706,11 @@ export function FillBlanksDdEditor({ payload, onChange }: FillBlanksDdEditorProp
       <View className="gap-2">
         <SectionLabel>Option pool</SectionLabel>
         {pool.map((opt, idx) => (
-          <View key={opt.id} className="flex-row items-center gap-2">
+          <View key={idx} className="flex-row items-center gap-2">
             <View className="flex-1">
               <TextField
-                value={opt.text}
-                onChangeText={(v) => onChange(qfUpdatePoolOption(payload, opt.id, { text: v }))}
+                value={opt}
+                onChangeText={(v) => onChange(qfUpdatePoolOption(payload, idx, v))}
                 placeholder={`Pool option ${idx + 1}`}
               />
             </View>
@@ -720,11 +719,15 @@ export function FillBlanksDdEditor({ payload, onChange }: FillBlanksDdEditorProp
               size="sm"
               variant="danger"
               label="Remove pool option"
-              onPress={() => onChange(qfRemovePoolOption(payload, opt.id))}
+              onPress={() => onChange(qfRemovePoolOption(payload, idx))}
             />
           </View>
         ))}
-        <Button variant="secondary" size="sm" onPress={() => onChange(qfAddPoolOption(payload))}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onPress={() => onChange(qfAddPoolOption(payload, ""))}
+        >
           + Add pool option
         </Button>
       </View>
@@ -739,7 +742,7 @@ export type MatchingEditorProps = {
   onChange: (p: Record<string, unknown>) => void;
 };
 
-type MatchingPair = { id: string; left: string; right: string };
+type MatchingPair = { left: string; right: string };
 
 export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
   const pairs = (payload.pairs as MatchingPair[] | undefined) ?? [];
@@ -748,7 +751,7 @@ export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
     <View className="gap-3">
       <SectionLabel>Matching pairs</SectionLabel>
       {pairs.map((pair, idx) => (
-        <Card key={pair.id} className="gap-2 p-3">
+        <Card key={idx} className="gap-2 p-3">
           <View className="flex-row items-center justify-between">
             <Text className="text-text-secondary text-sm font-semibold">Pair {idx + 1}</Text>
             <View className="flex-row items-center gap-1">
@@ -756,14 +759,14 @@ export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
                 icon="chevron-up"
                 size="sm"
                 label="Move up"
-                onPress={() => onChange(qfMovePairUp(payload, pair.id))}
+                onPress={() => onChange(qfMovePairUp(payload, idx))}
                 disabled={idx === 0}
               />
               <IconButton
                 icon="chevron-down"
                 size="sm"
                 label="Move down"
-                onPress={() => onChange(qfMovePairDown(payload, pair.id))}
+                onPress={() => onChange(qfMovePairDown(payload, idx))}
                 disabled={idx === pairs.length - 1}
               />
               <IconButton
@@ -771,7 +774,7 @@ export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
                 size="sm"
                 variant="danger"
                 label="Remove pair"
-                onPress={() => onChange(qfRemovePair(payload, pair.id))}
+                onPress={() => onChange(qfRemovePair(payload, idx))}
               />
             </View>
           </View>
@@ -780,7 +783,7 @@ export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
               <TextField
                 label="Left"
                 value={pair.left}
-                onChangeText={(v) => onChange(qfUpdatePair(payload, pair.id, { left: v }))}
+                onChangeText={(v) => onChange(qfUpdatePair(payload, idx, { left: v }))}
                 placeholder="Left item"
               />
             </View>
@@ -788,7 +791,7 @@ export function MatchingEditor({ payload, onChange }: MatchingEditorProps) {
               <TextField
                 label="Right"
                 value={pair.right}
-                onChangeText={(v) => onChange(qfUpdatePair(payload, pair.id, { right: v }))}
+                onChangeText={(v) => onChange(qfUpdatePair(payload, idx, { right: v }))}
                 placeholder="Right match"
               />
             </View>
@@ -809,10 +812,8 @@ export type JumbledEditorProps = {
   onChange: (p: Record<string, unknown>) => void;
 };
 
-type JumbledToken = { id: string; text: string };
-
 export function JumbledEditor({ payload, onChange }: JumbledEditorProps) {
-  const tokens = (payload.tokens as JumbledToken[] | undefined) ?? [];
+  const tokens = (payload.tokens as string[] | undefined) ?? [];
 
   return (
     <View className="gap-3">
@@ -821,12 +822,12 @@ export function JumbledEditor({ payload, onChange }: JumbledEditorProps) {
       </Text>
       <SectionLabel>Tokens (correct order)</SectionLabel>
       {tokens.map((token, idx) => (
-        <View key={token.id} className="flex-row items-center gap-2">
+        <View key={idx} className="flex-row items-center gap-2">
           <Text className="text-text-muted w-5 text-right text-sm">{idx + 1}.</Text>
           <View className="flex-1">
             <TextField
-              value={token.text}
-              onChangeText={(v) => onChange(qfUpdateToken(payload, token.id, { text: v }))}
+              value={token}
+              onChangeText={(v) => onChange(qfUpdateToken(payload, idx, v))}
               placeholder={`Token ${idx + 1}`}
             />
           </View>
@@ -834,14 +835,14 @@ export function JumbledEditor({ payload, onChange }: JumbledEditorProps) {
             icon="chevron-up"
             size="sm"
             label="Move up"
-            onPress={() => onChange(qfMoveTokenUp(payload, token.id))}
+            onPress={() => onChange(qfMoveTokenUp(payload, idx))}
             disabled={idx === 0}
           />
           <IconButton
             icon="chevron-down"
             size="sm"
             label="Move down"
-            onPress={() => onChange(qfMoveTokenDown(payload, token.id))}
+            onPress={() => onChange(qfMoveTokenDown(payload, idx))}
             disabled={idx === tokens.length - 1}
           />
           <IconButton
@@ -849,11 +850,11 @@ export function JumbledEditor({ payload, onChange }: JumbledEditorProps) {
             size="sm"
             variant="danger"
             label="Remove token"
-            onPress={() => onChange(qfRemoveToken(payload, token.id))}
+            onPress={() => onChange(qfRemoveToken(payload, idx))}
           />
         </View>
       ))}
-      <Button variant="secondary" size="sm" onPress={() => onChange(qfAddToken(payload))}>
+      <Button variant="secondary" size="sm" onPress={() => onChange(qfAddToken(payload, ""))}>
         + Add token
       </Button>
     </View>
@@ -927,23 +928,22 @@ export type GroupOptionsEditorProps = {
   onChange: (p: Record<string, unknown>) => void;
 };
 
-type Group = { id: string; name: string };
-type GroupItem = { id: string; text: string; groupId: string };
+type GroupItem = { id: string; text: string; group: string };
 
 export function GroupOptionsEditor({ payload, onChange }: GroupOptionsEditorProps) {
-  const groups = (payload.groups as Group[] | undefined) ?? [];
+  const groups = (payload.groups as string[] | undefined) ?? [];
   const items = (payload.items as GroupItem[] | undefined) ?? [];
 
   return (
     <View className="gap-4">
       <View className="gap-2">
         <SectionLabel>Groups</SectionLabel>
-        {groups.map((group) => (
-          <View key={group.id} className="flex-row items-center gap-2">
+        {groups.map((group, index) => (
+          <View key={`${group}-${index}`} className="flex-row items-center gap-2">
             <View className="flex-1">
               <TextField
-                value={group.name}
-                onChangeText={(v) => onChange(qfRenameGroup(payload, group.id, v))}
+                value={group}
+                onChangeText={(v) => onChange(qfRenameGroup(payload, group, v))}
                 placeholder="Group name"
               />
             </View>
@@ -952,11 +952,11 @@ export function GroupOptionsEditor({ payload, onChange }: GroupOptionsEditorProp
               size="sm"
               variant="danger"
               label="Remove group"
-              onPress={() => onChange(qfRemoveGroup(payload, group.id))}
+              onPress={() => onChange(qfRemoveGroup(payload, group))}
             />
           </View>
         ))}
-        <Button variant="secondary" size="sm" onPress={() => onChange(qfAddGroup(payload))}>
+        <Button variant="secondary" size="sm" onPress={() => onChange(qfAddGroup(payload, ""))}>
           + Add group
         </Button>
       </View>
@@ -985,13 +985,11 @@ export function GroupOptionsEditor({ payload, onChange }: GroupOptionsEditorProp
               <Text className="font-ui text-text-secondary text-xs font-semibold">Group</Text>
               <View className="flex-row flex-wrap gap-1.5">
                 {groups.map((g) => {
-                  const active = item.groupId === g.id;
+                  const active = item.group === g;
                   return (
                     <Pressable
-                      key={g.id}
-                      onPress={() =>
-                        onChange(qfUpdateGroupItem(payload, item.id, { groupId: g.id }))
-                      }
+                      key={g}
+                      onPress={() => onChange(qfUpdateGroupItem(payload, item.id, { group: g }))}
                       className="rounded-full border px-2.5 py-1"
                       style={{
                         borderColor: active ? colors.brand : colors.textMuted,
@@ -1002,7 +1000,7 @@ export function GroupOptionsEditor({ payload, onChange }: GroupOptionsEditorProp
                         className="text-xs font-semibold"
                         style={{ color: active ? colors.textOnAccent : colors.textSecondary }}
                       >
-                        {g.name || `Group ${groups.indexOf(g) + 1}`}
+                        {g || `Group ${groups.indexOf(g) + 1}`}
                       </Text>
                     </Pressable>
                   );
@@ -1014,7 +1012,7 @@ export function GroupOptionsEditor({ payload, onChange }: GroupOptionsEditorProp
             </View>
           </Card>
         ))}
-        <Button variant="secondary" size="sm" onPress={() => onChange(qfAddGroupItem(payload))}>
+        <Button variant="secondary" size="sm" onPress={() => onChange(qfAddGroupItem(payload, ""))}>
           + Add item
         </Button>
       </View>
@@ -1029,25 +1027,24 @@ export type ChatAgentEditorProps = {
   onChange: (p: Record<string, unknown>) => void;
 };
 
-export function ChatAgentEditor({ payload, onChange }: ChatAgentEditorProps) {
+/**
+ * Mobile teacher deliberately does not offer a partial chat-agent form. The
+ * canonical assessment has public objectives, agent/policy FKs, completion
+ * policy, rubric links, and a private answer key; a legacy two-field editor
+ * could silently destroy that split. Keep direct routes read-only instead.
+ */
+export function ChatAgentEditor({ payload }: ChatAgentEditorProps) {
   return (
-    <View className="gap-3">
-      <TextField
-        label="Agent instructions"
-        value={String(payload.agentInstructions ?? "")}
-        onChangeText={(v) => onChange({ ...payload, agentInstructions: v })}
-        placeholder="Describe the AI agent's role, grading criteria, and conversation goal"
-        multiline
-      />
-      <TextField
-        label="Max turns"
-        value={String(payload.maxTurns ?? "")}
-        onChangeText={(v) => onChange({ ...payload, maxTurns: v ? Number(v) : undefined })}
-        keyboardType="numeric"
-        placeholder="e.g. 10"
-        hint="Maximum number of student message turns allowed"
-      />
-    </View>
+    <Card className="gap-2 border-amber-300 bg-amber-50">
+      <Text className="text-text-primary font-semibold">Author in Teacher Web</Text>
+      <Text className="text-text-secondary text-sm">
+        Chat-agent assessments are read-only on mobile. Their interviewer, turn policy, rubric, and
+        private answer key must be edited in Teacher Web so no partial schema is saved.
+      </Text>
+      {typeof payload.scenario === "string" && payload.scenario ? (
+        <Text className="text-text-muted text-xs">Scenario: {payload.scenario}</Text>
+      ) : null}
+    </Card>
   );
 }
 

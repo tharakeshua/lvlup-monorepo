@@ -115,7 +115,12 @@ async function main(): Promise<void> {
   const result = await seed(config, opts);
   console.log(
     JSON.stringify(
-      { counts: result.counts, batch: result.batch, verifyOk: result.verify.ok },
+      {
+        counts: result.counts,
+        batch: result.batch,
+        verifyOk: result.verify.ok,
+        ...(args.dryRun ? { manifest: result.manifest } : {}),
+      },
       null,
       2
     )

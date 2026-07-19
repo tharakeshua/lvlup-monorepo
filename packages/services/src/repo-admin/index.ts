@@ -14,6 +14,10 @@
 import { auth, db } from "./firestore.js";
 import { makeEntityRepo } from "./entity-repo.js";
 import { makeItemRepo } from "./item-repo.js";
+import { makeVersionedAgentRepo } from "./agent.js";
+import { makeConversationRepo } from "./conversation.js";
+import { makeItemSubmissionRepo } from "./item-submission.js";
+import { makeLevelupContentRepo, makeScopedAgentRepo } from "./levelup-content.js";
 import { makeProgressRepo } from "./progress.js";
 import { makeTx } from "./tx.js";
 import { encodeCursor, decodeCursor } from "./cursor.js";
@@ -42,6 +46,8 @@ import {
   makeInsightRepo,
   makeStudyGoalRepo,
   makeSecretRepo,
+  makeUserProviderKeyRepo,
+  makeKeyMetaRepo,
   makeImpersonationRepo,
   makeChatRepo,
   makeSpaceReviewRepo,
@@ -83,6 +89,8 @@ export function createRepos(options: CreateReposOptions = {}): Repos {
     insights: makeInsightRepo(firestore, now),
     studyGoals: makeStudyGoalRepo(firestore, now),
     secrets: makeSecretRepo(firestore, now),
+    userProviderKeys: makeUserProviderKeyRepo(firestore, now),
+    keyMeta: makeKeyMetaRepo(firestore, now),
     impersonation: makeImpersonationRepo(firestore, now),
     chat: makeChatRepo(firestore, now),
     // generic-collection aliases the services reference by friendly name.
@@ -98,7 +106,7 @@ export function createRepos(options: CreateReposOptions = {}): Repos {
     // autograde evaluation-settings (its own collection, NOT the tenants repo).
     evaluationSettings: entity("evaluationSettings"),
     // levelup authoring collections (LVL-2 — flat tenant-scoped, seed-Paths names).
-    agents: entity("agents"),
+    agents: makeScopedAgentRepo(firestore, now),
     rubricPresets: entity("rubricPresets"),
     questionBank: entity("questionBank"),
     // class-assignment metadata rows (LVL-2 assignContent; deterministic ids
@@ -175,6 +183,10 @@ export function createRepos(options: CreateReposOptions = {}): Repos {
     idempotency: makeIdempotencyRepo(firestore, now, leaseMs),
     outbox: makeOutboxRepo(firestore, now),
     rateLimits: makeRateLimitRepo(firestore, now),
+    agentVersions: makeVersionedAgentRepo(firestore, now),
+    conversations: makeConversationRepo(firestore),
+    itemSubmissions: makeItemSubmissionRepo(firestore),
+    levelupContent: makeLevelupContentRepo(firestore),
     progress: makeProgressRepo(firestore, now),
 
     tx: makeTx(firestore, now),
@@ -197,9 +209,40 @@ export type {
   OutboxRepo,
   AuditRepo,
   RateLimitRepo,
+  VersionedAgentRepo,
+  SaveVersionedAgentInput,
+  SaveVersionedAgentCreateInput,
+  SaveVersionedAgentUpdateInput,
+  SaveVersionedAgentResult,
+  ConversationRepo,
+  ItemSubmissionRepo,
+  LevelupContentRepo,
+  ConversationSourceVersionCheck,
+  StartConversationTxInput,
+  StartConversationTxResult,
+  ClaimConversationTurnInput,
+  ClaimConversationTurnResult,
+  MarkTurnPhaseInput,
+  CommitConversationTurnInput,
+  CommitConversationTurnResult,
+  FailConversationTurnInput,
+  FailConversationTurnResult,
+  AcquireFinalizationInput,
+  FinalizationClaim,
+  FreezeSubmissionInput,
+  FreezeSubmissionResult,
+  CompleteConversationFinalizationInput,
+  CompleteConversationFinalizationResult,
+  AbandonConversationInput,
+  AbandonConversationResult,
+  AcquireEvaluationInput,
+  EvaluationClaim,
+  CommitSubmissionEvaluationInput,
+  FailSubmissionEvaluationInput,
   ProgressRepo,
   ProgressUpdateInput,
   ProgressUpdateResult,
+  ProgressResult,
   ProgressItemUpdate,
   TxHandle,
   ListOptions,

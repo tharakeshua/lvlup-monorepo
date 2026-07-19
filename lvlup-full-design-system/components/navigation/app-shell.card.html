@@ -1,0 +1,90 @@
+<!-- @dsCard group="Navigation" viewport="1280x820" name="AppShell" subtitle="Sidebar + topbar + main" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>html,body,#root{height:100%}
+body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.ds-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:var(--tracking-caption);margin:0 0 var(--space-2)}
+.ds-row{display:flex;flex-wrap:wrap;gap:var(--space-4);align-items:stretch}
+.as-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-4)}
+.as-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent)}
+.as-wordmark{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.as-search{flex:1;max-width:420px}
+.as-topbar-right{display:flex;align-items:center;gap:var(--space-3)}
+.as-heading{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:var(--weight-semibold);margin:0 0 var(--space-1)}
+.as-sub{color:var(--text-secondary);font-size:var(--text-sm);margin:0 0 var(--space-6)}
+.as-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head><body><div id="root"></div>
+<script type="text/babel">
+  const { NavItem, Avatar, Badge, Button, Icon, Stat } = window.LvlupV0DesignSystem_5d0725;
+
+  function Demo(){
+    return (
+      <div className="appshell">
+        <aside className="sidebar">
+          <div className="as-brand">
+            <span className="as-mark"><Icon name="graduation-cap" size={20}/></span>
+            <span className="as-wordmark">Lyceum</span>
+          </div>
+
+          <nav className="sidebar__nav">
+            <div className="sidebar__section">
+              <div className="ds-cap">Learn</div>
+              <NavItem icon="layout-dashboard" active>Dashboard</NavItem>
+              <NavItem icon="compass">Spaces</NavItem>
+              <NavItem icon="route">Story Points</NavItem>
+              <NavItem icon="file-pen" badge="3">Exams</NavItem>
+            </div>
+            <div className="sidebar__section">
+              <div className="ds-cap">Progress</div>
+              <NavItem icon="flame">Streak</NavItem>
+              <NavItem icon="trophy">Leaderboard</NavItem>
+              <NavItem icon="sparkles" badge="New">Achievements</NavItem>
+            </div>
+            <div className="sidebar__section">
+              <div className="ds-cap">Account</div>
+              <NavItem icon="settings">Settings</NavItem>
+              <NavItem icon="life-buoy">Help</NavItem>
+            </div>
+          </nav>
+
+          <div className="sidebar__footer">
+            <NavItem icon="log-out">Sign out</NavItem>
+          </div>
+        </aside>
+
+        <div className="appshell__topbar">
+          <div className="as-search">
+            <div className="input" role="search" style={{display:'flex',alignItems:'center',gap:'var(--space-2)'}}>
+              <Icon name="search" size={16}/>
+              <span style={{color:'var(--text-muted)'}}>Search spaces, story points…</span>
+            </div>
+          </div>
+          <div className="as-topbar-right">
+            <Button variant="ghost" leadingIcon="bell" aria-label="Notifications"/>
+            <Badge variant="brand" dot>Online</Badge>
+            <Avatar initials="SA"/>
+          </div>
+        </div>
+
+        <main className="appshell__main">
+          <h1 className="as-heading">Good evening, Subhang</h1>
+          <p className="as-sub">You are 2 story points away from mastering Data Structures.</p>
+
+          <div className="ds-cap">This week</div>
+          <div className="as-stats">
+            <Stat label="XP earned" value="1,240" delta="+18%" trend="up"/>
+            <Stat label="Day streak" value="12" delta="+1" trend="up"/>
+            <Stat label="Avg confidence" value="High" delta="+6%" trend="up"/>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

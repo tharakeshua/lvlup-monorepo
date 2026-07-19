@@ -1,0 +1,444 @@
+<!-- @dsCard group="Teacher" viewport="1280x820" name="Class Test Analytics" subtitle="In-space timed tests · attempts · score/time dist · retakes" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{margin:0;padding:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+  .page{display:flex;flex-direction:column;gap:var(--space-8);max-width:var(--content-max);margin:0 auto}
+  .page__title{font-family:var(--font-display);font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+  .page__sub{font-family:var(--font-ui);font-size:var(--text-sm);color:var(--text-secondary);margin:var(--space-1) 0 0}
+  .page__disamb{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-2);display:inline-flex;align-items:center;gap:var(--space-1)}
+  .page__disamb a{color:var(--brand-primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  .hdr-controls{display:flex;align-items:flex-end;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-4)}
+  .hdr-controls .picker{min-width:260px}
+  .hdr-controls .spacer{flex:1}
+  .meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary)}
+  .meta-line .sep{color:var(--border-strong)}
+  .meta-line .fresh{color:var(--text-muted)}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}
+  .card-head{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--space-4)}
+  .card-title{font-family:var(--font-display);font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold);margin:0}
+  .card-sub{font-size:var(--text-sm);color:var(--text-secondary);margin:0}
+  /* histogram */
+  .hist{display:flex;align-items:flex-end;gap:var(--space-2);height:180px;padding-top:var(--space-4);position:relative}
+  .hist__col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:var(--space-2);height:100%}
+  .hist__bar{width:100%;border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand-muted);position:relative;transition:background var(--dur-fast) var(--ease-standard)}
+  .hist__col:hover .hist__bar{background:var(--brand-primary)}
+  .hist__cap{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+  .hist__count{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);font-weight:var(--weight-medium)}
+  .passline{position:absolute;top:var(--space-4);bottom:0;border-left:2px dashed var(--status-success);left:50%}
+  .passline__lbl{position:absolute;top:-2px;left:6px;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--status-success);white-space:nowrap}
+  .axis-row{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
+  .axis-row .ax{flex:1;text-align:center;font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+  /* time bands */
+  .tband{display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-4)}
+  .tband__row{display:grid;grid-template-columns:120px 1fr 64px;align-items:center;gap:var(--space-3)}
+  .tband__lbl{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-secondary)}
+  .tband__track{height:14px;background:var(--bg-surface-sunken);border-radius:var(--radius-pill);overflow:hidden}
+  .tband__fill{height:100%;background:var(--brand-muted);border-radius:var(--radius-pill)}
+  .tband__fill--over{background:var(--status-warning)}
+  .tband__n{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-align:right}
+  /* completion segmented bar */
+  .comp{display:flex;height:18px;border-radius:var(--radius-pill);overflow:hidden;border:1px solid var(--border-subtle)}
+  .comp__seg--done{background:var(--status-success)}
+  .comp__seg--started{background:var(--status-warning)}
+  .comp__seg--none{background:var(--bg-surface-sunken)}
+  .legend{display:flex;gap:var(--space-5);flex-wrap:wrap;margin-top:var(--space-3)}
+  .legend__item{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+  .legend__dot{width:10px;height:10px;border-radius:var(--radius-sm)}
+  .legend__dot--done{background:var(--status-success)}
+  .legend__dot--started{background:var(--status-warning)}
+  .legend__dot--none{background:var(--bg-surface-sunken);border:1px solid var(--border-strong)}
+  .retake-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);margin-bottom:var(--space-6)}
+  .qprompt{display:flex;flex-direction:column;gap:2px;max-width:340px}
+  .qprompt__text{font-size:var(--text-sm);color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .diff-cell{display:flex;align-items:center;gap:var(--space-2);min-width:140px}
+  .diff-cell .num{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary)}
+  .chips{display:flex;gap:var(--space-1);flex-wrap:wrap}
+  .footer-note{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-5) var(--space-6);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+  .footer-note__txt{font-size:var(--text-sm);color:var(--text-secondary)}
+  .states-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+  .state-mini{display:flex;flex-direction:column;gap:var(--space-2)}
+  .skel-card{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+  .u-mono{font-family:var(--font-mono)}
+  .toast-stack{position:absolute;bottom:var(--space-6);right:var(--space-6);z-index:40}
+</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Icon, Button, IconButton, Avatar, Card, Section, Stat, DataTable, ProgressBar, Chip, Badge,
+  EmptyState, Skeleton, Alert, Toast, NavItem, Field, Select, TimerBar, AtRiskBadge, AnswerKeyLock,
+  Tooltip } = window.LvlupV0DesignSystem_5d0725;
+const { useState } = React;
+
+function Shell(props){
+  return (
+    <div className="appshell" style={{height:'100vh', position:'relative'}}>
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand"><div className="sidebar__brand-mark">L</div><div className="sidebar__brand-name">Lyceum</div></div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Overview</div>
+          <NavItem icon="layout-dashboard" href="/" active={props.active==='dashboard'}>Dashboard</NavItem>
+          <div className="sidebar__section-label">People</div>
+          <NavItem icon="book-open" href="/classes" active={props.active==='classes'}>Classes</NavItem>
+          <NavItem icon="users" href="/students" active={props.active==='students'}>Students</NavItem>
+          <div className="sidebar__section-label">Content</div>
+          <NavItem icon="share-2" href="/assign" active={props.active==='assign'}>Assign content</NavItem>
+          <NavItem icon="clipboard-list" href="/assignments" active={props.active==='assignments'}>Assignments</NavItem>
+          <div className="sidebar__section-label">Analytics</div>
+          <NavItem icon="bar-chart-3" href="/analytics/classes" active={props.active==='analytics-classes'}>Class analytics</NavItem>
+          <NavItem icon="file-bar-chart-2" href="/analytics/exams" active={props.active==='analytics-exams'}>Exam analytics</NavItem>
+          <NavItem icon="orbit" href="/analytics/spaces" active={props.active==='analytics-spaces'}>Space analytics</NavItem>
+          <NavItem icon="flask-conical" href="/analytics/tests" active={props.active==='analytics-tests'}>Test analytics</NavItem>
+          <NavItem icon="alert-triangle" href="/analytics/at-risk" active={props.active==='analytics-at-risk'} badge={<Badge variant="error">4</Badge>}>At-risk</NavItem>
+          <div className="sidebar__section-label">System</div>
+          <NavItem icon="file-text" href="/exams" active={props.active==='exams'}>Exams</NavItem>
+          <NavItem icon="megaphone" href="/announcements" active={props.active==='announcements'}>Announcements</NavItem>
+          <NavItem icon="bell" href="/notifications" active={props.active==='notifications'}>Notifications</NavItem>
+          <NavItem icon="settings" href="/settings" active={props.active==='settings'}>Settings</NavItem>
+        </nav>
+      </aside>
+      <header className="appshell__topbar">
+        <button className="chip" aria-haspopup="menu"><Avatar initials="SA" size="sm"/>Subhang Academy<Icon name="chevron-down" size={14}/></button>
+        <div className="topbar__search"><button className="input" style={{display:'flex',alignItems:'center',justifyContent:'space-between',color:'var(--text-muted)',textAlign:'left'}}><span>Search classes, students, exams…</span><span className="kbd">Cmd K</span></button></div>
+        <div className="topbar__spacer"></div>
+        <IconButton icon={<Icon name="bell" size={20}/>} label="Notifications"/>
+        <IconButton icon={<Icon name="sun" size={20}/>} label="Toggle theme"/>
+        <Avatar initials="TS"/>
+      </header>
+      <main className="appshell__main" id="main">{props.children}</main>
+    </div>
+  );
+}
+
+/* ---- sample server-authoritative aggregate (read-only) ---- */
+const SCORE_BUCKETS = [
+  {min:0,max:20,count:1},{min:20,max:40,count:2},{min:40,max:60,count:6},
+  {min:60,max:80,count:11},{min:80,max:100,count:8}
+];
+const TIME_BANDS = [
+  {min:0,max:25,count:2,over:false},{min:25,max:50,count:5,over:false},
+  {min:50,max:75,count:9,over:false},{min:75,max:100,count:9,over:false},
+  {min:100,max:100,count:3,over:true,label:'Hit limit'}
+];
+const QUESTIONS = [
+  {n:1, prompt:'Define amortized time complexity for a dynamic array push', attempts:28, avg:81, diff:0.81, mistakes:['Confused with worst-case']},
+  {n:2, prompt:'Trace the recurrence T(n)=2T(n/2)+n and give its Θ class', attempts:28, avg:54, diff:0.54, mistakes:['Wrong master-theorem case','Off-by-log']},
+  {n:3, prompt:'Which traversal yields sorted keys from a BST?', attempts:28, avg:93, diff:0.93, mistakes:[]},
+  {n:4, prompt:'Explain why a min-heap delete-min is O(log n)', attempts:27, avg:62, diff:0.62, mistakes:['Sift-up vs sift-down','Cited O(n)']},
+  {n:5, prompt:'Identify the invariant that breaks in this buggy sliding-window loop', attempts:26, avg:38, diff:0.38, mistakes:['Index drift','Boundary off-by-one','Missed early exit']}
+];
+const FIRST_LATEST = [
+  {attempt:'First attempt', avg:58, completion:84},
+  {attempt:'Latest attempt', avg:64, completion:90}
+];
+
+function diffTone(d){ return d >= 0.7 ? 'success' : d >= 0.5 ? 'spark' : null; }
+
+function HeroView(){
+  const maxScore = Math.max.apply(null, SCORE_BUCKETS.map(b=>b.count));
+  const maxBand = Math.max.apply(null, TIME_BANDS.map(b=>b.count));
+  return (
+    <>
+      {/* KPI strip */}
+      <div className="kpi-grid">
+        <Card>
+          <Stat label="Attempted" value="28 / 31" />
+          <div className="u-caption" style={{color:'var(--text-muted)',marginTop:4}}>31 attempts total</div>
+        </Card>
+        <Card>
+          <Stat label="Completion" value="90%" />
+          <div className="u-caption" style={{color:'var(--text-muted)',marginTop:4}}>finished vs started</div>
+        </Card>
+        <Card>
+          <Stat label="Average score" value="64%" delta="median 58%" trend="up" />
+          <div className="u-caption" style={{color:'var(--text-muted)',marginTop:4}}>across all attempts</div>
+        </Card>
+        <Card>
+          <Stat label="Median time" value="08:42 / 12:00" />
+          <div className="u-caption" style={{color:'var(--text-muted)',marginTop:4}}>used / allotted</div>
+        </Card>
+      </div>
+
+      {/* Two-column charts */}
+      <div className="two-col">
+        <Card>
+          <div className="card-head">
+            <h2 className="card-title">Score distribution</h2>
+            <p className="card-sub">How the class's scores spread on this test.</p>
+          </div>
+          <div className="hist" role="img" aria-label="Score distribution histogram. Pass mark at 50 percent. 0 to 20 percent: 1 student. 20 to 40: 2. 40 to 60: 6. 60 to 80: 11. 80 to 100: 8.">
+            <div className="passline" style={{left:'40%'}}><span className="passline__lbl">Pass 50%</span></div>
+            {SCORE_BUCKETS.map((b,i)=>(
+              <div className="hist__col" key={i} title={b.min+'–'+b.max+'% · '+b.count+' students'} aria-label={b.min+'–'+b.max+'%: '+b.count+' students'}>
+                <span className="hist__count">{b.count}</span>
+                <div className="hist__bar" style={{height:(b.count/maxScore*100)+'%'}}></div>
+              </div>
+            ))}
+          </div>
+          <div className="axis-row" aria-hidden="true">
+            {SCORE_BUCKETS.map((b,i)=>(<div className="ax" key={i}>{b.min}–{b.max}</div>))}
+          </div>
+        </Card>
+
+        <Card>
+          <div className="card-head">
+            <h2 className="card-title">Time usage</h2>
+            <p className="card-sub">How much of the allotted time students used. The test clock is enforced server-side.</p>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:'var(--space-2)',marginTop:'var(--space-2)'}}>
+            <div className="u-caption" style={{color:'var(--text-secondary)'}}>Median <span className="u-mono">08:42</span> of <span className="u-mono">12:00</span></div>
+            <TimerBar time="08:42" percent={72} />
+            <div className="u-caption" style={{color:'var(--text-secondary)',marginTop:4}}>Average <span className="u-mono">09:10</span> of <span className="u-mono">12:00</span></div>
+            <TimerBar time="09:10" percent={76} tone="warning" />
+          </div>
+          <div className="tband">
+            {TIME_BANDS.map((b,i)=>(
+              <div className="tband__row" key={i} aria-label={(b.over? b.label : b.min+'–'+b.max+'% of time used')+': '+b.count+' attempts'}>
+                <span className="tband__lbl">{b.over ? b.label : b.min+'–'+b.max+'%'}</span>
+                <div className="tband__track"><div className={'tband__fill'+(b.over?' tband__fill--over':'')} style={{width:(b.count/maxBand*100)+'%'}}></div></div>
+                <span className="tband__n">{b.count}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:'var(--space-4)'}}>
+            <Alert variant="warning" title="Ran out of time">
+              <span className="u-mono">3</span> attempts hit the time limit and were auto-submitted.
+            </Alert>
+          </div>
+        </Card>
+      </div>
+
+      {/* Question breakdown */}
+      <Card>
+        <div className="card-head">
+          <h2 className="card-title">Question breakdown</h2>
+          <p className="card-sub">Per-question performance across all attempts.</p>
+        </div>
+        <DataTable
+          columns={[
+            {label:'#', key:'n', numeric:true, render:(r)=>(<span className="u-mono">{r.n}</span>)},
+            {label:'Question', key:'prompt', sortable:true, render:(r)=>(
+              <div className="qprompt"><span className="qprompt__text">{r.prompt}</span></div>
+            )},
+            {label:'Attempts', key:'attempts', numeric:true, sortable:true, render:(r)=>(<span className="u-mono">{r.attempts}</span>)},
+            {label:'Avg %', key:'avg', numeric:true, sortable:true, render:(r)=>(<span className="u-mono">{r.avg}%</span>)},
+            {label:'Difficulty', key:'diff', sortable:true, render:(r)=>(
+              <div className="diff-cell" title={'Difficulty index '+r.diff.toFixed(2)+' — share of available marks earned on average (lower = harder).'}>
+                <ProgressBar value={Math.round(r.diff*100)} variant={diffTone(r.diff)} />
+                <span className="num u-mono">{r.diff.toFixed(2)}</span>
+              </div>
+            )},
+            {label:'Common mistakes', key:'mistakes', render:(r)=> r.mistakes.length ? (
+              <div className="chips">{r.mistakes.map((m,i)=>(<Chip key={i}>{m}</Chip>))}</div>
+            ) : (<span className="u-caption" style={{color:'var(--text-muted)'}}>—</span>)}
+          ]}
+          rows={QUESTIONS}
+        />
+        <div style={{marginTop:'var(--space-4)'}}>
+          <AnswerKeyLock title="Answer keys are hidden.">Question prompts shown above are truncated; keys stay server-side and are never sent to this console.</AnswerKeyLock>
+        </div>
+      </Card>
+
+      {/* Retakes & completion */}
+      <Card>
+        <div className="card-head">
+          <h2 className="card-title">Retakes &amp; completion</h2>
+          <p className="card-sub">Re-attempt patterns and how far the class got.</p>
+        </div>
+        <div className="retake-row">
+          <Stat label="Re-attempt rate" value="32%" />
+          <Stat label="Avg attempts / student" value="1.4" />
+          <Stat label="Avg score change on retake" value="+6%" delta="improving" trend="up" />
+        </div>
+        <div>
+          <div className="comp" role="img" aria-label="Completion: completed 22, started not finished 4, not attempted 5.">
+            <div className="comp__seg--done" style={{flex:22}}></div>
+            <div className="comp__seg--started" style={{flex:4}}></div>
+            <div className="comp__seg--none" style={{flex:5}}></div>
+          </div>
+          <div className="legend">
+            <span className="legend__item"><span className="legend__dot legend__dot--done"></span>Completed <span className="u-mono">22</span></span>
+            <span className="legend__item"><span className="legend__dot legend__dot--started"></span>Started, not finished <span className="u-mono">4</span></span>
+            <span className="legend__item"><span className="legend__dot legend__dot--none"></span>Not attempted <span className="u-mono">5</span></span>
+          </div>
+        </div>
+        <div style={{marginTop:'var(--space-6)'}}>
+          <DataTable
+            columns={[
+              {label:'Attempt', key:'attempt'},
+              {label:'Avg score', key:'avg', numeric:true, render:(r)=>(<span className="u-mono">{r.avg}%</span>)},
+              {label:'Completion', key:'completion', numeric:true, render:(r)=>(<span className="u-mono">{r.completion}%</span>)}
+            ]}
+            rows={FIRST_LATEST}
+          />
+        </div>
+      </Card>
+
+      {/* Footer */}
+      <div className="footer-note">
+        <span className="footer-note__txt">Edit this test or its time limit? Open it in Spaces.</span>
+        <a href="/spaces/ZikR8xEHkqIaIsugmdQg/edit" style={{textDecoration:'none'}}>
+          <Button variant="ghost" trailingIcon={<Icon name="arrow-up-right" size={16}/>}>Open in Spaces</Button>
+        </a>
+      </div>
+    </>
+  );
+}
+
+function StatesRail(){
+  return (
+    <Section title="States">
+      <div className="states-grid">
+        <div className="state-mini">
+          <div className="u-caption">Loading</div>
+          <div className="skel-card" role="status" aria-label="Loading test analytics">
+            <Skeleton width="50%" height="0.9rem" />
+            <Skeleton height="80px" />
+            <Skeleton width="80%" />
+            <Skeleton width="60%" />
+          </div>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Empty · no tests</div>
+          <Card>
+            <EmptyState icon="flask-conical" title="No tests for this class yet"
+              body="Timed tests and quizzes you assign inside a space appear here once students start attempting them."
+              action={<Button variant="ghost" trailingIcon={<Icon name="arrow-up-right" size={15}/>}>Open Spaces</Button>} />
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Empty · no attempts</div>
+          <Card>
+            <EmptyState icon="inbox" title="No attempts yet"
+              body="Analytics appear here once students start this test. Check assignment and timing in Spaces."
+              action={<Button variant="ghost" trailingIcon={<Icon name="arrow-up-right" size={15}/>}>Open in Spaces</Button>} />
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Error · load failed</div>
+          <Card>
+            <Alert variant="error" title="Couldn't load test analytics">
+              Something went wrong fetching this data.
+              <div style={{marginTop:'var(--space-3)'}}><Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Retry</Button></div>
+            </Alert>
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Computing (aggregation lag)</div>
+          <Card>
+            <EmptyState icon="loader" title="Results are still being computed"
+              body="We're crunching this test's attempts. This usually takes a moment — check back shortly."
+              action={<Button variant="ghost" size="sm" leadingIcon={<Icon name="refresh-cw" size={14}/>}>Refresh</Button>} />
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Untimed quiz · Time-usage card omitted</div>
+          <Card>
+            <Stat label="Median time" value="06:18" />
+            <div className="u-caption" style={{color:'var(--text-muted)',marginTop:4}}>time spent · no allotted limit</div>
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">teacher without report permission · CTA hidden</div>
+          <Card>
+            <div className="u-caption" style={{color:'var(--text-secondary)'}}>Read-only analytics remain; the Generate report button is simply not rendered.</div>
+          </Card>
+        </div>
+        <div className="state-mini">
+          <div className="u-caption">Report ready (success toast)</div>
+          <Toast variant="success" title="Report ready" body="Your class test report is ready to download." />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function App(){
+  const [classId, setClassId] = useState('cls_ds_a');
+  const [testId, setTestId] = useState('sp_recurrences');
+  const [generating, setGenerating] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  function generate(){
+    setGenerating(true);
+    setToast({variant:'info', title:'Preparing your report…', body:'Compiling class test analytics into a PDF.'});
+    setTimeout(function(){
+      setGenerating(false);
+      setToast({variant:'success', title:'Report ready', body:'Opening the signed PDF in a new tab.'});
+    }, 1600);
+  }
+
+  return (
+    <Shell active="analytics-tests">
+      <div className="page">
+        {/* Page header */}
+        <div>
+          <h1 className="page__title">Test analytics</h1>
+          <p className="page__sub">In-space timed tests &amp; quizzes — attempts, score &amp; time distribution, question difficulty, and retakes.</p>
+
+          <div className="hdr-controls">
+            <div className="picker">
+              <Field label="Class">
+                <Select value={classId} onChange={(e)=>setClassId(e.target.value)} options={[
+                  {value:'cls_ds_a', label:'DSA — Cohort A'},
+                  {value:'cls_ds_b', label:'DSA — Cohort B'},
+                  {value:'cls_sd', label:'System Design — Spring'}
+                ]} />
+              </Field>
+            </div>
+            <div className="picker">
+              <Field label="Test or quiz">
+                <Select value={testId} onChange={(e)=>setTestId(e.target.value)} options={[
+                  {value:'sp_recurrences', label:'Algorithms · Recurrences checkpoint · Timed 12:00'},
+                  {value:'sp_heaps', label:'Algorithms · Heaps & priority queues · Timed 10:00'},
+                  {value:'sp_traversal', label:'Trees · Traversal quick quiz · Untimed'}
+                ]} />
+              </Field>
+            </div>
+            <div className="spacer"></div>
+            <Button variant="spark" loading={generating} onClick={generate}
+              leadingIcon={generating ? null : <Icon name="file-down" size={16}/>}>
+              {generating ? 'Generating…' : 'Generate report'}
+            </Button>
+          </div>
+
+          <div className="meta-line">
+            <span>Algorithms &amp; Complexity</span>
+            <Icon name="chevron-right" size={14} />
+            <strong style={{color:'var(--text-primary)'}}>Recurrences checkpoint</strong>
+            <span className="sep">·</span>
+            <Chip><Icon name="timer" size={13}/>&nbsp;Timed <span className="u-mono">12:00</span></Chip>
+            <span className="sep">·</span>
+            <span className="u-mono">31</span>&nbsp;in class
+            <span className="sep">·</span>
+            <AtRiskBadge level="watch"><span className="u-mono">4</span>&nbsp;at risk</AtRiskBadge>
+            <span className="sep">·</span>
+            <span className="fresh"><Icon name="server" size={12}/>&nbsp;Computed 14 min ago</span>
+          </div>
+
+          <div className="page__disamb">
+            In-space tests &amp; quizzes — for formal exam results, see
+            <a href="/analytics/exams">Exam analytics <Icon name="arrow-right" size={14}/></a>
+          </div>
+        </div>
+
+        <HeroView />
+        <StatesRail />
+      </div>
+
+      {toast && (
+        <div className="toast-stack" role="status" aria-live="polite">
+          <Toast variant={toast.variant} title={toast.title} body={toast.body} />
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

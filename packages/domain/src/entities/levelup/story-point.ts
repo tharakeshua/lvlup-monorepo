@@ -28,11 +28,14 @@ export type StoryPointSection = z.infer<typeof StoryPointSectionSchema>;
 export const AssessmentScheduleSchema = zObject({
   opensAt: zTimestamp.nullable(),
   closesAt: zTimestamp.nullable(),
+}).refine(({ opensAt, closesAt }) => opensAt === null || closesAt === null || opensAt < closesAt, {
+  message: "closesAt must be later than opensAt",
+  path: ["closesAt"],
 });
 export type AssessmentSchedule = z.infer<typeof AssessmentScheduleSchema>;
 
 export const RetryConfigSchema = zObject({
-  cooldownMinutes: z.number().int().optional(),
+  cooldownMinutes: z.number().int().nonnegative().optional(),
   lockAfterPassing: z.boolean().optional(),
 });
 export type RetryConfig = z.infer<typeof RetryConfigSchema>;
@@ -40,16 +43,16 @@ export type RetryConfig = z.infer<typeof RetryConfigSchema>;
 export const AdaptiveConfigSchema = zObject({
   enabled: z.boolean(),
   startingDifficulty: zDifficulty.optional(),
-  stepUpThreshold: z.number().int().optional(),
-  stepDownThreshold: z.number().int().optional(),
+  stepUpThreshold: z.number().int().positive().optional(),
+  stepDownThreshold: z.number().int().positive().optional(),
 });
 export type AdaptiveConfig = z.infer<typeof AdaptiveConfigSchema>;
 
 export const AssessmentConfigSchema = zObject({
-  durationMinutes: z.number().int().optional(),
-  maxAttempts: z.number().int().optional(),
+  durationMinutes: z.number().int().positive().optional(),
+  maxAttempts: z.number().int().positive().optional(),
   shuffle: z.boolean().optional(),
-  passingPercentage: z.number().optional(),
+  passingPercentage: z.number().min(0).max(100).optional(),
   adaptiveConfig: AdaptiveConfigSchema.optional(),
   schedule: AssessmentScheduleSchema.optional(),
   retryConfig: RetryConfigSchema.optional(),
@@ -57,8 +60,8 @@ export const AssessmentConfigSchema = zObject({
 export type AssessmentConfig = z.infer<typeof AssessmentConfigSchema>;
 
 export const StoryPointStatsSchema = zObject({
-  itemCount: z.number().int().default(0),
-  completionCount: z.number().int().default(0),
+  itemCount: z.number().int().nonnegative().default(0),
+  completionCount: z.number().int().nonnegative().default(0),
 });
 export type StoryPointStats = z.infer<typeof StoryPointStatsSchema>;
 
@@ -75,7 +78,7 @@ export const StoryPointSchema = zObject({
   defaultRubric: UnifiedRubricSchema.optional(),
   defaultRubricId: zRubricPresetId.optional(),
   difficulty: zDifficulty.optional(),
-  estimatedTimeMinutes: z.number().int().optional(),
+  estimatedTimeMinutes: z.number().int().nonnegative().optional(),
   stats: StoryPointStatsSchema.optional(),
   createdAt: zTimestamp,
   updatedAt: zTimestamp,

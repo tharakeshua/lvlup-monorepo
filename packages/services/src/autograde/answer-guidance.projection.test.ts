@@ -112,16 +112,21 @@ describe("AD-11 mirror — question-side answer guidance never leaks", () => {
         },
       })
     );
-    ctx.ai.onGenerate("questionExtraction", {
+    // Pass 1 — question only (no guidance).
+    ctx.ai.onGenerate("examQuestionExtraction", {
+      json: [{ text: "State Ohm's law.", maxMarks: 5, order: 1 }],
+    });
+    // Pass 2 — the rubric carries the ⚷ guidance INSIDE the rubric object.
+    ctx.ai.onGenerate("examRubricGeneration", {
       json: [
         {
-          text: "State Ohm's law.",
-          maxMarks: 5,
           order: 1,
-          rubric: { scoringMode: "criteria_based", criteria: [] },
-          // Model emits guidance TOP-LEVEL (robustness path) — must be folded.
-          modelAnswer: "V = IR",
-          evaluationGuidance: "Partial credit for a worded statement.",
+          rubric: {
+            scoringMode: "criteria_based",
+            criteria: [{ id: "c1", name: "Statement", maxScore: 5 }],
+            modelAnswer: "V = IR",
+            evaluatorGuidance: "Partial credit for a worded statement.",
+          },
         },
       ],
     });
@@ -129,6 +134,7 @@ describe("AD-11 mirror — question-side answer guidance never leaks", () => {
     await extractQuestionsService({ examId: "exam_fold" }, ctx);
 
     const doc = (await ctx.repos.exams.get(tenantId, "exam_fold_q1"))!;
+    // ⚷ guidance NEVER as top-level doc fields — only inside the rubric.
     expect(doc["modelAnswer"]).toBeUndefined();
     expect(doc["evaluationGuidance"]).toBeUndefined();
     const rubric = doc["rubric"] as Record<string, unknown>;

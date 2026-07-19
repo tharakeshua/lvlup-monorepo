@@ -1,4 +1,4 @@
-import type { MCQData } from '@levelup/shared-types';
+import type { MCQData } from "@levelup/shared-types";
 
 interface MCQAnswererProps {
   data: MCQData;
@@ -8,26 +8,43 @@ interface MCQAnswererProps {
   showCorrect?: boolean;
 }
 
-export default function MCQAnswerer({ data, value, onChange, disabled, showCorrect }: MCQAnswererProps) {
+export default function MCQAnswerer({
+  data,
+  value,
+  onChange,
+  disabled,
+  showCorrect,
+}: MCQAnswererProps) {
   return (
-    <div className="space-y-2">
-      {data.options.map((option) => {
+    <div className="space-y-2" role="radiogroup">
+      {data.options.map((option, idx) => {
+        const letter = String.fromCharCode(65 + idx);
         const isSelected = value === option.id;
         const isCorrectOption = showCorrect && option.isCorrect;
         const isWrong = showCorrect && isSelected && !option.isCorrect;
 
+        const frame = isSelected
+          ? isWrong
+            ? "border-error bg-error/10"
+            : "border-brand bg-brand-subtle/60 shadow-e1"
+          : isCorrectOption
+            ? "border-success bg-success/10"
+            : "border-subtle hover:border-strong hover:bg-surface-sunken/60";
+
+        const badge = isSelected
+          ? isWrong
+            ? "border-transparent bg-error text-fg-on-accent"
+            : "border-transparent bg-brand text-fg-on-accent"
+          : isCorrectOption
+            ? "border-transparent bg-success text-fg-on-accent"
+            : "border-subtle bg-surface-sunken text-fg-secondary";
+
         return (
           <label
             key={option.id}
-            className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-              isSelected
-                ? isWrong
-                  ? 'border-destructive bg-destructive/10'
-                  : 'border-primary bg-primary/10'
-                : isCorrectOption
-                  ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-500/10'
-                  : 'border-input hover:bg-accent'
-            } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            className={`duration-fast ease-standard focus-within:ring-brand/40 flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-all focus-within:ring-2 ${frame} ${
+              disabled ? "cursor-not-allowed opacity-60" : ""
+            }`}
           >
             <input
               type="radio"
@@ -36,14 +53,22 @@ export default function MCQAnswerer({ data, value, onChange, disabled, showCorre
               checked={isSelected}
               onChange={() => onChange(option.id)}
               disabled={disabled}
-              className="mt-0.5"
+              className="sr-only"
             />
-            <div>
-              <span className="text-sm">{option.text}</span>
+            <span
+              aria-hidden
+              className={`duration-fast flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-semibold transition-colors ${badge}`}
+            >
+              {letter}
+            </span>
+            <span className="min-w-0 pt-0.5">
+              <span className="text-fg text-sm leading-relaxed">{option.text}</span>
               {showCorrect && isSelected && option.explanation && (
-                <p className="mt-1 text-xs text-muted-foreground">{option.explanation}</p>
+                <span className="text-fg-secondary mt-1 block text-xs leading-relaxed">
+                  {option.explanation}
+                </span>
               )}
-            </div>
+            </span>
           </label>
         );
       })}

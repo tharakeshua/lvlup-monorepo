@@ -13,6 +13,7 @@ import {
   TEACHER_PERMISSION_KEYS,
 } from "@levelup/domain";
 import type {
+  ChatAgentQuestionSeedConfig,
   AchievementConfig,
   CostSummaryConfig,
   MaterialItemConfig,
@@ -51,6 +52,7 @@ export const QUESTION_TYPE_MAP: Record<QuestionType, string> = {
   audio_response: "audio",
   file_upload: "image_evaluation",
   oral: "audio",
+  chat_agent_question: "chat_agent_question",
 };
 
 export const canonicalQuestionType = (qt: QuestionType): string => QUESTION_TYPE_MAP[qt] ?? "text";
@@ -79,17 +81,50 @@ function matchingPairs(
  * the canonical discriminated union; answers stay in the server-only answerKeys subcollection.
  * (matching/jumbled carry their pair/token surface by design — the canonical payload does.)
  */
-export function buildItemQuestionData(q: QuestionItemConfig): Record<string, unknown> {
+export function buildItemQuestionData(
+  q: QuestionItemConfig | ChatAgentQuestionSeedConfig,
+  resolved: { interviewerAgentId?: string } = {}
+): Record<string, unknown> {
   const questionType = canonicalQuestionType(q.questionType);
-  const options = (q.options ?? []).map((o) => ({ id: o.id, text: o.text }));
+  if (questionType === "chat_agent_question") {
+    const assessment = q as ChatAgentQuestionSeedConfig;
+    const interviewerAgentId = resolved.interviewerAgentId;
+    if (!interviewerAgentId) {
+      throw new Error("chat_agent_question requires a resolved interviewerAgentId");
+    }
+    return {
+      questionType,
+      scenario: assessment.scenario,
+      publicLearningObjectives: assessment.publicLearningObjectives.map((objective) => ({
+        id: objective.key,
+        label: objective.label,
+      })),
+      ...(assessment.conversationStarters?.length
+        ? { conversationStarters: [...assessment.conversationStarters] }
+        : {}),
+      interviewerAgentId,
+      completionPolicy: {
+        minLearnerTurns: assessment.completionPolicy.minLearnerTurns,
+        maxLearnerTurns: assessment.completionPolicy.maxLearnerTurns,
+        allowEarlyFinish: assessment.completionPolicy.allowEarlyFinish,
+        hardLimitAction: "auto_finalize",
+      },
+    };
+  }
+  const standard = q as QuestionItemConfig;
+  const options = (standard.options ?? []).map((o) => ({ id: o.id, text: o.text }));
   switch (questionType) {
     case "mcq":
     case "mcaq":
       return { questionType, options };
     case "fill-blanks":
-      return { questionType, template: q.prompt, blanks: blankIds(q).map((id) => ({ id })) };
+      return {
+        questionType,
+        template: standard.prompt,
+        blanks: blankIds(standard).map((id) => ({ id })),
+      };
     case "matching":
-      return { questionType, pairs: matchingPairs(q) };
+      return { questionType, pairs: matchingPairs(standard) };
     case "jumbled":
       return { questionType, tokens: options.map((o) => o.text) };
     default:
@@ -97,6 +132,25 @@ export function buildItemQuestionData(q: QuestionItemConfig): Record<string, unk
       // every non-discriminator field is optional and answer-bearing — omit them all.
       return { questionType };
   }
+}
+
+/** Private assessment key: kept structurally separate from the public item payload. */
+export function buildChatAgentAnswerKey(q: ChatAgentQuestionSeedConfig): Record<string, unknown> {
+  return {
+    questionType: "chat_agent_question",
+    ...(q.answer.modelAnswer !== undefined ? { modelAnswer: q.answer.modelAnswer } : {}),
+    ...(q.answer.evaluationGuidance !== undefined
+      ? { evaluationGuidance: q.answer.evaluationGuidance }
+      : {}),
+    privateEvaluationObjectives: q.answer.privateEvaluationObjectives.map((objective) => ({
+      id: objective.key,
+      rubricDimensionId: objective.rubricDimensionKey,
+      description: objective.description,
+      ...(objective.evidenceRequirement !== undefined
+        ? { evidenceRequirement: objective.evidenceRequirement }
+        : {}),
+    })),
+  };
 }
 
 /** Authoring-side questionData for a QuestionBankItem — answers embedded in-line. */

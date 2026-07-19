@@ -61,6 +61,7 @@ export {
 } from "./adapters/runtime.js";
 export { createAdminStorageSigner } from "./adapters/storage.js";
 export { createRtdbGradingProjections } from "./adapters/grading-projections-rtdb.js";
+export { createRtdbExtractionProjections } from "./adapters/extraction-projections-rtdb.js";
 export { createRtdbLevelupProjections } from "./adapters/levelup-projections-rtdb.js";
 
 // ---- request / error model ----

@@ -505,21 +505,26 @@ export function MetricCard({
     <Wrap
       onPress={onPress}
       className={cx(
-        "rounded-lg border p-3.5",
+        "min-h-[132px] overflow-hidden rounded-xl border p-4 shadow-sm",
         t.border,
         t.bg,
         onPress && "active:opacity-90",
         className
       )}
     >
-      <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-between gap-2">
         <Text numberOfLines={1} className={cx("font-ui flex-1 text-xs font-medium", t.label)}>
           {label}
         </Text>
-        {renderIcon(icon, { size: 16, color: colors.textMuted })}
+        <View className="bg-surface/80 h-8 w-8 items-center justify-center rounded-lg">
+          {renderIcon(icon, {
+            size: 16,
+            color: tone === "neutral" ? colors.brand : colors.textMuted,
+          })}
+        </View>
       </View>
-      <View className="mt-1.5 flex-row items-end justify-between">
-        <Text className="font-display text-text-primary text-2xl font-bold">{value ?? "—"}</Text>
+      <View className="mt-2 flex-row items-end justify-between">
+        <Text className="font-display text-text-primary text-2xl">{value ?? "—"}</Text>
         {visual != null && <View className="ml-2">{visual}</View>}
       </View>
       {(caption != null || delta != null) && (

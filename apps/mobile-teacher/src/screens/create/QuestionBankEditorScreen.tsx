@@ -14,6 +14,7 @@ import {
   initialQuestionPayload,
   useSaveQuestionBankItem,
   validateQuestionPayload,
+  type QuestionType,
 } from "@levelup/query";
 
 import { Button, Card, Divider, Icon, Screen, TextField } from "../../components";
@@ -56,6 +57,10 @@ const QT_ICONS: Record<string, string> = {
   chat_agent_question: "bot",
 };
 
+const MOBILE_AUTHORABLE_QUESTION_TYPES = QUESTION_TYPES.filter(
+  (questionType) => questionType !== "chat_agent_question"
+);
+
 type Difficulty = "easy" | "medium" | "hard";
 
 const DIFFICULTY_OPTIONS: { label: string; value: Difficulty }[] = [
@@ -64,12 +69,12 @@ const DIFFICULTY_OPTIONS: { label: string; value: Difficulty }[] = [
   { label: "Hard", value: "hard" },
 ];
 
-function TypePicker({ onSelect }: { onSelect: (qt: string) => void }) {
+function TypePicker({ onSelect }: { onSelect: (qt: QuestionType) => void }) {
   return (
     <Screen contentClassName="gap-3">
       <Text className="font-display text-text-primary text-xl font-bold">Choose question type</Text>
       <Text className="text-text-muted text-sm">Select the type to add to the bank.</Text>
-      {QUESTION_TYPES.map((qt) => (
+      {MOBILE_AUTHORABLE_QUESTION_TYPES.map((qt) => (
         <Pressable
           key={qt}
           onPress={() => onSelect(qt)}
@@ -86,6 +91,13 @@ function TypePicker({ onSelect }: { onSelect: (qt: string) => void }) {
           <Icon name="chevron-right" size={16} color={colors.textMuted} />
         </Pressable>
       ))}
+      <Card className="gap-1 border-amber-300 bg-amber-50">
+        <Text className="text-text-primary text-sm font-semibold">Chat-agent assessments</Text>
+        <Text className="text-text-secondary text-xs">
+          Author these in Teacher Web; mobile question-bank editing deliberately does not save a
+          partial public/private assessment schema.
+        </Text>
+      </Card>
     </Screen>
   );
 }
@@ -98,7 +110,7 @@ export default function QuestionBankEditorScreen() {
     (typeof params.itemId === "string" && params.itemId ? params.itemId : null) ??
     undefined;
 
-  const [questionType, setQuestionType] = useState<string | null>(null);
+  const [questionType, setQuestionType] = useState<QuestionType | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [subject, setSubject] = useState("");
@@ -112,6 +124,15 @@ export default function QuestionBankEditorScreen() {
 
   async function handleSave() {
     if (!questionType) return;
+    if (questionType === "chat_agent_question") {
+      setSaveErrors([
+        {
+          field: "_",
+          message: "Chat-agent assessments are read-only on mobile. Open Teacher Web to edit them.",
+        },
+      ]);
+      return;
+    }
     if (!title.trim()) {
       setSaveErrors([{ field: "title", message: "Title is required." }]);
       return;
@@ -166,11 +187,12 @@ export default function QuestionBankEditorScreen() {
   }
 
   const typeLabel = QT_LABELS[questionType] ?? questionType;
+  const isChatAssessment = questionType === "chat_agent_question";
   const globalError = saveErrors.find((e) => e.field === "_");
   const titleError = saveErrors.find((e) => e.field === "title");
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="bg-canvas flex-1">
       <View className="bg-surface border-border-subtle flex-row items-center gap-3 border-b px-4 py-3">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="arrow-left" size={22} color={colors.textPrimary} />
@@ -185,9 +207,10 @@ export default function QuestionBankEditorScreen() {
           variant="primary"
           size="sm"
           loading={save.isPending}
+          disabled={isChatAssessment}
           onPress={() => void handleSave()}
         >
-          Save
+          {isChatAssessment ? "Web only" : "Save"}
         </Button>
       </View>
 
@@ -203,85 +226,97 @@ export default function QuestionBankEditorScreen() {
           </View>
         )}
 
-        <TextField
-          label="Title"
-          required
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Enter question title"
-          error={titleError?.message}
-        />
+        {isChatAssessment ? (
+          <Card className="gap-2 border-amber-300 bg-amber-50">
+            <Text className="text-text-primary font-semibold">Read-only chat-agent assessment</Text>
+            <Text className="text-text-secondary text-sm">
+              Question-bank mobile editing cannot preserve a chat assessment’s private answer key.
+              Use Teacher Web instead; this screen will not save changes.
+            </Text>
+          </Card>
+        ) : (
+          <>
+            <TextField
+              label="Title"
+              required
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Enter question title"
+              error={titleError?.message}
+            />
 
-        <TextField
-          label="Prompt / Content (optional)"
-          value={content}
-          onChangeText={setContent}
-          placeholder="Additional question text or context"
-          multiline
-        />
+            <TextField
+              label="Prompt / Content (optional)"
+              value={content}
+              onChangeText={setContent}
+              placeholder="Additional question text or context"
+              multiline
+            />
 
-        <TextField
-          label="Subject (optional)"
-          value={subject}
-          onChangeText={setSubject}
-          placeholder="e.g. Mathematics, Biology"
-        />
+            <TextField
+              label="Subject (optional)"
+              value={subject}
+              onChangeText={setSubject}
+              placeholder="e.g. Mathematics, Biology"
+            />
 
-        <View className="gap-1.5">
-          <Text className="font-ui text-text-secondary text-sm font-semibold">Difficulty</Text>
-          <View className="flex-row gap-2">
-            {DIFFICULTY_OPTIONS.map((opt) => {
-              const active = difficulty === opt.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setDifficulty(opt.value)}
-                  className="flex-1 items-center rounded-lg border py-2"
-                  style={{
-                    borderColor: active ? colors.brand : colors.textMuted,
-                    backgroundColor: active ? `${colors.brand}12` : "transparent",
-                  }}
-                >
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: active ? colors.brand : colors.textSecondary }}
-                  >
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+            <View className="gap-1.5">
+              <Text className="font-ui text-text-secondary text-sm font-semibold">Difficulty</Text>
+              <View className="flex-row gap-2">
+                {DIFFICULTY_OPTIONS.map((opt) => {
+                  const active = difficulty === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setDifficulty(opt.value)}
+                      className="flex-1 items-center rounded-lg border py-2"
+                      style={{
+                        borderColor: active ? colors.brand : colors.textMuted,
+                        backgroundColor: active ? `${colors.brand}12` : "transparent",
+                      }}
+                    >
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: active ? colors.brand : colors.textSecondary }}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
-        <TextField
-          label="Base points"
-          value={basePoints}
-          onChangeText={setBasePoints}
-          keyboardType="numeric"
-          placeholder="1"
-        />
+            <TextField
+              label="Base points"
+              value={basePoints}
+              onChangeText={setBasePoints}
+              keyboardType="numeric"
+              placeholder="1"
+            />
 
-        <TextField
-          label="Explanation (optional)"
-          value={explanation}
-          onChangeText={setExplanation}
-          placeholder="Explanation shown after answering"
-          multiline
-        />
+            <TextField
+              label="Explanation (optional)"
+              value={explanation}
+              onChangeText={setExplanation}
+              placeholder="Explanation shown after answering"
+              multiline
+            />
 
-        <Divider />
+            <Divider />
 
-        <View className="gap-3">
-          <Text className="font-display text-text-primary text-base font-semibold">
-            {typeLabel} settings
-          </Text>
-          <QuestionPayloadEditor
-            questionType={questionType}
-            payload={payload}
-            onChange={setPayload}
-          />
-        </View>
+            <View className="gap-3">
+              <Text className="font-display text-text-primary text-base font-semibold">
+                {typeLabel} settings
+              </Text>
+              <QuestionPayloadEditor
+                questionType={questionType}
+                payload={payload}
+                onChange={setPayload}
+              />
+            </View>
+          </>
+        )}
 
         {saveErrors.filter((e) => e.field !== "_" && e.field !== "title").length > 0 && (
           <Card className="gap-1 border-red-200 bg-red-50">
@@ -296,8 +331,14 @@ export default function QuestionBankEditorScreen() {
           </Card>
         )}
 
-        <Button variant="primary" block loading={save.isPending} onPress={() => void handleSave()}>
-          {isEditing ? "Save changes" : "Add to bank"}
+        <Button
+          variant="primary"
+          block
+          loading={save.isPending}
+          disabled={isChatAssessment}
+          onPress={() => void handleSave()}
+        >
+          {isChatAssessment ? "Edit in Teacher Web" : isEditing ? "Save changes" : "Add to bank"}
         </Button>
       </ScrollView>
     </View>

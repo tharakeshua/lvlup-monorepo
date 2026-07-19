@@ -1,0 +1,953 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Rubric Presets Library" subtitle="Reusable rubrics · apply = clone" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local LAYOUT-ONLY rules — Lyceum vars only, NO raw hex, NO :root redefinition */
+html,body{margin:0}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:820px;overflow:hidden;position:relative;display:flex}
+
+/* prototype state switcher (chrome, not part of screen) */
+.proto-bar{position:absolute;top:var(--space-2);right:var(--space-3);z-index:60;display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:var(--space-1) var(--space-2);box-shadow:var(--shadow-e2)}
+.proto-bar__lab{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;padding-left:var(--space-1)}
+.proto-seg{display:flex;gap:2px}
+.proto-seg button{border:none;background:none;border-radius:var(--radius-pill);padding:4px 10px;font-size:var(--text-2xs);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;font-family:var(--font-ui)}
+.proto-seg button[aria-pressed="true"]{background:var(--brand-primary);color:var(--text-on-accent)}
+
+/* ---- topbar bits ---- */
+.tb-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:var(--bg-surface)}
+.tb-tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tb-search{flex:1;max-width:420px;position:relative;display:flex;align-items:center}
+.tb-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tb-search .input{padding-left:var(--space-8);width:100%}
+.tb-kbd{position:absolute;right:var(--space-2);display:flex;gap:2px}
+.tb-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--text-secondary);border:none;background:none;cursor:pointer}
+.tb-icon:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+
+/* ---- main column ---- */
+.rp-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.rp-crumb{padding:var(--space-3) var(--space-6) 0}
+
+.rp-scroll{flex:1;overflow-y:auto}
+.rp-col{max-width:1200px;margin:0 auto;padding:var(--space-4) var(--space-6) var(--space-12);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* ---- page head ---- */
+.page-head{display:flex;align-items:flex-end;gap:var(--space-4);flex-wrap:wrap}
+.page-head h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);color:var(--text-primary);margin:0;letter-spacing:var(--tracking-display)}
+.page-sub{font-size:var(--text-sm);line-height:var(--leading-sm);color:var(--text-secondary);margin-top:var(--space-1);max-width:560px}
+.head-actions{margin-left:auto;display:flex;align-items:center;gap:var(--space-3)}
+.rp-headsearch{position:relative;display:flex;align-items:center;width:220px}
+.rp-headsearch svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.rp-headsearch .input{padding-left:var(--space-8);width:100%}
+.rp-cat{width:170px}
+
+/* ---- result count line ---- */
+.rp-count{font-size:var(--text-xs);color:var(--text-muted);font-family:var(--font-ui)}
+.rp-count b{font-family:var(--font-mono);color:var(--text-secondary);font-weight:var(--weight-medium)}
+
+/* ---- table panel ---- */
+.rp-panel{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e1);overflow:visible}
+table.rpt{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+table.rpt thead th{text-align:left;padding:var(--space-3) var(--space-4);font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-sunken);white-space:nowrap}
+table.rpt thead th.num{text-align:right}
+.th-sort{display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font:inherit;color:inherit;padding:0}
+.th-sort:hover{color:var(--text-primary)}
+.th-sort svg{opacity:.5}
+.th-sort.on svg{opacity:1;color:var(--brand-primary)}
+table.rpt tbody td{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+table.rpt tbody tr:last-child td{border-bottom:none}
+table.rpt tbody tr{transition:background var(--dur-fast) var(--ease-standard)}
+table.rpt tbody tr:hover{background:var(--bg-surface-sunken)}
+table.rpt tbody tr.flash{animation:rowflash var(--dur-base) var(--ease-standard)}
+@keyframes rowflash{from{background:var(--spark-subtle)}to{background:transparent}}
+.cell-name{display:flex;align-items:center;gap:var(--space-2)}
+.cell-name__icon{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);flex:none}
+.cell-name__t{font-weight:var(--weight-semibold);color:var(--text-primary)}
+.cell-name__sub{font-size:var(--text-2xs);color:var(--text-muted);font-family:var(--font-mono);margin-top:1px}
+.cell-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--text-secondary)}
+.cell-usage{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;font-weight:var(--weight-semibold);color:var(--text-primary)}
+.cell-updated{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
+.cell-actions{text-align:right;position:relative;width:48px}
+
+/* scoring-mode badge (ScoringModeBadge wrapper over Badge) */
+.smode{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);border:1px solid var(--border-subtle);white-space:nowrap}
+.smode--criteria{background:var(--brand-subtle);color:var(--brand-primary);border-color:var(--brand-muted)}
+.smode--dimension{background:var(--status-info-subtle);color:var(--status-info);border-color:var(--status-info)}
+.smode--holistic{background:var(--bg-surface-sunken);color:var(--text-secondary);border-color:var(--border-subtle)}
+.smode--hybrid{background:var(--spark-subtle);color:var(--spark-hover);border-color:var(--spark)}
+
+/* category chip */
+.cat-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-medium);background:var(--bg-surface-sunken);color:var(--text-secondary);border:1px solid var(--border-subtle)}
+
+/* system-default lock chip (AnswerKeyLock-style) */
+.sys-lock{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-2xs);font-weight:var(--weight-semibold);background:var(--bg-inset);color:var(--text-muted);border:1px dashed var(--border-strong)}
+
+/* usage skeleton chip (partial state) */
+.usage-skel{display:inline-block;height:14px;width:34px;border-radius:var(--radius-sm);background:linear-gradient(90deg,var(--bg-surface-sunken),var(--bg-inset),var(--bg-surface-sunken));margin-left:auto}
+
+/* row overflow menu */
+.menu{position:absolute;right:var(--space-3);top:calc(100% - 8px);z-index:40;min-width:208px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-1);display:flex;flex-direction:column}
+.menu__item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:none;background:none;font:inherit;font-size:var(--text-sm);color:var(--text-primary);text-align:left;border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
+.menu__item:hover{background:var(--bg-surface-sunken)}
+.menu__item:disabled{color:var(--text-muted);cursor:not-allowed}
+.menu__item--danger{color:var(--status-error)}
+.menu__item--danger:hover{background:var(--status-error-subtle)}
+.menu__sep{height:1px;background:var(--border-subtle);margin:var(--space-1) var(--space-2)}
+.menu__reason{font-size:var(--text-2xs);color:var(--text-muted);padding:var(--space-1) var(--space-3) var(--space-2);line-height:var(--leading-2xs)}
+
+/* skeleton rows */
+.sk{display:inline-block;border-radius:var(--radius-sm);background:linear-gradient(90deg,var(--bg-surface-sunken),var(--bg-inset),var(--bg-surface-sunken));height:14px}
+@media (prefers-reduced-motion: reduce){.sk,.usage-skel{background:var(--bg-surface-sunken)}}
+
+/* empty state extras */
+.sys-list{margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);max-width:520px;text-align:left}
+.sys-list__lab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.sys-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface)}
+.sys-row__name{font-weight:var(--weight-medium);font-size:var(--text-sm);flex:1}
+
+/* drawer (create/edit sheet) */
+.scrim{position:absolute;inset:0;background:rgba(20,18,28,.42);z-index:50;animation:fade var(--dur-base) var(--ease-standard)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{position:absolute;top:0;right:0;bottom:0;width:560px;max-width:92%;background:var(--bg-surface);z-index:51;display:flex;flex-direction:column;box-shadow:var(--shadow-e3);animation:slidein var(--dur-slow) var(--ease-entrance)}
+@keyframes slidein{from{transform:translateX(24px);opacity:.6}to{transform:translateX(0);opacity:1}}
+@media (prefers-reduced-motion: reduce){.scrim,.sheet{animation:none}}
+.sheet__head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.sheet__title{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl);font-weight:var(--weight-semibold);margin:0}
+.sheet__sub{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+.sheet__x{margin-left:auto}
+.sheet__body{flex:1;overflow-y:auto;padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5);position:relative}
+.sheet__foot{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-top:1px solid var(--border-subtle);background:var(--bg-surface)}
+.sheet__foot .spacer{flex:1}
+
+/* fields */
+.fld{display:flex;flex-direction:column;gap:var(--space-2)}
+.fld__lab{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.fld__opt{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-xs)}
+.fld__help{font-size:var(--text-xs);color:var(--text-muted);line-height:var(--leading-xs)}
+.fld__err{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--status-error);font-weight:var(--weight-medium)}
+.req{color:var(--status-error)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+
+/* mode-switcher segmented */
+.modeseg{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2)}
+.modeopt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:var(--space-2) var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface);cursor:pointer;text-align:left;font:inherit;transition:border-color var(--dur-fast) var(--ease-standard),background var(--dur-fast) var(--ease-standard)}
+.modeopt:hover{border-color:var(--border-strong)}
+.modeopt[aria-pressed="true"]{border-color:var(--brand-primary);background:var(--brand-subtle)}
+.modeopt__t{display:flex;align-items:center;gap:5px;font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary)}
+
+/* criteria editor rows */
+.critgrp{display:flex;flex-direction:column;gap:var(--space-2);animation:cf var(--dur-fast) var(--ease-standard)}
+@keyframes cf{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.critgrp{animation:none}}
+.crit{display:grid;grid-template-columns:1fr 84px 36px;gap:var(--space-2);align-items:center;padding:var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken)}
+.crit .input{font-size:var(--text-sm)}
+.crit__max{font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.crit__del{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--radius-md);border:none;background:none;color:var(--text-muted);cursor:pointer}
+.crit__del:hover{background:var(--status-error-subtle);color:var(--status-error)}
+.crit__total{display:flex;justify-content:flex-end;font-size:var(--text-xs);color:var(--text-secondary);font-family:var(--font-mono)}
+
+/* questionTypes chips */
+.qt-wrap{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.qt{padding:4px 12px;border-radius:var(--radius-pill);border:1px solid var(--border-subtle);background:var(--bg-surface);font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--text-secondary);cursor:pointer;font-family:var(--font-ui)}
+.qt[aria-pressed="true"]{background:var(--brand-subtle);color:var(--brand-primary);border-color:var(--brand-primary)}
+
+/* autosave pill */
+.savepill{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium)}
+.savepill.saved{color:var(--status-success)}
+.savepill.saving{color:var(--text-secondary)}
+.savepill.dirty{color:var(--spark-hover)}
+.savepill.failed{color:var(--status-error)}
+
+/* confirm dialog */
+.cd-scrim{position:absolute;inset:0;background:rgba(20,18,28,.42);z-index:55;display:grid;place-items:center;animation:fade var(--dur-base) var(--ease-standard)}
+.cd{width:440px;max-width:90%;background:var(--bg-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)}
+.cd__icon{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-md);background:var(--status-error-subtle);color:var(--status-error)}
+.cd__title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);margin:0}
+.cd__body{font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--leading-sm)}
+.cd__foot{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2)}
+
+/* toast */
+.toaststack{position:absolute;bottom:var(--space-5);left:50%;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:var(--space-2);align-items:center}
+.tt{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bg-surface);border:1px solid var(--border-subtle);box-shadow:var(--shadow-e3);font-size:var(--text-sm);min-width:300px;animation:ttin var(--dur-base) var(--ease-entrance)}
+@keyframes ttin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.tt__icon{display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-pill);flex:none}
+.tt.ok .tt__icon{background:var(--status-success-subtle);color:var(--status-success)}
+.tt.err .tt__icon{background:var(--status-error-subtle);color:var(--status-error)}
+.tt__body{flex:1}
+.tt__undo{border:none;background:none;color:var(--brand-primary);font-weight:var(--weight-semibold);cursor:pointer;font:inherit;font-size:var(--text-sm)}
+
+/* error state */
+.errwrap{padding:var(--space-6);display:flex;justify-content:center}
+
+/* apply banner inside sheet preview tab (domain note) */
+.note{display:flex;gap:var(--space-2);padding:var(--space-3);border-radius:var(--radius-md);background:var(--status-info-subtle);border:1px solid var(--status-info);font-size:var(--text-xs);color:var(--text-secondary);line-height:var(--leading-xs)}
+.note svg{color:var(--status-info);flex:none;margin-top:1px}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+const { Button, IconButton, Icon, Input, Textarea, Select, Breadcrumb, Avatar, Kbd, EmptyState, Tabs, RubricBreakdown, AnswerKeyLock, Field } = window.LvlupV0DesignSystem_5d0725;
+
+/* ---------- scoring-mode metadata (ScoringModeBadge enum→label map) ---------- */
+const MODE = {
+  criteria_based:  { cls:"smode--criteria",  icon:"list-checks",   label:"Criteria"  },
+  dimension_based: { cls:"smode--dimension", icon:"grid-2x2",      label:"Dimension" },
+  holistic:        { cls:"smode--holistic",  icon:"scan-text",     label:"Holistic"  },
+  hybrid:          { cls:"smode--hybrid",    icon:"layers",        label:"Hybrid"    },
+};
+function ScoringModeBadge({mode}){
+  const m = MODE[mode] || MODE.criteria_based;
+  return <span className={"smode "+m.cls}><Icon name={m.icon} size={13} />{m.label}</span>;
+}
+
+const CATEGORIES = [
+  {value:"all",label:"All categories"},
+  {value:"essay",label:"Essay / Writing"},
+  {value:"coding",label:"Coding"},
+  {value:"general",label:"General"},
+  {value:"oral",label:"Oral / Viva"},
+];
+const CAT_LABEL = {essay:"Essay / Writing", coding:"Coding", general:"General", oral:"Oral / Viva"};
+
+const QTYPES = ["short_answer","essay","code","oral","file_upload","math_proof"];
+
+/* ---------- seed presets ---------- */
+const SEED = [
+  { id:"rp_essay_ielts", name:"Essay — IELTS Band", code:"rp_8f3a", mode:"dimension_based",
+    count:6, countKind:"dim", category:"essay", usage:14, updated:"Jun 12, 2026",
+    isDefault:false, owned:true, author:"You",
+    rubric:[{label:"Task achievement",desc:"Addresses the prompt fully",score:8,max:9},
+            {label:"Coherence & cohesion",desc:"Logical flow, paragraphing",score:7,max:9},
+            {label:"Lexical resource",desc:"Vocabulary range & precision",score:7,max:9},
+            {label:"Grammatical range",desc:"Sentence variety & accuracy",score:8,max:9}] },
+  { id:"rp_code_review", name:"Code Review — Backend", code:"rp_2c1d", mode:"criteria_based",
+    count:4, countKind:"crit", category:"coding", usage:8,  updated:"Jun 09, 2026",
+    isDefault:false, owned:true, author:"You",
+    rubric:[{label:"Correctness",desc:"Passes functional spec & edge cases",score:9,max:10},
+            {label:"Readability",desc:"Naming, structure, comments",score:7,max:10},
+            {label:"Efficiency",desc:"Time / space complexity",score:8,max:10},
+            {label:"Tests",desc:"Coverage of critical paths",score:6,max:10}] },
+  { id:"rp_oral_viva", name:"Oral Defense — Viva", code:"rp_9b77", mode:"hybrid",
+    count:5, countKind:"crit", category:"oral", usage:3, updated:"Jun 02, 2026",
+    isDefault:false, owned:false, author:"R. Mehta",
+    rubric:[{label:"Subject depth",desc:"Command of core concepts",score:8,max:10},
+            {label:"Clarity",desc:"Explains under pressure",score:7,max:10}] },
+  { id:"rp_sys_holistic", name:"System Design — Overall", code:"rp_4e90", mode:"holistic",
+    count:0, countKind:"holistic", category:"general", usage:5, updatedAgg:true, updated:"May 28, 2026",
+    isDefault:false, owned:false, author:"A. Iyer",
+    rubric:[] },
+  { id:"rp_sys_default", name:"Default Holistic", code:"sys_holistic", mode:"holistic",
+    count:0, countKind:"holistic", category:"general", usage:null, updated:"Platform-seeded",
+    isDefault:true, owned:false, author:"System",
+    rubric:[] },
+  { id:"rp_balanced_default", name:"Balanced Criteria (4)", code:"sys_criteria", mode:"criteria_based",
+    count:4, countKind:"crit", category:"general", usage:null, updated:"Platform-seeded",
+    isDefault:true, owned:false, author:"System",
+    rubric:[{label:"Accuracy",desc:"",score:0,max:25},{label:"Depth",desc:"",score:0,max:25},
+            {label:"Clarity",desc:"",score:0,max:25},{label:"Presentation",desc:"",score:0,max:25}] },
+];
+
+/* ================= chrome ================= */
+function SidebarNav(){
+  const items = [
+    { icon:"layout-dashboard", label:"Dashboard" },
+    { icon:"graduation-cap",   label:"Spaces" },
+    { icon:"users",            label:"Students" },
+    { icon:"file-check-2",     label:"Exams" },
+    { icon:"library",          label:"Question Bank", group:"Library" },
+    { icon:"clipboard-list",   label:"Rubric Presets", active:true, group:"Library" },
+    { icon:"bar-chart-3",      label:"Analytics" },
+    { icon:"settings",         label:"Settings" },
+  ];
+  return (
+    <aside className="appshell__sidebar">
+      <div className="sidebar__brand">
+        <div className="sidebar__brand-mark">L</div>
+        <div className="sidebar__brand-name">LevelUp</div>
+      </div>
+      <nav className="sidebar__nav" aria-label="Primary">
+        <div className="sidebar__section-label">Teach</div>
+        {items.filter(i=>!i.group).slice(0,4).map((it,i)=>(
+          <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+            <Icon name={it.icon} size={18} /><span>{it.label}</span>
+          </a>
+        ))}
+        <div className="sidebar__section-label">Library</div>
+        {items.filter(i=>i.group==="Library").map((it,i)=>(
+          <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+            <Icon name={it.icon} size={18} /><span>{it.label}</span>
+          </a>
+        ))}
+        <div className="sidebar__section-label">Insights</div>
+        {items.filter(i=>!i.group).slice(4).map((it,i)=>(
+          <a key={i} className="nav-item" href="#"><Icon name={it.icon} size={18} /><span>{it.label}</span></a>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+function Topbar(){
+  return (
+    <header className="appshell__topbar">
+      <div className="tb-tenant">
+        <Avatar initials="SA" size="sm" />
+        <div>Subhang Academy</div>
+        <span className="tb-tenant__code">SUB001</span>
+        <Icon name="chevron-down" size={14} />
+      </div>
+      <div className="tb-search">
+        <Icon name="search" size={16} />
+        <input className="input" placeholder="Search students, exams, spaces…" aria-label="Global search" />
+        <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+      </div>
+      <div className="topbar__spacer" />
+      <button className="tb-icon" aria-label="Notifications"><Icon name="bell" size={18} /></button>
+      <Avatar initials="TS" size="sm" />
+    </header>
+  );
+}
+
+/* ================= row overflow menu ================= */
+function RowMenu({ p, role, onAction, onClose }){
+  const ref = useRef(null);
+  useEffect(()=>{
+    const onDoc=(e)=>{ if(ref.current && !ref.current.contains(e.target)) onClose(); };
+    const onKey=(e)=>{ if(e.key==="Escape") onClose(); };
+    document.addEventListener("mousedown",onDoc); document.addEventListener("keydown",onKey);
+    return ()=>{ document.removeEventListener("mousedown",onDoc); document.removeEventListener("keydown",onKey); };
+  },[onClose]);
+  const canDelete = !p.isDefault && (p.owned || role==="tenantAdmin");
+  return (
+    <div className="menu" role="menu" ref={ref} aria-label={"Actions for "+p.name}>
+      <button role="menuitem" className="menu__item" onClick={()=>{onClose();onAction("preview",p);}}>
+        <Icon name="eye" size={15} /> Preview rubric
+      </button>
+      <button role="menuitem" className="menu__item" onClick={()=>{onClose();onAction("apply",p);}}>
+        <Icon name="copy-plus" size={15} /> Apply (clone)…
+      </button>
+      <div className="menu__sep" />
+      {p.isDefault ? (
+        <button role="menuitem" className="menu__item" onClick={()=>{onClose();onAction("duplicate",p);}}>
+          <Icon name="copy" size={15} /> Duplicate to tenant
+        </button>
+      ) : (
+        <button role="menuitem" className="menu__item" disabled={!p.owned && role!=="tenantAdmin"}
+          onClick={()=>{ if(p.owned||role==="tenantAdmin"){onClose();onAction("edit",p);} }}>
+          <Icon name="pencil" size={15} /> Edit
+        </button>
+      )}
+      <button role="menuitem" className="menu__item" onClick={()=>{onClose();onAction("duplicate",p);}}>
+        <Icon name="copy" size={15} /> Duplicate
+      </button>
+      <div className="menu__sep" />
+      <button role="menuitem" className="menu__item menu__item--danger" disabled={!canDelete}
+        onClick={()=>{ if(canDelete){onClose();onAction("delete",p);} }}>
+        <Icon name="trash-2" size={15} /> Delete
+      </button>
+      {p.isDefault && <div className="menu__reason">System defaults are platform-seeded and read-only here.</div>}
+      {!p.isDefault && !p.owned && role!=="tenantAdmin" &&
+        <div className="menu__reason">Only the author ({p.author}) or an admin can edit or delete.</div>}
+    </div>
+  );
+}
+
+/* ================= count cell text ================= */
+function countText(p){
+  if(p.countKind==="holistic") return "—";
+  return p.count + " " + (p.countKind==="dim" ? "dim" : "crit");
+}
+
+/* ================= create/edit sheet ================= */
+function EditSheet({ initial, onClose, onSaved }){
+  const isNew = !initial.id;
+  const isDup = initial._dup;
+  const [name,setName] = useState(initial.name||"");
+  const [desc,setDesc] = useState(initial.desc||"");
+  const [cat,setCat] = useState(initial.category||"essay");
+  const [mode,setMode] = useState(initial.mode||"criteria_based");
+  const [qtypes,setQtypes] = useState(initial.qtypes||["essay"]);
+  const [holistic,setHolistic] = useState(initial.holistic||"Award full credit for a thorough, well-reasoned response that addresses every part of the prompt.");
+  const [pass,setPass] = useState(initial.pass!=null?initial.pass:60);
+  const [modelAns,setModelAns] = useState("");
+  const seedCrit = (initial.rubric&&initial.rubric.length) ? initial.rubric.map(c=>({label:c.label,max:c.max})) : [{label:"Accuracy",max:10},{label:"Clarity",max:10}];
+  const [crit,setCrit] = useState(seedCrit);
+  const [touched,setTouched] = useState(false);
+  const [saving,setSaving] = useState(false);
+  const [save,setSave] = useState(initial.id?"saved":"dirty");
+  const [tab,setTab] = useState(0); // 0 metadata, 1 rubric
+
+  const closeBtn = useRef(null);
+  useEffect(()=>{ closeBtn.current && closeBtn.current.focus(); },[]);
+  useEffect(()=>{
+    const onKey=(e)=>{ if(e.key==="Escape" && !saving) onClose(); };
+    document.addEventListener("keydown",onKey); return ()=>document.removeEventListener("keydown",onKey);
+  },[onClose,saving]);
+
+  const markDirty=()=>{ setSave("dirty"); };
+  const nameErr = touched && !name.trim();
+  const critErr = touched && (mode==="criteria_based"||mode==="hybrid") && crit.filter(c=>c.label.trim()).length===0;
+  const passErr = touched && (pass<0||pass>100);
+
+  const totalMax = crit.reduce((s,c)=>s+(Number(c.max)||0),0);
+
+  const usesCriteria = mode==="criteria_based"||mode==="hybrid";
+  const usesDimension = mode==="dimension_based";
+  const usesHolistic = mode==="holistic"||mode==="hybrid";
+
+  const addCrit=()=>{ setCrit([...crit,{label:"",max:10}]); markDirty(); };
+  const setCritAt=(i,k,v)=>{ const n=[...crit]; n[i]={...n[i],[k]:v}; setCrit(n); markDirty(); };
+  const delCrit=(i)=>{ setCrit(crit.filter((_,j)=>j!==i)); markDirty(); };
+
+  const submit=()=>{
+    setTouched(true);
+    if(!name.trim()) return;
+    if(usesCriteria && crit.filter(c=>c.label.trim()).length===0) { setTab(1); return; }
+    if(pass<0||pass>100) return;
+    setSaving(true); setSave("saving");
+    setTimeout(()=>{
+      setSaving(false); setSave("saved");
+      onSaved({
+        id: initial.id || ("rp_"+Math.random().toString(16).slice(2,6)),
+        created: isNew||isDup,
+        name: name.trim(),
+        category: cat,
+        mode,
+        countKind: usesDimension?"dim":(usesHolistic&&!usesCriteria?"holistic":"crit"),
+        count: usesHolistic&&!usesCriteria?0:crit.filter(c=>c.label.trim()).length,
+      });
+    }, 900);
+  };
+
+  const SaveChip=()=>{
+    const map = {saved:["saved","check","Saved just now"],saving:["saving","loader","Saving…"],dirty:["dirty","circle-dot","Unsaved changes"],failed:["failed","alert-triangle","Save failed — retry"]};
+    const [cls,icon,txt]=map[save];
+    return <span className={"savepill "+cls}><Icon name={icon} size={13} />{txt}</span>;
+  };
+
+  return (
+    <>
+      <div className="scrim" onClick={()=>!saving && onClose()} />
+      <aside className="sheet" role="dialog" aria-modal="true" aria-label={isNew?"New rubric preset":"Edit rubric preset"}>
+        <div className="sheet__head">
+          <div>
+            <h2 className="sheet__title">{isNew?"New preset":(isDup?"Duplicate to tenant":"Edit preset")}</h2>
+            <div className="sheet__sub">{isDup?"Creates a mutable tenant copy authored by you.":"Reusable across spaces, story points, items & exams."}</div>
+          </div>
+          <div className="sheet__x">
+            <IconButton ref={closeBtn} icon={<Icon name="x" size={18} />} label="Close" onClick={()=>!saving&&onClose()} />
+          </div>
+        </div>
+
+        <div style={{padding:"0 var(--space-5)",borderBottom:"1px solid var(--border-subtle)"}}>
+          <div style={{display:"flex",gap:"var(--space-1)"}}>
+            {["Metadata","Rubric"].map((t,i)=>(
+              <button key={t} onClick={()=>setTab(i)}
+                style={{padding:"var(--space-3) var(--space-2)",border:"none",background:"none",cursor:"pointer",
+                  fontFamily:"var(--font-ui)",fontSize:"var(--text-sm)",fontWeight:"var(--weight-semibold)",
+                  color: tab===i?"var(--brand-primary)":"var(--text-secondary)",
+                  borderBottom: tab===i?"2px solid var(--brand-primary)":"2px solid transparent"}}>
+                {t}{i===1 && critErr ? " ⚠" : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="sheet__body">
+          {saving && <div className="overlay" style={{position:"absolute",inset:0,zIndex:5,display:"grid",placeItems:"center",background:"rgba(20,18,28,.06)"}}><span className="spinner" /></div>}
+
+          {tab===0 && (
+            <>
+              <div className="fld">
+                <label className="fld__lab" htmlFor="rp-name">Name <span className="req">*</span></label>
+                <input id="rp-name" className="input" value={name} placeholder="e.g. Essay — IELTS Band"
+                  aria-invalid={nameErr||undefined}
+                  onChange={(e)=>{setName(e.target.value);markDirty();}} style={nameErr?{borderColor:"var(--status-error)"}:null} />
+                {nameErr && <div className="fld__err"><Icon name="alert-circle" size={13} /> Name is required.</div>}
+              </div>
+
+              <div className="grid-2">
+                <div className="fld">
+                  <label className="fld__lab" htmlFor="rp-cat">Category</label>
+                  <Select id="rp-cat" value={cat} onChange={(e)=>{setCat(e.target.value);markDirty();}}
+                    options={CATEGORIES.filter(c=>c.value!=="all")} />
+                </div>
+                <div className="fld">
+                  <label className="fld__lab" htmlFor="rp-pass">Passing % <span className="fld__opt">(0–100)</span></label>
+                  <input id="rp-pass" type="number" className="input crit__max" value={pass} min={0} max={100}
+                    style={passErr?{borderColor:"var(--status-error)"}:null}
+                    onChange={(e)=>{setPass(Number(e.target.value));markDirty();}} />
+                  {passErr && <div className="fld__err"><Icon name="alert-circle" size={13} /> Passing percentage must be 0–100.</div>}
+                </div>
+              </div>
+
+              <div className="fld">
+                <label className="fld__lab" htmlFor="rp-desc">Description <span className="fld__opt">optional</span></label>
+                <textarea id="rp-desc" className="textarea" rows={2} value={desc} placeholder="When should graders reach for this rubric?"
+                  onChange={(e)=>{setDesc(e.target.value);markDirty();}} />
+              </div>
+
+              <div className="fld">
+                <span className="fld__lab">Applicable question types</span>
+                <div className="qt-wrap">
+                  {QTYPES.map(qt=>(
+                    <button key={qt} className="qt" aria-pressed={qtypes.includes(qt)}
+                      onClick={()=>{ setQtypes(qtypes.includes(qt)?qtypes.filter(x=>x!==qt):[...qtypes,qt]); markDirty(); }}>
+                      {qt.replace(/_/g," ")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {tab===1 && (
+            <>
+              <div className="fld">
+                <span className="fld__lab">Scoring mode</span>
+                <div className="modeseg" role="radiogroup" aria-label="Scoring mode">
+                  {Object.keys(MODE).map(k=>(
+                    <button key={k} className="modeopt" role="radio" aria-checked={mode===k} aria-pressed={mode===k}
+                      onClick={()=>{setMode(k);markDirty();}}>
+                      <span className="modeopt__t"><Icon name={MODE[k].icon} size={13} />{MODE[k].label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="fld__help">Only the active mode's fields persist — criteria for Criteria/Hybrid, dimensions for Dimension, holistic guidance for Holistic/Hybrid.</div>
+              </div>
+
+              {usesCriteria && (
+                <div className="critgrp">
+                  <span className="fld__lab">Criteria</span>
+                  {crit.map((c,i)=>(
+                    <div className="crit" key={i}>
+                      <input className="input" value={c.label} placeholder={"Criterion "+(i+1)} aria-label={"Criterion "+(i+1)+" label"}
+                        onChange={(e)=>setCritAt(i,"label",e.target.value)} />
+                      <input className="input crit__max" type="number" value={c.max} min={0} aria-label={"Criterion "+(i+1)+" max points"}
+                        onChange={(e)=>setCritAt(i,"max",Number(e.target.value))} />
+                      <button className="crit__del" aria-label={"Remove criterion "+(i+1)} onClick={()=>delCrit(i)}><Icon name="x" size={16} /></button>
+                    </div>
+                  ))}
+                  {critErr && <div className="fld__err"><Icon name="alert-circle" size={13} /> Add at least one criterion.</div>}
+                  <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)"}}>
+                    <Button variant="ghost" size="sm" leadingIcon={<Icon name="plus" size={14} />} onClick={addCrit}>Add criterion</Button>
+                    <div className="crit__total" style={{marginLeft:"auto"}}>Total: {totalMax} pts</div>
+                  </div>
+                </div>
+              )}
+
+              {usesDimension && (
+                <div className="critgrp">
+                  <span className="fld__lab">Dimensions</span>
+                  {crit.map((c,i)=>(
+                    <div className="crit" key={i}>
+                      <input className="input" value={c.label} placeholder={"Dimension "+(i+1)} aria-label={"Dimension "+(i+1)+" label"}
+                        onChange={(e)=>setCritAt(i,"label",e.target.value)} />
+                      <input className="input crit__max" type="number" value={c.max} min={0} aria-label={"Dimension "+(i+1)+" max band"}
+                        onChange={(e)=>setCritAt(i,"max",Number(e.target.value))} />
+                      <button className="crit__del" aria-label={"Remove dimension "+(i+1)} onClick={()=>delCrit(i)}><Icon name="x" size={16} /></button>
+                    </div>
+                  ))}
+                  <div style={{display:"flex"}}>
+                    <Button variant="ghost" size="sm" leadingIcon={<Icon name="plus" size={14} />} onClick={addCrit}>Add dimension</Button>
+                  </div>
+                </div>
+              )}
+
+              {usesHolistic && (
+                <div className="fld">
+                  <label className="fld__lab" htmlFor="rp-hol">Holistic guidance</label>
+                  <textarea id="rp-hol" className="textarea" rows={3} value={holistic}
+                    onChange={(e)=>{setHolistic(e.target.value);markDirty();}} />
+                </div>
+              )}
+
+              <div className="fld">
+                <label className="fld__lab" htmlFor="rp-model">Reference answer <span className="fld__opt">(staff-only)</span></label>
+                <textarea id="rp-model" className="textarea" rows={2} value={modelAns} placeholder="Optional model response for graders — never shown to students."
+                  onChange={(e)=>{setModelAns(e.target.value);markDirty();}} />
+                <div className="fld__help">Presets are staff-only and never reach a student, so no answer-key stripping applies here.</div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="sheet__foot">
+          <SaveChip />
+          <div className="spacer" />
+          <Button variant="ghost" onClick={()=>!saving&&onClose()}>Cancel</Button>
+          <Button variant="spark" loading={saving} leadingIcon={!saving?<Icon name="check" size={16} />:null} onClick={submit}>
+            {isNew||isDup?"Create preset":"Save changes"}
+          </Button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+/* ================= preview drawer ================= */
+function PreviewSheet({ p, onClose, onApply }){
+  const closeBtn=useRef(null);
+  useEffect(()=>{ closeBtn.current && closeBtn.current.focus();
+    const onKey=(e)=>{ if(e.key==="Escape") onClose(); };
+    document.addEventListener("keydown",onKey); return ()=>document.removeEventListener("keydown",onKey);
+  },[onClose]);
+  return (
+    <>
+      <div className="scrim" onClick={onClose} />
+      <aside className="sheet" role="dialog" aria-modal="true" aria-label={"Preview "+p.name} style={{width:520}}>
+        <div className="sheet__head">
+          <div>
+            <h2 className="sheet__title">{p.name}</h2>
+            <div className="sheet__sub"><ScoringModeBadge mode={p.mode} /> &nbsp; <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)",color:"var(--text-muted)"}}>{p.code}</span></div>
+          </div>
+          <div className="sheet__x"><IconButton ref={closeBtn} icon={<Icon name="x" size={18} />} label="Close" onClick={onClose} /></div>
+        </div>
+        <div className="sheet__body">
+          <div className="note">
+            <Icon name="info" size={15} />
+            <span>This is a read-only preview. <b>Apply</b> clones these criteria into your editor's own rubric — deleting the preset later never changes copies already applied.</span>
+          </div>
+          {p.isDefault && (
+            <AnswerKeyLock title="System default — read-only here. Duplicate to tenant to edit." />
+          )}
+          {p.countKind==="holistic" ? (
+            <div className="scard__body" style={{padding:0}}>
+              <div className="fld__lab">Holistic guidance</div>
+              <div style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)",lineHeight:"var(--leading-sm)",padding:"var(--space-3)",background:"var(--bg-surface-sunken)",borderRadius:"var(--radius-md)"}}>
+                Award full credit for a thorough, well-reasoned response addressing every part of the prompt; partial credit scales with completeness and clarity.
+              </div>
+            </div>
+          ) : (
+            <RubricBreakdown criteria={p.rubric} />
+          )}
+        </div>
+        <div className="sheet__foot">
+          <div className="spacer" />
+          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="secondary" leadingIcon={<Icon name="copy-plus" size={16} />} onClick={()=>onApply(p)}>Apply (clone)…</Button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+/* ================= confirm delete ================= */
+function ConfirmDelete({ p, onCancel, onConfirm }){
+  const ref=useRef(null);
+  useEffect(()=>{ ref.current && ref.current.focus();
+    const onKey=(e)=>{ if(e.key==="Escape") onCancel(); };
+    document.addEventListener("keydown",onKey); return ()=>document.removeEventListener("keydown",onKey);
+  },[onCancel]);
+  return (
+    <div className="cd-scrim" onClick={(e)=>{ if(e.target.classList.contains("cd-scrim")) onCancel(); }}>
+      <div className="cd" role="alertdialog" aria-modal="true" aria-labelledby="cd-t" aria-describedby="cd-b">
+        <div className="cd__icon"><Icon name="trash-2" size={20} /></div>
+        <h3 className="cd__title" id="cd-t">Delete “{p.name}”?</h3>
+        <p className="cd__body" id="cd-b">This preset is used by <b style={{fontFamily:"var(--font-mono)"}}>{p.usage}</b> items. Deleting it won't change existing rubrics — they keep their copied criteria — but it can no longer be applied to new content.</p>
+        <div className="cd__foot">
+          <Button ref={ref} variant="ghost" onClick={onCancel}>Keep it</Button>
+          <Button variant="danger" onClick={()=>onConfirm(p)}>Delete preset</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= main screen ================= */
+function Screen(){
+  const [proto,setProto] = useState("default"); // default | loading | empty | error | partial
+  const [role,setRole] = useState("teacher");   // teacher | tenantAdmin
+  const [rows,setRows] = useState(SEED);
+  const [q,setQ] = useState("");
+  const [cat,setCat] = useState("all");
+  const [sortKey,setSortKey] = useState("updated");
+  const [sortDir,setSortDir] = useState("desc");
+  const [menuFor,setMenuFor] = useState(null);
+  const [editFor,setEditFor] = useState(null);
+  const [previewFor,setPreviewFor] = useState(null);
+  const [confirmFor,setConfirmFor] = useState(null);
+  const [flashId,setFlashId] = useState(null);
+  const [toasts,setToasts] = useState([]);
+
+  const pushToast=(kind,msg,undo)=>{
+    const id=Math.random().toString(16).slice(2);
+    setToasts(t=>[...t,{id,kind,msg,undo}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)), undo?6000:3200);
+  };
+
+  const sortBy=(k)=>{ if(sortKey===k){ setSortDir(d=>d==="asc"?"desc":"asc"); } else { setSortKey(k); setSortDir(k==="name"?"asc":"desc"); } };
+
+  const filtered = useMemo(()=>{
+    let r = rows.filter(p=>
+      (cat==="all"||p.category===cat) &&
+      (!q.trim()||p.name.toLowerCase().includes(q.trim().toLowerCase()))
+    );
+    r=[...r].sort((a,b)=>{
+      let av,bv;
+      if(sortKey==="name"){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+      else if(sortKey==="usage"){av=a.usage||0;bv=b.usage||0;}
+      else {av=a.updated;bv=b.updated;}
+      const c = av<bv?-1:av>bv?1:0;
+      return sortDir==="asc"?c:-c;
+    });
+    return r;
+  },[rows,q,cat,sortKey,sortDir]);
+
+  const onAction=(act,p)=>{
+    if(act==="edit") setEditFor(p);
+    else if(act==="preview") setPreviewFor(p);
+    else if(act==="duplicate") setEditFor({...p, id:null, name:p.name+" (copy)", _dup:true, qtypes:["essay"]});
+    else if(act==="apply") { pushToast("ok","Applied “"+p.name+"” — opening editor to override…"); }
+    else if(act==="delete") setConfirmFor(p);
+  };
+
+  const onSaved=(res)=>{
+    setEditFor(null);
+    setRows(rs=>{
+      const idx=rs.findIndex(x=>x.id===res.id);
+      if(idx<0){
+        return [{...SEED[1], ...res, code:"rp_"+res.id.slice(-4), updated:"Jun 20, 2026", isDefault:false, owned:true, author:"You", usage:0, rubric:SEED[1].rubric}, ...rs];
+      }
+      const n=[...rs]; n[idx]={...n[idx], ...res, updated:"Jun 20, 2026"}; return n;
+    });
+    setFlashId(res.id);
+    setTimeout(()=>setFlashId(null),700);
+    pushToast("ok","Preset saved.");
+  };
+
+  const onConfirmDelete=(p)=>{
+    setConfirmFor(null);
+    setRows(rs=>rs.filter(x=>x.id!==p.id));
+    pushToast("ok","Deleted “"+p.name+"”.", ()=>{ setRows(rs=>[p,...rs]); });
+  };
+
+  const SortableTh=({k,label,num})=>(
+    <th className={num?"num":""} aria-sort={sortKey===k?(sortDir==="asc"?"ascending":"descending"):"none"}>
+      <button className={"th-sort"+(sortKey===k?" on":"")} onClick={()=>sortBy(k)}>
+        {label}<Icon name={sortKey===k?(sortDir==="asc"?"arrow-up":"arrow-down"):"chevrons-up-down"} size={13} />
+      </button>
+    </th>
+  );
+
+  const isEmpty = proto==="empty";
+  const systemDefaults = SEED.filter(p=>p.isDefault);
+
+  return (
+    <div className="shell appshell">
+      <div className="proto-bar" role="group" aria-label="Prototype state">
+        <span className="proto-bar__lab">State</span>
+        <div className="proto-seg">
+          {[["default","Default"],["loading","Loading"],["partial","Partial"],["empty","Empty"],["error","Error"]].map(([v,l])=>(
+            <button key={v} aria-pressed={proto===v} onClick={()=>setProto(v)}>{l}</button>
+          ))}
+        </div>
+        <span className="proto-bar__lab" style={{paddingLeft:"var(--space-2)"}}>Role</span>
+        <div className="proto-seg">
+          {[["teacher","teacher"],["tenantAdmin","admin"]].map(([v,l])=>(
+            <button key={v} aria-pressed={role===v} onClick={()=>setRole(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <SidebarNav/>
+      <Topbar/>
+
+      <main className="appshell__main">
+        <div className="rp-main">
+          <div className="rp-crumb">
+            <Breadcrumb items={[{label:"Library",href:"#"},{label:"Rubric Presets"}]} />
+          </div>
+
+          <div className="rp-scroll">
+            <div className="rp-col">
+              {/* header */}
+              <div className="page-head">
+                <div>
+                  <h1>Rubric Presets</h1>
+                  <div className="page-sub">Reusable grading templates for your tenant. Apply them to spaces, story points, items, and exams.</div>
+                </div>
+                <div className="head-actions">
+                  <div className="rp-headsearch">
+                    <Icon name="search" size={16} />
+                    <input className="input" placeholder="Search presets…" aria-label="Search presets"
+                      value={q} onChange={(e)=>setQ(e.target.value)} />
+                  </div>
+                  <div className="rp-cat">
+                    <Select aria-label="Category" value={cat} onChange={(e)=>setCat(e.target.value)} options={CATEGORIES} />
+                  </div>
+                  <Button variant="spark" leadingIcon={<Icon name="plus" size={16} />}
+                    onClick={()=>setEditFor({id:null, name:"", category:"essay", mode:"criteria_based"})}>New preset</Button>
+                </div>
+              </div>
+
+              {/* result count */}
+              {proto==="default"||proto==="partial" ? (
+                <div className="rp-count"><b>{filtered.length}</b> preset{filtered.length===1?"":"s"}{(q||cat!=="all")?" matching filters":""} · sorted by {sortKey} {sortDir==="asc"?"↑":"↓"}</div>
+              ) : null}
+
+              {/* ===== ERROR ===== */}
+              {proto==="error" && (
+                <div className="rp-panel"><div className="errwrap">
+                  <div style={{maxWidth:440,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:"var(--space-3)"}}>
+                    <div className="cd__icon" style={{background:"var(--status-error-subtle)",color:"var(--status-error)"}}><Icon name="wifi-off" size={20} /></div>
+                    <div style={{fontFamily:"var(--font-display)",fontSize:"var(--text-lg)",fontWeight:"var(--weight-semibold)"}}>Couldn't load rubric presets</div>
+                    <div style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>Check your connection and try again.</div>
+                    <Button variant="secondary" leadingIcon={<Icon name="rotate-ccw" size={15} />}
+                      onClick={()=>{ setProto("default"); pushToast("ok","Presets loaded."); }}>Retry</Button>
+                  </div>
+                </div></div>
+              )}
+
+              {/* ===== LOADING ===== */}
+              {proto==="loading" && (
+                <div className="rp-panel">
+                  <table className="rpt" aria-hidden="true">
+                    <thead><tr>
+                      <th>Name</th><th>Scoring mode</th><th className="num">Criteria</th><th>Category</th><th className="num">Usage</th><th>Updated</th><th></th>
+                    </tr></thead>
+                    <tbody>
+                      {Array.from({length:6}).map((_,i)=>(
+                        <tr key={i}>
+                          <td><div className="cell-name"><span className="sk" style={{width:28,height:28,borderRadius:"var(--radius-md)"}} /><span className="sk" style={{width:160}} /></div></td>
+                          <td><span className="sk" style={{width:80,height:20,borderRadius:"var(--radius-pill)"}} /></td>
+                          <td className="num"><span className="sk" style={{width:48}} /></td>
+                          <td><span className="sk" style={{width:70,height:20,borderRadius:"var(--radius-pill)"}} /></td>
+                          <td className="num"><span className="sk" style={{width:30}} /></td>
+                          <td><span className="sk" style={{width:80}} /></td>
+                          <td><span className="sk" style={{width:20,height:20}} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ===== EMPTY ===== */}
+              {isEmpty && (
+                <div className="rp-panel" style={{padding:"var(--space-12) var(--space-6)"}}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
+                    <div className="cell-name__icon" style={{width:48,height:48}}><Icon name="clipboard-list" size={24} /></div>
+                    <h2 style={{fontFamily:"var(--font-display)",fontSize:"var(--text-xl)",fontWeight:"var(--weight-semibold)",margin:"var(--space-4) 0 var(--space-2)"}}>No presets yet</h2>
+                    <p style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)",maxWidth:480,lineHeight:"var(--leading-sm)",margin:0}}>
+                      Build a rubric once and reuse it everywhere. Presets seed the rubric your spaces, story points, and exams inherit — author it here, override it locally when you need to.
+                    </p>
+                    <div style={{marginTop:"var(--space-4)"}}>
+                      <Button variant="spark" leadingIcon={<Icon name="plus" size={16} />}
+                        onClick={()=>setEditFor({id:null,name:"",category:"essay",mode:"criteria_based"})}>Create your first preset</Button>
+                    </div>
+                    <div className="sys-list">
+                      <div className="sys-list__lab">Start from a system default</div>
+                      {systemDefaults.map(p=>(
+                        <div className="sys-row" key={p.id}>
+                          <span className="sys-lock"><Icon name="lock" size={12} /> System default</span>
+                          <span className="sys-row__name">{p.name}</span>
+                          <ScoringModeBadge mode={p.mode} />
+                          <Button variant="ghost" size="sm" onClick={()=>setEditFor({...p,id:null,name:p.name+" (copy)",_dup:true,qtypes:["essay"]})}>Duplicate</Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== DEFAULT / PARTIAL TABLE ===== */}
+              {(proto==="default"||proto==="partial") && (
+                <div className="rp-panel">
+                  <table className="rpt">
+                    <thead><tr>
+                      <SortableTh k="name" label="Name" />
+                      <th>Scoring mode</th>
+                      <th className="num">Criteria</th>
+                      <th>Category</th>
+                      <SortableTh k="usage" label="Usage" num />
+                      <SortableTh k="updated" label="Updated" />
+                      <th><span className="sr-only">Actions</span></th>
+                    </tr></thead>
+                    <tbody>
+                      {filtered.length===0 ? (
+                        <tr><td colSpan={7} style={{textAlign:"center",padding:"var(--space-8)",color:"var(--text-muted)",fontSize:"var(--text-sm)"}}>
+                          No presets match “{q}”.
+                        </td></tr>
+                      ) : filtered.map(p=>(
+                        <tr key={p.id} className={flashId===p.id?"flash":""}>
+                          <td>
+                            <div className="cell-name">
+                              <span className="cell-name__icon"><Icon name={MODE[p.mode].icon} size={15} /></span>
+                              <div>
+                                <div className="cell-name__t">{p.name}</div>
+                                <div className="cell-name__sub">{p.code}{p.isDefault?" · system":" · by "+p.author}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td><ScoringModeBadge mode={p.mode} /></td>
+                          <td className="cell-num">{countText(p)}</td>
+                          <td><span className="cat-chip"><Icon name="tag" size={12} />{CAT_LABEL[p.category]}</span></td>
+                          <td>
+                            {p.isDefault ? (
+                              <span className="sys-lock" title="System default, read-only" aria-label="System default, read-only"><Icon name="lock" size={12} /> System default</span>
+                            ) : (proto==="partial" && (p.id==="rp_sys_holistic")) ? (
+                              <span className="usage-skel" aria-label="Usage count aggregating" title="Aggregating…" />
+                            ) : (
+                              <span className="cell-usage" title={"Used by "+p.usage+" spaces / story points / items / exams (inherited or applied)."}>{p.usage}</span>
+                            )}
+                          </td>
+                          <td className="cell-updated">{p.updated}</td>
+                          <td className="cell-actions">
+                            <IconButton size="sm" icon={<Icon name="more-horizontal" size={16} />} label={"Actions for "+p.name}
+                              onClick={()=>setMenuFor(menuFor===p.id?null:p.id)} />
+                            {menuFor===p.id && <RowMenu p={p} role={role} onAction={onAction} onClose={()=>setMenuFor(null)} />}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* pagination */}
+              {(proto==="default"||proto==="partial") && filtered.length>0 && (
+                <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:"var(--space-2)",fontSize:"var(--text-xs)",color:"var(--text-muted)"}}>
+                  <span style={{fontFamily:"var(--font-mono)"}}>1–{filtered.length} of {filtered.length}</span>
+                  <IconButton size="sm" icon={<Icon name="chevron-left" size={15} />} label="Previous page" disabled />
+                  <span style={{fontFamily:"var(--font-mono)",padding:"0 var(--space-1)"}}>1</span>
+                  <IconButton size="sm" icon={<Icon name="chevron-right" size={15} />} label="Next page" disabled />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* overlays */}
+      {editFor && <EditSheet initial={editFor} onClose={()=>setEditFor(null)} onSaved={onSaved} />}
+      {previewFor && <PreviewSheet p={previewFor} onClose={()=>setPreviewFor(null)} onApply={(p)=>{ setPreviewFor(null); onAction("apply",p); }} />}
+      {confirmFor && <ConfirmDelete p={confirmFor} onCancel={()=>setConfirmFor(null)} onConfirm={onConfirmDelete} />}
+
+      {/* toasts */}
+      <div className="toaststack">
+        {toasts.map(t=>(
+          <div key={t.id} className={"tt "+t.kind}>
+            <span className="tt__icon"><Icon name={t.kind==="ok"?"check":"alert-triangle"} size={14} /></span>
+            <span className="tt__body">{t.msg}</span>
+            {t.undo && <button className="tt__undo" onClick={()=>{ t.undo(); setToasts(ts=>ts.filter(x=>x.id!==t.id)); }}>Undo</button>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Screen/>);
+</script>
+</body>
+</html>

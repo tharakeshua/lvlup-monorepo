@@ -15,7 +15,16 @@ export {
   type AiRequest,
   type AiCallContext,
   type AiResponse,
+  type AiMessage,
+  type AiDeveloperTextPart,
+  type AiUserTextPart,
+  type AiAssistantTextPart,
+  type AiImagePart,
+  type AiToolCallPart,
+  type AiToolResultPart,
   type CreateAiGatewayDeps,
+  type UserKeyLookup,
+  type ResolvedUserKey,
 } from "./gateway.js";
 
 // --- Errors ---
@@ -33,6 +42,13 @@ export type {
   ProviderInput,
   ProviderOutput,
   ProviderImage,
+  ProviderMessage,
+  ProviderTextPart,
+  ProviderImagePart,
+  ProviderToolDecl,
+  ProviderToolCall,
+  ProviderToolCallPart,
+  ProviderToolResultPart,
   ProviderTokenUsage,
 } from "./provider/provider.js";
 export { createGeminiProvider, type GeminiOpts } from "./provider/gemini.js";
@@ -43,7 +59,11 @@ export {
   DEFAULT_PRO_MODEL,
   DEFAULT_FLASH_MODEL,
   resolveModelDefaults,
+  resolveModelPolicy,
+  validateProviderModel,
   type ModelDefaults,
+  type ModelPolicyId,
+  type ResolvedModelPolicy,
 } from "./models.js";
 
 // --- Image seam (storage-path → inline bytes, resolved by the gateway) ---
@@ -61,18 +81,30 @@ export {
 export {
   createSecretResolver,
   createSecretWriter,
+  createUserSecretResolver,
+  createUserSecretWriter,
+  createNamedSecretWriter,
+  PLATFORM_GEMINI_SECRET_NAME,
   secretNameFor,
+  userSecretNameFor,
   type SecretResolver,
   type SecretResolverOptions,
   type SecretWriter,
   type SecretWriterOptions,
+  type UserSecretResolver,
+  type UserSecretWriter,
+  type UserSecretWriterOptions,
+  type UserSecretWriteResult,
+  type NamedSecretWriter,
 } from "./secrets/secret-manager.js";
+export { validateProviderKey, type KeyValidationResult } from "./secrets/validate.js";
 
 // --- Cost / quota ---
 export {
   estimateCost,
   buildTokenUsage,
   MODEL_PRICING,
+  PRICING_VERSION,
   type TokenUsage,
   type CostBreakdown,
 } from "./cost/cost-tracker.js";
@@ -98,6 +130,7 @@ export {
 export {
   PROMPTS,
   PROMPT_KEYS,
+  CONVERSATION_PROMPT_VERSIONS,
   renderPrompt,
   type PromptKey,
   type PromptTemplate,
@@ -122,3 +155,23 @@ export type {
   TenantUsageConfig,
   LogLlmCallParams,
 } from "./repos-seam.js";
+
+// --- V2 LLM telemetry ledger ---
+export {
+  canonicalPurpose,
+  defaultFeature,
+  type CanonicalTokenUsage,
+  type LlmAttemptCost,
+  type LlmAttemptRecord,
+  type LlmAttemptStatus,
+  type LlmCanonicalPurpose,
+  type LlmFeature,
+  type LlmRelatedResources,
+  type LlmRequestFinalization,
+  type LlmRequestRecord,
+  type LlmRequestStatus,
+  type LlmTelemetrySink,
+  type LlmTelemetryWriteError,
+  type LlmUsageContext,
+  type SanitizedLlmError,
+} from "./telemetry/types.js";

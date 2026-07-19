@@ -61,7 +61,9 @@ describe("media eval seam (captured audio/image reaches the AI grader)", () => {
     );
 
     const call = lastCall(ctx);
-    expect(call.promptKey).toBe("answerGrading");
+    // Evaluation Core (AI-EVALUATION-CORE-PLAN.md): the online grader now rides
+    // the unified prompt key; media attachment semantics are unchanged.
+    expect(call.promptKey).toBe("unifiedEvaluation");
     const paths = (call.images ?? []).map((i) => i.storagePath);
     // BEFORE the fix: `images` was undefined — the model never saw the media.
     expect(paths).toContain(imgPath);

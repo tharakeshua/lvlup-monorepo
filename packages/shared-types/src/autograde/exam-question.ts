@@ -4,8 +4,8 @@
  * @module autograde/exam-question
  */
 
-import type { FirestoreTimestamp } from '../identity/user';
-import type { UnifiedRubric } from '../content/rubric';
+import type { FirestoreTimestamp } from "../identity/user";
+import type { UnifiedRubric } from "../content/rubric";
 
 export interface SubQuestion {
   label: string;
@@ -30,17 +30,18 @@ export interface ExamQuestion {
   rubric: UnifiedRubric;
 
   // Pipeline metadata
-  questionType?: 'standard' | 'diagram' | 'multi-part';
+  questionType?: "standard" | "diagram" | "multi-part";
   subQuestions?: SubQuestion[];
 
   // Cross-domain linkage
   linkedItemId?: string;
 
   // Extraction metadata
-  extractedBy?: 'ai' | 'manual';
+  extractedBy?: "ai" | "manual";
   extractedAt?: FirestoreTimestamp;
   extractionConfidence?: number;
   readabilityIssue?: boolean;
+  rubricStatus?: "pending" | "generated";
 
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;

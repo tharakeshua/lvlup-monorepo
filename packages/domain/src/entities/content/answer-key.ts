@@ -8,6 +8,7 @@ import { zObject } from "../../authoring/strict.js";
 import { zAnswerKeyId, zItemId } from "../../primitives/branded-id.zod.js";
 import { zTimestamp } from "../../primitives/timestamp.zod.js";
 import { zQuestionType } from "../../enums/content.js";
+import { AgentAssessmentPrivateObjectiveSchema } from "../levelup/conversation-assessment.js";
 
 export const AnswerKeySchema = zObject({
   id: zAnswerKeyId,
@@ -18,6 +19,9 @@ export const AnswerKeySchema = zObject({
   // ⚷ leak how to score.
   evaluationGuidance: z.string().optional(),
   modelAnswer: z.string().optional(),
+  // Chat-agent assessment-only private objectives. These stay in the deny-all
+  // answer-key document and are never projected to learners.
+  privateEvaluationObjectives: z.array(AgentAssessmentPrivateObjectiveSchema).optional(),
   createdAt: zTimestamp,
   updatedAt: zTimestamp,
 });

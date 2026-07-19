@@ -15,26 +15,21 @@ import { useRouter } from "expo-router";
 import { useSpaces } from "@levelup/query";
 
 import {
-  Badge,
   Button,
   Card,
   Chip,
   EmptyState,
   Icon,
-  ProgressRing,
+  Kicker,
+  MasteryRing,
   Screen,
   SearchField,
+  SpaceCover,
+  colors,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { ErrorState, ListSkeleton } from "./_shared/states";
-import {
-  asArray,
-  difficultyMeta,
-  masteryBand,
-  spaceTypeMeta,
-  toSpaceCard,
-  type SpaceCardModel,
-} from "./_shared/normalize";
+import { asArray, toSpaceCard, type SpaceCardModel } from "./_shared/normalize";
 import type { SpaceProgressView, SpaceView } from "./_shared/types";
 
 type SortKey = "recent" | "progress" | "az";
@@ -45,59 +40,64 @@ const SORT_OPTS: { value: SortKey; label: string; icon: string }[] = [
   { value: "az", label: "A–Z", icon: "arrow-down-up" },
 ];
 
-/** One space card — rich tile matching the design (tags · meta · mastery ring). */
+/** One space card — duotone cover, serif title, meta line, mastery footer. */
 function SpaceTile({ card, onPress }: { card: SpaceCardModel; onPress: () => void }) {
-  const band = masteryBand(card.percentage);
-  const tm = spaceTypeMeta(card.type);
-  const dm = difficultyMeta(card.difficulty);
-  const complete = card.percentage >= 100;
+  const mastered = card.percentage >= 100;
   return (
     <Card interactive onPress={onPress} className="overflow-hidden p-0">
-      {/* banner */}
-      <View className={`h-16 ${complete ? "bg-spark/30" : "bg-brand-subtle"}`} />
-      <View className="gap-2 p-4">
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Badge variant="brand" icon={<Icon name={tm.icon} size={12} />}>
-            {tm.label}
-          </Badge>
-          {dm ? <Chip>{dm.label}</Chip> : null}
-          {complete ? (
-            <Badge variant="success" icon={<Icon name="check-circle" size={12} />}>
-              Completed
-            </Badge>
-          ) : null}
-        </View>
-
-        <Text className="font-display text-text-primary text-lg" numberOfLines={2}>
+      <SpaceCover
+        seed={card.subject ?? card.title}
+        title={card.title}
+        thumbnailUrl={card.thumbnailUrl}
+        height={128}
+      />
+      <View className="gap-1.5 p-4 pt-4">
+        <Text className="font-display text-text-primary text-lg leading-6" numberOfLines={1}>
           {card.title}
         </Text>
 
         <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-          {card.subject ? <Text className="text-text-muted text-xs">{card.subject}</Text> : null}
-          {card.subject ? <View className="bg-border-strong h-1 w-1 rounded-full" /> : null}
-          <Text className="text-text-muted text-xs">{card.storyPointCount} story points</Text>
+          {card.subject ? (
+            <>
+              <Text className="font-ui text-text-muted text-xs">{card.subject}</Text>
+              <View className="bg-border-strong h-1 w-1 rounded-full" />
+            </>
+          ) : null}
+          <Text className="font-ui text-text-muted text-xs">
+            <Text className="font-mono">{card.storyPointCount}</Text> story points
+          </Text>
           {card.rating != null ? (
             <>
               <View className="bg-border-strong h-1 w-1 rounded-full" />
               <View className="flex-row items-center gap-1">
-                <Icon name="star" size={11} color="#E8972B" />
-                <Text className="text-text-muted text-xs">{card.rating.toFixed(1)}</Text>
+                <Icon name="star" size={11} color={colors.spark} fill={colors.spark} />
+                <Text className="text-text-muted font-mono text-xs">{card.rating.toFixed(1)}</Text>
               </View>
             </>
           ) : null}
         </View>
 
         {/* footer: mastery */}
-        <View className="border-border-subtle mt-1 flex-row items-center justify-between border-t pt-3">
-          <View className="flex-row items-center gap-1.5">
-            <Icon name={band.icon} size={14} color="#756E61" />
-            <Text className="text-text-muted text-xs">{band.word}</Text>
+        <View className="border-border-subtle mt-2 flex-row items-center justify-between border-t pt-3">
+          <View className="flex-row items-center gap-3">
+            <MasteryRing value={card.percentage} size={40} />
+            {mastered ? (
+              <View className="flex-row items-center gap-1">
+                <Icon name="check-circle" size={14} color={colors.masteryMastered} />
+                <Text className="font-ui text-mastery-mastered text-xs font-medium">Mastered</Text>
+              </View>
+            ) : (
+              <Text className="font-ui text-text-secondary text-xs">
+                {card.percentage > 0 ? `${card.percentage}% mastered` : "Ready when you are"}
+              </Text>
+            )}
           </View>
-          <ProgressRing
-            value={card.percentage}
-            size={44}
-            label={card.percentage === 0 ? "—" : `${card.percentage}%`}
-          />
+          <View className="flex-row items-center gap-1">
+            <Text className="font-ui text-brand text-xs font-medium">
+              {card.percentage > 0 && !mastered ? "Continue" : "Open"}
+            </Text>
+            <Icon name="arrow-right" size={14} color={colors.brand} />
+          </View>
         </View>
       </View>
     </Card>
@@ -162,11 +162,16 @@ export default function SpacesListScreen() {
     <Screen className="bg-canvas" contentClassName="p-5 gap-4">
       {/* header */}
       <View className="gap-1">
-        <View className="flex-row items-center gap-2">
+        <Kicker>Your library</Kicker>
+        <View className="flex-row items-baseline gap-3">
           <Text className="font-display text-text-primary text-2xl">My Spaces</Text>
-          <Badge variant="brand">{cards.length}</Badge>
+          {cards.length > 0 ? (
+            <Text className="text-text-muted font-mono text-sm">
+              {cards.length} {cards.length === 1 ? "space" : "spaces"}
+            </Text>
+          ) : null}
         </View>
-        <Text className="text-text-muted text-sm">Pick up where you left off. ✦</Text>
+        <Text className="font-ui text-text-secondary text-sm">Pick up where you left off.</Text>
       </View>
 
       <SearchField

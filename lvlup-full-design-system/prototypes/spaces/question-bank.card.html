@@ -1,0 +1,783 @@
+<!-- @dsCard group="Spaces" viewport="1280x820" name="Question Bank" subtitle="Reusable item library · filter, search & curate" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* screen-local LAYOUT-ONLY rules — Lyceum vars only, NO raw hex, NO :root redefinition */
+html,body{margin:0}
+body{background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui)}
+.shell{height:820px;overflow:hidden;position:relative}
+
+/* ---- topbar bits ---- */
+.tb-tenant{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);background:var(--bg-surface)}
+.tb-tenant__code{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted)}
+.tb-search{flex:1;max-width:420px;position:relative;display:flex;align-items:center}
+.tb-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tb-search .input{padding-left:var(--space-8);width:100%}
+.tb-kbd{position:absolute;right:var(--space-2);display:flex;gap:2px}
+.tb-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--text-secondary)}
+.tb-icon:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+
+/* ---- main scroll region ---- */
+.qb-main{display:flex;flex-direction:column;gap:var(--space-5);max-width:1200px;height:100%}
+.qb-scroll{overflow-y:auto;padding-right:var(--space-1);display:flex;flex-direction:column;gap:var(--space-5)}
+
+/* ---- header row ---- */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.page-head__l{display:flex;align-items:flex-start;gap:var(--space-3)}
+.page-head__icon{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-md);background:var(--brand-subtle);color:var(--brand-primary);flex:none}
+.page-head h1{font-family:var(--font-display);font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:var(--weight-semibold);margin:0;letter-spacing:var(--tracking-display)}
+.page-sub{color:var(--text-secondary);font-size:var(--text-base);margin-top:var(--space-1)}
+.head-actions{display:flex;align-items:center;gap:var(--space-3)}
+
+/* ---- role switch (proto chrome adjacent) ---- */
+.role-seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.role-seg button{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6}
+.role-seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+/* ---- sticky filter bar ---- */
+.toolbar{position:sticky;top:0;z-index:20;display:flex;flex-direction:column;gap:var(--space-3);background:var(--bg-canvas);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle)}
+.toolbar__row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.tool-search{position:relative;display:flex;align-items:center;flex:1;min-width:240px;max-width:380px}
+.tool-search svg{position:absolute;left:var(--space-3);color:var(--text-muted);pointer-events:none}
+.tool-search .input{padding-left:var(--space-8);width:100%}
+.tool-search__clear{position:absolute;right:var(--space-2);display:grid;place-items:center;width:24px;height:24px;border-radius:var(--radius-pill);color:var(--text-muted)}
+.tool-search__clear:hover{background:var(--bg-surface-sunken);color:var(--text-primary)}
+.tool-select{min-width:148px}
+
+.toolbar__meta{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;min-height:24px}
+.active-chips{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.count-pill{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.count-pill b{color:var(--text-primary);font-weight:var(--weight-semibold)}
+
+/* ---- results table wrap ---- */
+.tbl-wrap{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface);position:relative}
+
+/* table cell helpers */
+.qcell{display:flex;flex-direction:column;gap:2px;min-width:0;max-width:360px}
+.qcell__title{font-weight:var(--weight-semibold);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qcell__prev{font-size:var(--text-xs);line-height:1.45;color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qcell__prev code{font-family:var(--font-mono);font-size:var(--text-2xs);background:var(--bg-surface-sunken);padding:0 4px;border-radius:var(--radius-sm)}
+.type-cell{display:inline-flex;align-items:center;gap:4px;font-size:var(--text-xs);color:var(--text-secondary);white-space:nowrap}
+.topics{display:flex;flex-wrap:wrap;gap:4px;max-width:160px}
+.usage{display:flex;flex-direction:column;gap:1px;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.usage__n{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.usage__l{font-size:var(--text-2xs);color:var(--text-muted)}
+.avg{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.avg--high{color:var(--status-success)}
+.avg--mid{color:var(--status-warning)}
+.avg--low{color:var(--status-error)}
+.avg--none{color:var(--text-muted);font-weight:var(--weight-regular)}
+.upd{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap}
+.row-actions{display:flex;align-items:center;gap:2px;justify-content:flex-end}
+
+/* table row dim during mutation */
+.qb-row--dim{opacity:.45;pointer-events:none;transition:opacity var(--dur-fast) var(--ease-standard)}
+
+/* ---- skeleton table ---- */
+.sk-tbl{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-surface)}
+.sk-row{display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr .9fr .9fr 1.4fr;gap:var(--space-4);align-items:center;padding:var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.sk-row:last-child{border-bottom:none}
+.sk-head{background:var(--bg-surface-sunken)}
+
+/* ---- pagination row ---- */
+.pager{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding-top:var(--space-2)}
+.pager__note{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+
+/* ---- modal scrim / dialog ---- */
+.scrim{position:absolute;inset:0;background:rgba(28,26,22,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:var(--space-10);z-index:80;animation:scrimIn var(--dur-base) var(--ease-entrance);overflow-y:auto}
+@keyframes scrimIn{from{opacity:0}to{opacity:1}}
+.dialog{width:640px;max-width:92vw;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-e3);display:flex;flex-direction:column;overflow:hidden;animation:panelIn var(--dur-base) var(--ease-entrance);margin-bottom:var(--space-10)}
+.dialog--sm{width:480px}
+.dialog--lg{width:720px}
+@keyframes panelIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+.dlg-head{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-5) var(--space-6) var(--space-4)}
+.dlg-head__icon{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--radius-md);flex:none}
+.dlg-head__icon--brand{background:var(--brand-subtle);color:var(--brand-primary)}
+.dlg-head__icon--spark{background:var(--spark-subtle);color:var(--spark-hover)}
+.dlg-head__icon--danger{background:var(--status-error-subtle);color:var(--status-error)}
+.dlg-head__txt{flex:1;min-width:0}
+.dlg-title{font-family:var(--font-display);font-size:var(--text-xl);line-height:var(--leading-xl);font-weight:var(--weight-semibold);margin:0}
+.dlg-sub{font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-1)}
+.dlg-body{padding:0 var(--space-6) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);position:relative}
+.dlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-subtle);background:var(--bg-surface)}
+
+/* preview modal content */
+.pv-meta{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.pv-block{display:flex;flex-direction:column;gap:var(--space-2)}
+.pv-label{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.pv-prompt{font-size:var(--text-base);line-height:1.55;color:var(--text-primary)}
+.pv-prompt code{font-family:var(--font-mono);font-size:var(--text-sm);background:var(--bg-surface-sunken);padding:0 4px;border-radius:var(--radius-sm)}
+.pv-stats{display:flex;align-items:center;gap:var(--space-5);padding:var(--space-3) var(--space-4);background:var(--bg-surface-sunken);border-radius:var(--radius-md)}
+.pv-stat{display:flex;flex-direction:column;gap:1px}
+.pv-stat__n{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--weight-semibold);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.pv-stat__l{font-size:var(--text-2xs);color:var(--text-muted)}
+.pv-topics{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+
+/* editor form */
+.fld{display:flex;flex-direction:column;gap:var(--space-2)}
+.fld__lab{font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-3)}
+.opt-row{display:flex;align-items:center;gap:var(--space-3)}
+.opt-row .input{flex:1}
+.opt-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-pill);background:var(--bg-surface-sunken);color:var(--text-muted);font-family:var(--font-mono);font-size:var(--text-xs);flex:none}
+.staff-note{display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-secondary);background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--space-3)}
+.staff-note svg{color:var(--brand-primary);flex:none;margin-top:1px}
+.autosave{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);color:var(--text-muted);margin-right:auto}
+.autosave svg{color:var(--text-muted)}
+
+/* editor save overlay */
+.editor-overlay{position:absolute;inset:0;z-index:30;background:rgba(251,248,243,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);backdrop-filter:blur(1px);border-radius:var(--radius-lg)}
+[data-theme="dark"] .editor-overlay{background:rgba(28,26,22,.55)}
+.editor-overlay__txt{font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary)}
+
+/* ---- toast ---- */
+.toast-stack{position:absolute;right:var(--space-6);bottom:var(--space-6);z-index:120;display:flex;flex-direction:column;gap:var(--space-2)}
+.toast-card{display:flex;align-items:center;gap:var(--space-3);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-e3);padding:var(--space-3) var(--space-4);min-width:300px;animation:toastIn var(--dur-base) var(--ease-entrance)}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.toast-card__icon{display:grid;place-items:center}
+.toast-card__icon--ok{color:var(--status-success)}
+.toast-card__icon--err{color:var(--status-error)}
+.toast-card__txt{flex:1;font-size:var(--text-sm);color:var(--text-primary)}
+
+/* ---- prototype state switcher (chrome, not part of screen) ---- */
+.proto-bar{position:absolute;top:var(--space-3);left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:var(--space-2);background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);box-shadow:var(--shadow-e2);padding:var(--space-1) var(--space-2)}
+.proto-bar__lab{font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);padding-left:var(--space-2)}
+.proto-seg{display:inline-flex;background:var(--bg-surface-sunken);border:1px solid var(--border-subtle);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.proto-seg button{font-size:var(--text-xs);font-weight:var(--weight-medium);font-family:var(--font-ui);color:var(--text-secondary);padding:var(--space-1) var(--space-3);border-radius:var(--radius-pill);line-height:1.6}
+.proto-seg button[aria-pressed="true"]{background:var(--bg-surface);color:var(--brand-primary);box-shadow:var(--shadow-e1);font-weight:var(--weight-semibold)}
+
+.spin{width:22px;height:22px;border-radius:var(--radius-pill);border:2px solid var(--border-subtle);border-top-color:var(--brand-primary);animation:spin var(--dur-slow) linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  .scrim,.dialog,.toast-card{animation:none}
+  .spin{animation:none}
+  .qb-row--dim{transition:none}
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const {
+    Button, IconButton, Icon, Input, Textarea, Select, Field, Badge, Chip,
+    Avatar, Skeleton, EmptyState, Alert, Breadcrumb, Kbd, DataTable, Checkbox
+  } = window.LvlupV0DesignSystem_5d0725;
+
+  /* ====== closed enums (status-by-color-alone is forbidden: color + icon + text) ====== */
+  // Question type registry (subset of the 15 supported QuestionTypes)
+  const TYPE_META = {
+    mcq:           { label:"MCQ",            icon:"circle-dot" },
+    multi_select:  { label:"Multi-select",   icon:"list-checks" },
+    short_answer:  { label:"Short answer",   icon:"pilcrow" },
+    long_answer:   { label:"Long answer",    icon:"text" },
+    coding:        { label:"Coding",         icon:"code-2" },
+    true_false:    { label:"True / False",   icon:"toggle-left" },
+    fill_blank:    { label:"Fill blank",     icon:"underline" },
+    numeric:       { label:"Numeric",        icon:"hash" },
+  };
+  // difficulty pairs color WITH icon + text
+  const DIFF_META = {
+    easy:   { label:"Easy",   icon:"signal-low",    variant:"success" },
+    medium: { label:"Medium", icon:"signal-medium", variant:"warning" },
+    hard:   { label:"Hard",   icon:"signal-high",   variant:"error" },
+  };
+  // Bloom's level — neutral badge with icon + text (not encoded by color alone)
+  const BLOOM_META = {
+    remember:   { label:"Remember",   icon:"brain" },
+    understand: { label:"Understand", icon:"lightbulb" },
+    apply:      { label:"Apply",      icon:"wrench" },
+    analyze:    { label:"Analyze",    icon:"git-branch" },
+    evaluate:   { label:"Evaluate",   icon:"scale" },
+    create:     { label:"Create",     icon:"sparkles" },
+  };
+
+  /* ====== mock tenant question bank (tenant_subhang / SUB001) ====== */
+  const BANK = [
+    { id:"qb_7Kd2", title:"Two Sum — optimal hash-map approach", type:"coding", diff:"medium", bloom:"apply",
+      prevHtml:"Given an array <code>nums</code> and a target, return indices of the two numbers adding to target. State the time complexity of your approach.",
+      explainHtml:"The O(n) solution stores complements in a hash map in a single pass; the brute force is O(n²).",
+      topics:["Arrays","Hashing"], subject:"DSA", used:14, avg:0.78, updated:"2h ago", author:{name:"Tara Sen",initials:"TS"} },
+    { id:"qb_9Lp4", title:"Big-O of binary search on a sorted array", type:"mcq", diff:"easy", bloom:"remember",
+      prevHtml:"What is the worst-case time complexity of binary search over <code>n</code> sorted elements?",
+      explainHtml:"Each step halves the search space, giving O(log n).",
+      topics:["Complexity","Searching"], subject:"DSA", used:31, avg:0.91, updated:"yesterday", author:{name:"Tara Sen",initials:"TS"} },
+    { id:"qb_3Mx8", title:"When to shard vs. replicate a database", type:"long_answer", diff:"hard", bloom:"evaluate",
+      prevHtml:"Compare sharding and replication for a write-heavy service at <code>10k</code> QPS. When would you choose each?",
+      explainHtml:"Replication scales reads & adds redundancy; sharding scales writes by partitioning the key space. Discuss hot keys and rebalancing.",
+      topics:["Scalability","Databases"], subject:"System Design", used:6, avg:0.54, updated:"3d ago", author:{name:"Anil Rao",initials:"AR"} },
+    { id:"qb_5Qz1", title:"Select all SOLID principles", type:"multi_select", diff:"medium", bloom:"understand",
+      prevHtml:"Which of the following are part of the SOLID set of object-oriented design principles?",
+      explainHtml:"SOLID = Single-responsibility, Open/closed, Liskov substitution, Interface segregation, Dependency inversion.",
+      topics:["OOP","Design Patterns"], subject:"LLD", used:9, avg:0.67, updated:"5d ago", author:{name:"Meera Iyer",initials:"MI"} },
+    { id:"qb_2Wb6", title:"A hash table guarantees O(1) lookups in all cases", type:"true_false", diff:"easy", bloom:"understand",
+      prevHtml:"True or false: a hash table guarantees constant-time <code>O(1)</code> lookups in every case.",
+      explainHtml:"False — with adversarial collisions a chained hash table degrades to O(n).",
+      topics:["Hashing","Complexity"], subject:"DSA", used:22, avg:0.83, updated:"1w ago", author:{name:"Tara Sen",initials:"TS"} },
+    { id:"qb_8Rt3", title:"STAR: describe a time you resolved a team conflict", type:"long_answer", diff:"medium", bloom:"create",
+      prevHtml:"Using the STAR method (Situation, Task, Action, Result), describe a conflict you resolved within a team.",
+      explainHtml:"Look for a concrete Situation/Task, the candidate's specific Actions, and a measurable Result with reflection.",
+      topics:["STAR","Leadership"], subject:"Behavioral", used:18, avg:0.72, updated:"1w ago", author:{name:"Meera Iyer",initials:"MI"} },
+    { id:"qb_4Yk9", title:"Time complexity of merge sort", type:"numeric", diff:"easy", bloom:"remember",
+      prevHtml:"Enter the exponent k such that merge sort runs in O(n · log<sup>k</sup> n) in the average case.",
+      explainHtml:"Merge sort is O(n log n), so k = 1.",
+      topics:["Sorting","Complexity"], subject:"DSA", used:0, avg:null, updated:"just now", author:{name:"Tara Sen",initials:"TS"} },
+    { id:"qb_1Vn5", title:"Define idempotency in an HTTP API", type:"short_answer", diff:"medium", bloom:"understand",
+      prevHtml:"In one sentence, define what it means for an HTTP method to be <code>idempotent</code>.",
+      explainHtml:"Repeating the same request yields the same server state — e.g. PUT and DELETE are idempotent; POST is not.",
+      topics:["APIs","HTTP"], subject:"System Design", used:11, avg:0.88, updated:"2w ago", author:{name:"Anil Rao",initials:"AR"} },
+  ];
+
+  const DIFF_OPTS  = [{value:"",label:"Difficulty"}].concat(Object.entries(DIFF_META).map(([v,m])=>({value:v,label:m.label})));
+  const BLOOM_OPTS = [{value:"",label:"Bloom's Level"}].concat(Object.entries(BLOOM_META).map(([v,m])=>({value:v,label:m.label})));
+  const TYPE_OPTS  = [{value:"",label:"All Types"}].concat(Object.entries(TYPE_META).map(([v,m])=>({value:v,label:m.label})));
+
+  const fmtAvg = (a)=> a==null ? "—" : Math.round(a*100)+"%";
+  const avgClass = (a)=> a==null ? "avg--none" : a>=0.8 ? "avg--high" : a>=0.6 ? "avg--mid" : "avg--low";
+
+  /* ================= chrome ================= */
+  function SidebarNav(){
+    const items = [
+      { icon:"layout-dashboard", label:"Dashboard" },
+      { icon:"graduation-cap",   label:"Spaces" },
+      { icon:"library",          label:"Question Bank", active:true },
+      { icon:"users",            label:"Students" },
+      { icon:"file-check-2",     label:"Exams" },
+      { icon:"bar-chart-3",      label:"Analytics" },
+      { icon:"settings",         label:"Settings" },
+    ];
+    return (
+      <aside className="appshell__sidebar">
+        <div className="sidebar__brand">
+          <div className="sidebar__brand-mark">L</div>
+          <div className="sidebar__brand-name">LevelUp</div>
+        </div>
+        <nav className="sidebar__nav" aria-label="Primary">
+          <div className="sidebar__section-label">Teach</div>
+          {items.map((it,i)=>(
+            <a key={i} className="nav-item" href="#" aria-current={it.active?"page":undefined}>
+              <Icon name={it.icon} size={18} /><span>{it.label}</span>
+            </a>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
+
+  function Topbar(){
+    return (
+      <header className="appshell__topbar">
+        <div className="tb-tenant">
+          <Avatar initials="SA" size="sm" />
+          <div>Subhang Academy</div>
+          <span className="tb-tenant__code">SUB001</span>
+          <Icon name="chevron-down" size={14} />
+        </div>
+        <div className="tb-search">
+          <Icon name="search" size={16} />
+          <input className="input" placeholder="Search students, exams, spaces…" aria-label="Global search" />
+          <span className="tb-kbd"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+        </div>
+        <div className="topbar__spacer" />
+        <button className="tb-icon" aria-label="Notifications"><Icon name="bell" size={18} /></button>
+        <Avatar initials="TS" size="sm" />
+      </header>
+    );
+  }
+
+  /* ================= table cells ================= */
+  function TypeCell({type}){
+    const ty = TYPE_META[type];
+    return <span className="type-cell"><Icon name={ty.icon} size={14} /> {ty.label}</span>;
+  }
+  function DiffBadge({diff}){
+    const d = DIFF_META[diff];
+    return <Badge variant={d.variant} icon={<Icon name={d.icon} size={11} />}>{d.label}</Badge>;
+  }
+  function BloomBadge({bloom}){
+    const b = BLOOM_META[bloom];
+    return <Badge icon={<Icon name={b.icon} size={11} />}>{b.label}</Badge>;
+  }
+
+  /* ================= preview modal (no answer key — staff still gets a read-only body) ================= */
+  function PreviewModal({ item, onClose }){
+    useEffect(()=>{ const k=(e)=>{ if(e.key==="Escape") onClose(); }; document.addEventListener("keydown",k); return ()=>document.removeEventListener("keydown",k); },[onClose]);
+    return (
+      <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose(); }}>
+        <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="pv-title">
+          <div className="dlg-head">
+            <div className="dlg-head__icon dlg-head__icon--brand"><Icon name="eye" size={20} /></div>
+            <div className="dlg-head__txt">
+              <h2 className="dlg-title" id="pv-title">Question Preview</h2>
+              <div className="dlg-sub">{item.subject} · <span style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-xs)"}}>{item.id}</span></div>
+            </div>
+            <IconButton icon={<Icon name="x" size={18} />} label="Close preview" size="sm" onClick={onClose} />
+          </div>
+          <div className="dlg-body">
+            <div className="pv-meta">
+              <TypeCell type={item.type} />
+              <DiffBadge diff={item.diff} />
+              <BloomBadge bloom={item.bloom} />
+            </div>
+            <div className="pv-block">
+              <div className="pv-label">Prompt</div>
+              <div className="pv-prompt" dangerouslySetInnerHTML={{__html:item.prevHtml}} />
+            </div>
+            <div className="pv-block">
+              <div className="pv-label">Explanation</div>
+              <div className="pv-prompt" style={{color:"var(--text-secondary)",fontSize:"var(--text-sm)"}} dangerouslySetInnerHTML={{__html:item.explainHtml}} />
+            </div>
+            <div className="pv-block">
+              <div className="pv-label">Topics</div>
+              <div className="pv-topics">
+                {item.topics.map(t=>(<Chip key={t}><Icon name="tag" size={11} /> {t}</Chip>))}
+              </div>
+            </div>
+            <div className="pv-stats" aria-label="Usage statistics (read-only)">
+              <div className="pv-stat"><span className="pv-stat__n">{item.used}×</span><span className="pv-stat__l">imported / used</span></div>
+              <div className="pv-stat"><span className="pv-stat__n">{fmtAvg(item.avg)}</span><span className="pv-stat__l">avg score</span></div>
+              <div className="pv-stat"><span className="pv-stat__n" style={{fontSize:"var(--text-sm)"}}>{item.updated}</span><span className="pv-stat__l">updated</span></div>
+            </div>
+            <div className="staff-note">
+              <Icon name="info" size={15} />
+              <span>Usage and average score are maintained server-side and are read-only here. Importing this question into a space creates an independent copy.</span>
+            </div>
+          </div>
+          <div className="dlg-foot">
+            <Button variant="ghost" onClick={onClose}>Close</Button>
+            <Button variant="secondary" leadingIcon={<Icon name="download" size={16} />}>Import into a space</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= editor modal (QuestionBankEditor) ================= */
+  function EditorModal({ mode, item, onClose, onSaved }){
+    const isDup = mode==="duplicate";
+    const isNew = mode==="add";
+    const seed = item || {};
+    const [title,setTitle] = useState(isNew?"":(seed.title||"") + (isDup?" (copy)":""));
+    const [type,setType]   = useState(seed.type||"mcq");
+    const [diff,setDiff]   = useState(seed.diff||"medium");
+    const [bloom,setBloom] = useState(seed.bloom||"understand");
+    const [prompt,setPrompt] = useState(seed.prevHtml? seed.prevHtml.replace(/<[^>]+>/g,""):"");
+    const [topics,setTopics] = useState((seed.topics||[]).join(", "));
+    const [correct,setCorrect] = useState(0);
+    const [saving,setSaving] = useState(false);
+    const [err,setErr] = useState(false);
+    const [autosave,setAutosave] = useState("idle"); // idle | unsaved | saved
+
+    useEffect(()=>{ const k=(e)=>{ if(e.key==="Escape"&&!saving) onClose(); }; document.addEventListener("keydown",k); return ()=>document.removeEventListener("keydown",k); },[saving,onClose]);
+
+    const titleText = isNew ? "Add Question" : isDup ? "Duplicate Question" : "Edit Question";
+    const subText = isDup
+      ? "Saving creates a new bank record with a cleared id — the source is untouched."
+      : isNew ? "New questions become reusable across every space in your tenant."
+      : "Editing the bank item does not change copies already imported into spaces.";
+
+    const submit = ()=>{
+      if(!title.trim()){ setErr(true); return; }
+      setSaving(true);
+      setTimeout(()=>{ onSaved({ mode, title:title.trim() }); }, 850);
+    };
+    const touch = ()=>{ if(autosave!=="unsaved") setAutosave("unsaved"); };
+
+    // options only for choice types (answer key fields are fine here — staff-only surface)
+    const choiceType = type==="mcq" || type==="multi_select" || type==="true_false";
+    const opts = type==="true_false" ? ["True","False"] : ["O(n)","O(log n)","O(n²)","O(1)"];
+
+    return (
+      <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget && !saving) onClose(); }}>
+        <div className="dialog dialog--lg" role="dialog" aria-modal="true" aria-labelledby="ed-title">
+          <div className="dlg-head">
+            <div className={"dlg-head__icon "+(isNew?"dlg-head__icon--spark":"dlg-head__icon--brand")}>
+              <Icon name={isNew?"plus":isDup?"copy":"pencil"} size={20} />
+            </div>
+            <div className="dlg-head__txt">
+              <h2 className="dlg-title" id="ed-title">{titleText}</h2>
+              <div className="dlg-sub">{subText}</div>
+            </div>
+            <IconButton icon={<Icon name="x" size={18} />} label="Close editor" size="sm" onClick={onClose} disabled={saving} />
+          </div>
+          <div className="dlg-body">
+            {saving && (
+              <div className="editor-overlay"><div className="spin" /><div className="editor-overlay__txt">Saving question…</div></div>
+            )}
+            <Field label="Question title" required error={err?"Give the question a title to continue.":undefined}>
+              <Input value={title} error={err} placeholder="e.g. Two Sum — optimal hash-map approach"
+                onChange={(e)=>{ setTitle(e.target.value); if(err) setErr(false); touch(); }} autoFocus />
+            </Field>
+
+            <div className="grid-3">
+              <div className="fld">
+                <div className="fld__lab">Type</div>
+                <Select options={Object.entries(TYPE_META).map(([v,m])=>({value:v,label:m.label}))} value={type}
+                  onChange={(e)=>{ setType(e.target.value); touch(); }} aria-label="Question type" />
+              </div>
+              <div className="fld">
+                <div className="fld__lab">Difficulty</div>
+                <Select options={Object.entries(DIFF_META).map(([v,m])=>({value:v,label:m.label}))} value={diff}
+                  onChange={(e)=>{ setDiff(e.target.value); touch(); }} aria-label="Difficulty" />
+              </div>
+              <div className="fld">
+                <div className="fld__lab">Bloom's level</div>
+                <Select options={Object.entries(BLOOM_META).map(([v,m])=>({value:v,label:m.label}))} value={bloom}
+                  onChange={(e)=>{ setBloom(e.target.value); touch(); }} aria-label="Bloom's level" />
+              </div>
+            </div>
+
+            <div className="fld">
+              <div className="fld__lab">Prompt</div>
+              <Textarea rows={3} value={prompt} placeholder="Write the question prompt. Markdown + $LaTeX$ supported."
+                onChange={(e)=>{ setPrompt(e.target.value); touch(); }} />
+            </div>
+
+            {choiceType && (
+              <div className="fld">
+                <div className="fld__lab">Answer options <span style={{color:"var(--text-muted)",fontWeight:"var(--weight-regular)"}}>· mark the correct {type==="multi_select"?"answers":"answer"}</span></div>
+                {opts.map((o,i)=>(
+                  <div className="opt-row" key={i}>
+                    <span className="opt-mark">{String.fromCharCode(65+i)}</span>
+                    <input className="input" defaultValue={o} aria-label={"Option "+String.fromCharCode(65+i)} onChange={touch} />
+                    <Checkbox checked={correct===i} onChange={()=>{ setCorrect(i); touch(); }} aria-label={"Mark option "+String.fromCharCode(65+i)+" correct"} />
+                  </div>
+                ))}
+                <div className="staff-note">
+                  <Icon name="shield-check" size={15} />
+                  <span>Correct-answer keys live only in this staff authoring context and are never exposed on a student or preview path. <code style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)"}}>questionType</code> and <code style={{fontFamily:"var(--font-mono)",fontSize:"var(--text-2xs)"}}>questionData</code> stay in sync on save.</span>
+                </div>
+              </div>
+            )}
+
+            <Field label="Topics" hint="Comma-separated tags, e.g. Arrays, Hashing">
+              <Input value={topics} placeholder="Arrays, Hashing" onChange={(e)=>{ setTopics(e.target.value); touch(); }} />
+            </Field>
+          </div>
+          <div className="dlg-foot">
+            <span className="autosave" aria-live="polite">
+              {saving ? (<><Icon name="loader" size={13} /> Saving…</>)
+                : autosave==="unsaved" ? (<><Icon name="circle-dashed" size={13} /> Unsaved changes</>)
+                : autosave==="saved" ? (<><Icon name="check" size={13} /> Saved just now</>)
+                : (<><Icon name="cloud" size={13} /> All changes saved</>)}
+            </span>
+            <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button variant={isNew?"spark":"primary"} loading={saving} onClick={submit}>
+              {saving ? "Saving…" : isNew ? "Add question" : "Save changes"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= delete confirm ================= */
+  function DeleteDialog({ item, onClose, onConfirm }){
+    const [busy,setBusy] = useState(false);
+    useEffect(()=>{ const k=(e)=>{ if(e.key==="Escape"&&!busy) onClose(); }; document.addEventListener("keydown",k); return ()=>document.removeEventListener("keydown",k); },[busy,onClose]);
+    const go = ()=>{ setBusy(true); setTimeout(()=>onConfirm(item), 600); };
+    return (
+      <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget && !busy) onClose(); }}>
+        <div className="dialog dialog--sm" role="alertdialog" aria-modal="true" aria-labelledby="del-title">
+          <div className="dlg-head">
+            <div className="dlg-head__icon dlg-head__icon--danger"><Icon name="trash-2" size={20} /></div>
+            <div className="dlg-head__txt">
+              <h2 className="dlg-title" id="del-title">Delete this question?</h2>
+              <div className="dlg-sub">This permanently removes the question from your bank. Questions already imported into spaces are not affected.</div>
+            </div>
+          </div>
+          <div className="dlg-body">
+            <div style={{fontSize:"var(--text-sm)",color:"var(--text-secondary)"}}>
+              <b style={{color:"var(--text-primary)"}}>{item.title}</b>
+            </div>
+          </div>
+          <div className="dlg-foot">
+            <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button variant="danger" loading={busy} onClick={go}>{busy?"Deleting…":"Delete"}</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= app ================= */
+  function App(){
+    const [proto,setProto] = useState("default"); // default | loading | empty | filtered | error
+    const [role,setRole]   = useState("teacher"); // teacher | tenantAdmin (admin reveals Author column)
+    const [q,setQ]   = useState("");
+    const [diff,setDiff]   = useState("");
+    const [bloom,setBloom] = useState("");
+    const [type,setType]   = useState("");
+    const [sort,setSort]   = useState({key:"used",dir:"desc"});
+    const [preview,setPreview] = useState(null);
+    const [editor,setEditor]   = useState(null);  // {mode, item}
+    const [del,setDel]         = useState(null);
+    const [dimId,setDimId]     = useState(null);   // optimistic delete dim
+    const [removed,setRemoved] = useState([]);     // ids removed
+    const [flashId,setFlashId] = useState(null);   // saved highlight
+    const [toasts,setToasts]   = useState([]);
+
+    const pushToast = (variant,text)=>{
+      const id = Math.random().toString(36).slice(2);
+      setToasts(t=>[...t,{id,variant,text}]);
+      setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)), 4200);
+    };
+
+    // derive filtered list
+    let list = BANK.filter(b=>!removed.includes(b.id));
+    if(q.trim()) list = list.filter(b=> b.title.toLowerCase().includes(q.trim().toLowerCase()) || b.topics.join(" ").toLowerCase().includes(q.trim().toLowerCase()));
+    if(diff)  list = list.filter(b=>b.diff===diff);
+    if(bloom) list = list.filter(b=>b.bloom===bloom);
+    if(type)  list = list.filter(b=>b.type===type);
+
+    const SORTERS = {
+      used:(a,b)=>b.used-a.used,
+      avg:(a,b)=>(b.avg??-1)-(a.avg??-1),
+      updated:()=>0,
+    };
+    list = list.slice().sort(SORTERS[sort.key]);
+    if(sort.dir==="asc") list.reverse();
+
+    if(proto==="empty" || proto==="filtered") list = [];
+
+    const activeFilters = [];
+    if(diff)  activeFilters.push({k:"diff", label:"Difficulty: "+DIFF_META[diff].label});
+    if(bloom) activeFilters.push({k:"bloom",label:"Bloom: "+BLOOM_META[bloom].label});
+    if(type)  activeFilters.push({k:"type", label:"Type: "+TYPE_META[type].label});
+    if(q.trim()) activeFilters.push({k:"q", label:"“"+q.trim()+"”"});
+
+    const anyFilter = activeFilters.length>0;
+    const clearFilters = ()=>{ setQ(""); setDiff(""); setBloom(""); setType(""); if(proto==="filtered") setProto("default"); };
+    const removeFilter = (k)=>{ if(k==="diff")setDiff(""); if(k==="bloom")setBloom(""); if(k==="type")setType(""); if(k==="q")setQ(""); };
+
+    const toggleSort = (key)=> setSort(s=> s.key===key ? {key,dir:s.dir==="desc"?"asc":"desc"} : {key,dir:"desc"});
+
+    const handleSaved = ({mode})=>{
+      setEditor(null);
+      const fid = mode==="edit" ? (editor && editor.item && editor.item.id) : "qb_new";
+      setFlashId(fid);
+      setTimeout(()=>setFlashId(null), 1400);
+      pushToast("ok","Question saved");
+    };
+    const handleDelete = (item)=>{
+      setDel(null);
+      setDimId(item.id);
+      setTimeout(()=>{ setRemoved(r=>[...r,item.id]); setDimId(null); pushToast("ok","Question deleted"); }, 650);
+    };
+
+    // ---- DataTable columns (Author appears only for tenantAdmin) ----
+    const SortHead = ({label,k})=>(
+      <button type="button" onClick={()=>toggleSort(k)} aria-sort={sort.key===k?(sort.dir==="desc"?"descending":"ascending"):"none"}
+        style={{display:"inline-flex",alignItems:"center",gap:"4px",font:"inherit",color:"inherit",cursor:"pointer"}}>
+        {label}<Icon name={sort.key===k ? (sort.dir==="desc"?"chevron-down":"chevron-up") : "chevrons-up-down"} size={13} />
+      </button>
+    );
+
+    const columns = [
+      { label:"Question", key:"_q", render:(r)=>(
+          <div className="qcell">
+            <span className="qcell__title">{r.title}</span>
+            <span className="qcell__prev" dangerouslySetInnerHTML={{__html:r.prevHtml}} />
+          </div>) },
+      { label:"Type", key:"_type", render:(r)=><TypeCell type={r.type} /> },
+      { label:"Difficulty", key:"_diff", render:(r)=><DiffBadge diff={r.diff} /> },
+      { label:"Bloom's", key:"_bloom", render:(r)=><BloomBadge bloom={r.bloom} /> },
+      { label:"Topics", key:"_topics", render:(r)=>(
+          <div className="topics">{r.topics.map(t=>(<Chip key={t}><Icon name="tag" size={10} /> {t}</Chip>))}</div>) },
+      { label:<SortHead label="Usage" k="used" />, key:"_use", render:(r)=>(
+          <span className="usage"><span className="usage__n">Used {r.used}×</span><span className="usage__l">{r.subject}</span></span>) },
+      { label:<SortHead label="Avg score" k="avg" />, key:"_avg", numeric:true, render:(r)=>(
+          <span className={"avg "+avgClass(r.avg)}>{fmtAvg(r.avg)}</span>) },
+      { label:<SortHead label="Updated" k="updated" />, key:"_upd", render:(r)=><span className="upd">{r.updated}</span> },
+    ];
+    if(role==="tenantAdmin"){
+      columns.push({ label:"Author", key:"_author", render:(r)=>(
+        <span style={{display:"inline-flex",alignItems:"center",gap:"var(--space-2)",fontSize:"var(--text-xs)",color:"var(--text-secondary)",whiteSpace:"nowrap"}}>
+          <Avatar initials={r.author.initials} size="sm" /> {r.author.name}
+        </span>) });
+    }
+    columns.push({ label:"", key:"_actions", render:(r)=>(
+      <div className="row-actions">
+        <IconButton icon={<Icon name="pencil" size={15} />} label="Edit question" size="sm" onClick={()=>setEditor({mode:"edit",item:r})} />
+        <IconButton icon={<Icon name="copy" size={15} />} label="Duplicate question" size="sm" onClick={()=>setEditor({mode:"duplicate",item:r})} />
+        <IconButton icon={<Icon name="trash-2" size={15} />} label="Delete question" size="sm" onClick={()=>setDel(r)} />
+        <IconButton icon={<Icon name="chevron-right" size={15} />} label="Open preview" size="sm" onClick={()=>setPreview(r)} />
+      </div>) });
+
+    const rows = list.map(r=>({ ...r, _rowClass: dimId===r.id ? "qb-row--dim" : flashId===r.id ? "" : "" }));
+
+    return (
+      <div className="shell appshell">
+        {/* prototype state switcher (chrome, not part of screen) */}
+        <div className="proto-bar" role="group" aria-label="Prototype state">
+          <span className="proto-bar__lab">State</span>
+          <div className="proto-seg">
+            {[["default","Default"],["loading","Loading"],["empty","Empty"],["filtered","No matches"],["error","Error"]].map(([v,l])=>(
+              <button key={v} aria-pressed={proto===v} onClick={()=>setProto(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <SidebarNav/>
+        <Topbar/>
+
+        <main className="appshell__main">
+          <div className="qb-main">
+            <Breadcrumb items={[{label:"Spaces", href:"#"},{label:"Question Bank"}]} />
+
+            {/* header row */}
+            <div className="page-head">
+              <div className="page-head__l">
+                <div className="page-head__icon"><Icon name="library" size={24} /></div>
+                <div>
+                  <h1>Question Bank</h1>
+                  <div className="page-sub">Reusable questions across all your spaces</div>
+                </div>
+              </div>
+              <div className="head-actions">
+                <div className="role-seg" role="radiogroup" aria-label="Preview role">
+                  <button role="radio" aria-checked={role==="teacher"} onClick={()=>setRole("teacher")}><Icon name="user" size={13} /> Teacher</button>
+                  <button role="radio" aria-checked={role==="tenantAdmin"} onClick={()=>setRole("tenantAdmin")}><Icon name="shield" size={13} /> Admin</button>
+                </div>
+                <Button variant="spark" leadingIcon={<Icon name="plus" size={16} />} onClick={()=>setEditor({mode:"add",item:null})}>Add Question</Button>
+              </div>
+            </div>
+
+            <div className="qb-scroll">
+              {/* sticky filter bar */}
+              <div className="toolbar">
+                <div className="toolbar__row">
+                  <div className="tool-search">
+                    <Icon name="search" size={16} />
+                    <input className="input" placeholder="Search questions…" aria-label="Search questions"
+                      value={q} onChange={(e)=>setQ(e.target.value)} disabled={proto==="loading"} />
+                    {q && <button className="tool-search__clear" aria-label="Clear search" onClick={()=>setQ("")}><Icon name="x" size={14} /></button>}
+                  </div>
+                  <div className="tool-select"><Select options={DIFF_OPTS} value={diff} onChange={(e)=>setDiff(e.target.value)} aria-label="Difficulty" disabled={proto==="loading"} /></div>
+                  <div className="tool-select"><Select options={BLOOM_OPTS} value={bloom} onChange={(e)=>setBloom(e.target.value)} aria-label="Bloom's level" disabled={proto==="loading"} /></div>
+                  <div className="tool-select"><Select options={TYPE_OPTS} value={type} onChange={(e)=>setType(e.target.value)} aria-label="Type" disabled={proto==="loading"} /></div>
+                  {anyFilter && <Button variant="ghost" size="sm" leadingIcon={<Icon name="x" size={14} />} onClick={clearFilters}>Clear filters</Button>}
+                  <div style={{flex:1}} />
+                  <div className="count-pill" aria-live="polite"><b>{proto==="loading"?"—":list.length}</b> {list.length===1?"question":"questions"}</div>
+                </div>
+
+                {anyFilter && (
+                  <div className="toolbar__meta">
+                    <div className="active-chips">
+                      {activeFilters.map(f=>(
+                        <span key={f.k} className="chip" style={{display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                          {f.label}
+                          <button aria-label={"Remove filter "+f.label} className="chip__remove" onClick={()=>removeFilter(f.k)}><Icon name="x" size={12} /></button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* content region */}
+              {proto==="loading" && (
+                <div className="sk-tbl" aria-busy="true" aria-label="Loading questions">
+                  <div className="sk-row sk-head">
+                    {["Question","Type","Difficulty","Bloom's","Usage","Avg","Updated"].map((h,i)=>(
+                      <Skeleton key={i} variant="text" width="60%" height={12} />
+                    ))}
+                  </div>
+                  {Array.from({length:4}).map((_,i)=>(
+                    <div className="sk-row" key={i}>
+                      <div style={{display:"flex",flexDirection:"column",gap:"var(--space-2)"}}>
+                        <Skeleton variant="text" width="80%" height={14} />
+                        <Skeleton variant="text" width="100%" height={10} />
+                      </div>
+                      <Skeleton variant="text" width={64} height={20} />
+                      <Skeleton variant="text" width={64} height={20} />
+                      <Skeleton variant="text" width={72} height={20} />
+                      <Skeleton variant="text" width={48} height={14} />
+                      <Skeleton variant="text" width={40} height={14} />
+                      <Skeleton variant="text" width={56} height={12} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {proto==="error" && (
+                <Alert variant="error" title="Couldn’t load the question bank.">
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"var(--space-4)",width:"100%"}}>
+                    <span>Check your connection and try again.</span>
+                    <Button variant="secondary" size="sm" leadingIcon={<Icon name="refresh-cw" size={14} />} onClick={()=>setProto("default")}>Retry</Button>
+                  </div>
+                </Alert>
+              )}
+
+              {proto==="empty" && (
+                <EmptyState icon={<Icon name="library" size={28} />} title="Your question bank is empty"
+                  body="Save questions from your spaces or author new ones here. Anything you add becomes reusable across every space in your tenant."
+                  action={
+                    <div style={{display:"flex",gap:"var(--space-3)"}}>
+                      <Button variant="spark" leadingIcon={<Icon name="plus" size={16} />} onClick={()=>setEditor({mode:"add",item:null})}>Add Question</Button>
+                      <Button variant="secondary" leadingIcon={<Icon name="download" size={16} />}>Import from a space</Button>
+                    </div>} />
+              )}
+
+              {proto==="filtered" && (
+                <EmptyState icon={<Icon name="search-x" size={28} />} title="No questions match your filters."
+                  body="Try a broader search or remove some filters."
+                  action={<Button variant="ghost" leadingIcon={<Icon name="x" size={14} />} onClick={clearFilters}>Clear filters</Button>} />
+              )}
+
+              {proto==="default" && (
+                list.length===0 ? (
+                  <EmptyState icon={<Icon name="search-x" size={28} />} title="No questions match your filters."
+                    body="Try a broader search or remove some filters."
+                    action={<Button variant="ghost" leadingIcon={<Icon name="x" size={14} />} onClick={clearFilters}>Clear filters</Button>} />
+                ) : (
+                  <>
+                    <div className="tbl-wrap">
+                      <DataTable columns={columns} rows={rows} />
+                    </div>
+                    <div className="pager">
+                      <span className="pager__note">Showing {list.length} of {BANK.length} · cursor pagination</span>
+                      <Button variant="secondary" size="sm" leadingIcon={<Icon name="chevron-down" size={14} />}>Load more</Button>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
+          </div>
+        </main>
+
+        {preview && <PreviewModal item={preview} onClose={()=>setPreview(null)} />}
+        {editor && <EditorModal mode={editor.mode} item={editor.item} onClose={()=>setEditor(null)} onSaved={handleSaved} />}
+        {del && <DeleteDialog item={del} onClose={()=>setDel(null)} onConfirm={handleDelete} />}
+
+        {/* toasts */}
+        <div className="toast-stack" role="status" aria-live="polite">
+          {toasts.map(t=>(
+            <div key={t.id} className="toast-card">
+              <span className={"toast-card__icon "+(t.variant==="err"?"toast-card__icon--err":"toast-card__icon--ok")}>
+                <Icon name={t.variant==="err"?"alert-circle":"check-circle-2"} size={18} />
+              </span>
+              <span className="toast-card__txt">{t.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

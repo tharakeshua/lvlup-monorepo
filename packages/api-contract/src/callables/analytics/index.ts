@@ -23,6 +23,7 @@ export * from "./get-leaderboard.js";
 export * from "./list-parent-alerts.js";
 export * from "./list-platform-activity.js";
 export * from "./get-assignment-matrix.js";
+export * from "./get-space-analytics.js";
 
 import { getSummary } from "./get-summary.js";
 import { generateReport } from "./generate-report.js";
@@ -37,6 +38,7 @@ import { getLeaderboard } from "./get-leaderboard.js";
 import { listParentAlerts } from "./list-parent-alerts.js";
 import { listPlatformActivity } from "./list-platform-activity.js";
 import { getAssignmentMatrix } from "./get-assignment-matrix.js";
+import { getSpaceAnalytics } from "./get-space-analytics.js";
 
 /**
  * Named record of every analytics CallableDef, keyed by its `name`. Spread into the
@@ -56,4 +58,5 @@ export const ANALYTICS_CALLABLES = {
   "v1.analytics.listParentAlerts": listParentAlerts,
   "v1.analytics.listPlatformActivity": listPlatformActivity,
   "v1.analytics.getAssignmentMatrix": getAssignmentMatrix,
+  "v1.analytics.getSpaceAnalytics": getSpaceAnalytics,
 } as const;

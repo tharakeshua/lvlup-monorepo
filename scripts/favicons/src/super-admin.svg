@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="115" fill="#1C1A16"/>
+  <!-- Central marigold sparkle = elevated / "super" mark -->
+  <path d="M256 96 l40 96 96 40 -96 40 -40 96 -40 -96 -96 -40 96 -40 z" fill="#E8972B"/>
+  <!-- Indigo counter-spark for depth -->
+  <path d="M150 300 l18 44 44 18 -44 18 -18 44 -18 -44 -44 -18 44 -18 z" fill="#7A6FC9"/>
+</svg>

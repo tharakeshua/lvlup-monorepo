@@ -1,33 +1,38 @@
 /**
- * SpaceDetailScreen — the learning track for one space.
+ * SpaceDetailScreen — one space, presented as its own little world.
  *
- * Design: docs/rebuild-spec/design/build/app/mobile-family/_build/space-detail-learning-track.viewjs
- * Data:   useSpace + useStoryPoints + useSpaceProgress (the granular GATE-0-proven
- *         primitives; the composed useSpaceDetailView is the alt the contract
- *         allows, but the three reads are individually reliable on prod).
+ * The main app tab bar hides on this route (see app/learner/_layout.tsx); this
+ * screen renders its own space-scoped bottom nav (SpaceTabbar) with a back
+ * affordance plus three sections:
+ *   Overview — the hero page: duotone cover, title, "Your journey" bar, points
+ *              chip, resume CTA, and the headline stats below.
+ *   Content  — the full learning track from the very top: the vertical mastery
+ *              spine of story-point nodes, nothing above it.
+ *   Progress — how you're doing: per-type completion + per-module scores.
  *
- * Reads spaceId from the route; renders a vertical "spine" of story-point nodes
- * (Contents) plus an Overview tab. Navigates into the item viewer / practice /
- * timed-test gate per node type.
+ * Data: useSpace + useStoryPoints + useSpaceProgress (the granular GATE-0-proven
+ * primitives). Navigates into the item viewer / practice / timed-test gate per
+ * node type.
  */
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSpace, useSpaceProgress, useStoryPoints } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 
 import {
-  Alert,
-  Badge,
-  Breadcrumb,
   Button,
   Card,
   Chip,
   Icon,
+  PointsChip,
   ProgressBar,
-  Screen,
+  SpaceCover,
+  SpaceTabbar,
   StatTile,
-  XPMeter,
+  colors,
+  type SpaceNavItem,
 } from "../../components";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
@@ -36,45 +41,53 @@ import {
   asArray,
   byOrder,
   pct,
+  thumbnailOf,
   toTrackNode,
-  type NodeRouteKind,
   type NodeState,
   type TrackNodeModel,
 } from "./_shared/normalize";
 import type { SpaceProgressView, SpaceView, StoryPointView } from "./_shared/types";
 
+const SPACE_SECTIONS: SpaceNavItem[] = [
+  { key: "overview", icon: "compass", label: "Overview" },
+  { key: "content", icon: "book-open", label: "Content" },
+  { key: "progress", icon: "bar-chart-3", label: "Progress" },
+];
+
 function MasteryLabel({ state, percentage }: { state: NodeState; percentage: number }) {
   if (state === "mastered")
     return (
       <View className="flex-row items-center gap-1">
-        <Icon name="check-circle" size={15} color="#2F7D5B" />
-        <Text className="text-success text-xs font-semibold">Mastered</Text>
+        <Icon name="check-circle" size={14} color={colors.masteryMastered} />
+        <Text className="font-ui text-mastery-mastered text-xs font-medium">Mastered</Text>
       </View>
     );
   if (state === "in-progress")
     return (
       <View className="flex-row items-center gap-1">
-        <Icon name="circle-dashed" size={15} color="#B7791F" />
-        <Text className="text-warning text-xs font-semibold">In progress · {percentage}%</Text>
+        <Icon name="circle-dot" size={14} color={colors.masteryInProgress} />
+        <Text className="font-ui text-mastery-in-progress text-xs font-medium">
+          In progress · {percentage}%
+        </Text>
       </View>
     );
   return (
     <View className="flex-row items-center gap-1">
-      <Icon name="circle" size={15} color="#756E61" />
-      <Text className="text-text-muted text-xs">Not started</Text>
+      <Icon name="circle" size={14} color={colors.textMuted} />
+      <Text className="font-ui text-text-muted text-xs">Not started</Text>
     </View>
   );
 }
 
 function NodeCard({
   node,
-  index,
   last,
+  isUpNext,
   onOpen,
 }: {
   node: TrackNodeModel;
-  index: number;
   last: boolean;
+  isUpNext: boolean;
   onOpen: () => void;
 }) {
   const cta =
@@ -84,32 +97,40 @@ function NodeCard({
         ? { label: "Continue", variant: "primary" as const, icon: "arrow-right" }
         : { label: "Start", variant: "secondary" as const, icon: "arrow-right" };
 
+  const markerBox =
+    node.state === "mastered"
+      ? "bg-mastery-mastered border-mastery-mastered"
+      : node.state === "in-progress"
+        ? "bg-surface border-mastery-in-progress"
+        : "bg-surface border-border-strong";
+  const markerTint =
+    node.state === "mastered"
+      ? colors.textOnAccent
+      : node.state === "in-progress"
+        ? colors.masteryInProgress
+        : colors.textMuted;
+
   return (
     <View className="flex-row gap-3">
       {/* spine */}
       <View className="items-center">
-        <View
-          className={`h-8 w-8 items-center justify-center rounded-full ${
-            node.state === "mastered"
-              ? "bg-success"
-              : node.state === "in-progress"
-                ? "bg-spark"
-                : "border-border-strong bg-surface border"
-          }`}
-        >
-          {node.state === "mastered" ? (
-            <Icon name="check" size={16} color="#FFFDFA" />
-          ) : (
-            <Text
-              className={`text-sm font-semibold ${node.state === "in-progress" ? "text-text-on-accent" : "text-text-muted"}`}
-            >
-              {index + 1}
-            </Text>
-          )}
+        <View className={isUpNext ? "border-brand-subtle rounded-full border-4" : "p-1"}>
+          <View
+            className={`h-10 w-10 items-center justify-center rounded-full border-2 ${markerBox}`}
+          >
+            <Icon
+              name={node.state === "mastered" ? "check" : node.typeIcon}
+              size={17}
+              color={markerTint}
+              strokeWidth={node.state === "mastered" ? 2.6 : 2}
+            />
+          </View>
         </View>
         {!last ? (
           <View
-            className={`my-1 w-0.5 flex-1 ${node.state === "mastered" ? "bg-success" : "bg-border-subtle"}`}
+            className={`my-1 w-px flex-1 ${
+              node.state === "mastered" ? "bg-mastery-mastered" : "bg-border-subtle"
+            }`}
           />
         ) : null}
       </View>
@@ -118,50 +139,61 @@ function NodeCard({
       <Card
         interactive
         onPress={onOpen}
-        className={`mb-3 flex-1 gap-3 ${node.state === "in-progress" ? "border-spark" : ""}`}
+        className={`mb-4 flex-1 gap-3 ${isUpNext ? "border-brand-muted" : ""}`}
       >
         <View className="flex-row items-start justify-between gap-2">
-          <View className="flex-1 gap-1">
-            <Text className="font-display text-text-primary text-base">{node.title}</Text>
+          <View className="flex-1 gap-1.5">
+            <Text className="font-ui text-text-primary text-sm font-semibold leading-5">
+              {node.title}
+            </Text>
             <View className="flex-row flex-wrap items-center gap-2">
-              <Chip>
+              <Chip className="px-2 py-0.5">
                 <View className="flex-row items-center gap-1">
-                  <Icon name={node.typeIcon} size={12} />
-                  <Text className="text-xs">{node.typeLabel}</Text>
-                </View>
-              </Chip>
-              <View className="flex-row items-center gap-1">
-                <Icon name="layers" size={12} color="#756E61" />
-                <Text className="text-text-muted text-xs">{node.itemCount} items</Text>
-              </View>
-              {node.totalPoints > 0 ? (
-                <View className="flex-row items-center gap-1">
-                  <Icon name="star" size={12} color="#756E61" />
-                  <Text className="text-text-muted text-xs">
-                    {node.points}/{node.totalPoints} pts
+                  <Icon name={node.typeIcon} size={12} color={colors.textSecondary} />
+                  <Text className="font-ui text-text-secondary text-2xs font-medium">
+                    {node.typeLabel}
                   </Text>
                 </View>
+              </Chip>
+              {isUpNext && node.state !== "mastered" ? (
+                <View className="bg-marigold-50 rounded-pill px-2 py-0.5">
+                  <Text className="font-ui text-marigold-600 text-2xs font-semibold">Up next</Text>
+                </View>
+              ) : null}
+            </View>
+            <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
+              <Text className="font-ui text-text-muted text-xs">
+                <Text className="font-mono">{node.itemCount}</Text> items
+              </Text>
+              {node.totalPoints > 0 ? (
+                <Text className="font-ui text-text-muted text-xs">
+                  <Text className="font-mono">
+                    {node.points}/{node.totalPoints}
+                  </Text>{" "}
+                  pts
+                </Text>
               ) : null}
               {node.timed && node.estimatedMinutes ? (
-                <View className="flex-row items-center gap-1">
-                  <Icon name="timer" size={12} color="#756E61" />
-                  <Text className="text-text-muted text-xs">{node.estimatedMinutes} min</Text>
-                </View>
+                <Text className="font-ui text-text-muted text-xs">
+                  <Text className="font-mono">{node.estimatedMinutes}</Text> min · timed
+                </Text>
               ) : null}
             </View>
           </View>
           <MasteryLabel state={node.state} percentage={node.percentage} />
         </View>
 
-        {node.state === "in-progress" ? (
-          <ProgressBar value={node.percentage} variant="spark" />
+        {node.state === "in-progress" && !node.timed ? (
+          <ProgressBar value={node.percentage} variant="brand" height={6} />
         ) : null}
 
-        {node.timed ? (
-          <Alert variant="info" title="Answers stay sealed" icon={<Icon name="lock" size={15} />}>
-            The answer key is server-only and never sent to your device — the live clock starts
-            inside the test.
-          </Alert>
+        {node.timed && node.state !== "mastered" ? (
+          <View className="flex-row items-center gap-1.5">
+            <Icon name="lock" size={12} color={colors.textMuted} />
+            <Text className="font-ui text-text-muted text-xs">
+              Answers stay sealed until you finish
+            </Text>
+          </View>
         ) : null}
 
         <View className="flex-row justify-end">
@@ -179,22 +211,109 @@ function NodeCard({
   );
 }
 
-function OverviewTab({ nodes, totalPoints }: { nodes: TrackNodeModel[]; totalPoints: number }) {
-  const totalItems = nodes.reduce((a, n) => a + n.itemCount, 0);
-  // per-type completion rollup
-  const byType = useMemo(() => {
-    const m = new Map<string, { done: number; total: number }>();
-    nodes.forEach((n) => {
-      const e = m.get(n.typeLabel) ?? { done: 0, total: 0 };
-      e.total += 1;
-      if (n.state === "mastered") e.done += 1;
-      m.set(n.typeLabel, e);
-    });
-    return Array.from(m.entries());
-  }, [nodes]);
-
+/** Empty-content card shown when the track has no nodes yet. */
+function EmptyContent() {
   return (
-    <View className="gap-5">
+    <Card className="items-center gap-2 py-8">
+      <Icon name="book-open" size={28} color={colors.textMuted} />
+      <Text className="font-display text-text-primary text-base">
+        This journey is still being built
+      </Text>
+      <Text className="text-text-muted font-ui px-6 text-center text-sm">
+        Your teacher is adding content here. Check back soon — it'll be worth the wait.
+      </Text>
+    </Card>
+  );
+}
+
+/* ── Overview — hero + headline stats ───────────────────────────────────── */
+function OverviewSection({
+  title,
+  subject,
+  description,
+  thumbnailUrl,
+  overall,
+  progressLoading,
+  earned,
+  totalPoints,
+  nodes,
+  resumeNode,
+  onResume,
+}: {
+  title: string;
+  subject?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  overall: number;
+  progressLoading: boolean;
+  earned: number;
+  totalPoints: number;
+  nodes: TrackNodeModel[];
+  resumeNode?: TrackNodeModel;
+  onResume: () => void;
+}) {
+  const totalItems = nodes.reduce((a, n) => a + n.itemCount, 0);
+  return (
+    <View className="gap-4">
+      {/* hero */}
+      <Card className="overflow-hidden p-0">
+        <SpaceCover
+          seed={subject ?? title}
+          title={title}
+          thumbnailUrl={thumbnailUrl}
+          height={132}
+        />
+        <View className="gap-3 p-4">
+          {subject ? (
+            <View className="border-border-subtle bg-surface-sunken rounded-pill self-start border px-2 py-0.5">
+              <Text className="font-ui text-text-secondary text-2xs font-medium">{subject}</Text>
+            </View>
+          ) : null}
+          <Text className="font-display text-text-primary text-2xl leading-8">{title}</Text>
+          {description ? (
+            <Text className="font-ui text-text-secondary text-sm leading-6">{description}</Text>
+          ) : null}
+
+          <View className="gap-1">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-ui text-text-secondary text-sm font-medium">Your journey</Text>
+              <Text className="text-text-primary font-mono text-sm font-medium">{overall}%</Text>
+            </View>
+            <ProgressBar
+              value={overall}
+              variant={overall >= 100 ? "success" : "brand"}
+              height={6}
+            />
+            {progressLoading ? (
+              <Text className="text-2xs font-ui text-text-muted">
+                Track is ready — your progress is catching up.
+              </Text>
+            ) : null}
+          </View>
+
+          <View className="flex-row items-center justify-between gap-3">
+            <PointsChip earned={earned} total={totalPoints} />
+            {overall >= 100 ? (
+              <View className="flex-row items-center gap-1.5">
+                <Icon name="check-circle" size={15} color={colors.masteryMastered} />
+                <Text className="font-ui text-mastery-mastered text-sm font-medium">
+                  Space complete
+                </Text>
+              </View>
+            ) : resumeNode ? (
+              <Button
+                variant="primary"
+                trailingIcon={<Icon name="arrow-right" size={15} />}
+                onPress={onResume}
+              >
+                {overall > 0 ? "Resume" : "Start learning"}
+              </Button>
+            ) : null}
+          </View>
+        </View>
+      </Card>
+
+      {/* headline stats */}
       <View className="flex-row gap-3">
         <View className="flex-1">
           <StatTile
@@ -219,193 +338,81 @@ function OverviewTab({ nodes, totalPoints }: { nodes: TrackNodeModel[]; totalPoi
         </View>
       </View>
 
+      {resumeNode && overall < 100 ? (
+        <Card className="bg-brand-subtle gap-1 border-0 p-4">
+          <Text className="font-ui text-brand text-2xs tracking-caps font-semibold uppercase">
+            Up next
+          </Text>
+          <Text className="font-display text-text-primary text-base">{resumeNode.title}</Text>
+          <Text className="font-ui text-text-secondary text-xs">
+            {resumeNode.typeLabel} · <Text className="font-mono">{resumeNode.itemCount}</Text> items
+          </Text>
+        </Card>
+      ) : null}
+    </View>
+  );
+}
+
+/* ── Progress — per-type completion + per-module scores ─────────────────── */
+function ProgressSection({ nodes }: { nodes: TrackNodeModel[] }) {
+  const byType = useMemo(() => {
+    const m = new Map<string, { done: number; total: number }>();
+    nodes.forEach((n) => {
+      const e = m.get(n.typeLabel) ?? { done: 0, total: 0 };
+      e.total += 1;
+      if (n.state === "mastered") e.done += 1;
+      m.set(n.typeLabel, e);
+    });
+    return Array.from(m.entries());
+  }, [nodes]);
+
+  if (nodes.length === 0) return <EmptyContent />;
+
+  return (
+    <View className="gap-4">
       <Card className="gap-3">
         <Text className="font-display text-text-primary text-base">What's in this space</Text>
         {byType.map(([name, e]) => (
           <View key={name} className="flex-row items-center gap-3">
-            <Text className="text-text-secondary w-24 text-sm">{name}</Text>
+            <Text className="font-ui text-text-secondary w-24 text-sm">{name}</Text>
             <View className="flex-1">
               <ProgressBar
                 value={e.total ? Math.round((e.done / e.total) * 100) : 0}
                 variant="success"
+                height={6}
               />
             </View>
-            <Text className="text-text-muted w-10 text-right text-xs">
+            <Text className="text-text-muted w-10 text-right font-mono text-xs">
               {e.done}/{e.total}
             </Text>
           </View>
         ))}
       </Card>
-    </View>
-  );
-}
 
-// ── in-space navigation ──────────────────────────────────────────────────────
-// A space is its own little world, so it gets its own nav bar — distinct from the
-// app-wide bottom tabs. It sits under the hero and switches between the space's
-// sections (Overview + one per story-point route kind present in this space).
-
-type SpaceSection = {
-  key: string;
-  label: string;
-  icon: string;
-  count: number;
-  /** null for Overview (the summary); the filtered node list otherwise. */
-  nodes: TrackNodeModel[] | null;
-};
-
-/** Empty-content card shown when a section has no nodes yet. */
-function EmptyContent() {
-  return (
-    <View className="py-8">
-      <Card className="items-center gap-2 py-6">
-        <Icon name="book-open" size={28} color="#756E61" />
-        <Text className="font-display text-text-primary text-base">
-          This journey is still being built
-        </Text>
-        <Text className="text-text-muted px-6 text-center text-sm">
-          Your teacher is adding content here. Check back soon — it'll be worth the wait.
-        </Text>
-      </Card>
-    </View>
-  );
-}
-
-/** The space's own horizontal nav bar (its own brand-tinted surface). */
-function SpaceNav({
-  sections,
-  activeKey,
-  onSelect,
-}: {
-  sections: SpaceSection[];
-  activeKey: string;
-  onSelect: (key: string) => void;
-}) {
-  return (
-    <View className="border-border-subtle bg-brand-subtle gap-2 rounded-xl border p-2">
-      <View className="flex-row items-center gap-1.5 px-1">
-        <Icon name="compass" size={13} color="#423A82" />
-        <Text className="text-brand text-2xs font-semibold uppercase">In this space</Text>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 px-0.5"
-      >
-        {sections.map((s) => {
-          const on = s.key === activeKey;
-          return (
-            <Pressable
-              key={s.key}
-              onPress={() => onSelect(s.key)}
-              className={`rounded-pill flex-row items-center gap-1.5 px-3.5 py-2 ${
-                on ? "bg-brand shadow-sm" : "border-border-subtle bg-surface border"
+      <Card className="gap-3">
+        <Text className="font-display text-text-primary text-base">How you're doing</Text>
+        {nodes.map((n) => (
+          <View key={n.id} className="flex-row items-center gap-3">
+            <Text className="font-ui text-text-primary flex-1 text-sm" numberOfLines={1}>
+              {n.title}
+            </Text>
+            <Text
+              className={`font-mono text-xs ${
+                n.state === "mastered" ? "text-mastery-mastered" : "text-text-muted"
               }`}
             >
-              <Icon name={s.icon} size={14} color={on ? "#FFFDFA" : "#756E61"} />
-              <Text
-                className={`font-ui text-sm ${
-                  on ? "text-text-on-accent font-semibold" : "text-text-secondary"
-                }`}
-              >
-                {s.label}
-              </Text>
-              <View
-                className={`rounded-pill min-w-[20px] items-center px-1.5 py-0.5 ${
-                  on ? "bg-brand-hover" : "bg-surface-sunken"
-                }`}
-              >
-                <Text
-                  className={`text-2xs font-semibold ${
-                    on ? "text-text-on-accent" : "text-text-muted"
-                  }`}
-                >
-                  {s.count}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-/** The spine of node cards for one section. */
-function SectionNodeList({
-  nodes,
-  onOpen,
-}: {
-  nodes: TrackNodeModel[];
-  onOpen: (node: TrackNodeModel) => void;
-}) {
-  if (nodes.length === 0) return <EmptyContent />;
-  return (
-    <View className="mt-1">
-      {nodes.map((n, i) => (
-        <NodeCard
-          key={n.id}
-          node={n}
-          index={i}
-          last={i === nodes.length - 1}
-          onOpen={() => onOpen(n)}
-        />
-      ))}
-    </View>
-  );
-}
-
-/** In-space nav bar + the active section's content. */
-function SpaceSections({
-  nodes,
-  totalPoints,
-  onOpen,
-}: {
-  nodes: TrackNodeModel[];
-  totalPoints: number;
-  onOpen: (node: TrackNodeModel) => void;
-}) {
-  const sections = useMemo<SpaceSection[]>(() => {
-    const byRoute = (r: NodeRouteKind) => nodes.filter((n) => n.route === r);
-    const out: SpaceSection[] = [
-      { key: "overview", label: "Overview", icon: "compass", count: nodes.length, nodes: null },
-    ];
-    const content = byRoute("content");
-    const practice = byRoute("practice");
-    const tests = byRoute("test");
-    if (content.length)
-      out.push({
-        key: "content",
-        label: "Content",
-        icon: "book-open",
-        count: content.length,
-        nodes: content,
-      });
-    if (practice.length)
-      out.push({
-        key: "practice",
-        label: "Practice",
-        icon: "dumbbell",
-        count: practice.length,
-        nodes: practice,
-      });
-    if (tests.length)
-      out.push({ key: "tests", label: "Tests", icon: "timer", count: tests.length, nodes: tests });
-    return out;
-  }, [nodes]);
-
-  const [activeKey, setActiveKey] = useState("overview");
-  // Keep the selection valid even if the section set shifts (e.g. content loads in).
-  const active = sections.find((s) => s.key === activeKey) ?? sections[0];
-
-  return (
-    <View className="gap-4">
-      <SpaceNav sections={sections} activeKey={active.key} onSelect={setActiveKey} />
-      {active.key === "overview" ? (
-        <OverviewTab nodes={nodes} totalPoints={totalPoints} />
-      ) : (
-        <SectionNodeList nodes={active.nodes ?? []} onOpen={onOpen} />
-      )}
+              {n.percentage}%
+            </Text>
+            <View className="w-20">
+              <ProgressBar
+                value={n.percentage}
+                variant={n.state === "mastered" ? "success" : "brand"}
+                height={6}
+              />
+            </View>
+          </View>
+        ))}
+      </Card>
     </View>
   );
 }
@@ -418,6 +425,8 @@ export default function SpaceDetailScreen() {
   const space = useSpace<SpaceView>(spaceId);
   const storyPointsQ = useStoryPoints<unknown>(spaceId);
   const progressQ = useSpaceProgress(asSpaceId(spaceId));
+
+  const [activeTab, setActiveTab] = useState("overview");
 
   const storyPoints = useMemo(
     () => asArray<StoryPointView>(storyPointsQ.data).slice().sort(byOrder),
@@ -434,8 +443,9 @@ export default function SpaceDetailScreen() {
   const earned = progress?.pointsEarned ?? 0;
   const totalPoints = progress?.totalPoints ?? nodes.reduce((a, n) => a + n.totalPoints, 0);
 
-  // first non-mastered node → "Resume" target
+  // first non-mastered node → "Resume" / "Up next" target
   const resumeNode = nodes.find((n) => n.state !== "mastered") ?? nodes[0];
+  const upNextId = resumeNode && resumeNode.state !== "mastered" ? resumeNode.id : undefined;
 
   const openNode = (node: TrackNodeModel) => {
     if (node.route === "practice") router.push(routes.practice(spaceId, node.id));
@@ -445,8 +455,7 @@ export default function SpaceDetailScreen() {
 
   if (space.isLoading || storyPointsQ.isLoading) return <DetailSkeleton rows={4} />;
   // Only a genuine failure hard-errors; a transient UNAUTHENTICATED/NOT_FOUND
-  // falls through and renders with whatever loaded (real title once it arrives,
-  // empty-content card otherwise).
+  // falls through and renders with whatever loaded.
   if (isHardError(space))
     return (
       <ErrorState
@@ -459,60 +468,73 @@ export default function SpaceDetailScreen() {
       />
     );
 
-  // Canonical space name is `title`; probe a couple of legacy aliases before the
-  // generic fallback so the header shows the real course name, not "Space".
-  const spaceData = space.data as unknown as
-    | { title?: string; name?: string; displayName?: string }
+  // The read may deliver the space bare OR wrapped in a `{ space }` envelope
+  // (the deployed callable returns the envelope) — probe both before aliases.
+  const rawSpace = space.data as unknown as
+    | { space?: Record<string, unknown> }
+    | Record<string, unknown>
+    | undefined;
+  const spaceData = ((rawSpace as { space?: Record<string, unknown> })?.space ?? rawSpace) as
+    | {
+        title?: string;
+        name?: string;
+        displayName?: string;
+        subject?: string;
+        description?: string;
+      }
     | undefined;
   const title = spaceData?.title ?? spaceData?.name ?? spaceData?.displayName ?? "Space";
+  const subject = spaceData?.subject;
+  const thumbnailUrl = thumbnailOf(spaceData as Record<string, unknown> | undefined);
 
   return (
-    <Screen className="bg-canvas" contentClassName="p-5 gap-4">
-      <Breadcrumb
-        items={[{ label: "Spaces", onPress: () => router.push(routes.spaces()) }, { label: title }]}
+    <SafeAreaView edges={["top"]} className="bg-canvas flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pt-4 pb-6 gap-4"
+        showsVerticalScrollIndicator={false}
+      >
+        {activeTab === "overview" ? (
+          <OverviewSection
+            title={title}
+            subject={subject}
+            description={spaceData?.description}
+            thumbnailUrl={thumbnailUrl}
+            overall={overall}
+            progressLoading={progressQ.isLoading}
+            earned={earned}
+            totalPoints={totalPoints}
+            nodes={nodes}
+            resumeNode={resumeNode}
+            onResume={() => resumeNode && openNode(resumeNode)}
+          />
+        ) : activeTab === "content" ? (
+          nodes.length === 0 ? (
+            <EmptyContent />
+          ) : (
+            <View>
+              {nodes.map((n, i) => (
+                <NodeCard
+                  key={n.id}
+                  node={n}
+                  last={i === nodes.length - 1}
+                  isUpNext={n.id === upNextId}
+                  onOpen={() => openNode(n)}
+                />
+              ))}
+            </View>
+          )
+        ) : (
+          <ProgressSection nodes={nodes} />
+        )}
+      </ScrollView>
+
+      <SpaceTabbar
+        items={SPACE_SECTIONS}
+        activeKey={activeTab}
+        onSelect={setActiveTab}
+        onBack={() => router.push(routes.spaces())}
       />
-
-      {/* hero */}
-      <View className="gap-3">
-        <Text className="font-display text-text-primary text-2xl">{title}</Text>
-        {space.data?.description ? (
-          <Text className="text-text-secondary text-sm leading-5">{space.data.description}</Text>
-        ) : null}
-
-        <View className="gap-1">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-text-secondary text-sm font-semibold">Your journey</Text>
-            <Text className="text-text-primary text-sm font-semibold">{overall}%</Text>
-          </View>
-          <ProgressBar value={overall} variant="spark" />
-          {progressQ.isLoading ? (
-            <Text className="text-2xs text-text-muted">
-              Track is ready — your progress is catching up.
-            </Text>
-          ) : null}
-        </View>
-
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-1">
-            <XPMeter
-              level={Math.max(1, Math.floor(earned / 100) + 1)}
-              xp={earned}
-              next={Math.max(totalPoints, earned + 1)}
-            />
-          </View>
-          {resumeNode ? (
-            <Button
-              variant="primary"
-              leadingIcon={<Icon name="play" size={16} />}
-              onPress={() => openNode(resumeNode)}
-            >
-              {overall > 0 ? "Resume" : "Start"}
-            </Button>
-          ) : null}
-        </View>
-      </View>
-
-      <SpaceSections nodes={nodes} totalPoints={totalPoints} onOpen={openNode} />
-    </Screen>
+    </SafeAreaView>
   );
 }

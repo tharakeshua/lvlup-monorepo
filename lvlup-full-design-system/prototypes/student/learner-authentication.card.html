@@ -1,0 +1,512 @@
+<!-- @dsCard group="Student" viewport="1280x860" name="Learner Authentication" subtitle="B2B school-code join vs B2C self-serve · mode-switched" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learner Authentication</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  html,body{margin:0;background:var(--bg-canvas);color:var(--text-primary);font-family:var(--font-ui);}
+  #root{min-height:100vh;}
+
+  /* ── AuthLayout shell: lg two-column split ── */
+  .auth-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,45%) minmax(0,55%);}
+  .auth-editorial{
+    position:relative;overflow:hidden;
+    background:var(--bg-surface-sunken);
+    border-right:1px solid var(--border-subtle);
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:var(--space-12) var(--space-12);
+  }
+  /* subtle paper texture via tokenized gradients only */
+  .auth-editorial::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(120% 90% at 0% 0%, var(--brand-subtle), transparent 55%),
+      radial-gradient(80% 70% at 100% 100%, var(--spark-subtle), transparent 60%);
+    opacity:.7;
+  }
+  .ed-top,.ed-mid,.ed-bot{position:relative;z-index:1;}
+  .ed-brand{display:flex;align-items:center;gap:var(--space-3);}
+  .ed-brand .mk{width:38px;height:38px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-xl);}
+  .ed-brand .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-lg);}
+  .ed-hero{font-family:var(--font-display);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);font-size:var(--text-5xl);line-height:var(--leading-5xl);color:var(--text-primary);margin:0 0 var(--space-4);max-width:14ch;}
+  .ed-sub{font-size:var(--text-lg);line-height:var(--leading-lg);color:var(--text-secondary);max-width:34ch;}
+  .ed-marks{display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-8);}
+  .ed-mark{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);color:var(--text-secondary);}
+  .ed-mark i{width:18px;height:18px;color:var(--brand-primary);}
+  .ed-foot{position:relative;z-index:1;font-size:var(--text-xs);color:var(--text-muted);}
+
+  /* ── right rail: scrollable so reviewer sees all states ── */
+  .auth-rail{overflow-y:auto;max-height:100vh;background:var(--bg-canvas);padding:var(--space-10) var(--space-12);display:flex;flex-direction:column;gap:var(--space-8);}
+  .auth-railhead{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-4);}
+  .auth-railhead .ttl{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);}
+  .auth-railhead .meta{font-family:var(--font-mono);font-size:var(--text-2xs);color:var(--text-muted);letter-spacing:.06em;}
+
+  /* card */
+  .auth-card{width:100%;max-width:420px;}
+  .card-pad{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-6);}
+
+  .ac-brandzone{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);}
+  .ac-mark{display:flex;align-items:center;gap:var(--space-2);}
+  .ac-mark .mk{width:30px;height:30px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);}
+  .ac-mark .nm{font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);}
+
+  /* tenant chip */
+  .tenant-chip{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--bg-surface-sunken);}
+  .tenant-chip .logo{width:36px;height:36px;border-radius:var(--radius-md);background:var(--brand-primary);color:var(--text-on-accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:var(--weight-semibold);font-size:var(--text-base);flex:none;}
+  .tenant-chip .nm{font-weight:var(--weight-semibold);font-size:var(--text-sm);line-height:1.15;}
+  .tenant-chip .mt{font-size:var(--text-xs);color:var(--text-muted);display:flex;align-items:center;gap:4px;}
+  .tenant-chip .mt i{width:12px;height:12px;color:var(--status-success);}
+
+  .ac-heads{display:flex;flex-direction:column;gap:var(--space-1);}
+  .ac-h1{font-family:var(--font-display);font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-display);margin:0;}
+  .ac-sub{font-size:var(--text-sm);color:var(--text-secondary);}
+
+  /* segmented control (SegmentedControl stand-in) */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-1);padding:var(--space-1);background:var(--bg-inset);border-radius:var(--radius-pill);}
+  .seg__btn{appearance:none;border:0;cursor:pointer;font-family:var(--font-ui);font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-secondary);background:transparent;border-radius:var(--radius-pill);padding:var(--space-2) var(--space-3);min-height:36px;transition:background var(--dur-fast) var(--ease-standard),color var(--dur-fast) var(--ease-standard);}
+  .seg__btn.is-active{background:var(--brand-primary);color:var(--text-on-accent);}
+  .seg__btn:focus-visible{outline:none;box-shadow:var(--ring-focus);}
+  .seg-panel{display:flex;flex-direction:column;}
+
+  .ac-form{display:flex;flex-direction:column;gap:var(--space-4);}
+  .reveal{animation:revealStep var(--dur-base) var(--ease-entrance);}
+  @keyframes revealStep{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  .pw-wrap{position:relative;display:flex;align-items:center;}
+  .pw-wrap .input{padding-right:var(--space-10);}
+  .pw-wrap .icon-btn{position:absolute;right:var(--space-2);}
+
+  .row-between{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);}
+  .check-row{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary);}
+
+  .divider{display:flex;align-items:center;gap:var(--space-3);color:var(--text-muted);font-size:var(--text-xs);}
+  .divider::before,.divider::after{content:"";height:1px;flex:1;background:var(--border-subtle);}
+
+  .ac-foot{display:flex;flex-direction:column;gap:var(--space-2);align-items:center;font-size:var(--text-sm);color:var(--text-secondary);text-align:center;}
+  .ac-foot a{color:var(--brand-primary);font-weight:var(--weight-medium);text-decoration:none;cursor:pointer;}
+  .ac-foot a:hover{text-decoration:underline;}
+
+  /* state gallery */
+  .state-eyebrow{font-family:var(--font-mono);font-size:var(--text-2xs);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--space-2);}
+  .state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5);}
+  .state-tile{display:flex;flex-direction:column;}
+  .state-card .card-pad{padding:var(--space-5);gap:var(--space-4);}
+  .mini-h{font-family:var(--font-display);font-size:var(--text-lg);font-weight:var(--weight-semibold);margin:0;}
+  .mini-sub{font-size:var(--text-xs);color:var(--text-secondary);}
+
+  .confirm-panel{display:flex;flex-direction:column;gap:var(--space-3);align-items:flex-start;}
+  .confirm-ico{width:44px;height:44px;border-radius:var(--radius-pill);background:var(--status-success-subtle);color:var(--status-success);display:grid;place-items:center;}
+  .confirm-ico i{width:22px;height:22px;}
+
+  .stack-sm{display:flex;flex-direction:column;gap:var(--space-2);}
+
+  .a11y-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal{animation:none;}
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const LU = window.LvlupV0DesignSystem_5d0725;
+  const { Card, Field, Input, Button, IconButton, Icon, Checkbox, Alert, Chip, Badge, Avatar, Skeleton, Toast } = LU;
+  const { useState } = React;
+
+  // ─── Brand zone: default Lyceum mark vs resolved tenant chip ───
+  function LyceumMark(){
+    return (
+      <div className="ac-mark">
+        <span className="mk">L</span>
+        <span className="nm">Lyceum</span>
+      </div>
+    );
+  }
+  function TenantChip({resolving}){
+    if(resolving){
+      return (
+        <div className="tenant-chip" aria-live="polite">
+          <Skeleton variant="circle" width="36px" height="36px" />
+          <div className="stack-sm" style={{flex:1}}>
+            <Skeleton width="60%" height="12px" />
+            <Skeleton width="40%" height="10px" />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="tenant-chip" aria-live="polite">
+        <span className="logo">SA</span>
+        <div>
+          <div className="nm">Subhang Academy</div>
+          <div className="mt"><Icon name="check-circle" size={12} /> School found · SUB001</div>
+        </div>
+      </div>
+    );
+  }
+
+  function PasswordField({id,label,show,onToggle,defaultValue,error}){
+    return (
+      <Field label={label} htmlFor={id} error={error}>
+        <div className="pw-wrap">
+          <Input id={id} type={show?"text":"password"} defaultValue={defaultValue} placeholder="••••••••"
+                 autoComplete="current-password" aria-describedby={error?id+"-err":undefined}/>
+          <IconButton icon={<Icon name={show?"eye-off":"eye"} size={16}/>}
+                      label={show?"Hide password":"Show password"} size="sm"
+                      aria-pressed={show} onClick={onToggle}/>
+        </div>
+      </Field>
+    );
+  }
+
+  // ─── Primary interactive card (mode-switched, multi-step) ───
+  function PrimaryAuthCard(){
+    const [mode, setMode] = useState(0);   // 0 = personal (B2C), 1 = school code (B2B)
+    const [showPw, setShowPw] = useState(false);
+
+    // B2B step machine: 'code' → 'resolving' → 'resolved'
+    const [b2bStep, setB2bStep] = useState("code");
+
+    const onContinueCode = () => {
+      setB2bStep("resolving");
+      setTimeout(()=>setB2bStep("resolved"), 900);
+    };
+
+    // ── B2C personal login form ──
+    const PersonalForm = (
+      <div className="ac-form reveal" key="b2c">
+        <div className="ac-heads">
+          <h2 className="ac-h1" id="auth-title">Welcome back.</h2>
+          <span className="ac-sub">Pick up right where you left off.</span>
+        </div>
+        <Field label="Email" htmlFor="b2c-email">
+          <Input id="b2c-email" type="email" inputMode="email" defaultValue="aanya.rao@gmail.com"
+                 placeholder="you@email.com" autoComplete="email"/>
+        </Field>
+        <PasswordField id="b2c-pw" label="Password" show={showPw}
+                       onToggle={()=>setShowPw(s=>!s)} defaultValue="learnmore" />
+        <div className="row-between">
+          <label className="check-row" htmlFor="b2c-remember">
+            <Checkbox id="b2c-remember" defaultChecked /> Remember me
+          </label>
+          <a className="ac-foot" style={{display:"inline"}} href="#" role="link">Forgot password?</a>
+        </div>
+        <Button variant="spark" size="lg" block leadingIcon={<Icon name="log-in" size={18}/>}>Sign in</Button>
+        <div className="divider">or</div>
+        <Button variant="secondary" size="lg" block leadingIcon={<Icon name="chrome" size={18}/>}>Continue with Google</Button>
+        <div className="ac-foot">
+          <span>New here? <a href="#">Create an account</a></span>
+        </div>
+      </div>
+    );
+
+    // ── B2B school-code form ──
+    const SchoolForm = (
+      <div className="ac-form reveal" key="b2b">
+        {b2bStep === "resolved" ? (
+          <React.Fragment>
+            <TenantChip />
+            <div className="ac-heads">
+              <h2 className="ac-h1" id="auth-title">Welcome to Subhang Academy.</h2>
+              <span className="ac-sub">Sign in with your school account.</span>
+            </div>
+            <Field label="Email" htmlFor="b2b-email">
+              <Input id="b2b-email" type="email" inputMode="email" defaultValue="student.test@subhang.academy"
+                     placeholder="you@school.edu" autoComplete="email" autoFocus/>
+            </Field>
+            <PasswordField id="b2b-pw" label="Password" show={showPw} onToggle={()=>setShowPw(s=>!s)} />
+            <div className="row-between">
+              <label className="check-row" htmlFor="b2b-remember">
+                <Checkbox id="b2b-remember" /> Remember me
+              </label>
+              <a className="ac-foot" style={{display:"inline"}} href="#">Forgot password?</a>
+            </div>
+            <Button variant="spark" size="lg" block leadingIcon={<Icon name="log-in" size={18}/>}>Sign in</Button>
+            <div className="ac-foot">
+              <a onClick={()=>{setB2bStep("code");}} role="button" tabIndex={0}>
+                <Icon name="arrow-left" size={13}/> Not your school? Change code
+              </a>
+            </div>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            {b2bStep === "resolving" ? <TenantChip resolving /> : <LyceumMark />}
+            <div className="ac-heads">
+              <h2 className="ac-h1" id="auth-title">Sign in to your school.</h2>
+              <span className="ac-sub">Enter the code your teacher gave you.</span>
+            </div>
+            <Field label="School code" htmlFor="b2b-code"
+                   hint="Looks like ‘SUB001’ — ask your teacher if you’re not sure.">
+              <Input id="b2b-code" defaultValue="SUB001" placeholder="SUB001"
+                     style={{textTransform:"uppercase",letterSpacing:".12em",fontFamily:"var(--font-mono)"}}
+                     autoComplete="off"/>
+            </Field>
+            <Button variant="spark" size="lg" block
+                    loading={b2bStep==="resolving"} disabled={b2bStep==="resolving"}
+                    trailingIcon={b2bStep==="resolving"?undefined:<Icon name="arrow-right" size={18}/>}
+                    aria-busy={b2bStep==="resolving"||undefined}
+                    onClick={onContinueCode}>
+              {b2bStep==="resolving" ? "Finding your school…" : "Continue"}
+            </Button>
+            <div className="ac-foot">
+              <span>Here on your own? <a onClick={()=>setMode(0)} role="button" tabIndex={0}>Use a personal account</a></span>
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+    );
+
+    return (
+      <Card className="auth-card">
+        <div className="card-pad">
+          <div className="ac-brandzone">
+            {mode===1 && b2bStep==="resolved" ? <span className="ac-sub" style={{fontWeight:"var(--weight-medium)"}}>Signing in via school code</span> : <LyceumMark/>}
+            <Badge variant="brand" icon={<Icon name="sparkles" size={12}/>}>Lyceum</Badge>
+          </div>
+
+          {/* Mode affordance — SegmentedControl stand-in (controlled pill toggle).
+              Drives `mode` so the form cross-fades and the brand chip resets on switch (§6). */}
+          <div className="seg" role="tablist" aria-label="Sign-in mode">
+            <button type="button" role="tab" aria-selected={mode===0}
+                    className={"seg__btn"+(mode===0?" is-active":"")}
+                    onClick={()=>{ setMode(0); }}>
+              Personal account
+            </button>
+            <button type="button" role="tab" aria-selected={mode===1}
+                    className={"seg__btn"+(mode===1?" is-active":"")}
+                    onClick={()=>{ setMode(1); setB2bStep("code"); }}>
+              I have a school code
+            </button>
+          </div>
+          <div className="seg-panel" role="tabpanel">
+            {mode===0 ? PersonalForm : SchoolForm}
+          </div>
+          <span className="a11y-sr" aria-live="polite">
+            {mode===1 ? "School code mode" : "Personal account mode"}
+          </span>
+        </div>
+      </Card>
+    );
+  }
+
+  // ─── Secondary state gallery (clearly-labelled spec'd states) ───
+  function StateGallery(){
+    return (
+      <div>
+        <div className="state-eyebrow">Other spec states</div>
+        <div className="state-grid">
+
+          {/* B2B code resolving */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: B2B code resolving (partial)</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <TenantChip resolving />
+                <div className="ac-heads">
+                  <h3 className="mini-h">Sign in to your school.</h3>
+                  <span className="mini-sub">Checking that code…</span>
+                </div>
+                <Button variant="spark" block loading disabled aria-busy="true">Finding your school…</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* B2B code resolved step-2 */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: B2B resolved (step 2)</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <TenantChip />
+                <div className="ac-heads">
+                  <h3 className="mini-h">Welcome to Subhang Academy.</h3>
+                  <span className="mini-sub">Sign in with your school account.</span>
+                </div>
+                <Field label="Email" htmlFor="g-email2">
+                  <Input id="g-email2" defaultValue="student.test@subhang.academy" />
+                </Field>
+                <Button variant="spark" block>Sign in</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* B2B code not found — warning, recoverable */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: school code not found (warning)</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <Alert variant="warning" title="We couldn’t find that school" role="alert" aria-live="assertive">
+                  Double-check the code with your teacher, or sign in with a personal account.
+                </Alert>
+                <Field label="School code" htmlFor="g-code">
+                  <Input id="g-code" defaultValue="ZZZ999" error
+                         style={{fontFamily:"var(--font-mono)",letterSpacing:".12em"}}/>
+                </Field>
+                <Button variant="spark" block>Try again</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Credential error — friendly, password retained */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: credential error</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <Alert variant="error" title="That email and password don’t match" role="alert" aria-live="assertive">
+                  Let’s try that again — or reset your password.
+                </Alert>
+                <Field label="Email" htmlFor="g-email3" error="Check this and try once more.">
+                  <Input id="g-email3" defaultValue="aanya.rao@gmail.com" error/>
+                </Field>
+                <Button variant="spark" block>Sign in</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Submitting */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: submitting</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <div className="ac-heads">
+                  <h3 className="mini-h">Welcome back.</h3>
+                  <span className="mini-sub">Hold tight…</span>
+                </div>
+                <Field label="Email" htmlFor="g-email4">
+                  <Input id="g-email4" defaultValue="aanya.rao@gmail.com" disabled/>
+                </Field>
+                <Button variant="spark" block loading disabled aria-busy="true">Signing you in…</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Signup (B2C) */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: B2C signup</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <div className="ac-heads">
+                  <h3 className="mini-h">Start learning today.</h3>
+                  <span className="mini-sub">Create your account — it takes a minute.</span>
+                </div>
+                <Field label="Full name" htmlFor="g-name">
+                  <Input id="g-name" placeholder="Aanya Rao" autoComplete="name"/>
+                </Field>
+                <Field label="Email" htmlFor="g-email5">
+                  <Input id="g-email5" type="email" placeholder="you@email.com"/>
+                </Field>
+                <label className="check-row" htmlFor="g-agree">
+                  <Checkbox id="g-agree"/> I agree to the terms &amp; privacy policy
+                </label>
+                <Button variant="spark" block>Create account</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Forgot-password sent confirmation + Toast */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: reset link sent (confirmation)</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <div className="confirm-panel">
+                  <div className="confirm-ico"><Icon name="mail-check" size={22}/></div>
+                  <h3 className="mini-h">Check your inbox.</h3>
+                  <span className="mini-sub">We sent a reset link to <b>aanya.rao@gmail.com</b>. Don’t see it? Peek in spam.</span>
+                </div>
+                <Button variant="ghost" block leadingIcon={<Icon name="arrow-left" size={16}/>}>Back to sign in</Button>
+              </div>
+            </Card>
+            <div style={{marginTop:"var(--space-3)"}}>
+              <Toast variant="success" title="Reset link sent" body="Check aanya.rao@gmail.com for the link." />
+            </div>
+          </div>
+
+          {/* Network / offline */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: network / offline</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <Alert variant="info" title="We can’t reach the server right now" role="alert" aria-live="assertive">
+                  Check your connection and try again.
+                </Alert>
+                <Button variant="secondary" block leadingIcon={<Icon name="refresh-cw" size={16}/>}>Retry</Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Already-signed-in consumer bounce (permission/role nuance, pre-auth) */}
+          <div className="state-tile">
+            <div className="state-eyebrow">State: signed-in consumer bounce</div>
+            <Card className="state-card">
+              <div className="card-pad">
+                <LyceumMark />
+                <Alert variant="info" title="You’re signed in as a personal learner" role="status" aria-live="polite">
+                  Taking you to your learning…
+                </Alert>
+                <div className="check-row">
+                  <Avatar initials="AR" size="sm"/>
+                  <span>Aanya Rao · personal account</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  function Screen(){
+    return (
+      <main className="auth-shell" aria-labelledby="auth-title">
+        {/* Editorial panel — lg only, decorative */}
+        <section className="auth-editorial" aria-hidden="true">
+          <div className="ed-top">
+            <div className="ed-brand">
+              <span className="mk">L</span>
+              <span className="nm">Lyceum</span>
+            </div>
+          </div>
+          <div className="ed-mid">
+            <h1 className="ed-hero">Welcome back to your learning.</h1>
+            <p className="ed-sub">One front door for school students and self-paced learners — pick up your streak, your spaces, and your story points right where you left them.</p>
+            <div className="ed-marks">
+              <div className="ed-mark"><Icon name="flame" size={18}/> Keep your daily streak alive</div>
+              <div className="ed-mark"><Icon name="layout-grid" size={18}/> Jump back into your spaces</div>
+              <div className="ed-mark"><Icon name="shield-check" size={18}/> School or personal — your choice</div>
+            </div>
+          </div>
+          <div className="ed-foot">© Auto-LevelUp · Learn at your own pace</div>
+        </section>
+
+        {/* Right rail: primary interactive card + state gallery */}
+        <section className="auth-rail">
+          <div className="auth-railhead">
+            <span className="ttl">Sign in</span>
+            <span className="meta">/login · pre-auth · AuthLayout</span>
+          </div>
+          <div className="state-eyebrow">Primary · interactive (toggle mode · resolve code · show/hide password)</div>
+          <PrimaryAuthCard />
+          <StateGallery />
+        </section>
+      </main>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Screen/>);
+</script>
+</body>
+</html>
