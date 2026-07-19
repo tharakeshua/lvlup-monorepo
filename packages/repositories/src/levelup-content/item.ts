@@ -45,12 +45,23 @@ export interface ItemEditResult {
 
 export type ImportFromBankInput = ReqOf<"v1.levelup.importFromBank">;
 
+export type GetEvaluationConfigInput = ReqOf<"v1.levelup.getEvaluationConfig">;
+
 export interface ItemRepo {
   list(filter: ItemFilter): Promise<Page<UnifiedItem>>;
   paginate(filter: ItemFilter): Promise<PageBag<UnifiedItem>>;
   getForEdit(input: GetForEditInput): Promise<ItemEditResult>;
   save(input: SaveItemInput): Promise<ResOf<"v1.levelup.saveItem">>;
   saveFromBank(input: ImportFromBankInput): Promise<ResOf<"v1.levelup.importFromBank">>;
+  /**
+   * The RESOLVED evaluation config triad (agent · rubric · settings) for one
+   * item, student-safe by server projection (holisticGuidance / modelAnswer /
+   * evaluatorGuidance / promptGuidance stripped). Powers the "How you'll be
+   * evaluated" card — objectives + rubric ladders + enabled dimensions + pass %.
+   */
+  getEvaluationConfig(
+    input: GetEvaluationConfigInput
+  ): Promise<ResOf<"v1.levelup.getEvaluationConfig">>;
 }
 
 export function createItemRepo(api: ApiClientLike): ItemRepo {
@@ -87,6 +98,8 @@ export function createItemRepo(api: ApiClientLike): ItemRepo {
       }),
     saveFromBank: (input) =>
       invokeCallable<"v1.levelup.importFromBank">(lv["importFromBank"]!, input),
+    getEvaluationConfig: (input) =>
+      invokeCallable<"v1.levelup.getEvaluationConfig">(lv["getEvaluationConfig"]!, input),
   };
 }
 

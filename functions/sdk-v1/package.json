@@ -25,8 +25,8 @@
   "devDependencies": {
     "@levelup/access": "workspace:*",
     "@levelup/ai": "workspace:*",
-    "@levelup/api-contract": "workspace:*",
-    "@levelup/domain": "workspace:*",
+    "@levelup/api-contract": "file:.local-deps/api-contract",
+    "@levelup/domain": "file:.local-deps/domain",
     "@levelup/functions-adapters": "workspace:*",
     "@levelup/services": "workspace:*",
     "tsup": "^8",

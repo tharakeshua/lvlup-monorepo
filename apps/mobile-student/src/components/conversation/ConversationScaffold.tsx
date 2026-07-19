@@ -7,7 +7,9 @@ import type {
   ConversationMode,
   ConversationPublicConfig,
 } from "../../features/conversation/types";
+import { colors } from "../../theme";
 import { Button, IconButton } from "../primitives";
+import { Icon } from "../Icon";
 import { Modal } from "../overlays";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationModeHeader } from "./ConversationModeHeader";
@@ -26,6 +28,13 @@ export interface ConversationScaffoldProps {
   compact?: boolean;
   assistantLabel?: string;
   disabled?: boolean;
+  /**
+   * Suppress the internal {@link ConversationModeHeader}. Hosts that render
+   * their own header/title framing (e.g. the discuss sheet) set this to avoid
+   * a duplicated title + guidance block. Starters still pre-fill the composer
+   * via the controller; only the header chrome is hidden.
+   */
+  hideHeader?: boolean;
 }
 
 export function ConversationScaffold({
@@ -38,6 +47,7 @@ export function ConversationScaffold({
   compact,
   assistantLabel = mode === "agent_assessment" ? "Interviewer" : "Tutor",
   disabled = false,
+  hideHeader = false,
 }: ConversationScaffoldProps) {
   const [earlyFinishOpen, setEarlyFinishOpen] = useState(false);
   const serverConfig = controller.session?.publicConfig;
@@ -98,29 +108,35 @@ export function ConversationScaffold({
     >
       <ConversationProjectionSync controller={controller} />
       <View className="gap-3">
-        <View className="flex-row items-start gap-2">
-          <View className="flex-1">
-            <ConversationModeHeader
-              mode={mode}
-              title={title ?? controller.session?.title}
-              contextLabel={contextLabel}
-              publicConfig={config}
-              onSelectStarter={disabled ? undefined : controller.setDraft}
-              compact={compact}
-            />
+        {hideHeader ? (
+          onClose ? (
+            <View className="flex-row justify-end">
+              <IconButton icon="x" label="Close conversation" size="md" onPress={onClose} />
+            </View>
+          ) : null
+        ) : (
+          <View className="flex-row items-start gap-2">
+            <View className="flex-1">
+              <ConversationModeHeader
+                mode={mode}
+                title={title ?? controller.session?.title}
+                contextLabel={contextLabel}
+                publicConfig={config}
+                onSelectStarter={disabled ? undefined : controller.setDraft}
+                compact={compact}
+              />
+            </View>
+            {onClose ? (
+              <IconButton icon="x" label="Close conversation" size="md" onPress={onClose} />
+            ) : null}
           </View>
-          {onClose ? (
-            <IconButton icon="x" label="Close conversation" size="md" onPress={onClose} />
-          ) : null}
-        </View>
+        )}
         {mode === "agent_assessment" && completionPolicy ? (
-          <View className="bg-surface-sunken flex-row items-center justify-between rounded-md px-3 py-2">
-            <View>
-              <Text className="font-ui text-text-secondary text-xs font-semibold">
-                Interview progress
-              </Text>
-              <Text className="font-ui text-text-muted text-xs">
-                {learnerTurns} of {completionPolicy.maxLearnerTurns ?? "—"} learner turns
+          <View className="border-border-subtle bg-surface-sunken flex-row items-center justify-between rounded-md border px-3 py-2">
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="messages-square" size={13} color={colors.brand} />
+              <Text className="text-text-muted text-2xs font-mono">
+                Progress · {learnerTurns} of {completionPolicy.maxLearnerTurns ?? "—"} turns
               </Text>
             </View>
             {controller.canFinish && !disabled ? (
@@ -215,19 +231,20 @@ export function ConversationScaffold({
             <Button
               variant="primary"
               size="sm"
+              leadingIcon="flag"
               onPress={() => {
                 setEarlyFinishOpen(false);
                 void controller.finish({ earlyFinishConfirmed: true });
               }}
             >
-              Finish interview
+              Finish &amp; grade
             </Button>
           </>
         }
       >
         <Text className="font-ui text-text-secondary text-sm leading-5">
-          You have completed {learnerTurns} of the recommended {minTurns} learner turns. Once
-          finished, the interview is sealed and cannot be edited.
+          You&apos;ve used {learnerTurns} of the recommended {minTurns} turns. You can keep going,
+          or finish now — the whole conversation is sealed and graded, and cannot be edited.
         </Text>
       </Modal>
     </KeyboardAvoidingView>

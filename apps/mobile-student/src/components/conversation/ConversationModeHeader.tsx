@@ -53,8 +53,8 @@ export function ConversationModeHeader({
         <View className="bg-brand-subtle mt-0.5 h-10 w-10 items-center justify-center rounded-lg">
           <Icon name={copy.icon} size={19} color={colors.brand} />
         </View>
-        <View className="min-w-0 flex-1 gap-0.5">
-          <Text className="font-ui text-text-muted tracking-caps text-2xs font-semibold uppercase">
+        <View className="min-w-0 flex-1 gap-1">
+          <Text className="text-brand tracking-caps text-2xs font-mono uppercase">
             {copy.eyebrow}
           </Text>
           <Text
@@ -76,31 +76,47 @@ export function ConversationModeHeader({
         </View>
       </View>
 
-      <View className="border-border-subtle bg-surface-sunken flex-row gap-2 rounded-md border px-3 py-2.5">
-        <Icon name="shield-check" size={16} color={colors.brand} />
-        <Text className="font-ui text-text-secondary flex-1 text-sm leading-5">
+      <View className="border-border-subtle bg-surface-sunken flex-row items-center gap-2 rounded-md border px-3 py-2.5">
+        <Icon name="shield-check" size={15} color={colors.brand} />
+        <Text className="font-ui text-text-secondary flex-1 text-xs leading-5">
           {copy.description}
         </Text>
       </View>
 
       {scenario ? (
-        <View className="border-brand/20 bg-brand-subtle gap-1 rounded-md border px-3 py-3">
-          <Text className="font-ui text-brand text-xs font-semibold">Scenario</Text>
-          <Text className="font-ui text-text-primary text-sm leading-5">{scenario}</Text>
+        <View className="border-border-subtle bg-surface gap-1.5 rounded-lg border px-4 py-3">
+          <View className="flex-row items-center gap-2">
+            <Icon name="map" size={15} color={colors.brand} />
+            <Text className="font-ui text-text-primary text-sm font-semibold">Scenario</Text>
+          </View>
+          <Text className="font-ui text-text-secondary text-sm leading-5">{scenario}</Text>
         </View>
       ) : null}
 
       {objectives.length > 0 ? (
-        <View className="gap-1.5">
-          <Text className="font-ui text-text-secondary text-xs font-semibold">What to cover</Text>
-          {objectives.map((objective) => (
-            <View key={objective.id} className="flex-row gap-2">
-              <Icon name="check-circle-2" size={15} color={colors.success} />
-              <Text className="font-ui text-text-secondary flex-1 text-sm leading-5">
-                {objective.label}
-              </Text>
-            </View>
-          ))}
+        <View className="border-border-subtle bg-surface gap-2 rounded-lg border px-4 py-3">
+          <View className="flex-row items-center gap-2">
+            <Icon name="compass" size={15} color={colors.brand} />
+            <Text className="font-ui text-text-primary flex-1 text-sm font-semibold">
+              What to cover
+            </Text>
+            <Text className="text-text-muted text-2xs font-mono">
+              {objectives.length} {objectives.length === 1 ? "objective" : "objectives"}
+            </Text>
+          </View>
+          <View className="flex-row flex-wrap gap-2">
+            {objectives.map((objective) => (
+              <View
+                key={objective.id}
+                className="bg-surface-sunken rounded-pill flex-row items-center gap-1.5 px-2.5 py-1.5"
+              >
+                <Icon name="target" size={12} color={colors.brand} />
+                <Text className="font-ui text-text-secondary text-2xs font-medium">
+                  {objective.label}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       ) : null}
 
@@ -109,16 +125,17 @@ export function ConversationModeHeader({
           <Text className="font-ui text-text-secondary text-xs font-semibold">
             Conversation starters
           </Text>
-          <View className="flex-row flex-wrap gap-2">
+          <View className="gap-2">
             {starters.slice(0, 3).map((starter) => (
               <Pressable
                 key={starter}
                 onPress={() => onSelectStarter?.(starter)}
                 accessibilityRole="button"
                 accessibilityLabel={`Use starter: ${starter}`}
-                className="border-border-strong bg-surface active:bg-surface-sunken min-h-11 max-w-full justify-center rounded-md border px-3 py-2"
+                className="border-border-subtle bg-surface active:bg-surface-sunken min-h-11 flex-row items-center gap-2.5 rounded-md border px-4 py-3"
               >
-                <Text className="font-ui text-brand text-sm" numberOfLines={2}>
+                <Icon name="sparkles" size={15} color={colors.spark} />
+                <Text className="font-ui text-text-secondary flex-1 text-sm" numberOfLines={2}>
                   {starter}
                 </Text>
               </Pressable>

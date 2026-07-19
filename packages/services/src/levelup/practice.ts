@@ -58,6 +58,23 @@ export function normalizeQuestionType(t: string): string {
 }
 
 /**
+ * True when an item is configured for AI/rubric evaluation. A scoring rubric —
+ * a `scoringMode` (criteria_based / dimension_based / holistic / hybrid) or a
+ * non-empty `dimensions`/`criteria` ladder — is an inherently subjective
+ * construct owned by the unified evaluator, so such an item must reach the AI
+ * pass even when it ALSO carries a server answer key. Mirrors the rubric leg of
+ * `resolveLevelupEvaluationConfig` (`item.effectiveRubric ?? item.rubric`).
+ */
+export function hasAiRubric(item: Record<string, unknown>): boolean {
+  const rubric = (item["effectiveRubric"] ?? item["rubric"]) as Record<string, unknown> | undefined;
+  if (!rubric || typeof rubric !== "object") return false;
+  if (typeof rubric["scoringMode"] === "string" && rubric["scoringMode"]) return true;
+  const dims = rubric["dimensions"];
+  const crit = rubric["criteria"];
+  return (Array.isArray(dims) && dims.length > 0) || (Array.isArray(crit) && crit.length > 0);
+}
+
+/**
  * Best-effort MIME type for a captured-media Storage path so the AI gateway can
  * label the attached part. The upload path may not carry a faithful extension
  * (the `answer-sheet` grant stamps audio as `.jpg` — see request-upload-url), so
@@ -193,7 +210,15 @@ export async function scoreOne(
   // scorable WITHOUT an LLM (the CD13 server-scoring path the optimistic
   // recordItemAttempt relies on; the emulator has no provider key). Fall back to AI
   // only for genuinely-subjective items lacking a deterministic key.
-  if ((type === "short_answer" || type === "fill_blank") && key) {
+  //
+  // …UNLESS the item carries a scoring rubric (`scoringMode`/dimensions/criteria):
+  // that marks it AI-graded, so its answer key's `modelAnswer`/`evaluationGuidance`
+  // is grader CONTEXT — never an exact-match target. Binary-matching a free-text
+  // answer against the model sentence always scores 0 with empty feedback (vc9 P0:
+  // a `text` questionType normalizes to `short_answer`, and the AI-lab items ship
+  // BOTH a key and a `dimension_based`/`criteria_based` rubric). Skip the shortcut
+  // so these reach the unified evaluator below.
+  if ((type === "short_answer" || type === "fill_blank") && key && !hasAiRubric(item)) {
     const correct = String(key["correctAnswer"] ?? "")
       .trim()
       .toLowerCase();

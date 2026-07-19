@@ -16,6 +16,7 @@ import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  useEvaluationConfig,
   useItems,
   useRecordItemAttempt,
   useStoryPointProgress,
@@ -43,9 +44,22 @@ import {
   Skeleton,
   TextField,
   colors,
+  getPrompt,
+  getQuestionData,
   toFeedbackProps,
   type FeedbackVerdict,
 } from "../../components";
+import {
+  AiAnswerSurface,
+  EvaluatingState,
+  EvaluationFailed,
+  buildHyeModel,
+  capabilityFor,
+  readWireAnswer,
+  type AnswerPart,
+} from "../../components/ai-question";
+import { AttemptHistorySheet } from "../../components/ai-question/history";
+import { FeedbackResult, toStoredEvaluation } from "../../components/ai-question/feedback";
 import { asApiError } from "@levelup/query";
 import { routes } from "../../lib/routes";
 import { isHardError } from "../../lib/query-status";
@@ -107,6 +121,53 @@ function toOutcome(data: unknown): AttemptOutcome {
   return { status, completed: Boolean(d.completed), feedback, raw: data };
 }
 
+/**
+ * Derive a submitted outcome from the PERSISTED per-item progress entry so a
+ * result that landed while the student was away (evaluating is backgroundable —
+ * commit-once, owner decision) renders on re-entry. Reads the same authoritative
+ * `evaluation` StoredEvaluation the mutation returns, re-wrapped into the raw
+ * shape `toOutcome`/`toFeedbackProps` expect. Returns undefined when the item has
+ * no result yet.
+ */
+function outcomeFromEntry(entry: unknown): AttemptOutcome | undefined {
+  const e = (entry ?? undefined) as
+    | {
+        completed?: boolean;
+        correct?: boolean;
+        percentage?: number;
+        evaluation?: Record<string, unknown> | null;
+        questionData?: { status?: string; solved?: boolean; percentage?: number };
+      }
+    | undefined;
+  if (!e) return undefined;
+  const ev = e.evaluation ?? undefined;
+  const q = e.questionData;
+  const hasResult = ev != null || q?.status != null || e.correct != null || e.completed === true;
+  if (!hasResult) return undefined;
+  const solved = e.correct ?? q?.solved ?? (q?.status === "correct" ? true : undefined);
+  const percentage =
+    (typeof ev?.percentage === "number" ? (ev.percentage as number) : undefined) ??
+    e.percentage ??
+    q?.percentage;
+  const raw = {
+    completed: e.completed ?? e.correct === true,
+    progress: { evaluation: ev, solved, percentage },
+  };
+  return toOutcome(raw);
+}
+
+/** Rebuild read-only AnswerParts from a wire answer's storagePaths (evaluating preview). */
+function partsFromWire(value: unknown): AnswerPart[] {
+  const { mediaUrls } = readWireAnswer(value);
+  return mediaUrls.map((path, i) => ({
+    id: `wire-${i}`,
+    kind: /\.(m4a|caf|wav|mp3|aac|ogg)(\?|$)/i.test(path) ? "audio" : "image",
+    storagePath: path,
+    mimeType: "",
+    status: "ready" as const,
+  }));
+}
+
 /** The warm growth-framed verdict, hydrated from the raw attempt result. */
 function AttemptFeedback({ outcome }: { outcome: AttemptOutcome }) {
   const verdict: FeedbackVerdict =
@@ -161,6 +222,7 @@ export default function ContentViewerScreen() {
   const [tutorOpen, setTutorOpen] = useState(false);
   const [tutorDraft, setTutorDraft] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const startRef = useRef<number>(Date.now());
 
   const item = items[current];
@@ -172,6 +234,36 @@ export default function ContentViewerScreen() {
   // must never become a generic item attempt just because this viewer renders
   // all question types in one place.
   const submitted = !isAgentAssessment && Boolean(outcome);
+
+  // ── AI unified composer (Surfaces A/C/D/E) ────────────────────────────────
+  // The 5 AI-composer types (text/paragraph/code/audio/image_evaluation) render
+  // the redesigned multimodal composer; every other type keeps the generic
+  // QuestionView. chat_agent_question stays on its conversational path.
+  const qData = getQuestionData(item);
+  const qType = questionTypeOf(item);
+  const capConfig = capabilityFor(qType, qData ?? undefined);
+  const isAiComposer = !!capConfig && !isAgentAssessment;
+  const aiPrompt = getPrompt(item, qData ?? undefined);
+  // getEvaluationConfig student projection — lights up the rich HYE (criteria
+  // ladders + enabled-dimension chips + pass %). Degrades to the item.rubric
+  // fallback while loading / when a leg resolves null.
+  const evalConfigQ = useEvaluationConfig(spaceId, itemId, { enabled: isAiComposer });
+  const hyeModel = useMemo(
+    () => (isAiComposer ? buildHyeModel(evalConfigQ.data, item, qData) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [item, isAiComposer, evalConfigQ.data]
+  );
+  // Backgrounded / previously-answered result rehydrated from persisted progress.
+  const persistedOutcome = isAiComposer ? outcomeFromEntry(progressItems[itemId]) : undefined;
+  const aiOutcome = outcome ?? persistedOutcome;
+  const aiSubmitted = isAiComposer && Boolean(aiOutcome);
+  // W2 Surface G renders from the authoritative StoredEvaluation; null when the
+  // completed attempt carries no rich eval (then we keep the warm fallback).
+  const aiEval = aiOutcome ? toStoredEvaluation(aiOutcome.raw) : null;
+  // Scope the pending/evaluating state to THIS item (the mutation is shared).
+  const isThisPending =
+    recordAttempt.isPending &&
+    (recordAttempt.variables as { itemId?: string } | undefined)?.itemId === itemId;
 
   // AttemptBar status strip over all items (current item overrides to "current").
   const barItems = useMemo<{ status: ItemStatus }[]>(
@@ -248,6 +340,25 @@ export default function ContentViewerScreen() {
       return next;
     });
     setAnswers((m) => ({ ...m, [itemId]: undefined }));
+    startRef.current = Date.now();
+  }, [itemId]);
+
+  // AI composer try-again PRE-FILLS the prior answer bundle (owner decision):
+  // clear the outcome/error to re-enable the composer but KEEP answers[itemId]
+  // (text + ready media) so the student edits and improves rather than restarts.
+  const aiTryAgain = useCallback(() => {
+    if (!itemId) return;
+    setOutcomes((m) => {
+      const next = { ...m };
+      delete next[itemId];
+      return next;
+    });
+    setSubmitErrors((m) => {
+      if (!m[itemId]) return m;
+      const next = { ...m };
+      delete next[itemId];
+      return next;
+    });
     startRef.current = Date.now();
   }, [itemId]);
 
@@ -377,7 +488,7 @@ export default function ContentViewerScreen() {
 
           {sectionTitle ? <Chip className="px-2 py-0.5">{sectionTitle}</Chip> : null}
 
-          {item?.title ? (
+          {item?.title && !isAiComposer ? (
             <Text className="font-display text-text-primary text-lg leading-7">{item.title}</Text>
           ) : null}
 
@@ -407,143 +518,228 @@ export default function ContentViewerScreen() {
 
           {/* QUESTION */}
           {isQuestion(item) ? (
-            <>
-              <QuestionView
-                item={item}
-                spaceId={spaceId}
-                storyPointId={storyPointId}
-                value={answers[itemId]}
-                onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
-                disabled={submitted}
-                showResult={submitted}
-                hideBanner
-                result={
-                  outcome
-                    ? {
-                        correct:
-                          outcome.status === "correct" || (outcome.completed && !outcome.status),
-                      }
-                    : undefined
-                }
-              />
-
-              {submitted ? <AttemptFeedback outcome={outcome} /> : null}
-
-              {/* AI grading can take several seconds — keep the wait honest and
-                visible so the learner knows their answer is being read, not lost. */}
-              {!submitted && !isAgentAssessment && recordAttempt.isPending ? (
-                <Alert
-                  variant="brand"
-                  title="Evaluating your answer…"
-                  icon={<Icon name="sparkles" size={16} />}
-                >
-                  Our AI tutor is reading your response. This usually takes a few seconds.
-                </Alert>
-              ) : null}
-
-              {/* Honest, retryable failure — never a silent no-op. */}
-              {!submitted && !isAgentAssessment && submitError && !recordAttempt.isPending ? (
-                <Alert
-                  variant="error"
-                  title="That didn't go through"
-                  icon={<Icon name="alert-circle" size={16} />}
-                >
+            isAiComposer && capConfig ? (
+              /* ── Surfaces A/C/D/E: unified multimodal composer ── */
+              aiSubmitted && aiEval ? (
+                <FeedbackResult
+                  evaluation={aiEval}
+                  actions={{
+                    onTryAgain: aiTryAgain,
+                    onDiscuss: () => setTutorOpen(true),
+                    onHistory: () => setHistoryOpen(true),
+                    onNext: nextStep.disabled ? undefined : nextStep.onPress,
+                  }}
+                />
+              ) : aiSubmitted && aiOutcome ? (
+                <View className="gap-4">
+                  <AttemptFeedback outcome={aiOutcome} />
                   <View className="gap-2">
-                    <Text className="font-ui text-text-secondary text-sm">{submitError}</Text>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leadingIcon={<Icon name="rotate-ccw" size={15} />}
-                      onPress={() => submit(answers[itemId])}
-                    >
-                      Retry
-                    </Button>
-                  </View>
-                </Alert>
-              ) : null}
-
-              {/* full-width stacked actions — big touch targets, one clear next step */}
-              {isAgentAssessment ? (
-                <Alert
-                  variant="info"
-                  title="Interview submission"
-                  icon={<Icon name="shield-check" size={16} />}
-                >
-                  Use the conversation above and choose{" "}
-                  <Text className="font-ui font-semibold">Finish interview</Text> when you are
-                  ready. This assessment is not checked through the normal answer flow.
-                </Alert>
-              ) : (
-                <View className="gap-2">
-                  {!submitted ? (
-                    <Button
-                      variant="primary"
-                      block
-                      disabled={answers[itemId] == null || recordAttempt.isPending}
-                      loading={recordAttempt.isPending}
-                      onPress={() => submit(answers[itemId])}
-                    >
-                      {recordAttempt.isPending ? "Reading your answer…" : "Check answer"}
-                    </Button>
-                  ) : (
                     <Button
                       variant="secondary"
                       block
                       leadingIcon={<Icon name="rotate-ccw" size={16} />}
-                      onPress={tryAgain}
+                      onPress={aiTryAgain}
                     >
                       Try again
                     </Button>
-                  )}
-                  <View className="flex-row gap-2">
-                    <Button
-                      variant="ghost"
-                      className="flex-1"
-                      leadingIcon={<Icon name="message-circle" size={16} />}
-                      onPress={() => setTutorOpen(true)}
-                    >
-                      Ask tutor
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex-1"
-                      leadingIcon={<Icon name="history" size={16} />}
-                      onPress={() => setShowHistory((v) => !v)}
-                    >
-                      History
-                    </Button>
+                    <View className="flex-row gap-2">
+                      <Button
+                        variant="ghost"
+                        className="flex-1"
+                        leadingIcon={<Icon name="message-circle" size={16} />}
+                        onPress={() => setTutorOpen(true)}
+                      >
+                        Ask tutor
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="flex-1"
+                        leadingIcon={<Icon name="history" size={16} />}
+                        onPress={() => setHistoryOpen(true)}
+                      >
+                        History
+                      </Button>
+                    </View>
                   </View>
                 </View>
-              )}
+              ) : isThisPending ? (
+                <EvaluatingState
+                  hints={
+                    hyeModel?.dimensions.length
+                      ? hyeModel.dimensions.map((d) => d.name.toLowerCase())
+                      : undefined
+                  }
+                  answerText={readWireAnswer(answers[itemId]).text}
+                  answerParts={partsFromWire(answers[itemId])}
+                />
+              ) : submitError ? (
+                <EvaluationFailed
+                  onRetry={() => submit(answers[itemId])}
+                  onBackToAnswer={() =>
+                    setSubmitErrors((m) => {
+                      const n = { ...m };
+                      delete n[itemId];
+                      return n;
+                    })
+                  }
+                />
+              ) : (
+                <AiAnswerSurface
+                  key={itemId}
+                  qType={qType ?? ""}
+                  config={capConfig}
+                  prompt={aiPrompt}
+                  data={qData ?? {}}
+                  difficulty={typeof item?.difficulty === "string" ? item.difficulty : undefined}
+                  hyeModel={hyeModel}
+                  value={answers[itemId]}
+                  onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
+                  spaceId={spaceId}
+                  scopeId={itemId}
+                  submitting={isThisPending}
+                  onSubmit={() => submit(answers[itemId])}
+                  onDiscuss={() => setTutorOpen(true)}
+                />
+              )
+            ) : (
+              <>
+                <QuestionView
+                  item={item}
+                  spaceId={spaceId}
+                  storyPointId={storyPointId}
+                  value={answers[itemId]}
+                  onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
+                  disabled={submitted}
+                  showResult={submitted}
+                  hideBanner
+                  result={
+                    outcome
+                      ? {
+                          correct:
+                            outcome.status === "correct" || (outcome.completed && !outcome.status),
+                        }
+                      : undefined
+                  }
+                />
 
-              {showHistory && !isAgentAssessment ? (
-                <View className="border-border-subtle gap-1 border-t pt-3">
-                  {(() => {
-                    const attempts = (progressItems[itemId]?.attempts ?? []) as {
-                      attemptNumber?: number;
-                      score?: number;
-                      maxScore?: number;
-                    }[];
-                    if (attempts.length === 0)
-                      return (
-                        <Text className="text-text-muted text-xs">
-                          No attempts yet — give it a try when you're ready.
-                        </Text>
-                      );
-                    return attempts.map((a, i) => (
-                      <View key={i} className="flex-row items-center justify-between">
-                        <Text className="text-text-muted text-xs">
-                          Attempt {a.attemptNumber ?? i + 1}
-                        </Text>
-                        <Text className="text-text-secondary text-xs">
-                          {typeof a.score === "number" ? `${a.score}/${a.maxScore ?? "—"}` : "—"}
-                        </Text>
-                      </View>
-                    ));
-                  })()}
-                </View>
-              ) : null}
-            </>
+                {submitted ? <AttemptFeedback outcome={outcome} /> : null}
+
+                {/* AI grading can take several seconds — keep the wait honest and
+                visible so the learner knows their answer is being read, not lost. */}
+                {!submitted && !isAgentAssessment && recordAttempt.isPending ? (
+                  <Alert
+                    variant="brand"
+                    title="Evaluating your answer…"
+                    icon={<Icon name="sparkles" size={16} />}
+                  >
+                    Our AI tutor is reading your response. This usually takes a few seconds.
+                  </Alert>
+                ) : null}
+
+                {/* Honest, retryable failure — never a silent no-op. */}
+                {!submitted && !isAgentAssessment && submitError && !recordAttempt.isPending ? (
+                  <Alert
+                    variant="error"
+                    title="That didn't go through"
+                    icon={<Icon name="alert-circle" size={16} />}
+                  >
+                    <View className="gap-2">
+                      <Text className="font-ui text-text-secondary text-sm">{submitError}</Text>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leadingIcon={<Icon name="rotate-ccw" size={15} />}
+                        onPress={() => submit(answers[itemId])}
+                      >
+                        Retry
+                      </Button>
+                    </View>
+                  </Alert>
+                ) : null}
+
+                {/* full-width stacked actions — big touch targets, one clear next step */}
+                {isAgentAssessment ? (
+                  <Alert
+                    variant="info"
+                    title="Interview submission"
+                    icon={<Icon name="shield-check" size={16} />}
+                  >
+                    Use the conversation above and choose{" "}
+                    <Text className="font-ui font-semibold">Finish interview</Text> when you are
+                    ready. This assessment is not checked through the normal answer flow.
+                  </Alert>
+                ) : (
+                  <View className="gap-2">
+                    {!submitted ? (
+                      <Button
+                        variant="primary"
+                        block
+                        disabled={answers[itemId] == null || recordAttempt.isPending}
+                        loading={recordAttempt.isPending}
+                        onPress={() => submit(answers[itemId])}
+                      >
+                        {recordAttempt.isPending ? "Reading your answer…" : "Check answer"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        block
+                        leadingIcon={<Icon name="rotate-ccw" size={16} />}
+                        onPress={tryAgain}
+                      >
+                        Try again
+                      </Button>
+                    )}
+                    <View className="flex-row gap-2">
+                      <Button
+                        variant="ghost"
+                        className="flex-1"
+                        leadingIcon={<Icon name="message-circle" size={16} />}
+                        onPress={() => setTutorOpen(true)}
+                      >
+                        Ask tutor
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="flex-1"
+                        leadingIcon={<Icon name="history" size={16} />}
+                        onPress={() => setShowHistory((v) => !v)}
+                      >
+                        History
+                      </Button>
+                    </View>
+                  </View>
+                )}
+
+                {showHistory && !isAgentAssessment ? (
+                  <View className="border-border-subtle gap-1 border-t pt-3">
+                    {(() => {
+                      const attempts = (progressItems[itemId]?.attempts ?? []) as {
+                        attemptNumber?: number;
+                        score?: number;
+                        maxScore?: number;
+                      }[];
+                      if (attempts.length === 0)
+                        return (
+                          <Text className="text-text-muted text-xs">
+                            No attempts yet — give it a try when you're ready.
+                          </Text>
+                        );
+                      return attempts.map((a, i) => (
+                        <View key={i} className="flex-row items-center justify-between">
+                          <Text className="text-text-muted text-xs">
+                            Attempt {a.attemptNumber ?? i + 1}
+                          </Text>
+                          <Text className="text-text-secondary text-xs">
+                            {typeof a.score === "number" ? `${a.score}/${a.maxScore ?? "—"}` : "—"}
+                          </Text>
+                        </View>
+                      ));
+                    })()}
+                  </View>
+                ) : null}
+              </>
+            )
           ) : null}
 
           {/* OTHER item types (interactive/assessment/discussion/project/checkpoint) */}
@@ -638,6 +834,19 @@ export default function ContentViewerScreen() {
           </Button>
         </View>
       </Drawer>
+
+      {/* Surface H — attempt history (W5). Renders attempts[] when the writer
+          persists them, else degrades to the single best-result row. */}
+      <AttemptHistorySheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        entry={progressItems[itemId]}
+        promptText={aiPrompt || item?.title}
+        onTryAgain={() => {
+          setHistoryOpen(false);
+          aiTryAgain();
+        }}
+      />
     </SafeAreaView>
   );
 }

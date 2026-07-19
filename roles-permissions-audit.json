@@ -1,0 +1,46 @@
+{
+  "screen": "Roles & Permissions",
+  "designSpec": "prototypes/admin/memberships-roles-permissions.card.html",
+  "appFile": "apps/mobile-admin/src/screens/people/RolesPermissionsScreen.tsx",
+  "verdict": "partial",
+  "reason": "App implements read-only permission reference (matrix, catalogs, stat tiles) but omits the full member management UI (members table, role/permission editor drawer, bulk actions, audit log, tabbed interface).",
+  "keyFunctionalSections": [
+    "Page header with title and Add member button",
+    "Tenant-isolation reminder alert",
+    "Members tab with searchable directory table",
+    "Role and permissions configuration tab",
+    "Role distribution stat tiles",
+    "Membership search with results listing",
+    "Permission matrix (8 permissions × 4 roles with glyphs)",
+    "Member editor drawer (right sheet) for role change and permission toggles",
+    "Bulk member selection and actions bar",
+    "Confirmation dialogs for destructive actions",
+    "Recent access changes audit log",
+    "Permission catalogs (Teacher and Staff permissions)",
+    "Multiple reference UI states (error, empty, skeleton, access-gated views)"
+  ],
+  "missingSections": [
+    "Members tab (entire DataTable with search/filter/pagination)",
+    "Member row selection and bulk actions bar",
+    "Member editor drawer (role dropdown, permission toggles, suspend/reactivate buttons)",
+    "Tabbed interface between Members and Roles & Permissions views",
+    "Confirmation dialogs for role change and membership suspension",
+    "Recent access changes audit log on Roles & Permissions tab",
+    "Member status indicators (Active, Suspended, Inactive)",
+    "Permission count per member display",
+    "Toolbar with role filter, status filter, and export",
+    "Pagination controls for member list",
+    "Self-lockout guard for current admin user",
+    "Access change audit timestamps"
+  ],
+  "implementedSections": [
+    "Page header title",
+    "Role distribution stat tiles",
+    "Membership search field with member results",
+    "Permission matrix with glyphs and legend",
+    "Teacher and Staff permission accordion lists",
+    "PendingNote (placeholder for live memberships)"
+  ],
+  "functionalCoveragePercent": 35,
+  "notes": "The app is a read-only reference view of the design spec. It serves permission education (show what each role can do) rather than permission management (assign roles and permissions to members). Full implementation would require wiring the drawer editor, confirmation dialogs, bulk bar, audit log queries, and member DataTable with filters/pagination."
+}

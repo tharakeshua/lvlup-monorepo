@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef } from "react";
-import { AccessibilityInfo, ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { AccessibilityInfo, ScrollView, Text, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { colors } from "../../theme";
+import { DURATION, EASE, REDUCE_MOTION } from "../ai-question/tokens";
 import { textFromMessage } from "../../features/conversation/reducer";
 import type { ConversationError, ConversationMessageView } from "../../features/conversation/types";
 import { Button } from "../primitives";
@@ -18,6 +29,45 @@ export interface ConversationTranscriptProps {
   compact?: boolean;
 }
 
+/** One softly breathing dot in the typing indicator, driven by Reanimated. */
+function TypingDot({ delay }: { delay: number }) {
+  const opacity = useSharedValue(0.35);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withDelay(delay, withTiming(1, { duration: DURATION.slow, easing: EASE.standard })),
+        withTiming(0.35, { duration: DURATION.slow, easing: EASE.standard })
+      ),
+      -1,
+      false
+    );
+  }, [delay, opacity]);
+
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      style={[{ width: 6, height: 6, borderRadius: 999, backgroundColor: colors.brand }, style]}
+    />
+  );
+}
+
+/** Three softly breathing dots — the interviewer "is working on this turn" motif. */
+function TypingDots() {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      className="border-border-subtle bg-surface flex-row items-center gap-1 self-start rounded-xl rounded-bl-sm border px-4 py-3.5"
+    >
+      <TypingDot delay={0} />
+      <TypingDot delay={150} />
+      <TypingDot delay={300} />
+    </View>
+  );
+}
+
 function MessageBubble({
   message,
   assistantLabel,
@@ -32,123 +82,108 @@ function MessageBubble({
   const citations = message.content.filter((block) => block.type === "citation");
   const images = message.content.filter((block) => block.type === "media");
   const label = `${learner ? "Your" : assistantLabel} message${text ? `: ${text}` : ""}`;
+  const sending = message.localStatus === "sending";
+  const failed = message.localStatus === "failed" || Boolean(retry);
 
   return (
-    <View
+    <Animated.View
+      entering={(learner ? FadeInDown : FadeIn)
+        .duration(DURATION.base)
+        .easing(EASE.entrance)
+        .reduceMotion(REDUCE_MOTION)}
       nativeID={`conversation-message-${message.id}`}
       accessible
       accessibilityLabel={label}
-      className={cx("w-full", learner ? "items-end" : "items-start")}
+      style={{ width: "100%", alignItems: learner ? "flex-end" : "flex-start", rowGap: 4 }}
     >
-      <View className={cx("max-w-[88%] flex-row gap-2", learner && "flex-row-reverse")}>
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no"
+      <View
+        className={cx(
+          "max-w-[82%] gap-2 rounded-xl px-4 py-3",
+          learner
+            ? "bg-brand rounded-br-sm"
+            : "border-border-subtle bg-surface rounded-bl-sm border",
+          sending && "opacity-60",
+          failed && "border-error border"
+        )}
+      >
+        <Text
           className={cx(
-            "rounded-pill mt-1 h-7 w-7 items-center justify-center",
-            learner ? "bg-spark" : "bg-brand-subtle"
+            "font-ui text-base leading-6",
+            learner ? "text-text-on-accent" : "text-text-primary"
           )}
         >
-          <Icon
-            name={learner ? "user-round" : "bot"}
-            size={15}
-            color={learner ? colors.textPrimary : colors.brand}
-          />
-        </View>
-        <View
-          className={cx(
-            "gap-2 rounded-xl px-3.5 py-3",
-            learner
-              ? "bg-brand rounded-tr-sm"
-              : "border-border-subtle bg-surface rounded-tl-sm border",
-            message.localStatus === "sending" && "opacity-70",
-            message.localStatus === "failed" && "border-error"
-          )}
-        >
-          <Text
+          {text || "Image attached"}
+        </Text>
+        {images.length > 0 ? (
+          <View
             className={cx(
-              "font-ui text-base leading-6",
-              learner ? "text-text-on-accent" : "text-text-primary"
+              "flex-row items-center gap-1 self-start rounded-sm px-2 py-1",
+              learner ? "bg-white/15" : "bg-surface-sunken"
             )}
           >
-            {text || "Image attached"}
-          </Text>
-          {images.length > 0 ? (
-            <View
+            <Icon
+              name="image"
+              size={14}
+              color={learner ? colors.textOnAccent : colors.textSecondary}
+            />
+            <Text
               className={cx(
-                "flex-row items-center gap-1",
-                learner ? "" : "bg-surface-sunken rounded-sm px-2 py-1"
+                "font-ui text-xs",
+                learner ? "text-text-on-accent" : "text-text-secondary"
               )}
             >
-              <Icon
-                name="image"
-                size={14}
-                color={learner ? colors.textOnAccent : colors.textSecondary}
-              />
-              <Text
+              Image attached
+            </Text>
+          </View>
+        ) : null}
+        {citations.length > 0 ? (
+          <View className="gap-1">
+            {citations.map((citation) => (
+              <View
+                key={citation.sourceId}
                 className={cx(
-                  "font-ui text-xs",
-                  learner ? "text-text-on-accent" : "text-text-secondary"
+                  "flex-row items-center gap-1.5 rounded-sm px-2 py-1.5",
+                  learner ? "bg-white/15" : "bg-surface-sunken"
                 )}
               >
-                Image attached
-              </Text>
-            </View>
-          ) : null}
-          {citations.length > 0 ? (
-            <View className="gap-1">
-              {citations.map((citation) => (
-                <View
-                  key={citation.sourceId}
-                  className="bg-surface-sunken flex-row items-center gap-1.5 rounded-sm px-2 py-1.5"
+                <Icon
+                  name="book-open"
+                  size={13}
+                  color={learner ? colors.textOnAccent : colors.info}
+                />
+                <Text
+                  className={cx(
+                    "font-ui flex-1 text-xs",
+                    learner ? "text-text-on-accent" : "text-text-secondary"
+                  )}
+                  numberOfLines={2}
                 >
-                  <Icon name="book-open" size={13} color={colors.info} />
-                  <Text className="font-ui text-text-secondary flex-1 text-xs" numberOfLines={2}>
-                    {citation.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-          {message.localStatus === "sending" ? (
-            <View className="flex-row items-center gap-1.5">
-              <ActivityIndicator
-                size="small"
-                color={learner ? colors.textOnAccent : colors.brand}
-              />
-              <Text
-                className={cx(
-                  "font-ui text-xs",
-                  learner ? "text-text-on-accent" : "text-text-muted"
-                )}
-              >
-                Sending…
-              </Text>
-            </View>
-          ) : null}
-          {retry ? (
-            <View
-              accessibilityLiveRegion="assertive"
-              className="border-error/30 gap-2 rounded-sm border bg-red-200/30 p-2"
-            >
-              <Text className="font-ui text-error text-xs leading-4">
-                {retry.error?.safeMessage ?? "This reply did not finish."}
-              </Text>
-              {retry.onRetry ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  leadingIcon="rotate-ccw"
-                  onPress={retry.onRetry}
-                >
-                  Retry this reply
-                </Button>
-              ) : null}
-            </View>
+                  {citation.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+
+      {sending ? <Text className="text-text-muted text-2xs px-1 font-mono">Sending…</Text> : null}
+
+      {retry ? (
+        <View
+          accessibilityLiveRegion="assertive"
+          className="border-error/30 max-w-[88%] gap-2 rounded-md border bg-red-200/30 p-2"
+        >
+          <Text className="font-ui text-error text-xs leading-4">
+            {retry.error?.safeMessage ?? "This reply did not finish."}
+          </Text>
+          {retry.onRetry ? (
+            <Button variant="secondary" size="sm" leadingIcon="rotate-ccw" onPress={retry.onRetry}>
+              Retry this reply
+            </Button>
           ) : null}
         </View>
-      </View>
-    </View>
+      ) : null}
+    </Animated.View>
   );
 }
 
@@ -207,7 +242,7 @@ export function ConversationTranscript({
         {sortedMessages.length === 0 ? (
           <View className="items-center gap-2 px-5 py-8">
             <View className="bg-brand-subtle rounded-pill h-10 w-10 items-center justify-center">
-              <Icon name="message-circle" size={19} color={colors.brand} />
+              <Icon name="messages-square" size={19} color={colors.brand} />
             </View>
             <Text className="font-display text-text-primary text-base">
               Start when you&apos;re ready
@@ -235,9 +270,9 @@ export function ConversationTranscript({
           })
         )}
         {isTurnActive ? (
-          <View accessibilityLiveRegion="polite" className="flex-row items-center gap-2 px-1 py-1">
-            <ActivityIndicator size="small" color={colors.brand} />
-            <Text className="font-ui text-text-muted text-sm">
+          <View accessibilityLiveRegion="polite" className="items-start gap-1">
+            <TypingDots />
+            <Text className="text-text-muted text-2xs px-1 font-mono">
               {assistantLabel} is working on this turn…
             </Text>
           </View>

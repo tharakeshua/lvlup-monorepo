@@ -108,6 +108,11 @@ export const ACCESS_RULES: Readonly<Record<Action, AccessRule>> = {
   "testSession.submit": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "answer.evaluate": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "itemAttempt.record": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
+  // Student uploads media (audio/image) for their OWN answer to a levelup item.
+  // The server pins the storage path to ctx.uid, so cross-student writes are
+  // impossible; the other upload kinds are authoring/scanner-scoped (a learner
+  // would be PERMISSION_DENIED). See requestUploadUrlService `answer-media` kind.
+  "answerMedia.upload": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "chat.send": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "progress.read": { roles: "any-authed", tenantScoped: true },
   "store.list": { roles: "any-authed", tenantScoped: true },

@@ -1,0 +1,131 @@
+<!-- @dsCard group="Student Mobile · AI Questions" viewport="2760x1180" name="C/D/E · Capability variants" subtitle="Code editor · audio capture (idle/recording/recorded) · image work capture · permission denied" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surfaces C/D/E — Capability variants</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="./mobile-ai.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="stage">
+<h1>Surfaces C · D · E — capability variants of the answer page</h1>
+<p class="lede">Same skeleton as Surface A — only the composer's dominant capability changes. Code inverts to dark ink for legibility; audio makes the record control the hero; image capture feels like pinning pages.</p>
+<div class="row">
+
+<div class="frame" data-screen-label="C code">
+<div class="frame__label">C · Code editor (starter-seeded)</div>
+<div class="phone"><div class="screen">
+<div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+<div class="m-top"><button class="icon-btn icon-btn--44"><i data-lucide="arrow-left"></i></button><span class="pos">5 / 12</span><span class="spacer"></span><span class="chip-pts">15 pts</span><button class="icon-btn icon-btn--44"><i data-lucide="message-circle"></i></button></div>
+<div class="scroll">
+<div class="prompt"><span class="eyebrow">Code</span><h2>Write a function that returns the n-th Fibonacci number without recursion.</h2><div class="meta"><span class="chip-diff"><span class="dot"></span>Medium</span></div></div>
+<div class="hye"><div class="hye__head"><i data-lucide="compass"></i><b>How you'll be evaluated</b><span class="n">2 criteria</span><i data-lucide="chevron-down" style="width:16px;height:16px;stroke:var(--text-muted)"></i></div>
+<div class="hye__chips"><span class="hye-chip"><i data-lucide="target"></i>Iterative solution</span><span class="hye-chip hye-chip--dim hye-chip--hi"><i data-lucide="check-circle"></i>Correctness</span><span class="hye-chip hye-chip--dim"><i data-lucide="layers"></i>Efficiency</span></div></div>
+<div class="code-surface" style="flex:1">
+<div class="code-head"><span class="lang">Python</span><span style="flex:1"></span><i data-lucide="maximize-2" style="width:15px;height:15px;stroke:var(--ink-400)"></i></div>
+<div><span class="ln">1</span><span class="dim"># starter</span></div>
+<div><span class="ln">2</span>def fib(n):</div>
+<div><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;a, b = 0, 1</div>
+<div><span class="ln">4</span>&nbsp;&nbsp;&nbsp;&nbsp;for _ in range(n):</div>
+<div><span class="ln">5</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a, b = b, a + b</div>
+<div><span class="ln">6</span>&nbsp;&nbsp;&nbsp;&nbsp;return a<span class="caret" style="background:var(--spark)"></span></div>
+</div>
+<div class="cap-row"><button class="cap"><i data-lucide="camera"></i>Photograph a diagram</button></div>
+</div>
+<div class="dock dock--flat"><button class="btn btn--primary btn--lg btn--block">Submit for evaluation</button></div>
+<div class="homebar"></div>
+</div></div>
+<p class="frame__note"><b>Direction:</b> the only dark surface in the flow — ink-900 card inside the warm frame. Monospace, 1.75 line-height, no autocorrect. Expand control mirrors focus mode. No highlighting engine assumed for v1.</p>
+</div>
+
+<div class="frame" data-screen-label="D1 idle">
+<div class="frame__label">D1 · Audio — idle</div>
+<div class="phone"><div class="screen">
+<div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+<div class="m-top"><button class="icon-btn icon-btn--44"><i data-lucide="arrow-left"></i></button><span class="pos">7 / 12</span><span class="spacer"></span><span class="chip-pts">10 pts</span><button class="icon-btn icon-btn--44"><i data-lucide="message-circle"></i></button></div>
+<div class="scroll">
+<div class="prompt"><span class="eyebrow">Spoken answer</span><h2>Listen to the pronunciation, then describe your morning routine in French.</h2>
+<div class="audio-pill"><i data-lucide="play"></i>Prompt audio · 0:31<span class="wave" style="margin-left:4px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div></div>
+<div class="hye"><div class="hye__head"><i data-lucide="compass"></i><b>How you'll be evaluated</b><span class="n">2 criteria</span><i data-lucide="chevron-down" style="width:16px;height:16px;stroke:var(--text-muted)"></i></div>
+<div class="hye__chips"><span class="hye-chip"><i data-lucide="target"></i>Vocabulary</span><span class="hye-chip"><i data-lucide="target"></i>Pronunciation</span><span class="hye-chip hye-chip--dim"><i data-lucide="lightbulb"></i>Fluency</span></div></div>
+<div class="rec-stage">
+<button class="rec-btn"><i data-lucide="mic"></i></button>
+<span class="rec-hint">Tap to record — up to 3 minutes</span>
+</div>
+</div>
+<div class="dock dock--flat"><button class="btn btn--primary btn--lg btn--block" disabled>Submit for evaluation</button></div>
+<div class="homebar"></div>
+</div></div>
+<p class="frame__note"><b>Motion:</b> the marigold record button breathes gently at rest (scale 1→1.03, 3s loop). Prompt-audio pill scrubs with a live waveform while playing.</p>
+</div>
+
+<div class="frame" data-screen-label="D2 recording">
+<div class="frame__label">D2 · Audio — recording</div>
+<div class="phone"><div class="screen">
+<div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+<div class="m-top"><button class="icon-btn icon-btn--44"><i data-lucide="arrow-left"></i></button><span class="pos">7 / 12</span><span class="spacer"></span><span class="chip-pts">10 pts</span><button class="icon-btn icon-btn--44"><i data-lucide="message-circle"></i></button></div>
+<div class="scroll">
+<div class="prompt--collapsed"><p>Listen to the pronunciation, then describe your morning…</p><i data-lucide="chevron-down" style="width:16px;height:16px;stroke:var(--text-muted)"></i></div>
+<div class="rec-stage" style="flex:1;justify-content:center">
+<div class="rec-timer"><span class="dot"></span>0:12</div>
+<div class="wave wave--live" style="height:40px;gap:3px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<button class="rec-btn rec-btn--live"><i data-lucide="square"></i></button>
+<span class="rec-hint">Recording… tap to stop</span>
+</div>
+</div>
+<div class="dock dock--flat"><button class="btn btn--primary btn--lg btn--block" disabled>Submit for evaluation</button></div>
+<div class="homebar"></div>
+</div></div>
+<p class="frame__note"><b>Motion:</b> unmistakable recording state — pulsing red ring, blinking dot + mono timer, live level bars. Stop is the same 88px target. Prompt collapses to give the moment the whole screen.</p>
+</div>
+
+<div class="frame" data-screen-label="D3 recorded">
+<div class="frame__label">D3 · Audio — recorded + permission denied</div>
+<div class="phone"><div class="screen">
+<div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+<div class="m-top"><button class="icon-btn icon-btn--44"><i data-lucide="arrow-left"></i></button><span class="pos">7 / 12</span><span class="spacer"></span><span class="chip-pts">10 pts</span><button class="icon-btn icon-btn--44"><i data-lucide="message-circle"></i></button></div>
+<div class="scroll">
+<div class="prompt--collapsed"><p>Listen to the pronunciation, then describe your morning…</p><i data-lucide="chevron-down" style="width:16px;height:16px;stroke:var(--text-muted)"></i></div>
+<div class="parts">
+<div class="part"><div class="part__thumb" style="background:var(--brand-subtle);color:var(--brand-primary)"><i data-lucide="play"></i></div><div class="part__body"><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span>Your answer · 1:24</span></div><button class="part__x"><i data-lucide="x"></i></button></div>
+<div class="part part--failed"><div class="part__thumb"><i data-lucide="mic"></i></div><div class="part__body"><b>Take 2</b><span>upload failed — tap to retry</span></div><button class="part__x"><i data-lucide="rotate-ccw" style="stroke:var(--status-error)"></i></button></div>
+</div>
+<div class="cap-row"><button class="cap"><i data-lucide="mic"></i>Re-record</button><button class="cap cap--brand"><i data-lucide="type"></i>Add a note</button></div>
+<div class="banner banner--warn"><i data-lucide="mic-off"></i>Microphone is off for Lyceum.<span class="lnk">Open Settings</span></div>
+</div>
+<div class="dock"><button class="btn btn--primary btn--lg btn--block">Submit for evaluation</button></div>
+<div class="homebar"></div>
+</div></div>
+<p class="frame__note"><b>States shown:</b> recorded clip (play / re-record / remove), failed upload with inline retry, and the mic permission-denied banner with a Settings deep link. Answer parts are never lost on failure.</p>
+</div>
+
+<div class="frame" data-screen-label="E images">
+<div class="frame__label">E · Image / work capture</div>
+<div class="phone"><div class="screen">
+<div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+<div class="m-top"><button class="icon-btn icon-btn--44"><i data-lucide="arrow-left"></i></button><span class="pos">9 / 12</span><span class="spacer"></span><span class="chip-pts">20 pts</span><button class="icon-btn icon-btn--44"><i data-lucide="message-circle"></i></button></div>
+<div class="scroll">
+<div class="prompt"><span class="eyebrow">Show your work</span><h2>Solve the system of equations on paper and photograph your full working.</h2>
+<div class="ref-row"><div class="ref-tile">reference:<br>worked example</div><div class="ref-tile">reference:<br>equation set</div></div></div>
+<div class="hye"><div class="hye__head"><i data-lucide="compass"></i><b>How you'll be evaluated</b><span class="n">3 criteria</span><i data-lucide="chevron-down" style="width:16px;height:16px;stroke:var(--text-muted)"></i></div>
+<div class="hye__chips"><span class="hye-chip"><i data-lucide="target"></i>Method shown</span><span class="hye-chip"><i data-lucide="target"></i>Correct solution</span><span class="hye-chip hye-chip--dim"><i data-lucide="layers"></i>Working depth</span></div></div>
+<div class="parts">
+<div class="part" style="min-height:72px"><div class="part__thumb" style="width:60px;height:60px"><i data-lucide="image"></i></div><div class="part__body"><b>Page 1 — elimination steps</b><span>photo · tap to view</span></div><button class="part__x"><i data-lucide="x"></i></button></div>
+<div class="part" style="min-height:72px"><div class="part__thumb" style="width:60px;height:60px"><i data-lucide="image"></i></div><div class="part__body"><b>Page 2 — check &amp; answer</b><span>photo · tap to view</span></div><button class="part__x"><i data-lucide="x"></i></button></div>
+</div>
+<div class="cap-row"><button class="cap"><i data-lucide="camera"></i>Camera</button><button class="cap"><i data-lucide="image"></i>Photo library</button><button class="cap cap--brand"><i data-lucide="type"></i>Add a note</button></div>
+</div>
+<div class="dock"><button class="btn btn--primary btn--lg btn--block">Submit for evaluation</button></div>
+<div class="homebar"></div>
+</div></div>
+<p class="frame__note"><b>Direction:</b> image tiles feel like pinned pages — larger thumbs, titled, tap to view full-screen. Reference images sit in the prompt as tappable tiles. Camera-permission-denied mirrors D3's banner pattern.</p>
+</div>
+
+</div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

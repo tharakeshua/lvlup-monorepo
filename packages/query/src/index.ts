@@ -312,6 +312,7 @@ export {
   useSpaceDetailView,
   useStoryPoints,
   useItems,
+  useEvaluationConfig,
   useItemForEdit,
   useVersions,
   useQuestionBank,

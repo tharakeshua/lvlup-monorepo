@@ -68,6 +68,7 @@ export type Action =
   | "testSession.submit"
   | "answer.evaluate"
   | "itemAttempt.record"
+  | "answerMedia.upload"
   | "chat.send"
   | "progress.read"
   | "store.list"
@@ -141,6 +142,7 @@ export const ACTIONS = [
   "testSession.submit",
   "answer.evaluate",
   "itemAttempt.record",
+  "answerMedia.upload",
   "chat.send",
   "progress.read",
   "store.list",

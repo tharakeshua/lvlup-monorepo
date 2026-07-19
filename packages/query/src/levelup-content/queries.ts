@@ -117,6 +117,30 @@ export function useItems<T = unknown>(
 }
 
 /**
+ * The RESOLVED evaluation config (agent · rubric · settings) for one item —
+ * server-projected student-safe (holisticGuidance / modelAnswer / evaluatorGuidance
+ * stripped). Powers the "How you'll be evaluated" card: objectives + rubric score
+ * ladders + enabled dimensions + passing bar. Omit `itemId` to preview
+ * space-level defaults. Every leg (agent/rubric/settings) may be null.
+ */
+export function useEvaluationConfig<T = unknown>(
+  spaceId: string,
+  itemId?: string,
+  opts?: ReadOpts<T>
+): UseQueryResult<T, unknown> {
+  const { repos } = useApi();
+  const f = { evalConfig: true, spaceId, itemId: itemId ?? null };
+  return useQuery<T, unknown, T, readonly unknown[]>({
+    queryKey: itemKeys.list(f),
+    queryFn: () =>
+      repo(repos, "itemRepo").getEvaluationConfig({ spaceId, itemId } as never) as Promise<T>,
+    enabled: Boolean(spaceId) && (opts?.enabled ?? true),
+    staleTime: 5 * 60 * 1000,
+    ...opts,
+  });
+}
+
+/**
  * Answer-bearing editor item (authoring roles only). Lives under the
  * `items:edit` NON-PERSISTED scope (`editItemKey`) so the re-merged AnswerKey
  * never lands in the shared/offline cache and is never bulk-invalidated by the

@@ -34,6 +34,7 @@ export type UploadKind =
   | "question-paper"
   | "content-source"
   | "item-media"
+  | "answer-media"
   | "avatar"
   | "tenant-asset";
 
