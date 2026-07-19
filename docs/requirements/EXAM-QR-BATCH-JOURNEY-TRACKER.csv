@@ -1,0 +1,29 @@
+id,phase,journey_step,requirement,status,priority,owner,notes,file_reference
+P0-01,P0,4,Scaffold apps/scanner-web PWA,GAP,P0,,No scanner app in monorepo,old-deprecated/requirements/scanner-app/requirements.md
+P0-02,P0,4,generateExamQrBatch + validateQrScan callables,GAP,P0,,QR not implemented,—
+P0-03,P0,4,Handwriting verification anti-fraud,GAP,P0,,Cross-student match must hard-fail,—
+P0-04,P0,5,Agent session end + QR audit,GAP,P0,,Signature + hash verify,—
+P0-05,P0,6,EOD batch grading scheduler,GAP,P0,,Only 15-min watchdog exists,stale-submission-watchdog.ts
+P0-06,P0,7,Fix v1 releaseResults outbox recipients,GAP,P0,,Empty recipientUids,release-results.ts
+P0-07,P0,7,Student PDF download,GAP,P0,,Print only today,ExamResultPage.tsx
+P0-08,P0,7,generateReport release gate,GAP,P0,,PDF before release risk,generate-report.ts
+P0-09,P0,8,LD-01 remediation content tests,PARTIAL,P0,,Convention not type,content.ts
+P0-10,P0,ALL,E2E Playwright full journey,GAP,P0,,,tests/e2e/
+P1-01,P1,8,Auto-create remediation space on release,GAP,P1,,,—
+P1-02,P1,8,extractConceptsFromExam,GAP,P1,,,—
+P1-03,P1,8,Wrong-answer practice from results,GAP,P1,,,PracticeModePage.tsx
+P1-04,P1,7,FCM parent push,GAP,P1,,Token reg unused,registerDeviceToken
+P1-05,P1,2,saveExamQuestion callable,GAP,P1,,Session-only edits,ExamCreatePage.tsx
+P1-06,P1,4,Scanner offline upload queue,GAP,P1,,,upload-queue.md spec
+P1-07,P1,6,Deprecate legacy autograde triggers,PARTIAL,P1,,Dual deployment,functions/autograde/
+P1-08,P1,4,Admin scanner provisioning UI,GAP,P1,,,admin-web
+EX-01,EXISTS,1,Teacher GRN001 login,EXISTS,P0,,,auth-store.ts
+EX-02,EXISTS,2,Exam create wizard,EXISTS,P0,,,ExamCreatePage.tsx
+EX-03,EXISTS,2,requestUploadUrl + Storage paths,EXISTS,P0,,,request-upload-url.ts
+EX-04,EXISTS,2,extractQuestions Gemini,EXISTS,P0,,,extract-questions.ts
+EX-05,EXISTS,4,uploadAnswerSheets scanner role,EXISTS,P0,,Backend ready,upload-answer-sheets.ts
+EX-06,EXISTS,6,advancePipeline AI grading,EXISTS,P0,,,advance-pipeline.ts
+EX-07,EXISTS,7,gradeQuestion manual override,EXISTS,P0,,,GradingReviewPage.tsx
+EX-08,EXISTS,7,releaseResults + gating,EXISTS,P0,,,release-results.ts
+EX-09,EXISTS,7,Parent PDF generateReport,EXISTS,P0,,,ExamResultsPage.tsx
+EX-10,PARTIAL,7,Parent in-app notification,PARTIAL,P0,,Legacy trigger only,on-results-released.ts
