@@ -280,6 +280,45 @@ describe("LVL-1 — levelup reads emit contract-canonical views (legacy + canoni
       expect(JSON.stringify(legacy)).not.toContain("evaluatorGuidance");
     });
 
+    it("seed flat payload (questionType at root) → strict ItemView for learner", async () => {
+      const teacher = makeAuthContext("teacher");
+      const tenantId = teacher.tenantId!;
+      await teacher.repos.items.upsert(tenantId, {
+        id: "item_seed_flat",
+        spaceId: "space_1",
+        storyPointId: "sp_1",
+        type: "question",
+        title: "Prioritization frameworks",
+        orderIndex: 4,
+        payload: {
+          questionType: "matching",
+          content: "Match each framework to its use case:",
+          basePoints: 10,
+          questionData: {
+            pairs: [
+              { id: "p1", left: "Impact vs Effort Matrix", right: "Quick visual triage" },
+              { id: "p2", left: "RICE Scoring", right: "Quantitative prioritization" },
+            ],
+          },
+        },
+        createdBy: "uid_author",
+        updatedBy: "uid_author",
+        archivedAt: null,
+      });
+      const student = makeAuthContext("student", { repos: teacher.repos });
+      const res = (await listItemsService(
+        { spaceId: "space_1", storyPointId: "sp_1" } as never,
+        student
+      )) as unknown as Doc;
+      expect(parseAs("v1.levelup.listItems", res).success).toBe(true);
+      const flat = (res["items"] as Doc[]).find((i) => i["id"] === "item_seed_flat")!;
+      expect(flat["type"]).toBe("question");
+      expect((flat["payload"] as Doc)["type"]).toBe("question");
+      const pairs = ((flat["payload"] as Doc)["questionData"] as Doc)["pairs"] as Doc[];
+      expect(pairs[0]["right"]).toBe("");
+      expect(JSON.stringify(flat)).not.toContain("Quick visual triage");
+    });
+
     it("getItemForEdit → strict ItemEditView with the ⚷ answerKey KEPT (authoring)", async () => {
       const { teacher, tenantId } = await seedItems();
       // Stored key doc carries the storage-only scope keys + omits audit fields.

@@ -303,6 +303,91 @@ function asOptions(raw: unknown): Array<{ id: string; text: string; imageUrl?: s
   });
 }
 
+/**
+ * After answer-key stripping, matching pairs may omit `right` (it lives only in
+ * AnswerKey). The learner ItemView schema still requires both columns, so emit
+ * an empty right placeholder — same as `buildQuestionData("matching")`.
+ */
+function sanitizeLearnerQuestionData(qd: Doc): Doc {
+  if (qd["questionType"] !== "matching" || !Array.isArray(qd["pairs"])) return qd;
+  return {
+    ...qd,
+    pairs: (qd["pairs"] as Doc[]).map((pair) => ({
+      left: String(pair["left"] ?? ""),
+      // Correct mappings live only in AnswerKey — never emit them on learner reads.
+      right: "",
+    })),
+  };
+}
+
+/** Seed/legacy flat payload: `questionType` at payload root without `payload.type`. */
+function buildQuestionPayloadFromFlat(
+  p: Doc,
+  item: Doc
+): { type: string; payload: Doc; content?: string } {
+  const qt = QUESTION_TYPE_MAP[String(p["questionType"] ?? "")] ?? "text";
+  const basePoints =
+    typeof p["basePoints"] === "number"
+      ? (p["basePoints"] as number)
+      : typeof p["points"] === "number"
+        ? (p["points"] as number)
+        : undefined;
+
+  let questionData: Doc;
+  if (isDoc(p["questionData"]) && Object.keys(p["questionData"] as Doc).length > 0) {
+    const raw = stripAnswerFields({
+      ...(p["questionData"] as Doc),
+      questionType: (p["questionData"] as Doc)["questionType"] ?? qt,
+    }) as Doc;
+    questionData = sanitizeLearnerQuestionData({ ...raw, questionType: qt });
+  } else {
+    questionData = buildQuestionData(qt, p);
+  }
+
+  return {
+    type: "question",
+    payload: {
+      type: "question",
+      ...(basePoints !== undefined ? { basePoints } : {}),
+      questionData,
+    },
+    content:
+      typeof p["content"] === "string"
+        ? (p["content"] as string)
+        : typeof p["prompt"] === "string"
+          ? (p["prompt"] as string)
+          : undefined,
+  };
+}
+
+/** Seed/legacy flat payload: `materialType` at payload root without `payload.type`. */
+function buildMaterialPayloadFromFlat(
+  p: Doc,
+  item: Doc
+): { type: string; payload: Doc; title?: string; content?: string } {
+  if (isDoc(p["materialData"])) {
+    const materialData = stripAnswerFields(p["materialData"]) as Doc;
+    return {
+      type: "material",
+      payload: { type: "material", materialData },
+      title: typeof item["title"] === "string" ? (item["title"] as string) : undefined,
+      content: typeof p["content"] === "string" ? (p["content"] as string) : undefined,
+    };
+  }
+  const mt = MATERIAL_TYPE_MAP[String(p["materialType"] ?? "")] ?? "text";
+  return {
+    type: "material",
+    payload: { type: "material", materialData: buildMaterialData(mt, p) },
+    title: typeof item["title"] === "string" ? (item["title"] as string) : undefined,
+    content:
+      typeof p["body"] === "string"
+        ? (p["body"] as string)
+        : typeof p["content"] === "string"
+          ? (p["content"] as string)
+          : undefined,
+  };
+}
+
 /** Build a canonical, ANSWER-FREE `questionData` for the two-level item payload. */
 function buildQuestionData(qt: string, legacy: Doc): Doc {
   const options = asOptions(legacy["options"]);
@@ -407,8 +492,11 @@ function buildMaterialData(mt: string, legacy: Doc): Doc {
       };
     case "interactive":
       return { materialType: "interactive", embedUrl: url };
-    case "rich":
-      return { materialType: "rich", blocks: [] };
+    case "rich": {
+      const rich = legacy["richContent"] as Doc | undefined;
+      const blocks = Array.isArray(rich?.["blocks"]) ? rich["blocks"] : [];
+      return { materialType: "rich", blocks };
+    }
     case "text":
     default:
       return { materialType: "text", body };
@@ -464,7 +552,20 @@ function normalizeItemPayload(
   }
   // Already canonical (`type` discriminant, no legacy `kind`): pass through.
   if (typeof p["type"] === "string") {
-    return { type: String(item["type"] ?? p["type"]), payload: stripAnswerFields(p) as Doc };
+    const stripped = stripAnswerFields(p) as Doc;
+    const questionData = stripped["questionData"];
+    if (questionData && typeof questionData === "object" && !Array.isArray(questionData)) {
+      stripped["questionData"] = sanitizeLearnerQuestionData(questionData as Doc);
+    }
+    return { type: String(item["type"] ?? p["type"]), payload: stripped };
+  }
+  // Seed-style flat payloads: top-level `questionType` / `materialType` without `payload.type`.
+  const itemType = String(item["type"] ?? "");
+  if (itemType === "question" || typeof p["questionType"] === "string") {
+    return buildQuestionPayloadFromFlat(p, item);
+  }
+  if (itemType === "material" || typeof p["materialType"] === "string") {
+    return buildMaterialPayloadFromFlat(p, item);
   }
   // Degenerate fallback so the strict union never fails on an empty payload.
   return { type: "checkpoint", payload: { type: "checkpoint" } };
