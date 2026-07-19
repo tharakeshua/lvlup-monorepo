@@ -22,7 +22,7 @@ export default function LeaderboardPage() {
   const { user } = useAuthStore();
   const userId = user?.uid ?? null;
 
-  // listSpaces is Zod .strict() — classIds[] is rejected and empties the query.
+  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
   });
@@ -87,13 +87,11 @@ export default function LeaderboardPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Overall</SelectItem>
-              {(spaces ?? [])
-                .filter((space) => !!space.id)
-                .map((space) => (
-                  <SelectItem key={space.id} value={space.id}>
-                    {space.title}
-                  </SelectItem>
-                ))}
+              {(spaces ?? []).map((space) => (
+                <SelectItem key={space.id} value={space.id}>
+                  {space.title}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
