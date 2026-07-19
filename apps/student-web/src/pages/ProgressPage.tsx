@@ -23,7 +23,7 @@ type TabId = "overall" | "exams" | "spaces";
 export default function ProgressPage() {
   const { user } = useAuthStore();
   const userId = user?.uid ?? "";
-  // listSpaces is Zod .strict() — classIds[] is rejected and empties the query.
+  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
   });

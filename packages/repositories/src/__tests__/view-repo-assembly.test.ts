@@ -41,14 +41,21 @@ d("repositories · view-repo assembly (no N+1)", () => {
   });
 
   it("spaceDetailViewRepo.get assembles space+storyPoints+items+myProgress and is BOUNDED", async () => {
-    api.stub("levelup", "getSpace", () => ({ space: makeSpace() }));
+    api.stub("levelup", "getSpace", () => ({ space: makeSpace({ id: "space__dsa" }) }));
     api.stub("levelup", "listStoryPoints", () =>
       makePage([makeStoryPoint({ id: "sp1" }), makeStoryPoint({ id: "sp2" })])
     );
     api.stub("levelup", "listItems", () =>
       makePage([makeItem({ id: "i1" }), makeItem({ id: "i2" })])
     );
-    api.stub("levelup", "getSpaceProgress", () => ({ progress: null }));
+    api.stub("levelup", "getSpaceProgress", () => ({
+      progress: { spaceId: "space__dsa", storyPoints: {} },
+    }));
+    // Force the fallback path (no composite) so unwrap of getSpace/getSpaceProgress
+    // envelopes is exercised — the composite path is covered in the snapshot test.
+    api.stub("levelup", "getSpaceDetail", () => {
+      throw new Error("composite unavailable");
+    });
 
     const r = buildRepos(api);
     const view = r["spaceDetailViewRepo"];
@@ -56,11 +63,13 @@ d("repositories · view-repo assembly (no N+1)", () => {
 
     const detail = (await view["get"]({ spaceId: makeSpace().id })) as Record<string, unknown>;
     expect(detail).toBeDefined();
+    expect((detail.space as { id?: string } | null)?.id).toBe("space__dsa");
+    expect((detail.myProgress as { spaceId?: string } | null)?.spaceId).toBe("space__dsa");
 
-    // BOUNDED: the number of wire calls does not grow with #storyPoints or #items.
-    // A small fixed set of contract-valid reads — never one listItems per story point.
+    // BOUNDED: one failed composite probe + ≤4 batched reads (never 1 listItems
+    // per story point). Successful composite path is a single call.
     const total = api.calls.length;
-    expect(total).toBeLessThanOrEqual(4);
+    expect(total).toBeLessThanOrEqual(5);
     // Specifically: at most ONE listItems call (batched across story points),
     // not one per story point.
     expect(api.callsTo("v1.levelup.listItems").length).toBeLessThanOrEqual(1);
@@ -141,10 +150,16 @@ d("repositories · view-repo assembly (no N+1)", () => {
 
   it("view shaping against a FIXED wire fixture is deterministic (snapshot-stable shape)", async () => {
     const fixedSpace = makeSpace({ id: "space__dsa", title: "Data Structures" });
-    api.stub("levelup", "getSpace", () => ({ space: fixedSpace }));
+    api.stub("levelup", "getSpaceDetail", () => ({
+      space: fixedSpace,
+      storyPoints: [makeStoryPoint({ id: "sp__arrays", order: 0 })],
+      items: [makeItem({ id: "item__q1" })],
+      myProgress: { spaceId: "space__dsa", completionPct: 0 },
+    }));
+    api.stub("levelup", "getSpace", () => fixedSpace);
     api.stub("levelup", "listStoryPoints", () => makePage([makeStoryPoint({ id: "sp__arrays" })]));
     api.stub("levelup", "listItems", () => makePage([makeItem({ id: "item__q1" })]));
-    api.stub("levelup", "getSpaceProgress", () => ({ progress: null }));
+    api.stub("levelup", "getSpaceProgress", () => ({ spaceId: "space__dsa", completionPct: 0 }));
 
     const r = buildRepos(api);
     const view = r["spaceDetailViewRepo"];

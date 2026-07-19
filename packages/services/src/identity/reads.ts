@@ -403,11 +403,23 @@ export async function getClassService(
   ctx: AuthContext
 ): Promise<ResOf<"v1.identity.getClass">> {
   const tenantId = requireTenant(ctx);
-  const klass = await ctx.repos.classes.get(tenantId, (input as { id: string }).id);
+  const classId = (input as { id: string }).id;
+  // Align with listClasses + analytics.getSummary(class): teachers may only
+  // read classes in their claim-scoped classIds (admins/staff keep tenant-wide).
+  // Without this, mobile/web teacher dashboards 403 when opening a class card
+  // that listClasses correctly omitted — or worse, leak foreign class rosters.
+  if (
+    ctx.role === "teacher" &&
+    !ctx.isSuperAdmin &&
+    !ctx.classIds.map(String).includes(String(classId))
+  ) {
+    fail("PERMISSION_DENIED", `class ${classId} is not assigned to this teacher`);
+  }
+  const klass = await ctx.repos.classes.get(tenantId, classId);
   if (!klass) fail("NOT_FOUND", "class not found");
   // getClass returns counts + first roster page (the rest pages via listStudents).
   const roster = await ctx.repos.students.list(tenantId, {
-    where: { classIds: (input as { id: string }).id },
+    where: { classIds: classId },
     limit: 20,
   });
   return {

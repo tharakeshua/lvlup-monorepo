@@ -13,13 +13,14 @@ import {
 } from "@levelup/shared-ui";
 import { Search, BookOpen, GraduationCap } from "lucide-react";
 import { STATUS_VARIANT, TYPE_VARIANT } from "../lib/constants";
+import { pageItems } from "@/lib/utils";
 
 export default function CoursesPage() {
   const spacesQuery = useSpaces({});
-  const spaces = (spacesQuery.data ?? []) as Space[];
+  const spaces = pageItems<Space>(spacesQuery.data);
   const spacesLoading = spacesQuery.isLoading;
   const spacesError = spacesQuery.isError;
-  const classes = (useClasses({}).data ?? []) as Class[];
+  const classes = pageItems<Class>(useClasses({}).data);
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");

@@ -59,7 +59,7 @@ export function createStoreRepo(api: ApiClientLike): StoreRepo {
     listStoreSpaces: (filter = {}) => lv["listStoreSpaces"]!(filter).then((r) => toPage(r)),
     paginateStoreSpaces: (filter = {}) =>
       makePaginator((req) => lv["listStoreSpaces"]!(req), filter),
-    // Callable returns `{ listing }`; callers expect the listing view itself.
+    // Callable returns `{ listing }`; callers/hooks expect the listing view itself.
     getStoreSpace: (id) =>
       lv["getStoreSpace"]!({ spaceId: id }).then((r) => (r as { listing: unknown }).listing),
     listReviews: (filter) => lv["listSpaceReviews"]!(filter).then((r) => toPage(r)),

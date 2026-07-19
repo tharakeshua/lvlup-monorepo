@@ -15,18 +15,21 @@ export function useChildProgress(tenantId: string | null, studentIds: string[] |
   const repos = useRepos();
   return useQuery<SpaceProgress[]>({
     queryKey: ["tenants", tenantId, "childProgress", studentIds],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!tenantId || !studentIds?.length) return [];
 
-      // 1. Enumerate the tenant's content spaces (drain all pages).
+      // 1. Enumerate the tenant's content spaces (drain all pages, hard-capped).
       const spaceIds: string[] = [];
       let bag = await repos.spaceRepo.paginate();
+      let pages = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
+        if (signal?.aborted) throw new Error("Aborted");
         for (const sp of bag.items as Array<{ id?: string }>) {
           if (sp?.id) spaceIds.push(sp.id);
         }
-        if (!bag.fetchNextPage) break;
+        pages += 1;
+        if (!bag.fetchNextPage || pages >= 10 || spaceIds.length >= 200) break;
         bag = await bag.fetchNextPage();
       }
 
@@ -48,5 +51,9 @@ export function useChildProgress(tenantId: string | null, studentIds: string[] |
     },
     enabled: !!tenantId && !!studentIds?.length,
     staleTime: 60 * 1000,
+    // Space enumeration can be slow; fail closed so the page shows empty/error
+    // instead of an indefinite loading spinner.
+    retry: 1,
+    meta: { timeoutMs: 25_000 },
   });
 }

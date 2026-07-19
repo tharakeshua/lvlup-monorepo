@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const membership = useCurrentMembership();
   const tenantId = useCurrentTenantId();
 
-  // listSpaces is Zod .strict() — classIds[] is rejected and empties the query.
+  // listSpaces schema is strict — no classIds[]; server scopes by claims.
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
   });
@@ -98,7 +98,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-fg text-3xl">Dashboard</h1>
       {/* Cross-system summary */}
       {summary ? (
         <>

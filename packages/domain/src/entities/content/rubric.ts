@@ -50,3 +50,57 @@ export const UnifiedRubricSchema = zObject({
   evaluatorGuidance: z.string().optional(),
 });
 export type UnifiedRubric = z.infer<typeof UnifiedRubricSchema>;
+
+/**
+ * Coerce legacy seed / Firestore rubric docs (totalPoints + {key,label} dims)
+ * into a strict UnifiedRubric. Used by listRubricPresets response validation
+ * and server projection so DEV `validateResponses` does not drop presets.
+ */
+export function coerceUnifiedRubric(raw: unknown, fallbackMaxScore = 10): UnifiedRubric {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const parsed = UnifiedRubricSchema.safeParse(r);
+  if (parsed.success) return parsed.data;
+
+  const dimsIn = Array.isArray(r.dimensions) ? (r.dimensions as Record<string, unknown>[]) : [];
+  const totalPoints = typeof r.totalPoints === "number" ? r.totalPoints : undefined;
+  const passingScore = typeof r.passingScore === "number" ? r.passingScore : undefined;
+  const passingPercentage =
+    typeof r.passingPercentage === "number"
+      ? r.passingPercentage
+      : passingScore != null && totalPoints
+        ? Math.round((passingScore / totalPoints) * 100)
+        : undefined;
+  const modelAnswer = typeof r.modelAnswer === "string" ? r.modelAnswer : undefined;
+  const evaluatorGuidance =
+    typeof r.evaluatorGuidance === "string" ? r.evaluatorGuidance : undefined;
+
+  if (dimsIn.length === 0) {
+    return UnifiedRubricSchema.parse({
+      scoringMode: "holistic",
+      holisticMaxScore: totalPoints ?? fallbackMaxScore,
+      holisticGuidance: evaluatorGuidance,
+      passingPercentage,
+      modelAnswer,
+      evaluatorGuidance,
+    });
+  }
+
+  return UnifiedRubricSchema.parse({
+    scoringMode: "dimension_based",
+    dimensions: dimsIn.map((d, i) => ({
+      id: String(d.id ?? d.key ?? `dim_${i}`),
+      name: String(d.name ?? d.label ?? `Dimension ${i + 1}`),
+      description: typeof d.description === "string" ? d.description : undefined,
+      priority:
+        d.priority === "HIGH" || d.priority === "LOW" || d.priority === "MEDIUM"
+          ? d.priority
+          : "MEDIUM",
+      weight: typeof d.weight === "number" ? d.weight : undefined,
+      scoringScale: typeof d.scoringScale === "number" ? d.scoringScale : undefined,
+      promptGuidance: typeof d.promptGuidance === "string" ? d.promptGuidance : undefined,
+    })),
+    passingPercentage,
+    modelAnswer,
+    evaluatorGuidance,
+  });
+}
