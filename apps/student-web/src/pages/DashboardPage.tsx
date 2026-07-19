@@ -43,10 +43,9 @@ export default function DashboardPage() {
   const membership = useCurrentMembership();
   const tenantId = useCurrentTenantId();
 
-  const classIds = membership?.permissions?.managedClassIds;
+  // listSpaces is Zod .strict() — classIds[] is rejected and empties the query.
   const { data: spacesPage, isLoading: spacesLoading } = useSpaces<{ items: Space[] }>({
     status: "published",
-    classIds,
   });
   const spaces = spacesPage?.items;
   const { data: summaryData, isLoading: summaryLoading } = useStudentSummary(

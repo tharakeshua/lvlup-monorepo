@@ -1,11 +1,18 @@
 import { useState, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useStoryPointProgress, useRecordItemAttempt, useApiError } from "@levelup/query";
 import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import { useStoryPointItems } from "../hooks/useSpaceItems";
 import { useEvaluateAnswer } from "../hooks/useEvaluateAnswer";
+import {
+  spacesListHref,
+  spaceHref,
+  storyPointHref,
+  testHref,
+  practiceHref,
+} from "../lib/space-paths";
 import { QuestionAnswerer } from "../components/questions";
 import { autoEvaluateClient } from "../utils/auto-evaluate-client";
 import MaterialViewer from "../components/materials/MaterialViewer";
@@ -13,7 +20,9 @@ import ChatTutorPanel from "../components/chat/ChatTutorPanel";
 import type {
   UnifiedItem,
   UnifiedEvaluationResult,
+  StoredEvaluation,
   StoryPointProgressDoc,
+  AttemptRecord,
 } from "@levelup/shared-types";
 import AttemptHistoryPanel from "../components/common/AttemptHistoryPanel";
 import {
@@ -37,6 +46,48 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@levelup/shared-ui";
+
+/**
+ * Convert a StoredEvaluation (from Firestore) to a UnifiedEvaluationResult
+ * so it can be passed to FeedbackPanel/QuestionAnswerer.
+ */
+function storedToEvaluation(stored: StoredEvaluation): UnifiedEvaluationResult {
+  return {
+    score: stored.score,
+    maxScore: stored.maxScore,
+    correctness: stored.correctness,
+    percentage: stored.percentage,
+    strengths: stored.strengths,
+    weaknesses: stored.weaknesses,
+    missingConcepts: stored.missingConcepts,
+    summary: stored.summary,
+    mistakeClassification: stored.mistakeClassification,
+    confidence: 1,
+    gradedAt: {
+      seconds: Math.floor(Date.now() / 1000),
+      nanoseconds: 0,
+      toDate: () => new Date(),
+      toMillis: () => Date.now(),
+    },
+  };
+}
+
+/**
+ * Convert a UnifiedEvaluationResult to a compact StoredEvaluation for persistence.
+ */
+function evaluationToStored(eval_: UnifiedEvaluationResult): StoredEvaluation {
+  return {
+    score: eval_.score,
+    maxScore: eval_.maxScore,
+    correctness: eval_.correctness,
+    percentage: eval_.percentage,
+    strengths: eval_.strengths ?? [],
+    weaknesses: eval_.weaknesses ?? [],
+    missingConcepts: eval_.missingConcepts ?? [],
+    summary: eval_.summary,
+    mistakeClassification: eval_.mistakeClassification,
+  };
+}
 
 /** Practice-style navigator: numbered buttons + one item at a time + prev/next */
 function ItemNavigator({
@@ -186,10 +237,13 @@ function ItemNavigator({
 export default function StoryPointViewerPage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
   const navigate = useNavigate();
-  const { currentTenantId } = useAuthStore();
+  const location = useLocation();
+  const { currentTenantId, user } = useAuthStore();
+  const userId = user?.uid ?? null;
 
-  const { data: spaceData } = useSpace<{ space: { title?: string } }>(spaceId ?? "");
-  const space = spaceData?.space;
+  const { data: spaceData } = useSpace<{ title?: string }>(spaceId ?? "");
+  // Repo unwraps `{ space }` — hook data IS the SpaceView.
+  const space = spaceData;
   const { data: storyPoints } = useStoryPoints(null, spaceId ?? null);
   const {
     data: items,
@@ -251,10 +305,12 @@ export default function StoryPointViewerPage() {
       : null;
 
   const getStoryPointLink = (sp: { id: string; type: string }) => {
-    const base = `/spaces/${spaceId}`;
-    if (sp.type === "timed_test" || sp.type === "test") return `${base}/test/${sp.id}`;
-    if (sp.type === "practice") return `${base}/practice/${sp.id}`;
-    return `${base}/story-points/${sp.id}`;
+    if (!spaceId) return spacesListHref(location.pathname);
+    if (sp.type === "timed_test" || sp.type === "test") {
+      return testHref(location.pathname, spaceId, sp.id);
+    }
+    if (sp.type === "practice") return practiceHref(location.pathname, spaceId, sp.id);
+    return storyPointHref(location.pathname, spaceId, sp.id);
   };
 
   const toggleSection = (sectionId: string) => {
@@ -267,7 +323,8 @@ export default function StoryPointViewerPage() {
   };
 
   const handleSubmitAnswer = async (item: UnifiedItem, answer: unknown) => {
-    if (!currentTenantId || !spaceId || !storyPointId) return;
+    // Tenant is derived server-side from auth; only require route params.
+    if (!spaceId || !storyPointId) return;
     try {
       let evaluationResult: UnifiedEvaluationResult;
 
@@ -276,7 +333,7 @@ export default function StoryPointViewerPage() {
         evaluationResult = localResult;
       } else {
         evaluationResult = await evaluateAnswer.mutateAsync({
-          tenantId: currentTenantId,
+          tenantId: currentTenantId ?? "",
           spaceId,
           storyPointId,
           itemId: item.id,
@@ -303,7 +360,7 @@ export default function StoryPointViewerPage() {
   };
 
   const handleCompleteMaterial = (itemId: string) => {
-    if (!currentTenantId || !spaceId || !storyPointId) return;
+    if (!spaceId || !storyPointId) return;
     // Material completion: server marks the material item complete from the
     // attempt (no answer payload for materials).
     recordAttempt.mutate({
@@ -328,13 +385,21 @@ export default function StoryPointViewerPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/spaces">Spaces</Link>
+              <Link to={spacesListHref(location.pathname)}>Spaces</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/spaces/${spaceId}`}>{space?.title ?? "Space"}</Link>
+              <Link
+                to={
+                  spaceId
+                    ? spaceHref(location.pathname, spaceId)
+                    : spacesListHref(location.pathname)
+                }
+              >
+                {space?.title ?? "Space"}
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -524,7 +589,7 @@ export default function StoryPointViewerPage() {
               variant="secondary"
               size="sm"
               className="gap-1.5"
-              onClick={() => navigate(`/spaces/${spaceId}`)}
+              onClick={() => spaceId && navigate(spaceHref(location.pathname, spaceId))}
             >
               Back to Space
             </Button>

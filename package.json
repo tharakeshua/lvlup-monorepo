@@ -40,9 +40,12 @@
     "release:student": "bash scripts/release-mobile.sh student",
     "release:admin": "bash scripts/release-mobile.sh admin",
     "release:teacher": "bash scripts/release-mobile.sh teacher",
-    "deploy:functions": "tsx scripts/prepare-functions-deploy.ts prepare && firebase deploy --only functions; tsx scripts/prepare-functions-deploy.ts cleanup",
+    "deploy:functions": "tsx scripts/deploy-functions.ts",
     "deploy:functions:prepare": "tsx scripts/prepare-functions-deploy.ts prepare",
-    "deploy:functions:cleanup": "tsx scripts/prepare-functions-deploy.ts cleanup"
+    "deploy:functions:cleanup": "tsx scripts/prepare-functions-deploy.ts cleanup",
+    "deploy:hosting": "pnpm exec turbo run build --filter=@levelup/admin-web --filter=@levelup/teacher-web --filter=@levelup/student-web --filter=@levelup/parent-web --filter=@levelup/super-admin --filter=website && firebase deploy --only hosting --project lvlup-ff6fa --non-interactive",
+    "deploy:hosting:only": "firebase deploy --only hosting --project lvlup-ff6fa --non-interactive",
+    "deploy:all": "pnpm run deploy:functions && pnpm run deploy:hosting"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

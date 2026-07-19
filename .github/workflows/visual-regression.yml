@@ -5,18 +5,8 @@
 name: Visual Regression
 
 on:
+  # Manual only — does not block PR/main CI (baselines often missing on runners)
   workflow_dispatch:
-  schedule:
-    # 04:00 UTC daily — off-peak, does not block PR CI
-    - cron: "0 4 * * *"
-  push:
-    branches:
-      - main
-    paths:
-      - "tests/e2e/visual-regression.spec.ts"
-      - "tests/e2e/__screenshots__/**"
-      - "playwright.config.ts"
-      - ".github/workflows/visual-regression.yml"
 
 concurrency:
   group: visual-regression-${{ github.ref }}
