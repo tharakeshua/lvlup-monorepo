@@ -1,6 +1,7 @@
 /**
  * Teacher listClasses / getClass must stay claim-scoped (classIds) so the
  * dashboard cannot fan out analytics.getSummary for foreign classes (403s).
+ * Shared by web teacher-web and apps/mobile-teacher.
  */
 import { describe, it, expect } from "vitest";
 import { makeAuthContext } from "../../../../tests/sdk/harness/auth-context";

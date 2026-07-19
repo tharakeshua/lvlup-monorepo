@@ -406,6 +406,8 @@ export async function getClassService(
   const classId = (input as { id: string }).id;
   // Align with listClasses + analytics.getSummary(class): teachers may only
   // read classes in their claim-scoped classIds (admins/staff keep tenant-wide).
+  // Without this, mobile/web teacher dashboards 403 when opening a class card
+  // that listClasses correctly omitted — or worse, leak foreign class rosters.
   if (
     ctx.role === "teacher" &&
     !ctx.isSuperAdmin &&

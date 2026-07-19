@@ -62,13 +62,16 @@ describe("auth-callables", () => {
   // -------------------------------------------------------------------------
 
   describe("callSwitchActiveTenant", () => {
-    it("calls the switchActiveTenant callable with the tenantId and returns success + role", async () => {
+    it("calls v1-identity-switchActiveTenant with targetTenantId and returns success + role", async () => {
       mockCallableSuccess({ success: true, role: "teacher" });
 
       const result = await callSwitchActiveTenant("tenant-123");
 
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), "switchActiveTenant");
-      expect(mockCallableFn).toHaveBeenCalledWith({ tenantId: "tenant-123" });
+      expect(httpsCallable).toHaveBeenCalledWith(
+        expect.anything(),
+        "v1-identity-switchActiveTenant"
+      );
+      expect(mockCallableFn).toHaveBeenCalledWith({ targetTenantId: "tenant-123" });
       expect(result).toEqual({ success: true, role: "teacher" });
     });
 
