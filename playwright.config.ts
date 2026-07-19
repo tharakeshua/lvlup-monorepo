@@ -64,6 +64,18 @@ const fullSuiteProjects = [
     preserveOutput: "always",
   },
   {
+    name: "autograde-live",
+    use: {
+      ...devices["Desktop Chrome"],
+      baseURL: process.env["TEACHER_WEB_URL"] ?? "https://lvlup-ff6fa-teacher.web.app",
+      video: "on",
+      screenshot: "on",
+    },
+    testMatch: ["demo-autograde-5776-live.spec.ts"],
+    timeout: 600_000,
+    preserveOutput: "always",
+  },
+  {
     name: "student-web",
     use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4570" },
     testMatch: ["student-web.spec.ts", "item-testing.spec.ts", "debug-spaces.spec.ts"],
