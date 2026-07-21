@@ -64,6 +64,31 @@ export {
   createSupabaseLlmTelemetrySink,
   llmTelemetryRowMappers,
 } from "./supabase/llm-telemetry.js";
+export {
+  getTenantLlmUsage,
+  getUserLlmUsage,
+  getPlatformLlmUsage,
+} from "./llm/usage-reads.js";
+export type {
+  LlmUsageRange,
+  TenantLlmUsageSummary,
+  UserLlmUsageSummary,
+} from "./llm/usage-reads.js";
+export {
+  startScannerSession,
+  attachScannerQr,
+  uploadScannerPage,
+  closeScannerSession,
+} from "./scanner/orchestration.js";
+export type {
+  StartScannerSessionInput,
+  StartScannerSessionResult,
+  AttachScannerQrInput,
+  AttachScannerQrResult,
+  UploadScannerPageInput,
+  CloseScannerSessionInput,
+  CloseScannerSessionResult,
+} from "./scanner/orchestration.js";
 
 // identity slice (claims mint, membership writes, tenant lifecycle, org users,
 // bulk ops, impersonation, presets, reads, triggers/schedulers)

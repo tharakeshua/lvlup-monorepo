@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import { PageLoader, RouteErrorBoundary, NotFoundPage } from "@levelup/shared-ui";
 import AuthLayout from "./layouts/AuthLayout";
@@ -21,12 +21,14 @@ const StoreListPage = lazy(() => import("./pages/StoreListPage"));
 const StoreDetailPage = lazy(() => import("./pages/StoreDetailPage"));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
 const ConsumerProfilePage = lazy(() => import("./pages/ConsumerProfilePage"));
-const ExamsPage = lazy(() => import("./pages/ExamsPage"));
-const ExamPage = lazy(() => import("./pages/ExamPage"));
+const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
+const TestsPage = lazy(() => import("./pages/TestsPage"));
 const ExamResultPage = lazy(() => import("./pages/ExamResultPage"));
+const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const TestAnalyticsPage = lazy(() => import("./pages/TestAnalyticsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 
 export default function App() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -81,14 +83,6 @@ export default function App() {
               }
             />
             <Route
-              path="/spaces/:spaceId/modules/:storyPointId"
-              element={
-                <RouteErrorBoundary>
-                  <StoryPointViewerPage />
-                </RouteErrorBoundary>
-              }
-            />
-            <Route
               path="/spaces/:spaceId/story-points/:storyPointId"
               element={
                 <RouteErrorBoundary>
@@ -121,18 +115,10 @@ export default function App() {
               }
             />
             <Route
-              path="/exams"
+              path="/results"
               element={
                 <RouteErrorBoundary>
-                  <ExamsPage />
-                </RouteErrorBoundary>
-              }
-            />
-            <Route
-              path="/exams/:examId"
-              element={
-                <RouteErrorBoundary>
-                  <ExamPage />
+                  <ProgressPage />
                 </RouteErrorBoundary>
               }
             />
@@ -144,15 +130,27 @@ export default function App() {
                 </RouteErrorBoundary>
               }
             />
-            <Route path="/tests" element={<Navigate to="/spaces" replace />} />
-            <Route path="/results" element={<Navigate to="/" replace />} />
-            <Route path="/leaderboard" element={<Navigate to="/" replace />} />
-            <Route path="/achievements" element={<Navigate to="/profile" replace />} />
             <Route
               path="/notifications"
               element={
                 <RouteErrorBoundary>
                   <NotificationsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/leaderboard"
+              element={
+                <RouteErrorBoundary>
+                  <LeaderboardPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/tests"
+              element={
+                <RouteErrorBoundary>
+                  <TestsPage />
                 </RouteErrorBoundary>
               }
             />
@@ -169,6 +167,14 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <ProfilePage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/achievements"
+              element={
+                <RouteErrorBoundary>
+                  <AchievementsPage />
                 </RouteErrorBoundary>
               }
             />
@@ -199,14 +205,6 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <SpaceViewerPage />
-                </RouteErrorBoundary>
-              }
-            />
-            <Route
-              path="/consumer/spaces/:spaceId/modules/:storyPointId"
-              element={
-                <RouteErrorBoundary>
-                  <StoryPointViewerPage />
                 </RouteErrorBoundary>
               }
             />
