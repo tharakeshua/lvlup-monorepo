@@ -99,8 +99,8 @@ function SpaceCard({ space }: { space: Space }) {
       <div className="text-muted-foreground mt-2 flex items-center gap-3 text-xs">
         {space.subject && <span>{space.subject}</span>}
         {(() => {
-          const sections = spaceStatLabel(space.stats?.totalStoryPoints, "section", "sections");
-          const items = spaceStatLabel(space.stats?.totalItems, "item", "items");
+          const sections = spaceStatLabel(space.stats?.storyPointCount, "section", "sections");
+          const items = spaceStatLabel(space.stats?.itemCount, "item", "items");
           return (
             <>
               {sections && <span>{sections}</span>}

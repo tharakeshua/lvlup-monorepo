@@ -30,6 +30,15 @@ playwright-report/
 blob-report/
 .lighthouseci/
 
+# Test & CI artifacts (never commit generated test/report output)
+test-results/
+playwright-report/
+blob-report/
+.lighthouseci/
+tmp/
+tmp-*/
+.ci-logs/
+
 # Environment files
 .env
 .env.local
