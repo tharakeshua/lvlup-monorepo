@@ -117,14 +117,21 @@ export default function SubmissionsPage() {
   // FIX 3: tenant-wide student roster + class map for name/class resolution in the list.
   const { data: allStudentsData } = useStudents();
   const studentRosterMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { id: string; rollNumber?: string; firstName?: string; lastName?: string }
-    >();
-    const arr = asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
-      allStudentsData
-    );
-    for (const s of arr) map.set(s.id, s);
+    type Roster = {
+      id: string;
+      uid?: string;
+      rollNumber?: string;
+      displayName?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    const map = new Map<string, Roster>();
+    const arr = asArray<Roster>(allStudentsData);
+    for (const s of arr) {
+      if (s.id) map.set(s.id, s);
+      if (s.uid) map.set(s.uid, s);
+      if (s.rollNumber) map.set(`roll:${s.rollNumber}`, s);
+    }
     return map;
   }, [allStudentsData]);
 
@@ -377,18 +384,28 @@ export default function SubmissionsPage() {
     return { total, graded, needsReview, inProgress, avgScore };
   }, [submissions]);
 
-  // FIX 3: resolve display name from submission + roster fallback.
+  // FIX 3: resolve display name from submission + roster fallback. The backend
+  // stores a placeholder "Unknown" studentName when it can't determine the name;
+  // treat that (and blanks) as no-name and use the roster's `displayName`.
   const resolveSubName = useCallback(
     (sub: Submission): string => {
-      const subName = sub.studentName?.trim();
-      if (subName) return subName;
-      const rec = studentRosterMap.get(sub.studentId);
-      if (rec) {
-        const full = `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim();
-        if (full) return full;
-        if (rec.rollNumber) return rec.rollNumber;
-      }
-      return sub.rollNumber || sub.studentId;
+      const realName = (n?: string) => {
+        const t = n?.trim();
+        return t && t.toLowerCase() !== "unknown" ? t : "";
+      };
+      const rec =
+        studentRosterMap.get(sub.studentId) ||
+        (sub.rollNumber ? studentRosterMap.get(`roll:${sub.rollNumber}`) : undefined);
+      const rosterName = rec
+        ? realName(rec.displayName) || `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim()
+        : "";
+      return (
+        realName(sub.studentName) ||
+        rosterName ||
+        rec?.rollNumber ||
+        sub.rollNumber ||
+        sub.studentId
+      );
     },
     [studentRosterMap]
   );

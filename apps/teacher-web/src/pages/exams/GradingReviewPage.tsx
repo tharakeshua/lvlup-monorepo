@@ -107,14 +107,23 @@ export default function GradingReviewPage() {
   const { data: allClassesDataGrading } = useClasses();
 
   const studentMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { id: string; rollNumber?: string; firstName?: string; lastName?: string }
-    >();
-    const arr = asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
-      allStudentsData
-    );
-    for (const s of arr) map.set(s.id, s);
+    type Roster = {
+      id: string;
+      uid?: string;
+      rollNumber?: string;
+      displayName?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    const map = new Map<string, Roster>();
+    const arr = asArray<Roster>(allStudentsData);
+    // Key on every identifier a submission might carry (domain `id`, legacy `uid`,
+    // and rollNumber — submissions reliably carry the roll even when the id drifts).
+    for (const s of arr) {
+      if (s.id) map.set(s.id, s);
+      if (s.uid) map.set(s.uid, s);
+      if (s.rollNumber) map.set(`roll:${s.rollNumber}`, s);
+    }
     return map;
   }, [allStudentsData]);
 
@@ -157,17 +166,28 @@ export default function GradingReviewPage() {
   const [imageUrlMap, setImageUrlMap] = useState<Record<string, string>>({});
 
   // FIX 3: resolved display name and class name for the current submission.
+  // The backend denormalizes a placeholder `studentName` of "Unknown" when it
+  // can't determine the name at upload — treat that (and blanks) as no-name and
+  // fall through to the roster, whose real name lives on `displayName`.
   const resolvedStudentName = useMemo(() => {
     if (!submission) return "";
-    const subName = submission.studentName?.trim();
-    if (subName) return subName;
-    const rec = studentMap.get(submission.studentId);
-    if (rec) {
-      const full = `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim();
-      if (full) return full;
-      if (rec.rollNumber) return rec.rollNumber;
-    }
-    return submission.rollNumber || submission.studentId;
+    const realName = (n?: string) => {
+      const t = n?.trim();
+      return t && t.toLowerCase() !== "unknown" ? t : "";
+    };
+    const rec =
+      studentMap.get(submission.studentId) ||
+      (submission.rollNumber ? studentMap.get(`roll:${submission.rollNumber}`) : undefined);
+    const rosterName = rec
+      ? realName(rec.displayName) || `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim()
+      : "";
+    return (
+      realName(submission.studentName) ||
+      rosterName ||
+      rec?.rollNumber ||
+      submission.rollNumber ||
+      submission.studentId
+    );
   }, [submission, studentMap]);
 
   const resolvedClassName = useMemo(() => {
