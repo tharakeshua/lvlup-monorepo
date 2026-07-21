@@ -104,6 +104,31 @@ function useCountUp(target: number, duration = 1200): number {
 
 type View = "landing" | "test" | "results";
 
+/**
+ * Coerce a timestamp field to epoch milliseconds, tolerating every shape the
+ * backend actually returns at runtime. The types claim `FirestoreTimestamp`
+ * ({seconds}), but the deployed reads project timestamps as ISO strings
+ * (toTimestamp/AD-4) — reading `.seconds` off a string yields undefined, which is
+ * exactly why the test timer "could not be started" (serverDeadline read as
+ * null). Handles {seconds}, ISO string, epoch number, and Date.
+ */
+function toEpochMs(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const ms = Date.parse(v);
+    return Number.isNaN(ms) ? null : ms;
+  }
+  if (v instanceof Date) return v.getTime();
+  const withSeconds = v as { seconds?: number; toDate?: () => Date };
+  if (typeof withSeconds.seconds === "number") return withSeconds.seconds * 1000;
+  if (typeof withSeconds.toDate === "function") {
+    const d = withSeconds.toDate();
+    return d instanceof Date ? d.getTime() : null;
+  }
+  return null;
+}
+
 type StoryItemLike = {
   id: string;
   type?: string;
@@ -528,12 +553,8 @@ export default function TimedTestPage() {
     // Schedule checks
     const schedule = storyPoint?.assessmentConfig?.schedule;
     const now = Date.now();
-    const scheduleStartMs = schedule?.startAt
-      ? (schedule.startAt as unknown as { seconds: number }).seconds * 1000
-      : null;
-    const scheduleEndMs = schedule?.endAt
-      ? (schedule.endAt as unknown as { seconds: number }).seconds * 1000
-      : null;
+    const scheduleStartMs = toEpochMs(schedule?.startAt);
+    const scheduleEndMs = toEpochMs(schedule?.endAt);
     const isBeforeSchedule = scheduleStartMs ? now < scheduleStartMs : false;
     const isAfterSchedule = scheduleEndMs ? now > scheduleEndMs : false;
 
@@ -546,15 +567,15 @@ export default function TimedTestPage() {
     const lastSession =
       completedSessions.length > 0
         ? completedSessions.reduce((latest, s) => {
-            const latestEnd = (latest.endedAt as unknown as { seconds: number })?.seconds ?? 0;
-            const sEnd = (s.endedAt as unknown as { seconds: number })?.seconds ?? 0;
+            const latestEnd = toEpochMs(latest.endedAt) ?? 0;
+            const sEnd = toEpochMs(s.endedAt) ?? 0;
             return sEnd > latestEnd ? s : latest;
           })
         : null;
+    const lastEndedMs = toEpochMs(lastSession?.endedAt);
     const cooldownEndMs =
-      retryConfig?.cooldownMinutes && lastSession?.endedAt
-        ? (lastSession.endedAt as unknown as { seconds: number }).seconds * 1000 +
-          retryConfig.cooldownMinutes * 60 * 1000
+      retryConfig?.cooldownMinutes && lastEndedMs
+        ? lastEndedMs + retryConfig.cooldownMinutes * 60 * 1000
         : null;
     const isInCooldown = cooldownEndMs ? now < cooldownEndMs : false;
     const cooldownMinutesLeft =
@@ -758,8 +779,8 @@ export default function TimedTestPage() {
                         )}
                       </p>
                       <p className="text-muted-foreground text-xs">
-                        {session.endedAt
-                          ? new Date(session.endedAt.seconds * 1000).toLocaleDateString()
+                        {toEpochMs(session.endedAt)
+                          ? new Date(toEpochMs(session.endedAt)!).toLocaleDateString()
                           : "--"}
                       </p>
                     </div>
@@ -786,9 +807,7 @@ export default function TimedTestPage() {
 
   // TEST VIEW
   if (view === "test" && activeSession) {
-    const deadline = activeSession.serverDeadline
-      ? activeSession.serverDeadline.seconds * 1000
-      : null;
+    const deadline = toEpochMs(activeSession.serverDeadline);
 
     if (!deadline) {
       return (

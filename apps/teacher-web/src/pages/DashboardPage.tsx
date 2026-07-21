@@ -9,7 +9,15 @@ import {
   useRepos,
 } from "@levelup/query";
 import { useAuthSession } from "../sdk/session";
-import { BookOpen, ClipboardList, Users, ArrowRight, AlertTriangle, BarChart3 } from "lucide-react";
+import {
+  BookOpen,
+  ClipboardList,
+  Users,
+  ArrowRight,
+  AlertTriangle,
+  BarChart3,
+  GraduationCap,
+} from "lucide-react";
 import {
   ScoreCard,
   SimpleBarChart,
@@ -20,6 +28,12 @@ import {
   Skeleton,
   FadeIn,
   EmptyState,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
 } from "@levelup/shared-ui";
 import type { Space } from "@levelup/shared-types";
 import type { Exam } from "@levelup/shared-types";
@@ -130,6 +144,27 @@ export default function DashboardPage() {
 
   const atRiskCount = classSummaries.reduce((sum, cs) => sum + (cs?.atRiskCount ?? 0), 0);
 
+  // Class-wise breakdown of the headline stats (students / performance / at-risk),
+  // decomposed per class so teachers can read the numbers per cohort. Student
+  // counts come from the class doc (trigger-maintained denorm); score/at-risk from
+  // the per-class summary when available (— when the summary is still loading or
+  // access-denied for an unassigned class).
+  const summaryByClassId = new Map(classSummaries.map((cs) => [cs.classId, cs]));
+  const classBreakdown = classes
+    .map((c) => {
+      const s = summaryByClassId.get(c.id);
+      return {
+        id: c.id,
+        name: c.name || "Untitled class",
+        grade: c.grade,
+        section: c.section,
+        students: c.studentCount ?? c.studentIds?.length ?? 0,
+        avgScore: s ? Math.round((s.autograde.averageClassScore ?? 0) * 100) : null,
+        atRisk: s ? s.atRiskCount : null,
+      };
+    })
+    .sort((a, b) => b.students - a.students);
+
   const classChartData = classSummaries
     .filter((cs) => cs != null)
     .map((cs) => ({
@@ -183,6 +218,66 @@ export default function DashboardPage() {
               />
             </div>
           </FadeIn>
+
+          {/* Class-wise breakdown of the headline stats */}
+          {classBreakdown.length > 0 && (
+            <FadeIn delay={0.12}>
+              <Card>
+                <div className="flex items-center gap-2 border-b px-5 py-3">
+                  <GraduationCap className="text-muted-foreground h-4 w-4" />
+                  <h2 className="font-semibold">Class-wise Breakdown</h2>
+                  <span className="text-muted-foreground text-xs">
+                    {classBreakdown.length} class{classBreakdown.length === 1 ? "" : "es"}
+                  </span>
+                </div>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Class</TableHead>
+                        <TableHead className="text-right">Students</TableHead>
+                        <TableHead className="text-right">Avg Score</TableHead>
+                        <TableHead className="text-right">At-Risk</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {classBreakdown.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell>
+                            <span className="font-medium">{c.name}</span>
+                            {(c.grade || c.section) && (
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                {[c.grade, c.section].filter(Boolean).join(" · ")}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {c.students}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {c.avgScore != null ? `${c.avgScore}%` : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {c.atRisk == null ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : c.atRisk > 0 ? (
+                              <span className="text-error font-mono font-medium tabular-nums">
+                                {c.atRisk}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground font-mono tabular-nums">
+                                0
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          )}
 
           {/* Class Performance Chart + At-Risk Alerts */}
           <FadeIn delay={0.15}>

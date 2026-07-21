@@ -29,6 +29,8 @@ test-results/
 playwright-report/
 blob-report/
 .lighthouseci/
+# Playwright auth storage-state (logged-in session tokens — never commit)
+**/e2e/.auth/
 
 # Test & CI artifacts (never commit generated test/report output)
 test-results/

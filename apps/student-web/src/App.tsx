@@ -23,6 +23,7 @@ const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
 const ConsumerProfilePage = lazy(() => import("./pages/ConsumerProfilePage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const TestsPage = lazy(() => import("./pages/TestsPage"));
+const ExamsPage = lazy(() => import("./pages/ExamsPage"));
 const ExamResultPage = lazy(() => import("./pages/ExamResultPage"));
 const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const TestAnalyticsPage = lazy(() => import("./pages/TestAnalyticsPage"));
@@ -151,6 +152,14 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <TestsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/exams"
+              element={
+                <RouteErrorBoundary>
+                  <ExamsPage />
                 </RouteErrorBoundary>
               }
             />

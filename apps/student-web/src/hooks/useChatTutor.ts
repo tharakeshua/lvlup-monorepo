@@ -25,21 +25,14 @@ export function useChatSession(
 ) {
   const ready = !!userId && !!itemId;
 
+  // Always fetch the FULL session (getChatSession includes the `messages` array).
+  // The list endpoint returns message-less summaries, so resolving the active
+  // session from the list first-item left the chat empty ("sessions not loading").
+  // The caller resolves WHICH sessionId to load (most-recent vs a fresh one).
   const detail = useSdkChatSession<ChatSession | null>(sessionId ?? "", {
     enabled: ready && !!sessionId,
   });
-  const list = useSdkChatSessions<ChatSessionPage>(
-    { itemId: itemId ?? undefined },
-    { enabled: ready && !sessionId }
-  );
-
-  if (sessionId) {
-    return { ...detail, data: (detail.data ?? null) as ChatSession | null };
-  }
-  return {
-    ...list,
-    data: (list.data?.items?.[0] ?? null) as ChatSession | null,
-  };
+  return { ...detail, data: (detail.data ?? null) as ChatSession | null };
 }
 
 /** Fetch all chat sessions for an item (one item -> many sessions). */

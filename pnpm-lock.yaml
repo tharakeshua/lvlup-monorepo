@@ -16,9 +16,6 @@ importers:
         specifier: ^13.6.1
         version: 13.6.1
     devDependencies:
-      '@firebase/rules-unit-testing':
-        specifier: ^4.0.1
-        version: 4.0.1(firebase@11.10.0(@react-native-async-storage/async-storage@1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.7(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))))
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
@@ -980,6 +977,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      driver.js:
+        specifier: ^1.3.1
+        version: 1.8.0
       firebase:
         specifier: ^11.2.0
         version: 11.10.0(@react-native-async-storage/async-storage@1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.7(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)))
@@ -1267,11 +1267,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ai
       '@levelup/api-contract':
-        specifier: workspace:*
-        version: link:../../packages/api-contract
+        specifier: file:.local-deps/api-contract
+        version: file:functions/sdk-v1/.local-deps/api-contract
       '@levelup/domain':
-        specifier: workspace:*
-        version: link:../../packages/domain
+        specifier: file:.local-deps/domain
+        version: file:functions/sdk-v1/.local-deps/domain
       '@levelup/functions-adapters':
         specifier: workspace:*
         version: link:../../packages/functions-shared
@@ -3744,12 +3744,6 @@ packages:
     peerDependencies:
       '@firebase/app': 0.x
 
-  '@firebase/rules-unit-testing@4.0.1':
-    resolution: {integrity: sha512-Vu8iMLP+dO9hCAqUCitWZQdORyM6CxucilRZtleeTZd5bejZmyOiaBPwYm3NOYG6025ac99CEeA+ETmJRxa9zg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      firebase: ^11.0.0
-
   '@firebase/storage-compat@0.3.24':
     resolution: {integrity: sha512-XHn2tLniiP7BFKJaPZ0P8YQXKiVJX+bMyE2j2YWjYfaddqiJnROJYqSomwW6L3Y+gZAga35ONXUJQju6MB6SOQ==}
     engines: {node: '>=18.0.0'}
@@ -4153,6 +4147,12 @@ packages:
 
   '@jsdevtools/ono@7.1.3':
     resolution: {integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg==}
+
+  '@levelup/api-contract@file:functions/sdk-v1/.local-deps/api-contract':
+    resolution: {directory: functions/sdk-v1/.local-deps/api-contract, type: directory}
+
+  '@levelup/domain@file:functions/sdk-v1/.local-deps/domain':
+    resolution: {directory: functions/sdk-v1/.local-deps/domain, type: directory}
 
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
@@ -7497,6 +7497,9 @@ packages:
   dotenv@16.4.7:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
+
+  driver.js@1.8.0:
+    resolution: {integrity: sha512-+8/IO7h1v14IzWh2GP60N7T3PFZweXwdn5e5POuxRSBoCYUojsBxzqawPeXh3YZIibRy7EehYNEyxe7slwwtdg==}
 
   dset@3.1.4:
     resolution: {integrity: sha512-2QF/g9/zTaPDc3BjNcVTGoBbXBgYfMTTceLaYcFJ/W9kggFUkhxD/hMEeuLKbugyef9SqAx8cpgwlIP/jinUTA==}
@@ -15335,10 +15338,6 @@ snapshots:
       '@firebase/util': 1.12.1
       tslib: 2.8.1
 
-  '@firebase/rules-unit-testing@4.0.1(firebase@11.10.0(@react-native-async-storage/async-storage@1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.7(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))))':
-    dependencies:
-      firebase: 11.10.0(@react-native-async-storage/async-storage@1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.7(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)))
-
   '@firebase/storage-compat@0.3.24(@firebase/app-compat@0.4.2)(@firebase/app-types@0.9.3)(@firebase/app@0.13.2)':
     dependencies:
       '@firebase/app-compat': 0.4.2
@@ -15900,6 +15899,15 @@ snapshots:
   '@js-sdsl/ordered-map@4.4.2': {}
 
   '@jsdevtools/ono@7.1.3': {}
+
+  '@levelup/api-contract@file:functions/sdk-v1/.local-deps/api-contract':
+    dependencies:
+      '@levelup/domain': link:packages/domain
+      zod: 4.3.6
+
+  '@levelup/domain@file:functions/sdk-v1/.local-deps/domain':
+    dependencies:
+      zod: 4.3.6
 
   '@mdx-js/mdx@3.1.1':
     dependencies:
@@ -19571,6 +19579,8 @@ snapshots:
 
   dotenv@16.4.7: {}
 
+  driver.js@1.8.0: {}
+
   dset@3.1.4: {}
 
   dunder-proto@1.0.1:
@@ -20016,7 +20026,7 @@ snapshots:
       es-iterator-helpers: 1.2.2
       eslint: 8.57.1
       estraverse: 5.3.0
-      hasown: 2.0.4
+      hasown: 2.0.2
       jsx-ast-utils: 3.3.5
       minimatch: 3.1.2
       object.entries: 1.1.9

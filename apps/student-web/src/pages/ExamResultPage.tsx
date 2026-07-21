@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useExam, useExamQuestions, useSubmissions, useQuestionSubmissions } from "@levelup/query";
+import { useStoryPoints } from "../hooks/useStoryPoints";
+import { spaceHref, practiceHref, storyPointHref } from "../lib/space-paths";
 import { asExamId, asStudentId } from "@levelup/domain";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { getFirebaseServices } from "../sdk/firebase";
@@ -54,6 +56,15 @@ function QuestionCard({ qs, index }: { qs: QuestionSubmission; index: number }) 
   const maxScore = evaluation?.maxScore ?? 0;
   const correctness = evaluation?.correctness;
 
+  // Scanned answer-sheet pages mapped to this question (Storage paths → viewable
+  // URLs). Tester feedback: the thumbnail wasn't opening the actual scan — it was
+  // never rendered at all on web. Resolve + render them as openable thumbnails.
+  const answerPages = useMemo(
+    () => (Array.isArray(qs.mapping?.imageUrls) ? qs.mapping.imageUrls.filter(Boolean) : []),
+    [qs.mapping?.imageUrls]
+  );
+  const answerUrls = useResolvedImageUrls(answerPages);
+
   return (
     <div className="rounded-lg border p-4">
       <div className="mb-2 flex items-start justify-between">
@@ -71,6 +82,51 @@ function QuestionCard({ qs, index }: { qs: QuestionSubmission; index: number }) 
           {score}/{maxScore}
         </span>
       </div>
+
+      {/* Scanned answer sheet — tap a page to open the full image in a new tab */}
+      {answerPages.length > 0 && (
+        <div className="mb-2">
+          <p className="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-medium">
+            <ImageIcon className="h-3.5 w-3.5" /> Your answer sheet
+            <span className="text-muted-foreground/70">
+              ({answerPages.length} page{answerPages.length === 1 ? "" : "s"})
+            </span>
+          </p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {answerPages.map((path, i) => {
+              const resolved = answerUrls[path];
+              return (
+                <a
+                  key={path}
+                  href={resolved || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-muted group relative block aspect-[3/4] overflow-hidden rounded-md border"
+                  aria-label={`Open answer page ${i + 1} for question ${index + 1}`}
+                >
+                  {resolved === undefined ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : resolved === "" ? (
+                    <div className="text-muted-foreground flex h-full w-full items-center justify-center text-center text-[10px]">
+                      Couldn't load
+                    </div>
+                  ) : (
+                    <img
+                      src={resolved}
+                      alt={`Answer page ${i + 1}`}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
+                    />
+                  )}
+                  <span className="bg-background/80 absolute bottom-1 left-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium">
+                    {i + 1}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Summary feedback */}
       {evaluation?.summary?.overallComment && (
@@ -107,8 +163,9 @@ function QuestionCard({ qs, index }: { qs: QuestionSubmission; index: number }) 
   );
 }
 
-/** Resolve an exam's uploaded question-paper pages (Storage paths) to viewable URLs. */
-function useQuestionPaperUrls(paths: string[]): Record<string, string> {
+/** Resolve Storage paths (question-paper pages, scanned answer pages, …) to
+ * viewable download URLs. http(s) values pass through unchanged. */
+function useResolvedImageUrls(paths: string[]): Record<string, string> {
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -145,7 +202,7 @@ function useQuestionPaperUrls(paths: string[]): Record<string, string> {
 }
 
 function QuestionPaperGallery({ images }: { images: string[] }) {
-  const urls = useQuestionPaperUrls(images);
+  const urls = useResolvedImageUrls(images);
   if (images.length === 0) return null;
 
   return (
@@ -199,8 +256,14 @@ function QuestionPaperGallery({ images }: { images: string[] }) {
  * server already strips those fields for non-authoring roles via projectRubric). */
 function QuestionRubricPreview({ rubric }: { rubric: ExamQuestion["rubric"] | undefined }) {
   if (!rubric) return null;
-  const { scoringMode, criteria, dimensions, holisticGuidance, holisticMaxScore, passingPercentage } =
-    rubric;
+  const {
+    scoringMode,
+    criteria,
+    dimensions,
+    holisticGuidance,
+    holisticMaxScore,
+    passingPercentage,
+  } = rubric;
 
   const showCriteria = criteria && criteria.length > 0;
   const showDimensions = dimensions && dimensions.length > 0;
@@ -230,9 +293,7 @@ function QuestionRubricPreview({ rubric }: { rubric: ExamQuestion["rubric"] | un
             <li key={c.id} className="flex items-start justify-between gap-3 text-xs">
               <div>
                 <span className="font-medium">{c.name}</span>
-                {c.description && (
-                  <p className="text-muted-foreground mt-0.5">{c.description}</p>
-                )}
+                {c.description && <p className="text-muted-foreground mt-0.5">{c.description}</p>}
               </div>
               <span className="text-muted-foreground flex-shrink-0 font-mono">
                 {c.maxScore ?? c.maxPoints}
@@ -298,6 +359,7 @@ function ExamQuestionPreviewCard({ question, index }: { question: ExamQuestion; 
 
 export default function ExamResultPage() {
   const { examId } = useParams<{ examId: string }>();
+  const location = useLocation();
   const { user } = useAuthStore();
   const userId = user?.uid ?? null;
 
@@ -325,6 +387,13 @@ export default function ExamResultPage() {
   // so the exam paper still renders before/without a submission.
   const { data: examQuestionsRaw, isLoading: questionsLoading } = useExamQuestions(examId ?? "");
   const examQuestions = (examQuestionsRaw as ExamQuestion[] | undefined) ?? [];
+
+  // Linked practice Space (createSpaceFromExam) for the 'Practice these topics'
+  // deep-link. MUST be called unconditionally — before any early return below —
+  // to satisfy React's rules of hooks (regression fix: was called after the
+  // loading/no-submission early returns and crashed the whole page).
+  const linkedSpaceId = exam?.linkedSpaceId ?? null;
+  const { data: linkedStoryPoints } = useStoryPoints(null, linkedSpaceId);
 
   const isLoading = examLoading || subsLoading || (Boolean(submission) && qsLoading);
   const summary = submission?.summary;
@@ -407,6 +476,21 @@ export default function ExamResultPage() {
     .filter((qs) => qs.evaluation && qs.evaluation.correctness < 0.5)
     .flatMap((qs) => qs.evaluation?.missingConcepts ?? []);
   const uniqueWeakTopics = [...new Set(weakTopics)];
+
+  // 'Practice these topics' deep-links to the exam's LINKED practice Space + its
+  // story point (createSpaceFromExam), not the generic Spaces list. (`linkedSpaceId`
+  // + `linkedStoryPoints` are resolved above the early returns — rules of hooks.)
+  const targetStoryPoint =
+    linkedStoryPoints?.find((sp) => sp.type === "practice") ??
+    linkedStoryPoints?.find((sp) => sp.type === "timed_test" || sp.type === "test") ??
+    linkedStoryPoints?.[0];
+  const practiceDeepLink = linkedSpaceId
+    ? targetStoryPoint
+      ? targetStoryPoint.type === "practice"
+        ? practiceHref(location.pathname, linkedSpaceId, targetStoryPoint.id)
+        : storyPointHref(location.pathname, linkedSpaceId, targetStoryPoint.id)
+      : spaceHref(location.pathname, linkedSpaceId)
+    : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -501,6 +585,14 @@ export default function ExamResultPage() {
               </span>
             ))}
           </div>
+          {practiceDeepLink && (
+            <Button asChild size="sm" className="mt-3 gap-2">
+              <Link to={practiceDeepLink}>
+                <BookOpen className="h-4 w-4" /> Practice these topics
+                {exam?.linkedSpaceTitle ? ` in ${exam.linkedSpaceTitle}` : ""}
+              </Link>
+            </Button>
+          )}
         </div>
       )}
 

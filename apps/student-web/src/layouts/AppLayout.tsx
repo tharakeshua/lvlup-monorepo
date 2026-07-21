@@ -39,6 +39,7 @@ import {
   LayoutDashboard,
   BookOpen,
   ClipboardList,
+  GraduationCap,
   BarChart3,
   Trophy,
   Settings,
@@ -82,14 +83,23 @@ export default function AppLayout() {
         {
           title: "My Spaces",
           url: "/spaces",
+          // Timed tests live under /spaces/:id/test/:id — keep the highlight on
+          // "Tests" there so starting a test doesn't visually jump to Spaces.
           icon: BookOpen,
-          isActive: location.pathname.startsWith("/spaces"),
+          isActive:
+            location.pathname.startsWith("/spaces") && !location.pathname.includes("/test/"),
         },
         {
           title: "Tests",
           url: "/tests",
           icon: ClipboardList,
-          isActive: location.pathname.startsWith("/tests"),
+          isActive: location.pathname.startsWith("/tests") || location.pathname.includes("/test/"),
+        },
+        {
+          title: "Exams",
+          url: "/exams",
+          icon: GraduationCap,
+          isActive: location.pathname.startsWith("/exams"),
         },
         {
           title: "Progress",
@@ -222,13 +232,19 @@ export default function AppLayout() {
       icon: BookOpen,
       label: "Spaces",
       to: "/spaces",
-      isActive: location.pathname.startsWith("/spaces"),
+      isActive: location.pathname.startsWith("/spaces") && !location.pathname.includes("/test/"),
     },
     {
       icon: ClipboardList,
       label: "Tests",
       to: "/tests",
-      isActive: location.pathname.startsWith("/tests"),
+      isActive: location.pathname.startsWith("/tests") || location.pathname.includes("/test/"),
+    },
+    {
+      icon: GraduationCap,
+      label: "Exams",
+      to: "/exams",
+      isActive: location.pathname.startsWith("/exams"),
     },
     {
       icon: Trophy,

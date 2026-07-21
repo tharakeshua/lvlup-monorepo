@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useEvaluationSettings, useSaveEvaluationSettings, useApiError } from "@levelup/query";
 import type { EvaluationSettings } from "@levelup/shared-types";
-import { Save, Settings } from "lucide-react";
+import { Save, Settings, Compass } from "lucide-react";
+import { startTeacherTour } from "../lib/productTour";
 import {
   Button,
   Label,
@@ -150,6 +151,24 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         )}
+
+        <Card>
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center gap-2">
+              <Compass className="text-muted-foreground h-5 w-5" />
+              <h2 className="font-display text-lg font-semibold">Product Tour</h2>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm">
+                Replay the guided walkthrough of every feature in the sidebar.
+              </p>
+              <Button variant="outline" onClick={() => startTeacherTour()}>
+                <Compass className="h-4 w-4" />
+                Take the tour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ export interface NavItem {
   icon?: LucideIcon;
   badge?: string | number;
   isActive?: boolean;
+  /** Stable hook for product tours / e2e — rendered as `data-tour` on the row. */
+  dataTour?: string;
 }
 
 export interface NavGroup {
@@ -93,7 +95,7 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <SidebarMenuItem key={item.url}>
+                  <SidebarMenuItem key={item.url} data-tour={item.dataTour}>
                     <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
                       <Link to={item.url}>
                         {item.icon &&

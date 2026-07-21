@@ -14,12 +14,20 @@ function getScheduleStatus(config: StoryPoint["assessmentConfig"]): {
   const schedule = config?.schedule;
   if (!schedule) return null;
   const now = Date.now();
-  const startMs = schedule.startAt
-    ? (schedule.startAt as unknown as { seconds: number }).seconds * 1000
-    : null;
-  const endMs = schedule.endAt
-    ? (schedule.endAt as unknown as { seconds: number }).seconds * 1000
-    : null;
+  // Timestamps project as ISO strings at runtime (types claim {seconds}); tolerate
+  // both so schedule badges actually render instead of silently no-op'ing.
+  const toMs = (v: unknown): number | null => {
+    if (v == null) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const ms = Date.parse(v);
+      return Number.isNaN(ms) ? null : ms;
+    }
+    const s = (v as { seconds?: number }).seconds;
+    return typeof s === "number" ? s * 1000 : null;
+  };
+  const startMs = toMs(schedule.startAt);
+  const endMs = toMs(schedule.endAt);
 
   if (startMs && now < startMs) {
     return { label: "Scheduled", variant: "secondary" };
@@ -51,6 +59,17 @@ function TestCard({
   const config = storyPoint.assessmentConfig;
   const scheduleStatus = getScheduleStatus(config);
   const qCount = questionCount(storyPoint);
+  const rawStart = config?.schedule?.startAt as unknown;
+  const startAtMs =
+    rawStart == null
+      ? null
+      : typeof rawStart === "string"
+        ? Number.isNaN(Date.parse(rawStart))
+          ? null
+          : Date.parse(rawStart)
+        : typeof (rawStart as { seconds?: number }).seconds === "number"
+          ? (rawStart as { seconds: number }).seconds * 1000
+          : null;
 
   return (
     <Link
@@ -85,12 +104,9 @@ function TestCard({
           )}
           {qCount != null && <span>{qCount} questions</span>}
           {config?.maxAttempts && <span>Max {config.maxAttempts} attempts</span>}
-          {scheduleStatus?.label === "Scheduled" && config?.schedule?.startAt && (
+          {scheduleStatus?.label === "Scheduled" && startAtMs != null && (
             <span className="text-blue-600 dark:text-blue-400">
-              Opens{" "}
-              {new Date(
-                (config.schedule.startAt as unknown as { seconds: number }).seconds * 1000
-              ).toLocaleDateString()}
+              Opens {new Date(startAtMs).toLocaleDateString()}
             </span>
           )}
         </div>

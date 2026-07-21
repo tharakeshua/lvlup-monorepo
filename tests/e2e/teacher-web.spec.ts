@@ -3505,6 +3505,21 @@ test.describe("Teacher Web App", () => {
   });
 
   // ===========================================================================
+  // FIX VERIFICATION HELPERS — use the real SUB001/Subhang Academy account.
+  //
+  // teacher1 (GRN001, Greenwood) currently fails all login with "Access
+  // Denied" (currentMembership doesn't resolve for the dashboard route) —
+  // a pre-existing seed/claims drift issue unrelated to any of the 5 fixes
+  // under test here. SUB001 is the real, populated tenant used elsewhere
+  // (e.g. teacher-portal-tour.spec.ts) and logs in cleanly.
+  // ===========================================================================
+  async function loginAsSubhang(page: Page) {
+    await page.goto("/login");
+    await loginWithSchoolCode(page, "SUB001", "subhang.rocklee@gmail.com", "Test@12345");
+    await expectDashboard(page, SELECTORS.dashboards.teacher);
+  }
+
+  // ===========================================================================
   // FIX VERIFICATION — Sign Out on mobile viewport (slide 19a)
   //
   // Bug: on mobile, the sign-out confirmation AlertDialog (z-50) rendered
@@ -3520,7 +3535,7 @@ test.describe("Teacher Web App", () => {
     }) => {
       test.setTimeout(90000);
       await page.setViewportSize({ width: 375, height: 667 });
-      await loginAsTeacher1(page);
+      await loginAsSubhang(page);
 
       // Open the mobile sidebar sheet via the hamburger trigger.
       const hamburger = page
@@ -3571,7 +3586,8 @@ test.describe("Teacher Web App", () => {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
     async function openSpaceEditorSettingsTab(page: Page) {
-      await loginAndGoTo(page, "/spaces");
+      await loginAsSubhang(page);
+      await page.goto("/spaces");
       await page
         .waitForSelector(".animate-pulse", { state: "detached", timeout: 15000 })
         .catch(() => {});
@@ -3598,10 +3614,11 @@ test.describe("Teacher Web App", () => {
       test.setTimeout(90000);
       await openSpaceEditorSettingsTab(page);
 
-      const dropzone = page
-        .locator('button:has-text("Drop image here or click to browse")')
-        .first();
+      // A class-based (not text-based) locator — the button's text swaps to
+      // "Drop to upload" on dragenter, which would break a has-text selector.
+      const dropzone = page.locator('button[class*="border-dashed"]').first();
       await expect(dropzone).toBeVisible({ timeout: 10000 });
+      await expect(dropzone).toContainText("Drop image here or click to browse");
 
       const dataTransfer = await makeSyntheticFileDataTransfer(page);
 
@@ -3653,7 +3670,8 @@ test.describe("Teacher Web App", () => {
   // ===========================================================================
   test.describe("FIX VERIFY: Add Question and Add Material in Space editor", () => {
     async function openContentTabWithStoryPoint(page: Page) {
-      await loginAndGoTo(page, "/spaces");
+      await loginAsSubhang(page);
+      await page.goto("/spaces");
       await page
         .waitForSelector(".animate-pulse", { state: "detached", timeout: 15000 })
         .catch(() => {});
@@ -3704,6 +3722,113 @@ test.describe("Teacher Web App", () => {
       await addMaterialBtn.click();
 
       await expect(page.locator("text=Edit Item")).toBeVisible({ timeout: 15000 });
+    });
+  });
+
+  // ===========================================================================
+  // FIX VERIFICATION — Guided product tour on first login (slide 19b)
+  //
+  // Feature request: a full guided tour highlighting every sidebar feature on
+  // first login, dismissible, and re-triggerable from Settings. Implemented
+  // via driver.js (apps/teacher-web/src/lib/productTour.ts), gated on a
+  // localStorage first-run flag (teacherProductTourDone.v1).
+  // ===========================================================================
+  test.describe("FIX VERIFY: Guided product tour", () => {
+    test("auto-starts on first login and highlights sidebar features", async ({ page }) => {
+      test.setTimeout(90000);
+      // Fresh context has no localStorage entry, so this simulates first login.
+      await loginAsSubhang(page);
+
+      const popover = page.locator(".driver-popover");
+      await expect(popover).toBeVisible({ timeout: 10000 });
+      await expect(popover.locator(".driver-popover-title")).toHaveText("Dashboard");
+      await expect(popover.locator(".driver-popover-progress-text")).toBeVisible();
+
+      await page.screenshot({
+        path: "/Users/subhang/Desktop/app-testing-fix-screenshots/slide19b-guided-tour.png",
+      });
+
+      // Step through a couple of stops to prove it walks the sidebar, not just
+      // shows one static popover.
+      await popover.locator(".driver-popover-next-btn").click();
+      await expect(popover.locator(".driver-popover-title")).toHaveText("Spaces");
+      await popover.locator(".driver-popover-next-btn").click();
+      await expect(popover.locator(".driver-popover-title")).toHaveText("Exams");
+    });
+
+    test("is dismissible and does not re-run after being seen", async ({ page }) => {
+      test.setTimeout(90000);
+      await loginAsSubhang(page);
+
+      const popover = page.locator(".driver-popover");
+      await expect(popover).toBeVisible({ timeout: 10000 });
+      await popover.locator(".driver-popover-close-btn").click();
+      await expect(popover).not.toBeVisible({ timeout: 5000 });
+
+      // Reload — the tour must not auto-start a second time (first-run flag set).
+      await page.reload();
+      await page.waitForSelector("h1", { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+      await expect(page.locator(".driver-popover")).not.toBeVisible();
+    });
+
+    test("is re-triggerable from Settings via Take the tour", async ({ page }) => {
+      test.setTimeout(90000);
+      // Pre-mark the tour as seen so it doesn't auto-fire and interfere with
+      // navigating straight to Settings.
+      await page.addInitScript(() => {
+        window.localStorage.setItem("teacherProductTourDone.v1", "1");
+      });
+      await loginAsSubhang(page);
+      await expect(page.locator(".driver-popover")).not.toBeVisible({ timeout: 3000 });
+
+      await page.goto("/settings");
+      await expect(page.locator('h1:has-text("Settings")')).toBeVisible({ timeout: 15000 });
+
+      const takeTourBtn = page.getByRole("button", { name: /take the tour/i });
+      await expect(takeTourBtn).toBeVisible({ timeout: 10000 });
+      await takeTourBtn.click();
+
+      const popover = page.locator(".driver-popover");
+      await expect(popover).toBeVisible({ timeout: 10000 });
+      await expect(popover.locator(".driver-popover-title")).toHaveText("Dashboard");
+    });
+  });
+
+  // ===========================================================================
+  // FIX VERIFICATION — Dashboard class-wise breakdown (slide 20, descoped)
+  //
+  // Request: a class-wise classification/breakdown of the dashboard's headline
+  // stats. Scope reduced 2026-07-21 to the breakdown table only — the
+  // "pending closures" timeline/color-coding part was intentionally dropped.
+  // ===========================================================================
+  test.describe("FIX VERIFY: Dashboard class-wise breakdown", () => {
+    test("shows a per-class breakdown table with student counts", async ({ page }) => {
+      test.setTimeout(90000);
+      await loginAsSubhang(page);
+
+      const heading = page.locator('h2:has-text("Class-wise Breakdown")');
+      await expect(heading).toBeVisible({ timeout: 20000 });
+
+      // The table is a sibling of the heading inside the same Card, not a
+      // descendant — locate it via the Card wrapper instead.
+      const card = heading.locator("xpath=ancestor::*[self::div][.//table][1]");
+      await expect(card.locator("th", { hasText: "Class" })).toBeVisible();
+      await expect(card.locator("th", { hasText: "Students" })).toBeVisible();
+      await expect(card.locator("th", { hasText: "Avg Score" })).toBeVisible();
+      await expect(card.locator("th", { hasText: "At-Risk" })).toBeVisible();
+
+      const rows = card.locator("tbody tr");
+      await expect(rows.first()).toBeVisible();
+      expect(await rows.count()).toBeGreaterThan(0);
+      // Every row's student count cell should be a real number, not blank.
+      const firstStudentsCell = rows.first().locator("td").nth(1);
+      await expect(firstStudentsCell).toHaveText(/^\d+$/);
+
+      await page.screenshot({
+        path: "/Users/subhang/Desktop/app-testing-fix-screenshots/slide20-dashboard-classwise.png",
+        fullPage: true,
+      });
     });
   });
 });

@@ -190,8 +190,12 @@ function SortableItem({
           {item.title || "Untitled"}
           <span className="text-fg-secondary bg-surface-sunken rounded-pill ml-2 px-1.5 py-0.5 text-xs capitalize">
             {item.type === "question"
-              ? (item.payload as QuestionPayload).questionType
-              : (item.payload as MaterialPayload).materialType}
+              ? ((item.payload as QuestionPayload).questionType ??
+                (item.payload as { questionData?: { questionType?: string } }).questionData
+                  ?.questionType)
+              : ((item.payload as MaterialPayload).materialType ??
+                (item.payload as { materialData?: { materialType?: string } }).materialData
+                  ?.materialType)}
           </span>
         </button>
         <Button
@@ -604,8 +608,7 @@ export default function SpaceEditorPage() {
         },
       })) as { id: string };
       const next = await reloadStoryPoints();
-      const createdId =
-        result?.id ?? next.find((s) => !storyPoints.some((p) => p.id === s.id))?.id;
+      const createdId = result?.id ?? next.find((s) => !storyPoints.some((p) => p.id === s.id))?.id;
       if (createdId) {
         setExpandedSP(createdId);
         setActiveTab("content");
@@ -759,21 +762,35 @@ export default function SpaceEditorPage() {
     try {
       const currentItems = items[storyPointId] ?? [];
       const orderIndex = currentItems.length;
-      // Use defaults that mirror ItemEditor.defaultQuestionData (P0-18).
+      // Build the CANONICAL two-level payload the saveItem contract requires:
+      // a top-level `type` discriminant, with the questionType/materialType nested
+      // INSIDE questionData/materialData (not flat). The previous flat shape
+      // (`{ questionType, content, questionData:{…} }` with no `type` and no
+      // nested `questionType`) failed the ItemPayloadSchema discriminated union →
+      // "The request contains invalid data" and nothing was created.
       const payload =
         type === "question"
           ? {
-              questionType: "mcq" as const,
-              content: "",
-              questionData: { options: [], shuffleOptions: false },
+              type: "question" as const,
+              questionData: {
+                questionType: "mcq" as const,
+                options: [
+                  { id: "option_1", text: "", isCorrect: true },
+                  { id: "option_2", text: "", isCorrect: false },
+                ],
+                shuffleOptions: false,
+              },
             }
-          : { materialType: "text" as const, content: "" };
+          : {
+              type: "material" as const,
+              materialData: { materialType: "text" as const, body: "" },
+            };
       const title = type === "question" ? "New Question" : "New Material";
 
       const result = (await saveItem.mutateAsync({
         spaceId,
         storyPointId,
-        data: { type, title, orderIndex, payload, sectionId },
+        data: { type, title, content: "", orderIndex, payload: payload as never, sectionId },
       })) as { id: string };
 
       // Reload from server and pick up the freshly-created item.
