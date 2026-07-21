@@ -8,6 +8,7 @@ import {
   useQuestionSubmissions,
   useGradeManual,
   useAiGradeQuestion,
+  useStudents,
   useClasses,
 } from "@levelup/query";
 import { useAuthSession } from "../../sdk/session";
@@ -101,6 +102,38 @@ export default function GradingReviewPage() {
     [allSubmissionsData]
   );
 
+  // Roster for name / class resolution (FIX 3)
+  const { data: allStudentsData } = useStudents();
+  const { data: allClassesDataGrading } = useClasses();
+
+  const studentMap = useMemo(() => {
+    type Roster = {
+      id: string;
+      uid?: string;
+      rollNumber?: string;
+      displayName?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    const map = new Map<string, Roster>();
+    const arr = asArray<Roster>(allStudentsData);
+    // Key on every identifier a submission might carry (domain `id`, legacy `uid`,
+    // and rollNumber — submissions reliably carry the roll even when the id drifts).
+    for (const s of arr) {
+      if (s.id) map.set(s.id, s);
+      if (s.uid) map.set(s.uid, s);
+      if (s.rollNumber) map.set(`roll:${s.rollNumber}`, s);
+    }
+    return map;
+  }, [allStudentsData]);
+
+  const classMapGrading = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    const arr = asArray<{ id: string; name: string }>(allClassesDataGrading);
+    for (const c of arr) map.set(c.id, c);
+    return map;
+  }, [allClassesDataGrading]);
+
   // Reads via @levelup/query (claims-scoped). Local state is seeded from these so
   // the existing optimistic-update + bulk-approve flows keep working.
   const {
@@ -112,11 +145,6 @@ export default function GradingReviewPage() {
   const { data: questionSubsData, refetch: refetchQuestionSubs } = useQuestionSubmissions(
     submissionId ?? ""
   );
-  const { data: classesData } = useClasses();
-  const classNameById = useMemo(() => {
-    const classes = asArray<{ id: string; name: string }>(classesData);
-    return Object.fromEntries(classes.map((c) => [c.id, c.name]));
-  }, [classesData]);
   const gradeManual = useGradeManual();
   const aiGradeQuestion = useAiGradeQuestion();
 
@@ -137,6 +165,36 @@ export default function GradingReviewPage() {
   const [gradeError, setGradeError] = useState<string | null>(null);
   const [imageUrlMap, setImageUrlMap] = useState<Record<string, string>>({});
 
+  // FIX 3: resolved display name and class name for the current submission.
+  // The backend denormalizes a placeholder `studentName` of "Unknown" when it
+  // can't determine the name at upload — treat that (and blanks) as no-name and
+  // fall through to the roster, whose real name lives on `displayName`.
+  const resolvedStudentName = useMemo(() => {
+    if (!submission) return "";
+    const realName = (n?: string) => {
+      const t = n?.trim();
+      return t && t.toLowerCase() !== "unknown" ? t : "";
+    };
+    const rec =
+      studentMap.get(submission.studentId) ||
+      (submission.rollNumber ? studentMap.get(`roll:${submission.rollNumber}`) : undefined);
+    const rosterName = rec
+      ? realName(rec.displayName) || `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim()
+      : "";
+    return (
+      realName(submission.studentName) ||
+      rosterName ||
+      rec?.rollNumber ||
+      submission.rollNumber ||
+      submission.studentId
+    );
+  }, [submission, studentMap]);
+
+  const resolvedClassName = useMemo(() => {
+    if (!submission?.classId) return null;
+    return classMapGrading.get(submission.classId)?.name ?? null;
+  }, [submission, classMapGrading]);
+
   // Next/prev navigation
   const currentIdx = allSubmissions.findIndex((s) => s.id === submissionId);
   const prevSub = currentIdx > 0 ? allSubmissions[currentIdx - 1] : null;
@@ -144,9 +202,7 @@ export default function GradingReviewPage() {
 
   // Seed local question state from the query (exam questions don't change during grading).
   useEffect(() => {
-    setQuestions(
-      asArray<ExamQuestion>(questionsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    );
+    setQuestions(asArray<ExamQuestion>(questionsData));
   }, [questionsData]);
 
   // Seed submission from the query read. (Was a Firestore onSnapshot; the SDK read
@@ -374,7 +430,7 @@ export default function GradingReviewPage() {
     [submissionId, firebaseUser, questionSubs, gradeManual, refetchSubmission, refetchQuestionSubs]
   );
 
-  // Filter and sort questions — primary sort by question number, then review priority.
+  // Filter and sort questions based on review filter — prioritize review-needing items
   const filteredQuestions = questions
     .filter((q) => {
       if (reviewFilter === "all") return true;
@@ -392,11 +448,14 @@ export default function GradingReviewPage() {
       return true;
     })
     .sort((a, b) => {
-      const orderDiff = (a.order ?? 0) - (b.order ?? 0);
-      if (orderDiff !== 0) return orderDiff;
-
+      // FIX 1: "all" filter → pure ascending question number order.
+      // Filtered views keep priority sort but use q.order as tiebreaker.
+      if (reviewFilter === "all") {
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
       const qsA = questionSubs.find((s) => s.questionId === a.id);
       const qsB = questionSubs.find((s) => s.questionId === b.id);
+      // Needs review first
       const aReview =
         qsA?.gradingStatus === "needs_review" ||
         (qsA as QuestionSubmission & { reviewSuggested?: boolean })?.reviewSuggested
@@ -408,9 +467,12 @@ export default function GradingReviewPage() {
           ? 1
           : 0;
       if (aReview !== bReview) return bReview - aReview;
+      // Then by confidence (low first)
       const confA = qsA?.evaluation?.confidence ?? 1;
       const confB = qsB?.evaluation?.confidence ?? 1;
-      return confA - confB;
+      if (confA !== confB) return confA - confB;
+      // Tiebreaker: question number ascending
+      return (a.order ?? 0) - (b.order ?? 0);
     });
 
   // Count questions needing review
@@ -536,7 +598,7 @@ export default function GradingReviewPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{submission.studentName ?? "Review"}</BreadcrumbPage>
+            <BreadcrumbPage>{resolvedStudentName || "Review"}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -554,15 +616,13 @@ export default function GradingReviewPage() {
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="font-display truncate text-xl font-semibold">
-              Grading Review — {submission.studentName}
+              Grading Review — {resolvedStudentName}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Roll: {submission.rollNumber || "—"}
-              {submission.classId && (
-                <> · Class: {classNameById[submission.classId] ?? submission.classId}</>
-              )}
-              {" · "}
-              Pipeline: {submission.pipelineStatus.replace(/_/g, " ")}
+              Roll: {submission.rollNumber}
+              {resolvedClassName && <> &middot; Class: {resolvedClassName}</>}
+              {" "}&middot; Pipeline:{" "}
+              {submission.pipelineStatus.replace(/_/g, " ")}
             </p>
           </div>
         </div>
@@ -669,7 +729,7 @@ export default function GradingReviewPage() {
           <div className="flex-1">
             <p className="text-fg text-sm font-semibold">Outstanding Performance!</p>
             <p className="text-fg-secondary text-xs">
-              {submission.studentName} scored {Math.round(submission.summary.percentage)}% —{" "}
+              {resolvedStudentName} scored {Math.round(submission.summary.percentage)}% —{" "}
               {submission.summary.grade} grade
             </p>
           </div>
@@ -857,8 +917,8 @@ export default function GradingReviewPage() {
 
                   {/* Side-by-side layout: Answer image on left, AI evaluation on right (Task 4.2) */}
                   <div className="grid gap-4 lg:grid-cols-2">
-                    {/* LEFT: Student Answer Images */}
-                    <div className="space-y-3">
+                    {/* LEFT: Student Answer Images — min-w-0 prevents grid blowout (FIX 2) */}
+                    <div className="min-w-0 space-y-3">
                       {qs?.mapping?.imageUrls && qs.mapping.imageUrls.length > 0 ? (
                         <div>
                           <div className="mb-2 flex items-center justify-between">
@@ -874,6 +934,7 @@ export default function GradingReviewPage() {
                               </span>
                             ) : null}
                           </div>
+                          {/* FIX 2: horizontal scrollable strip — images are fixed-height thumbnails */}
                           <div className="flex gap-2 overflow-x-auto pb-2">
                             {qs.mapping.imageUrls.map((path, idx) => {
                               const url = resolveImage(path);
@@ -881,7 +942,7 @@ export default function GradingReviewPage() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex h-48 w-48 shrink-0 items-center justify-center rounded border"
+                                    className="bg-muted/40 flex h-48 w-36 shrink-0 items-center justify-center rounded border"
                                   >
                                     <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                                   </div>
@@ -891,10 +952,12 @@ export default function GradingReviewPage() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex h-48 w-48 shrink-0 flex-col items-center justify-center gap-2 rounded border border-dashed p-4 text-center"
+                                    className="bg-muted/40 flex h-48 w-36 shrink-0 flex-col items-center justify-center gap-2 rounded border border-dashed p-3 text-center"
                                   >
                                     <ImageOff className="text-muted-foreground h-5 w-5" />
-                                    <p className="text-muted-foreground text-[10px]">Unavailable</p>
+                                    <p className="text-muted-foreground break-all text-[10px]">
+                                      Image unavailable
+                                    </p>
                                   </div>
                                 );
                               }
@@ -905,7 +968,7 @@ export default function GradingReviewPage() {
                                   alt={`Answer page ${idx + 1}`}
                                   loading="lazy"
                                   decoding="async"
-                                  className="hover:ring-primary h-48 w-auto max-w-[20rem] shrink-0 cursor-pointer rounded border object-contain hover:ring-2"
+                                  className="hover:ring-primary h-48 w-auto max-w-none shrink-0 cursor-pointer rounded border object-contain hover:ring-2"
                                   onClick={() => setLightboxUrl(url)}
                                 />
                               );

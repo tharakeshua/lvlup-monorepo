@@ -12358,7 +12358,13 @@ var AUTOGRADE_CALLABLES = {
 };
 var RequestUploadUrlRequestSchema = z2
   .object({
-    kind: z2.enum(["answer-sheet", "question-paper", "content-source", "item-media"]),
+    kind: z2.enum([
+      "answer-sheet",
+      "question-paper",
+      "content-source",
+      "item-media",
+      "answer-media",
+    ]),
     /** Required for answer-sheet / question-paper kinds. */
     examId: z2.string().optional(),
     /** Required for answer-sheet kind. */
@@ -13198,6 +13204,11 @@ var ACCESS_RULES = {
   "testSession.submit": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "answer.evaluate": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "itemAttempt.record": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
+  // Student uploads media (audio/image) for their OWN answer to a levelup item.
+  // The server pins the storage path to ctx.uid, so cross-student writes are
+  // impossible; the other upload kinds are authoring/scanner-scoped (a learner
+  // would be PERMISSION_DENIED). See requestUploadUrlService `answer-media` kind.
+  "answerMedia.upload": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "chat.send": { roles: STUDENT_ONLY, tenantScoped: true, ownershipCheck: "self" },
   "progress.read": { roles: "any-authed", tenantScoped: true },
   "store.list": { roles: "any-authed", tenantScoped: true },
@@ -17422,6 +17433,14 @@ function normalizeQuestionType(t) {
   const k = String(t).trim();
   return QT_TO_GRADING[k] ?? k;
 }
+function hasAiRubric(item) {
+  const rubric = item["effectiveRubric"] ?? item["rubric"];
+  if (!rubric || typeof rubric !== "object") return false;
+  if (typeof rubric["scoringMode"] === "string" && rubric["scoringMode"]) return true;
+  const dims = rubric["dimensions"];
+  const crit = rubric["criteria"];
+  return (Array.isArray(dims) && dims.length > 0) || (Array.isArray(crit) && crit.length > 0);
+}
 function guessMediaMime(path) {
   const ext = path.toLowerCase().match(/\.([a-z0-9]+)(?:\?|$)/)?.[1] ?? "";
   const AUDIO = {
@@ -17504,7 +17523,7 @@ async function scoreOne(
   if (DETERMINISTIC_TYPES.has(type)) {
     return autoEvaluateDeterministic(type, key, answer, maxScore).evaluation;
   }
-  if ((type === "short_answer" || type === "fill_blank") && key) {
+  if ((type === "short_answer" || type === "fill_blank") && key && !hasAiRubric(item)) {
     const correct = String(key["correctAnswer"] ?? "")
       .trim()
       .toLowerCase();
@@ -20068,7 +20087,11 @@ function buildConversationTurnMessages(input) {
     if (message.role === "assistant") {
       const parts2 = message.content
         .filter((block) => block.type === "text")
-        .map((block) => ({ type: "text", provenance: "model_output", text: block.text }));
+        .map((block) => ({
+          type: "text",
+          provenance: "model_output",
+          text: block.text,
+        }));
       if (parts2.length) out.push({ role: "assistant", parts: parts2 });
       continue;
     }
@@ -24319,10 +24342,12 @@ async function requestUploadUrlService(input, ctx) {
     }
   } else if (input.kind === "question-paper") {
     authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
+  } else if (input.kind === "answer-media") {
+    authorize(ctx, "answerMedia.upload", { tenantId });
   } else {
     authorize(ctx, "item.write", { tenantId });
   }
-  const path = buildScopedPath(tenantId, input);
+  const path = buildScopedPath(tenantId, input, ctx.uid);
   const hook = ctx.storage;
   const expiresAtMs = Date.parse(ctx.now()) + UPLOAD_URL_TTL_MS;
   const expiresAt = new Date(
@@ -24333,10 +24358,16 @@ async function requestUploadUrlService(input, ctx) {
     : `https://storage.local/${path}`;
   return { uploadUrl, path, expiresAt };
 }
-function buildScopedPath(tenantId, input) {
+function buildScopedPath(tenantId, input, uid) {
   const ext = extFor(input.contentType);
   const stamp = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 8);
+  if (input.kind === "answer-media") {
+    if (!input.spaceId) fail("INVALID_ARGUMENT", "spaceId required for answer-media upload");
+    if (!input.itemId) fail("INVALID_ARGUMENT", "itemId required for answer-media upload");
+    const owner = uid ?? "self";
+    return `tenants/${tenantId}/spaces/${input.spaceId}/items/${input.itemId}/answers/${owner}/${stamp}-${rand}.${ext}`;
+  }
   if (input.kind === "question-paper") {
     if (!input.examId) fail("INVALID_ARGUMENT", "examId required for question-paper upload");
     return `tenants/${tenantId}/exams/${input.examId}/question-paper/${stamp}-${rand}.${ext}`;
@@ -24358,6 +24389,16 @@ function extFor(contentType) {
   if (contentType.includes("png")) return "png";
   if (contentType.includes("pdf")) return "pdf";
   if (contentType.includes("webp")) return "webp";
+  if (contentType.includes("heic")) return "heic";
+  if (contentType.includes("gif")) return "gif";
+  if (contentType.includes("mp4") || contentType.includes("m4a") || contentType.includes("aac"))
+    return "m4a";
+  if (contentType.includes("mpeg") || contentType.includes("mp3")) return "mp3";
+  if (contentType.includes("wav")) return "wav";
+  if (contentType.includes("ogg") || contentType.includes("opus")) return "ogg";
+  if (contentType.includes("webm")) return "webm";
+  if (contentType.includes("flac")) return "flac";
+  if (contentType.includes("caf")) return "m4a";
   return "jpg";
 }
 async function getAutogradeEvaluationConfigService(input, ctx) {

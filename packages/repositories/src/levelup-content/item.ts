@@ -22,9 +22,11 @@ import {
   EDIT_ITEM_SCOPE,
   batchGetMany,
   editItemKey,
+  invokeCallable,
   makePaginator,
   toPage,
 } from "./_kit";
+import type { ReqOf, ResOf } from "@levelup/api-contract";
 
 export interface ItemFilter extends PageRequest {
   spaceId: string;
@@ -59,6 +61,8 @@ export interface ImportFromBankInput {
   targetType?: string;
 }
 
+export type GetEvaluationConfigInput = ReqOf<"v1.levelup.getEvaluationConfig">;
+
 export interface ItemRepo {
   list(filter: ItemFilter): Promise<Page<unknown>>;
   paginate(filter: ItemFilter): Promise<PageBag<unknown>>;
@@ -70,6 +74,15 @@ export interface ItemRepo {
   ): Promise<unknown[]>;
   save(input: SaveItemInput): Promise<unknown>;
   saveFromBank(input: ImportFromBankInput): Promise<unknown>;
+  /**
+   * The RESOLVED evaluation config triad (agent · rubric · settings) for one
+   * item, student-safe by server projection (holisticGuidance / modelAnswer /
+   * evaluatorGuidance / promptGuidance stripped). Powers the "How you'll be
+   * evaluated" card — objectives + rubric ladders + enabled dimensions + pass %.
+   */
+  getEvaluationConfig(
+    input: GetEvaluationConfigInput
+  ): Promise<ResOf<"v1.levelup.getEvaluationConfig">>;
 }
 
 export function createItemRepo(api: ApiClientLike): ItemRepo {
@@ -107,6 +120,8 @@ export function createItemRepo(api: ApiClientLike): ItemRepo {
     getMany: (ids, scope) => batchGetMany((req) => lv["listItems"]!(req), ids, scope),
     save: (input) => lv["saveItem"]!(input),
     saveFromBank: (input) => lv["importFromBank"]!(input),
+    getEvaluationConfig: (input) =>
+      invokeCallable<"v1.levelup.getEvaluationConfig">(lv["getEvaluationConfig"]!, input),
   };
 }
 

@@ -1,0 +1,194 @@
+{
+  "space": {
+    "id": "spc_subhang-ai-lab-space-ai-assessment-lab_09dd3311c0",
+    "evaluationSettingsId": "evs_subhang-ai-lab-evalsettings-ai-assessmen_6e2357d620"
+  },
+  "storyPoints": [
+    {
+      "title": "Rapid-Fire Fundamentals (Short Answer)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_0a1cba1a02",
+      "orderIndex": 0,
+      "statsItemCount": 4,
+      "realItemCount": 4,
+      "maxOrder": 3,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_0ad693ad9f",
+          "orderIndex": 0,
+          "questionType": "text",
+          "contentHead": "In one sentence, state the worst-case time complexity o"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_35faa790b1",
+          "orderIndex": 1,
+          "questionType": "text",
+          "contentHead": "In one or two sentences, describe the key difference be"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_ba9680350a",
+          "orderIndex": 2,
+          "questionType": "text",
+          "contentHead": "ACID has four properties. Name the property that guaran"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_4dd0fa106a",
+          "orderIndex": 3,
+          "questionType": "text",
+          "contentHead": "What is the AVERAGE-case time complexity of inserting a"
+        }
+      ]
+    },
+    {
+      "title": "Explain Like a Senior (Long Answer)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_7c4806463e",
+      "orderIndex": 1,
+      "statsItemCount": 4,
+      "realItemCount": 4,
+      "maxOrder": 3,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_5e53ee9595",
+          "orderIndex": 0,
+          "questionType": "paragraph",
+          "contentHead": "Explain how a hash map handles collisions. Compare sepa"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_7ac48c406d",
+          "orderIndex": 1,
+          "questionType": "paragraph",
+          "contentHead": "State the CAP theorem and explain its practical implica"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_20fe7f102b",
+          "orderIndex": 2,
+          "questionType": "paragraph",
+          "contentHead": "You are on-call and a production service's memory grows"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_42490f3554",
+          "orderIndex": 3,
+          "questionType": "paragraph",
+          "contentHead": "Explain the difference between optimistic and pessimist"
+        }
+      ]
+    },
+    {
+      "title": "Write the Function (Code)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_bcc67829d5",
+      "orderIndex": 2,
+      "statsItemCount": 4,
+      "realItemCount": 4,
+      "maxOrder": 3,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_ebff8cbedd",
+          "orderIndex": 0,
+          "questionType": "code",
+          "contentHead": "Write a function `hasCycle(head)` that returns true if "
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_3e98867349",
+          "orderIndex": 1,
+          "questionType": "code",
+          "contentHead": "Write `twoSum(nums, target)` returning the indices of t"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_c3e5f5b521",
+          "orderIndex": 2,
+          "questionType": "code",
+          "contentHead": "Write `isValid(s)` that returns true iff a string conta"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_c39c41be01",
+          "orderIndex": 3,
+          "questionType": "code",
+          "contentHead": "Design an LRU cache class with `get(key)` and `put(key,"
+        }
+      ]
+    },
+    {
+      "title": "Talk Through It (Audio Response)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_aa4b6e183e",
+      "orderIndex": 3,
+      "statsItemCount": 3,
+      "realItemCount": 3,
+      "maxOrder": 2,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_9db2f08bb9",
+          "orderIndex": 0,
+          "questionType": "audio",
+          "contentHead": "Record a 2–3 minute spoken walkthrough: how would you d"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_ff584e045f",
+          "orderIndex": 1,
+          "questionType": "audio",
+          "contentHead": "Record a 60–90 second explanation of RECURSION as if yo"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_4439a720c1",
+          "orderIndex": 2,
+          "questionType": "audio",
+          "contentHead": "Behavioral (spoken): Record a 2–3 minute answer to 'Tel"
+        }
+      ]
+    },
+    {
+      "title": "Show Your Work (Diagram & Handwriting Upload)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_4ac9d255be",
+      "orderIndex": 4,
+      "statsItemCount": 3,
+      "realItemCount": 3,
+      "maxOrder": 2,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_7bc86a82a3",
+          "orderIndex": 0,
+          "questionType": "image_evaluation",
+          "contentHead": "Upload a single image of an ARCHITECTURE DIAGRAM for a "
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_9d9273b9f1",
+          "orderIndex": 1,
+          "questionType": "image_evaluation",
+          "contentHead": "Upload a photo of your HANDWRITTEN work deriving the ti"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_0376b3dc11",
+          "orderIndex": 2,
+          "questionType": "image_evaluation",
+          "contentHead": "Upload an image of an ENTITY-RELATIONSHIP (ER) diagram "
+        }
+      ]
+    },
+    {
+      "title": "The Interview Room (Live Mock Interview)",
+      "id": "stp_subhang-ai-lab-storypoint-ai-assessment-_2a0fd86ef0",
+      "orderIndex": 5,
+      "statsItemCount": 3,
+      "realItemCount": 3,
+      "maxOrder": 2,
+      "items": [
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_18483cd55e",
+          "orderIndex": 0,
+          "questionType": "chat_agent_question",
+          "contentHead": "System design interview: design a social media news fee"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_db2adee2e4",
+          "orderIndex": 1,
+          "questionType": "chat_agent_question",
+          "contentHead": "Low-level design interview: design the classes for a pa"
+        },
+        {
+          "id": "itm_subhang-ai-lab-item-ai-assessment-lab-sp_5378ed90e0",
+          "orderIndex": 2,
+          "questionType": "chat_agent_question",
+          "contentHead": "Behavioral interview: the interviewer will ask you abou"
+        }
+      ]
+    }
+  ]
+}

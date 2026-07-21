@@ -14,7 +14,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useItems, useRecordItemAttempt } from "@levelup/query";
+import { useEvaluationConfig, useItems, useRecordItemAttempt } from "@levelup/query";
 import { asItemId, asSpaceId, asStoryPointId } from "@levelup/domain";
 
 import {
@@ -31,14 +31,39 @@ import {
   Screen,
   Skeleton,
   colors,
+  getPrompt,
+  getQuestionData,
   toFeedbackProps,
   type FeedbackVerdict,
   type NavNodeState,
 } from "../../components";
+import {
+  AiAnswerSurface,
+  EvaluatingState,
+  EvaluationFailed,
+  buildHyeModel,
+  capabilityFor,
+  readWireAnswer,
+  type AnswerPart,
+} from "../../components/ai-question";
+import { FeedbackResult, toStoredEvaluation } from "../../components/ai-question/feedback";
+import { asApiError } from "@levelup/query";
 import { routes } from "../../lib/routes";
 import { ErrorState } from "./_shared/states";
 import { asArray, byOrder, isQuestion, questionTypeOf } from "./_shared/normalize";
 import type { ItemView } from "./_shared/types";
+
+/** Rebuild read-only AnswerParts from a wire answer's storagePaths (evaluating preview). */
+function partsFromWire(value: unknown): AnswerPart[] {
+  const { mediaUrls } = readWireAnswer(value);
+  return mediaUrls.map((path, i) => ({
+    id: `wire-${i}`,
+    kind: /\.(m4a|caf|wav|mp3|aac|ogg)(\?|$)/i.test(path) ? "audio" : "image",
+    storagePath: path,
+    mimeType: "",
+    status: "ready" as const,
+  }));
+}
 
 type PracticeOutcome = { verdict: FeedbackVerdict; raw: unknown };
 
@@ -81,13 +106,31 @@ export default function PracticeModeScreen() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [outcomes, setOutcomes] = useState<Record<string, PracticeOutcome>>({});
+  const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
   const startRef = useRef<number>(Date.now());
 
   const item = questions[index];
   const itemId = item?.id ?? "";
   const outcome = outcomes[itemId];
+  const submitError = submitErrors[itemId];
   const total = questions.length;
   const solved = questions.filter((q) => outcomes[q.id ?? ""]?.verdict === "correct").length;
+
+  // ── AI unified composer (Surfaces A/C/D/E) ────────────────────────────────
+  const qData = getQuestionData(item);
+  const qType = questionTypeOf(item);
+  const capConfig = capabilityFor(qType, qData ?? undefined);
+  const isAiComposer = !!capConfig;
+  const aiPrompt = getPrompt(item, qData ?? undefined);
+  const evalConfigQ = useEvaluationConfig(spaceId, itemId, { enabled: isAiComposer });
+  const hyeModel = useMemo(
+    () => (isAiComposer ? buildHyeModel(evalConfigQ.data, item, qData) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [item, isAiComposer, evalConfigQ.data]
+  );
+  const isThisPending =
+    recordAttempt.isPending &&
+    (recordAttempt.variables as { itemId?: string } | undefined)?.itemId === itemId;
 
   const goTo = useCallback((i: number) => {
     setIndex(i);
@@ -100,6 +143,12 @@ export default function PracticeModeScreen() {
     // NOTE: the recordItemAttempt contract is `.strict()` with NO top-level
     // `mediaUrls` field; media answers ride inside `answer` as
     // `{ text, mediaUrls }` (question-view.tsx) and the server unwraps them.
+    setSubmitErrors((m) => {
+      if (!m[item.id]) return m;
+      const next = { ...m };
+      delete next[item.id];
+      return next;
+    });
     recordAttempt.mutate(
       {
         spaceId: asSpaceId(spaceId),
@@ -110,6 +159,16 @@ export default function PracticeModeScreen() {
       },
       {
         onSuccess: (data) => setOutcomes((m) => ({ ...m, [itemId]: outcomeOf(data) })),
+        // Never fail silently — an honest retryable failure (mirrors the content
+        // viewer's mob-eval-fix behaviour), surfaced as the warm recovery state.
+        onError: (err) => {
+          const e = asApiError(err);
+          const message =
+            e.code === "UNAUTHENTICATED"
+              ? "Your session expired. Pull to refresh and try again."
+              : "We couldn't check your answer just now. Please try again.";
+          setSubmitErrors((m) => ({ ...m, [item.id]: message }));
+        },
       }
     );
   }, [item, itemId, answers, recordAttempt, spaceId, storyPointId]);
@@ -122,6 +181,24 @@ export default function PracticeModeScreen() {
       return next;
     });
     setAnswers((m) => ({ ...m, [itemId]: undefined }));
+    startRef.current = Date.now();
+  }, [itemId]);
+
+  // AI composer try-again PRE-FILLS the prior answer (owner decision): re-enable
+  // the composer but KEEP answers[itemId] so the student edits and improves.
+  const aiTryAgain = useCallback(() => {
+    if (!itemId) return;
+    setOutcomes((m) => {
+      const next = { ...m };
+      delete next[itemId];
+      return next;
+    });
+    setSubmitErrors((m) => {
+      if (!m[itemId]) return m;
+      const next = { ...m };
+      delete next[itemId];
+      return next;
+    });
     startRef.current = Date.now();
   }, [itemId]);
 
@@ -270,76 +347,167 @@ export default function PracticeModeScreen() {
               ) : null}
             </View>
 
-            <QuestionView
-              item={item}
-              spaceId={spaceId}
-              storyPointId={storyPointId}
-              value={answers[itemId]}
-              onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
-              disabled={outcome != null}
-              showResult={outcome != null}
-              hideBanner
-              result={outcome ? { correct: outcome.verdict === "correct" } : undefined}
-            />
-
-            {outcome ? (
-              <FeedbackPanel verdict={outcome.verdict} {...toFeedbackProps(outcome.raw)} />
-            ) : null}
-
-            {/* full-width stacked actions */}
-            <View className="gap-2">
-              {!outcome ? (
-                <Button
-                  variant="primary"
-                  block
-                  disabled={answers[itemId] == null || recordAttempt.isPending}
-                  loading={recordAttempt.isPending}
-                  onPress={submit}
-                >
-                  {recordAttempt.isPending ? "Reading your answer…" : "Check answer"}
-                </Button>
-              ) : (
-                <>
-                  {outcome.verdict !== "correct" ? (
+            {isAiComposer && capConfig ? (
+              /* ── Surfaces A/C/D/E: unified multimodal composer ── */
+              outcome && toStoredEvaluation(outcome.raw) ? (
+                <FeedbackResult
+                  evaluation={toStoredEvaluation(outcome.raw)!}
+                  actions={{
+                    onTryAgain: aiTryAgain,
+                    onDiscuss: () =>
+                      router.push(routes.tutor({ scope: "item", spaceId, storyPointId, itemId })),
+                    onNext: index < total - 1 ? () => goTo(index + 1) : undefined,
+                  }}
+                />
+              ) : outcome ? (
+                <View className="gap-4">
+                  <FeedbackPanel verdict={outcome.verdict} {...toFeedbackProps(outcome.raw)} />
+                  <View className="gap-2">
                     <Button
                       variant="secondary"
                       block
                       leadingIcon={<Icon name="rotate-ccw" size={16} />}
-                      onPress={tryAgain}
+                      onPress={aiTryAgain}
                     >
                       Try again
                     </Button>
-                  ) : null}
-                  {index < total - 1 ? (
+                    {index < total - 1 ? (
+                      <Button
+                        variant="primary"
+                        block
+                        trailingIcon={<Icon name="arrow-right" size={16} />}
+                        onPress={() => goTo(index + 1)}
+                      >
+                        Next question
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      block
+                      leadingIcon={<Icon name="message-circle" size={16} />}
+                      onPress={() =>
+                        router.push(routes.tutor({ scope: "item", spaceId, storyPointId, itemId }))
+                      }
+                    >
+                      Ask tutor
+                    </Button>
+                  </View>
+                </View>
+              ) : isThisPending ? (
+                <EvaluatingState
+                  hints={
+                    hyeModel?.dimensions.length
+                      ? hyeModel.dimensions.map((d) => d.name.toLowerCase())
+                      : undefined
+                  }
+                  answerText={readWireAnswer(answers[itemId]).text}
+                  answerParts={partsFromWire(answers[itemId])}
+                />
+              ) : submitError ? (
+                <EvaluationFailed
+                  onRetry={submit}
+                  onBackToAnswer={() =>
+                    setSubmitErrors((m) => {
+                      const n = { ...m };
+                      delete n[itemId];
+                      return n;
+                    })
+                  }
+                />
+              ) : (
+                <AiAnswerSurface
+                  key={itemId}
+                  qType={qType ?? ""}
+                  config={capConfig}
+                  prompt={aiPrompt}
+                  data={qData ?? {}}
+                  difficulty={typeof item?.difficulty === "string" ? item.difficulty : undefined}
+                  hyeModel={hyeModel}
+                  value={answers[itemId]}
+                  onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
+                  spaceId={spaceId}
+                  scopeId={itemId}
+                  submitting={isThisPending}
+                  onSubmit={submit}
+                  onDiscuss={() =>
+                    router.push(routes.tutor({ scope: "item", spaceId, storyPointId, itemId }))
+                  }
+                />
+              )
+            ) : (
+              <>
+                <QuestionView
+                  item={item}
+                  spaceId={spaceId}
+                  storyPointId={storyPointId}
+                  value={answers[itemId]}
+                  onChange={(v: unknown) => setAnswers((m) => ({ ...m, [itemId]: v }))}
+                  disabled={outcome != null}
+                  showResult={outcome != null}
+                  hideBanner
+                  result={outcome ? { correct: outcome.verdict === "correct" } : undefined}
+                />
+
+                {outcome ? (
+                  <FeedbackPanel verdict={outcome.verdict} {...toFeedbackProps(outcome.raw)} />
+                ) : null}
+
+                {/* full-width stacked actions */}
+                <View className="gap-2">
+                  {!outcome ? (
                     <Button
                       variant="primary"
                       block
-                      trailingIcon={<Icon name="arrow-right" size={16} />}
-                      onPress={() => goTo(index + 1)}
+                      disabled={answers[itemId] == null || recordAttempt.isPending}
+                      loading={recordAttempt.isPending}
+                      onPress={submit}
                     >
-                      Next question
+                      {recordAttempt.isPending ? "Reading your answer…" : "Check answer"}
                     </Button>
-                  ) : null}
-                </>
-              )}
-              <Button
-                variant="ghost"
-                block
-                leadingIcon={<Icon name="message-circle" size={16} />}
-                onPress={() =>
-                  router.push(
-                    routes.tutor({
-                      scope: "item",
-                      spaceId,
-                      storyPointId,
-                      itemId,
-                    })
-                  )
-                }
-              >
-                Ask tutor
-              </Button>
-            </View>
+                  ) : (
+                    <>
+                      {outcome.verdict !== "correct" ? (
+                        <Button
+                          variant="secondary"
+                          block
+                          leadingIcon={<Icon name="rotate-ccw" size={16} />}
+                          onPress={tryAgain}
+                        >
+                          Try again
+                        </Button>
+                      ) : null}
+                      {index < total - 1 ? (
+                        <Button
+                          variant="primary"
+                          block
+                          trailingIcon={<Icon name="arrow-right" size={16} />}
+                          onPress={() => goTo(index + 1)}
+                        >
+                          Next question
+                        </Button>
+                      ) : null}
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    block
+                    leadingIcon={<Icon name="message-circle" size={16} />}
+                    onPress={() =>
+                      router.push(
+                        routes.tutor({
+                          scope: "item",
+                          spaceId,
+                          storyPointId,
+                          itemId,
+                        })
+                      )
+                    }
+                  >
+                    Ask tutor
+                  </Button>
+                </View>
+              </>
+            )}
           </Card>
         ) : null}
       </ScrollView>

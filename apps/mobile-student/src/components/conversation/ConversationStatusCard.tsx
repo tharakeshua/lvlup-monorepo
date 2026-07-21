@@ -172,7 +172,7 @@ export function ConversationStatusCard({
       accessible
       accessibilityLiveRegion={presentation.busy ? "polite" : "assertive"}
       accessibilityLabel={`${presentation.title}. ${presentation.body}`}
-      className={`gap-2 rounded-md border p-3 ${tint.box}`}
+      className={`gap-2 rounded-lg border p-3.5 ${tint.box}`}
     >
       <View className="flex-row items-start gap-2">
         {presentation.busy ? (

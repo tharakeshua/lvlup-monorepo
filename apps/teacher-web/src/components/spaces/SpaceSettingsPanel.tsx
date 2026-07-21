@@ -196,6 +196,7 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
   const [thumbnailUrl, setThumbnailUrl] = useState(space.thumbnailUrl ?? "");
   const [thumbnailMode, setThumbnailMode] = useState<"upload" | "url">("upload");
   const [thumbUploading, setThumbUploading] = useState(false);
+  const [thumbDragOver, setThumbDragOver] = useState(false);
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<SpaceType>(space.type);
   const [subject, setSubject] = useState(space.subject ?? "");
@@ -235,6 +236,20 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
     setSaveAttempted(false);
     setSaveFailed(false);
   }, [space]);
+
+  // Without this, a drop that misses the drop-zone target by even a pixel
+  // falls through to the browser's default behavior — navigating the whole
+  // tab to display the raw image file — which reads to the user as "drag and
+  // drop doesn't work" since nothing in the app appears to happen.
+  useEffect(() => {
+    const preventDefault = (e: DragEvent) => e.preventDefault();
+    window.addEventListener("dragover", preventDefault);
+    window.addEventListener("drop", preventDefault);
+    return () => {
+      window.removeEventListener("dragover", preventDefault);
+      window.removeEventListener("drop", preventDefault);
+    };
+  }, []);
 
   const uploadThumbnail = useCallback(
     async (file: File) => {
@@ -617,18 +632,37 @@ export default function SpaceSettingsPanel({ space, onSave, saving }: Props) {
                     onClick={() => thumbInputRef.current?.click()}
                     onDrop={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
+                      setThumbDragOver(false);
                       const file = e.dataTransfer.files[0];
                       if (file) uploadThumbnail(file);
                     }}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="hover:border-brand focus-visible:ring-ring duration-fast ease-standard w-full cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setThumbDragOver(true);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setThumbDragOver(false);
+                    }}
+                    className={`hover:border-brand focus-visible:ring-ring duration-fast ease-standard w-full cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                      thumbDragOver ? "border-brand bg-brand-subtle" : ""
+                    }`}
                   >
                     {thumbUploading ? (
                       <p className="text-muted-foreground text-sm">Uploading...</p>
                     ) : (
                       <>
                         <ImageIcon className="text-muted-foreground mx-auto h-6 w-6" />
-                        <p className="mt-1 text-sm">Drop image here or click to browse</p>
+                        <p className="mt-1 text-sm">
+                          {thumbDragOver ? "Drop to upload" : "Drop image here or click to browse"}
+                        </p>
                         <p className="text-muted-foreground text-xs">PNG, JPEG, WebP — max 2MB</p>
                       </>
                     )}

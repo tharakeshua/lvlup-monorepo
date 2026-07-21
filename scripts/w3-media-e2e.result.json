@@ -1,0 +1,96 @@
+{
+  "imgPath": "tenants/tenant_subhang/spaces/spc_subhang-ai-lab-space-ai-assessment-lab_09dd3311c0/items/itm_subhang-ai-lab-item-ai-assessment-lab-sp_0376b3dc11/answers/e2e-w3/mrrrsumn.png",
+  "audPath": "tenants/tenant_subhang/spaces/spc_subhang-ai-lab-space-ai-assessment-lab_09dd3311c0/items/itm_subhang-ai-lab-item-ai-assessment-lab-sp_4439a720c1/answers/e2e-w3/mrrrsumn.m4a",
+  "image": {
+    "ok": true,
+    "ms": 14394,
+    "data": {
+      "evaluation": {
+        "score": 0,
+        "maxScore": 1,
+        "correctness": 0,
+        "percentage": 0,
+        "strengths": [],
+        "weaknesses": [
+          "The uploaded image is completely unrelated to the prompt.",
+          "No ER diagram or database concepts are present."
+        ],
+        "missingConcepts": [
+          "Entity-Relationship Modeling",
+          "Primary Keys",
+          "Cardinalities",
+          "Database Design"
+        ],
+        "summary": {
+          "keyTakeaway": "You uploaded an image of an algebra problem instead of the requested ER diagram.",
+          "overallComment": "The submission contains a step-by-step solution to a basic algebra equation (2x + 3 = 7) rather than the requested library management system ER diagram. Please ensure you select the correct file when uploading your assignments."
+        },
+        "mistakeClassification": "Silly Error",
+        "confidence": 1,
+        "structuredFeedback": {
+          "scoping": [
+            {
+              "severity": "critical",
+              "message": "The response completely misses the scope of the prompt, providing math instead of database design.",
+              "suggestion": "Review the prompt requirements and upload the correct diagram."
+            }
+          ],
+          "tradeoffs": [],
+          "scalability": [],
+          "communication": [
+            {
+              "severity": "major",
+              "message": "The wrong file was attached to the submission.",
+              "suggestion": "Double-check attachments before submitting."
+            }
+          ]
+        }
+      },
+      "progressRecorded": true
+    }
+  },
+  "audio": {
+    "ok": true,
+    "ms": 9840,
+    "data": {
+      "evaluation": {
+        "score": 0,
+        "maxScore": 1,
+        "correctness": 0,
+        "percentage": 0,
+        "strengths": [],
+        "weaknesses": [
+          "The response is completely off-topic.",
+          "Failed to answer the behavioral question asked.",
+          "Did not use the requested STAR structure."
+        ],
+        "missingConcepts": [
+          "STAR method (Situation, Task, Action, Result)",
+          "Conflict resolution",
+          "Behavioral interview skills"
+        ],
+        "summary": {
+          "keyTakeaway": "You provided an explanation of binary search instead of answering the behavioral question about disagreeing with a technical decision.",
+          "overallComment": "The response completely missed the prompt. The question asked for a personal anecdote using the STAR method to demonstrate how you handle technical disagreements. Instead, the audio contains a brief definition of binary search. In an interview, it is critical to listen to the question being asked and respond appropriately."
+        },
+        "mistakeClassification": "Conceptual",
+        "confidence": 1,
+        "structuredFeedback": {
+          "scoping": [],
+          "tradeoffs": [],
+          "scalability": [],
+          "communication": [
+            {
+              "severity": "critical",
+              "message": "The response did not address the prompt at all. You explained binary search instead of providing a behavioral example of disagreeing with a technical decision.",
+              "suggestion": "Listen carefully to the question and use the STAR method (Situation, Task, Action, Result) to structure your behavioral answers."
+            }
+          ]
+        }
+      },
+      "progressRecorded": true
+    }
+  },
+  "imgRef": true,
+  "audRef": true
+}

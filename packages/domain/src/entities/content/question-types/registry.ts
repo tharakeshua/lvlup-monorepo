@@ -130,6 +130,11 @@ const MatchingPrompt = zObject({
   questionType: z.literal("matching"),
   pairs: z.array(MatchPairPromptSchema),
   shufflePairs: z.boolean().optional(),
+  // Learner-facing pool of right-side match targets, server-projected on LEARNER
+  // reads (absent in authoring). Decoupled from `pairs` order so the correct
+  // positional left→right mapping is NOT leaked while the option set stays
+  // visible (a matching question is unanswerable without its right column).
+  options: z.array(z.string()).optional(),
 });
 const JumbledPrompt = zObject({
   questionType: z.literal("jumbled"),

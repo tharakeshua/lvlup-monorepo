@@ -39,7 +39,7 @@
     "release:student": "bash scripts/release-mobile.sh student",
     "release:admin": "bash scripts/release-mobile.sh admin",
     "release:teacher": "bash scripts/release-mobile.sh teacher",
-    "deploy:functions": "tsx scripts/prepare-functions-deploy.ts prepare && firebase deploy --only functions; tsx scripts/prepare-functions-deploy.ts cleanup",
+    "deploy:functions": "tsx scripts/prepare-functions-deploy.ts prepare && firebase deploy --only functions --force --project lvlup-ff6fa --non-interactive; tsx scripts/prepare-functions-deploy.ts cleanup",
     "deploy:functions:prepare": "tsx scripts/prepare-functions-deploy.ts prepare",
     "deploy:functions:cleanup": "tsx scripts/prepare-functions-deploy.ts cleanup"
   },

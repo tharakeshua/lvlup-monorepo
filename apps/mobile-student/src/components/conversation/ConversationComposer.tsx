@@ -29,10 +29,10 @@ export function ConversationComposer({
     return (
       <View
         accessibilityLiveRegion="polite"
-        className="bg-surface-sunken flex-row gap-2 rounded-md px-3 py-3"
+        className="border-border-strong bg-surface-sunken flex-row items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-3"
       >
-        <Icon name="lock-keyhole" size={17} color={colors.textSecondary} />
-        <Text className="font-ui text-text-secondary flex-1 text-sm leading-5">
+        <Icon name="lock" size={15} color={colors.textMuted} />
+        <Text className="font-ui text-text-muted flex-shrink text-xs leading-5">
           {sealedMessage}
         </Text>
       </View>
@@ -40,8 +40,8 @@ export function ConversationComposer({
   }
 
   return (
-    <View className="border-border-subtle bg-surface gap-2 rounded-lg border p-2">
-      <View className="flex-row items-end gap-2">
+    <View className="gap-2">
+      <View className="border-border-strong bg-surface flex-row items-end gap-2 rounded-lg border py-1.5 pl-4 pr-1.5">
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -52,8 +52,8 @@ export function ConversationComposer({
           accessibilityLabel="Conversation message"
           accessibilityHint="Type your message, then use Send"
           textAlignVertical="top"
-          style={{ minHeight: 48, maxHeight: 136 }}
-          className="font-ui text-text-primary flex-1 px-2 py-2 text-base leading-6"
+          style={{ minHeight: 40, maxHeight: 136 }}
+          className="font-ui text-text-primary flex-1 py-2 text-base leading-6"
           returnKeyType="default"
         />
         <Pressable
@@ -63,7 +63,7 @@ export function ConversationComposer({
           accessibilityLabel="Send message"
           accessibilityState={{ disabled: !canSend, busy: Boolean(isSending) }}
           className={cx(
-            "h-12 w-12 items-center justify-center rounded-md",
+            "h-11 w-11 items-center justify-center rounded-md",
             canSend ? "bg-brand active:bg-brand-hover" : "bg-border-subtle"
           )}
         >
@@ -71,18 +71,16 @@ export function ConversationComposer({
             <ActivityIndicator size="small" color={colors.textOnAccent} />
           ) : (
             <Icon
-              name="send-horizontal"
-              size={19}
+              name="arrow-up"
+              size={20}
               color={canSend ? colors.textOnAccent : colors.textMuted}
             />
           )}
         </Pressable>
       </View>
-      <View className="flex-row items-center gap-1.5 px-1 pb-0.5">
-        <Icon name="shield-check" size={13} color={colors.textMuted} />
-        <Text className="font-ui text-text-muted text-2xs flex-1">
-          Your message is sent only when you choose Send.
-        </Text>
+      <View className="flex-row items-center justify-center gap-1.5">
+        <Icon name="shield-check" size={12} color={colors.textMuted} />
+        <Text className="text-text-muted text-2xs font-mono">Sent only when you choose Send</Text>
       </View>
     </View>
   );

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   useExam,
@@ -26,6 +26,7 @@ import {
   Users,
   Download,
   Info,
+  Trophy,
 } from "lucide-react";
 import {
   Button,
@@ -112,6 +113,34 @@ export default function SubmissionsPage() {
   const submissions = useMemo(() => asArray<Submission>(submissionsData), [submissionsData]);
   const { data: classesData } = useClasses();
   const allClasses = useMemo(() => asArray<ClassRow>(classesData), [classesData]);
+
+  // FIX 3: tenant-wide student roster + class map for name/class resolution in the list.
+  const { data: allStudentsData } = useStudents();
+  const studentRosterMap = useMemo(() => {
+    type Roster = {
+      id: string;
+      uid?: string;
+      rollNumber?: string;
+      displayName?: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    const map = new Map<string, Roster>();
+    const arr = asArray<Roster>(allStudentsData);
+    for (const s of arr) {
+      if (s.id) map.set(s.id, s);
+      if (s.uid) map.set(s.uid, s);
+      if (s.rollNumber) map.set(`roll:${s.rollNumber}`, s);
+    }
+    return map;
+  }, [allStudentsData]);
+
+  const classNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of allClasses) map.set(c.id, c.name);
+    return map;
+  }, [allClasses]);
+
   const releaseResults = useReleaseResults();
   const uploadAnswerSheets = useUploadAnswerSheets();
   const uploadImage = useUploadImage();
@@ -139,12 +168,7 @@ export default function SubmissionsPage() {
     () => allClasses.filter((c) => exam?.classIds?.includes(c.id)),
     [allClasses, exam?.classIds]
   );
-  const classNameById = useMemo(
-    () => Object.fromEntries(allClasses.map((c) => [c.id, c.name])),
-    [allClasses]
-  );
   const { data: studentsData } = useStudents(classId ? { classId } : undefined);
-  const { data: allStudentsData } = useStudents();
   const students = useMemo(
     () =>
       asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
@@ -152,40 +176,6 @@ export default function SubmissionsPage() {
       ),
     [studentsData]
   );
-  const allStudents = useMemo(
-    () =>
-      asArray<{
-        id: string;
-        rollNumber?: string;
-        firstName?: string;
-        lastName?: string;
-        displayName?: string;
-        admissionNumber?: string;
-      }>(allStudentsData),
-    [allStudentsData]
-  );
-  const studentById = useMemo(
-    () => Object.fromEntries(allStudents.map((s) => [s.id, s])),
-    [allStudents]
-  );
-
-  const getSubmissionStudentLabel = (sub: Submission) => {
-    const student = studentById[sub.studentId];
-    return (
-      sub.studentName ||
-      student?.displayName ||
-      `${student?.firstName ?? ""} ${student?.lastName ?? ""}`.trim() ||
-      sub.studentId
-    );
-  };
-
-  const getSubmissionDetails = (sub: Submission) => {
-    const student = studentById[sub.studentId];
-    const classLabel = sub.classId ? (classNameById[sub.classId] ?? sub.classId) : "—";
-    const roll = sub.rollNumber || student?.rollNumber || "—";
-    const admission = student?.admissionNumber;
-    return { classLabel, roll, admission };
-  };
 
   // Reset student selection when class changes.
   useEffect(() => {
@@ -333,11 +323,11 @@ export default function SubmissionsPage() {
       "Grade",
     ];
 
-    // Build rows
+    // Build rows — FIX 3: use resolved name + class name
     const rows = submissions.map((sub) => [
-      sub.studentName ?? "",
+      resolveSubName(sub),
       sub.rollNumber ?? "",
-      sub.classId ?? "",
+      (sub.classId ? classNameMap.get(sub.classId) ?? sub.classId : "") ?? "",
       sub.pipelineStatus.replace(/_/g, " "),
       sub.summary?.totalScore?.toString() ?? "",
       sub.summary?.maxScore?.toString() ?? "",
@@ -394,6 +384,32 @@ export default function SubmissionsPage() {
     return { total, graded, needsReview, inProgress, avgScore };
   }, [submissions]);
 
+  // FIX 3: resolve display name from submission + roster fallback. The backend
+  // stores a placeholder "Unknown" studentName when it can't determine the name;
+  // treat that (and blanks) as no-name and use the roster's `displayName`.
+  const resolveSubName = useCallback(
+    (sub: Submission): string => {
+      const realName = (n?: string) => {
+        const t = n?.trim();
+        return t && t.toLowerCase() !== "unknown" ? t : "";
+      };
+      const rec =
+        studentRosterMap.get(sub.studentId) ||
+        (sub.rollNumber ? studentRosterMap.get(`roll:${sub.rollNumber}`) : undefined);
+      const rosterName = rec
+        ? realName(rec.displayName) || `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim()
+        : "";
+      return (
+        realName(sub.studentName) ||
+        rosterName ||
+        rec?.rollNumber ||
+        sub.rollNumber ||
+        sub.studentId
+      );
+    },
+    [studentRosterMap]
+  );
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -433,6 +449,14 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* FIX 4: Leaderboard link */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/exams/${examId}/leaderboard`)}
+          >
+            <Trophy className="h-3.5 w-3.5" /> Leaderboard
+          </Button>
           {submissions.length > 0 && (
             <Button onClick={handleExportCSV} variant="outline" size="sm">
               <Download className="h-3.5 w-3.5" /> Export CSV
@@ -700,8 +724,6 @@ export default function SubmissionsPage() {
           submissions.map((sub: Submission) => {
             const StatusIcon = PIPELINE_ICONS[sub.pipelineStatus] ?? Clock;
             const statusColor = PIPELINE_COLORS[sub.pipelineStatus] ?? "text-fg-muted";
-            const studentLabel = getSubmissionStudentLabel(sub);
-            const { classLabel, roll, admission } = getSubmissionDetails(sub);
 
             return (
               <Link
@@ -713,10 +735,12 @@ export default function SubmissionsPage() {
                   <div className="flex items-center gap-3">
                     <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                     <div>
-                      <p className="text-sm font-medium">{studentLabel}</p>
+                      {/* FIX 3: resolved name with roster fallback */}
+                      <p className="text-sm font-medium">{resolveSubName(sub)}</p>
                       <p className="text-muted-foreground text-xs">
-                        Roll: {roll} · Class: {classLabel}
-                        {admission ? ` · Adm: ${admission}` : ""}
+                        Roll: {sub.rollNumber}
+                        {sub.classId &&
+                          ` | Class: ${classNameMap.get(sub.classId) ?? sub.classId}`}
                       </p>
                     </div>
                   </div>

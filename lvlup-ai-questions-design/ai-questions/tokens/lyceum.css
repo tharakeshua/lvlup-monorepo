@@ -1,0 +1,251 @@
+/* ============================================================================
+   Lyceum — Design Tokens  ·  "Modern Scholarly"
+   Two-tier: primitives (raw scales) → semantic (role-based, themable).
+   COMPONENTS REFERENCE SEMANTIC TOKENS ONLY — never primitives, never raw hex.
+   Light theme is the v0 default (dark scaffolded under [data-theme="dark"]).
+   Source of truth: docs/rebuild-spec/design/00-FOUNDATION.md §2–§4.
+   ============================================================================ */
+
+:root {
+  /* ----------------------------------------------------------------------- */
+  /* 1. PRIMITIVES — raw scales (§2.1). Do not use directly in components.    */
+  /* ----------------------------------------------------------------------- */
+
+  /* Paper (warm neutral) */
+  --paper-50:  #FBF8F3;
+  --paper-100: #F4EEE4;
+  --paper-200: #E8DFD0;
+  --paper-300: #D6C9B4;
+  --paper-400: #B3A487;
+  --paper-500: #8A7B5E;
+
+  /* Ink (warm charcoal — text & structure) */
+  --ink-900: #1C1A16;
+  --ink-800: #2A2620;
+  --ink-700: #3D382F;
+  --ink-600: #565046;
+  --ink-500: #756E61;
+  --ink-400: #9A9486;
+
+  /* Indigo (primary brand — deep scholarly blue-violet, NOT SaaS blue) */
+  --indigo-700: #322C63;
+  --indigo-600: #423A82;
+  --indigo-500: #564BA6;
+  --indigo-400: #7A6FC9;
+  --indigo-200: #CFC9EC;
+  --indigo-50:  #EEEBF8;
+
+  /* Marigold (spark — energy / gamification / CTA glow) */
+  --marigold-600: #C97A14;
+  --marigold-500: #E8972B;
+  --marigold-400: #F4B45A;
+  --marigold-200: #FBE0B0;
+  --marigold-50:  #FDF4E3;
+
+  /* Semantic source hues */
+  --green-600: #2F7D5B;
+  --green-500: #3EA876;
+  --green-200: #BFE6D2;
+  --amber-600: #B7791F;
+  --amber-500: #E0A12E;
+  --red-600:   #B23A36;
+  --red-500:   #D85650;
+  --red-200:   #F3CFCD;
+  --sky-600:   #2D6E8E;
+  --sky-500:   #3F92B8;
+
+  /* Warm white (surface) */
+  --warm-white: #FFFDFA;
+
+  /* ----------------------------------------------------------------------- */
+  /* 2. SEMANTIC — role-based, themable (§2.2). Components use THESE.         */
+  /* ----------------------------------------------------------------------- */
+
+  /* Backgrounds */
+  --bg-canvas:        var(--paper-50);
+  --bg-surface:       var(--warm-white);
+  --bg-surface-sunken: var(--paper-100);
+  --bg-inset:         var(--paper-100);
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-600);
+  --text-muted:     var(--ink-500);
+  --text-on-accent: var(--warm-white);
+
+  /* Borders */
+  --border-subtle: var(--paper-200);
+  --border-strong: var(--paper-300);
+  --border-focus:  var(--indigo-500);
+
+  /* Brand & spark */
+  --brand-primary:       var(--indigo-600);
+  --brand-primary-hover: var(--indigo-700);
+  --brand-subtle:        var(--indigo-50);
+  --brand-muted:         var(--indigo-200);
+  --spark:               var(--marigold-500);
+  --spark-hover:         var(--marigold-600);
+  --spark-subtle:        var(--marigold-50);
+
+  /* Status */
+  --status-success: var(--green-600);
+  --status-warning: var(--amber-600);
+  --status-error:   var(--red-600);
+  --status-info:    var(--sky-600);
+  --status-success-subtle: var(--green-200);
+  --status-error-subtle:   var(--red-200);
+  --status-warning-subtle: var(--marigold-50);
+  --status-info-subtle:    #DCEAF1;
+
+  /* ----------------------------------------------------------------------- */
+  /* 3. DOMAIN scales (assessment-specific, platform-wide, §2.3)             */
+  /* ----------------------------------------------------------------------- */
+  --confidence-low:  var(--red-500);    /* <0.7  → human review required */
+  --confidence-med:  var(--amber-500);  /* 0.7–0.9 → spot-check */
+  --confidence-high: var(--green-500);  /* >0.9  → auto-accept */
+
+  --grade-a: var(--green-600);
+  --grade-b: var(--green-500);
+  --grade-c: var(--amber-500);
+  --grade-d: var(--marigold-600);
+  --grade-f: var(--red-600);
+
+  --mastery-not-started: var(--border-strong);
+  --mastery-in-progress: var(--indigo-500);
+  --mastery-mastered:    var(--green-500);
+
+  --xp:     var(--spark);
+  --streak: var(--spark);
+
+  /* ----------------------------------------------------------------------- */
+  /* 4. TYPOGRAPHY (§3)                                                       */
+  /* ----------------------------------------------------------------------- */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --font-ui:      'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'Spline Sans Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+
+  /* Type scale (1.25 major third, base 16px) — size / line-height pairs */
+  --text-2xs: 0.6875rem;  --leading-2xs: 1rem;       /* 11/16 */
+  --text-xs:  0.75rem;    --leading-xs:  1.125rem;   /* 12/18 */
+  --text-sm:  0.8125rem;  --leading-sm:  1.25rem;    /* 13/20 */
+  --text-base: 1rem;      --leading-base: 1.5rem;    /* 16/24 */
+  --text-lg:  1.25rem;    --leading-lg:  1.75rem;    /* 20/28 */
+  --text-xl:  1.5625rem;  --leading-xl:  2rem;       /* 25/32 */
+  --text-2xl: 1.9375rem;  --leading-2xl: 2.375rem;   /* 31/38 */
+  --text-3xl: 2.4375rem;  --leading-3xl: 2.875rem;   /* 39/46 */
+  --text-4xl: 3.0625rem;  --leading-4xl: 3.375rem;   /* 49/54 */
+  --text-5xl: 3.8125rem;  --leading-5xl: 4rem;       /* 61/64 */
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  /* Tracking */
+  --tracking-display: -0.02em;  /* ≥31px display */
+  --tracking-body:    0;
+  --tracking-caption: 0.01em;   /* ≤13px caption */
+
+  /* ----------------------------------------------------------------------- */
+  /* 5. SPACING (4px base, §4)                                                */
+  /* ----------------------------------------------------------------------- */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4 */
+  --space-2: 0.5rem;    /* 8 */
+  --space-3: 0.75rem;   /* 12 */
+  --space-4: 1rem;      /* 16 */
+  --space-5: 1.25rem;   /* 20 */
+  --space-6: 1.5rem;    /* 24 */
+  --space-8: 2rem;      /* 32 */
+  --space-10: 2.5rem;   /* 40 */
+  --space-12: 3rem;     /* 48 */
+  --space-16: 4rem;     /* 64 */
+  --space-20: 5rem;     /* 80 */
+  --space-24: 6rem;     /* 96 */
+
+  /* Layout */
+  --gutter-mobile:  1rem;    /* 16 */
+  --gutter-tablet:  1.5rem;  /* 24 */
+  --gutter-desktop: 2rem;    /* 32 */
+  --content-max: 1200px;
+  --reading-max: 720px;
+
+  /* ----------------------------------------------------------------------- */
+  /* 6. RADIUS (§4)                                                           */
+  /* ----------------------------------------------------------------------- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* ----------------------------------------------------------------------- */
+  /* 7. ELEVATION — warm-tinted shadows, never pure black (§4)               */
+  /* ----------------------------------------------------------------------- */
+  --shadow-e0: none;
+  --shadow-e1: 0 1px 2px rgba(28, 26, 22, 0.06);
+  --shadow-e2: 0 4px 12px rgba(28, 26, 22, 0.08);
+  --shadow-e3: 0 12px 28px rgba(28, 26, 22, 0.12);
+  --ring-focus: 0 0 0 3px rgba(86, 75, 166, 0.35);   /* indigo-500 @ 35% */
+  --glow-spark: 0 6px 20px rgba(232, 151, 43, 0.30); /* hero CTA only */
+
+  /* ----------------------------------------------------------------------- */
+  /* 8. MOTION (§4)                                                           */
+  /* ----------------------------------------------------------------------- */
+  --dur-instant: 100ms; /* @kind other */
+  --dur-fast:    160ms; /* @kind other */
+  --dur-base:    220ms; /* @kind other */
+  --dur-slow:    320ms; /* @kind other */
+  --dur-page:    420ms; /* @kind other */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* @kind other */
+  --ease-entrance: cubic-bezier(0.05, 0.7, 0.1, 1); /* @kind other */
+  --ease-exit:     cubic-bezier(0.3, 0, 0.8, 0.15); /* @kind other */
+
+  /* Breakpoints (reference values; used in @media literals) */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* DARK THEME (scaffolded for the post-v0 pass; §2.2 right column).          */
+/* Only semantic tokens flip — primitives & component CSS stay untouched.    */
+/* ------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg-canvas:        var(--ink-900);
+  --bg-surface:       var(--ink-800);
+  --bg-surface-sunken: var(--ink-900);
+  --bg-inset:         #232019;
+
+  --text-primary:   var(--paper-100);
+  --text-secondary: var(--ink-400);
+  --text-muted:     var(--ink-500);
+  --text-on-accent: var(--warm-white);
+
+  --border-subtle: var(--ink-700);
+  --border-strong: var(--ink-600);
+  --border-focus:  var(--indigo-400);
+
+  --brand-primary:       var(--indigo-400);
+  --brand-primary-hover: var(--indigo-500);
+  --brand-subtle:        var(--ink-700);
+  --brand-muted:         var(--indigo-500);
+  --spark:               var(--marigold-400);
+  --spark-hover:         var(--marigold-500);
+
+  --status-success: var(--green-500);
+  --status-warning: var(--amber-500);
+  --status-error:   var(--red-500);
+  --status-info:    var(--sky-500);
+
+  --confidence-low:  var(--red-500);
+  --confidence-med:  var(--amber-500);
+  --confidence-high: var(--green-500);
+
+  --mastery-not-started: var(--border-strong);
+  --mastery-in-progress: var(--indigo-400);
+  --mastery-mastered:    var(--green-500);
+}

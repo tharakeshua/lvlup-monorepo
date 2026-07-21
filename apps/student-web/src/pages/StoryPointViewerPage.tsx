@@ -196,6 +196,7 @@ function ItemNavigator({
                 onSubmit={(answer) => onSubmitAnswer(currentItem, answer)}
                 onOpenChat={() => onOpenChat(currentItem.id)}
                 evaluation={evaluations[currentItem.id]}
+                savedAnswer={spProgress?.items?.[currentItem.id]?.lastAnswer}
                 mode="practice"
                 showCorrect
               />
@@ -265,9 +266,12 @@ export default function StoryPointViewerPage() {
   // All collapsed by default
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
-  // NOTE: We intentionally do NOT restore evaluations from persisted progress on load.
-  // On revisit, the form should be fresh/interactive so the student can reattempt.
-  // Status colors still show from persisted questionData.status on the nav buttons.
+  // NOTE: We intentionally do NOT restore evaluations/feedback from persisted
+  // progress on load — on revisit the form stays fresh/interactive so the student
+  // can reattempt. We DO restore the previously-entered answer text though (passed
+  // as `savedAnswer` from `spProgress.items[id].lastAnswer`) so it's pre-filled and
+  // editable rather than blank. Status colors still show from persisted
+  // questionData.status on the nav buttons.
 
   const storyPoint = storyPoints?.find((sp) => sp.id === storyPointId);
   const sections = useMemo(

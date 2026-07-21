@@ -44,12 +44,17 @@ export async function requestUploadUrlService(input: Req, ctx: AuthContext): Pro
     }
   } else if (input.kind === "question-paper") {
     authorize(ctx, "questions.extract", { examId: input.examId, tenantId });
+  } else if (input.kind === "answer-media") {
+    // Student answer media (audio/image): the ONLY learner-usable upload kind.
+    // Path is pinned to ctx.uid server-side, so a student can only write their
+    // own answer artifacts (the authoring kinds below stay teacher-scoped).
+    authorize(ctx, "answerMedia.upload", { tenantId });
   } else {
     // content-source / item-media — content authoring authority.
     authorize(ctx, "item.write", { tenantId });
   }
 
-  const path = buildScopedPath(tenantId, input);
+  const path = buildScopedPath(tenantId, input, ctx.uid);
 
   const hook = (ctx as unknown as { storage?: SignUploadHook }).storage;
   const expiresAtMs = Date.parse(ctx.now()) + UPLOAD_URL_TTL_MS;
@@ -64,10 +69,17 @@ export async function requestUploadUrlService(input: Req, ctx: AuthContext): Pro
 }
 
 /** Deterministic tenant-scoped storage path for an upload grant. */
-export function buildScopedPath(tenantId: string, input: Req): string {
+export function buildScopedPath(tenantId: string, input: Req, uid?: string): string {
   const ext = extFor(input.contentType);
   const stamp = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 8);
+  if (input.kind === "answer-media") {
+    if (!input.spaceId) fail("INVALID_ARGUMENT", "spaceId required for answer-media upload");
+    if (!input.itemId) fail("INVALID_ARGUMENT", "itemId required for answer-media upload");
+    // uid-scoped so a learner can only ever write under their own answer prefix.
+    const owner = uid ?? "self";
+    return `tenants/${tenantId}/spaces/${input.spaceId}/items/${input.itemId}/answers/${owner}/${stamp}-${rand}.${ext}`;
+  }
   if (input.kind === "question-paper") {
     if (!input.examId) fail("INVALID_ARGUMENT", "examId required for question-paper upload");
     return `tenants/${tenantId}/exams/${input.examId}/question-paper/${stamp}-${rand}.${ext}`;
@@ -88,8 +100,21 @@ export function buildScopedPath(tenantId: string, input: Req): string {
 }
 
 function extFor(contentType: string): string {
+  // images / docs
   if (contentType.includes("png")) return "png";
   if (contentType.includes("pdf")) return "pdf";
   if (contentType.includes("webp")) return "webp";
+  if (contentType.includes("heic")) return "heic";
+  if (contentType.includes("gif")) return "gif";
+  // audio (answer-media spoken answers)
+  if (contentType.includes("mp4") || contentType.includes("m4a") || contentType.includes("aac"))
+    return "m4a";
+  if (contentType.includes("mpeg") || contentType.includes("mp3")) return "mp3";
+  if (contentType.includes("wav")) return "wav";
+  if (contentType.includes("ogg") || contentType.includes("opus")) return "ogg";
+  if (contentType.includes("webm")) return "webm";
+  if (contentType.includes("flac")) return "flac";
+  // caf → m4a so the server's extension→mime guess (practice.ts) stays in-table.
+  if (contentType.includes("caf")) return "m4a";
   return "jpg";
 }

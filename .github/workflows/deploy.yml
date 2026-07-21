@@ -12,7 +12,7 @@ on:
       - develop
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -22,7 +22,7 @@ jobs:
   deploy-functions:
     name: Deploy Cloud Functions
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.repository == 'lvlup-gg/lvlup-monorepo' || github.event_name == 'workflow_dispatch')
     environment: production
     steps:
       - name: Checkout code
@@ -73,7 +73,7 @@ jobs:
   deploy-hosting:
     name: Deploy Hosting (All Apps)
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.repository == 'lvlup-gg/lvlup-monorepo' || github.event_name == 'workflow_dispatch')
     environment: production
     steps:
       - name: Checkout code

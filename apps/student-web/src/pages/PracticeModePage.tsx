@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@levelup/shared-stores";
 import { useSpace, useRecordItemAttempt, useApiError } from "@levelup/query";
 import { asSpaceId, asStoryPointId, asItemId } from "@levelup/domain";
@@ -12,7 +12,7 @@ import { autoEvaluateClient } from "../utils/auto-evaluate-client";
 import ChatTutorPanel from "../components/chat/ChatTutorPanel";
 import ProgressBar from "../components/common/ProgressBar";
 import type { UnifiedEvaluationResult, UnifiedItem } from "@levelup/shared-types";
-import { Dumbbell, CheckCircle2, XCircle, Minus, Filter } from "lucide-react";
+import { Dumbbell, CheckCircle2, XCircle, Minus, Filter, ArrowLeft } from "lucide-react";
 import {
   Button,
   Badge,
@@ -28,6 +28,7 @@ import {
 export default function PracticeModePage() {
   const { spaceId, storyPointId } = useParams<{ spaceId: string; storyPointId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentTenantId } = useAuthStore();
 
   const { data: space } = useSpace<{ title?: string }>(spaceId ?? "");
@@ -221,9 +222,23 @@ export default function PracticeModePage() {
       {currentQuestion ? (
         <div className="bg-card rounded-lg border p-5">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">
-              Question {currentIndex + 1} of {filteredQuestions.length}
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    spaceId ? spaceHref(location.pathname, spaceId) : spacesListHref(location.pathname)
+                  )
+                }
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
+                aria-label="Back to space"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+              <span className="text-muted-foreground text-sm">
+                Question {currentIndex + 1} of {filteredQuestions.length}
+              </span>
+            </div>
             {evaluations[currentQuestion.id] &&
               (evaluations[currentQuestion.id].correctness >= 1 ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />

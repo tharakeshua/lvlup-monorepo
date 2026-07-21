@@ -3,13 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSpace, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import { useStoryPoints } from "../hooks/useStoryPoints";
-import {
-  spaceHref,
-  spacesListHref,
-  storyPointHref,
-  testHref,
-  practiceHref,
-} from "../lib/space-paths";
+import { spacesListHref, storyPointHref, testHref, practiceHref } from "../lib/space-paths";
 import ProgressBar from "../components/common/ProgressBar";
 import {
   Button,

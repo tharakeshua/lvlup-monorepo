@@ -20,9 +20,17 @@ import { defineCallable } from "../../callable-def.js";
 // question-paper  | examId               | tenants/{t}/exams/{e}/question-paper/{stamp}.ext
 // content-source  | spaceId              | tenants/{t}/spaces/{s}/sources/{stamp}.ext
 // item-media      | spaceId, itemId      | tenants/{t}/spaces/{s}/items/{i}/media/{stamp}.ext
+// answer-media    | spaceId, itemId      | tenants/{t}/spaces/{s}/items/{i}/answers/{uid}/{stamp}.ext
+//                 (STUDENT-usable: a learner's own audio/image answer media)
 export const RequestUploadUrlRequestSchema = z
   .object({
-    kind: z.enum(["answer-sheet", "question-paper", "content-source", "item-media"]),
+    kind: z.enum([
+      "answer-sheet",
+      "question-paper",
+      "content-source",
+      "item-media",
+      "answer-media",
+    ]),
     /** Required for answer-sheet / question-paper kinds. */
     examId: z.string().optional(),
     /** Required for answer-sheet kind. */
