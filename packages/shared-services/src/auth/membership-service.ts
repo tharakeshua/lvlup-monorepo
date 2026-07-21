@@ -40,7 +40,7 @@ export async function getUserMemberships(uid: string): Promise<UserMembership[]>
       );
       const snap = await getDocs(q);
       for (const d of snap.docs) {
-        const data = { id: d.id, ...(d.data() as UserMembership) };
+        const data = { ...(d.data() as UserMembership), id: d.id };
         const key = membershipKey(data);
         // Prefer first hit (prefixed / v2_) over later legacy duplicates.
         if (!byId.has(key)) byId.set(key, data);
@@ -68,7 +68,7 @@ export async function getMembership(uid: string, tenantId: string): Promise<User
     try {
       const snap = await getDoc(doc(db, colName, membershipId));
       if (snap.exists()) {
-        return { id: snap.id, ...(snap.data() as UserMembership) };
+        return { ...(snap.data() as UserMembership), id: snap.id };
       }
     } catch (err) {
       if (isMissingMembershipPermission(err)) continue;
