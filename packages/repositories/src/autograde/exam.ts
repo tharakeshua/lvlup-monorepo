@@ -25,6 +25,8 @@ import type {
   ExamStats,
   ExtractQuestionsRequest,
   ExtractQuestionsResponse,
+  CreateSpaceFromExamRequest,
+  CreateSpaceFromExamResponse,
   ListExamsRequest,
   PageResponse,
   ReleaseResultsResponse,
@@ -57,6 +59,7 @@ export interface ExamRepo {
   save(input: SaveExamInput): Promise<SaveResponse>;
   recordExtraction(input: ExtractQuestionsRequest): Promise<ExtractQuestionsResponse>;
   releaseResults(input: { examId: string; classIds?: string[] }): Promise<ReleaseResultsResponse>;
+  createSpaceFromExam(input: CreateSpaceFromExamRequest): Promise<CreateSpaceFromExamResponse>;
 
   // pre-checks (pure reads of ALLOWED_TRANSITIONS — no wire call)
   canTransition(from: string, to: string): boolean;
@@ -143,6 +146,7 @@ export function createExamRepo(api: ApiClient): ExamRepo {
     recordExtraction: (input) => ag.extractQuestions(input),
     releaseResults: (input) =>
       ag.releaseResults({ examId: input.examId as never, classIds: input.classIds as never }),
+    createSpaceFromExam: (input) => ag.createSpaceFromExam(input),
 
     canTransition: (from, to) => canTransition("exam", from as never, to),
 
