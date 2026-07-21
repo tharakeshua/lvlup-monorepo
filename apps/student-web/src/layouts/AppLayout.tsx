@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import {
@@ -33,13 +34,10 @@ import {
   useMarkAllNotificationsRead,
 } from "@levelup/query";
 import { useTenantBranding } from "../hooks/useTenantBranding";
-// Theme managed by shared ThemeToggle component
 import {
   LayoutDashboard,
   BookOpen,
-  ClipboardList,
-  BarChart3,
-  Trophy,
+  GraduationCap,
   Settings,
   UserCircle,
   LogOut,
@@ -50,8 +48,11 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const { allMemberships, currentTenantId, switchTenant, user, logout } = useAuthStore();
 
-  // Apply tenant branding (colors + CSS custom properties)
   useTenantBranding();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const notifQuery = useNotifications();
   const notifData = notifQuery.data as { items?: unknown[] } | undefined;
@@ -72,28 +73,16 @@ export default function AppLayout() {
           isActive: location.pathname === "/",
         },
         {
-          title: "My Spaces",
+          title: "Spaces",
           url: "/spaces",
           icon: BookOpen,
           isActive: location.pathname.startsWith("/spaces"),
         },
         {
-          title: "Tests",
-          url: "/tests",
-          icon: ClipboardList,
-          isActive: location.pathname.startsWith("/tests"),
-        },
-        {
-          title: "Progress",
-          url: "/results",
-          icon: BarChart3,
-          isActive: location.pathname.startsWith("/results"),
-        },
-        {
-          title: "Leaderboard",
-          url: "/leaderboard",
-          icon: Trophy,
-          isActive: location.pathname.startsWith("/leaderboard"),
+          title: "Exams",
+          url: "/exams",
+          icon: GraduationCap,
+          isActive: location.pathname.startsWith("/exams"),
         },
         {
           title: "Profile",
@@ -112,13 +101,7 @@ export default function AppLayout() {
   ];
 
   const currentTenantName = useTenantStore((s) => s.tenant?.name);
-
   const studentMemberships = allMemberships.filter((m) => m.role === "student");
-
-  // PARITY NOTE: the legacy direct-Firestore lookup of other tenants' display
-  // names is dropped — there is no batch tenant-name query hook a member may call
-  // (useTenants is super-admin scope). Inactive tenants fall back to their tenant
-  // code; the active tenant uses the loaded tenant name.
   const tenantOptions: TenantOption[] = studentMemberships.map((m) => ({
     tenantId: m.tenantId,
     tenantName:
@@ -217,16 +200,16 @@ export default function AppLayout() {
       isActive: location.pathname.startsWith("/spaces"),
     },
     {
-      icon: ClipboardList,
-      label: "Tests",
-      to: "/tests",
-      isActive: location.pathname.startsWith("/tests"),
+      icon: GraduationCap,
+      label: "Exams",
+      to: "/exams",
+      isActive: location.pathname.startsWith("/exams"),
     },
     {
-      icon: Trophy,
-      label: "Rank",
-      to: "/leaderboard",
-      isActive: location.pathname.startsWith("/leaderboard"),
+      icon: Settings,
+      label: "Settings",
+      to: "/settings",
+      isActive: location.pathname === "/settings",
     },
     {
       icon: UserCircle,

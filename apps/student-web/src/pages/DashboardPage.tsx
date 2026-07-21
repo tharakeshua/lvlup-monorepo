@@ -11,6 +11,7 @@ import {
 } from "@levelup/query";
 import type { UserId, StudentProgressSummary, StudentAchievement } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
+import SpaceCover from "../components/spaces/SpaceCover";
 import RecommendationsSection from "../components/dashboard/RecommendationsSection";
 import { useStoryPoints } from "../hooks/useStoryPoints";
 import {
@@ -180,7 +181,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/tests"
+              to="/spaces"
               className="bg-card hover:bg-muted/60 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
               <ClipboardList className="text-destructive h-4 w-4" />
@@ -245,7 +246,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between border-b px-5 py-3">
                   <h2 className="text-sm font-semibold">Recent Progress</h2>
                   <Link
-                    to="/results"
+                    to="/exams"
                     className="text-primary flex items-center gap-1 text-xs hover:underline"
                   >
                     View analytics <ChevronRight className="h-3 w-3" />
@@ -403,7 +404,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between border-b px-5 py-3">
                   <h2 className="text-sm font-semibold">Recent Exam Results</h2>
                   <Link
-                    to="/results"
+                    to="/exams"
                     className="text-primary flex items-center gap-1 text-xs hover:underline"
                   >
                     View all <ChevronRight className="h-3 w-3" />
@@ -525,7 +526,7 @@ export default function DashboardPage() {
       <FadeIn delay={0.4}>
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">My Spaces</h2>
+            <h2 className="text-lg font-semibold">Spaces</h2>
             <Link
               to="/spaces"
               className="text-primary flex items-center gap-1 text-sm hover:underline"
@@ -611,15 +612,7 @@ function DashboardSpaceCard({ space }: { space: Space }) {
         to={`/spaces/${space.id}`}
         className="bg-card block rounded-lg border p-4 transition-shadow hover:shadow-md"
       >
-        {space.thumbnailUrl && (
-          <img
-            src={space.thumbnailUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="mb-3 h-32 w-full rounded-md object-cover"
-          />
-        )}
+        <SpaceCover title={space.title} subject={space.subject} />
         <h3 className="line-clamp-1 text-sm font-semibold">{space.title}</h3>
         {space.description && (
           <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{space.description}</p>
