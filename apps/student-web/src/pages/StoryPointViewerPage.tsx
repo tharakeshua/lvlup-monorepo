@@ -404,18 +404,18 @@ export default function StoryPointViewerPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{storyPoint?.title ?? "Story Point"}</BreadcrumbPage>
+            <BreadcrumbPage>{storyPoint?.title ?? "Module"}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <div className="mt-2">
-        <h1 className="text-xl font-bold">{storyPoint?.title ?? "Story Point"}</h1>
+        <h1 className="text-xl font-bold">{storyPoint?.title ?? "Module"}</h1>
         {storyPoint?.description && (
           <p className="text-muted-foreground mt-1 text-sm">{storyPoint.description}</p>
         )}
         {!storyPoint && storyPoints && storyPoints.length > 0 && (
-          <p className="text-destructive mt-1 text-sm">Story point not found</p>
+          <p className="text-destructive mt-1 text-sm">Module not found</p>
         )}
       </div>
     </>

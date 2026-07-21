@@ -300,7 +300,7 @@ function SpaceProgressCard({ space }: { space: Space }) {
           <Award className="h-3 w-3" /> {pointsEarned}/{totalPoints} pts
         </span>
         <span className="flex items-center gap-1">
-          <BookOpen className="h-3 w-3" /> {completedSPs}/{modulesLabel || "—"} sections
+          <BookOpen className="h-3 w-3" /> {completedSPs}/{modulesLabel || "—"} modules
         </span>
         <span className="ml-auto font-medium tabular-nums">{Math.round(percentage)}%</span>
       </div>

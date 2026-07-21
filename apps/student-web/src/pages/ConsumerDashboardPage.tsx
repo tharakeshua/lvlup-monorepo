@@ -125,7 +125,7 @@ export default function ConsumerDashboardPage() {
                 <div className="p-3">
                   <h3 className="group-hover:text-primary text-sm font-semibold">{space.title}</h3>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    {space.stats?.totalStoryPoints ?? 0} lessons
+                    {space.stats?.totalStoryPoints ?? 0} modules
                   </p>
                 </div>
               </Link>

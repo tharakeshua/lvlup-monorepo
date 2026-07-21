@@ -117,10 +117,10 @@ async function ensureContentTab(page: Page) {
   const contentTab = page.getByRole("tab", { name: "Content" }).first();
   await contentTab.waitFor({ state: "visible", timeout: 10000 });
   await contentTab.click({ force: true });
-  // Wait for tab content to mount — "Story Points" header or "No story points" message
+  // Wait for tab content to mount — "Modules" header or "No modules" message
   await Promise.race([
-    page.locator("text=/Story Points/").first().waitFor({ timeout: 8000 }),
-    page.locator("text=/No story points yet/").first().waitFor({ timeout: 8000 }),
+    page.locator("text=/Modules/").first().waitFor({ timeout: 8000 }),
+    page.locator("text=/No modules yet/").first().waitFor({ timeout: 8000 }),
   ]).catch(() => undefined);
   await page.waitForTimeout(400);
 }
@@ -936,7 +936,7 @@ test.describe("Content Types Status Matrix", () => {
     try {
       await settingsBtn.click();
       await page
-        .waitForSelector('h2:has-text("Edit Story Point")', { timeout: 8000 })
+        .waitForSelector('h2:has-text("Edit Module")', { timeout: 8000 })
         .catch(() => undefined);
       // Look for "Add Section" or sections editor
       const addSection = page.getByRole("button", { name: /add section/i });

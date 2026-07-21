@@ -127,7 +127,7 @@ export default function StoreDetailPage() {
           <div className="text-muted-foreground flex items-center gap-6 text-sm">
             <span className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              {space.stats?.totalStoryPoints ?? 0} lessons
+              {space.stats?.totalStoryPoints ?? 0} modules
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />

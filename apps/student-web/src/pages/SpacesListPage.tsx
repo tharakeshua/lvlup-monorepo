@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useSpaces, useSpaceProgress } from "@levelup/query";
 import { asSpaceId } from "@levelup/domain";
 import ProgressBar from "../components/common/ProgressBar";
+import SpaceCover from "../components/spaces/SpaceCover";
 import { BookOpen, AlertCircle, RefreshCw, Star } from "lucide-react";
 import { Skeleton, Button } from "@levelup/shared-ui";
 import type { Space, SpaceProgress } from "@levelup/shared-types";
@@ -29,7 +30,7 @@ export default function SpacesListPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">My Spaces</h1>
+        <h1 className="text-2xl font-bold">Spaces</h1>
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-24 rounded-lg" />
         ))}
@@ -40,7 +41,7 @@ export default function SpacesListPage() {
   if (isError) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">My Spaces</h1>
+        <h1 className="text-2xl font-bold">Spaces</h1>
         <div className="border-destructive/30 bg-destructive/5 rounded-lg border p-8 text-center">
           <AlertCircle className="text-destructive/60 mx-auto mb-2 h-10 w-10" />
           <p className="text-destructive text-sm font-medium">Failed to load spaces</p>
@@ -55,7 +56,7 @@ export default function SpacesListPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">My Spaces</h1>
+      <h1 className="text-2xl font-bold">Spaces</h1>
       {!spaces?.length ? (
         <div className="bg-muted/50 text-muted-foreground rounded-lg border p-8 text-center">
           <BookOpen className="text-muted-foreground/30 mx-auto mb-2 h-10 w-10" />
@@ -83,15 +84,7 @@ function SpaceCard({ space }: { space: Space }) {
       to={`/spaces/${space.id}`}
       className="bg-card block rounded-lg border p-4 transition-shadow hover:shadow-md"
     >
-      {space.thumbnailUrl && (
-        <img
-          src={space.thumbnailUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="mb-3 h-32 w-full rounded-md object-cover"
-        />
-      )}
+      <SpaceCover title={space.title} subject={space.subject} />
       <h3 className="line-clamp-1 text-sm font-semibold">{space.title}</h3>
       {space.description && (
         <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{space.description}</p>

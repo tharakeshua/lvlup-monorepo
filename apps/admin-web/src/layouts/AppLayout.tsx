@@ -59,6 +59,8 @@ import {
   Menu,
   Megaphone,
   DatabaseBackup,
+  Upload,
+  ScanLine,
 } from "lucide-react";
 import QuotaWarningBanner from "../components/layout/QuotaWarningBanner";
 
@@ -79,6 +81,8 @@ const ADMIN_ROUTE_LABELS: Record<string, string> = {
   "/onboarding": "Setup Wizard",
   "/announcements": "Announcements",
   "/data-export": "Data Export",
+  "/bulk-import": "Bulk Import",
+  "/scanner": "Scanner Ops",
 };
 
 export default function AppLayout() {
@@ -154,6 +158,18 @@ export default function AppLayout() {
           url: "/staff",
           icon: Shield,
           isActive: location.pathname.startsWith("/staff"),
+        },
+        {
+          title: "Bulk Import",
+          url: "/bulk-import",
+          icon: Upload,
+          isActive: location.pathname.startsWith("/bulk-import"),
+        },
+        {
+          title: "Scanner Ops",
+          url: "/scanner",
+          icon: ScanLine,
+          isActive: location.pathname.startsWith("/scanner"),
         },
         {
           title: "Announcements",

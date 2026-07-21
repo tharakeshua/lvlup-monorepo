@@ -763,7 +763,7 @@ export default function ItemEditor({
                       markUnsaved();
                     }}
                     className="mt-1"
-                    placeholder="Optional rubric preset; blank uses the story point or space default"
+                    placeholder="Optional rubric preset; blank uses the module or space default"
                   />
                   <p className="text-muted-foreground mt-1 text-xs">
                     The server validates this reference and every private objective's rubric
@@ -776,7 +776,7 @@ export default function ItemEditor({
                   </summary>
                   <p className="text-muted-foreground mt-2 text-xs">
                     An inline rubric is saved with this item. Leave it empty to resolve the selected
-                    preset or the story point/space default.
+                    preset or the module/space default.
                   </p>
                   <div className="mt-3">
                     <RubricEditor

@@ -270,7 +270,7 @@ export default function StoreListPage() {
                       <Users className="h-3 w-3" />
                       {space.totalStudents}
                     </span>
-                    <span>{space.totalStoryPoints} lessons</span>
+                    <span>{space.totalStoryPoints} modules</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -367,7 +367,7 @@ export default function StoreListPage() {
                     </span>
                     <span className="flex items-center gap-1">
                       <BookOpen className="h-3.5 w-3.5" />
-                      {space.totalStoryPoints} lessons
+                      {space.totalStoryPoints} modules
                     </span>
                   </div>
                 </div>

@@ -115,7 +115,7 @@ test.describe("Space Viewer Page", () => {
     await expect(page.locator('h2:has-text("Contents")')).toBeVisible();
   });
 
-  test("story point cards are visible or empty state shown", async ({ page }) => {
+  test("module cards are visible or empty state shown", async ({ page }) => {
     const spaceId = await navigateToFirstSpace(page);
     if (!spaceId) test.skip();
     await page.waitForTimeout(2_000);
@@ -127,13 +127,13 @@ test.describe("Space Viewer Page", () => {
   });
 
   // S-SPV-08
-  test("clicking standard story point navigates to /story-points/", async ({ page }) => {
+  test("clicking standard module navigates to /modules/", async ({ page }) => {
     const spaceId = await navigateToFirstSpace(page);
     if (!spaceId) test.skip();
-    const spLinks = page.locator('a[href*="/story-points/"]');
+    const spLinks = page.locator('a[href*="/modules/"]');
     if ((await spLinks.count()) === 0) test.skip();
     await spLinks.first().click();
-    await expect(page).toHaveURL(/\/story-points\//);
+    await expect(page).toHaveURL(/\/modules\//);
   });
 
   // S-SPV-09
@@ -161,7 +161,7 @@ test.describe("Space Viewer Page", () => {
 // STORY POINT VIEWER PAGE
 // ════════════════════════════════════════════════════════════════════════════
 
-async function navigateToStoryPoint(page: Page): Promise<boolean> {
+async function navigateToModule(page: Page): Promise<boolean> {
   await page.goto("/spaces");
   await page.waitForTimeout(2_000);
   const spaceLinks = page.locator('a[href^="/spaces/"]');
@@ -169,36 +169,36 @@ async function navigateToStoryPoint(page: Page): Promise<boolean> {
   await spaceLinks.first().click();
   await page.waitForURL(/\/spaces\/.+/, { timeout: 10_000 });
   await page.waitForTimeout(2_000);
-  const spLinks = page.locator('a[href*="/story-points/"]');
+  const spLinks = page.locator('a[href*="/modules/"]');
   if ((await spLinks.count()) === 0) return false;
   await spLinks.first().click();
-  await expect(page).toHaveURL(/\/story-points\//);
+  await expect(page).toHaveURL(/\/modules\//);
   await page.waitForTimeout(2_500);
   return true;
 }
 
-test.describe("Story Point Viewer Page", () => {
+test.describe("Module Viewer Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsStudent(page);
   });
 
   // S-STPV-01
-  test("story point viewer page loads and shows h1", async ({ page }) => {
-    const ok = await navigateToStoryPoint(page);
+  test("module viewer page loads and shows h1", async ({ page }) => {
+    const ok = await navigateToModule(page);
     if (!ok) test.skip();
     await expect(page.locator("h1").first()).toBeVisible();
   });
 
   // S-STPV-01
   test("breadcrumb navigation is present", async ({ page }) => {
-    const ok = await navigateToStoryPoint(page);
+    const ok = await navigateToModule(page);
     if (!ok) test.skip();
     await expect(page.locator('a:has-text("Spaces")')).toBeVisible();
   });
 
   // S-STPV-03
   test("items (materials or questions) render or empty message shown", async ({ page }) => {
-    const ok = await navigateToStoryPoint(page);
+    const ok = await navigateToModule(page);
     if (!ok) test.skip();
     const items = page.locator(".rounded-lg.border.bg-card.p-5");
     const emptyMsg = page.locator("text=No items in this section");
@@ -209,7 +209,7 @@ test.describe("Story Point Viewer Page", () => {
 
   // S-STPV-04
   test("MCQ question renders with options (if present)", async ({ page }) => {
-    const ok = await navigateToStoryPoint(page);
+    const ok = await navigateToModule(page);
     if (!ok) test.skip();
     await page.waitForTimeout(2_000);
     // MCQ options are radio-like buttons; if no MCQ, skip gracefully
@@ -221,7 +221,7 @@ test.describe("Story Point Viewer Page", () => {
 
   // S-STPV-02
   test("section filter buttons are clickable when present", async ({ page }) => {
-    const ok = await navigateToStoryPoint(page);
+    const ok = await navigateToModule(page);
     if (!ok) test.skip();
     await page.waitForTimeout(1_500);
     // Section sidebar pills/buttons may exist

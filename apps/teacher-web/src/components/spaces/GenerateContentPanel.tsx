@@ -303,8 +303,8 @@ export default function GenerateContentPanel({
             Generate Content with AI
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Generate draft items for this story point. Review each draft and accept the ones you
-            want to keep.
+            Generate draft items for this module. Review each draft and accept the ones you want to
+            keep.
           </DialogDescription>
         </DialogHeader>
 

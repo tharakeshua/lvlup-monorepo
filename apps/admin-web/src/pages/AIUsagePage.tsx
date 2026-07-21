@@ -161,6 +161,15 @@ export default function AIUsagePage() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-dashed p-4">
+        <p className="text-sm font-medium">Per-user AI usage (planned)</p>
+        <p className="text-muted-foreground mt-1 text-xs">
+          Supabase-backed reads via <code className="text-xs">getUserLlmUsage</code> will show
+          teacher/student attribution here once P0-5 lands. Super-admin platform view already exists
+          at <code className="text-xs">apps/super-admin/LLMUsagePage</code>.
+        </p>
+      </div>
+
       {/* Monthly Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <ScoreCard

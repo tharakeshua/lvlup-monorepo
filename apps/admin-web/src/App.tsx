@@ -24,6 +24,8 @@ const OnboardingWizardPage = lazy(() => import("./pages/OnboardingWizardPage"));
 const AnnouncementsPage = lazy(() => import("./pages/AnnouncementsPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
 const DataExportPage = lazy(() => import("./pages/DataExportPage"));
+const BulkImportPage = lazy(() => import("./pages/BulkImportPage"));
+const ScannerModulePage = lazy(() => import("./pages/ScannerModulePage"));
 
 /**
  * Redirects tenantAdmin users to /onboarding if onboarding is not complete.
@@ -225,6 +227,26 @@ export default function App() {
                 <RouteErrorBoundary>
                   <OnboardingGuard>
                     <DataExportPage />
+                  </OnboardingGuard>
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/bulk-import"
+              element={
+                <RouteErrorBoundary>
+                  <OnboardingGuard>
+                    <BulkImportPage />
+                  </OnboardingGuard>
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/scanner"
+              element={
+                <RouteErrorBoundary>
+                  <OnboardingGuard>
+                    <ScannerModulePage />
                   </OnboardingGuard>
                 </RouteErrorBoundary>
               }

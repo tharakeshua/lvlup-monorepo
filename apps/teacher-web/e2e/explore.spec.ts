@@ -47,7 +47,7 @@ test("find space with story points", async ({ page }) => {
     }
     // Count story points
     const storyHeader = await page
-      .locator("text=/Story Points \\((\\d+)\\)/")
+      .locator("text=/Modules \\((\\d+)\\)/")
       .first()
       .textContent()
       .catch(() => "");

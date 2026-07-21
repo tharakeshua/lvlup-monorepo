@@ -134,6 +134,11 @@ export default function QuestionAnswerer({
   const isDisabled = disabled || (submitted && mode !== "test");
   const questionData = payload.questionData as Record<string, unknown> | undefined;
   const questionType = (payload.questionType ?? questionData?.questionType) as string | undefined;
+  const useAnswerSplit =
+    questionType === "text" ||
+    questionType === "paragraph" ||
+    questionType === "code" ||
+    questionType === "chat_agent_question";
 
   // Runtime type guard helpers to prevent crashes from corrupted answer state
   const asString = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -296,9 +301,8 @@ export default function QuestionAnswerer({
     }
   };
 
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
-      {/* Question content — foregrounded: larger, more line-height, less chrome */}
+  const questionBlock = (
+    <div className="space-y-6">
       <div>
         {(payload.difficulty || payload.basePoints) && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -341,19 +345,15 @@ export default function QuestionAnswerer({
           ))}
         </div>
       )}
-      {lightboxIndex !== null && (
-        <ImageLightbox
-          images={imageAttachments}
-          currentIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
-        />
+    </div>
+  );
+
+  const answerBlock = (
+    <div className="space-y-6">
+      {useAnswerSplit && (
+        <p className="text-fg-muted text-2xs tracking-caps font-semibold uppercase">Your answer</p>
       )}
-
-      {/* Answer input */}
       {renderInput()}
-
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         {!submitted && mode !== "test" && (
           <button
@@ -384,6 +384,33 @@ export default function QuestionAnswerer({
           </button>
         )}
       </div>
+    </div>
+  );
+
+  return (
+    <div className={`mx-auto w-full ${useAnswerSplit ? "max-w-6xl" : "max-w-3xl"} space-y-6`}>
+      {useAnswerSplit ? (
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+          <div>{questionBlock}</div>
+          <div className="border-strong space-y-6 border-t pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            {answerBlock}
+          </div>
+        </div>
+      ) : (
+        <>
+          {questionBlock}
+          {answerBlock}
+        </>
+      )}
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={imageAttachments}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={setLightboxIndex}
+        />
+      )}
 
       {/* Feedback */}
       {evaluation && <FeedbackPanel evaluation={evaluation} explanation={payload.explanation} />}
