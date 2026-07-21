@@ -17,8 +17,6 @@ import type {
   FillBlank,
   FillBlanksDDData,
   FillBlanksDDBlank,
-  MatchingData,
-  MatchingPair,
   JumbledData,
   GroupOptionsData,
   GroupOptionsGroup,
@@ -149,45 +147,6 @@ function evaluateFillBlanksDD(
   return buildResult(Math.round(score * 100) / 100, maxScore, correctCount === blanks.length);
 }
 
-function evaluateMatching(
-  answer: unknown,
-  qData: MatchingData,
-  maxScore: number
-): UnifiedEvaluationResult {
-  const answerMap = answer as Record<string, string> | undefined;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const legacy = qData as any;
-
-  // Legacy leftItems/rightItems/correctPairs format (from seed data)
-  if (Array.isArray(legacy.leftItems) && Array.isArray(legacy.correctPairs)) {
-    const correctPairs: { leftId: string; rightId: string }[] = legacy.correctPairs;
-    if (correctPairs.length === 0) return buildResult(0, maxScore, false);
-
-    let correctCount = 0;
-    for (const cp of correctPairs) {
-      if (answerMap?.[cp.leftId] === cp.rightId) correctCount++;
-    }
-    const score = (correctCount / correctPairs.length) * maxScore;
-    return buildResult(
-      Math.round(score * 100) / 100,
-      maxScore,
-      correctCount === correctPairs.length
-    );
-  }
-
-  // Standard pairs format: answer maps leftPairId → rightPairId (same pair = correct)
-  const pairs: MatchingPair[] = qData.pairs || [];
-  if (pairs.length === 0) return buildResult(0, maxScore, false);
-
-  let correctCount = 0;
-  for (const pair of pairs) {
-    if (answerMap?.[pair.id] === pair.id) correctCount++;
-  }
-
-  const score = (correctCount / pairs.length) * maxScore;
-  return buildResult(Math.round(score * 100) / 100, maxScore, correctCount === pairs.length);
-}
 
 function evaluateJumbled(
   answer: unknown,
@@ -273,7 +232,10 @@ export function autoEvaluateClient(
     case "fill-blanks-dd":
       return evaluateFillBlanksDD(answer, qData as FillBlanksDDData, maxScore);
     case "matching":
-      return evaluateMatching(answer, qData as MatchingData, maxScore);
+      // Learner reads strip the right-side pairing (the correct mapping lives
+      // only in the server AnswerKey), so the client cannot score matching
+      // locally — route to the server evaluator (CD13 server-authoritative).
+      return null;
     case "jumbled":
       return evaluateJumbled(answer, qData as JumbledData, maxScore);
     case "group-options":

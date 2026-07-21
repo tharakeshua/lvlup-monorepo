@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type {
   UnifiedItem,
   QuestionPayload,
@@ -39,7 +39,7 @@ import FeedbackPanel from "../common/FeedbackPanel";
 import ImageLightbox, { type LightboxImage } from "../common/ImageLightbox";
 import { useSendChatMessage } from "../../hooks/useChatTutor";
 import { useAuthStore } from "@levelup/shared-stores";
-import { MessageCircle, History } from "lucide-react";
+import { MessageCircle, History, Loader2 } from "lucide-react";
 import { DifficultyChip } from "../common/lyceum";
 
 interface QuestionAnswererProps {
@@ -77,6 +77,28 @@ export default function QuestionAnswerer({
   const [showPrevious, setShowPrevious] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const sendChatMessage = useSendChatMessage();
+  const feedbackRef = useRef<HTMLDivElement>(null);
+
+  // Evaluation arrives asynchronously (the AI evaluator can take ~10s) — once it
+  // renders, bring it into view instead of leaving the user staring at a page
+  // that looks unchanged below the fold.
+  useEffect(() => {
+    if (evaluation) {
+      feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [evaluation]);
+
+  // Restore a previously-entered answer once persisted progress loads. Guarded so
+  // it never clobbers what the student is actively typing: only seeds when the
+  // field is still empty and unsubmitted (tester feedback: prior answer not
+  // visible on revisit). Persisted progress can arrive AFTER first mount, so the
+  // `useState` initializer alone isn't enough.
+  useEffect(() => {
+    if (savedAnswer !== undefined && answer === undefined && !submitted) {
+      setAnswer(savedAnswer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedAnswer]);
 
   // Extract markdown-embedded images (`![alt](url)`) from the question text —
   // the deployed backend strips top-level `attachments` for questions, so the
@@ -127,8 +149,9 @@ export default function QuestionAnswerer({
   };
 
   const handleRetry = () => {
+    // Keep the previously-entered answer so the student can refine it instead of
+    // re-typing from scratch (tester feedback: 'Try again' wiped the answer).
     setSubmitted(false);
-    setAnswer(undefined);
   };
 
   const isDisabled = disabled || (submitted && mode !== "test");
@@ -365,7 +388,13 @@ export default function QuestionAnswerer({
             Check answer
           </button>
         )}
-        {submitted && mode === "practice" && (
+        {submitted && !evaluation && (
+          <div className="text-fg-secondary flex items-center gap-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Evaluating your answer — this can take up to 10 seconds…
+          </div>
+        )}
+        {submitted && evaluation && mode === "practice" && (
           <button
             type="button"
             onClick={handleRetry}
@@ -386,7 +415,11 @@ export default function QuestionAnswerer({
       </div>
 
       {/* Feedback */}
-      {evaluation && <FeedbackPanel evaluation={evaluation} explanation={payload.explanation} />}
+      {evaluation && (
+        <div ref={feedbackRef}>
+          <FeedbackPanel evaluation={evaluation} explanation={payload.explanation} />
+        </div>
+      )}
 
       {/* Previous Submission */}
       {previousEvaluation && !showPrevious && (

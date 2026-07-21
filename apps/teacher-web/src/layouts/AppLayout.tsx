@@ -31,10 +31,11 @@ import {
   BarChart3,
   Users,
   Settings,
-  ListChecks,
-  Library,
-  Ruler,
   GraduationCap,
+  Sparkles,
+  Trophy,
+  Contact,
+  LineChart,
 } from "lucide-react";
 
 export default function AppLayout() {
@@ -62,24 +63,12 @@ export default function AppLayout() {
           icon: LayoutDashboard,
           isActive: location.pathname === "/",
         },
-      ],
-    },
-    {
-      label: "Content",
-      items: [
         {
           title: "Spaces",
           url: "/spaces",
           icon: BookOpen,
           isActive: location.pathname.startsWith("/spaces"),
         },
-        // TODO(question-bank): re-enable when module returns
-        // {
-        //   title: "Question Bank",
-        //   url: "/question-bank",
-        //   icon: Library,
-        //   isActive: location.pathname === "/question-bank",
-        // },
         {
           title: "Exams",
           url: "/exams",
@@ -87,16 +76,12 @@ export default function AppLayout() {
           isActive: location.pathname.startsWith("/exams"),
         },
         {
-          title: "Rubric Presets",
-          url: "/rubric-presets",
-          icon: Ruler,
-          isActive: location.pathname === "/rubric-presets",
-        },
-        {
-          title: "Assignments",
-          url: "/assignments",
-          icon: ListChecks,
-          isActive: location.pathname.startsWith("/assignments"),
+          title: "AI Settings",
+          url: "/ai-settings",
+          icon: Sparkles,
+          isActive:
+            location.pathname.startsWith("/ai-settings") ||
+            location.pathname === "/rubric-presets",
         },
         {
           title: "Batch Grading",
@@ -110,10 +95,10 @@ export default function AppLayout() {
       label: "Analytics",
       items: [
         {
-          title: "Class Analytics",
-          url: "/analytics/classes",
-          icon: BarChart3,
-          isActive: location.pathname.startsWith("/analytics/classes"),
+          title: "Student Analytics",
+          url: "/analytics/students",
+          icon: LineChart,
+          isActive: location.pathname.startsWith("/analytics/students"),
         },
         {
           title: "Exam Analytics",
@@ -126,6 +111,18 @@ export default function AppLayout() {
           url: "/analytics/spaces",
           icon: BookOpen,
           isActive: location.pathname.startsWith("/analytics/spaces"),
+        },
+        {
+          title: "Class Analytics",
+          url: "/analytics/classes",
+          icon: BarChart3,
+          isActive: location.pathname.startsWith("/analytics/classes"),
+        },
+        {
+          title: "Space Leaderboard",
+          url: "/leaderboards/spaces",
+          icon: Trophy,
+          isActive: location.pathname.startsWith("/leaderboards/spaces"),
         },
       ],
     },
@@ -143,6 +140,12 @@ export default function AppLayout() {
           url: "/students",
           icon: Users,
           isActive: location.pathname === "/students",
+        },
+        {
+          title: "Parents",
+          url: "/parents",
+          icon: Contact,
+          isActive: location.pathname.startsWith("/parents"),
         },
       ],
     },

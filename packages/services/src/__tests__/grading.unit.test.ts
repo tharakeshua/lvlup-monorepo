@@ -150,6 +150,73 @@ describe("deterministic grading — question-type normalization (U0.1)", () => {
     });
   });
 
+  describe("matching deterministic scoring (partial credit by left→right pair)", () => {
+    const key = {
+      questionType: "matching",
+      pairs: [
+        { left: "Impact vs Effort Matrix", right: "Quick visual triage" },
+        { left: "RICE Scoring", right: "Quantitative prioritization" },
+        { left: "MoSCoW Method", right: "Release scoping" },
+        { left: "Cost of Delay", right: "Economic sequencing" },
+      ],
+    };
+
+    it("full credit when every left maps to its correct right (record shape)", () => {
+      const answer = {
+        "Impact vs Effort Matrix": "Quick visual triage",
+        "RICE Scoring": "Quantitative prioritization",
+        "MoSCoW Method": "Release scoping",
+        "Cost of Delay": "Economic sequencing",
+      };
+      const { evaluation, aiPending } = autoEvaluateDeterministic("matching", key, answer, 4);
+      expect(aiPending).toBe(false);
+      expect(evaluation.score).toBe(4);
+      expect(evaluation.correctness).toBe(1);
+      expect(evaluation.percentage).toBe(100);
+    });
+
+    it("partial credit proportional to correct pairs", () => {
+      // 2 of 4 correct.
+      const answer = {
+        "Impact vs Effort Matrix": "Quick visual triage",
+        "RICE Scoring": "Release scoping", // wrong
+        "MoSCoW Method": "Quantitative prioritization", // wrong
+        "Cost of Delay": "Economic sequencing",
+      };
+      const { evaluation } = autoEvaluateDeterministic("matching", key, answer, 4);
+      expect(evaluation.score).toBe(2);
+      expect(evaluation.correctness).toBe(0.5);
+      expect(evaluation.percentage).toBe(50);
+    });
+
+    it("accepts the canonical learner `matches` array shape too", () => {
+      const answer = {
+        matches: [
+          { left: "Impact vs Effort Matrix", right: "Quick visual triage" },
+          { left: "RICE Scoring", right: "Quantitative prioritization" },
+          { left: "MoSCoW Method", right: "Release scoping" },
+          { left: "Cost of Delay", right: "Economic sequencing" },
+        ],
+      };
+      const { evaluation } = autoEvaluateDeterministic("matching", key, answer, 4);
+      expect(evaluation.score).toBe(4);
+      expect(evaluation.correctness).toBe(1);
+    });
+
+    it("is case/whitespace-insensitive on both sides", () => {
+      const answer = { "impact vs effort matrix ": " QUICK VISUAL TRIAGE" };
+      const { evaluation } = autoEvaluateDeterministic("matching", key, answer, 4);
+      expect(evaluation.score).toBe(1); // 1 of 4
+    });
+
+    it("escalates to AI (not a silent zero) when the key has no usable pairs", () => {
+      const malformed = { questionType: "matching" }; // no pairs
+      const { aiPending, evaluation } = autoEvaluateDeterministic("matching", malformed, {}, 4);
+      expect(aiPending).toBe(true);
+      expect(evaluation.score).toBe(0);
+    });
+  });
+
   describe("existing deterministic scorers still grade the other auto types", () => {
     it("mcq / set-match", () => {
       const { evaluation } = autoEvaluateDeterministic(

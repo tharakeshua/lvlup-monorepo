@@ -144,6 +144,97 @@ function scoreGrouping(key: Doc, answer: unknown, maxScore: number): Determinist
 }
 
 /**
+ * Coerce a matching submission into a normalized `leftText → rightText` map.
+ * Accepts the canonical learner shape (`{ matches: [{left, right}] }`), a bare
+ * `[{left, right}]` array, or the client `{ leftText: rightText }` record.
+ */
+function toMatchMap(v: unknown): Map<string, string> {
+  const map = new Map<string, string>();
+  const fromArray = (arr: unknown[]): void => {
+    for (const e of arr) {
+      if (e && typeof e === "object") {
+        const rec = e as Doc;
+        if (rec["left"] != null && rec["right"] != null) {
+          map.set(normalize(rec["left"]), normalize(rec["right"]));
+        }
+      }
+    }
+  };
+  if (Array.isArray(v)) {
+    fromArray(v);
+    return map;
+  }
+  if (v && typeof v === "object") {
+    const rec = v as Doc;
+    if (Array.isArray(rec["matches"])) {
+      fromArray(rec["matches"] as unknown[]);
+      return map;
+    }
+    if (Array.isArray(rec["pairs"])) {
+      fromArray(rec["pairs"] as unknown[]);
+      return map;
+    }
+    // Plain { leftText: rightText } record (the web MatchingAnswerer shape).
+    for (const [k, r] of Object.entries(rec)) {
+      if (r != null && typeof r !== "object") map.set(normalize(k), normalize(r));
+    }
+  }
+  return map;
+}
+
+/**
+ * Deterministic matching scoring: partial credit for the fraction of left items
+ * paired with their correct right value (full credit iff EVERY pair matches).
+ * The correct left→right mapping comes from the ⚷ answer key `pairs`.
+ */
+function scoreMatching(key: Doc, answer: unknown, maxScore: number): DeterministicResult {
+  const keyPairs = Array.isArray(key["pairs"]) ? (key["pairs"] as Doc[]) : [];
+  const correct = new Map<string, string>();
+  for (const p of keyPairs) {
+    if (p && typeof p === "object" && p["left"] != null && p["right"] != null) {
+      correct.set(normalize(p["left"]), normalize(p["right"]));
+    }
+  }
+  // Malformed/legacy key with no usable mapping → escalate to the AI pass rather
+  // than silently zeroing the learner (mirrors scoreGrouping).
+  if (correct.size === 0) {
+    return {
+      evaluation: {
+        score: 0,
+        maxScore,
+        correctness: 0,
+        percentage: 0,
+        strengths: [],
+        weaknesses: [],
+        missingConcepts: [],
+      },
+      aiPending: true,
+    };
+  }
+  const given = toMatchMap(answer);
+  const total = correct.size;
+  let hit = 0;
+  for (const [left, right] of correct) {
+    if (given.get(left) === right) hit += 1;
+  }
+  const ratio = total > 0 ? hit / total : 0;
+  const score = ratio * maxScore;
+  const isFull = total > 0 && hit === total;
+  return {
+    evaluation: {
+      score,
+      maxScore,
+      correctness: ratio,
+      percentage: maxScore > 0 ? (score / maxScore) * 100 : 0,
+      strengths: isFull ? ["Correct answer"] : [],
+      weaknesses: isFull ? [] : ["Incorrect answer"],
+      missingConcepts: [],
+    },
+    aiPending: false,
+  };
+}
+
+/**
  * Score `answer` against the answer `key` for an item of `type`. For subjective
  * types returns `aiPending:true` with a zeroed placeholder the AI pass overwrites.
  */
@@ -172,6 +263,12 @@ export function autoEvaluateDeterministic(
   // single-value/set match, so it needs its own branch before the generic logic.
   if (type === "grouping") {
     return scoreGrouping(key, answer, maxScore);
+  }
+
+  // matching: per-pair left→right mapping scoring (partial credit) — a structural
+  // answer, not a scalar/set match, so it needs its own branch.
+  if (type === "matching") {
+    return scoreMatching(key, answer, maxScore);
   }
 
   const correctAnswer = key["correctAnswer"];

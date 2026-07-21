@@ -314,9 +314,20 @@ describe("LVL-1 — levelup reads emit contract-canonical views (legacy + canoni
       const flat = (res["items"] as Doc[]).find((i) => i["id"] === "item_seed_flat")!;
       expect(flat["type"]).toBe("question");
       expect((flat["payload"] as Doc)["type"]).toBe("question");
-      const pairs = ((flat["payload"] as Doc)["questionData"] as Doc)["pairs"] as Doc[];
+      const qd = (flat["payload"] as Doc)["questionData"] as Doc;
+      const pairs = qd["pairs"] as Doc[];
+      // The POSITIONAL pairing is hidden: each pair's `right` is blanked so the
+      // learner can't read `pair[i].left → pair[i].right`.
       expect(pairs[0]["right"]).toBe("");
-      expect(JSON.stringify(flat)).not.toContain("Quick visual triage");
+      // But the option POOL is projected so the question is answerable — the
+      // shuffled right-side texts are present (order decoupled from `pairs`).
+      const options = qd["options"] as string[];
+      expect(Array.isArray(options)).toBe(true);
+      expect(options).toContain("Quick visual triage");
+      expect(options).toContain("Quantitative prioritization");
+      // The pairing must NOT be reconstructable: no pair carries its own right,
+      // and the option order is not the pair order (content-hash shuffle).
+      expect(pairs.every((p) => p["right"] === "")).toBe(true);
     });
 
     it("getItemForEdit → strict ItemEditView with the ⚷ answerKey KEPT (authoring)", async () => {

@@ -3503,4 +3503,207 @@ test.describe("Teacher Web App", () => {
       }
     });
   });
+
+  // ===========================================================================
+  // FIX VERIFICATION — Sign Out on mobile viewport (slide 19a)
+  //
+  // Bug: on mobile, the sign-out confirmation AlertDialog (z-50) rendered
+  // UNDER the sidebar Sheet (z-[75]), making the confirm button visually
+  // present but unclickable. Fixed by bumping alert-dialog/dialog to z-[100].
+  // This test deliberately uses a real `.click()` (not dispatchEvent) so
+  // Playwright's actionability checks (visible + not obscured) genuinely
+  // exercise the stacking-order bug.
+  // ===========================================================================
+  test.describe("FIX VERIFY: Sign Out on mobile viewport", () => {
+    test("sign-out confirm dialog is clickable above the mobile sidebar sheet", async ({
+      page,
+    }) => {
+      test.setTimeout(90000);
+      await page.setViewportSize({ width: 375, height: 667 });
+      await loginAsTeacher1(page);
+
+      // Open the mobile sidebar sheet via the hamburger trigger.
+      const hamburger = page
+        .locator(
+          'button[aria-label*="sidebar"], button[aria-label*="toggle"], button[aria-label*="menu"], button[data-sidebar="trigger"]'
+        )
+        .first();
+      await expect(hamburger).toBeVisible({ timeout: 10000 });
+      await hamburger.click();
+
+      // Click Sign Out inside the open sheet.
+      const signOutBtn = page
+        .locator('[data-sidebar="footer"] button:has-text("Sign Out"), button:has-text("Sign Out")')
+        .first();
+      await signOutBtn.waitFor({ state: "visible", timeout: 10000 });
+      await signOutBtn.click();
+
+      // Confirmation dialog should appear.
+      const alertDialog = page.locator('[role="alertdialog"]');
+      await expect(alertDialog).toBeVisible({ timeout: 10000 });
+      const confirmBtn = alertDialog.getByRole("button", { name: "Sign Out" });
+      await expect(confirmBtn).toBeVisible();
+
+      // Screenshot proving the confirm dialog renders above the sidebar sheet.
+      await page.screenshot({
+        path: "/Users/subhang/Desktop/app-testing-fix-screenshots/slide19a-signout-fixed.png",
+      });
+
+      // Real click — fails with an actionability timeout if the sheet (z-[75])
+      // still intercepts pointer events above the dialog (previously z-50).
+      await confirmBtn.click();
+      await page.waitForURL(/\/login/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/login/);
+    });
+  });
+
+  // ===========================================================================
+  // FIX VERIFICATION — Drag-and-drop thumbnail upload (slide 21)
+  //
+  // Bug: dragging a photo onto the Space editor's thumbnail dropzone did
+  // nothing ("not able to drag photos"). Root cause: a drop that missed the
+  // dropzone by even a pixel fell through to the browser's default
+  // navigate-to-file behavior. Fixed via a window-level dragover/drop
+  // preventDefault guard + dragenter/dragleave visual feedback.
+  // ===========================================================================
+  test.describe("FIX VERIFY: Space editor drag-and-drop thumbnail upload", () => {
+    const TINY_PNG_BASE64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+    async function openSpaceEditorSettingsTab(page: Page) {
+      await loginAndGoTo(page, "/spaces");
+      await page
+        .waitForSelector(".animate-pulse", { state: "detached", timeout: 15000 })
+        .catch(() => {});
+      const spaceCard = page.locator('a[href*="/spaces/"][href*="/edit"]').first();
+      await expect(spaceCard).toBeVisible({ timeout: 10000 });
+      await spaceCard.click();
+      await page.waitForURL(/\/spaces\/.+\/edit/, { timeout: 10000 });
+    }
+
+    async function makeSyntheticFileDataTransfer(page: Page) {
+      return page.evaluateHandle(async (base64) => {
+        const res = await fetch(`data:image/png;base64,${base64}`);
+        const blob = await res.blob();
+        const file = new File([blob], "drop-test.png", { type: "image/png" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        return dt;
+      }, TINY_PNG_BASE64);
+    }
+
+    test("dropzone shows drag-over visual feedback and accepts a dropped file", async ({
+      page,
+    }) => {
+      test.setTimeout(90000);
+      await openSpaceEditorSettingsTab(page);
+
+      const dropzone = page
+        .locator('button:has-text("Drop image here or click to browse")')
+        .first();
+      await expect(dropzone).toBeVisible({ timeout: 10000 });
+
+      const dataTransfer = await makeSyntheticFileDataTransfer(page);
+
+      await dropzone.dispatchEvent("dragenter", { dataTransfer });
+      // Visual feedback fix: dropzone text + styling change while dragging over.
+      await expect(page.locator('text="Drop to upload"')).toBeVisible({ timeout: 5000 });
+      await expect(dropzone).toHaveClass(/border-brand/);
+
+      await page.screenshot({
+        path: "/Users/subhang/Desktop/app-testing-fix-screenshots/slide21-dragdrop-fixed.png",
+      });
+
+      await dropzone.dispatchEvent("drop", { dataTransfer });
+
+      // Upload should succeed (toast) and the URL must NOT change — proving
+      // the drop was actually handled by the app, not the browser default.
+      const urlBeforeAndAfter = page.url();
+      await expect(page.locator("text=Thumbnail uploaded")).toBeVisible({ timeout: 20000 });
+      expect(page.url()).toBe(urlBeforeAndAfter);
+      await expect(page.locator('img[alt="Thumbnail preview"]')).toBeVisible({ timeout: 10000 });
+    });
+
+    test("an off-target drop on the page does not navigate away (window-level guard)", async ({
+      page,
+    }) => {
+      test.setTimeout(90000);
+      await openSpaceEditorSettingsTab(page);
+      const urlBefore = page.url();
+
+      const dataTransfer = await makeSyntheticFileDataTransfer(page);
+      // Drop somewhere on the page that is NOT the dropzone — this is exactly
+      // the scenario that used to make the whole tab navigate to the raw file.
+      await page.locator("body").dispatchEvent("dragover", { dataTransfer });
+      await page.locator("body").dispatchEvent("drop", { dataTransfer });
+      await page.waitForTimeout(1000);
+
+      expect(page.url()).toBe(urlBefore);
+      await expect(page.locator('h1, [role="tab"]:has-text("Settings")').first()).toBeVisible();
+    });
+  });
+
+  // ===========================================================================
+  // FIX VERIFICATION — Add Question / Add Material in Space editor (slide 22)
+  //
+  // Bug: "not able to add questions and materials" in the Space editor's
+  // story-point content list. Verifies handleAddItem() actually creates the
+  // item server-side (saveItem) and opens the item editor — not just that
+  // the buttons render.
+  // ===========================================================================
+  test.describe("FIX VERIFY: Add Question and Add Material in Space editor", () => {
+    async function openContentTabWithStoryPoint(page: Page) {
+      await loginAndGoTo(page, "/spaces");
+      await page
+        .waitForSelector(".animate-pulse", { state: "detached", timeout: 15000 })
+        .catch(() => {});
+      const spaceCard = page.locator('a[href*="/spaces/"][href*="/edit"]').first();
+      await expect(spaceCard).toBeVisible({ timeout: 10000 });
+      await spaceCard.click();
+      await page.waitForURL(/\/spaces\/.+\/edit/, { timeout: 10000 });
+
+      const contentTab = page
+        .locator('button:has-text("Content"), [role="tab"]:has-text("Content")')
+        .first();
+      await contentTab.click();
+      await page.waitForTimeout(500);
+
+      let toggle = page.locator('button[aria-label="Toggle details"]').first();
+      if (!(await toggle.isVisible({ timeout: 3000 }).catch(() => false))) {
+        await page.click('button:has-text("Add Story Point")');
+        await page.waitForTimeout(2000);
+        toggle = page.locator('button[aria-label="Toggle details"]').first();
+      }
+      await expect(toggle).toBeVisible({ timeout: 10000 });
+      await toggle.click();
+      await page.waitForTimeout(500);
+    }
+
+    test("Add Question creates an item and opens the editor", async ({ page }) => {
+      test.setTimeout(90000);
+      await openContentTabWithStoryPoint(page);
+
+      const addQuestionBtn = page.locator('button:has-text("Add Question")').first();
+      await expect(addQuestionBtn).toBeVisible({ timeout: 10000 });
+      await addQuestionBtn.click();
+
+      // handleAddItem always opens the "Edit Item" sheet on success.
+      await expect(page.locator("text=Edit Item")).toBeVisible({ timeout: 15000 });
+
+      await page.screenshot({
+        path: "/Users/subhang/Desktop/app-testing-fix-screenshots/slide22-add-questions-materials.png",
+      });
+    });
+
+    test("Add Material creates an item and opens the editor", async ({ page }) => {
+      test.setTimeout(90000);
+      await openContentTabWithStoryPoint(page);
+
+      const addMaterialBtn = page.locator('button:has-text("Add Material")').first();
+      await expect(addMaterialBtn).toBeVisible({ timeout: 10000 });
+      await addMaterialBtn.click();
+
+      await expect(page.locator("text=Edit Item")).toBeVisible({ timeout: 15000 });
+    });
+  });
 });

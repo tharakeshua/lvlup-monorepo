@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useTenantStore } from "@levelup/shared-stores";
 import {
@@ -52,6 +53,13 @@ export default function AppLayout() {
 
   // Apply tenant branding (colors + CSS custom properties)
   useTenantBranding();
+
+  // Reset scroll to top on route change — without this, navigating back to a
+  // list (e.g. Exams) keeps the browser's prior scroll offset, landing the
+  // user mid-list instead of at the top.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const notifQuery = useNotifications();
   const notifData = notifQuery.data as { items?: unknown[] } | undefined;

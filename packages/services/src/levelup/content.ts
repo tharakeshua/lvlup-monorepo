@@ -303,27 +303,48 @@ function asOptions(raw: unknown): Array<{ id: string; text: string; imageUrl?: s
   });
 }
 
+/** Stable, order-insensitive string hash (djb2) for content-derived shuffling. */
+function hashText(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i += 1) h = (h * 33) ^ s.charCodeAt(i);
+  return h >>> 0;
+}
+
 /**
- * After answer-key stripping, matching pairs may omit `right` (it lives only in
- * AnswerKey). The learner ItemView schema still requires both columns, so emit
- * an empty right placeholder — same as `buildQuestionData("matching")`.
+ * After answer-key stripping, matching pairs omit their `right` value (it lives
+ * only in AnswerKey), which would leave the learner with no match targets to
+ * pick from. We therefore:
+ *  - blank each pair's `right` so the POSITIONAL left→right mapping is never
+ *    leaked (the correct pairing stays server-only), and
+ *  - emit a de-duplicated `options` pool of the right-side texts in a stable,
+ *    content-derived order (NOT pair order) so the option set is visible and
+ *    answerable without revealing which left each belongs to.
  */
-function sanitizeLearnerQuestionData(qd: Doc): Doc {
+function sanitizeLearnerQuestionData(qd: Doc, source?: Doc): Doc {
   if (qd["questionType"] !== "matching" || !Array.isArray(qd["pairs"])) return qd;
+  const pairs = qd["pairs"] as Doc[];
+  // The right-side texts are the answer targets the learner picks from. They are
+  // stripped from `qd` by `stripAnswerFields` (which runs first), so read them
+  // from the pre-strip `source` payload when available.
+  const rightSource = Array.isArray(source?.["pairs"]) ? (source!["pairs"] as Doc[]) : pairs;
+  const rights = rightSource.map((p) => String(p["right"] ?? "")).filter((t) => t.length > 0);
+  const options = [...new Set(rights)].sort((a, b) => hashText(a) - hashText(b));
   return {
     ...qd,
-    pairs: (qd["pairs"] as Doc[]).map((pair) => ({
+    pairs: pairs.map((pair) => ({
       left: String(pair["left"] ?? ""),
       // Correct mappings live only in AnswerKey — never emit them on learner reads.
       right: "",
     })),
+    ...(options.length > 0 ? { options } : {}),
   };
 }
 
 /** Seed/legacy flat payload: `questionType` at payload root without `payload.type`. */
 function buildQuestionPayloadFromFlat(
   p: Doc,
-  item: Doc
+  item: Doc,
+  origQd?: Doc
 ): { type: string; payload: Doc; content?: string } {
   const qt = QUESTION_TYPE_MAP[String(p["questionType"] ?? "")] ?? "text";
   const basePoints =
@@ -339,7 +360,10 @@ function buildQuestionPayloadFromFlat(
       ...(p["questionData"] as Doc),
       questionType: (p["questionData"] as Doc)["questionType"] ?? qt,
     }) as Doc;
-    questionData = sanitizeLearnerQuestionData({ ...raw, questionType: qt });
+    questionData = sanitizeLearnerQuestionData(
+      { ...raw, questionType: qt },
+      origQd ?? (p["questionData"] as Doc)
+    );
   } else {
     questionData = buildQuestionData(qt, p);
   }
@@ -510,9 +534,13 @@ function buildMaterialData(mt: string, legacy: Doc): Doc {
  */
 function normalizeItemPayload(
   payload: Doc | undefined,
-  item: Doc
+  item: Doc,
+  origPayload?: Doc
 ): { type: string; payload: Doc; title?: string; content?: string } {
   const p = (payload ?? {}) as Doc;
+  const origQd = isDoc(origPayload?.["questionData"])
+    ? (origPayload!["questionData"] as Doc)
+    : undefined;
   const kind = typeof p["kind"] === "string" ? (p["kind"] as string) : undefined;
 
   if (kind === "question") {
@@ -555,14 +583,17 @@ function normalizeItemPayload(
     const stripped = stripAnswerFields(p) as Doc;
     const questionData = stripped["questionData"];
     if (questionData && typeof questionData === "object" && !Array.isArray(questionData)) {
-      stripped["questionData"] = sanitizeLearnerQuestionData(questionData as Doc);
+      stripped["questionData"] = sanitizeLearnerQuestionData(
+        questionData as Doc,
+        origQd ?? (p["questionData"] as Doc)
+      );
     }
     return { type: String(item["type"] ?? p["type"]), payload: stripped };
   }
   // Seed-style flat payloads: top-level `questionType` / `materialType` without `payload.type`.
   const itemType = String(item["type"] ?? "");
   if (itemType === "question" || typeof p["questionType"] === "string") {
-    return buildQuestionPayloadFromFlat(p, item);
+    return buildQuestionPayloadFromFlat(p, item, origQd);
   }
   if (itemType === "material" || typeof p["materialType"] === "string") {
     return buildMaterialPayloadFromFlat(p, item);
@@ -881,6 +912,23 @@ export function extractAnswerKey(data: Doc): Doc | null {
     });
   }
   if (ak && typeof ak === "object") return { ...(ak as Doc) };
+  // Matching keys are structural: the correct answer is the per-pair left→right
+  // mapping, so the flat by-name collector below (which would overwrite a single
+  // scalar `right`) cannot capture them. Preserve the full `pairs` list here.
+  const qd = questionDataFromSave(data);
+  const storedQd = questionDataFromItem(isDoc(data["item"]) ? (data["item"] as Doc) : null);
+  const matchingQd =
+    qd["questionType"] === "matching" && Array.isArray(qd["pairs"])
+      ? qd
+      : storedQd["questionType"] === "matching" && Array.isArray(storedQd["pairs"])
+        ? storedQd
+        : null;
+  if (matchingQd) {
+    const pairs = (matchingQd["pairs"] as Doc[])
+      .map((p) => ({ left: String(p["left"] ?? ""), right: String(p["right"] ?? "") }))
+      .filter((p) => p.left.length > 0 && p.right.length > 0);
+    if (pairs.length > 0) return { questionType: "matching", pairs };
+  }
   // Some payloads inline the answer fields rather than nesting under `answerKey`,
   // and the two-level item payload nests them DEEP (e.g.
   // `data.payload.questionData.modelAnswer`). Deep-collect every answer-bearing
@@ -1489,7 +1537,10 @@ function projectAttachments(v: unknown): Doc[] | undefined {
  */
 function projectItem(item: Doc, authoring: boolean): Doc {
   const s = stripContentAnswerFields(item) as Doc;
-  const norm = normalizeItemPayload(s["payload"] as Doc | undefined, s);
+  // `stripContentAnswerFields` blanks matching `right` values (the answer), so
+  // pass the ORIGINAL payload as the source the learner option pool is built from.
+  const origPayload = isDoc(item["payload"]) ? (item["payload"] as Doc) : undefined;
+  const norm = normalizeItemPayload(s["payload"] as Doc | undefined, s, origPayload);
   const rubricIn = s["rubric"] ?? s["effectiveRubric"];
   const meta = pickDefined(s["meta"], ITEM_META_KEYS);
   // An evaluator override is an authoring/runtime configuration reference, not

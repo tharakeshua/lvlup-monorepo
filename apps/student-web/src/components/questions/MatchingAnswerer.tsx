@@ -4,67 +4,60 @@ import type { MatchingData } from "@levelup/shared-types";
 interface MatchingAnswererProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: MatchingData | any;
+  /** Learner selection keyed by LEFT text → chosen RIGHT text. */
   value?: Record<string, string>;
   onChange: (value: Record<string, string>) => void;
   disabled?: boolean;
 }
 
-interface NormalizedItem {
-  id: string;
-  text: string;
-}
-
 /**
- * Normalizes both data formats into a common {leftItems, rightOptions} shape.
- * Supports:
- *  - Standard MatchingData: { pairs: [{id, left, right}] }
- *  - Legacy seed format:    { leftItems: [{id, text}], rightItems: [{id, text}], correctPairs: [...] }
- * Also assigns fallback IDs if any items are missing them.
+ * Normalizes the various stored/projected shapes into `{ leftItems, options }`:
+ *  - Learner read:  { pairs: [{left, right:""}], options: [rightText, …] }  ← the
+ *    server-projected pool of right-side targets (positional pairing stripped).
+ *  - Authoring/full: { pairs: [{left, right}] }  → options derived from `right`.
+ *  - Legacy seed:    { leftItems:[{text}], rightItems:[{text}] }.
+ *
+ * Left items are keyed by their TEXT (the grader keys the answer by left→right
+ * text), so the learner value is `Record<leftText, rightText>`.
  */
 function normalizeMatchingData(data: unknown): {
-  leftItems: NormalizedItem[];
-  rightOptions: NormalizedItem[];
+  leftItems: string[];
+  options: string[];
 } {
-  if (!data || typeof data !== "object") return { leftItems: [], rightOptions: [] };
+  if (!data || typeof data !== "object") return { leftItems: [], options: [] };
   const d = data as Record<string, unknown>;
 
-  let leftItems: NormalizedItem[] = [];
-  let rightOptions: NormalizedItem[] = [];
+  let leftItems: string[] = [];
+  let options: string[] = [];
 
-  // Standard pairs format
   if (Array.isArray(d.pairs) && d.pairs.length > 0) {
-    leftItems = d.pairs.map((p: Record<string, unknown>, idx: number) => ({
-      id: (p.id as string) || `left_${idx}`,
-      text: (p.left as string) || "",
-    }));
-    rightOptions = d.pairs.map((p: Record<string, unknown>, idx: number) => ({
-      id: (p.id as string) || `right_${idx}`,
-      text: (p.right as string) || "",
-    }));
-  }
-  // Legacy leftItems/rightItems format
-  else if (Array.isArray(d.leftItems) && Array.isArray(d.rightItems)) {
-    leftItems = (d.leftItems as Record<string, unknown>[]).map((li, idx) => ({
-      id: (li.id as string) || `left_${idx}`,
-      text: (li.text as string) || "",
-    }));
-    rightOptions = (d.rightItems as Record<string, unknown>[]).map((ri, idx) => ({
-      id: (ri.id as string) || `right_${idx}`,
-      text: (ri.text as string) || "",
-    }));
+    leftItems = (d.pairs as Record<string, unknown>[])
+      .map((p) => String(p.left ?? ""))
+      .filter((t) => t.length > 0);
+  } else if (Array.isArray(d.leftItems)) {
+    leftItems = (d.leftItems as Record<string, unknown>[])
+      .map((li) => String(li.text ?? li.left ?? ""))
+      .filter((t) => t.length > 0);
   }
 
-  // Ensure left item IDs are unique — if duplicates exist, append index
-  const seenIds = new Set<string>();
-  leftItems = leftItems.map((item, idx) => {
-    if (seenIds.has(item.id)) {
-      return { ...item, id: `${item.id}_${idx}` };
-    }
-    seenIds.add(item.id);
-    return item;
-  });
+  // Prefer the server-projected `options` pool; fall back to the pairs' `right`
+  // texts (authoring/preview) or a legacy `rightItems` list.
+  if (Array.isArray(d.options) && d.options.length > 0) {
+    options = (d.options as unknown[]).map((o) => String(o)).filter((t) => t.length > 0);
+  } else if (Array.isArray(d.pairs)) {
+    options = (d.pairs as Record<string, unknown>[])
+      .map((p) => String(p.right ?? ""))
+      .filter((t) => t.length > 0);
+  } else if (Array.isArray(d.rightItems)) {
+    options = (d.rightItems as Record<string, unknown>[])
+      .map((ri) => String(ri.text ?? ri.right ?? ""))
+      .filter((t) => t.length > 0);
+  }
 
-  return { leftItems, rightOptions };
+  // De-duplicate the option pool while preserving order.
+  options = [...new Set(options)];
+
+  return { leftItems, options };
 }
 
 export default function MatchingAnswerer({
@@ -73,33 +66,18 @@ export default function MatchingAnswerer({
   onChange,
   disabled,
 }: MatchingAnswererProps) {
-  const { leftItems, rightOptions } = useMemo(() => normalizeMatchingData(data), [data]);
+  const { leftItems, options } = useMemo(() => normalizeMatchingData(data), [data]);
 
-  // Debug log — remove after confirming fix
-  console.log("[MatchingAnswerer] data:", JSON.stringify(data));
-  console.log(
-    "[MatchingAnswerer] leftItems:",
-    leftItems,
-    "rightOptions:",
-    rightOptions,
-    "value:",
-    value
-  );
+  const usedRights = new Set(Object.values(value));
 
-  const usedRightIds = new Set(Object.values(value));
-
-  const handleChange = (leftId: string, rightId: string) => {
+  const handleChange = (leftText: string, rightText: string) => {
     const next = { ...value };
-    if (rightId) {
-      next[leftId] = rightId;
-    } else {
-      delete next[leftId];
-    }
-    console.log("[MatchingAnswerer] handleChange:", leftId, rightId, "→ next:", next);
+    if (rightText) next[leftText] = rightText;
+    else delete next[leftText];
     onChange(next);
   };
 
-  if (leftItems.length === 0) {
+  if (leftItems.length === 0 || options.length === 0) {
     return <p className="text-muted-foreground text-sm">No matching pairs configured.</p>;
   }
 
@@ -109,23 +87,23 @@ export default function MatchingAnswerer({
         Match each item on the left with its pair on the right.
       </p>
       {leftItems.map((left, idx) => (
-        <div key={`${left.id}-${idx}`} className="flex items-center gap-3">
-          <div className="bg-muted/50 flex-1 rounded border p-2 text-sm">{left.text}</div>
+        <div key={`${left}-${idx}`} className="flex items-center gap-3">
+          <div className="bg-muted/50 flex-1 rounded border p-2 text-sm">{left}</div>
           <span className="text-muted-foreground">→</span>
           <select
-            value={value[left.id] ?? ""}
-            onChange={(e) => handleChange(left.id, e.target.value)}
+            value={value[left] ?? ""}
+            onChange={(e) => handleChange(left, e.target.value)}
             disabled={disabled}
             className="border-input bg-background focus-visible:ring-ring flex-1 rounded border p-2 text-sm focus:outline-none focus-visible:ring-2 disabled:opacity-60"
           >
             <option value="">Select match...</option>
-            {rightOptions.map((opt, optIdx) => (
+            {options.map((opt, optIdx) => (
               <option
-                key={`${opt.id}-${optIdx}`}
-                value={opt.id}
-                disabled={usedRightIds.has(opt.id) && value[left.id] !== opt.id}
+                key={`${opt}-${optIdx}`}
+                value={opt}
+                disabled={usedRights.has(opt) && value[left] !== opt}
               >
-                {opt.text}
+                {opt}
               </option>
             ))}
           </select>

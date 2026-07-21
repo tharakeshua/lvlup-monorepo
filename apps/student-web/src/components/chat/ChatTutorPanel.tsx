@@ -68,7 +68,17 @@ export default function ChatTutorPanel({
   }
 
   return (
-    <div className="bg-background fixed bottom-0 right-0 z-50 flex h-[500px] max-h-[70vh] w-96 max-w-[calc(100vw-1rem)] flex-col rounded-t-xl border border-b-0 shadow-xl sm:bottom-4 sm:right-4 sm:rounded-xl sm:border-b">
+    <>
+      {/* Backdrop — dims the underlying question so it doesn't bleed through
+          behind the panel; the panel is a fixed-position overlay, not part of
+          the page flow, so without this the question text stays fully visible
+          and interactive around/behind it. */}
+      <div
+        className="fixed inset-0 z-40 bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="bg-background fixed bottom-0 right-0 z-50 flex h-[500px] max-h-[70vh] w-96 max-w-[calc(100vw-1rem)] flex-col rounded-t-xl border border-b-0 shadow-xl sm:bottom-4 sm:right-4 sm:rounded-xl sm:border-b">
       {/* Header */}
       <div className="flex flex-shrink-0 items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -232,6 +242,7 @@ export default function ChatTutorPanel({
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -8,6 +8,8 @@ import {
   useQuestionSubmissions,
   useGradeManual,
   useAiGradeQuestion,
+  useStudents,
+  useClasses,
 } from "@levelup/query";
 import { useAuthSession } from "../../sdk/session";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
@@ -100,6 +102,29 @@ export default function GradingReviewPage() {
     [allSubmissionsData]
   );
 
+  // Roster for name / class resolution (FIX 3)
+  const { data: allStudentsData } = useStudents();
+  const { data: allClassesDataGrading } = useClasses();
+
+  const studentMap = useMemo(() => {
+    const map = new Map<
+      string,
+      { id: string; rollNumber?: string; firstName?: string; lastName?: string }
+    >();
+    const arr = asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
+      allStudentsData
+    );
+    for (const s of arr) map.set(s.id, s);
+    return map;
+  }, [allStudentsData]);
+
+  const classMapGrading = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    const arr = asArray<{ id: string; name: string }>(allClassesDataGrading);
+    for (const c of arr) map.set(c.id, c);
+    return map;
+  }, [allClassesDataGrading]);
+
   // Reads via @levelup/query (claims-scoped). Local state is seeded from these so
   // the existing optimistic-update + bulk-approve flows keep working.
   const {
@@ -130,6 +155,25 @@ export default function GradingReviewPage() {
   const [gradingQuestionId, setGradingQuestionId] = useState<string | null>(null);
   const [gradeError, setGradeError] = useState<string | null>(null);
   const [imageUrlMap, setImageUrlMap] = useState<Record<string, string>>({});
+
+  // FIX 3: resolved display name and class name for the current submission.
+  const resolvedStudentName = useMemo(() => {
+    if (!submission) return "";
+    const subName = submission.studentName?.trim();
+    if (subName) return subName;
+    const rec = studentMap.get(submission.studentId);
+    if (rec) {
+      const full = `${rec.firstName ?? ""} ${rec.lastName ?? ""}`.trim();
+      if (full) return full;
+      if (rec.rollNumber) return rec.rollNumber;
+    }
+    return submission.rollNumber || submission.studentId;
+  }, [submission, studentMap]);
+
+  const resolvedClassName = useMemo(() => {
+    if (!submission?.classId) return null;
+    return classMapGrading.get(submission.classId)?.name ?? null;
+  }, [submission, classMapGrading]);
 
   // Next/prev navigation
   const currentIdx = allSubmissions.findIndex((s) => s.id === submissionId);
@@ -384,6 +428,11 @@ export default function GradingReviewPage() {
       return true;
     })
     .sort((a, b) => {
+      // FIX 1: "all" filter → pure ascending question number order.
+      // Filtered views keep priority sort but use q.order as tiebreaker.
+      if (reviewFilter === "all") {
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
       const qsA = questionSubs.find((s) => s.questionId === a.id);
       const qsB = questionSubs.find((s) => s.questionId === b.id);
       // Needs review first
@@ -401,7 +450,9 @@ export default function GradingReviewPage() {
       // Then by confidence (low first)
       const confA = qsA?.evaluation?.confidence ?? 1;
       const confB = qsB?.evaluation?.confidence ?? 1;
-      return confA - confB;
+      if (confA !== confB) return confA - confB;
+      // Tiebreaker: question number ascending
+      return (a.order ?? 0) - (b.order ?? 0);
     });
 
   // Count questions needing review
@@ -527,7 +578,7 @@ export default function GradingReviewPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{submission.studentName ?? "Review"}</BreadcrumbPage>
+            <BreadcrumbPage>{resolvedStudentName || "Review"}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -545,10 +596,12 @@ export default function GradingReviewPage() {
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="font-display truncate text-xl font-semibold">
-              Grading Review — {submission.studentName}
+              Grading Review — {resolvedStudentName}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Roll: {submission.rollNumber} &middot; Pipeline:{" "}
+              Roll: {submission.rollNumber}
+              {resolvedClassName && <> &middot; Class: {resolvedClassName}</>}
+              {" "}&middot; Pipeline:{" "}
               {submission.pipelineStatus.replace(/_/g, " ")}
             </p>
           </div>
@@ -656,7 +709,7 @@ export default function GradingReviewPage() {
           <div className="flex-1">
             <p className="text-fg text-sm font-semibold">Outstanding Performance!</p>
             <p className="text-fg-secondary text-xs">
-              {submission.studentName} scored {Math.round(submission.summary.percentage)}% —{" "}
+              {resolvedStudentName} scored {Math.round(submission.summary.percentage)}% —{" "}
               {submission.summary.grade} grade
             </p>
           </div>
@@ -844,8 +897,8 @@ export default function GradingReviewPage() {
 
                   {/* Side-by-side layout: Answer image on left, AI evaluation on right (Task 4.2) */}
                   <div className="grid gap-4 lg:grid-cols-2">
-                    {/* LEFT: Student Answer Images */}
-                    <div className="space-y-3">
+                    {/* LEFT: Student Answer Images — min-w-0 prevents grid blowout (FIX 2) */}
+                    <div className="min-w-0 space-y-3">
                       {qs?.mapping?.imageUrls && qs.mapping.imageUrls.length > 0 ? (
                         <div>
                           <div className="mb-2 flex items-center justify-between">
@@ -861,14 +914,15 @@ export default function GradingReviewPage() {
                               </span>
                             ) : null}
                           </div>
-                          <div className="space-y-2">
+                          {/* FIX 2: horizontal scrollable strip — images are fixed-height thumbnails */}
+                          <div className="flex gap-2 overflow-x-auto pb-2">
                             {qs.mapping.imageUrls.map((path, idx) => {
                               const url = resolveImage(path);
                               if (url === null) {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex h-48 w-full items-center justify-center rounded border"
+                                    className="bg-muted/40 flex h-48 w-36 shrink-0 items-center justify-center rounded border"
                                   >
                                     <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                                   </div>
@@ -878,7 +932,7 @@ export default function GradingReviewPage() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex w-full flex-col items-center gap-2 rounded border border-dashed p-6 text-center"
+                                    className="bg-muted/40 flex h-48 w-36 shrink-0 flex-col items-center justify-center gap-2 rounded border border-dashed p-3 text-center"
                                   >
                                     <ImageOff className="text-muted-foreground h-5 w-5" />
                                     <p className="text-muted-foreground break-all text-[10px]">
@@ -894,7 +948,7 @@ export default function GradingReviewPage() {
                                   alt={`Answer page ${idx + 1}`}
                                   loading="lazy"
                                   decoding="async"
-                                  className="hover:ring-primary w-full cursor-pointer rounded border object-contain hover:ring-2"
+                                  className="hover:ring-primary h-48 w-auto max-w-none shrink-0 cursor-pointer rounded border object-contain hover:ring-2"
                                   onClick={() => setLightboxUrl(url)}
                                 />
                               );

@@ -29,8 +29,13 @@ const AssignmentTrackerPage = lazy(() => import("./pages/AssignmentTrackerPage")
 const StudentReportPage = lazy(() => import("./pages/StudentReportPage"));
 const ClassTestAnalyticsPage = lazy(() => import("./pages/ClassTestAnalyticsPage"));
 const RubricPresetsPage = lazy(() => import("./pages/RubricPresetsPage"));
+const AISettingsPage = lazy(() => import("./pages/AISettingsPage"));
 const TestPreviewPage = lazy(() => import("./pages/TestPreviewPage"));
 const BatchGradingPage = lazy(() => import("./pages/BatchGradingPage"));
+const ExamLeaderboardPage = lazy(() => import("./pages/exams/ExamLeaderboardPage"));
+const SpaceLeaderboardPage = lazy(() => import("./pages/SpaceLeaderboardPage"));
+const ParentsPage = lazy(() => import("./pages/ParentsPage"));
+const StudentAnalyticsPage = lazy(() => import("./pages/StudentAnalyticsPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 export default function App() {
@@ -94,6 +99,14 @@ export default function App() {
                 </RouteErrorBoundary>
               }
             />
+            <Route
+              path="/ai-settings"
+              element={
+                <RouteErrorBoundary>
+                  <AISettingsPage />
+                </RouteErrorBoundary>
+              }
+            />
             {/* Exams */}
             <Route
               path="/exams"
@@ -132,6 +145,14 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <GradingReviewPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/exams/:examId/leaderboard"
+              element={
+                <RouteErrorBoundary>
+                  <ExamLeaderboardPage />
                 </RouteErrorBoundary>
               }
             />
@@ -185,6 +206,22 @@ export default function App() {
                 </RouteErrorBoundary>
               }
             />
+            <Route
+              path="/analytics/students"
+              element={
+                <RouteErrorBoundary>
+                  <StudentAnalyticsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/leaderboards/spaces"
+              element={
+                <RouteErrorBoundary>
+                  <SpaceLeaderboardPage />
+                </RouteErrorBoundary>
+              }
+            />
             {/* Assignments */}
             <Route
               path="/assignments"
@@ -200,6 +237,15 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <BatchGradingPage />
+                </RouteErrorBoundary>
+              }
+            />
+            {/* Parents */}
+            <Route
+              path="/parents"
+              element={
+                <RouteErrorBoundary>
+                  <ParentsPage />
                 </RouteErrorBoundary>
               }
             />
