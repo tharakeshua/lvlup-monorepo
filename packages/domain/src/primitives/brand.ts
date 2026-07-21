@@ -90,6 +90,9 @@ export const asTeacherId = (id: string): TeacherId => id as TeacherId;
 export const asParentId = (id: string): ParentId => id as ParentId;
 export const asSpaceId = (id: string): SpaceId => id as SpaceId;
 export const asStoryPointId = (id: string): StoryPointId => id as StoryPointId;
+/** Product term alias — IDs are unchanged in Firestore/API. */
+export type ModuleId = StoryPointId;
+export const asModuleId = asStoryPointId;
 export const asItemId = (id: string): ItemId => id as ItemId;
 export const asExamId = (id: string): ExamId => id as ExamId;
 export const asSubmissionId = (id: string): SubmissionId => id as SubmissionId;

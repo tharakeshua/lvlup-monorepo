@@ -87,3 +87,8 @@ export const StoryPointSchema = zObject({
   archivedAt: zTimestamp.nullable(),
 });
 export type StoryPoint = z.infer<typeof StoryPointSchema>;
+
+/** Product term — user-facing "Module"; storage/API fields remain `storyPoint*`. */
+export type Module = StoryPoint;
+export type ModuleSection = StoryPointSection;
+export type ModuleStats = StoryPointStats;
