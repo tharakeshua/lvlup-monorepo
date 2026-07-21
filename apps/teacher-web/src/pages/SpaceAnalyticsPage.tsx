@@ -24,6 +24,8 @@ import {
 } from "@levelup/shared-ui";
 import type { Space } from "@levelup/shared-types";
 
+// TODO(#teacher-space-leaderboard): add space-wide points leaderboard (top earners, streaks) to this analytics view
+
 type StudentRow = GetSpaceAnalyticsResponse["students"][number];
 
 const formatDuration = (seconds: number): string => {

@@ -434,6 +434,8 @@ describe("LVL-1 — levelup reads emit contract-canonical views (legacy + canoni
       const session = started["session"] as Doc;
       expect(session["sessionType"]).toBe("timed_test");
       expect(session["serverDeadline"]).not.toBeNull();
+      expect(typeof session["serverDeadline"]).toBe("string");
+      expect(session["serverDeadline"]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
 
       const submitted = (await submitTestSessionService(
         { sessionId: session["id"] as string } as never,
@@ -448,6 +450,33 @@ describe("LVL-1 — levelup reads emit contract-canonical views (legacy + canoni
         student
       )) as unknown as Doc;
       expect(parseAs("v1.levelup.submitTestSession", resubmitted).success).toBe(true);
+    });
+
+    it("startTestSession reads durationMinutes from assessmentConfig", async () => {
+      const { student, tenantId } = seedSessionWorld();
+      await student.repos.storyPoints.upsert(tenantId, {
+        id: "sp_cfg_timed",
+        spaceId: "space_1",
+        title: "Configured Timed",
+        orderIndex: 0,
+        type: "timed_test",
+        assessmentConfig: { durationMinutes: 45 },
+      });
+      await student.repos.items.upsert(tenantId, {
+        id: "item_cfg_q1",
+        spaceId: "space_1",
+        storyPointId: "sp_cfg_timed",
+        orderIndex: 0,
+        payload: { kind: "question", questionType: "short_answer", prompt: "Q1" },
+      });
+
+      const started = (await startTestSessionService(
+        { spaceId: "space_1", storyPointId: "sp_cfg_timed" } as never,
+        student
+      )) as unknown as Doc;
+      const session = started["session"] as Doc;
+      expect(session["durationMinutes"]).toBe(45);
+      expect(session["sessionType"]).toBe("timed_test");
     });
   });
 

@@ -12,6 +12,7 @@ import {
   useSaveAnswer,
 } from "../hooks/useTestSession";
 import { spacesListHref, spaceHref, testAnalyticsHref } from "../lib/space-paths";
+import { assessmentScheduleBounds, timestampInputToMillis } from "../lib/timestamp";
 import { QuestionAnswerer } from "../components/questions";
 import QuestionNavigator from "../components/test/QuestionNavigator";
 import CountdownTimer from "../components/test/CountdownTimer";
@@ -526,14 +527,10 @@ export default function TimedTestPage() {
         : null;
 
     // Schedule checks
-    const schedule = storyPoint?.assessmentConfig?.schedule;
+    const { startMs: scheduleStartMs, endMs: scheduleEndMs } = assessmentScheduleBounds(
+      storyPoint?.assessmentConfig?.schedule as Parameters<typeof assessmentScheduleBounds>[0]
+    );
     const now = Date.now();
-    const scheduleStartMs = schedule?.startAt
-      ? (schedule.startAt as unknown as { seconds: number }).seconds * 1000
-      : null;
-    const scheduleEndMs = schedule?.endAt
-      ? (schedule.endAt as unknown as { seconds: number }).seconds * 1000
-      : null;
     const isBeforeSchedule = scheduleStartMs ? now < scheduleStartMs : false;
     const isAfterSchedule = scheduleEndMs ? now > scheduleEndMs : false;
 
@@ -546,15 +543,15 @@ export default function TimedTestPage() {
     const lastSession =
       completedSessions.length > 0
         ? completedSessions.reduce((latest, s) => {
-            const latestEnd = (latest.endedAt as unknown as { seconds: number })?.seconds ?? 0;
-            const sEnd = (s.endedAt as unknown as { seconds: number })?.seconds ?? 0;
+            const latestEnd = timestampInputToMillis(latest.endedAt) ?? 0;
+            const sEnd = timestampInputToMillis(s.endedAt) ?? 0;
             return sEnd > latestEnd ? s : latest;
           })
         : null;
+    const lastEndedMs = timestampInputToMillis(lastSession?.endedAt);
     const cooldownEndMs =
-      retryConfig?.cooldownMinutes && lastSession?.endedAt
-        ? (lastSession.endedAt as unknown as { seconds: number }).seconds * 1000 +
-          retryConfig.cooldownMinutes * 60 * 1000
+      retryConfig?.cooldownMinutes && lastEndedMs != null
+        ? lastEndedMs + retryConfig.cooldownMinutes * 60 * 1000
         : null;
     const isInCooldown = cooldownEndMs ? now < cooldownEndMs : false;
     const cooldownMinutesLeft =
@@ -759,7 +756,9 @@ export default function TimedTestPage() {
                       </p>
                       <p className="text-muted-foreground text-xs">
                         {session.endedAt
-                          ? new Date(session.endedAt.seconds * 1000).toLocaleDateString()
+                          ? new Date(
+                              timestampInputToMillis(session.endedAt) ?? Date.now()
+                            ).toLocaleDateString()
                           : "--"}
                       </p>
                     </div>
@@ -786,9 +785,7 @@ export default function TimedTestPage() {
 
   // TEST VIEW
   if (view === "test" && activeSession) {
-    const deadline = activeSession.serverDeadline
-      ? activeSession.serverDeadline.seconds * 1000
-      : null;
+    const deadline = timestampInputToMillis(activeSession.serverDeadline);
 
     if (!deadline) {
       return (

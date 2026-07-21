@@ -998,6 +998,7 @@ export default function ExamDetailPage() {
         </TabsContent>
 
         {/* Submissions Tab (quick view) */}
+        {/* TODO(#teacher-exam-leaderboard): add ranked leaderboard (top performers, class averages) beside submission list */}
         <TabsContent value="submissions" className="mt-4">
           <div className="space-y-3">
             {submissions.length === 0 ? (

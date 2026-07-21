@@ -139,7 +139,12 @@ export default function SubmissionsPage() {
     () => allClasses.filter((c) => exam?.classIds?.includes(c.id)),
     [allClasses, exam?.classIds]
   );
+  const classNameById = useMemo(
+    () => Object.fromEntries(allClasses.map((c) => [c.id, c.name])),
+    [allClasses]
+  );
   const { data: studentsData } = useStudents(classId ? { classId } : undefined);
+  const { data: allStudentsData } = useStudents();
   const students = useMemo(
     () =>
       asArray<{ id: string; rollNumber?: string; firstName?: string; lastName?: string }>(
@@ -147,6 +152,40 @@ export default function SubmissionsPage() {
       ),
     [studentsData]
   );
+  const allStudents = useMemo(
+    () =>
+      asArray<{
+        id: string;
+        rollNumber?: string;
+        firstName?: string;
+        lastName?: string;
+        displayName?: string;
+        admissionNumber?: string;
+      }>(allStudentsData),
+    [allStudentsData]
+  );
+  const studentById = useMemo(
+    () => Object.fromEntries(allStudents.map((s) => [s.id, s])),
+    [allStudents]
+  );
+
+  const getSubmissionStudentLabel = (sub: Submission) => {
+    const student = studentById[sub.studentId];
+    return (
+      sub.studentName ||
+      student?.displayName ||
+      `${student?.firstName ?? ""} ${student?.lastName ?? ""}`.trim() ||
+      sub.studentId
+    );
+  };
+
+  const getSubmissionDetails = (sub: Submission) => {
+    const student = studentById[sub.studentId];
+    const classLabel = sub.classId ? (classNameById[sub.classId] ?? sub.classId) : "—";
+    const roll = sub.rollNumber || student?.rollNumber || "—";
+    const admission = student?.admissionNumber;
+    return { classLabel, roll, admission };
+  };
 
   // Reset student selection when class changes.
   useEffect(() => {
@@ -661,6 +700,8 @@ export default function SubmissionsPage() {
           submissions.map((sub: Submission) => {
             const StatusIcon = PIPELINE_ICONS[sub.pipelineStatus] ?? Clock;
             const statusColor = PIPELINE_COLORS[sub.pipelineStatus] ?? "text-fg-muted";
+            const studentLabel = getSubmissionStudentLabel(sub);
+            const { classLabel, roll, admission } = getSubmissionDetails(sub);
 
             return (
               <Link
@@ -672,10 +713,10 @@ export default function SubmissionsPage() {
                   <div className="flex items-center gap-3">
                     <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                     <div>
-                      <p className="text-sm font-medium">{sub.studentName}</p>
+                      <p className="text-sm font-medium">{studentLabel}</p>
                       <p className="text-muted-foreground text-xs">
-                        Roll: {sub.rollNumber}
-                        {sub.classId && ` | Class: ${sub.classId}`}
+                        Roll: {roll} · Class: {classLabel}
+                        {admission ? ` · Adm: ${admission}` : ""}
                       </p>
                     </div>
                   </div>

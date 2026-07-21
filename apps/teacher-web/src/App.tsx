@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { PageLoader, RouteErrorBoundary } from "@levelup/shared-ui";
 import AuthLayout from "./layouts/AuthLayout";
 import AppLayout from "./layouts/AppLayout";
@@ -18,7 +18,6 @@ const GradingReviewPage = lazy(() => import("./pages/exams/GradingReviewPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const ClassAnalyticsPage = lazy(() => import("./pages/ClassAnalyticsPage"));
 const ExamAnalyticsPage = lazy(() => import("./pages/ExamAnalyticsPage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
 const ClassesPage = lazy(() => import("./pages/ClassesPage"));
@@ -28,7 +27,9 @@ const SpaceAnalyticsPage = lazy(() => import("./pages/SpaceAnalyticsPage"));
 const AssignmentTrackerPage = lazy(() => import("./pages/AssignmentTrackerPage"));
 const StudentReportPage = lazy(() => import("./pages/StudentReportPage"));
 const ClassTestAnalyticsPage = lazy(() => import("./pages/ClassTestAnalyticsPage"));
-const RubricPresetsPage = lazy(() => import("./pages/RubricPresetsPage"));
+const AiSettingsPage = lazy(() => import("./pages/AiSettingsPage"));
+const StudentAnalyticsPage = lazy(() => import("./pages/StudentAnalyticsPage"));
+const ParentsPage = lazy(() => import("./pages/ParentsPage"));
 const TestPreviewPage = lazy(() => import("./pages/TestPreviewPage"));
 const BatchGradingPage = lazy(() => import("./pages/BatchGradingPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
@@ -70,6 +71,14 @@ export default function App() {
               }
             />
             <Route
+              path="/spaces/:spaceId/modules/:storyPointId/preview"
+              element={
+                <RouteErrorBoundary>
+                  <TestPreviewPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
               path="/spaces/:spaceId/story-points/:storyPointId/preview"
               element={
                 <RouteErrorBoundary>
@@ -87,13 +96,15 @@ export default function App() {
               }
             /> */}
             <Route
-              path="/rubric-presets"
+              path="/ai-settings"
               element={
                 <RouteErrorBoundary>
-                  <RubricPresetsPage />
+                  <AiSettingsPage />
                 </RouteErrorBoundary>
               }
             />
+            <Route path="/rubric-presets" element={<Navigate to="/ai-settings" replace />} />
+            <Route path="/settings" element={<Navigate to="/ai-settings" replace />} />
             {/* Exams */}
             <Route
               path="/exams"
@@ -154,6 +165,14 @@ export default function App() {
             />
             {/* Analytics */}
             <Route
+              path="/analytics/students"
+              element={
+                <RouteErrorBoundary>
+                  <StudentAnalyticsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
               path="/analytics/classes"
               element={
                 <RouteErrorBoundary>
@@ -205,6 +224,14 @@ export default function App() {
             />
             {/* Students */}
             <Route
+              path="/parents"
+              element={
+                <RouteErrorBoundary>
+                  <ParentsPage />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
               path="/students"
               element={
                 <RouteErrorBoundary>
@@ -217,14 +244,6 @@ export default function App() {
               element={
                 <RouteErrorBoundary>
                   <StudentReportPage />
-                </RouteErrorBoundary>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <RouteErrorBoundary>
-                  <SettingsPage />
                 </RouteErrorBoundary>
               }
             />

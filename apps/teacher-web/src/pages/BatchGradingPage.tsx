@@ -39,6 +39,8 @@ const FILTER_OPTIONS: { value: GradingFilter; label: string }[] = [
 
 const PAGE_SIZE = 10;
 
+// TODO(#teacher-batch-grading-ux): bulk approve from queue, keyboard nav, and inline confidence filters
+
 function getStatusBadge(status: string) {
   switch (status) {
     case "grading_complete":
@@ -82,6 +84,8 @@ interface SubRow {
   examId: string;
   studentId?: string;
   studentName?: string;
+  rollNumber?: string;
+  classId?: string;
   pipelineStatus: string;
   resultsReleased?: boolean;
   summary?: { totalScore?: number; maxScore?: number; percentage?: number | null };
@@ -280,8 +284,9 @@ export default function BatchGradingPage() {
                       </p>
                       {getStatusBadge(sub.pipelineStatus)}
                     </div>
-                    <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+                    <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       <span>{getExamTitle(sub.examId)}</span>
+                      {sub.rollNumber && <span>Roll: {sub.rollNumber}</span>}
                       {sub.summary?.totalScore !== undefined &&
                         sub.summary.maxScore !== undefined && (
                           <span className="font-medium">

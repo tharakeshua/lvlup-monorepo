@@ -8,6 +8,7 @@ import {
   useQuestionSubmissions,
   useGradeManual,
   useAiGradeQuestion,
+  useClasses,
 } from "@levelup/query";
 import { useAuthSession } from "../../sdk/session";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
@@ -111,6 +112,11 @@ export default function GradingReviewPage() {
   const { data: questionSubsData, refetch: refetchQuestionSubs } = useQuestionSubmissions(
     submissionId ?? ""
   );
+  const { data: classesData } = useClasses();
+  const classNameById = useMemo(() => {
+    const classes = asArray<{ id: string; name: string }>(classesData);
+    return Object.fromEntries(classes.map((c) => [c.id, c.name]));
+  }, [classesData]);
   const gradeManual = useGradeManual();
   const aiGradeQuestion = useAiGradeQuestion();
 
@@ -138,7 +144,9 @@ export default function GradingReviewPage() {
 
   // Seed local question state from the query (exam questions don't change during grading).
   useEffect(() => {
-    setQuestions(asArray<ExamQuestion>(questionsData));
+    setQuestions(
+      asArray<ExamQuestion>(questionsData).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    );
   }, [questionsData]);
 
   // Seed submission from the query read. (Was a Firestore onSnapshot; the SDK read
@@ -366,7 +374,7 @@ export default function GradingReviewPage() {
     [submissionId, firebaseUser, questionSubs, gradeManual, refetchSubmission, refetchQuestionSubs]
   );
 
-  // Filter and sort questions based on review filter — prioritize review-needing items
+  // Filter and sort questions — primary sort by question number, then review priority.
   const filteredQuestions = questions
     .filter((q) => {
       if (reviewFilter === "all") return true;
@@ -384,9 +392,11 @@ export default function GradingReviewPage() {
       return true;
     })
     .sort((a, b) => {
+      const orderDiff = (a.order ?? 0) - (b.order ?? 0);
+      if (orderDiff !== 0) return orderDiff;
+
       const qsA = questionSubs.find((s) => s.questionId === a.id);
       const qsB = questionSubs.find((s) => s.questionId === b.id);
-      // Needs review first
       const aReview =
         qsA?.gradingStatus === "needs_review" ||
         (qsA as QuestionSubmission & { reviewSuggested?: boolean })?.reviewSuggested
@@ -398,7 +408,6 @@ export default function GradingReviewPage() {
           ? 1
           : 0;
       if (aReview !== bReview) return bReview - aReview;
-      // Then by confidence (low first)
       const confA = qsA?.evaluation?.confidence ?? 1;
       const confB = qsB?.evaluation?.confidence ?? 1;
       return confA - confB;
@@ -548,8 +557,12 @@ export default function GradingReviewPage() {
               Grading Review — {submission.studentName}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Roll: {submission.rollNumber} &middot; Pipeline:{" "}
-              {submission.pipelineStatus.replace(/_/g, " ")}
+              Roll: {submission.rollNumber || "—"}
+              {submission.classId && (
+                <> · Class: {classNameById[submission.classId] ?? submission.classId}</>
+              )}
+              {" · "}
+              Pipeline: {submission.pipelineStatus.replace(/_/g, " ")}
             </p>
           </div>
         </div>
@@ -861,14 +874,14 @@ export default function GradingReviewPage() {
                               </span>
                             ) : null}
                           </div>
-                          <div className="space-y-2">
+                          <div className="flex gap-2 overflow-x-auto pb-2">
                             {qs.mapping.imageUrls.map((path, idx) => {
                               const url = resolveImage(path);
                               if (url === null) {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex h-48 w-full items-center justify-center rounded border"
+                                    className="bg-muted/40 flex h-48 w-48 shrink-0 items-center justify-center rounded border"
                                   >
                                     <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                                   </div>
@@ -878,12 +891,10 @@ export default function GradingReviewPage() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="bg-muted/40 flex w-full flex-col items-center gap-2 rounded border border-dashed p-6 text-center"
+                                    className="bg-muted/40 flex h-48 w-48 shrink-0 flex-col items-center justify-center gap-2 rounded border border-dashed p-4 text-center"
                                   >
                                     <ImageOff className="text-muted-foreground h-5 w-5" />
-                                    <p className="text-muted-foreground break-all text-[10px]">
-                                      Image unavailable
-                                    </p>
+                                    <p className="text-muted-foreground text-[10px]">Unavailable</p>
                                   </div>
                                 );
                               }
@@ -894,7 +905,7 @@ export default function GradingReviewPage() {
                                   alt={`Answer page ${idx + 1}`}
                                   loading="lazy"
                                   decoding="async"
-                                  className="hover:ring-primary w-full cursor-pointer rounded border object-contain hover:ring-2"
+                                  className="hover:ring-primary h-48 w-auto max-w-[20rem] shrink-0 cursor-pointer rounded border object-contain hover:ring-2"
                                   onClick={() => setLightboxUrl(url)}
                                 />
                               );

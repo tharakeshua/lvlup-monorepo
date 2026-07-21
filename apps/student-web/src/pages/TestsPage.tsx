@@ -6,6 +6,7 @@ import { useStoryPoints } from "../hooks/useStoryPoints";
 import { ClipboardList, Clock, ChevronRight, PlayCircle, CalendarClock, Lock } from "lucide-react";
 import { Skeleton, Badge } from "@levelup/shared-ui";
 import type { StoryPoint } from "@levelup/shared-types";
+import { assessmentScheduleBounds, timestampInputToMillis } from "../lib/timestamp";
 
 function getScheduleStatus(config: StoryPoint["assessmentConfig"]): {
   label: string;
@@ -14,20 +15,15 @@ function getScheduleStatus(config: StoryPoint["assessmentConfig"]): {
   const schedule = config?.schedule;
   if (!schedule) return null;
   const now = Date.now();
-  const startMs = schedule.startAt
-    ? (schedule.startAt as unknown as { seconds: number }).seconds * 1000
-    : null;
-  const endMs = schedule.endAt
-    ? (schedule.endAt as unknown as { seconds: number }).seconds * 1000
-    : null;
+  const { startMs, endMs } = assessmentScheduleBounds(schedule);
 
-  if (startMs && now < startMs) {
+  if (startMs != null && now < startMs) {
     return { label: "Scheduled", variant: "secondary" };
   }
-  if (endMs && now > endMs) {
+  if (endMs != null && now > endMs) {
     return { label: "Closed", variant: "destructive" };
   }
-  if (startMs || endMs) {
+  if (startMs != null || endMs != null) {
     return { label: "Active", variant: "default" };
   }
   return null;
@@ -85,11 +81,16 @@ function TestCard({
           )}
           {qCount != null && <span>{qCount} questions</span>}
           {config?.maxAttempts && <span>Max {config.maxAttempts} attempts</span>}
-          {scheduleStatus?.label === "Scheduled" && config?.schedule?.startAt && (
+          {scheduleStatus?.label === "Scheduled" &&
+            (config?.schedule?.opensAt ??
+              (config?.schedule as { startAt?: unknown })?.startAt) && (
             <span className="text-blue-600 dark:text-blue-400">
               Opens{" "}
               {new Date(
-                (config.schedule.startAt as unknown as { seconds: number }).seconds * 1000
+                timestampInputToMillis(
+                  config.schedule.opensAt ??
+                    (config.schedule as { startAt?: unknown }).startAt
+                ) ?? Date.now()
               ).toLocaleDateString()}
             </span>
           )}

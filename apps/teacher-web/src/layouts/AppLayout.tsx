@@ -30,11 +30,10 @@ import {
   CheckSquare,
   BarChart3,
   Users,
-  Settings,
-  ListChecks,
-  Library,
-  Ruler,
   GraduationCap,
+  Sparkles,
+  UserRound,
+  LineChart,
 } from "lucide-react";
 
 export default function AppLayout() {
@@ -54,7 +53,7 @@ export default function AppLayout() {
 
   const navGroups: NavGroup[] = [
     {
-      label: "Overview",
+      label: "Teaching",
       items: [
         {
           title: "Dashboard",
@@ -62,24 +61,6 @@ export default function AppLayout() {
           icon: LayoutDashboard,
           isActive: location.pathname === "/",
         },
-      ],
-    },
-    {
-      label: "Content",
-      items: [
-        {
-          title: "Spaces",
-          url: "/spaces",
-          icon: BookOpen,
-          isActive: location.pathname.startsWith("/spaces"),
-        },
-        // TODO(question-bank): re-enable when module returns
-        // {
-        //   title: "Question Bank",
-        //   url: "/question-bank",
-        //   icon: Library,
-        //   isActive: location.pathname === "/question-bank",
-        // },
         {
           title: "Exams",
           url: "/exams",
@@ -87,16 +68,13 @@ export default function AppLayout() {
           isActive: location.pathname.startsWith("/exams"),
         },
         {
-          title: "Rubric Presets",
-          url: "/rubric-presets",
-          icon: Ruler,
-          isActive: location.pathname === "/rubric-presets",
-        },
-        {
-          title: "Assignments",
-          url: "/assignments",
-          icon: ListChecks,
-          isActive: location.pathname.startsWith("/assignments"),
+          title: "AI Settings",
+          url: "/ai-settings",
+          icon: Sparkles,
+          isActive:
+            location.pathname.startsWith("/ai-settings") ||
+            location.pathname.startsWith("/rubric-presets") ||
+            location.pathname.startsWith("/settings"),
         },
         {
           title: "Batch Grading",
@@ -110,15 +88,15 @@ export default function AppLayout() {
       label: "Analytics",
       items: [
         {
-          title: "Class Analytics",
-          url: "/analytics/classes",
-          icon: BarChart3,
-          isActive: location.pathname.startsWith("/analytics/classes"),
+          title: "Student Analytics",
+          url: "/analytics/students",
+          icon: LineChart,
+          isActive: location.pathname.startsWith("/analytics/students"),
         },
         {
           title: "Exam Analytics",
           url: "/analytics/exams",
-          icon: CheckSquare,
+          icon: ClipboardList,
           isActive: location.pathname.startsWith("/analytics/exams"),
         },
         {
@@ -126,6 +104,12 @@ export default function AppLayout() {
           url: "/analytics/spaces",
           icon: BookOpen,
           isActive: location.pathname.startsWith("/analytics/spaces"),
+        },
+        {
+          title: "Class Analytics",
+          url: "/analytics/classes",
+          icon: BarChart3,
+          isActive: location.pathname.startsWith("/analytics/classes"),
         },
       ],
     },
@@ -142,18 +126,14 @@ export default function AppLayout() {
           title: "Students",
           url: "/students",
           icon: Users,
-          isActive: location.pathname === "/students",
+          isActive:
+            location.pathname === "/students" || location.pathname.startsWith("/students/"),
         },
-      ],
-    },
-    {
-      label: "System",
-      items: [
         {
-          title: "Settings",
-          url: "/settings",
-          icon: Settings,
-          isActive: location.pathname.startsWith("/settings"),
+          title: "Parents",
+          url: "/parents",
+          icon: UserRound,
+          isActive: location.pathname.startsWith("/parents"),
         },
       ],
     },
@@ -230,28 +210,28 @@ export default function AppLayout() {
   const mobileNavItems: MobileNavItem[] = [
     { icon: LayoutDashboard, label: "Home", to: "/", isActive: location.pathname === "/" },
     {
-      icon: BookOpen,
-      label: "Spaces",
-      to: "/spaces",
-      isActive: location.pathname.startsWith("/spaces"),
-    },
-    {
       icon: ClipboardList,
       label: "Exams",
       to: "/exams",
       isActive: location.pathname.startsWith("/exams"),
     },
     {
+      icon: CheckSquare,
+      label: "Grading",
+      to: "/grading",
+      isActive: location.pathname === "/grading",
+    },
+    {
+      icon: LineChart,
+      label: "Analytics",
+      to: "/analytics/students",
+      isActive: location.pathname.startsWith("/analytics"),
+    },
+    {
       icon: Users,
       label: "Students",
       to: "/students",
-      isActive: location.pathname === "/students",
-    },
-    {
-      icon: BarChart3,
-      label: "Analytics",
-      to: "/analytics/classes",
-      isActive: location.pathname.startsWith("/analytics"),
+      isActive: location.pathname.startsWith("/students"),
     },
   ];
 

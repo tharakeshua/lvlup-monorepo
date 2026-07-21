@@ -57,6 +57,93 @@ async function buildQuestionOrderFromItems(
 /** Default session window (overridable per story point). */
 const DEFAULT_SESSION_MINUTES = 30;
 
+function readAssessmentConfig(sp: Doc): Doc {
+  const raw = sp["assessmentConfig"];
+  return raw && typeof raw === "object" ? (raw as Doc) : {};
+}
+
+function readDurationMinutes(sp: Doc): number {
+  const ac = readAssessmentConfig(sp);
+  return optInt(ac["durationMinutes"]) ?? optInt(sp["durationMinutes"]) ?? DEFAULT_SESSION_MINUTES;
+}
+
+function readScheduleBounds(sp: Doc): { startMs: number | null; endMs: number | null } {
+  const schedule = readAssessmentConfig(sp)["schedule"] as Doc | undefined;
+  if (!schedule) return { startMs: null, endMs: null };
+  const openRaw = schedule["opensAt"] ?? schedule["startAt"];
+  const closeRaw = schedule["closesAt"] ?? schedule["endAt"];
+  const startMs = openRaw != null ? Date.parse(tsOrNull(openRaw) ?? "") : null;
+  const endMs = closeRaw != null ? Date.parse(tsOrNull(closeRaw) ?? "") : null;
+  return {
+    startMs: startMs != null && !Number.isNaN(startMs) ? startMs : null,
+    endMs: endMs != null && !Number.isNaN(endMs) ? endMs : null,
+  };
+}
+
+function assertTimedTestPreconditions(
+  storyPoint: Doc,
+  sessionType: string,
+  completedSessions: Doc[],
+  nowMs: number
+): void {
+  const ac = readAssessmentConfig(storyPoint);
+  const durationMinutes = readDurationMinutes(storyPoint);
+  if (sessionType === "timed_test" && durationMinutes <= 0) {
+    fail("FAILED_PRECONDITION", "Timed test must have a duration configured");
+  }
+
+  const { startMs, endMs } = readScheduleBounds(storyPoint);
+  if (startMs != null && startMs > nowMs) {
+    fail("FAILED_PRECONDITION", "This test is not available yet");
+  }
+  if (endMs != null && endMs < nowMs) {
+    fail("FAILED_PRECONDITION", "This test is no longer available");
+  }
+
+  const maxAttempts = optInt(ac["maxAttempts"]) ?? 0;
+  const completedAttempts = completedSessions.filter((s) => {
+    const status = s["status"];
+    return status === "completed" || status === "expired";
+  }).length;
+  if (maxAttempts > 0 && completedAttempts >= maxAttempts) {
+    fail("FAILED_PRECONDITION", `Maximum attempts (${maxAttempts}) reached`);
+  }
+
+  const retryConfig = ac["retryConfig"] as Doc | undefined;
+  if (retryConfig && completedAttempts > 0) {
+    const completedDocs = completedSessions
+      .filter((s) => {
+        const status = s["status"];
+        return status === "completed" || status === "expired";
+      })
+      .sort((a, b) => {
+        const aEnd = tsOrNull(a["endedAt"]) ? Date.parse(tsOrNull(a["endedAt"])!) : 0;
+        const bEnd = tsOrNull(b["endedAt"]) ? Date.parse(tsOrNull(b["endedAt"])!) : 0;
+        return bEnd - aEnd;
+      });
+
+    if (retryConfig["lockAfterPassing"]) {
+      const passingPct = optNum(ac["passingPercentage"]) ?? 0;
+      const hasPassed = completedDocs.some((d) => (optNum(d["percentage"]) ?? 0) >= passingPct);
+      if (hasPassed) {
+        fail("FAILED_PRECONDITION", "You have already passed this test");
+      }
+    }
+
+    const cooldownMinutes = optInt(retryConfig["cooldownMinutes"]);
+    if (cooldownMinutes && completedDocs.length > 0) {
+      const lastEnded = tsOrNull(completedDocs[0]!["endedAt"]);
+      if (lastEnded) {
+        const cooldownEnd = Date.parse(lastEnded) + cooldownMinutes * 60 * 1000;
+        if (nowMs < cooldownEnd) {
+          const minutesLeft = Math.ceil((cooldownEnd - nowMs) / 60000);
+          fail("FAILED_PRECONDITION", `Please wait ${minutesLeft} minute(s) before retrying`);
+        }
+      }
+    }
+  }
+}
+
 // ── canonical contract-view projections (LVL-1) ───────────────────────────────
 // STRICT KEY WHITELISTS against DigitalTestSessionSchema (`.strict()`) /
 // DigitalTestSessionSummaryView so raw doc keys never leak. Legacy drift
@@ -212,16 +299,23 @@ export async function startTestSessionService(
   const storyPoint = await ctx.repos.storyPoints.get(tenantId, input.storyPointId);
   if (!storyPoint) fail("NOT_FOUND", "story point not found");
 
-  const now = ctx.now();
-  const durationMin =
-    (storyPoint["durationMinutes"] as number | undefined) ?? DEFAULT_SESSION_MINUTES;
-  const serverDeadline = new Date(Date.parse(now) + durationMin * 60 * 1000).toISOString();
-
-  // Compute the prior attempt count for attemptNumber + isLatest authority.
+  const sessionType = storyPointTypeToSessionType((storyPoint["type"] as string) ?? "practice");
   const priors = await ctx.repos.testSessions.list(tenantId, {
     where: { userId: ctx.uid, spaceId: input.spaceId, storyPointId: input.storyPointId },
     limit: 200,
   });
+  assertTimedTestPreconditions(
+    storyPoint as Doc,
+    sessionType,
+    priors.items as Doc[],
+    Date.parse(ctx.now())
+  );
+
+  const now = ctx.now();
+  const durationMin = readDurationMinutes(storyPoint as Doc);
+  const serverDeadline = new Date(Date.parse(now) + durationMin * 60 * 1000).toISOString();
+
+  // Compute the prior attempt count for attemptNumber + isLatest authority.
 
   // Question set = the story point's QUESTION items (drives totalQuestions + questionOrder).
   const questionOrder = await buildQuestionOrderFromItems(
@@ -239,7 +333,7 @@ export async function startTestSessionService(
     userId: ctx.uid,
     spaceId: input.spaceId,
     storyPointId: input.storyPointId,
-    sessionType: storyPointTypeToSessionType((storyPoint["type"] as string) ?? "practice"),
+    sessionType,
     status: "in_progress",
     attemptNumber: priors.items.length + 1,
     isLatest: true,
